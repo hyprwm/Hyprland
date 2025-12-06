@@ -15,7 +15,7 @@
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../xwayland/XSurface.hpp"
-#include "../desktop/view/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/PointerManager.hpp"

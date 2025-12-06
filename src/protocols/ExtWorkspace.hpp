@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WaylandProtocol.hpp"
-#include "../desktop/view/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "ext-workspace-v1.hpp"
 #include <cstdint>
 #include <vector>

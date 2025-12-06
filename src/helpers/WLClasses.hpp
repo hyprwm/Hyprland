@@ -5,7 +5,7 @@
 #include "../desktop/view/Popup.hpp"
 #include "../desktop/view/WLSurface.hpp"
 #include "../macros.hpp"
-#include "../desktop/view/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "memory/Memory.hpp"
 #include "signal/Signal.hpp"
 

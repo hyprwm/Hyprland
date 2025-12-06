@@ -11,7 +11,7 @@
 #include <any>
 #include <bit>
 #include <string_view>
-#include "../Window.hpp"
+#include "Window.hpp"
 #include "../state/FocusState.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/decorations/CHyprDropShadowDecoration.hpp"
@@ -44,6 +44,9 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
 using enum NContentType::eContentType;
+
+using namespace Desktop;
+using namespace Desktop::View;
 
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));

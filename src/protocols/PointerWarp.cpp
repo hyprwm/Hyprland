@@ -1,7 +1,7 @@
 #include "PointerWarp.hpp"
 #include "core/Compositor.hpp"
 #include "core/Seat.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../desktop/view/Window.hpp"

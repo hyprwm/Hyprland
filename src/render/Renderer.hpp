@@ -13,7 +13,6 @@
 
 struct SMonitorRule;
 class CWorkspace;
-class CWindow;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;

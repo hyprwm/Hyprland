@@ -2,7 +2,7 @@
 
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/view/Window.hpp"
-#include "../../desktop/view/Workspace.hpp"
+#include "../../desktop/Workspace.hpp"
 
 #include "../../config/ConfigManager.hpp"
 #include "../../Compositor.hpp"

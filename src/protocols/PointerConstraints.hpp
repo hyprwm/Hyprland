@@ -6,10 +6,10 @@
 #include <cstdint>
 #include "WaylandProtocol.hpp"
 #include "pointer-constraints-unstable-v1.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CWLSurface;
 class CWLSurfaceResource;
 
 class CPointerConstraint {
@@ -24,7 +24,7 @@ class CPointerConstraint {
     void           activate();
     bool           isActive();
 
-    SP<CWLSurface> owner();
+    SP<Desktop::View::CWLSurface> owner();
 
     CRegion        logicConstraintRegion();
     bool           isLocked();
@@ -34,7 +34,7 @@ class CPointerConstraint {
     SP<CZwpLockedPointerV1>         m_resourceLocked;
     SP<CZwpConfinedPointerV1>       m_resourceConfined;
 
-    WP<CWLSurface>                  m_hlSurface;
+    WP<Desktop::View::CWLSurface>                  m_hlSurface;
 
     CRegion                         m_region;
     bool                            m_hintSet             = false;

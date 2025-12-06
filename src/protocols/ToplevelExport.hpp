@@ -9,7 +9,6 @@
 #include <vector>
 
 class CMonitor;
-class CWindow;
 
 class CToplevelExportClient {
   public:

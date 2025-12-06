@@ -8,89 +8,92 @@
 
 class CXDGPopupResource;
 
-class CPopup {
-  public:
-    // dummy head nodes
-    static UP<CPopup> create(PHLWINDOW pOwner);
-    static UP<CPopup> create(PHLLS pOwner);
+namespace Desktop::View {
 
-    // real nodes
-    static UP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
+    class CPopup {
+      public:
+        // dummy head nodes
+        static UP<CPopup> create(PHLWINDOW pOwner);
+        static UP<CPopup> create(PHLLS pOwner);
 
-    ~CPopup();
+        // real nodes
+        static UP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
 
-    SP<CWLSurface> getT1Owner();
-    Vector2D       coordsRelativeToParent();
-    Vector2D       coordsGlobal();
-    PHLMONITOR     getMonitor();
+        ~CPopup();
 
-    Vector2D       size();
+        SP<CWLSurface> getT1Owner();
+        Vector2D       coordsRelativeToParent();
+        Vector2D       coordsGlobal();
+        PHLMONITOR     getMonitor();
 
-    void           onNewPopup(SP<CXDGPopupResource> popup);
-    void           onDestroy();
-    void           onMap();
-    void           onUnmap();
-    void           onCommit(bool ignoreSiblings = false);
-    void           onReposition();
+        Vector2D       size();
 
-    void           recheckTree();
+        void           onNewPopup(SP<CXDGPopupResource> popup);
+        void           onDestroy();
+        void           onMap();
+        void           onUnmap();
+        void           onCommit(bool ignoreSiblings = false);
+        void           onReposition();
 
-    bool           visible();
-    bool           inert() const;
+        void           recheckTree();
 
-    // will also loop over this node
-    void       breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data);
-    WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
+        bool           visible();
+        bool           inert() const;
 
-    //
-    SP<CWLSurface> m_wlSurface;
-    WP<CPopup>     m_self;
-    bool           m_mapped = false;
+        // will also loop over this node
+        void       breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data);
+        WP<CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
-    // fade in-out
-    PHLANIMVAR<float> m_alpha;
-    bool              m_fadingOut = false;
+        //
+        SP<CWLSurface> m_wlSurface;
+        WP<CPopup>     m_self;
+        bool           m_mapped = false;
 
-  private:
-    CPopup() = default;
+        // fade in-out
+        PHLANIMVAR<float> m_alpha;
+        bool              m_fadingOut = false;
 
-    // T1 owners, each popup has to have one of these
-    PHLWINDOWREF m_windowOwner;
-    PHLLSREF     m_layerOwner;
+      private:
+        CPopup() = default;
 
-    // T2 owners
-    WP<CPopup>            m_parent;
+        // T1 owners, each popup has to have one of these
+        PHLWINDOWREF m_windowOwner;
+        PHLLSREF     m_layerOwner;
 
-    WP<CXDGPopupResource> m_resource;
+        // T2 owners
+        WP<CPopup>            m_parent;
 
-    Vector2D              m_lastSize = {};
-    Vector2D              m_lastPos  = {};
+        WP<CXDGPopupResource> m_resource;
 
-    bool                  m_requestedReposition = false;
+        Vector2D              m_lastSize = {};
+        Vector2D              m_lastPos  = {};
 
-    bool                  m_inert = false;
+        bool                  m_requestedReposition = false;
 
-    //
-    std::vector<UP<CPopup>> m_children;
-    UP<CSubsurface>         m_subsurfaceHead;
+        bool                  m_inert = false;
 
-    struct {
-        CHyprSignalListener newPopup;
-        CHyprSignalListener destroy;
-        CHyprSignalListener map;
-        CHyprSignalListener unmap;
-        CHyprSignalListener commit;
-        CHyprSignalListener dismissed;
-        CHyprSignalListener reposition;
-    } m_listeners;
+        //
+        std::vector<UP<CPopup>> m_children;
+        UP<CSubsurface>         m_subsurfaceHead;
 
-    void        initAllSignals();
-    void        reposition();
-    void        recheckChildrenRecursive();
-    void        sendScale();
-    void        fullyDestroy();
+        struct {
+            CHyprSignalListener newPopup;
+            CHyprSignalListener destroy;
+            CHyprSignalListener map;
+            CHyprSignalListener unmap;
+            CHyprSignalListener commit;
+            CHyprSignalListener dismissed;
+            CHyprSignalListener reposition;
+        } m_listeners;
 
-    Vector2D    localToGlobal(const Vector2D& rel);
-    Vector2D    t1ParentCoords();
-    static void bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data);
-};
+        void        initAllSignals();
+        void        reposition();
+        void        recheckChildrenRecursive();
+        void        sendScale();
+        void        fullyDestroy();
+
+        Vector2D    localToGlobal(const Vector2D& rel);
+        Vector2D    t1ParentCoords();
+        static void bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data);
+    };
+}

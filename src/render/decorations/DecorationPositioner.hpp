@@ -4,9 +4,8 @@
 #include <vector>
 #include <map>
 #include "../../helpers/math/Math.hpp"
-#include "../../desktop/view/DesktopTypes.hpp"
+#include "../../desktop/DesktopTypes.hpp"
 
-class CWindow;
 class IHyprWindowDecoration;
 
 enum eDecorationPositioningPolicy : uint8_t {

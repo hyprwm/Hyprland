@@ -2,7 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../HookSystemManager.hpp"
 #include "../../config/ConfigManager.hpp"
-#include "../../desktop/view/DesktopTypes.hpp"
+#include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../macros.hpp"
 #include "../../config/ConfigValue.hpp"

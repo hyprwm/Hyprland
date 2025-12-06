@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../view/DesktopTypes.hpp"
+#include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"

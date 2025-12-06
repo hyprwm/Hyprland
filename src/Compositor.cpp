@@ -3,7 +3,7 @@
 
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
-#include "desktop/view/DesktopTypes.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "desktop/state/FocusState.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"

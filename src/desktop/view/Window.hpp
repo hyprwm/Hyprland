@@ -377,6 +377,12 @@ namespace Desktop::View {
 
       private:
         std::optional<double> calculateSingleExpr(const std::string& s);
+        void                  mapWindow();
+        void                  unmapWindow();
+        void                  commitWindow();
+        void                  destroyWindow();
+        void                  activateX11();
+        void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff
         bool        m_hidden        = false;

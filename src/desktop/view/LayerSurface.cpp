@@ -1,7 +1,6 @@
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
 #include "../../Compositor.hpp"
-#include "../../events/Events.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../managers/SeatManager.hpp"

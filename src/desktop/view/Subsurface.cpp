@@ -1,5 +1,4 @@
 #include "Subsurface.hpp"
-#include "../../events/Events.hpp"
 #include "../state/FocusState.hpp"
 #include "Window.hpp"
 #include "../../config/ConfigValue.hpp"

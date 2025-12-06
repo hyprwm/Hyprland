@@ -1,7 +1,6 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../protocols/XDGShell.hpp"

@@ -1,4 +1,4 @@
-#include "../LayerSurface.hpp"
+#include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
 #include "../../Compositor.hpp"
 #include "../../events/Events.hpp"
@@ -13,6 +13,9 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
+
+using namespace Desktop;
+using namespace Desktop::View;
 
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));

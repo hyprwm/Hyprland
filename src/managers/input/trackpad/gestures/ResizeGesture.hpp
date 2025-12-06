@@ -2,7 +2,7 @@
 
 #include "ITrackpadGesture.hpp"
 
-#include "../../../../desktop/view/DesktopTypes.hpp"
+#include "../../../../desktop/DesktopTypes.hpp"
 
 class CResizeTrackpadGesture : public ITrackpadGesture {
   public:

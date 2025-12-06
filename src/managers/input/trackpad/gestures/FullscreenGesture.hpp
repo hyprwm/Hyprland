@@ -2,8 +2,8 @@
 
 #include "ITrackpadGesture.hpp"
 
-#include "../../../../desktop/view/DesktopTypes.hpp"
-#include "../../../../desktop/view/Workspace.hpp"
+#include "../../../../desktop/DesktopTypes.hpp"
+#include "../../../../desktop/Workspace.hpp"
 
 class CFullscreenTrackpadGesture : public ITrackpadGesture {
   public:

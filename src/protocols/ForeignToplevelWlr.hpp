@@ -4,7 +4,6 @@
 #include "WaylandProtocol.hpp"
 #include "wlr-foreign-toplevel-management-unstable-v1.hpp"
 
-class CWindow;
 class CMonitor;
 
 class CForeignToplevelHandleWlr {

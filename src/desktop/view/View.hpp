@@ -1,0 +1,30 @@
+#pragma once
+
+#include "WLSurface.hpp"
+#include "../../helpers/math/Math.hpp"
+
+namespace Desktop::View {
+    enum eViewType : uint8_t {
+        VIEW_TYPE_WINDOW = 0,
+        VIEW_TYPE_SUBSURFACE,
+        VIEW_TYPE_POPUP,
+        VIEW_TYPE_LAYER_SURFACE,
+        VIEW_TYPE_LOCK_SCREEN,
+    };
+
+    class IView {
+      public:
+        virtual ~IView() = default;
+
+        virtual SP<CWLSurface>         wlSurface() const;
+        virtual SP<CWLSurfaceResource> resource() const;
+        virtual eViewType              type() const       = 0;
+        virtual bool                   visible() const    = 0;
+        virtual std::optional<CBox>    logicalBox() const = 0;
+
+      protected:
+        IView(SP<CWLSurface> pWlSurface);
+
+        SP<CWLSurface> m_wlSurface;
+    };
+};

@@ -4,121 +4,124 @@
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/signal/Signal.hpp"
 
-class CSubsurface;
-class CPopup;
 class CPointerConstraint;
 class CWLSurfaceResource;
 
-class CWLSurface {
-  public:
-    static SP<CWLSurface> create() {
-        auto p    = SP<CWLSurface>(new CWLSurface);
-        p->m_self = p;
-        return p;
-    }
-    ~CWLSurface();
+namespace Desktop::View {
+    class CSubsurface;
+    class CPopup;
 
-    // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
-    void assign(SP<CWLSurfaceResource> pSurface);
-    void assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner);
-    void assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner);
-    void assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner);
-    void assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner);
-    void unassign();
+    class CWLSurface {
+      public:
+        static SP<CWLSurface> create() {
+            auto p    = SP<CWLSurface>(new CWLSurface);
+            p->m_self = p;
+            return p;
+        }
+        ~CWLSurface();
 
-    CWLSurface(const CWLSurface&)                       = delete;
-    CWLSurface(CWLSurface&&)                            = delete;
-    CWLSurface&            operator=(const CWLSurface&) = delete;
-    CWLSurface&            operator=(CWLSurface&&)      = delete;
+        // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
+        void assign(SP<CWLSurfaceResource> pSurface);
+        void assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner);
+        void assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner);
+        void assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner);
+        void assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner);
+        void unassign();
 
-    SP<CWLSurfaceResource> resource() const;
-    bool                   exists() const;
-    bool                   small() const;              // means surface is smaller than the requested size
-    Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
-    Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
-    Vector2D               getViewporterCorrectedSize() const;
-    CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
-    bool                   visible();
-    bool                   keyboardFocusable() const;
+        CWLSurface(const CWLSurface&)                       = delete;
+        CWLSurface(CWLSurface&&)                            = delete;
+        CWLSurface&            operator=(const CWLSurface&) = delete;
+        CWLSurface&            operator=(CWLSurface&&)      = delete;
 
-    // getters for owners.
-    PHLWINDOW    getWindow() const;
-    PHLLS        getLayer() const;
-    CPopup*      getPopup() const;
-    CSubsurface* getSubsurface() const;
+        SP<CWLSurfaceResource> resource() const;
+        bool                   exists() const;
+        bool                   small() const;              // means surface is smaller than the requested size
+        Vector2D               correctSmallVec() const;    // returns a corrective vector for small() surfaces
+        Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
+        Vector2D               getViewporterCorrectedSize() const;
+        CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
+        bool                   visible();
+        bool                   keyboardFocusable() const;
 
-    // desktop components misc utils
-    std::optional<CBox>    getSurfaceBoxGlobal() const;
-    void                   appendConstraint(WP<CPointerConstraint> constraint);
-    SP<CPointerConstraint> constraint() const;
+        // getters for owners.
+        PHLWINDOW    getWindow() const;
+        PHLLS        getLayer() const;
+        CPopup*      getPopup() const;
+        CSubsurface* getSubsurface() const;
 
-    // allow stretching. Useful for plugins.
-    bool m_fillIgnoreSmall = false;
+        // desktop components misc utils
+        std::optional<CBox>    getSurfaceBoxGlobal() const;
+        void                   appendConstraint(WP<CPointerConstraint> constraint);
+        SP<CPointerConstraint> constraint() const;
 
-    // track surface data and avoid dupes
-    float               m_lastScaleFloat = 0;
-    int                 m_lastScaleInt   = 0;
-    wl_output_transform m_lastTransform  = sc<wl_output_transform>(-1);
+        // allow stretching. Useful for plugins.
+        bool m_fillIgnoreSmall = false;
 
-    //
-    CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {
-        destroy();
-        m_resource = pSurface;
-        init();
+        // track surface data and avoid dupes
+        float               m_lastScaleFloat = 0;
+        int                 m_lastScaleInt   = 0;
+        wl_output_transform m_lastTransform  = sc<wl_output_transform>(-1);
 
-        return *this;
-    }
+        //
+        CWLSurface& operator=(SP<CWLSurfaceResource> pSurface) {
+            destroy();
+            m_resource = pSurface;
+            init();
 
-    bool operator==(const CWLSurface& other) const {
-        return other.resource() == resource();
-    }
+            return *this;
+        }
 
-    bool operator==(const SP<CWLSurfaceResource> other) const {
-        return other == resource();
-    }
+        bool operator==(const CWLSurface& other) const {
+            return other.resource() == resource();
+        }
 
-    explicit operator bool() const {
-        return exists();
-    }
+        bool operator==(const SP<CWLSurfaceResource> other) const {
+            return other == resource();
+        }
 
-    static SP<CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
+        explicit operator bool() const {
+            return exists();
+        }
 
-    // used by the alpha-modifier protocol
-    float m_alphaModifier = 1.F;
+        static SP<CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
 
-    // used by the hyprland-surface protocol
-    float   m_overallOpacity = 1.F;
-    CRegion m_visibleRegion;
+        // used by the alpha-modifier protocol
+        float m_alphaModifier = 1.F;
 
-    struct {
-        CSignalT<> destroy;
-    } m_events;
+        // used by the hyprland-surface protocol
+        float   m_overallOpacity = 1.F;
+        CRegion m_visibleRegion;
 
-    WP<CWLSurface> m_self;
+        struct {
+            CSignalT<> destroy;
+        } m_events;
 
-  private:
-    CWLSurface() = default;
+        WP<CWLSurface> m_self;
 
-    bool                   m_inert = true;
+      private:
+        CWLSurface() = default;
 
-    WP<CWLSurfaceResource> m_resource;
+        bool                   m_inert = true;
 
-    PHLWINDOWREF           m_windowOwner;
-    PHLLSREF               m_layerOwner;
-    CPopup*                m_popupOwner      = nullptr;
-    CSubsurface*           m_subsurfaceOwner = nullptr;
+        WP<CWLSurfaceResource> m_resource;
 
-    //
-    WP<CPointerConstraint> m_constraint;
+        PHLWINDOWREF           m_windowOwner;
+        PHLLSREF               m_layerOwner;
+        CPopup*                m_popupOwner      = nullptr;
+        CSubsurface*           m_subsurfaceOwner = nullptr;
 
-    void                   destroy();
-    void                   init();
-    bool                   desktopComponent() const;
+        //
+        WP<CPointerConstraint> m_constraint;
 
-    struct {
-        CHyprSignalListener destroy;
-    } m_listeners;
+        void                   destroy();
+        void                   init();
+        bool                   desktopComponent() const;
 
-    friend class CPointerConstraint;
-    friend class CXxColorManagerV4;
-};
+        struct {
+            CHyprSignalListener destroy;
+        } m_listeners;
+
+        friend class ::CPointerConstraint;
+        friend class CXxColorManagerV4;
+    };
+}

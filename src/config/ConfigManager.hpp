@@ -17,7 +17,7 @@
 #include "ConfigDataValues.hpp"
 #include "../SharedDefs.hpp"
 #include "../helpers/Color.hpp"
-#include "../desktop/view/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../managers/XWaylandManager.hpp"

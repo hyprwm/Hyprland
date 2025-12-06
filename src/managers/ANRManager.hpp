@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../helpers/memory/Memory.hpp"
-#include "../desktop/view/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>

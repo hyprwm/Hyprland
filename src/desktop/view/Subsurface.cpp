@@ -1,4 +1,4 @@
-#include "../Subsurface.hpp"
+#include "Subsurface.hpp"
 #include "../../events/Events.hpp"
 #include "../state/FocusState.hpp"
 #include "Window.hpp"
@@ -7,6 +7,9 @@
 #include "../../protocols/core/Subcompositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
+
+using namespace Desktop;
+using namespace Desktop::View;
 
 UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
     auto subsurface            = UP<CSubsurface>(new CSubsurface());

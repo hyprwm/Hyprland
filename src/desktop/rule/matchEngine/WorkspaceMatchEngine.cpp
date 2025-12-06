@@ -1,5 +1,5 @@
 #include "WorkspaceMatchEngine.hpp"
-#include "../../view/Workspace.hpp"
+#include "../../Workspace.hpp"
 
 using namespace Desktop::Rule;
 

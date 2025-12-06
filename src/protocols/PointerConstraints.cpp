@@ -1,5 +1,5 @@
 #include "PointerConstraints.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../config/ConfigValue.hpp"

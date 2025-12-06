@@ -1,4 +1,4 @@
-#include "../Popup.hpp"
+#include "Popup.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../Compositor.hpp"
@@ -12,6 +12,9 @@
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include <ranges>
+
+using namespace Desktop;
+using namespace Desktop::View;
 
 UP<CPopup> CPopup::create(PHLWINDOW pOwner) {
     auto popup           = UP<CPopup>(new CPopup());

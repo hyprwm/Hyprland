@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Rule.hpp"
-#include "../../view/DesktopTypes.hpp"
+#include "../../DesktopTypes.hpp"
 #include "LayerRuleEffectContainer.hpp"
 
 namespace Desktop::Rule {

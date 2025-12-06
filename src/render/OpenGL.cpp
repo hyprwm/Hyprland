@@ -850,9 +850,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     pushMonitorTransformEnabled(false);
 }
 
-void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_renderData) {
+void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_renderData, bool& isStartOfZoomSession) {
     auto m = m_renderData.pMonitor;
-    if (m->m_zoomAnimProgress->isBeingAnimated()) // ignore initial hyprland zoom
+    if (m->m_zoomAnimProgress->value() != 1.0)
         return;
     auto        monbox             = CBox(0, 0, m->m_size.x, m->m_size.y);
     auto        zoom               = m_renderData.mouseZoomFactor;
@@ -865,7 +865,14 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
     mouse.x -= m->m_position.x;
     mouse.y -= m->m_position.y;
 
+    static bool zoomAloneBrokeUs = false;
+
     if (previousZoomChange != zoom) {
+        if (isStartOfZoomSession) {
+            isStartOfZoomSession = false;
+            camerabox            = CBox(0, 0, m->m_size.x, m->m_size.y);
+            previousZoomChange   = 1.0f;
+        }
         const CBox old = camerabox;
 
         // mouse normalized inside screen (0..1)
@@ -880,11 +887,18 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
 
         camerabox          = CBox(newX, newY, cameraW, cameraH);
         previousZoomChange = zoom;
+
+        if (!camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
+            zoomAloneBrokeUs = true;
     }
 
     // Keep mouse in cameraview
     auto smallerbox = camerabox;
-    smallerbox.scaleFromCenter(.9); // Some padding so mouse doesn't have to leave view
+    if (zoomAloneBrokeUs)
+        if (smallerbox.copy().scaleFromCenter(.9).containsPoint(mouse))
+            zoomAloneBrokeUs = false;
+    if (!zoomAloneBrokeUs)
+        smallerbox.scaleFromCenter(.9);
     if (!smallerbox.containsPoint(mouse)) {
         if (mouse.x < smallerbox.x)
             camerabox.x -= smallerbox.x - mouse.x;
@@ -914,7 +928,8 @@ void CHyprOpenGLImpl::end() {
         m_renderData.damage = m_renderData.finalDamage;
         pushMonitorTransformEnabled(true);
 
-        CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+        static bool isStartOfZoomSession = true;
+        CBox        monbox               = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
         if (m_renderData.mouseZoomFactor != 1.f) {
             const auto ZOOMCENTER = m_renderData.mouseZoomUseMouse ?
@@ -924,7 +939,7 @@ void CHyprOpenGLImpl::end() {
             monbox.translate(-ZOOMCENTER).scale(m_renderData.mouseZoomFactor).translate(*PZOOMRIGID ? m_renderData.pMonitor->m_transformedSize / 2.0 : ZOOMCENTER);
 
             if (*PZOOMDETACHEDCAMERA)
-                zoomWithDetachedCameraInstead(&monbox, m_renderData);
+                zoomWithDetachedCameraInstead(&monbox, m_renderData, isStartOfZoomSession);
 
             monbox.x = std::min(monbox.x, 0.0);
             monbox.y = std::min(monbox.y, 0.0);
@@ -932,6 +947,8 @@ void CHyprOpenGLImpl::end() {
                 monbox.x = m_renderData.pMonitor->m_transformedSize.x - monbox.width;
             if (monbox.y + monbox.height < m_renderData.pMonitor->m_transformedSize.y)
                 monbox.y = m_renderData.pMonitor->m_transformedSize.y - monbox.height;
+        } else {
+            isStartOfZoomSession = true;
         }
 
         m_applyFinalShader = !m_renderData.blockScreenShader;

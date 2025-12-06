@@ -6,7 +6,7 @@
 #include "input-method-unstable-v2.hpp"
 #include "text-input-unstable-v3.hpp"
 #include "../helpers/signal/Signal.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 
 class CInputMethodKeyboardGrabV2;
 class CInputMethodPopupV2;

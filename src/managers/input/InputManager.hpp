@@ -7,6 +7,7 @@
 #include "../../helpers/time/Timer.hpp"
 #include "InputMethodRelay.hpp"
 #include "../../helpers/signal/Signal.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../devices/IKeyboard.hpp"
@@ -15,7 +16,6 @@
 #include "../SeatManager.hpp"
 
 class CPointerConstraint;
-class CWindow;
 class CIdleInhibitor;
 class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
@@ -281,10 +281,10 @@ class CInputManager {
 
     // cursor surface
     struct {
-        bool           hidden = false; // null surface = hidden
-        SP<CWLSurface> wlSurface;
-        Vector2D       vHotspot;
-        std::string    name; // if not empty, means set by name.
+        bool                          hidden = false; // null surface = hidden
+        SP<Desktop::View::CWLSurface> wlSurface;
+        Vector2D                      vHotspot;
+        std::string                   name; // if not empty, means set by name.
     } m_cursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
@@ -303,7 +303,7 @@ class CInputManager {
     uint32_t              m_lastMods = 0;
 
     friend class CKeybindManager;
-    friend class CWLSurface;
+    friend class Desktop::View::CWLSurface;
     friend class CWorkspaceSwipeGesture;
 };
 

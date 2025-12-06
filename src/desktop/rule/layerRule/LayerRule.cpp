@@ -1,6 +1,6 @@
 #include "LayerRule.hpp"
 #include "../../../debug/Log.hpp"
-#include "../../LayerSurface.hpp"
+#include "../../view/LayerSurface.hpp"
 
 using namespace Desktop;
 using namespace Desktop::Rule;

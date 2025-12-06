@@ -13,8 +13,6 @@ enum eFullscreenMode : int8_t {
     FSMODE_MAX        = (1 << 2) - 1
 };
 
-class CWindow;
-
 class CWorkspace {
   public:
     static PHLWORKSPACE create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);

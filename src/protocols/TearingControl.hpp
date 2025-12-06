@@ -3,7 +3,6 @@
 #include "WaylandProtocol.hpp"
 #include "tearing-control-v1.hpp"
 
-class CWindow;
 class CTearingControlProtocol;
 class CWLSurfaceResource;
 

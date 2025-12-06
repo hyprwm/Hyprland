@@ -68,10 +68,8 @@ struct SVersionInfo {
 #endif
 
 class IHyprLayout;
-class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
-class CWindow;
 
 /*
     These methods are for the plugin to implement

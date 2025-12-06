@@ -1,5 +1,5 @@
 #include "HyprlandSurface.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../render/Renderer.hpp"
 #include "core/Compositor.hpp"
 #include "hyprland-surface-v1.hpp"
@@ -52,7 +52,7 @@ void CHyprlandSurface::setResource(SP<CHyprlandSurfaceV1> resource) {
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
-        auto surface = CWLSurface::fromResource(m_surface.lock());
+        auto surface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
 
         if (surface && (surface->m_overallOpacity != m_opacity || m_visibleRegionChanged)) {
             surface->m_overallOpacity = m_opacity;

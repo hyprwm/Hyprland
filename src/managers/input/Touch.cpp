@@ -2,7 +2,7 @@
 #include "../SessionLockManager.hpp"
 #include "../../protocols/SessionLock.hpp"
 #include "../../Compositor.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../helpers/Monitor.hpp"

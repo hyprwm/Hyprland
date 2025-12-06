@@ -35,7 +35,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW)
             return;
 
-        if UNLIKELY (PWINDOW->m_suppressedEvents & SUPPRESS_FULLSCREEN)
+        if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN)
             return;
 
         if UNLIKELY (!PWINDOW->m_isMapped) {
@@ -66,7 +66,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW)
             return;
 
-        if UNLIKELY (PWINDOW->m_suppressedEvents & SUPPRESS_FULLSCREEN)
+        if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN)
             return;
 
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_FULLSCREEN, false);
@@ -78,7 +78,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW)
             return;
 
-        if UNLIKELY (PWINDOW->m_suppressedEvents & SUPPRESS_MAXIMIZE)
+        if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_MAXIMIZE)
             return;
 
         if UNLIKELY (!PWINDOW->m_isMapped) {
@@ -95,7 +95,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW)
             return;
 
-        if UNLIKELY (PWINDOW->m_suppressedEvents & SUPPRESS_MAXIMIZE)
+        if UNLIKELY (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_MAXIMIZE)
             return;
 
         g_pCompositor->changeWindowFullscreenModeClient(PWINDOW, FSMODE_MAXIMIZED, false);

@@ -12,7 +12,7 @@
 #include "../xwayland/XWayland.hpp"
 #include "../protocols/OutputManagement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/layerRule/LayerRule.hpp"

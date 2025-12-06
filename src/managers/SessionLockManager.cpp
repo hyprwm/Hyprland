@@ -5,6 +5,7 @@
 #include "../protocols/SessionLock.hpp"
 #include "../render/Renderer.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/view/SessionLock.hpp"
 #include "./managers/SeatManager.hpp"
 #include "./managers/input/InputManager.hpp"
 #include "./managers/eventLoop/EventLoopManager.hpp"
@@ -68,9 +69,11 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     m_sessionLock->listeners.newSurface = pLock->m_events.newLockSurface.listen([this](const SP<CSessionLockSurface>& surface) {
         const auto PMONITOR = surface->monitor();
 
-        const auto NEWSURFACE  = m_sessionLock->vSessionLockSurfaces.emplace_back(makeUnique<SSessionLockSurface>(surface)).get();
+        const auto NEWSURFACE  = m_sessionLock->vSessionLockSurfaces.emplace_back(makeShared<SSessionLockSurface>(surface));
         NEWSURFACE->iMonitorID = PMONITOR->m_id;
         PROTO::fractional->sendScale(surface->surface(), PMONITOR->m_scale);
+
+        g_pCompositor->m_otherViews.emplace_back(Desktop::View::CSessionLock::create(surface));
     });
 
     m_sessionLock->listeners.unlock = pLock->m_events.unlockAndDestroy.listen([this] {

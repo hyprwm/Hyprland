@@ -117,15 +117,13 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     Vector2D    unaccel = e.unaccel;
 
     if (e.device) {
-        if (e.device->m_isTouchpad) {
-            if (e.device->m_flipX) {
-                delta.x   = -delta.x;
-                unaccel.x = -unaccel.x;
-            }
-            if (e.device->m_flipY) {
-                delta.y   = -delta.y;
-                unaccel.y = -unaccel.y;
-            }
+        if (e.device->m_flipX) {
+            delta.x   = -delta.x;
+            unaccel.x = -unaccel.x;
+        }
+        if (e.device->m_flipY) {
+            delta.y   = -delta.y;
+            unaccel.y = -unaccel.y;
         }
     }
 
@@ -1274,8 +1272,8 @@ void CInputManager::setPointerConfigs() {
                 libinput_device_config_rotation_set_angle(LIBINPUTDEV, ROTATION);
             }
 
-            m->m_flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:touchpad:flip_x") != 0;
-            m->m_flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:touchpad:flip_y") != 0;
+            m->m_flipX = g_pConfigManager->getDeviceInt(devname, "flip_x", "input:flip_x") != 0;
+            m->m_flipY = g_pConfigManager->getDeviceInt(devname, "flip_y", "input:flip_y") != 0;
 
             const auto ACCELPROFILE = g_pConfigManager->getDeviceString(devname, "accel_profile", "input:accel_profile");
             const auto SCROLLPOINTS = g_pConfigManager->getDeviceString(devname, "scroll_points", "input:scroll_points");

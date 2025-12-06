@@ -27,11 +27,11 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (g_pSeatManager->m_state.pointerFocus != PSURFACE)
             return;
 
-        auto SURFBOXV = Desktop::View::CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
-        if (!SURFBOXV.has_value())
+        auto WINDOW = Desktop::View::CWindow::fromView(Desktop::View::CWLSurface::fromResource(PSURFACE)->view());
+        if (!WINDOW)
             return;
 
-        const auto SURFBOX   = SURFBOXV->expand(1);
+        const auto SURFBOX   = WINDOW->getWindowMainSurfaceBox().expand(1);
         const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
         if (!SURFBOX.containsPoint(GLOBALPOS))

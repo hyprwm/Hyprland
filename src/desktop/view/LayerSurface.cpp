@@ -362,7 +362,7 @@ void CLayerSurface::onCommit() {
             nullptr);
         if (!WASLASTFOCUS && m_popupHead) {
             m_popupHead->breadthfirst(
-                [&WASLASTFOCUS](WP<CPopup> popup, void* data) {
+                [&WASLASTFOCUS](WP<Desktop::View::CPopup> popup, void* data) {
                     WASLASTFOCUS = WASLASTFOCUS || (popup->m_wlSurface && g_pSeatManager->m_state.keyboardFocus == popup->m_wlSurface->resource());
                 },
                 nullptr);
@@ -415,7 +415,7 @@ int CLayerSurface::popupsCount() {
         return 0;
 
     int no = -1; // we have one dummy
-    m_popupHead->breadthfirst([](WP<CPopup> p, void* data) { *sc<int*>(data) += 1; }, &no);
+    m_popupHead->breadthfirst([](WP<Desktop::View::CPopup> p, void* data) { *sc<int*>(data) += 1; }, &no);
     return no;
 }
 
@@ -427,10 +427,10 @@ pid_t CLayerSurface::getPID() {
     pid_t PID = -1;
 
     if (!m_layerSurface || !m_layerSurface->m_surface || !m_layerSurface->m_surface->getResource() || !m_layerSurface->m_surface->getResource()->resource() ||
-        !m_layerSurface->m_surface->getResource()->resource()->client)
+        !m_layerSurface->m_surface->getResource()->client())
         return -1;
 
-    wl_client_get_credentials(m_layerSurface->m_surface->getResource()->resource()->client, &PID, nullptr, nullptr);
+    wl_client_get_credentials(m_layerSurface->m_surface->getResource()->client(), &PID, nullptr, nullptr);
 
     return PID;
 }

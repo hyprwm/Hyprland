@@ -329,7 +329,8 @@ void IHyprLayout::onEndDragWindow() {
     if (g_pInputManager->m_dragMode == MBIND_MOVE) {
         g_pHyprRenderer->damageWindow(DRAGGINGWINDOW);
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        PHLWINDOW  pWindow     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
+        PHLWINDOW  pWindow =
+            g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, DRAGGINGWINDOW);
 
         if (pWindow) {
             if (pWindow->checkInputOnDecos(INPUT_TYPE_DRAG_END, MOUSECOORDS, DRAGGINGWINDOW))
@@ -371,8 +372,9 @@ void IHyprLayout::onEndDragWindow() {
         if (*PPRECISEMOUSE) {
             eDirection      direction = DIRECTION_DEFAULT;
 
-            const auto      MOUSECOORDS      = g_pInputManager->getMouseCoordsInternal();
-            const PHLWINDOW pReferenceWindow = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, DRAGGINGWINDOW);
+            const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
+            const PHLWINDOW pReferenceWindow =
+                g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, DRAGGINGWINDOW);
 
             if (pReferenceWindow && pReferenceWindow != DRAGGINGWINDOW) {
                 const Vector2D draggedCenter   = DRAGGINGWINDOW->m_realPosition->goal() + DRAGGINGWINDOW->m_realSize->goal() / 2.f;
@@ -432,7 +434,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
         double start = 0;
         double end   = 0;
     };
-    const auto EXTENTS = DRAGGINGWINDOW->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
+    const auto EXTENTS = DRAGGINGWINDOW->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
     SRange     sourceX = {sourcePos.x - EXTENTS.topLeft.x, sourcePos.x + sourceSize.x + EXTENTS.bottomRight.x};
     SRange     sourceY = {sourcePos.y - EXTENTS.topLeft.y, sourcePos.y + sourceSize.y + EXTENTS.bottomRight.y};
 
@@ -450,7 +452,7 @@ void IHyprLayout::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWIND
                 other->isX11OverrideRedirect())
                 continue;
 
-            const CBox   SURF   = other->getWindowBoxUnified(RESERVED_EXTENTS);
+            const CBox   SURF   = other->getWindowBoxUnified(Desktop::View::RESERVED_EXTENTS);
             const SRange SURFBX = {SURF.x - GAPSX, SURF.x + SURF.w + GAPSX};
             const SRange SURFBY = {SURF.y - GAPSY, SURF.y + SURF.h + GAPSY};
 
@@ -833,7 +835,7 @@ void IHyprLayout::fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> tb
     if (!PMONITOR)
         return;
 
-    const auto EXTENTS           = w->getWindowExtentsUnified(RESERVED_EXTENTS | INPUT_EXTENTS);
+    const auto EXTENTS           = w->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
     CBox       targetBoxMonLocal = tb.value_or(w->getWindowMainSurfaceBox()).translate(-PMONITOR->m_position).addExtents(EXTENTS);
     const auto MONITOR_LOCAL_BOX = PMONITOR->logicalBoxMinusReserved().translate(-PMONITOR->m_position);
 
@@ -906,7 +908,8 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
             return m_lastTiledWindow.lock();
 
         // if we don't, let's try to find any window that is in the middle
-        if (const auto PWINDOWCANDIDATE = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+        if (const auto PWINDOWCANDIDATE =
+                g_pCompositor->vectorToWindowUnified(pWindow->middle(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
             PWINDOWCANDIDATE && PWINDOWCANDIDATE != pWindow)
             return PWINDOWCANDIDATE;
 
@@ -922,7 +925,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
     }
 
     // if it was a tiled window, we first try to find the window that will replace it.
-    auto pWindowCandidate = g_pCompositor->vectorToWindowUnified(pWindow->middle(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+    auto pWindowCandidate = g_pCompositor->vectorToWindowUnified(pWindow->middle(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
     if (!pWindowCandidate)
         pWindowCandidate = PWORKSPACE->getTopLeftWindow();

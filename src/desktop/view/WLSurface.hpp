@@ -13,8 +13,8 @@ namespace Desktop::View {
 
     class CWLSurface {
       public:
-        static SP<CWLSurface> create() {
-            auto p    = SP<CWLSurface>(new CWLSurface);
+        static SP<Desktop::View::CWLSurface> create() {
+            auto p    = SP<Desktop::View::CWLSurface>(new CWLSurface);
             p->m_self = p;
             return p;
         }
@@ -83,7 +83,7 @@ namespace Desktop::View {
             return exists();
         }
 
-        static SP<CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
+        static SP<Desktop::View::CWLSurface> fromResource(SP<CWLSurfaceResource> pSurface);
 
         // used by the alpha-modifier protocol
         float m_alphaModifier = 1.F;
@@ -96,7 +96,7 @@ namespace Desktop::View {
             CSignalT<> destroy;
         } m_events;
 
-        WP<CWLSurface> m_self;
+        WP<Desktop::View::CWLSurface> m_self;
 
       private:
         CWLSurface() = default;

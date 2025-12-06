@@ -517,7 +517,7 @@ void CSeatManager::refocusGrab() {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
         for (auto const& s : m_seatGrab->m_surfs) {
-            auto hlSurf = CWLSurface::fromResource(s.lock());
+            auto hlSurf = Desktop::View::CWLSurface::fromResource(s.lock());
             if (!hlSurf)
                 continue;
 
@@ -640,7 +640,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
                 focusedSurf = oldGrab->m_surfs.front().lock();
 
             if (focusedSurf) {
-                auto hlSurface = CWLSurface::fromResource(focusedSurf);
+                auto hlSurface = Desktop::View::CWLSurface::fromResource(focusedSurf);
                 if (hlSurface) {
                     auto popup = hlSurface->getPopup();
                     if (popup) {
@@ -667,14 +667,14 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         } else
             g_pInputManager->refocus();
 
-        auto           currentFocus = m_state.keyboardFocus.lock();
-        auto           refocus      = !currentFocus;
+        auto                          currentFocus = m_state.keyboardFocus.lock();
+        auto                          refocus      = !currentFocus;
 
-        SP<CWLSurface> surf;
-        PHLLS          layer;
+        SP<Desktop::View::CWLSurface> surf;
+        PHLLS                         layer;
 
         if (!refocus) {
-            surf  = CWLSurface::fromResource(currentFocus);
+            surf  = Desktop::View::CWLSurface::fromResource(currentFocus);
             layer = surf ? surf->getLayer() : nullptr;
         }
 

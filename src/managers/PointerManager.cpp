@@ -126,7 +126,7 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
     damageIfSoftware();
 }
 
-void CPointerManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
+void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     damageIfSoftware();
 
     if (surf == m_currentCursorImage.surface) {

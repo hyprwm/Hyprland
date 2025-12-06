@@ -266,8 +266,8 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
 
     EMIT_HOOK_EVENT("keyboardFocus", pSurface);
 
-    const auto SURF    = CWLSurface::fromResource(pSurface);
-    const auto OLDSURF = CWLSurface::fromResource(PLASTSURF);
+    const auto SURF    = Desktop::View::CWLSurface::fromResource(pSurface);
+    const auto OLDSURF = Desktop::View::CWLSurface::fromResource(PLASTSURF);
 
     if (OLDSURF && OLDSURF->constraint())
         OLDSURF->constraint()->deactivate();

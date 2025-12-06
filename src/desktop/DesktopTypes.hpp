@@ -28,7 +28,3 @@ using PHLLSREF = WP<Desktop::View::CLayerSurface>;
 using PHLMONITOR = SP<CMonitor>;
 /* Weak pointer to a monitor */
 using PHLMONITORREF = WP<CMonitor>;
-
-
-// FIXME: remove this later
-using namespace Desktop::View;

@@ -29,7 +29,7 @@ void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool
     if (!pSurface)
         return;
 
-    auto HLSurface = CWLSurface::fromResource(pSurface);
+    auto HLSurface = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!HLSurface) {
         Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-desktop surface, ignoring");
         return;

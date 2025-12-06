@@ -212,7 +212,7 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
     auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
+        return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
             if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
                 return;
 

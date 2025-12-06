@@ -32,7 +32,7 @@ namespace Desktop::View {
         // the header providing the enum type cannot be imported here
         int                                     m_interactivity = 0;
 
-        SP<CWLSurface>                          m_surface;
+        SP<Desktop::View::CWLSurface>           m_surface;
 
         bool                                    m_mapped = false;
         uint32_t                                m_layer  = 0;
@@ -50,7 +50,7 @@ namespace Desktop::View {
         CBox                                    m_geometry = {0, 0, 0, 0};
         Vector2D                                m_position;
         std::string                             m_namespace = "";
-        UP<CPopup>                              m_popupHead;
+        UP<Desktop::View::CPopup>               m_popupHead;
 
         pid_t                                   getPID();
 

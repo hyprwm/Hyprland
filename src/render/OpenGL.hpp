@@ -269,38 +269,38 @@ class CHyprOpenGLImpl {
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
     uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
-    std::vector<SDRMFormat>                     getDRMFormats();
-    EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    std::vector<SDRMFormat>                           getDRMFormats();
+    EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
-    bool                                        initShaders();
+    bool                                              initShaders();
 
-    GLuint                                      createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
-    GLuint                                      compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
-    void                                        useProgram(GLuint prog);
+    GLuint                                            createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
+    GLuint                                            compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
+    void                                              useProgram(GLuint prog);
 
-    void                                        ensureLockTexturesRendered(bool load);
+    void                                              ensureLockTexturesRendered(bool load);
 
-    bool                                        explicitSyncSupported();
+    bool                                              explicitSyncSupported();
 
-    bool                                        m_shadersInitialized = false;
-    SP<SPreparedShaders>                        m_shaders;
+    bool                                              m_shadersInitialized = false;
+    SP<SPreparedShaders>                              m_shaders;
 
-    SCurrentRenderData                          m_renderData;
+    SCurrentRenderData                                m_renderData;
 
-    Hyprutils::OS::CFileDescriptor              m_gbmFD;
-    gbm_device*                                 m_gbmDevice      = nullptr;
-    EGLContext                                  m_eglContext     = nullptr;
-    EGLDisplay                                  m_eglDisplay     = nullptr;
-    EGLDeviceEXT                                m_eglDevice      = nullptr;
-    uint                                        m_failedAssetsNo = 0;
+    Hyprutils::OS::CFileDescriptor                    m_gbmFD;
+    gbm_device*                                       m_gbmDevice      = nullptr;
+    EGLContext                                        m_eglContext     = nullptr;
+    EGLDisplay                                        m_eglDisplay     = nullptr;
+    EGLDeviceEXT                                      m_eglDevice      = nullptr;
+    uint                                              m_failedAssetsNo = 0;
 
-    bool                                        m_reloadScreenShader = true; // at launch it can be set
+    bool                                              m_reloadScreenShader = true; // at launch it can be set
 
-    std::map<PHLWINDOWREF, CFramebuffer>        m_windowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>            m_layerFramebuffers;
-    std::map<WP<CPopup>, CFramebuffer>          m_popupFramebuffers;
-    std::map<PHLMONITORREF, SMonitorRenderData> m_monitorRenderResources;
-    std::map<PHLMONITORREF, CFramebuffer>       m_monitorBGFBs;
+    std::map<PHLWINDOWREF, CFramebuffer>              m_windowFramebuffers;
+    std::map<PHLLSREF, CFramebuffer>                  m_layerFramebuffers;
+    std::map<WP<Desktop::View::CPopup>, CFramebuffer> m_popupFramebuffers;
+    std::map<PHLMONITORREF, SMonitorRenderData>       m_monitorRenderResources;
+    std::map<PHLMONITORREF, CFramebuffer>             m_monitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;

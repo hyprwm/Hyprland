@@ -16,15 +16,15 @@ namespace Desktop::View {
       public:
         virtual ~IView() = default;
 
-        virtual SP<CWLSurface>         wlSurface() const;
-        virtual SP<CWLSurfaceResource> resource() const;
-        virtual eViewType              type() const       = 0;
-        virtual bool                   visible() const    = 0;
-        virtual std::optional<CBox>    logicalBox() const = 0;
+        virtual SP<Desktop::View::CWLSurface> wlSurface() const;
+        virtual SP<CWLSurfaceResource>        resource() const;
+        virtual eViewType                     type() const       = 0;
+        virtual bool                          visible() const    = 0;
+        virtual std::optional<CBox>           logicalBox() const = 0;
 
       protected:
-        IView(SP<CWLSurface> pWlSurface);
+        IView(SP<Desktop::View::CWLSurface> pWlSurface);
 
-        SP<CWLSurface> m_wlSurface;
+        SP<Desktop::View::CWLSurface> m_wlSurface;
     };
 };

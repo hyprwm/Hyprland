@@ -31,7 +31,7 @@ void CAlphaModifier::setResource(UP<CWpAlphaModifierSurfaceV1>&& resource) {
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
-        auto surface = CWLSurface::fromResource(m_surface.lock());
+        auto surface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
 
         if (surface && surface->m_alphaModifier != m_alpha) {
             surface->m_alphaModifier = m_alpha;

@@ -173,7 +173,7 @@ SBoxExtents CWindow::getFullWindowExtents() {
         CBox surfaceExtents = {0, 0, 0, 0};
         // TODO: this could be better, perhaps make a getFullWindowRegion?
         m_popupHead->breadthfirst(
-            [](WP<CPopup> popup, void* data) {
+            [](WP<Desktop::View::CPopup> popup, void* data) {
                 if (!popup->m_wlSurface || !popup->m_wlSurface->resource())
                     return;
 
@@ -252,9 +252,9 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
 SBoxExtents CWindow::getWindowExtentsUnified(uint64_t properties) {
     SBoxExtents extents = {.topLeft = {0, 0}, .bottomRight = {0, 0}};
-    if (properties & RESERVED_EXTENTS)
+    if (properties & Desktop::View::RESERVED_EXTENTS)
         extents.addExtents(g_pDecorationPositioner->getWindowDecorationReserved(m_self));
-    if (properties & INPUT_EXTENTS)
+    if (properties & Desktop::View::INPUT_EXTENTS)
         extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, true));
     if (properties & FULL_EXTENTS)
         extents.addExtents(g_pDecorationPositioner->getWindowDecorationExtents(m_self, false));
@@ -1159,7 +1159,7 @@ int CWindow::popupsCount() {
         return 0;
 
     int no = -1;
-    m_popupHead->breadthfirst([](WP<CPopup> p, void* d) { *sc<int*>(d) += 1; }, &no);
+    m_popupHead->breadthfirst([](WP<Desktop::View::CPopup> p, void* d) { *sc<int*>(d) += 1; }, &no);
     return no;
 }
 

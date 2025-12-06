@@ -26,7 +26,7 @@ void CXDGDialogV1Resource::updateWindow() {
     if UNLIKELY (!m_toplevel || !m_toplevel->m_parent || !m_toplevel->m_parent->m_owner)
         return;
 
-    auto HLSurface = CWLSurface::fromResource(m_toplevel->m_parent->m_owner->m_surface.lock());
+    auto HLSurface = Desktop::View::CWLSurface::fromResource(m_toplevel->m_parent->m_owner->m_surface.lock());
     if UNLIKELY (!HLSurface || !HLSurface->getWindow())
         return;
 

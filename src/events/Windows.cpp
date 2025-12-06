@@ -53,7 +53,7 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
 }
 
 void Events::listener_mapWindow(void* owner, void* data) {
-    PHLWINDOW   PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW   PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
@@ -89,7 +89,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             const auto TOKEN = g_pTokenManager->getToken(SZTOKEN);
             if (TOKEN) {
                 // find workspace and use it
-                SInitialWorkspaceToken WS = std::any_cast<SInitialWorkspaceToken>(TOKEN->m_data);
+                Desktop::View::SInitialWorkspaceToken WS = std::any_cast<Desktop::View::SInitialWorkspaceToken>(TOKEN->m_data);
 
                 Debug::log(LOG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
@@ -136,8 +136,8 @@ void Events::listener_mapWindow(void* owner, void* data) {
     PWINDOW->m_X11ShouldntFocus = PWINDOW->m_X11ShouldntFocus || (PWINDOW->m_isX11 && PWINDOW->isX11OverrideRedirect() && !PWINDOW->m_xwaylandSurface->wantsFocus());
 
     // window rules
-    std::optional<eFullscreenMode>  requestedInternalFSMode, requestedClientFSMode;
-    std::optional<SFullscreenState> requestedFSState;
+    std::optional<eFullscreenMode>                 requestedInternalFSMode, requestedClientFSMode;
+    std::optional<Desktop::View::SFullscreenState> requestedFSState;
     if (PWINDOW->m_wantsInitialFullscreen || (PWINDOW->m_isX11 && PWINDOW->m_xwaylandSurface->m_fullscreen))
         requestedClientFSMode = FSMODE_FULLSCREEN;
     MONITORID requestedFSMonitor = PWINDOW->m_wantsInitialFullscreenMonitor;
@@ -197,7 +197,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_noInitialFocus = true;
 
         if (PWINDOW->m_ruleApplicator->static_.fullscreenStateClient || PWINDOW->m_ruleApplicator->static_.fullscreenStateInternal) {
-            requestedFSState = SFullscreenState{
+            requestedFSState = Desktop::View::SFullscreenState{
                 .internal = sc<eFullscreenMode>(PWINDOW->m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
                 .client   = sc<eFullscreenMode>(PWINDOW->m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
@@ -206,15 +206,15 @@ void Events::listener_mapWindow(void* owner, void* data) {
         if (!PWINDOW->m_ruleApplicator->static_.suppressEvent.empty()) {
             for (const auto& var : PWINDOW->m_ruleApplicator->static_.suppressEvent) {
                 if (var == "fullscreen")
-                    PWINDOW->m_suppressedEvents |= SUPPRESS_FULLSCREEN;
+                    PWINDOW->m_suppressedEvents |= Desktop::View::SUPPRESS_FULLSCREEN;
                 else if (var == "maximize")
-                    PWINDOW->m_suppressedEvents |= SUPPRESS_MAXIMIZE;
+                    PWINDOW->m_suppressedEvents |= Desktop::View::SUPPRESS_MAXIMIZE;
                 else if (var == "activate")
-                    PWINDOW->m_suppressedEvents |= SUPPRESS_ACTIVATE;
+                    PWINDOW->m_suppressedEvents |= Desktop::View::SUPPRESS_ACTIVATE;
                 else if (var == "activatefocus")
-                    PWINDOW->m_suppressedEvents |= SUPPRESS_ACTIVATE_FOCUSONLY;
+                    PWINDOW->m_suppressedEvents |= Desktop::View::SUPPRESS_ACTIVATE_FOCUSONLY;
                 else if (var == "fullscreenoutput")
-                    PWINDOW->m_suppressedEvents |= SUPPRESS_FULLSCREEN_OUTPUT;
+                    PWINDOW->m_suppressedEvents |= Desktop::View::SUPPRESS_FULLSCREEN_OUTPUT;
                 else
                     Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", var);
             }
@@ -230,7 +230,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             requestedInternalFSMode = FSMODE_MAXIMIZED;
 
         if (!PWINDOW->m_ruleApplicator->static_.group.empty()) {
-            if (!(PWINDOW->m_groupRules & GROUP_OVERRIDE) && trim(PWINDOW->m_ruleApplicator->static_.group) != "group") {
+            if (!(PWINDOW->m_groupRules & Desktop::View::GROUP_OVERRIDE) && trim(PWINDOW->m_ruleApplicator->static_.group) != "group") {
                 CVarList2   vars(std::string{PWINDOW->m_ruleApplicator->static_.group}, 0, 's');
                 std::string vPrev = "";
 
@@ -239,30 +239,30 @@ void Events::listener_mapWindow(void* owner, void* data) {
                         continue;
 
                     if (v == "set") {
-                        PWINDOW->m_groupRules |= GROUP_SET;
+                        PWINDOW->m_groupRules |= Desktop::View::GROUP_SET;
                     } else if (v == "new") {
                         // shorthand for `group barred set`
-                        PWINDOW->m_groupRules |= (GROUP_SET | GROUP_BARRED);
+                        PWINDOW->m_groupRules |= (Desktop::View::GROUP_SET | Desktop::View::GROUP_BARRED);
                     } else if (v == "lock") {
-                        PWINDOW->m_groupRules |= GROUP_LOCK;
+                        PWINDOW->m_groupRules |= Desktop::View::GROUP_LOCK;
                     } else if (v == "invade") {
-                        PWINDOW->m_groupRules |= GROUP_INVADE;
+                        PWINDOW->m_groupRules |= Desktop::View::GROUP_INVADE;
                     } else if (v == "barred") {
-                        PWINDOW->m_groupRules |= GROUP_BARRED;
+                        PWINDOW->m_groupRules |= Desktop::View::GROUP_BARRED;
                     } else if (v == "deny") {
                         PWINDOW->m_groupData.deny = true;
                     } else if (v == "override") {
                         // Clear existing rules
-                        PWINDOW->m_groupRules = GROUP_OVERRIDE;
+                        PWINDOW->m_groupRules = Desktop::View::GROUP_OVERRIDE;
                     } else if (v == "unset") {
                         // Clear existing rules and stop processing
-                        PWINDOW->m_groupRules = GROUP_OVERRIDE;
+                        PWINDOW->m_groupRules = Desktop::View::GROUP_OVERRIDE;
                         break;
                     } else if (v == "always") {
                         if (vPrev == "set" || vPrev == "group")
-                            PWINDOW->m_groupRules |= GROUP_SET_ALWAYS;
+                            PWINDOW->m_groupRules |= Desktop::View::GROUP_SET_ALWAYS;
                         else if (vPrev == "lock")
-                            PWINDOW->m_groupRules |= GROUP_LOCK_ALWAYS;
+                            PWINDOW->m_groupRules |= Desktop::View::GROUP_LOCK_ALWAYS;
                         else
                             Debug::log(ERR, "windowrule `group` does not support `{} always`", vPrev);
                     }
@@ -332,7 +332,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             workspaceSilent = false;
     }
 
-    if (PWINDOW->m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)
+    if (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN_OUTPUT)
         requestedFSMonitor = MONITOR_INVALID;
     else if (requestedFSMonitor != MONITOR_INVALID) {
         if (const auto PM = g_pCompositor->getMonitorFromID(requestedFSMonitor); PM)
@@ -459,9 +459,9 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_dimPercent->setValueAndWarp(0);
     }
 
-    if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & SUPPRESS_FULLSCREEN))
+    if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN))
         requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_FULLSCREEN));
-    if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & SUPPRESS_MAXIMIZE))
+    if (requestedClientFSMode.has_value() && (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_MAXIMIZE))
         requestedClientFSMode = sc<eFullscreenMode>(sc<uint8_t>(requestedClientFSMode.value_or(FSMODE_NONE)) & ~sc<uint8_t>(FSMODE_MAXIMIZED));
 
     if (!PWINDOW->m_noInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
@@ -475,7 +475,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
             PWINDOW->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
             g_pCompositor->setWindowFullscreenState(PWINDOW, requestedFSState.value());
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-            g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
+            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
         else if (requestedInternalFSMode.has_value())
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, requestedInternalFSMode.value());
         else if (requestedClientFSMode.has_value())
@@ -545,7 +545,7 @@ void Events::listener_mapWindow(void* owner, void* data) {
 }
 
 void Events::listener_unmapWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "{:c} unmapped", PWINDOW);
 
@@ -632,7 +632,8 @@ void Events::listener_unmapWindow(void* owner, void* data) {
         static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
         PHLWINDOW   PWINDOWCANDIDATE = nullptr;
         if (*FOCUSONCLOSE)
-            PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING));
+            PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
+                                                                     Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
         else
             PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(PWINDOW);
 
@@ -681,7 +682,7 @@ void Events::listener_unmapWindow(void* owner, void* data) {
 }
 
 void Events::listener_commitWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     if (!PWINDOW->m_isX11 && PWINDOW->m_xdgSurface->m_initialCommit) {
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(PWINDOW);
@@ -749,7 +750,7 @@ void Events::listener_commitWindow(void* owner, void* data) {
 }
 
 void Events::listener_destroyWindow(void* owner, void* data) {
-    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "{:c} destroyed, queueing.", PWINDOW);
 
@@ -780,7 +781,7 @@ void Events::listener_destroyWindow(void* owner, void* data) {
 }
 
 void Events::listener_activateX11(void* owner, void* data) {
-    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     Debug::log(LOG, "X11 Activate request for window {}", PWINDOW);
 
@@ -798,14 +799,14 @@ void Events::listener_activateX11(void* owner, void* data) {
         return;
     }
 
-    if (PWINDOW == Desktop::focusState()->window() || (PWINDOW->m_suppressedEvents & SUPPRESS_ACTIVATE))
+    if (PWINDOW == Desktop::focusState()->window() || (PWINDOW->m_suppressedEvents & Desktop::View::SUPPRESS_ACTIVATE))
         return;
 
     PWINDOW->activate();
 }
 
 void Events::listener_unmanagedSetGeometry(void* owner, void* data) {
-    PHLWINDOW PWINDOW = sc<CWindow*>(owner)->m_self.lock();
+    PHLWINDOW PWINDOW = sc<Desktop::View::CWindow*>(owner)->m_self.lock();
 
     if (!PWINDOW->m_isMapped || !PWINDOW->m_xwaylandSurface || !PWINDOW->m_xwaylandSurface->m_overrideRedirect)
         return;

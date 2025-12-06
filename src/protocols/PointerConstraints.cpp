@@ -17,7 +17,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
     resource_->setOnDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -56,7 +56,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<C
     resource_->setOnDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -159,7 +159,7 @@ void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
     g_pInputManager->simulateMouseMovement(); // to warp the cursor if anything's amiss
 }
 
-SP<CWLSurface> CPointerConstraint::owner() {
+SP<Desktop::View::CWLSurface> CPointerConstraint::owner() {
     return m_hlSurface.lock();
 }
 

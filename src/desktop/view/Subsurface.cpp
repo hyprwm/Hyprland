@@ -11,8 +11,8 @@
 using namespace Desktop;
 using namespace Desktop::View;
 
-UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
-    auto subsurface            = UP<CSubsurface>(new CSubsurface());
+UP<Desktop::View::CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
+    auto subsurface            = UP<Desktop::View::CSubsurface>(new CSubsurface());
     subsurface->m_windowParent = pOwner;
     subsurface->m_self         = subsurface;
 
@@ -21,8 +21,8 @@ UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
     return subsurface;
 }
 
-UP<CSubsurface> CSubsurface::create(WP<CPopup> pOwner) {
-    auto subsurface           = UP<CSubsurface>(new CSubsurface());
+UP<Desktop::View::CSubsurface> CSubsurface::create(WP<Desktop::View::CPopup> pOwner) {
+    auto subsurface           = UP<Desktop::View::CSubsurface>(new CSubsurface());
     subsurface->m_popupParent = pOwner;
     subsurface->m_self        = subsurface;
     subsurface->initSignals();
@@ -30,8 +30,8 @@ UP<CSubsurface> CSubsurface::create(WP<CPopup> pOwner) {
     return subsurface;
 }
 
-UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) {
-    auto subsurface            = UP<CSubsurface>(new CSubsurface());
+UP<Desktop::View::CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner) {
+    auto subsurface            = UP<Desktop::View::CSubsurface>(new CSubsurface());
     subsurface->m_windowParent = pOwner;
     subsurface->m_subsurface   = pSubsurface;
     subsurface->m_self         = subsurface;
@@ -42,8 +42,8 @@ UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, PHLWI
     return subsurface;
 }
 
-UP<CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<CPopup> pOwner) {
-    auto subsurface           = UP<CSubsurface>(new CSubsurface());
+UP<Desktop::View::CSubsurface> CSubsurface::create(SP<CWLSubsurfaceResource> pSubsurface, WP<Desktop::View::CPopup> pOwner) {
+    auto subsurface           = UP<Desktop::View::CSubsurface>(new CSubsurface());
     subsurface->m_popupParent = pOwner;
     subsurface->m_subsurface  = pSubsurface;
     subsurface->m_self        = subsurface;
@@ -137,7 +137,7 @@ void CSubsurface::onDestroy() {
 }
 
 void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
-    WP<CSubsurface> PSUBSURFACE;
+    WP<Desktop::View::CSubsurface> PSUBSURFACE;
 
     if (!m_windowParent.expired())
         PSUBSURFACE = m_children.emplace_back(CSubsurface::create(pSubsurface, m_windowParent.lock()));

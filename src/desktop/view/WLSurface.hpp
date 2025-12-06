@@ -10,6 +10,7 @@ class CWLSurfaceResource;
 namespace Desktop::View {
     class CSubsurface;
     class CPopup;
+    class IView;
 
     class CWLSurface {
       public:
@@ -22,10 +23,7 @@ namespace Desktop::View {
 
         // anonymous surfaces are non-desktop components, e.g. a cursor surface or a DnD
         void assign(SP<CWLSurfaceResource> pSurface);
-        void assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner);
-        void assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner);
-        void assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner);
-        void assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner);
+        void assign(SP<CWLSurfaceResource> pSurface, SP<IView> pOwner);
         void unassign();
 
         CWLSurface(const CWLSurface&)                       = delete;
@@ -43,11 +41,7 @@ namespace Desktop::View {
         bool                   visible();
         bool                   keyboardFocusable() const;
 
-        // getters for owners.
-        PHLWINDOW    getWindow() const;
-        PHLLS        getLayer() const;
-        CPopup*      getPopup() const;
-        CSubsurface* getSubsurface() const;
+        SP<IView>              view() const;
 
         // desktop components misc utils
         std::optional<CBox>    getSurfaceBoxGlobal() const;
@@ -105,10 +99,7 @@ namespace Desktop::View {
 
         WP<CWLSurfaceResource> m_resource;
 
-        PHLWINDOWREF           m_windowOwner;
-        PHLLSREF               m_layerOwner;
-        CPopup*                m_popupOwner      = nullptr;
-        CSubsurface*           m_subsurfaceOwner = nullptr;
+        WP<IView>              m_view;
 
         //
         WP<CPointerConstraint> m_constraint;

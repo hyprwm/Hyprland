@@ -14,17 +14,20 @@ namespace Desktop::View {
     class CPopup : public IView {
       public:
         // dummy head nodes
-        static UP<Desktop::View::CPopup> create(PHLWINDOW pOwner);
-        static UP<Desktop::View::CPopup> create(PHLLS pOwner);
+        static SP<CPopup> create(PHLWINDOW pOwner);
+        static SP<CPopup> create(PHLLS pOwner);
 
         // real nodes
-        static UP<Desktop::View::CPopup> create(SP<CXDGPopupResource> popup, WP<Desktop::View::CPopup> pOwner);
+        static SP<CPopup> create(SP<CXDGPopupResource> popup, WP<CPopup> pOwner);
+
+        static SP<CPopup> fromView(SP<IView>);
 
         virtual ~CPopup();
 
         virtual eViewType             type() const;
         virtual bool                  visible() const;
         virtual std::optional<CBox>   logicalBox() const;
+        virtual bool                  desktopComponent() const;
 
         SP<Desktop::View::CWLSurface> getT1Owner();
         Vector2D                      coordsRelativeToParent();
@@ -76,8 +79,8 @@ namespace Desktop::View {
         bool                      m_inert = false;
 
         //
-        std::vector<UP<Desktop::View::CPopup>> m_children;
-        UP<Desktop::View::CSubsurface>         m_subsurfaceHead;
+        std::vector<SP<Desktop::View::CPopup>> m_children;
+        SP<Desktop::View::CSubsurface>         m_subsurfaceHead;
 
         struct {
             CHyprSignalListener newPopup;

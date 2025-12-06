@@ -16,36 +16,42 @@
 using namespace Desktop;
 using namespace Desktop::View;
 
-UP<Desktop::View::CPopup> CPopup::create(PHLWINDOW pOwner) {
-    auto popup           = UP<Desktop::View::CPopup>(new CPopup());
+SP<CPopup> CPopup::create(PHLWINDOW pOwner) {
+    auto popup           = SP<CPopup>(new CPopup());
     popup->m_windowOwner = pOwner;
     popup->m_self        = popup;
     popup->initAllSignals();
     return popup;
 }
 
-UP<Desktop::View::CPopup> CPopup::create(PHLLS pOwner) {
-    auto popup          = UP<Desktop::View::CPopup>(new CPopup());
+SP<CPopup> CPopup::create(PHLLS pOwner) {
+    auto popup          = SP<CPopup>(new CPopup());
     popup->m_layerOwner = pOwner;
     popup->m_self       = popup;
     popup->initAllSignals();
     return popup;
 }
 
-UP<Desktop::View::CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<Desktop::View::CPopup> pOwner) {
-    auto popup           = UP<Desktop::View::CPopup>(new CPopup());
+SP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
+    auto popup           = SP<CPopup>(new CPopup());
     popup->m_resource    = resource;
     popup->m_windowOwner = pOwner->m_windowOwner;
     popup->m_layerOwner  = pOwner->m_layerOwner;
     popup->m_parent      = pOwner;
     popup->m_self        = popup;
-    popup->wlSurface()->assign(resource->m_surface->m_surface.lock(), popup.get());
+    popup->wlSurface()->assign(resource->m_surface->m_surface.lock(), popup);
 
     popup->m_lastSize = resource->m_surface->m_current.geometry.size();
     popup->reposition();
 
     popup->initAllSignals();
     return popup;
+}
+
+SP<CPopup> CPopup::fromView(SP<IView> v) {
+    if (!v || v->type() != VIEW_TYPE_POPUP)
+        return nullptr;
+    return dynamicPointerCast<CPopup>(v);
 }
 
 CPopup::CPopup() : IView(CWLSurface::create()) {
@@ -79,6 +85,10 @@ bool CPopup::visible() const {
 
 std::optional<CBox> CPopup::logicalBox() const {
     return CBox{t1ParentCoords(), size()};
+}
+
+bool CPopup::desktopComponent() const {
+    return true;
 }
 
 void CPopup::initAllSignals() {
@@ -231,7 +241,7 @@ void CPopup::onUnmap() {
 
     // damage all children
     breadthfirst(
-        [](WP<Desktop::View::CPopup> p, void* data) {
+        [](WP<CPopup> p, void* data) {
             if (!p->m_resource)
                 return;
 
@@ -329,7 +339,7 @@ Vector2D CPopup::coordsRelativeToParent() {
     if (!m_resource)
         return m_lastPos;
 
-    WP<Desktop::View::CPopup> current = m_self;
+    WP<CPopup> current = m_self;
     offset -= current->m_resource->m_surface->m_current.geometry.pos();
 
     while (current->m_parent && current->m_resource) {
@@ -362,7 +372,7 @@ Vector2D CPopup::t1ParentCoords() const {
 }
 
 void CPopup::recheckTree() {
-    WP<Desktop::View::CPopup> curr = m_self;
+    WP<CPopup> curr = m_self;
     while (curr->m_parent) {
         curr = curr->m_parent;
     }
@@ -374,7 +384,7 @@ void CPopup::recheckChildrenRecursive() {
     if (m_inert || !m_wlSurface)
         return;
 
-    std::vector<WP<Desktop::View::CPopup>> cpy;
+    std::vector<WP<CPopup>> cpy;
     std::ranges::for_each(m_children, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
         c->onCommit(true);
@@ -395,12 +405,12 @@ void CPopup::sendScale() {
         UNREACHABLE();
 }
 
-void CPopup::bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data) {
+void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data) {
     for (auto const& n : nodes) {
         fn(n, data);
     }
 
-    std::vector<WP<Desktop::View::CPopup>> nodes2;
+    std::vector<WP<CPopup>> nodes2;
     nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
@@ -416,18 +426,18 @@ void CPopup::bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::
         bfHelper(nodes2, fn, data);
 }
 
-void CPopup::breadthfirst(std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data) {
+void CPopup::breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data) {
     if (!m_self)
         return;
 
-    std::vector<WP<Desktop::View::CPopup>> popups;
+    std::vector<WP<CPopup>> popups;
     popups.push_back(m_self);
     bfHelper(popups, fn, data);
 }
 
-WP<Desktop::View::CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
-    std::vector<WP<Desktop::View::CPopup>> popups;
-    breadthfirst([&popups](WP<Desktop::View::CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
+WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+    std::vector<WP<CPopup>> popups;
+    breadthfirst([&popups](WP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
 
     for (auto const& p : popups | std::views::reverse) {
         if (!p->m_resource || !p->m_mapped)

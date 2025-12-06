@@ -57,6 +57,12 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     return pLS;
 }
 
+PHLLS CLayerSurface::fromView(SP<IView> v) {
+    if (!v || v->type() != VIEW_TYPE_LAYER_SURFACE)
+        return nullptr;
+    return dynamicPointerCast<CLayerSurface>(v);
+}
+
 void CLayerSurface::registerCallbacks() {
     m_alpha->setUpdateCallback([this](auto) {
         if (m_ruleApplicator->dimAround().valueOrDefault() && m_monitor)
@@ -97,6 +103,10 @@ bool CLayerSurface::visible() const {
 
 std::optional<CBox> CLayerSurface::logicalBox() const {
     return CBox{m_realPosition->value(), m_realSize->value()};
+}
+
+bool CLayerSurface::desktopComponent() const {
+    return true;
 }
 
 void CLayerSurface::onDestroy() {

@@ -26,11 +26,16 @@ void CXDGDialogV1Resource::updateWindow() {
     if UNLIKELY (!m_toplevel || !m_toplevel->m_parent || !m_toplevel->m_parent->m_owner)
         return;
 
-    auto HLSurface = Desktop::View::CWLSurface::fromResource(m_toplevel->m_parent->m_owner->m_surface.lock());
-    if UNLIKELY (!HLSurface || !HLSurface->getWindow())
+    const auto HLSURFACE = Desktop::View::CWLSurface::fromResource(m_toplevel->m_parent->m_owner->m_surface.lock());
+    if UNLIKELY (!HLSURFACE)
         return;
 
-    HLSurface->getWindow()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_MODAL);
+    const auto WINDOW = Desktop::View::CWindow::fromView(HLSURFACE->view());
+
+    if UNLIKELY (!WINDOW)
+        return;
+
+    WINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_MODAL);
 }
 
 bool CXDGDialogV1Resource::good() {

@@ -62,11 +62,23 @@ eViewType CPopup::type() const {
 }
 
 bool CPopup::visible() const {
-    return m_mapped;
+    if (!m_mapped || !m_wlSurface->resource())
+        return false;
+
+    if (!m_windowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_windowOwner.lock());
+
+    if (!m_layerOwner.expired())
+        return true;
+
+    if (m_parent)
+        return m_parent->visible();
+
+    return false;
 }
 
 std::optional<CBox> CPopup::logicalBox() const {
-    return logicalBox();
+    return CBox{t1ParentCoords(), size()};
 }
 
 void CPopup::initAllSignals() {
@@ -339,7 +351,7 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
     return t1ParentCoords() + rel;
 }
 
-Vector2D CPopup::t1ParentCoords() {
+Vector2D CPopup::t1ParentCoords() const {
     if (!m_windowOwner.expired())
         return m_windowOwner->m_realPosition->value();
     if (!m_layerOwner.expired())
@@ -370,7 +382,7 @@ void CPopup::recheckChildrenRecursive() {
     }
 }
 
-Vector2D CPopup::size() {
+Vector2D CPopup::size() const {
     return m_lastSize;
 }
 
@@ -381,17 +393,6 @@ void CPopup::sendScale() {
         g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->wlSurface()->m_lastScaleFloat);
     else
         UNREACHABLE();
-}
-
-bool CPopup::visible() {
-    if (!m_windowOwner.expired())
-        return g_pHyprRenderer->shouldRenderWindow(m_windowOwner.lock());
-    if (!m_layerOwner.expired())
-        return true;
-    if (m_parent)
-        return m_parent->visible();
-
-    return false;
 }
 
 void CPopup::bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data) {

@@ -683,7 +683,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                         return;
                     }
 
-                    if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->m_mapped)
+                    if (!popup->visible())
                         return;
                     const auto     pos    = popup->coordsRelativeToParent();
                     const Vector2D oldPos = renderdata.pos;
@@ -801,7 +801,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
             [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
-                if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->m_mapped)
+                if (!popup->visible())
                     return;
 
                 const auto SURF = popup->wlSurface()->resource();
@@ -2516,7 +2516,7 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
 
-    if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->m_mapped)
+    if (!popup->visible())
         return;
 
     Debug::log(LOG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(popup.get()));

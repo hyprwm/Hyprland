@@ -363,7 +363,7 @@ static void testMaximizeSize() {
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("at: 22,22"), true);
         EXPECT(str.contains("size: 1876,1036"), true);
-        EXPECT(str.contains("fullscreen: 0"), true);
+        EXPECT(str.contains("fullscreen: 1"), true);
     }
 
     NLog::log("{}Killing all windows", Colors::YELLOW);

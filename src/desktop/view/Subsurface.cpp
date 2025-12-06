@@ -68,7 +68,17 @@ eViewType CSubsurface::type() const {
 }
 
 bool CSubsurface::visible() const {
-    return m_wlSurface && m_wlSurface->resource() && m_wlSurface->resource()->m_mapped;
+    if (!m_wlSurface || !m_wlSurface->resource() || !m_wlSurface->resource()->m_mapped)
+        return false;
+
+    if (!m_windowParent.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_windowParent.lock());
+    if (m_popupParent)
+        return m_popupParent->visible();
+    if (m_parent)
+        return m_parent->visible();
+
+    return false;
 }
 
 bool CSubsurface::desktopComponent() const {
@@ -242,15 +252,4 @@ void CSubsurface::initExistingSubsurfaces(SP<CWLSurfaceResource> pSurface) {
 
 Vector2D CSubsurface::size() {
     return m_wlSurface->resource()->m_current.size;
-}
-
-bool CSubsurface::visible() {
-    if (!m_windowParent.expired())
-        return g_pHyprRenderer->shouldRenderWindow(m_windowParent.lock());
-    if (m_popupParent)
-        return m_popupParent->visible();
-    if (m_parent)
-        return m_parent->visible();
-
-    return false;
 }

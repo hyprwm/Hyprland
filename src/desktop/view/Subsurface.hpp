@@ -39,8 +39,6 @@ namespace Desktop::View {
         void                           onMap();
         void                           onUnmap();
 
-        bool                           visible();
-
         void                           recheckDamageForSubsurfaces();
 
         WP<Desktop::View::CSubsurface> m_self;

@@ -2,9 +2,9 @@
 
 #include <vector>
 #include "Subsurface.hpp"
-#include "../helpers/signal/Signal.hpp"
-#include "../helpers/memory/Memory.hpp"
-#include "../helpers/AnimatedVariable.hpp"
+#include "../../helpers/signal/Signal.hpp"
+#include "../../helpers/memory/Memory.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
 
 class CXDGPopupResource;
 

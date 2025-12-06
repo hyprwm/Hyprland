@@ -4,7 +4,7 @@
 #include "../desktop/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/PointerManager.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 
 CPointerWarpProtocol::CPointerWarpProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../desktop/WLSurface.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../macros.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/signal/Signal.hpp"

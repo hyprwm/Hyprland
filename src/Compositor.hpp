@@ -7,7 +7,7 @@
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
-#include "desktop/Window.hpp"
+#include "desktop/view/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
 
 #include <aquamarine/backend/Backend.hpp>

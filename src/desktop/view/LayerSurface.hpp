@@ -1,10 +1,10 @@
 #pragma once
 
 #include <string>
-#include "../defines.hpp"
+#include "../../defines.hpp"
 #include "WLSurface.hpp"
-#include "rule/layerRule/LayerRuleApplicator.hpp"
-#include "../helpers/AnimatedVariable.hpp"
+#include "../rule/layerRule/LayerRuleApplicator.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
 
 class CLayerShellResource;
 

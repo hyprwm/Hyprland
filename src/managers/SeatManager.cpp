@@ -8,7 +8,7 @@
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"

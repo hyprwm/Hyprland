@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IHyprLayout.hpp"
-#include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/DesktopTypes.hpp"
 
 #include <list>
 #include <vector>

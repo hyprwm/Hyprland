@@ -1,5 +1,5 @@
 #include "AlphaModifier.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../render/Renderer.hpp"
 #include "alpha-modifier-v1.hpp"
 #include "core/Compositor.hpp"

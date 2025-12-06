@@ -4,20 +4,20 @@
 #include <string>
 #include <optional>
 
-#include "../config/ConfigDataValues.hpp"
-#include "../helpers/AnimatedVariable.hpp"
-#include "../helpers/TagKeeper.hpp"
-#include "../macros.hpp"
-#include "../managers/XWaylandManager.hpp"
-#include "../render/decorations/IHyprWindowDecoration.hpp"
-#include "../render/Transformer.hpp"
+#include "../../config/ConfigDataValues.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
+#include "../../helpers/TagKeeper.hpp"
+#include "../../macros.hpp"
+#include "../../managers/XWaylandManager.hpp"
+#include "../../render/decorations/IHyprWindowDecoration.hpp"
+#include "../../render/Transformer.hpp"
 #include "DesktopTypes.hpp"
 #include "Popup.hpp"
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
 #include "Workspace.hpp"
-#include "rule/windowRule/WindowRuleApplicator.hpp"
-#include "../protocols/types/ContentType.hpp"
+#include "../rule/windowRule/WindowRuleApplicator.hpp"
+#include "../../protocols/types/ContentType.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;

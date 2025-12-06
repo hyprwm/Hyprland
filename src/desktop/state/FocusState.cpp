@@ -1,5 +1,5 @@
 #include "FocusState.hpp"
-#include "../Window.hpp"
+#include "../view/Window.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"

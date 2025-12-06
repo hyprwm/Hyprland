@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include "WaylandProtocol.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../desktop/view/DesktopTypes.hpp"
 #include "ext-foreign-toplevel-list-v1.hpp"
 
 class CForeignToplevelHandle {

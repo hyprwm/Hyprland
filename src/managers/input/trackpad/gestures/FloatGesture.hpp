@@ -2,7 +2,7 @@
 
 #include "ITrackpadGesture.hpp"
 
-#include "../../../../desktop/DesktopTypes.hpp"
+#include "../../../../desktop/view/DesktopTypes.hpp"
 
 class CFloatTrackpadGesture : public ITrackpadGesture {
   public:

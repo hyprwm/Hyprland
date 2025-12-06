@@ -3,7 +3,7 @@
 
 #include "Compositor.hpp"
 #include "debug/Log.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "desktop/view/DesktopTypes.hpp"
 #include "desktop/state/FocusState.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
@@ -41,7 +41,7 @@
 #include "protocols/ColorManagement.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
-#include "desktop/LayerSurface.hpp"
+#include "desktop/view/LayerSurface.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../helpers/AnimatedVariable.hpp"
+#include "../../helpers/AnimatedVariable.hpp"
 #include <string>
 #include "DesktopTypes.hpp"
-#include "../helpers/MiscFunctions.hpp"
-#include "../helpers/signal/Signal.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 enum eFullscreenMode : int8_t {
     FSMODE_NONE       = 0,

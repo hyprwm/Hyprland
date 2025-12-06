@@ -13,7 +13,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../managers/PointerManager.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"

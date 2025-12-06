@@ -4,7 +4,7 @@
 
 #include "Color.hpp"
 #include "../defines.hpp"
-#include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/DesktopTypes.hpp"
 
 enum eAVarDamagePolicy : int8_t {
     AVARDAMAGE_NONE   = -1,

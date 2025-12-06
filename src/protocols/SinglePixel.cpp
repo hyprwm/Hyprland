@@ -1,5 +1,5 @@
 #include "SinglePixel.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include <limits>
 #include "render/Renderer.hpp"
 

@@ -5,7 +5,7 @@
 
 #include "../../defines.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
-#include "../../desktop/DesktopTypes.hpp"
+#include "../../desktop/view/DesktopTypes.hpp"
 #include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
 

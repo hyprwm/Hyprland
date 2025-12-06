@@ -1,6 +1,6 @@
 #include "XDGDialog.hpp"
 #include "XDGShell.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../Compositor.hpp"
 #include <algorithm>
 

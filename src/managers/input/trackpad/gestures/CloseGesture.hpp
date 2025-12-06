@@ -2,7 +2,7 @@
 
 #include "ITrackpadGesture.hpp"
 
-#include "../../../../desktop/DesktopTypes.hpp"
+#include "../../../../desktop/view/DesktopTypes.hpp"
 
 class CCloseTrackpadGesture : public ITrackpadGesture {
   public:

@@ -1,7 +1,7 @@
 #include "LayerRuleApplicator.hpp"
 #include "LayerRule.hpp"
 #include "../Engine.hpp"
-#include "../../LayerSurface.hpp"
+#include "../../view/LayerSurface.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
 

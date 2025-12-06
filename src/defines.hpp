@@ -4,4 +4,4 @@
 #include "debug/Log.hpp"
 #include "helpers/Color.hpp"
 #include "macros.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "desktop/view/DesktopTypes.hpp"

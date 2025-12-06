@@ -1,7 +1,7 @@
 #include "ResizeGesture.hpp"
 
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../desktop/Window.hpp"
+#include "../../../../desktop/view/Window.hpp"
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 

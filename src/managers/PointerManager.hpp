@@ -4,7 +4,7 @@
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
 #include <tuple>

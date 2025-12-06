@@ -1,6 +1,6 @@
 #include "XDGBell.hpp"
 #include "core/Compositor.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../managers/EventManager.hpp"
 #include "../Compositor.hpp"
 

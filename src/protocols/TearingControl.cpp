@@ -1,6 +1,6 @@
 #include "TearingControl.hpp"
 #include "../managers/ProtocolManager.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
 #include "../managers/HookSystemManager.hpp"

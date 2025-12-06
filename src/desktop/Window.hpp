@@ -83,6 +83,9 @@ class CWindow {
 
     struct {
         CSignalT<> destroy;
+        CSignalT<> unmap;
+        CSignalT<> hide;
+        CSignalT<> resize;
     } m_events;
 
     WP<CXDGSurfaceResource> m_xdgSurface;

@@ -860,11 +860,12 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
     auto        cameraH            = monbox.h / zoom;
     static auto camerabox          = CBox(0, 0, cameraW, cameraH);
     static auto previousZoomChange = zoom;
+    auto        mouse              = g_pInputManager->getMouseCoordsInternal();
 
-    auto        mouse = g_pInputManager->getMouseCoordsInternal();
     mouse.x -= m->m_position.x;
     mouse.y -= m->m_position.y;
 
+    // Tracks if zoom step would have caused us to discontinuously snap in order to keep mouse in view
     static bool zoomAloneBrokeUs = false;
 
     if (previousZoomChange != zoom) {
@@ -885,15 +886,17 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
         const float newX = mouseWorldX - mx * cameraW;
         const float newY = mouseWorldY - my * cameraH;
 
-        camerabox          = CBox(newX, newY, cameraW, cameraH);
+        camerabox = CBox(newX, newY, cameraW, cameraH);
+        if (zoom > previousZoomChange) // when zooming in
+            if (!camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
+                zoomAloneBrokeUs = true;
         previousZoomChange = zoom;
-
-        if (!camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
-            zoomAloneBrokeUs = true;
     }
 
     // Keep mouse in cameraview
     auto smallerbox = camerabox;
+    // Prevent zoom step from causing us to jerk to keep mouse in padded camera view,
+    // but let us switch to the padded camera once the mouse moves into the safe area
     if (zoomAloneBrokeUs)
         if (smallerbox.copy().scaleFromCenter(.9).containsPoint(mouse))
             zoomAloneBrokeUs = false;

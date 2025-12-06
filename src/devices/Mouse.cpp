@@ -14,11 +14,6 @@ CMouse::CMouse(SP<Aquamarine::IPointer> mouse_) : m_mouse(mouse_) {
     if (!m_mouse)
         return;
 
-    if (auto handle = m_mouse->getLibinputHandle()) {
-        double w = 0, h = 0;
-        m_isTouchpad = libinput_device_has_capability(handle, LIBINPUT_DEVICE_CAP_POINTER) && libinput_device_get_size(handle, &w, &h) == 0;
-    }
-
     m_listeners.destroy = m_mouse->events.destroy.listen([this] {
         m_mouse.reset();
         m_events.destroy.emit();

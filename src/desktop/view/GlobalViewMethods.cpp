@@ -23,20 +23,20 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
 
         views.emplace_back(w);
 
-        w->m_subsurfaceHead->wlSurface()->resource()->breadthfirst(
+        w->wlSurface()->resource()->breadthfirst(
             [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
                 auto surf = CWLSurface::fromResource(s);
-                if (!surf)
+                if (!surf || !s->m_mapped)
                     return;
 
                 views.emplace_back(surf->view());
             },
             nullptr);
 
-        w->m_popupHead->wlSurface()->resource()->breadthfirst(
-            [&views](SP<CWLSurfaceResource> s, const Vector2D& pos, void* data) {
-                auto surf = CWLSurface::fromResource(s);
-                if (!surf)
+        w->m_popupHead->breadthfirst(
+            [&views](SP<CPopup> s, void* data) {
+                auto surf = s->wlSurface();
+                if (!surf || !s->visible())
                     return;
 
                 views.emplace_back(surf->view());

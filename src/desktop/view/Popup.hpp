@@ -48,8 +48,8 @@ namespace Desktop::View {
         bool                          inert() const;
 
         // will also loop over this node
-        void                      breadthfirst(std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data);
-        WP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
+        void                      breadthfirst(std::function<void(SP<Desktop::View::CPopup>, void*)> fn, void* data);
+        SP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
 
         //
         WP<Desktop::View::CPopup> m_self;
@@ -100,6 +100,6 @@ namespace Desktop::View {
 
         Vector2D    localToGlobal(const Vector2D& rel);
         Vector2D    t1ParentCoords() const;
-        static void bfHelper(std::vector<WP<Desktop::View::CPopup>> const& nodes, std::function<void(WP<Desktop::View::CPopup>, void*)> fn, void* data);
+        static void bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data);
     };
 }

@@ -405,12 +405,12 @@ void CPopup::sendScale() {
         UNREACHABLE();
 }
 
-void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data) {
+void CPopup::bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {
     for (auto const& n : nodes) {
         fn(n, data);
     }
 
-    std::vector<WP<CPopup>> nodes2;
+    std::vector<SP<CPopup>> nodes2;
     nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
@@ -418,7 +418,7 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
             continue;
 
         for (auto const& c : n->m_children) {
-            nodes2.push_back(c->m_self);
+            nodes2.emplace_back(c->m_self.lock());
         }
     }
 
@@ -426,18 +426,18 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
         bfHelper(nodes2, fn, data);
 }
 
-void CPopup::breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data) {
+void CPopup::breadthfirst(std::function<void(SP<CPopup>, void*)> fn, void* data) {
     if (!m_self)
         return;
 
-    std::vector<WP<CPopup>> popups;
-    popups.push_back(m_self);
+    std::vector<SP<CPopup>> popups;
+    popups.emplace_back(m_self.lock());
     bfHelper(popups, fn, data);
 }
 
-WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
-    std::vector<WP<CPopup>> popups;
-    breadthfirst([&popups](WP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
+SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+    std::vector<SP<CPopup>> popups;
+    breadthfirst([&popups](SP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
 
     for (auto const& p : popups | std::views::reverse) {
         if (!p->m_resource || !p->m_mapped)

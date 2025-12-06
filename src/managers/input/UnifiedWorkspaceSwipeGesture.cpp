@@ -66,7 +66,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
 
     if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
-        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
+        (m_delta > 0 && !m_workspaceBegin->hasWindow() && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
 
         m_delta = 0;
         g_pHyprRenderer->damageMonitor(m_monitor.lock());

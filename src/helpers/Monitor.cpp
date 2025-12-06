@@ -30,7 +30,7 @@
 #include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"

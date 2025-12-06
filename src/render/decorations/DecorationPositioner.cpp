@@ -1,5 +1,5 @@
 #include "DecorationPositioner.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/Window.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/LayoutManager.hpp"
 

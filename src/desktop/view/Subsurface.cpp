@@ -1,12 +1,12 @@
-#include "Subsurface.hpp"
-#include "../events/Events.hpp"
-#include "../desktop/state/FocusState.hpp"
-#include "../desktop/Window.hpp"
-#include "../config/ConfigValue.hpp"
-#include "../protocols/core/Compositor.hpp"
-#include "../protocols/core/Subcompositor.hpp"
-#include "../render/Renderer.hpp"
-#include "../managers/input/InputManager.hpp"
+#include "../Subsurface.hpp"
+#include "../../events/Events.hpp"
+#include "../state/FocusState.hpp"
+#include "Window.hpp"
+#include "../../config/ConfigValue.hpp"
+#include "../../protocols/core/Compositor.hpp"
+#include "../../protocols/core/Subcompositor.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../managers/input/InputManager.hpp"
 
 UP<CSubsurface> CSubsurface::create(PHLWINDOW pOwner) {
     auto subsurface            = UP<CSubsurface>(new CSubsurface());

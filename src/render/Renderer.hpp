@@ -3,7 +3,7 @@
 #include "../defines.hpp"
 #include <list>
 #include "../helpers/Monitor.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"

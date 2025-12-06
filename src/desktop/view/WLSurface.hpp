@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../defines.hpp"
-#include "../helpers/math/Math.hpp"
-#include "../helpers/signal/Signal.hpp"
+#include "../../defines.hpp"
+#include "../../helpers/math/Math.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 class CSubsurface;
 class CPopup;

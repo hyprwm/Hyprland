@@ -2,7 +2,7 @@
 #include "WindowRule.hpp"
 #include "../Engine.hpp"
 #include "../utils/SetUtils.hpp"
-#include "../../Window.hpp"
+#include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../managers/LayoutManager.hpp"
 #include "../../../managers/HookSystemManager.hpp"

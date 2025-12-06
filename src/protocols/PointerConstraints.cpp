@@ -1,7 +1,7 @@
 #include "PointerConstraints.hpp"
 #include "../desktop/WLSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"

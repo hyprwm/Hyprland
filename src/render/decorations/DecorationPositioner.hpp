@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 #include "../../helpers/math/Math.hpp"
-#include "../../desktop/DesktopTypes.hpp"
+#include "../../desktop/view/DesktopTypes.hpp"
 
 class CWindow;
 class IHyprWindowDecoration;

@@ -1,5 +1,5 @@
 #include "HyprlandSurface.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../render/Renderer.hpp"
 #include "core/Compositor.hpp"
 #include "hyprland-surface-v1.hpp"

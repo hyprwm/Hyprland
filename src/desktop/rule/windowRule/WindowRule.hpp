@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Rule.hpp"
-#include "../../DesktopTypes.hpp"
+#include "../../view/DesktopTypes.hpp"
 #include "WindowRuleEffectContainer.hpp"
 #include "../../../helpers/math/Math.hpp"
 

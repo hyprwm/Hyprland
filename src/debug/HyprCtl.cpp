@@ -43,7 +43,7 @@ using namespace Hyprutils::OS;
 #include "debug/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../version.h"

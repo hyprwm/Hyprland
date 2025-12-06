@@ -1,5 +1,5 @@
 #include "WindowRule.hpp"
-#include "../../Window.hpp"
+#include "../../view/Window.hpp"
 #include "../../../helpers/Monitor.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"

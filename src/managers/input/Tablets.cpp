@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../managers/HookSystemManager.hpp"

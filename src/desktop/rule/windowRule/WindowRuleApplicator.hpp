@@ -4,7 +4,7 @@
 #include <unordered_set>
 
 #include "WindowRuleEffectContainer.hpp"
-#include "../../DesktopTypes.hpp"
+#include "../../view/DesktopTypes.hpp"
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"

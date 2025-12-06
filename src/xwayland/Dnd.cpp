@@ -5,7 +5,7 @@
 #include "Server.hpp"
 #endif
 #include "../managers/XWaylandManager.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../protocols/core/Compositor.hpp"
 
 using namespace Hyprutils::OS;

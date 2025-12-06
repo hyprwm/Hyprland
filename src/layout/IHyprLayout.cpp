@@ -4,7 +4,7 @@
 #include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../protocols/XDGShell.hpp"
 #include "../protocols/core/Compositor.hpp"

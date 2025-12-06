@@ -4,7 +4,7 @@
 #include <ranges>
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../desktop/WLSurface.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"

@@ -1,6 +1,6 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "XDGShell.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"

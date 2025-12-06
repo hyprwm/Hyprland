@@ -12,12 +12,12 @@
 #include <functional>
 #include <xf86drmMode.h>
 #include "../helpers/Monitor.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 
 #include "ConfigDataValues.hpp"
 #include "../SharedDefs.hpp"
 #include "../helpers/Color.hpp"
-#include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/DesktopTypes.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../managers/XWaylandManager.hpp"

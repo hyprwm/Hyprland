@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../DesktopTypes.hpp"
+#include "../../view/DesktopTypes.hpp"
 
 class CTagKeeper;
 

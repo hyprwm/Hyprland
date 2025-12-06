@@ -12,18 +12,21 @@ namespace Desktop::View {
     class CSubsurface : public IView {
       public:
         // root dummy nodes
-        static UP<Desktop::View::CSubsurface> create(PHLWINDOW pOwner);
-        static UP<Desktop::View::CSubsurface> create(WP<Desktop::View::CPopup> pOwner);
+        static SP<CSubsurface> create(PHLWINDOW pOwner);
+        static SP<CSubsurface> create(WP<Desktop::View::CPopup> pOwner);
 
         // real nodes
-        static UP<Desktop::View::CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
-        static UP<Desktop::View::CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, WP<Desktop::View::CPopup> pOwner);
+        static SP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, PHLWINDOW pOwner);
+        static SP<CSubsurface> create(SP<CWLSubsurfaceResource> pSubsurface, WP<Desktop::View::CPopup> pOwner);
+
+        static SP<CSubsurface> fromView(SP<IView>);
 
         virtual ~CSubsurface() = default;
 
         virtual eViewType              type() const;
         virtual bool                   visible() const;
         virtual std::optional<CBox>    logicalBox() const;
+        virtual bool                   desktopComponent() const;
 
         Vector2D                       coordsRelativeToParent();
         Vector2D                       coordsGlobal();
@@ -63,7 +66,7 @@ namespace Desktop::View {
         PHLWINDOWREF                                m_windowParent;
         WP<Desktop::View::CPopup>                   m_popupParent;
 
-        std::vector<UP<Desktop::View::CSubsurface>> m_children;
+        std::vector<SP<Desktop::View::CSubsurface>> m_children;
 
         bool                                        m_inert = false;
 

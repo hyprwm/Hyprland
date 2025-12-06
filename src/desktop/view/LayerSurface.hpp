@@ -14,6 +14,7 @@ namespace Desktop::View {
     class CLayerSurface : public IView {
       public:
         static PHLLS create(SP<CLayerShellResource>);
+        static PHLLS fromView(SP<IView>);
 
       private:
         CLayerSurface(SP<CLayerShellResource>);
@@ -24,6 +25,7 @@ namespace Desktop::View {
         virtual eViewType           type() const;
         virtual bool                visible() const;
         virtual std::optional<CBox> logicalBox() const;
+        virtual bool                desktopComponent() const;
 
         bool                        isFadedOut();
         int                         popupsCount();
@@ -53,7 +55,7 @@ namespace Desktop::View {
         CBox                                    m_geometry = {0, 0, 0, 0};
         Vector2D                                m_position;
         std::string                             m_namespace = "";
-        UP<Desktop::View::CPopup>               m_popupHead;
+        SP<Desktop::View::CPopup>               m_popupHead;
 
         pid_t                                   getPID();
 

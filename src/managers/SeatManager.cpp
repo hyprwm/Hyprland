@@ -642,11 +642,11 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             if (focusedSurf) {
                 auto hlSurface = Desktop::View::CWLSurface::fromResource(focusedSurf);
                 if (hlSurface) {
-                    auto popup = hlSurface->getPopup();
+                    auto popup = Desktop::View::CPopup::fromView(hlSurface->view());
                     if (popup) {
                         auto t1Owner = popup->getT1Owner();
                         if (t1Owner)
-                            parentWindow = t1Owner->getWindow();
+                            parentWindow = Desktop::View::CWindow::fromView(t1Owner->view());
                     }
                 }
             }
@@ -675,14 +675,14 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
         if (!refocus) {
             surf  = Desktop::View::CWLSurface::fromResource(currentFocus);
-            layer = surf ? surf->getLayer() : nullptr;
+            layer = surf ? Desktop::View::CLayerSurface::fromView(surf->view()) : nullptr;
         }
 
         if (!refocus && !layer) {
-            auto popup = surf ? surf->getPopup() : nullptr;
+            auto popup = surf ? Desktop::View::CPopup::fromView(surf->view()) : nullptr;
             if (popup) {
                 auto parent = popup->getT1Owner();
-                layer       = parent->getLayer();
+                layer       = Desktop::View::CLayerSurface::fromView(parent->view());
             }
         }
 

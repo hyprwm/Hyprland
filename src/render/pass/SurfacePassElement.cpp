@@ -171,7 +171,7 @@ CBox CSurfacePassElement::getTexBox() {
         windowBox = {sc<int>(outputX) + m_data.pos.x + m_data.localPos.x, sc<int>(outputY) + m_data.pos.y + m_data.localPos.y, m_data.w, m_data.h};
 
         // however, if surface buffer w / h < box, we need to adjust them
-        const auto PWINDOW = PSURFACE ? PSURFACE->getWindow() : nullptr;
+        const auto PWINDOW = PSURFACE ? Desktop::View::CWindow::fromView(PSURFACE->view()) : nullptr;
 
         // center the surface if it's smaller than the viewport we assign it
         if (PSURFACE && !PSURFACE->m_fillIgnoreSmall && PSURFACE->small() /* guarantees PWINDOW */) {

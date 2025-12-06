@@ -514,7 +514,7 @@ void CLinuxDMABufV1Protocol::resetFormatTable() {
                 feedback->sendDefaultFeedback();
                 continue;
             }
-            if (auto w = HLSurface->getWindow(); w)
+            if (auto w = Desktop::View::CWindow::fromView(HLSurface->view()); w)
                 if (auto m = w->m_monitor.lock(); m)
                     mon = m->m_self.lock();
 

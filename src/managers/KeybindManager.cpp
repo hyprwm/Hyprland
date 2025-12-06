@@ -1296,7 +1296,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
         auto HLSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+        if (PLAST && (!HLSurface || HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW))
             PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
     }
 
@@ -2140,7 +2140,7 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
         auto PLAST     = focusedWorkspace->getLastFocusedWindow();
         auto HLSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+        if (PLAST && (!HLSurface || HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW))
             PLAST->warpCursor(*PWARPONTOGGLESPECIAL == 2);
     }
 

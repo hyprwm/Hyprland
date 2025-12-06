@@ -125,6 +125,12 @@ CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_
         m_listeners.setGeometry = m_xwaylandSurface->m_events.setGeometry.listen([this] { Events::listener_unmanagedSetGeometry(this, nullptr); });
 }
 
+SP<CWindow> CWindow::fromView(SP<IView> v) {
+    if (!v || v->type() != VIEW_TYPE_WINDOW)
+        return nullptr;
+    return dynamicPointerCast<CWindow>(v);
+}
+
 CWindow::~CWindow() {
     if (Desktop::focusState()->window() == m_self) {
         Desktop::focusState()->surface().reset();
@@ -150,6 +156,10 @@ bool CWindow::visible() const {
 
 std::optional<CBox> CWindow::logicalBox() const {
     return getFullWindowBoundingBox();
+}
+
+bool CWindow::desktopComponent() const {
+    return true;
 }
 
 SBoxExtents CWindow::getFullWindowExtents() const {

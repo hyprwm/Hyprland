@@ -35,7 +35,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         m_hintSet = true;
 
         float      scale   = 1.f;
-        const auto PWINDOW = m_hlSurface->getWindow();
+        const auto PWINDOW = Desktop::View::CWindow::fromView(m_hlSurface->view());
         if (PWINDOW) {
             const auto ISXWL = PWINDOW->m_isX11;
             scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;

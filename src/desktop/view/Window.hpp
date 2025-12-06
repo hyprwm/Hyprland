@@ -75,6 +75,7 @@ namespace Desktop::View {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
+        static PHLWINDOW fromView(SP<IView>);
 
       private:
         CWindow(SP<CXDGSurfaceResource> resource);
@@ -86,6 +87,7 @@ namespace Desktop::View {
         virtual eViewType           type() const;
         virtual bool                visible() const;
         virtual std::optional<CBox> logicalBox() const;
+        virtual bool                desktopComponent() const;
 
         struct {
             CSignalT<> destroy;
@@ -159,8 +161,8 @@ namespace Desktop::View {
         uint64_t m_suppressedEvents = SUPPRESS_NONE;
 
         // desktop components
-        UP<Desktop::View::CSubsurface> m_subsurfaceHead;
-        UP<Desktop::View::CPopup>      m_popupHead;
+        SP<Desktop::View::CSubsurface> m_subsurfaceHead;
+        SP<Desktop::View::CPopup>      m_popupHead;
 
         // Animated border
         CGradientValueData m_realBorderColor         = {0};

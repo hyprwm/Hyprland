@@ -251,7 +251,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 const auto RG           = CONSTRAINT->logicConstraintRegion();
                 const auto CLOSEST      = RG.closestPoint(mouseCoords);
                 const auto BOX          = SURF->getSurfaceBoxGlobal();
-                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (SURF->getWindow() ? SURF->getWindow()->m_X11SurfaceScaledBy : 1.0);
+                const auto WINDOW       = Desktop::View::CWindow::fromView(SURF->view());
+                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
 
                 g_pCompositor->warpCursorTo(CLOSEST, true);
                 g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
@@ -336,9 +337,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 const auto BOX = HLSurface->getSurfaceBoxGlobal();
 
                 if (BOX) {
-                    const auto PWINDOW = HLSurface->getWindow();
+                    const auto PWINDOW = HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(HLSurface->view()) : nullptr;
                     surfacePos         = BOX->pos();
-                    pFoundLayerSurface = HLSurface->getLayer();
+                    pFoundLayerSurface =
+                        HLSurface->view()->type() == Desktop::View::VIEW_TYPE_LAYER_SURFACE ? dynamicPointerCast<Desktop::View::CLayerSurface>(HLSurface->view()) : nullptr;
                     if (!pFoundLayerSurface)
                         pFoundWindow = !PWINDOW || PWINDOW->isHidden() ? Desktop::focusState()->window() : PWINDOW;
                 } else // reset foundSurface, find one normally
@@ -783,8 +785,8 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
             auto HLSurf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-            if (HLSurf && HLSurf->getWindow())
-                g_pCompositor->changeWindowZOrder(HLSurf->getWindow(), true);
+            if (HLSurf && HLSurf->view()->type() == Desktop::View::VIEW_TYPE_WINDOW)
+                g_pCompositor->changeWindowZOrder(dynamicPointerCast<Desktop::View::CWindow>(HLSurf->view()), true);
 
             break;
         }

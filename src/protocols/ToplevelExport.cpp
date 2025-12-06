@@ -374,7 +374,7 @@ bool CToplevelExportFrame::shouldOverlayCursor() const {
 
     auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
 
-    return pointerSurface && pointerSurface->getWindow() == m_window;
+    return pointerSurface && Desktop::View::CWindow::fromView(pointerSurface->view()) == m_window;
 }
 
 bool CToplevelExportFrame::good() {

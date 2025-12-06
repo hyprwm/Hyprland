@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 pkg_check_modules(hyprpm_deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0.7.0)
 
-find_package(glaze QUIET)
+find_package(glaze 6.0.0 QUIET)
 if (NOT glaze_FOUND)
     set(GLAZE_VERSION v6.1.0)
     message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")

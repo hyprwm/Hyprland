@@ -77,13 +77,14 @@ class CToplevelExportProtocol : IWaylandProtocol {
     void destroyResource(CToplevelExportClient* client);
     void destroyResource(CToplevelExportFrame* frame);
 
-    void onWindowUnmap(PHLWINDOW pWindow);
     void onOutputCommit(PHLMONITOR pMonitor);
 
   private:
     std::vector<SP<CToplevelExportClient>> m_clients;
     std::vector<SP<CToplevelExportFrame>>  m_frames;
     std::vector<WP<CToplevelExportFrame>>  m_framesAwaitingWrite;
+
+    void                                   onWindowUnmap(PHLWINDOW pWindow);
 
     void                                   shareFrame(CToplevelExportFrame* frame);
     bool                                   copyFrameDmabuf(CToplevelExportFrame* frame, const Time::steady_tp& now);

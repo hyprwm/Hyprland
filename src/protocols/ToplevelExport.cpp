@@ -382,7 +382,11 @@ bool CToplevelExportFrame::good() {
 }
 
 CToplevelExportProtocol::CToplevelExportProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    ;
+    static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        onWindowUnmap(window);
+    });
 }
 
 void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

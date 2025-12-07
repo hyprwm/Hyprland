@@ -2,13 +2,25 @@ name: "New MR welcome comment"
 
 on:
   pull_request:
-    types: [opened]
+    types:
+      - opened
 
 jobs:
   comment:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+
+    env:
+      PR_COMMENT: |
+        Hello and thank you for making a PR to Hyprland!
+
+        Please check the [PR Guidelines](https://wiki.hypr.land/Contributing-and-Debugging/PR-Guidelines/) and make sure your PR follows them.
+        It will make the entire review process faster. :)
+
+        If your code can be tested, please always add tests. See more [here](https://wiki.hypr.land/Contributing-and-Debugging/Tests/).
+
+        _beep boop, I'm just a bot. A real human will review your PR soon._
 
     steps:
       - name: Add comment to PR
@@ -17,16 +29,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const pr = context.payload.pull_request;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.number,
-              body: `Hello and thank you for making a PR to Hyprland!
-
-Please check the [PR Guidelines](https://wiki.hypr.land/Contributing-and-Debugging/PR-Guidelines/) and make sure your PR follows them.
-It will make the entire review process faster. :)
-
-If your code can be tested, please always add tests. See more [here](https://wiki.hypr.land/Contributing-and-Debugging/Tests/).
-
-_beep boop, I'm just a bot. A real human will review your PR soon._`
+              body: process.env.PR_COMMENT,
             });

@@ -24,3 +24,17 @@ TEST(HelpersTime, SteadyRoundtripWithinTolerance) {
     // Allow a small drift for conversions and scheduling jitter.
     EXPECT_LT(diffMillis, 50) << "Roundtrip drift exceeded tolerance";
 }
+
+TEST(HelpersTime, SystemRoundtripWithinTolerance) {
+    using namespace std::chrono_literals;
+
+    const auto now = Time::systemNow();
+    const auto parts = Time::secNsec(now);
+    const auto reconstructed = std::chrono::system_clock::time_point(std::chrono::seconds(parts.first)) +
+                               std::chrono::nanoseconds(parts.second);
+
+    const auto diff       = reconstructed > now ? (reconstructed - now) : (now - reconstructed);
+    const auto diffMillis = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
+
+    EXPECT_LT(diffMillis, 1) << "System clock reconstruction drifted too far";
+}

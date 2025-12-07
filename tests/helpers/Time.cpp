@@ -2,6 +2,16 @@
 #include <helpers/time/Time.hpp>
 #include <chrono>
 
+TEST(HelpersTime, HandlesNanosecondBorrowInDiff) {
+    const Time::detail::sec_nsec later{5, 5};
+    const Time::detail::sec_nsec earlier{4, 999'999'900};
+
+    const auto delta = Time::detail::diff(later, earlier);
+
+    EXPECT_EQ(delta.first, 0u);
+    EXPECT_EQ(delta.second, 105u);
+}
+
 TEST(HelpersTime, SteadyRoundtripWithinTolerance) {
     using namespace std::chrono_literals;
 

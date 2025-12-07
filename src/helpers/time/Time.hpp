@@ -28,5 +28,6 @@ namespace Time {
 
         // Exposed for tests to verify borrow handling in timespec math. @Rtur2003
         sec_nsec diff(const sec_nsec& newer, const sec_nsec& older);
+        sec_nsec normalize(const sec_nsec& raw);
     }
 };

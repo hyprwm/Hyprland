@@ -22,6 +22,10 @@ protocols:
   - changed-files:
       - any-glob-to-any-file: ["protocols/**", "src/protocols/**"]
 
+start:
+  - changed-files:
+      - any-glob-to-any-file: "start/**"
+
 core:
   - changed-files:
       - any-glob-to-any-file: "src/**"

@@ -128,7 +128,6 @@ static void testAnrDialogs() {
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "special:apple");
         }
-
     }
 
     OK(getFromSocket("/reload"));

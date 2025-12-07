@@ -1,13 +1,14 @@
 #include "ResizeGesture.hpp"
 
-#include "../../../../Compositor.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/Window.hpp"
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
 void CResizeTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_window = g_pCompositor->m_lastWindow;
+    m_window = Desktop::focusState()->window();
 }
 
 void CResizeTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {

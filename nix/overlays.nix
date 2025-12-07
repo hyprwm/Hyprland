@@ -28,6 +28,7 @@ in {
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
+    inputs.hyprwire.overlays.default
     self.overlays.udis86
 
     # Hyprland packages themselves
@@ -43,7 +44,14 @@ in {
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      hyprland-with-hyprtester = final.hyprland.override {withHyprtester = true;};
+      hyprland-with-tests = final.hyprland.override {withTests = true;};
+
+      hyprland-with-hyprtester =
+        builtins.trace ''
+          hyprland-with-hyprtester was removed. Please use the hyprland package.
+          Hyprtester is always built now.
+        ''
+        final.hyprland;
 
       # deprecated packages
       hyprland-legacy-renderer =

@@ -1,5 +1,6 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../helpers/Monitor.hpp"
@@ -69,8 +70,8 @@ void CHyprXWaylandManager::activateWindow(PHLWINDOW pWindow, bool activate) {
         pWindow->m_xdgSurface->m_toplevel->setActive(activate);
 
     if (activate) {
-        g_pCompositor->m_lastFocus  = getWindowSurface(pWindow);
-        g_pCompositor->m_lastWindow = pWindow;
+        Desktop::focusState()->surface() = getWindowSurface(pWindow);
+        Desktop::focusState()->window()  = pWindow;
     }
 
     if (!pWindow->m_pinned)

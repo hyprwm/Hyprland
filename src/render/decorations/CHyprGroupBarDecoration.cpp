@@ -1,6 +1,7 @@
 #include "CHyprGroupBarDecoration.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "managers/LayoutManager.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
@@ -126,6 +127,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     static auto PKEEPUPPERGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
     static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
+    static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
     auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
     auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
     auto* const GROUPCOLACTIVELOCKED       = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
@@ -144,6 +146,8 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     float xoff = 0;
     float yoff = 0;
 
+    bool  blur = *PBLUR != 0;
+
     for (int i = 0; i < barsToDraw; ++i) {
         const auto WINDOWINDEX = *PSTACKED ? m_dwGroupMembers.size() - i - 1 : i;
 
@@ -157,37 +161,30 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
-        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == g_pCompositor->m_lastWindow.lock() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
+        CHyprColor        color = m_dwGroupMembers[WINDOWINDEX].lock() == Desktop::focusState()->window() ? PCOLACTIVE->m_colors[0] : PCOLINACTIVE->m_colors[0];
         color.a *= a;
 
         if (!rect.empty()) {
             CRectPassElement::SRectData rectdata;
             rectdata.color = color;
+            rectdata.blur  = blur;
             rectdata.box   = rect;
             if (*PROUNDING) {
+                rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
                 if (*PROUNDONLYEDGES) {
-                    static constexpr double PADDING = 20;
-
-                    if (i == 0 && barsToDraw == 1)
-                        rectdata.round = *PROUNDING;
-                    else if (i == 0) {
-                        double first     = rect.w - (*PROUNDING * 2);
+                    rectdata.round      = 0;
+                    const double offset = *PROUNDING * 2;
+                    if (i == 0) {
                         rectdata.round   = *PROUNDING;
-                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
-                        rectdata.round   = 0;
-                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                        rectdata.clipBox = rect;
+                        rectdata.box     = CBox{rect.pos(), Vector2D{rect.w + offset, rect.h}};
                     } else if (i == barsToDraw - 1) {
-                        double first     = *PROUNDING * 2;
-                        rectdata.round   = 0;
-                        rectdata.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                        g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
                         rectdata.round   = *PROUNDING;
-                        rectdata.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                        rectdata.clipBox = rect;
+                        rectdata.box     = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
                     }
-                } else
-                    rectdata.round = *PROUNDING;
+                }
             }
             g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(rectdata));
         }
@@ -199,36 +196,29 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         if (!rect.empty()) {
             if (*PGRADIENTS) {
-                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
-                                                                                                         (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
+                const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window() ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
+                                                                                                             (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
                 if (GRADIENTTEX->m_texID) {
                     CTexPassElement::SRenderData data;
-                    data.tex = GRADIENTTEX;
-                    data.box = rect;
+                    data.tex  = GRADIENTTEX;
+                    data.blur = blur;
+                    data.box  = rect;
                     if (*PGRADIENTROUNDING) {
+                        data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
                         if (*PGRADIENTROUNDINGONLYEDGES) {
-                            static constexpr double PADDING = 20;
-
-                            if (i == 0 && barsToDraw == 1)
-                                data.round = *PGRADIENTROUNDING;
-                            else if (i == 0) {
-                                double first = rect.w - (*PGRADIENTROUNDING * 2);
+                            data.round          = 0;
+                            const double offset = *PGRADIENTROUNDING * 2;
+                            if (i == 0) {
                                 data.round   = *PGRADIENTROUNDING;
-                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
-                                data.round   = 0;
-                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                                data.clipBox = rect;
+                                data.box     = CBox{rect.pos(), Vector2D{rect.w + offset, rect.h}};
                             } else if (i == barsToDraw - 1) {
-                                double first = *PGRADIENTROUNDING * 2;
-                                data.round   = 0;
-                                data.clipBox = CBox{rect.pos() - Vector2D{PADDING, 0.F}, Vector2D{first + PADDING, rect.h}};
-                                g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
                                 data.round   = *PGRADIENTROUNDING;
-                                data.clipBox = CBox{rect.pos() + Vector2D{first, 0.F}, Vector2D{rect.w - first + PADDING, rect.h}};
+                                data.clipBox = rect;
+                                data.box     = CBox{rect.pos() - Vector2D{offset, 0.F}, Vector2D{rect.w + offset, rect.h}};
                             }
-                        } else
-                            data.round = *PGRADIENTROUNDING;
+                        }
                     }
                     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
                 }
@@ -245,7 +235,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                                     .get();
 
                 SP<CTexture> titleTex;
-                if (m_dwGroupMembers[WINDOWINDEX] == g_pCompositor->m_lastWindow)
+                if (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window())
                     titleTex = GROUPLOCKED ? pTitleTex->m_texLockedActive : pTitleTex->m_texActive;
                 else
                     titleTex = GROUPLOCKED ? pTitleTex->m_texLockedInactive : pTitleTex->m_texInactive;
@@ -319,10 +309,10 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 
 static void renderGradientTo(SP<CTexture> tex, CGradientValueData* grad) {
 
-    if (!g_pCompositor->m_lastMonitor)
+    if (!Desktop::focusState()->monitor())
         return;
 
-    const Vector2D& bufferSize = g_pCompositor->m_lastMonitor->m_pixelSize;
+    const Vector2D& bufferSize = Desktop::focusState()->monitor()->m_pixelSize;
 
     const auto      CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, bufferSize.x, bufferSize.y);
     const auto      CAIRO        = cairo_create(CAIROSURFACE);
@@ -426,7 +416,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     g_pInputManager->m_currentlyDraggedWindow = pWindow;
 
     if (!g_pCompositor->isWindowActive(pWindow))
-        g_pCompositor->focusWindow(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow);
 
     return true;
 }
@@ -540,7 +530,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
         if (!g_pCompositor->isWindowActive(m_window.lock()))
-            g_pCompositor->focusWindow(m_window.lock());
+            Desktop::focusState()->rawWindowFocus(m_window.lock());
         return true;
     }
 
@@ -550,7 +540,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         pWindow->setGroupCurrent(pWindow);
 
     if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
-        g_pCompositor->focusWindow(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow);
 
     if (pWindow->m_isFloating)
         g_pCompositor->changeWindowZOrder(pWindow, true);
@@ -608,5 +598,5 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
 bool CHyprGroupBarDecoration::visible() {
     static auto PENABLED = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
-    return *PENABLED && m_window->m_windowData.decorate.valueOrDefault();
+    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault();
 }

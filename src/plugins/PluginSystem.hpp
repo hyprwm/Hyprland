@@ -2,6 +2,7 @@
 
 #include "../defines.hpp"
 #include "../helpers/defer/Promise.hpp"
+#include "../helpers/time/Timer.hpp"
 #include "PluginAPI.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include <csetjmp>

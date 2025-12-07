@@ -1,6 +1,7 @@
 #include "Subsurface.hpp"
 #include "../events/Events.hpp"
-#include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
+#include "../desktop/Window.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Subcompositor.hpp"
@@ -163,7 +164,7 @@ void CSubsurface::onMap() {
 void CSubsurface::onUnmap() {
     damageLastArea();
 
-    if (m_wlSurface->resource() == g_pCompositor->m_lastFocus)
+    if (m_wlSurface->resource() == Desktop::focusState()->surface())
         g_pInputManager->releaseAllMouseButtons();
 
     g_pInputManager->simulateMouseMovement();

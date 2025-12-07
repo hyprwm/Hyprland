@@ -65,6 +65,13 @@
       inputs.systems.follows = "systems";
     };
 
+    hyprwire = {
+      url = "github:hyprwm/hyprwire";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+      inputs.hyprutils.follows = "hyprutils";
+    };
+
     xdph = {
       url = "github:hyprwm/xdg-desktop-portal-hyprland";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -151,8 +158,8 @@
         (pkgsFor.${system})
         # hyprland-packages
         hyprland
-        hyprland-with-hyprtester
         hyprland-unwrapped
+        hyprland-with-tests
         # hyprland-extras
         xdg-desktop-portal-hyprland
         ;

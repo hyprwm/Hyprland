@@ -14,6 +14,7 @@
 #include "../config/ConfigManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ColorManagement.hpp"
@@ -24,6 +25,7 @@
 #include "../managers/CursorManager.hpp"
 #include "../helpers/fs/FsUtils.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
+#include "../i18n/Engine.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "pass/TexPassElement.hpp"
@@ -423,7 +425,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
         auto PMONITOR = g_pCompositor->getMonitorFromName(!E.device->m_boundOutput.empty() ? E.device->m_boundOutput : "");
 
-        PMONITOR = PMONITOR ? PMONITOR : g_pCompositor->m_lastMonitor.lock();
+        PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
         const auto TOUCH_COORDS = PMONITOR->m_position + (E.pos * PMONITOR->m_size);
 
@@ -969,6 +971,7 @@ static void getCMShaderUniforms(SShader& shader) {
     shader.uniformLocations[SHADER_DST_TF_RANGE]      = glGetUniformLocation(shader.program, "dstTFRange");
     shader.uniformLocations[SHADER_TARGET_PRIMARIES]  = glGetUniformLocation(shader.program, "targetPrimaries");
     shader.uniformLocations[SHADER_MAX_LUMINANCE]     = glGetUniformLocation(shader.program, "maxLuminance");
+    shader.uniformLocations[SHADER_SRC_REF_LUMINANCE] = glGetUniformLocation(shader.program, "srcRefLuminance");
     shader.uniformLocations[SHADER_DST_MAX_LUMINANCE] = glGetUniformLocation(shader.program, "dstMaxLuminance");
     shader.uniformLocations[SHADER_DST_REF_LUMINANCE] = glGetUniformLocation(shader.program, "dstRefLuminance");
     shader.uniformLocations[SHADER_SDR_SATURATION]    = glGetUniformLocation(shader.program, "sdrSaturation");
@@ -1006,7 +1009,7 @@ bool CHyprOpenGLImpl::initShaders() {
 
             prog = createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
             if (m_shadersInitialized && m_cmSupported && prog == 0)
-                g_pHyprNotificationOverlay->addNotification("CM shader reload failed, falling back to rgba/rgbx", CHyprColor{}, 15000, ICON_WARNING);
+                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_CM_RELOAD_FAILED), CHyprColor{}, 15000, ICON_WARNING);
 
             m_cmSupported = prog > 0;
             if (m_cmSupported) {
@@ -1558,6 +1561,14 @@ static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescriptio
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
 }
 
+static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
+    // might be too strict
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
+        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+}
+
 void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
                                      const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
@@ -1583,16 +1594,22 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
     shader.setUniformMatrix4x2fv(SHADER_TARGET_PRIMARIES, 1, false, glTargetPrimaries);
 
     const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription, targetImageDescription);
+    const bool needsHDRmod = !needsSDRmod && isHDR2SDR(imageDescription, targetImageDescription);
 
     shader.setUniformFloat2(SHADER_SRC_TF_RANGE, imageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
                             imageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
     shader.setUniformFloat2(SHADER_DST_TF_RANGE, targetImageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
                             targetImageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
 
-    const float maxLuminance = imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference;
-    shader.setUniformFloat(SHADER_MAX_LUMINANCE, maxLuminance * targetImageDescription.luminances.reference / imageDescription.luminances.reference);
+    shader.setUniformFloat(SHADER_SRC_REF_LUMINANCE, imageDescription.getTFRefLuminance(-1));
+    shader.setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription.getTFRefLuminance(-1));
+
+    const float maxLuminance =
+        needsHDRmod ? imageDescription.getTFMaxLuminance(-1) : (imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference);
+    shader.setUniformFloat(SHADER_MAX_LUMINANCE,
+                           maxLuminance * targetImageDescription.luminances.reference /
+                               (needsHDRmod ? imageDescription.getTFRefLuminance(-1) : imageDescription.luminances.reference));
     shader.setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription.luminances.max > 0 ? targetImageDescription.luminances.max : 10000);
-    shader.setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription.luminances.reference);
     shader.setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
     shader.setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);
     const auto cacheKey = std::make_pair(imageDescription.getId(), targetImageDescription.getId());
@@ -1669,7 +1686,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         }
     }
 
-    if (m_renderData.currentWindow && m_renderData.currentWindow->m_windowData.RGBX.valueOrDefault()) {
+    if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()) {
         shader  = &m_shaders->m_shRGBX;
         texType = TEXTURE_RGBX;
     }
@@ -1708,11 +1725,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     if (shader == &m_shaders->m_shCM) {
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
         if (data.cmBackToSRGB) {
-            // revert luma changes to avoid black screenshots.
-            // this will likely not be 1:1, and might cause screenshots to be too bright, but it's better than pitch black.
-            imageDescription.luminances = {};
-            static auto PSDREOTF        = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
-            auto        chosenSdrEotf   = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+            static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+            auto        chosenSdrEotf = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
             passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}, true, -1, -1);
         } else
             passCMUniforms(*shader, imageDescription);
@@ -2194,7 +2208,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         if (!pWindow)
             return false;
 
-        if (pWindow->m_windowData.noBlur.valueOrDefault())
+        if (pWindow->m_ruleApplicator->noBlur().valueOrDefault())
             return false;
 
         if (pWindow->m_wlSurface->small() && !pWindow->m_wlSurface->m_fillIgnoreSmall)
@@ -2238,7 +2252,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     for (auto const& m : g_pCompositor->m_monitors) {
         for (auto const& lsl : m->m_layerSurfaceLayers) {
             for (auto const& ls : lsl) {
-                if (!ls->m_layerSurface || ls->m_xray != 1)
+                if (!ls->m_layerSurface || ls->m_ruleApplicator->xray().valueOrDefault() != 1)
                     continue;
 
                 // if (ls->layerSurface->surface->opaque && ls->alpha->value() >= 1.f)
@@ -2310,16 +2324,16 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     if (!m_renderData.pCurrentMonData->blurFB.getTexture())
         return false;
 
-    if (pWindow && pWindow->m_windowData.xray.hasValue() && !pWindow->m_windowData.xray.valueOrDefault())
+    if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
         return false;
 
-    if (pLayer && pLayer->m_xray == 0)
+    if (pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 0)
         return false;
 
     if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_isFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
         return true;
 
-    if ((pLayer && pLayer->m_xray == 1) || (pWindow && pWindow->m_windowData.xray.valueOrDefault()))
+    if ((pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 1) || (pWindow && pWindow->m_ruleApplicator->xray().valueOrDefault()))
         return true;
 
     return false;
@@ -2473,7 +2487,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     TRACY_GPU_ZONE("RenderBorder");
 
-    if (m_renderData.damage.empty() || (m_renderData.currentWindow && m_renderData.currentWindow->m_windowData.noBorder.valueOrDefault()))
+    if (m_renderData.damage.empty())
         return;
 
     CBox newBox = box;
@@ -2557,7 +2571,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     TRACY_GPU_ZONE("RenderBorder2");
 
-    if (m_renderData.damage.empty() || (m_renderData.currentWindow && m_renderData.currentWindow->m_windowData.noBorder.valueOrDefault()))
+    if (m_renderData.damage.empty())
         return;
 
     CBox newBox = box;
@@ -2641,7 +2655,6 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, float a) {
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
-    RASSERT(m_renderData.currentWindow, "Tried to render shadow without a window!");
 
     if (m_renderData.damage.empty())
         return;

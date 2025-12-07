@@ -20,6 +20,7 @@
 #include "../managers/ANRManager.hpp"
 #include "../protocols/XWaylandShell.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
 using Hyprutils::Memory::CUniquePointer;
 
 using namespace Hyprutils::OS;
@@ -1037,7 +1038,7 @@ void CXWM::activateSurface(SP<CXWaylandSurface> surf, bool activate) {
     if ((surf == m_focusedSurface && activate) || (surf && surf->m_overrideRedirect))
         return;
 
-    if (!surf || (!activate && g_pCompositor->m_lastWindow && !g_pCompositor->m_lastWindow->m_isX11)) {
+    if (!surf || (!activate && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)) {
         setActiveWindow(XCB_WINDOW_NONE);
         focusWindow(nullptr);
     } else {

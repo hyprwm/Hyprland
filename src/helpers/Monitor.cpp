@@ -27,9 +27,11 @@
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../hyprerror/HyprError.hpp"
+#include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/LayerSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
@@ -176,7 +178,11 @@ void CMonitor::onConnect(bool noRule) {
         m_forceSize = SIZE;
 
         SMonitorRule rule = m_activeMonitorRule;
-        rule.resolution   = SIZE;
+
+        if (SIZE == rule.resolution)
+            return;
+
+        rule.resolution = SIZE;
 
         applyMonitorRule(&rule);
     });
@@ -293,8 +299,8 @@ void CMonitor::onConnect(bool noRule) {
     if (!m_activeMonitorRule.mirrorOf.empty())
         setMirror(m_activeMonitorRule.mirrorOf);
 
-    if (!g_pCompositor->m_lastMonitor) // set the last monitor if it isn't set yet
-        g_pCompositor->setActiveMonitor(m_self.lock());
+    if (!Desktop::focusState()->monitor()) // set the last monitor if it isn't set yet
+        Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
@@ -305,7 +311,7 @@ void CMonitor::onConnect(bool noRule) {
     // verify last mon valid
     bool found = false;
     for (auto const& m : g_pCompositor->m_monitors) {
-        if (m == g_pCompositor->m_lastMonitor) {
+        if (m == Desktop::focusState()->monitor()) {
             found = true;
             break;
         }
@@ -325,7 +331,7 @@ void CMonitor::onConnect(bool noRule) {
         Debug::log(LOG, "Monitor {} was not on any workspace", m_name);
 
     if (!found)
-        g_pCompositor->setActiveMonitor(m_self.lock());
+        Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
     g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
@@ -432,9 +438,9 @@ void CMonitor::onDisconnect(bool destroy) {
             g_pDesktopAnimationManager->startAnimation(w, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         }
     } else {
-        g_pCompositor->m_lastFocus.reset();
-        g_pCompositor->m_lastWindow.reset();
-        g_pCompositor->m_lastMonitor.reset();
+        Desktop::focusState()->surface().reset();
+        Desktop::focusState()->window().reset();
+        Desktop::focusState()->monitor().reset();
     }
 
     if (m_activeWorkspace)
@@ -448,8 +454,8 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!m_state.commit())
         Debug::log(WARN, "state.commit() failed in CMonitor::onDisconnect");
 
-    if (g_pCompositor->m_lastMonitor == m_self)
-        g_pCompositor->setActiveMonitor(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
+    if (Desktop::focusState()->monitor() == m_self)
+        Desktop::focusState()->rawMonitorFocus(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
 
     if (g_pHyprRenderer->m_mostHzMonitor == m_self) {
         int        mostHz         = 0;
@@ -597,7 +603,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         && m_transform == RULE->transform && RULE->enable10bit == m_enabled10bit && RULE->cmType == m_cmType && RULE->sdrSaturation == m_sdrSaturation &&
         RULE->sdrBrightness == m_sdrBrightness && RULE->sdrMinLuminance == m_minLuminance && RULE->sdrMaxLuminance == m_maxLuminance &&
         RULE->supportsWideColor == m_supportsWideColor && RULE->supportsHDR == m_supportsHDR && RULE->minLuminance == m_minLuminance && RULE->maxLuminance == m_maxLuminance &&
-        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode))) {
+        RULE->maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->drmMode, sizeof(m_customDrmMode)) && m_reservedArea == RULE->reservedArea) {
 
         Debug::log(LOG, "Not applying a new rule to {} because it's already applied!", m_name);
 
@@ -608,17 +614,18 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     bool autoScale = false;
 
-    if (RULE->scale > 0.1) {
+    if (RULE->scale > 0.1)
         m_scale = RULE->scale;
-    } else {
+    else {
         autoScale               = true;
         const auto DEFAULTSCALE = getDefaultScale();
         m_scale                 = DEFAULTSCALE;
     }
 
-    m_setScale  = m_scale;
-    m_transform = RULE->transform;
-    m_autoDir   = RULE->autoDir;
+    m_setScale     = m_scale;
+    m_transform    = RULE->transform;
+    m_autoDir      = RULE->autoDir;
+    m_reservedArea = RULE->reservedArea;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;
@@ -811,8 +818,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
             if (!m_state.test())
                 continue;
 
-            auto errorMessage =
-                std::format("Monitor {} failed to set any requested modes, falling back to mode {:X0}@{:.2f}Hz", m_name, mode->pixelSize, mode->refreshRate / 1000.f);
+            auto errorMessage = I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
+                                                             {{"name", m_name}, {"mode", std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f)}});
             Debug::log(WARN, errorMessage);
             g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
@@ -939,8 +946,10 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
                     Debug::log(ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
                     static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
                     if (!*PDISABLENOTIFICATION)
-                        g_pHyprNotificationOverlay->addNotification(std::format("Invalid scale passed to monitor: {}, using suggested scale: {}", m_scale, searchScale),
-                                                                    CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
+                        g_pHyprNotificationOverlay->addNotification(
+                            I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
+                                                         {{"name", m_name}, {"scale", std::format("{:.2f}", m_scale)}, {"fixed_scale", std::format("{:.2f}", searchScale)}}),
+                            CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
                 }
                 m_scale = searchScale;
             }
@@ -1196,7 +1205,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         g_pCompositor->scheduleMonitorStateRecheck();
 
-        g_pCompositor->setActiveMonitor(g_pCompositor->m_monitors.front());
+        Desktop::focusState()->rawMonitorFocus(g_pCompositor->m_monitors.front());
 
         // Software lock mirrored monitor
         g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
@@ -1279,8 +1288,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                 w->moveToWorkspace(pWorkspace);
         }
 
-        if (!noFocus && !g_pCompositor->m_lastMonitor->m_activeSpecialWorkspace &&
-            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+        if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
+            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
@@ -1295,7 +1304,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                     pWindow = pWorkspace->getFirstWindow();
             }
 
-            g_pCompositor->focusWindow(pWindow);
+            Desktop::focusState()->fullWindowFocus(pWindow);
         }
 
         if (!noMouseMove)
@@ -1354,9 +1363,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
-                g_pCompositor->focusWindow(PLAST);
+                Desktop::focusState()->fullWindowFocus(PLAST);
             else
                 g_pInputManager->refocus();
         }
@@ -1436,9 +1445,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
-            g_pCompositor->focusWindow(PLAST);
+            Desktop::focusState()->fullWindowFocus(PLAST);
         else
             g_pInputManager->refocus();
     }
@@ -1509,8 +1518,8 @@ CBox CMonitor::logicalBox() {
     return {m_position, m_size};
 }
 
-CBox CMonitor::logicalBoxMinusExtents() {
-    return {m_position + m_reservedTopLeft, m_size - m_reservedTopLeft - m_reservedBottomRight};
+CBox CMonitor::logicalBoxMinusReserved() {
+    return m_reservedArea.apply(logicalBox());
 }
 
 void CMonitor::scheduleDone() {
@@ -1546,7 +1555,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprError->active() && g_pCompositor->m_lastMonitor == m_self) {
+    if (g_pHyprError->active() && Desktop::focusState()->monitor() == m_self) {
         reasons |= SC_ERRORBAR;
         if (!full)
             return reasons;

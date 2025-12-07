@@ -11,6 +11,7 @@ enum eHeadersErrors {
     HEADERS_MISSING,
     HEADERS_CORRUPTED,
     HEADERS_MISMATCHED,
+    HEADERS_ABI_MISMATCH,
     HEADERS_DUPLICATED
 };
 
@@ -36,6 +37,7 @@ struct SHyprlandVersion {
     std::string branch;
     std::string hash;
     std::string date;
+    std::string abiHash;
     int         commits = 0;
 };
 

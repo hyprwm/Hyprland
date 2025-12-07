@@ -41,8 +41,8 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     if (!pWindow->m_realPosition->enabled() && !force)
         return;
 
-    if (pWindow->m_windowData.animationStyle.hasValue()) {
-        const auto STYLE = pWindow->m_windowData.animationStyle.value();
+    if (pWindow->m_ruleApplicator->animationStyle().hasValue()) {
+        const auto STYLE = pWindow->m_ruleApplicator->animationStyle().value();
         // the window has config'd special anim
         if (STYLE.starts_with("slide")) {
             CVarList animList2(STYLE, 0, 's');
@@ -106,7 +106,7 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
-    const auto ANIMSTYLE = ls->m_animationStyle.value_or(ls->m_realPosition->getStyle());
+    const auto ANIMSTYLE = ls->m_ruleApplicator->animationStyle().valueOr(ls->m_realPosition->getStyle());
     if (ANIMSTYLE.starts_with("slide")) {
         // get closest edge
         const auto MIDDLE = ls->m_geometry.middle();
@@ -408,10 +408,11 @@ void CDesktopAnimationManager::animationSlide(PHLWINDOW pWindow, std::string for
     const auto MIDPOINT = GOALPOS + GOALSIZE / 2.f;
 
     // check sides it touches
-    const bool DISPLAYLEFT   = STICKS(pWindow->m_position.x, PMONITOR->m_position.x + PMONITOR->m_reservedTopLeft.x);
-    const bool DISPLAYRIGHT  = STICKS(pWindow->m_position.x + pWindow->m_size.x, PMONITOR->m_position.x + PMONITOR->m_size.x - PMONITOR->m_reservedBottomRight.x);
-    const bool DISPLAYTOP    = STICKS(pWindow->m_position.y, PMONITOR->m_position.y + PMONITOR->m_reservedTopLeft.y);
-    const bool DISPLAYBOTTOM = STICKS(pWindow->m_position.y + pWindow->m_size.y, PMONITOR->m_position.y + PMONITOR->m_size.y - PMONITOR->m_reservedBottomRight.y);
+    const auto MONITOR_WORKAREA = PMONITOR->logicalBoxMinusReserved();
+    const bool DISPLAYLEFT      = STICKS(pWindow->m_position.x, MONITOR_WORKAREA.x);
+    const bool DISPLAYRIGHT     = STICKS(pWindow->m_position.x + pWindow->m_size.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+    const bool DISPLAYTOP       = STICKS(pWindow->m_position.y, MONITOR_WORKAREA.y);
+    const bool DISPLAYBOTTOM    = STICKS(pWindow->m_position.y + pWindow->m_size.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
 
     if (DISPLAYBOTTOM && DISPLAYTOP) {
         if (DISPLAYLEFT && DISPLAYRIGHT) {

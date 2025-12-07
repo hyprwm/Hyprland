@@ -13,7 +13,7 @@ pkg_check_modules(hyprpm_deps REQUIRED IMPORTED_TARGET tomlplusplus hyprutils>=0
 
 find_package(glaze QUIET)
 if (NOT glaze_FOUND)
-    set(GLAZE_VERSION v5.1.1)
+    set(GLAZE_VERSION v6.1.0)
     message(STATUS "glaze dependency not found, retrieving ${GLAZE_VERSION} with FetchContent")
     include(FetchContent)
     FetchContent_Declare(

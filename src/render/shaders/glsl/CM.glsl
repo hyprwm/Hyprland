@@ -2,6 +2,7 @@ uniform vec2 srcTFRange;
 uniform vec2 dstTFRange;
 
 uniform float maxLuminance;
+uniform float srcRefLuminance;
 uniform float dstMaxLuminance;
 uniform float dstRefLuminance;
 uniform float sdrSaturation;
@@ -387,24 +388,17 @@ vec4 tonemap(vec4 color, mat3 dstXYZ) {
         PQ_INV_M1
     ) * HDR_MAX_LUMINANCE;
 
-    float srcScale = maxLuminance / dstRefLuminance;
-    float dstScale = dstMaxLuminance / dstRefLuminance;
+    float linearPart = min(luminance, dstRefLuminance);
+    float luminanceAboveRef = max(luminance - dstRefLuminance, 0.0);
+    float maxExcessLuminance = max(maxLuminance - dstRefLuminance, 1.0);
+    float shoulder = log((luminanceAboveRef / maxExcessLuminance + 1.0) * (M_E - 1.0));
+    float mappedHigh = shoulder * (dstMaxLuminance - dstRefLuminance);
+    float newLum = clamp(linearPart + mappedHigh, 0.0, dstMaxLuminance);
 
-    float minScale = min(srcScale, 1.5);
-    float dimming = 1.0 / clamp(minScale / dstScale, 1.0, minScale);
-    float refLuminance = dstRefLuminance * dimming;
+    // scale src to dst reference
+    float refScale = dstRefLuminance / srcRefLuminance;
 
-    float low = min(luminance * dimming, refLuminance);
-    float highlight = clamp((luminance / dstRefLuminance - 1.0) / (srcScale - 1.0), 0.0, 1.0);
-    float high = log(highlight * (M_E - 1.0) + 1.0) * (dstMaxLuminance - refLuminance);
-    luminance = low + high;
-
-    E = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_M1);
-    ICtCp[0] = pow(
-        (PQ_C1 + PQ_C2 * E) / (1.0 + PQ_C3 * E),
-        PQ_M2
-    ) / HDR_MAX_LUMINANCE;
-    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE, color[3]);
+    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE * refScale, color[3]); 
 }
 
 vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat4x2 dstPrimaries) {

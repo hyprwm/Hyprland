@@ -1,8 +1,7 @@
 #include "TextInput.hpp"
-#include "../../defines.hpp"
 #include "InputManager.hpp"
 #include "../../protocols/TextInputV1.hpp"
-#include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -31,8 +30,8 @@ void CTextInput::initCallbacks() {
                 g_pInputManager->m_relay.deactivateIME(this);
         });
 
-        if (!g_pCompositor->m_lastFocus.expired() && g_pCompositor->m_lastFocus->client() == INPUT->client())
-            enter(g_pCompositor->m_lastFocus.lock());
+        if (Desktop::focusState()->surface() && Desktop::focusState()->surface()->client() == INPUT->client())
+            enter(Desktop::focusState()->surface());
     } else {
         const auto INPUT = m_v1Input.lock();
 
@@ -60,7 +59,7 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
     // v1 only, map surface to PTI
     if (!isV3()) {
-        if (g_pCompositor->m_lastFocus != surfV1 || !m_v1Input->m_active)
+        if (Desktop::focusState()->surface() != surfV1 || !m_v1Input->m_active)
             return;
 
         enter(surfV1);

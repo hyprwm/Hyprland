@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cstddef>
+#include <unordered_set>
 #include "../helpers/memory/Memory.hpp"
 
 #define HANDLE                   void*
@@ -70,7 +71,8 @@ class CHookSystem {
         uint64_t used = 0;
     };
 
-    std::vector<SAllocatedPage> m_pages;
+    std::vector<SAllocatedPage>  m_pages;
+    std::unordered_set<uint64_t> m_activeHooks;
 
     friend class CFunctionHook;
 };

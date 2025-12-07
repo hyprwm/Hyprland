@@ -8,6 +8,7 @@
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "../i18n/Engine.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -83,7 +84,7 @@ void CANRManager::onTick() {
 
         if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isRunning() && !data->dialogSaidWait) {
-                data->runDialog("Application Not Responding", firstWindow->m_title, firstWindow->m_class, data->getPid());
+                data->runDialog(firstWindow->m_title, firstWindow->m_class, data->getPid());
 
                 for (const auto& w : g_pCompositor->m_windows) {
                     if (!w->m_isMapped)
@@ -176,16 +177,29 @@ CANRManager::SANRData::~SANRData() {
         killDialog();
 }
 
-void CANRManager::SANRData::runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
+void CANRManager::SANRData::runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
     if (dialogBox && dialogBox->isRunning())
         killDialog();
 
-    dialogBox = CAsyncDialogBox::create(title,
-                                        std::format("Application {} with class of {} is not responding.\nWhat do you want to do with it?", appName.empty() ? "unknown" : appName,
-                                                    appClass.empty() ? "unknown" : appClass),
-                                        std::vector<std::string>{"Terminate", "Wait"});
+    const auto OPTION_TERMINATE_STR = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_TERMINATE, {});
+    const auto OPTION_WAIT_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_WAIT, {});
 
-    dialogBox->open()->then([dialogWmPID, this](SP<CPromiseResult<std::string>> r) {
+    dialogBox =
+        CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}),
+                                I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT,
+                                                             {
+                                                                 //
+                                                                 {"class", appClass.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appClass}, //
+                                                                 {"title", appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName}    //
+                                                             }),
+                                std::vector<std::string>{
+                                    //
+                                    OPTION_TERMINATE_STR, //
+                                    OPTION_WAIT_STR       //
+                                } //
+        );
+
+    dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {
             Debug::log(ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
             return;
@@ -193,9 +207,9 @@ void CANRManager::SANRData::runDialog(const std::string& title, const std::strin
 
         const auto& result = r->result();
 
-        if (result.starts_with("Terminate"))
+        if (result.starts_with(OPTION_TERMINATE_STR))
             ::kill(dialogWmPID, SIGKILL);
-        else if (result.starts_with("Wait"))
+        else if (result.starts_with(OPTION_WAIT_STR))
             dialogSaidWait = true;
         else
             Debug::log(ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);

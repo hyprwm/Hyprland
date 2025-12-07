@@ -46,6 +46,7 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid);
 std::string                             deviceNameToInternalString(std::string in);
 std::string                             getSystemLibraryVersion(const std::string& name);
 std::string                             getBuiltSystemLibraryNames();
+bool                                    truthy(const std::string& str);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

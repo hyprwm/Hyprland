@@ -3,7 +3,7 @@
 #include <array>
 
 // clang-format off
-constexpr std::array<const char*, 35> CURSOR_SHAPE_NAMES = {
+constexpr std::array<const char*, 37> CURSOR_SHAPE_NAMES = {
     "invalid",
     "default",
     "context-menu",
@@ -39,5 +39,7 @@ constexpr std::array<const char*, 35> CURSOR_SHAPE_NAMES = {
     "all-scroll",
     "zoom-in",
     "zoom-out",
+    "dnd-ask",
+    "all-resize"
 };
 // clang-format on

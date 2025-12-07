@@ -16,12 +16,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
-        .value       = "general:no_border_on_floating",
-        .description = "disable borders for floating windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "general:gaps_in",
         .description = "gaps between windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,
@@ -144,9 +138,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "general:modal_parent_blocking",
-        .description = "If true, parent windows of modals will not be interactive.",
+        .description = "if true, parent windows of modals will not be interactive.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "general:locale",
+        .description = "overrides the system locale",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{""},
     },
 
     /*
@@ -1115,6 +1115,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
     },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:blur",
+        .description = "enable background blur for groupbars",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * misc:
@@ -1273,11 +1279,11 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "misc:new_window_takes_over_fullscreen",
-        .description = "if there is a fullscreen or maximized window, decide whether a new tiled window opened should replace it, stay behind or disable the fullscreen/maximized "
-                       "state. 0 - behind, 1 - takes over, 2 - unfullscreen/unmaxize [0/1/2]",
+        .value       = "misc:on_focus_under_fullscreen",
+        .description = "if there is a fullscreen or maximized window, decide whether a tiled window requested to focus should replace it, stay behind or disable the "
+                       "fullscreen/maximized state. 0 - ignore focus request (keep focus on fullscreen window), 1 - takes over, 2 - unfullscreen/unmaximize [0/1/2]",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "misc:exit_window_retains_fullscreen",
@@ -1312,6 +1318,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "misc:disable_hyprland_guiutils_check",
         .description = "disable the warning if hyprland-guiutils is missing",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_watchdog_warning",
+        .description = "whether to disable the warning about not using start-hyprland.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1941,12 +1953,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SStringData{"left"},
     },
     SConfigOptionDescription{
-        .value       = "master:inherit_fullscreen",
-        .description = "inherit fullscreen status when cycling/swapping to another window (e.g. monocle layout)",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
         .value       = "master:slave_count_for_center_master",
         .description = "when using orientation=center, make the master window centered only when at least this many slave windows are open. (Set 0 to always_center_master)",
         .type        = CONFIG_OPTION_INT,
@@ -1993,4 +1999,16 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+
+    /*
+     * Quirks
+    */
+
+    SConfigOptionDescription{
+        .value       = "quirks:prefer_hdr",
+        .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
+
 };

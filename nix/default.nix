@@ -12,6 +12,7 @@
   epoll-shim,
   git,
   glaze,
+  gtest,
   hyprcursor,
   hyprgraphics,
   hyprland-protocols,
@@ -19,6 +20,7 @@
   hyprlang,
   hyprutils,
   hyprwayland-scanner,
+  hyprwire,
   libGL,
   libdrm,
   libexecinfo,
@@ -26,6 +28,7 @@
   libxkbcommon,
   libuuid,
   libgbm,
+  muparser,
   pango,
   pciutils,
   re2,
@@ -38,6 +41,7 @@
   xorg,
   xwayland,
   debug ? false,
+  withTests ? false,
   enableXWayland ? true,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
@@ -45,12 +49,12 @@
   commit,
   revCount,
   date,
-  withHyprtester ? false,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
   hidpiXWayland ? false,
   legacyRenderer ? false,
+  withHyprtester ? false,
 }: let
   inherit (builtins) foldl' readFile;
   inherit (lib.asserts) assertMsg;
@@ -70,9 +74,10 @@ in
   assert assertMsg (!enableNvidiaPatches) "The option `enableNvidiaPatches` has been removed.";
   assert assertMsg (!hidpiXWayland) "The option `hidpiXWayland` has been removed. Please refer https://wiki.hypr.land/Configuring/XWayland";
   assert assertMsg (!legacyRenderer) "The option `legacyRenderer` has been removed. Legacy renderer is no longer supported.";
+  assert assertMsg (!withHyprtester) "The option `withHyprtester` has been removed. Hyprtester is always built now.";
     customStdenv.mkDerivation (finalAttrs: {
       pname = "hyprland${optionalString debug "-debug"}";
-      inherit version;
+      inherit version withTests;
 
       src = fs.toSource {
         root = ../.;
@@ -88,13 +93,14 @@ in
             ../LICENSE
             ../protocols
             ../src
+            ../start
             ../systemd
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "desktop") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
-            (optional withHyprtester ../hyprtester)
+            (optional withTests [../tests ../hyprtester])
           ]));
       };
 
@@ -106,11 +112,13 @@ in
         sed -i "s#@PREFIX@/##g" hyprland.pc.in
       '';
 
-      COMMITS = revCount;
-      DATE = date;
-      DIRTY = optionalString (commit == "") "dirty";
-      HASH = commit;
-      TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
+      env = {
+        GIT_COMMITS = revCount;
+        GIT_COMMIT_DATE = date;
+        GIT_COMMIT_HASH = commit;
+        GIT_DIRTY = if (commit == "") then "clean" else "dirty";
+        GIT_TAG = "v${trim (readFile "${finalAttrs.src}/VERSION")}";
+      };
 
       depsBuildBuild = [
         pkg-config
@@ -118,6 +126,7 @@ in
 
       nativeBuildInputs = [
         hyprwayland-scanner
+        hyprwire
         makeWrapper
         cmake
         pkg-config
@@ -135,17 +144,20 @@ in
           cairo
           git
           glaze
+          gtest
           hyprcursor
           hyprgraphics
           hyprland-protocols
           hyprlang
           hyprutils
+          hyprwire
           libdrm
           libGL
           libinput
           libuuid
           libxkbcommon
           libgbm
+          muparser
           pango
           pciutils
           re2
@@ -187,7 +199,7 @@ in
         "NO_UWSM" = true;
         "NO_HYPRPM" = true;
         "TRACY_ENABLE" = false;
-        "BUILD_HYPRTESTER" = withHyprtester;
+        "WITH_TESTS" = withTests;
       };
 
       preConfigure = ''
@@ -206,9 +218,12 @@ in
             pkgconf
           ]}
         ''}
-      '' + optionalString withHyprtester ''
-        install hyprtester/pointer-warp -t $out/bin
-        install hyprtester/pointer-scroll -t $out/bin
+
+        ${optionalString withTests ''
+          install hyprtester/pointer-warp -t $out/bin
+          install hyprtester/pointer-scroll -t $out/bin
+          install hyprland_gtests -t $out/bin
+        ''}
       '';
 
       passthru.providedSessions = ["hyprland"];

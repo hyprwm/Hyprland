@@ -6,6 +6,7 @@
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../Compositor.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -659,7 +660,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
             // If this was a popup grab, focus its parent window to maintain context
             if (validMapped(parentWindow)) {
-                g_pCompositor->focusWindow(parentWindow);
+                Desktop::focusState()->rawWindowFocus(parentWindow);
                 Debug::log(LOG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
             } else
                 g_pInputManager->refocusLastWindow(PMONITOR);
@@ -689,10 +690,10 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             refocus = layer->m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
 
         if (refocus) {
-            auto candidate = g_pCompositor->m_lastWindow.lock();
+            auto candidate = Desktop::focusState()->window();
 
             if (candidate)
-                g_pCompositor->focusWindow(candidate);
+                Desktop::focusState()->rawWindowFocus(candidate);
         }
 
         if (oldGrab->m_onEnd)

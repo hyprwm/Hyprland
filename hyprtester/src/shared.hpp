@@ -18,6 +18,17 @@ namespace Colors {
     constexpr const char* RESET   = "\x1b[0m";
 };
 
+#define EXPECT_MAX_DELTA(expr, desired, delta)                                                                                                                                     \
+    if (const auto RESULT = expr; std::abs(RESULT - (desired)) > delta) {                                                                                                          \
+        NLog::log("{}Failed: {}{}, expected max delta of {}, got delta {} ({} - {}). Source: {}@{}.", Colors::RED, Colors::RESET, #expr, delta, (RESULT - (desired)), RESULT,      \
+                  desired, __FILE__, __LINE__);                                                                                                                                    \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{}. Got {}", Colors::GREEN, Colors::RESET, #expr, (RESULT - (desired)));                                                                            \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
+
 #define EXPECT(expr, val)                                                                                                                                                          \
     if (const auto RESULT = expr; RESULT != (val)) {                                                                                                                               \
         NLog::log("{}Failed: {}{}, expected {}, got {}. Source: {}@{}.", Colors::RED, Colors::RESET, #expr, val, RESULT, __FILE__, __LINE__);                                      \

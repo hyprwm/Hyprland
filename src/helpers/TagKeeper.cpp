@@ -1,6 +1,6 @@
 #include "TagKeeper.hpp"
 
-bool CTagKeeper::isTagged(const std::string& tag, bool strict) {
+bool CTagKeeper::isTagged(const std::string& tag, bool strict) const {
     const bool NEGATIVE = tag.starts_with("negative");
     const auto MATCH    = NEGATIVE ? tag.substr(9) : tag;
     const bool TAGGED   = m_tags.contains(MATCH) || (!strict && m_tags.contains(MATCH + "*"));
@@ -38,6 +38,6 @@ bool CTagKeeper::applyTag(const std::string& tag, bool dynamic) {
     return true;
 }
 
-bool CTagKeeper::removeDynamicTags() {
-    return std::erase_if(m_tags, [](const auto& tag) { return tag.ends_with("*"); });
+bool CTagKeeper::removeDynamicTag(const std::string& s) {
+    return std::erase_if(m_tags, [&s](const auto& tag) { return tag == s + "*"; });
 }

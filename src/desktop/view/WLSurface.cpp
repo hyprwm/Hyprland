@@ -160,7 +160,7 @@ std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() const {
     if (!desktopComponent())
         return {};
 
-    return m_view->logicalBox();
+    return m_view->surfaceLogicalBox();
 }
 
 void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {

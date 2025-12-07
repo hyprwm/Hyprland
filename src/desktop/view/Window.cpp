@@ -165,6 +165,10 @@ bool CWindow::desktopComponent() const {
     return true;
 }
 
+std::optional<CBox> CWindow::surfaceLogicalBox() const {
+    return getWindowMainSurfaceBox();
+}
+
 SBoxExtents CWindow::getFullWindowExtents() const {
     if (m_fadingOut)
         return m_originalClosedExtents;

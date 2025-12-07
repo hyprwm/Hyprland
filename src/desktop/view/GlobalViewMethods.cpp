@@ -33,15 +33,18 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
             },
             nullptr);
 
-        w->m_popupHead->breadthfirst(
-            [&views](SP<CPopup> s, void* data) {
-                auto surf = s->wlSurface();
-                if (!surf || !s->visible())
-                    return;
+        // xwl windows dont have this
+        if (w->m_popupHead) {
+            w->m_popupHead->breadthfirst(
+                [&views](SP<CPopup> s, void* data) {
+                    auto surf = s->wlSurface();
+                    if (!surf || !s->visible())
+                        return;
 
-                views.emplace_back(surf->view());
-            },
-            nullptr);
+                    views.emplace_back(surf->view());
+                },
+                nullptr);
+        }
     }
 
     for (const auto& l : g_pCompositor->m_layers) {

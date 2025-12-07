@@ -84,6 +84,13 @@ bool CPopup::visible() const {
 }
 
 std::optional<CBox> CPopup::logicalBox() const {
+    return surfaceLogicalBox();
+}
+
+std::optional<CBox> CPopup::surfaceLogicalBox() const {
+    if (!visible())
+        return std::nullopt;
+
     return CBox{t1ParentCoords(), size()};
 }
 

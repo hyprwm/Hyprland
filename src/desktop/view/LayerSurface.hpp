@@ -26,6 +26,7 @@ namespace Desktop::View {
         virtual bool                visible() const;
         virtual std::optional<CBox> logicalBox() const;
         virtual bool                desktopComponent() const;
+        virtual std::optional<CBox> surfaceLogicalBox() const;
 
         bool                        isFadedOut();
         int                         popupsCount();

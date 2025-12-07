@@ -48,6 +48,10 @@ bool View::CSessionLock::visible() const {
 }
 
 std::optional<CBox> View::CSessionLock::logicalBox() const {
+    return surfaceLogicalBox();
+}
+
+std::optional<CBox> View::CSessionLock::surfaceLogicalBox() const {
     if (!visible())
         return std::nullopt;
 

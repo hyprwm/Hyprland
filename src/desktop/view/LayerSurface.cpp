@@ -101,6 +101,13 @@ bool CLayerSurface::visible() const {
 }
 
 std::optional<CBox> CLayerSurface::logicalBox() const {
+    return surfaceLogicalBox();
+}
+
+std::optional<CBox> CLayerSurface::surfaceLogicalBox() const {
+    if (!visible())
+        return std::nullopt;
+
     return CBox{m_realPosition->value(), m_realSize->value()};
 }
 

@@ -86,6 +86,13 @@ bool CSubsurface::desktopComponent() const {
 }
 
 std::optional<CBox> CSubsurface::logicalBox() const {
+    return surfaceLogicalBox();
+}
+
+std::optional<CBox> CSubsurface::surfaceLogicalBox() const {
+    if (!visible())
+        return std::nullopt;
+
     return CBox{coordsGlobal(), m_lastSize};
 }
 

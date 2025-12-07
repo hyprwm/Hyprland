@@ -50,6 +50,7 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
             continue;
 
         try {
+            m_hookFaultJumpBufReady = true;
             if (!setjmp(m_hookFaultJumpBuf)) {
                 if (SP<HOOK_CALLBACK_FN> fn = cb.fn.lock())
                     (*fn)(fn.get(), info, data);
@@ -63,7 +64,11 @@ void CHookSystemManager::emit(std::vector<SCallbackFNPtr>* const callbacks, SCal
             // TODO: this works only once...?
             faultyHandles.push_back(cb.handle);
             Debug::log(ERR, "[hookSystem] Hook from plugin {:x} caused a SIGSEGV, queueing for unloading.", rc<uintptr_t>(cb.handle));
+        } catch (...) {
+            faultyHandles.push_back(cb.handle);
+            Debug::log(ERR, "[hookSystem] Hook from plugin {:x} caused an unknown fault, queueing for unloading.", rc<uintptr_t>(cb.handle));
         }
+        m_hookFaultJumpBufReady = false;
     }
 
     if (needsDeadCleanup)

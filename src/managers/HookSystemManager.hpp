@@ -51,6 +51,7 @@ class CHookSystemManager {
     std::vector<SCallbackFNPtr>* getVecForEvent(const std::string& event);
 
     bool                         m_currentEventPlugin = false;
+    bool                         m_hookFaultJumpBufReady = false;
     jmp_buf                      m_hookFaultJumpBuf;
 
   private:

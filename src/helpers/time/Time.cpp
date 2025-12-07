@@ -57,7 +57,7 @@ uint64_t Time::millis(const system_tp& tp) {
 
 s_ns Time::secNsec(const system_tp& tp) {
     const uint64_t                    sec     = chr::duration_cast<chr::seconds>(tp.time_since_epoch()).count();
-    const chr::steady_clock::duration nsecdur = tp - chr::system_clock::time_point(chr::seconds(sec));
+    const chr::system_clock::duration nsecdur = tp - chr::system_clock::time_point(chr::seconds(sec));
     return std::make_pair<>(sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count());
 }
 

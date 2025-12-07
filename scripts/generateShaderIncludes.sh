@@ -1,24 +1,49 @@
 #!/bin/sh
 
+# dash-compatible and space-safe shader include generator. @Rtur2003
 SHADERS_SRC="./src/render/shaders/glsl"
+SHADERS_OUT="./src/render/shaders"
+SHADERS_HPP="${SHADERS_OUT}/Shaders.hpp"
 
 echo "-- Generating shader includes"
 
-if [ ! -d ./src/render/shaders ]; then
-	mkdir ./src/render/shaders
+if [ ! -d "${SHADERS_SRC}" ]; then
+	echo "!! No shader sources in ${SHADERS_SRC}"
+	exit 1
 fi
 
-echo '#pragma once' > ./src/render/shaders/Shaders.hpp
-echo '#include <map>' >> ./src/render/shaders/Shaders.hpp
-echo 'static const std::map<std::string, std::string> SHADERS = {' >> ./src/render/shaders/Shaders.hpp
+mkdir -p "${SHADERS_OUT}"
 
-for filename in `ls ${SHADERS_SRC}`; do
-	echo "--	${filename}"
-	
-	{ echo 'R"#('; cat ${SHADERS_SRC}/${filename}; echo ')#"'; } > ./src/render/shaders/${filename}.inc
-	echo "{\"${filename}\"," >> ./src/render/shaders/Shaders.hpp
-	echo "#include \"./${filename}.inc\"" >> ./src/render/shaders/Shaders.hpp
-	echo "}," >> ./src/render/shaders/Shaders.hpp
+{
+	echo '#pragma once'
+	echo '#include <map>'
+	echo 'static const std::map<std::string, std::string> SHADERS = {'
+} > "${SHADERS_HPP}"
+
+found=0
+for file in "${SHADERS_SRC}"/*; do
+	[ -f "${file}" ] || continue
+	found=1
+	filename=$(basename -- "${file}")
+	echo "-- ${filename}"
+
+	{
+		echo 'R"#('
+		cat "${file}"
+		echo ')#"'
+	} > "${SHADERS_OUT}/${filename}.inc"
+
+	{
+		printf '{ "%s",\n' "${filename}"
+		printf '#include "./%s.inc"\n' "${filename}"
+		printf "},\n"
+	} >> "${SHADERS_HPP}"
 done
 
-echo '};' >> ./src/render/shaders/Shaders.hpp
+if [ "${found}" -eq 0 ]; then
+	echo "!! No shader files found in ${SHADERS_SRC}"
+	rm -f "${SHADERS_HPP}"
+	exit 1
+fi
+
+echo '};' >> "${SHADERS_HPP}"

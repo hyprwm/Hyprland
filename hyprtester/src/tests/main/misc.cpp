@@ -30,20 +30,21 @@ static void testAnrDialogs() {
     {
         OK(getFromSocket("/dispatch workspace 2"));
 
-        Tests::spawnKitty("bad_kitty");
+        auto kitty = Tests::spawnKitty("bad_kitty");
 
-        int pid = 0;
+        if (!kitty) {
+            ret = 1;
+            return;
+        }
+
         {
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "workspace: 2");
-            auto pos = str.find("pid") + 4;
-            auto end = str.find('\n', pos);
-            pid      = std::stoi(str.substr(pos, end));
         }
 
         OK(getFromSocket("/dispatch workspace 1"));
 
-        ::kill(pid, SIGSTOP);
+        ::kill(kitty->pid(), SIGSTOP);
 
         Tests::waitUntilWindowsN(2);
 
@@ -57,29 +58,30 @@ static void testAnrDialogs() {
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "workspace: 2");
         }
-
-        Tests::killAllWindows();
     }
+
+    Tests::killAllWindows();
 
     NLog::log("{}anrdialog: named workspaces", Colors::YELLOW);
     {
 
         OK(getFromSocket("/dispatch workspace name:yummy"));
 
-        Tests::spawnKitty("bad_kitty");
+        auto kitty = Tests::spawnKitty("bad_kitty");
 
-        int pid = 0;
+        if (!kitty) {
+            ret = 1;
+            return;
+        }
+
         {
             auto str = getFromSocket("/activewindow");
-            EXPECT_CONTAINS(str, "yummy"); // can't predetermined workspace id
-            auto pos = str.find("pid") + 4;
-            auto end = str.find('\n', pos);
-            pid      = std::stoi(str.substr(pos, end));
+            EXPECT_CONTAINS(str, "yummy"); // can't predetermine workspace id
         }
 
         OK(getFromSocket("/dispatch workspace 1"));
 
-        ::kill(pid, SIGSTOP);
+        ::kill(kitty->pid(), SIGSTOP);
 
         Tests::waitUntilWindowsN(2);
 
@@ -93,31 +95,31 @@ static void testAnrDialogs() {
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "yummy");
         }
-
-        Tests::killAllWindows();
     }
+
+    Tests::killAllWindows();
 
     NLog::log("{}anrdialog: special workspaces", Colors::YELLOW);
     {
 
         OK(getFromSocket("/dispatch workspace special:apple"));
 
-        Tests::spawnKitty("bad_kitty");
+        auto kitty = Tests::spawnKitty("bad_kitty");
 
-        int pid = 0;
+        if (!kitty) {
+            ret = 1;
+            return;
+        }
+
         {
             auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "special:apple");
-
-            auto pos = str.find("pid") + 4;
-            auto end = str.find('\n', pos);
-            pid      = std::stoi(str.substr(pos, end));
         }
 
         OK(getFromSocket("/dispatch togglespecialworkspace apple"));
         OK(getFromSocket("/dispatch workspace 1"));
 
-        ::kill(pid, SIGSTOP);
+        ::kill(kitty->pid(), SIGSTOP);
 
         Tests::waitUntilWindowsN(2);
 
@@ -127,7 +129,6 @@ static void testAnrDialogs() {
             EXPECT_CONTAINS(str, "special:apple");
         }
 
-        Tests::killAllWindows();
     }
 
     OK(getFromSocket("/reload"));

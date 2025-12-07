@@ -68,6 +68,7 @@
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
+#include <hyprutils/os/FileDescriptor.hpp>
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -79,6 +80,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <xf86drm.h>
+#include <sys/eventfd.h>
 
 using namespace Hyprutils::String;
 using namespace Aquamarine;
@@ -100,7 +102,7 @@ static void handleUnrecoverableSignal(int sig) {
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
 
-    if (g_pHookSystem && g_pHookSystem->m_currentEventPlugin) {
+    if (g_pHookSystem && g_pHookSystem->m_currentEventPlugin && g_pHookSystem->m_hookFaultJumpBufReady) {
         longjmp(g_pHookSystem->m_hookFaultJumpBuf, 1);
         return;
     }
@@ -118,10 +120,16 @@ static void handleUnrecoverableSignal(int sig) {
     abort();
 }
 
+static Hyprutils::OS::CFileDescriptor g_userSignalFd;
+static wl_event_source*               g_userSignalEvent = nullptr;
+
 static void handleUserSignal(int sig) {
-    if (sig == SIGUSR1) {
-        // means we have to unwind a timed out event
-        throw std::exception();
+    if (sig != SIGUSR1)
+        return;
+
+    if (g_userSignalFd.isValid()) {
+        // async-signal-safe wake-up for the main loop
+        eventfd_write(g_userSignalFd.get(), 1);
     }
 }
 
@@ -319,6 +327,22 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         signal(SIGABRT, handleUnrecoverableSignal);
     }
     signal(SIGUSR1, handleUserSignal);
+
+    if (!g_userSignalFd.isValid()) {
+        g_userSignalFd = Hyprutils::OS::CFileDescriptor(eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK));
+        if (!g_userSignalFd.isValid())
+            Debug::log(WARN, "Failed to create SIGUSR1 wake fd; timed-out events may not unwind cleanly");
+    }
+
+    if (g_userSignalFd.isValid() && !g_userSignalEvent)
+        g_userSignalEvent = wl_event_loop_add_fd(m_wlEventLoop, g_userSignalFd.get(), WL_EVENT_READABLE,
+                                                 [](int fd, uint32_t, void*) {
+                                                     eventfd_t val = 0;
+                                                     if (eventfd_read(fd, &val) == 0)
+                                                         Debug::log(LOG, "SIGUSR1 wake handled ({} pending)", val);
+                                                     return 0;
+                                                 },
+                                                 nullptr);
 
     initManagers(STAGE_PRIORITY);
 
@@ -621,6 +645,11 @@ void CCompositor::cleanup() {
 
     if (m_critSigSource)
         wl_event_source_remove(m_critSigSource);
+    if (g_userSignalEvent) {
+        wl_event_source_remove(g_userSignalEvent);
+        g_userSignalEvent = nullptr;
+    }
+    g_userSignalFd.reset();
 
     // this frees all wayland resources, including sockets
     wl_display_destroy(m_wlDisplay);

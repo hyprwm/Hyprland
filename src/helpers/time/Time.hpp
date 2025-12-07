@@ -22,4 +22,11 @@ namespace Time {
     uint64_t                      millis(const system_tp& tp);
     std::pair<uint64_t, uint64_t> secNsec(const steady_tp& tp);
     std::pair<uint64_t, uint64_t> secNsec(const system_tp& tp);
+
+    namespace detail {
+        using sec_nsec = std::pair<uint64_t, uint64_t>;
+
+        // Exposed for tests to verify borrow handling in timespec math. @Rtur2003
+        sec_nsec diff(const sec_nsec& newer, const sec_nsec& older);
+    }
 };

@@ -2347,7 +2347,7 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto const& ls : m_layers) {
-        if (!ls->visible())
+        if (!ls->visible() || ls->m_fadingOut)
             continue;
 
         if (ls->m_layerSurface->m_surface == pSurface)

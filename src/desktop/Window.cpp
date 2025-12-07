@@ -442,6 +442,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_workspace;
 
+    bool        previouslyEmpty = !pWorkspace->hasWindow();
+
     if (OLDWORKSPACE->isVisible()) {
         m_movingToWorkspaceAlpha->setValueAndWarp(1.F);
         *m_movingToWorkspaceAlpha = 0.F;
@@ -467,6 +469,18 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
+
+        if (!OLDWORKSPACE->hasWindow()) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "depopulateworkspace", .data = OLDWORKSPACE->m_name});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "depopulateworkspacev2", .data = std::format("{},{}", OLDWORKSPACE->m_id, OLDWORKSPACE->m_name)});
+            EMIT_HOOK_EVENT("depopulateWorkspace", OLDWORKSPACE);
+        }
+
+        if (previouslyEmpty) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "populateworkspace", .data = pWorkspace->m_name});
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "populateworkspacev2", .data = std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            EMIT_HOOK_EVENT("populateWorkspace", pWorkspace);
+        }
     }
 
     if (const auto SWALLOWED = m_swallowed.lock()) {
@@ -476,7 +490,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && !OLDWORKSPACE->hasWindow() && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -531,10 +545,10 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0)
+    if (m_workspace->m_isSpecialWorkspace && !m_workspace->hasWindow())
         m_lastWorkspace = m_monitor->activeWorkspaceID();
 
-    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_workspace && !m_workspace->hasWindow() && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);

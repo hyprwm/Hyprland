@@ -1130,7 +1130,7 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->visible())
+            if (!ls->visible() || ls->m_fadingOut)
                 continue;
 
             auto SURFACEAT = ls->m_popupHead->at(pos, true);

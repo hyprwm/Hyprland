@@ -1557,8 +1557,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
 
-    static bool needsHDRupdate = false;
-
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
 
@@ -1587,7 +1585,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
                 if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
                     // passthrough
-                    bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || needsHDRupdate;
+                    bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || pMonitor->m_needsHDRupdate;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
                         Debug::log(INFO, "[CM] Recreating HDR metadata for surface");
                         SURF->m_colorManagement->setHDRMetadata(createHDRMetadata(SURF->m_colorManagement->imageDescription(), pMonitor));
@@ -1596,8 +1594,8 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                         Debug::log(INFO, "[CM] Updating HDR metadata from surface");
                         pMonitor->m_output->state->setHDRMetadata(SURF->m_colorManagement->hdrMetadata());
                     }
-                    hdrIsHandled   = true;
-                    needsHDRupdate = false;
+                    hdrIsHandled               = true;
+                    pMonitor->m_needsHDRupdate = false;
                 } else if (*PAUTOHDR && surfaceIsHDR)
                     wantHDR = true; // auto-hdr: hdr on
             }
@@ -1617,7 +1615,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                 Debug::log(INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
                 pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
             }
-            needsHDRupdate = true;
+            pMonitor->m_needsHDRupdate = true;
         }
     }
 

@@ -27,7 +27,7 @@ namespace Desktop::View {
         virtual bool                   visible() const;
         virtual std::optional<CBox>    logicalBox() const;
         virtual bool                   desktopComponent() const;
-        virtual std::optional<CBox> surfaceLogicalBox() const;
+        virtual std::optional<CBox>    surfaceLogicalBox() const;
 
         Vector2D                       coordsRelativeToParent() const;
         Vector2D                       coordsGlobal() const;

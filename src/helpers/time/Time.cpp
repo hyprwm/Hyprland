@@ -33,6 +33,15 @@ static s_ns timeadd(const s_ns& a, const s_ns& b) {
     return d;
 }
 
+static s_ns normalizeTimespec(const s_ns& raw) {
+    s_ns out = raw;
+    if (out.second >= TIMESPEC_NSEC_PER_SEC) {
+        out.first += out.second / TIMESPEC_NSEC_PER_SEC;
+        out.second %= TIMESPEC_NSEC_PER_SEC;
+    }
+    return out;
+}
+
 Time::steady_tp Time::steadyNow() {
     return chr::steady_clock::now();
 }
@@ -85,7 +94,7 @@ Time::steady_tp Time::fromTimespec(const timespec* ts) {
     s_ns diff2 = timediff(stdReal, stdSteady);
 
     s_ns diffFinal;
-    s_ns monotime = {ts->tv_sec, ts->tv_nsec};
+    s_ns monotime = normalizeTimespec({ts->tv_sec, ts->tv_nsec});
 
     if (diff.first >= diff2.first || (diff.first == diff2.first && diff.second >= diff2.second))
         diffFinal = timediff(diff, diff2);
@@ -113,7 +122,7 @@ struct timespec Time::toTimespec(const steady_tp& tp) {
     s_ns diff2 = timediff(stdReal, stdSteady);
 
     s_ns diffFinal;
-    s_ns tpTime = secNsec(tp);
+    s_ns tpTime = normalizeTimespec(secNsec(tp));
 
     if (diff.first >= diff2.first || (diff.first == diff2.first && diff.second >= diff2.second))
         diffFinal = timediff(diff, diff2);
@@ -128,6 +137,10 @@ namespace Time::detail {
 
 sec_nsec diff(const sec_nsec& newer, const sec_nsec& older) {
     return timediff(newer, older);
+}
+
+sec_nsec normalize(const sec_nsec& raw) {
+    return normalizeTimespec(raw);
 }
 
 }

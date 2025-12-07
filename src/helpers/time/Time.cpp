@@ -13,7 +13,7 @@ static s_ns timediff(const s_ns& a, const s_ns& b) {
     if (a.second >= b.second)
         d.second = a.second - b.second;
     else {
-        d.second = b.second - a.second;
+        d.second = TIMESPEC_NSEC_PER_SEC + a.second - b.second;
         d.first -= 1;
     }
 
@@ -79,14 +79,7 @@ Time::steady_tp Time::fromTimespec(const timespec* ts) {
     stdReal   = Time::secNsec(nowSys);
 
     // timespec difference, REAL - MONO
-    s_ns diff;
-    diff.first = real.tv_sec - mono.tv_sec;
-    if (real.tv_nsec >= mono.tv_nsec)
-        diff.second = real.tv_nsec - mono.tv_nsec;
-    else {
-        diff.second = mono.tv_nsec - real.tv_nsec;
-        diff.first -= 1;
-    }
+    s_ns diff = timediff({real.tv_sec, real.tv_nsec}, {mono.tv_sec, mono.tv_nsec});
 
     // STD difference, REAL - MONO
     s_ns diff2 = timediff(stdReal, stdSteady);
@@ -114,14 +107,7 @@ struct timespec Time::toTimespec(const steady_tp& tp) {
     stdReal   = Time::secNsec(nowSys);
 
     // timespec difference, REAL - MONO
-    s_ns diff;
-    diff.first = real.tv_sec - mono.tv_sec;
-    if (real.tv_nsec >= mono.tv_nsec)
-        diff.second = real.tv_nsec - mono.tv_nsec;
-    else {
-        diff.second = mono.tv_nsec - real.tv_nsec;
-        diff.first -= 1;
-    }
+    s_ns diff = timediff({real.tv_sec, real.tv_nsec}, {mono.tv_sec, mono.tv_nsec});
 
     // STD difference, REAL - MONO
     s_ns diff2 = timediff(stdReal, stdSteady);
@@ -136,4 +122,12 @@ struct timespec Time::toTimespec(const steady_tp& tp) {
 
     auto sum = timeadd(tpTime, diffFinal);
     return timespec{.tv_sec = sum.first, .tv_nsec = sum.second};
+}
+
+namespace Time::detail {
+
+sec_nsec diff(const sec_nsec& newer, const sec_nsec& older) {
+    return timediff(newer, older);
+}
+
 }

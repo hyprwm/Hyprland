@@ -866,13 +866,13 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
     // Tracks if zoom step would have caused us to discontinuously snap in order to keep mouse in view
     static bool zoomAloneBrokeUs = false;
 
-    if (m->previousZoomSeen != zoom) {
-        if (m->isStartOfZoomSession) {
-            m->isStartOfZoomSession = false;
-            m->camerabox            = CBox(0, 0, m->m_size.x, m->m_size.y);
-            m->previousZoomSeen     = 1.0f;
+    if (m->m_previousZoomSeen != zoom) {
+        if (m->m_isStartOfZoomSession) {
+            m->m_isStartOfZoomSession = false;
+            m->m_camerabox            = CBox(0, 0, m->m_size.x, m->m_size.y);
+            m->m_previousZoomSeen     = 1.0f;
         }
-        const CBox old = m->camerabox;
+        const CBox old = m->m_camerabox;
 
         // mouse normalized inside screen (0..1)
         const float mx = mouse.x / m->m_size.x;
@@ -884,14 +884,14 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
         const float newX = mouseWorldX - mx * cameraW;
         const float newY = mouseWorldY - my * cameraH;
 
-        m->camerabox = CBox(newX, newY, cameraW, cameraH);
-        if (!m->camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
+        m->m_camerabox = CBox(newX, newY, cameraW, cameraH);
+        if (!m->m_camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
             zoomAloneBrokeUs = true;
-        m->previousZoomSeen = zoom;
+        m->m_previousZoomSeen = zoom;
     }
 
     // Keep mouse in cameraview
-    auto smallerbox = m->camerabox;
+    auto smallerbox = m->m_camerabox;
     // Prevent zoom step from causing us to jerk to keep mouse in padded camera view,
     // but let us switch to the padded camera once the mouse moves into the safe area
     if (zoomAloneBrokeUs)
@@ -901,17 +901,17 @@ void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_
         smallerbox.scaleFromCenter(.9);
     if (!smallerbox.containsPoint(mouse)) {
         if (mouse.x < smallerbox.x)
-            m->camerabox.x -= smallerbox.x - mouse.x;
+            m->m_camerabox.x -= smallerbox.x - mouse.x;
         if (mouse.y < smallerbox.y)
-            m->camerabox.y -= smallerbox.y - mouse.y;
+            m->m_camerabox.y -= smallerbox.y - mouse.y;
         if (mouse.y > smallerbox.y + smallerbox.h)
-            m->camerabox.y += mouse.y - (smallerbox.y + smallerbox.h);
+            m->m_camerabox.y += mouse.y - (smallerbox.y + smallerbox.h);
         if (mouse.x > smallerbox.x + smallerbox.w)
-            m->camerabox.x += mouse.x - (smallerbox.x + smallerbox.w);
+            m->m_camerabox.x += mouse.x - (smallerbox.x + smallerbox.w);
     }
 
     auto z = zoom * m->m_scale;
-    monbox.scale(z).translate(-m->camerabox.pos() * z);
+    monbox.scale(z).translate(-m->m_camerabox.pos() * z);
 
     *outputBox = monbox;
 }
@@ -948,7 +948,7 @@ void CHyprOpenGLImpl::end() {
                 monbox.y = m_renderData.pMonitor->m_transformedSize.y - monbox.height;
         } else {
             if (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL)
-                m_renderData.pMonitor->isStartOfZoomSession = true;
+                m_renderData.pMonitor->m_isStartOfZoomSession = true;
         }
 
         m_applyFinalShader = !m_renderData.blockScreenShader;

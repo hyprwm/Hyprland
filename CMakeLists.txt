@@ -24,7 +24,14 @@ message(STATUS "Gathering git info")
 
 # Make shader files includable
 execute_process(COMMAND ./scripts/generateShaderIncludes.sh
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                RESULT_VARIABLE HYPR_SHADER_GEN_RESULT)
+if(NOT HYPR_SHADER_GEN_RESULT EQUAL 0)
+  message(
+    FATAL_ERROR
+      "Failed to generate shader includes (scripts/generateShaderIncludes.sh), exit code: ${HYPR_SHADER_GEN_RESULT}"
+  )
+endif()
 
 find_package(PkgConfig REQUIRED)
 

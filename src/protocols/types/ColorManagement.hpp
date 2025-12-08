@@ -75,30 +75,35 @@ namespace NColorManagement {
             .blue  = {.x = 0.15, .y = 0.06},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto PAL_M = SPCPRimaries{
             .red   = {.x = 0.67, .y = 0.33},
             .green = {.x = 0.21, .y = 0.71},
             .blue  = {.x = 0.14, .y = 0.08},
             .white = {.x = 0.310, .y = 0.316},
         };
+
         static const auto PAL = SPCPRimaries{
             .red   = {.x = 0.640, .y = 0.330},
             .green = {.x = 0.290, .y = 0.600},
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto NTSC = SPCPRimaries{
             .red   = {.x = 0.630, .y = 0.340},
             .green = {.x = 0.310, .y = 0.595},
             .blue  = {.x = 0.155, .y = 0.070},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto GENERIC_FILM = SPCPRimaries{
             .red   = {.x = 0.243, .y = 0.692},
             .green = {.x = 0.145, .y = 0.049},
             .blue  = {.x = 0.681, .y = 0.319}, // NOLINT(modernize-use-std-numbers)
             .white = {.x = 0.310, .y = 0.316},
         };
+
         static const auto BT2020 = SPCPRimaries{
             .red   = {.x = 0.708, .y = 0.292},
             .green = {.x = 0.170, .y = 0.797},
@@ -106,7 +111,12 @@ namespace NColorManagement {
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        // FIXME CIE1931_XYZ
+        static const auto CIE1931_XYZ = SPCPRimaries{
+            .red   = {.x = 1.0, .y = 0.0},
+            .green = {.x = 0.0, .y = 1.0},
+            .blue  = {.x = 0.0, .y = 0.0},
+            .white = {.x = 1.0 / 3.0, .y = 1.0 / 3.0},
+        };
 
         static const auto DCI_P3 = SPCPRimaries{
             .red   = {.x = 0.680, .y = 0.320},
@@ -121,6 +131,7 @@ namespace NColorManagement {
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto ADOBE_RGB = SPCPRimaries{
             .red   = {.x = 0.6400, .y = 0.3300},
             .green = {.x = 0.2100, .y = 0.7100},

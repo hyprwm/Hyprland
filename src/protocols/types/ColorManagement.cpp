@@ -13,7 +13,7 @@ namespace NColorManagement {
             case CM_PRIMARIES_PAL: return NColorPrimaries::PAL;
             case CM_PRIMARIES_NTSC: return NColorPrimaries::NTSC;
             case CM_PRIMARIES_GENERIC_FILM: return NColorPrimaries::GENERIC_FILM;
-            case CM_PRIMARIES_CIE1931_XYZ: return NColorPrimaries::DEFAULT_PRIMARIES; // FIXME
+            case CM_PRIMARIES_CIE1931_XYZ: return NColorPrimaries::CIE1931_XYZ;
             case CM_PRIMARIES_DCI_P3: return NColorPrimaries::DCI_P3;
             case CM_PRIMARIES_DISPLAY_P3: return NColorPrimaries::DISPLAY_P3;
             case CM_PRIMARIES_ADOBE_RGB: return NColorPrimaries::ADOBE_RGB;

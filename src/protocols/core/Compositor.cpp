@@ -558,7 +558,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     static const auto PFORCE_HDR = CConfigValue<Hyprlang::INT>("quirks:prefer_hdr");
-    const auto        WINDOW     = Desktop::View::CWindow::fromView(m_hlSurface->view());
+    const auto        WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
 
     if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->m_class == "gamescope"))
         return g_pCompositor->getHDRImageDescription();

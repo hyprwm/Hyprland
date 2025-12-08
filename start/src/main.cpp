@@ -1,4 +1,5 @@
 #include <csignal>
+#include <cstring>
 #include <print>
 
 #include "helpers/Logger.hpp"
@@ -28,14 +29,23 @@ static void onSignal(int sig) {
     exit(0);
 }
 
+static void terminateChildOnSignal(int signal) {
+    struct sigaction sa;
+    sa.sa_handler = onSignal;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    int ret     = sigaction(signal, &sa, nullptr);
+    if (ret != 0)
+        g_logger->log(Hyprutils::CLI::LOG_WARN, "Failed to set up handler for signal {}: {}", signal, strerror(errno));
+}
+
 int main(int argc, const char** argv, const char** envp) {
     g_logger = makeUnique<Hyprutils::CLI::CLoggerConnection>(*g_loggerMain);
     g_logger->setName("start-hyprland");
     g_logger->setLogLevel(Hyprutils::CLI::LOG_DEBUG);
 
-    signal(SIGTERM, ::onSignal);
-    signal(SIGINT, ::onSignal);
-    signal(SIGKILL, ::onSignal);
+    terminateChildOnSignal(SIGTERM);
+    terminateChildOnSignal(SIGINT);
 
     int startArgv = -1;
 

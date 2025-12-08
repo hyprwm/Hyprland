@@ -3,7 +3,7 @@
 #include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../desktop/Window.hpp"
+#include "../../../../desktop/view/Window.hpp"
 
 constexpr const float MAX_DISTANCE = 250.F;
 

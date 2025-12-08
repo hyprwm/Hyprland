@@ -1,10 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include <optional>
 
-class CWindow; // because clangd
-using PHLWINDOW = SP<CWindow>;
 class CWLSurfaceResource;
 
 class CHyprXWaylandManager {

@@ -31,7 +31,7 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
     updateState();
 
     PROTO::compositor->forEachSurface([](SP<CWLSurfaceResource> surf) {
-        auto HLSurf = CWLSurface::fromResource(surf);
+        auto HLSurf = Desktop::View::CWLSurface::fromResource(surf);
 
         if (!HLSurf)
             return;

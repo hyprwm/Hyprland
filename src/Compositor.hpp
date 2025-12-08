@@ -7,7 +7,7 @@
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
-#include "desktop/Window.hpp"
+#include "desktop/view/Window.hpp"
 #include "protocols/types/ColorManagement.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
@@ -56,6 +56,7 @@ class CCompositor {
     std::vector<PHLLS>                           m_layers;
     std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
+    std::vector<SP<Desktop::View::IView>>        m_otherViews;
 
     std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
     std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
@@ -130,7 +131,7 @@ class CCompositor {
     bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
     void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState state);
+    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   scheduleFrameForMonitor(PHLMONITOR, Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);

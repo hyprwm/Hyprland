@@ -3,7 +3,7 @@
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/defer/Promise.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include <functional>
 #include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>

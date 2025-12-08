@@ -7,8 +7,8 @@
 #include <algorithm>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
-#include "../../desktop/Window.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
@@ -95,7 +95,7 @@ CInputManager::CInputManager() {
         g_pHyprRenderer->setCursorFromName(shape);
     });
 
-    m_cursorSurfaceInfo.wlSurface = CWLSurface::create();
+    m_cursorSurfaceInfo.wlSurface = Desktop::View::CWLSurface::create();
 }
 
 CInputManager::~CInputManager() {
@@ -240,7 +240,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // constraints
     if (!g_pSeatManager->m_mouse.expired() && isConstrained()) {
-        const auto SURF       = CWLSurface::fromResource(Desktop::focusState()->surface());
+        const auto SURF       = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
         const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
         if (CONSTRAINT) {
@@ -251,7 +251,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 const auto RG           = CONSTRAINT->logicConstraintRegion();
                 const auto CLOSEST      = RG.closestPoint(mouseCoords);
                 const auto BOX          = SURF->getSurfaceBoxGlobal();
-                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (SURF->getWindow() ? SURF->getWindow()->m_X11SurfaceScaledBy : 1.0);
+                const auto WINDOW       = Desktop::View::CWindow::fromView(SURF->view());
+                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
 
                 g_pCompositor->warpCursorTo(CLOSEST, true);
                 g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
@@ -268,7 +269,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     // check for windows that have focus priority like our permission popups
-    pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, FOCUS_PRIORITY);
+    pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::FOCUS_PRIORITY);
     if (pFoundWindow)
         foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
 
@@ -313,7 +314,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (forcedFocus && !foundSurface) {
         pFoundWindow = forcedFocus;
         surfacePos   = pFoundWindow->m_realPosition->value();
-        foundSurface = pFoundWindow->m_wlSurface->resource();
+        foundSurface = pFoundWindow->wlSurface()->resource();
     }
 
     // if we are holding a pointer button,
@@ -330,15 +331,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             m_focusHeldByButtons   = true;
             m_refocusHeldByButtons = refocus;
         } else {
-            auto HLSurface = CWLSurface::fromResource(foundSurface);
+            auto HLSurface = Desktop::View::CWLSurface::fromResource(foundSurface);
 
             if (HLSurface) {
                 const auto BOX = HLSurface->getSurfaceBoxGlobal();
 
                 if (BOX) {
-                    const auto PWINDOW = HLSurface->getWindow();
+                    const auto PWINDOW = HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(HLSurface->view()) : nullptr;
                     surfacePos         = BOX->pos();
-                    pFoundLayerSurface = HLSurface->getLayer();
+                    pFoundLayerSurface =
+                        HLSurface->view()->type() == Desktop::View::VIEW_TYPE_LAYER_SURFACE ? dynamicPointerCast<Desktop::View::CLayerSurface>(HLSurface->view()) : nullptr;
                     if (!pFoundLayerSurface)
                         pFoundWindow = !PWINDOW || PWINDOW->isHidden() ? Desktop::focusState()->window() : PWINDOW;
                 } else // reset foundSurface, find one normally
@@ -356,7 +358,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &g_pInputManager->m_exclusiveLSes, &surfaceCoords, &pFoundLayerSurface);
 
         if (!foundSurface) {
-            foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->m_surface->resource();
+            foundSurface = (*g_pInputManager->m_exclusiveLSes.begin())->wlSurface()->resource();
             surfacePos   = (*g_pInputManager->m_exclusiveLSes.begin())->m_realPosition->goal();
         }
     }
@@ -383,7 +385,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // then, we check if the workspace doesn't have a fullscreen window
     const auto PWORKSPACE   = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
     if (PWORKSPACE->m_hasFullscreenWindow && !foundSurface && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
         pFoundWindow = PWORKSPACE->getFullscreenWindow();
 
@@ -402,7 +404,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
             surfacePos   = Vector2D(-1337, -1337);
         } else {
-            foundSurface = pFoundWindow->m_wlSurface->resource();
+            foundSurface = pFoundWindow->wlSurface()->resource();
             surfacePos   = pFoundWindow->m_realPosition->value();
         }
     }
@@ -413,7 +415,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (!foundSurface) {
                 if (PMONITOR->m_activeSpecialWorkspace) {
                     if (pFoundWindow != PWINDOWIDEAL)
-                        pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+                        pFoundWindow =
+                            g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
                     if (pFoundWindow && !pFoundWindow->onSpecialWorkspace()) {
                         pFoundWindow = PWORKSPACE->getFullscreenWindow();
@@ -427,7 +430,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
                     if (!foundSurface) {
                         if (pFoundWindow != PWINDOWIDEAL)
-                            pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+                            pFoundWindow =
+                                g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
                         if (!(pFoundWindow && (pFoundWindow->m_isFloating && (pFoundWindow->m_createdOverFullscreen || pFoundWindow->m_pinned))))
                             pFoundWindow = PWORKSPACE->getFullscreenWindow();
@@ -437,18 +441,18 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         } else {
             if (pFoundWindow != PWINDOWIDEAL)
-                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
         }
 
         if (pFoundWindow) {
             if (!pFoundWindow->m_isX11) {
                 foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
                 if (!foundSurface) {
-                    foundSurface = pFoundWindow->m_wlSurface->resource();
+                    foundSurface = pFoundWindow->wlSurface()->resource();
                     surfacePos   = pFoundWindow->m_realPosition->value();
                 }
             } else {
-                foundSurface = pFoundWindow->m_wlSurface->resource();
+                foundSurface = pFoundWindow->wlSurface()->resource();
                 surfacePos   = pFoundWindow->m_realPosition->value();
             }
         }
@@ -474,7 +478,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             // we need to grab the last surface.
             foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
 
-            auto HLSurface = CWLSurface::fromResource(foundSurface);
+            auto HLSurface = Desktop::View::CWLSurface::fromResource(foundSurface);
 
             if (HLSurface) {
                 const auto BOX = HLSurface->getSurfaceBoxGlobal();
@@ -534,7 +538,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         return;
     }
 
-    if (pFoundWindow && foundSurface == pFoundWindow->m_wlSurface->resource() && !m_cursorImageOverridden) {
+    if (pFoundWindow && foundSurface == pFoundWindow->wlSurface()->resource() && !m_cursorImageOverridden) {
         const auto BOX = pFoundWindow->getWindowMainSurfaceBox();
         if (VECNOTINRECT(mouseCoords, BOX.x, BOX.y, BOX.x + BOX.width, BOX.y + BOX.height))
             g_pHyprRenderer->setCursorFromName("left_ptr");
@@ -738,7 +742,7 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
         return;
 
     const auto mouseCoords = g_pInputManager->getMouseCoordsInternal();
-    const auto w           = g_pCompositor->vectorToWindowUnified(mouseCoords, ALLOW_FLOATING | RESERVED_EXTENTS | INPUT_EXTENTS);
+    const auto w           = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::ALLOW_FLOATING | Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
     if (w && !m_lastFocusOnLS && !g_pSessionLockManager->isSessionLocked() && w->checkInputOnDecos(INPUT_TYPE_BUTTON, mouseCoords, e))
         return;
@@ -779,10 +783,10 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
             if (!g_pSeatManager->m_state.pointerFocus)
                 break;
 
-            auto HLSurf = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+            auto HLSurf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-            if (HLSurf && HLSurf->getWindow())
-                g_pCompositor->changeWindowZOrder(HLSurf->getWindow(), true);
+            if (HLSurf && HLSurf->view()->type() == Desktop::View::VIEW_TYPE_WINDOW)
+                g_pCompositor->changeWindowZOrder(dynamicPointerCast<Desktop::View::CWindow>(HLSurf->view()), true);
 
             break;
         }
@@ -805,7 +809,8 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
     switch (e.state) {
         case WL_POINTER_BUTTON_STATE_PRESSED: {
-            const auto PWINDOW = g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+            const auto PWINDOW =
+                g_pCompositor->vectorToWindowUnified(getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
             if (!PWINDOW) {
                 Debug::log(ERR, "Cannot kill invalid window!");
@@ -851,7 +856,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
 
     if (!m_lastFocusOnLS) {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+        const auto PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
         if (PWINDOW) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_AXIS, MOUSECOORDS, e))
@@ -1624,7 +1629,7 @@ bool CInputManager::isLocked() {
     if (!isConstrained())
         return false;
 
-    const auto SURF       = CWLSurface::fromResource(Desktop::focusState()->surface());
+    const auto SURF       = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
     const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
     return CONSTRAINT && CONSTRAINT->isLocked();

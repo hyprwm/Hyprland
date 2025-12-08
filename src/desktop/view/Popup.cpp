@@ -1,43 +1,45 @@
 #include "Popup.hpp"
-#include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
-#include "../Compositor.hpp"
-#include "../protocols/LayerShell.hpp"
-#include "../protocols/XDGShell.hpp"
-#include "../protocols/core/Compositor.hpp"
-#include "../managers/SeatManager.hpp"
-#include "../managers/animation/AnimationManager.hpp"
-#include "../desktop/LayerSurface.hpp"
-#include "../managers/input/InputManager.hpp"
-#include "../render/Renderer.hpp"
-#include "../render/OpenGL.hpp"
+#include "../../config/ConfigValue.hpp"
+#include "../../config/ConfigManager.hpp"
+#include "../../Compositor.hpp"
+#include "../../protocols/LayerShell.hpp"
+#include "../../protocols/XDGShell.hpp"
+#include "../../protocols/core/Compositor.hpp"
+#include "../../managers/SeatManager.hpp"
+#include "../../managers/animation/AnimationManager.hpp"
+#include "LayerSurface.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../render/Renderer.hpp"
+#include "../../render/OpenGL.hpp"
 #include <ranges>
 
-UP<CPopup> CPopup::create(PHLWINDOW pOwner) {
-    auto popup           = UP<CPopup>(new CPopup());
+using namespace Desktop;
+using namespace Desktop::View;
+
+SP<CPopup> CPopup::create(PHLWINDOW pOwner) {
+    auto popup           = SP<CPopup>(new CPopup());
     popup->m_windowOwner = pOwner;
     popup->m_self        = popup;
     popup->initAllSignals();
     return popup;
 }
 
-UP<CPopup> CPopup::create(PHLLS pOwner) {
-    auto popup          = UP<CPopup>(new CPopup());
+SP<CPopup> CPopup::create(PHLLS pOwner) {
+    auto popup          = SP<CPopup>(new CPopup());
     popup->m_layerOwner = pOwner;
     popup->m_self       = popup;
     popup->initAllSignals();
     return popup;
 }
 
-UP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
-    auto popup           = UP<CPopup>(new CPopup());
+SP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
+    auto popup           = SP<CPopup>(new CPopup());
     popup->m_resource    = resource;
     popup->m_windowOwner = pOwner->m_windowOwner;
     popup->m_layerOwner  = pOwner->m_layerOwner;
     popup->m_parent      = pOwner;
     popup->m_self        = popup;
-    popup->m_wlSurface   = CWLSurface::create();
-    popup->m_wlSurface->assign(resource->m_surface->m_surface.lock(), popup.get());
+    popup->wlSurface()->assign(resource->m_surface->m_surface.lock(), popup);
 
     popup->m_lastSize = resource->m_surface->m_current.geometry.size();
     popup->reposition();
@@ -46,9 +48,54 @@ UP<CPopup> CPopup::create(SP<CXDGPopupResource> resource, WP<CPopup> pOwner) {
     return popup;
 }
 
+SP<CPopup> CPopup::fromView(SP<IView> v) {
+    if (!v || v->type() != VIEW_TYPE_POPUP)
+        return nullptr;
+    return dynamicPointerCast<CPopup>(v);
+}
+
+CPopup::CPopup() : IView(CWLSurface::create()) {
+    ;
+}
+
 CPopup::~CPopup() {
     if (m_wlSurface)
         m_wlSurface->unassign();
+}
+
+eViewType CPopup::type() const {
+    return VIEW_TYPE_POPUP;
+}
+
+bool CPopup::visible() const {
+    if (!m_mapped || !m_wlSurface->resource())
+        return false;
+
+    if (!m_windowOwner.expired())
+        return g_pHyprRenderer->shouldRenderWindow(m_windowOwner.lock());
+
+    if (!m_layerOwner.expired())
+        return true;
+
+    if (m_parent)
+        return m_parent->visible();
+
+    return false;
+}
+
+std::optional<CBox> CPopup::logicalBox() const {
+    return surfaceLogicalBox();
+}
+
+std::optional<CBox> CPopup::surfaceLogicalBox() const {
+    if (!visible())
+        return std::nullopt;
+
+    return CBox{t1ParentCoords(), size()};
+}
+
+bool CPopup::desktopComponent() const {
+    return true;
 }
 
 void CPopup::initAllSignals() {
@@ -286,11 +333,11 @@ void CPopup::reposition() {
     m_resource->applyPositioning(box, COORDS);
 }
 
-SP<CWLSurface> CPopup::getT1Owner() {
+SP<Desktop::View::CWLSurface> CPopup::getT1Owner() {
     if (m_windowOwner)
-        return m_windowOwner->m_wlSurface;
+        return m_windowOwner->wlSurface();
     else
-        return m_layerOwner->m_surface;
+        return m_layerOwner->wlSurface();
 }
 
 Vector2D CPopup::coordsRelativeToParent() {
@@ -304,7 +351,7 @@ Vector2D CPopup::coordsRelativeToParent() {
 
     while (current->m_parent && current->m_resource) {
 
-        offset += current->m_wlSurface->resource()->m_current.offset;
+        offset += current->wlSurface()->resource()->m_current.offset;
         offset += current->m_resource->m_geometry.pos();
 
         current = current->m_parent;
@@ -321,7 +368,7 @@ Vector2D CPopup::localToGlobal(const Vector2D& rel) {
     return t1ParentCoords() + rel;
 }
 
-Vector2D CPopup::t1ParentCoords() {
+Vector2D CPopup::t1ParentCoords() const {
     if (!m_windowOwner.expired())
         return m_windowOwner->m_realPosition->value();
     if (!m_layerOwner.expired())
@@ -352,36 +399,25 @@ void CPopup::recheckChildrenRecursive() {
     }
 }
 
-Vector2D CPopup::size() {
+Vector2D CPopup::size() const {
     return m_lastSize;
 }
 
 void CPopup::sendScale() {
     if (!m_windowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->m_wlSurface->m_lastScaleFloat);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->wlSurface()->m_lastScaleFloat);
     else if (!m_layerOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->m_surface->m_lastScaleFloat);
+        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->wlSurface()->m_lastScaleFloat);
     else
         UNREACHABLE();
 }
 
-bool CPopup::visible() {
-    if (!m_windowOwner.expired())
-        return g_pHyprRenderer->shouldRenderWindow(m_windowOwner.lock());
-    if (!m_layerOwner.expired())
-        return true;
-    if (m_parent)
-        return m_parent->visible();
-
-    return false;
-}
-
-void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(WP<CPopup>, void*)> fn, void* data) {
+void CPopup::bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {
     for (auto const& n : nodes) {
         fn(n, data);
     }
 
-    std::vector<WP<CPopup>> nodes2;
+    std::vector<SP<CPopup>> nodes2;
     nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
@@ -389,7 +425,7 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
             continue;
 
         for (auto const& c : n->m_children) {
-            nodes2.push_back(c->m_self);
+            nodes2.emplace_back(c->m_self.lock());
         }
     }
 
@@ -397,18 +433,18 @@ void CPopup::bfHelper(std::vector<WP<CPopup>> const& nodes, std::function<void(W
         bfHelper(nodes2, fn, data);
 }
 
-void CPopup::breadthfirst(std::function<void(WP<CPopup>, void*)> fn, void* data) {
+void CPopup::breadthfirst(std::function<void(SP<CPopup>, void*)> fn, void* data) {
     if (!m_self)
         return;
 
-    std::vector<WP<CPopup>> popups;
-    popups.push_back(m_self);
+    std::vector<SP<CPopup>> popups;
+    popups.emplace_back(m_self.lock());
     bfHelper(popups, fn, data);
 }
 
-WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
-    std::vector<WP<CPopup>> popups;
-    breadthfirst([&popups](WP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
+SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+    std::vector<SP<CPopup>> popups;
+    breadthfirst([&popups](SP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
 
     for (auto const& p : popups | std::views::reverse) {
         if (!p->m_resource || !p->m_mapped)
@@ -427,7 +463,7 @@ WP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
             if (BOX.containsPoint(globalCoords))
                 return p;
         } else {
-            const auto REGION = CRegion{p->m_wlSurface->resource()->m_current.input}.intersect(CBox{{}, p->m_wlSurface->resource()->m_current.size}).translate(p->coordsGlobal());
+            const auto REGION = CRegion{p->wlSurface()->resource()->m_current.input}.intersect(CBox{{}, p->wlSurface()->resource()->m_current.size}).translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords))
                 return p;
         }

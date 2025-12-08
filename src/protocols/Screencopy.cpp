@@ -212,12 +212,12 @@ void CScreencopyFrame::renderMon() {
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
     auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<CPopup> popup, void*) {
-            if (!popup->m_wlSurface || !popup->m_wlSurface->resource() || !popup->m_mapped)
+        return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
+            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
                 return;
 
             const auto popRel = popup->coordsRelativeToParent();
-            popup->m_wlSurface->resource()->breadthfirst(
+            popup->wlSurface()->resource()->breadthfirst(
                 [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
                     const auto size    = surf->m_current.size;
                     const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
@@ -233,7 +233,7 @@ void CScreencopyFrame::renderMon() {
         if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
             continue;
 
-        if UNLIKELY ((!l->m_mapped && !l->m_fadingOut) || l->m_alpha->value() == 0.f)
+        if UNLIKELY (!l->visible())
             continue;
 
         const auto REALPOS  = l->m_realPosition->value();

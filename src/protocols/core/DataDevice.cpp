@@ -603,7 +603,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     m_dnd.mouseMove = g_pHookSystem->hookDynamic("mouseMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto V = std::any_cast<const Vector2D>(e);
         if (m_dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
+            auto surf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
 
             if (!surf)
                 return;
@@ -621,7 +621,7 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     m_dnd.touchMove = g_pHookSystem->hookDynamic("touchMove", [this](void* self, SCallbackInfo& info, std::any e) {
         auto E = std::any_cast<ITouch::SMotionEvent>(e);
         if (m_dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
-            auto surf = CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
+            auto surf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
 
             if (!surf)
                 return;

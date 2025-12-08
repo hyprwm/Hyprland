@@ -1,6 +1,6 @@
 #include "XDGBell.hpp"
 #include "core/Compositor.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../managers/EventManager.hpp"
 #include "../Compositor.hpp"
 
@@ -31,10 +31,10 @@ CXDGSystemBellManagerResource::CXDGSystemBellManagerResource(UP<CXdgSystemBellV1
         }
 
         for (const auto& w : g_pCompositor->m_windows) {
-            if (!w->m_isMapped || w->m_isX11 || !w->m_xdgSurface || !w->m_wlSurface)
+            if (!w->m_isMapped || w->m_isX11 || !w->m_xdgSurface || !w->wlSurface())
                 continue;
 
-            if (w->m_wlSurface->resource() == SURFACE) {
+            if (w->wlSurface()->resource() == SURFACE) {
                 g_pEventManager->postEvent(SHyprIPCEvent{
                     .event = "bell",
                     .data  = std::format("{:x}", rc<uintptr_t>(w.get())),

@@ -1,5 +1,5 @@
 #include "FocusState.hpp"
-#include "../Window.hpp"
+#include "../view/Window.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
@@ -191,7 +191,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
             g_pXWaylandManager->activateWindow(PLASTWINDOW, false);
     }
 
-    const auto PWINDOWSURFACE = surface ? surface : pWindow->m_wlSurface->resource();
+    const auto PWINDOWSURFACE = surface ? surface : pWindow->wlSurface()->resource();
 
     rawSurfaceFocus(PWINDOWSURFACE, pWindow);
 
@@ -227,7 +227,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 }
 
 void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWindowOwner) {
-    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->m_wlSurface->resource()))
+    if (g_pSeatManager->m_state.keyboardFocus == pSurface || (pWindowOwner && g_pSeatManager->m_state.keyboardFocus == pWindowOwner->wlSurface()->resource()))
         return; // Don't focus when already focused on this.
 
     if (g_pSessionLockManager->isSessionLocked() && pSurface && !g_pSessionLockManager->isSurfaceSessionLock(pSurface))
@@ -266,8 +266,8 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
 
     EMIT_HOOK_EVENT("keyboardFocus", pSurface);
 
-    const auto SURF    = CWLSurface::fromResource(pSurface);
-    const auto OLDSURF = CWLSurface::fromResource(PLASTSURF);
+    const auto SURF    = Desktop::View::CWLSurface::fromResource(pSurface);
+    const auto OLDSURF = Desktop::View::CWLSurface::fromResource(PLASTSURF);
 
     if (OLDSURF && OLDSURF->constraint())
         OLDSURF->constraint()->deactivate();

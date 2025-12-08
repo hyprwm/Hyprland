@@ -296,7 +296,8 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
 
     if (PMONITOR->m_id == MONFROMCURSOR->m_id &&
         (PNODE->workspaceID == PMONITOR->activeWorkspaceID() || (g_pCompositor->isWorkspaceSpecial(PNODE->workspaceID) && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
-        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | SKIP_FULLSCREEN_PRIORITY));
+        OPENINGON = getNodeFromWindow(
+            g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
             OPENINGON = getClosestNodeOnWorkspace(PNODE->workspaceID, MOUSECOORDS);
@@ -306,7 +307,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             Desktop::focusState()->window()->m_workspace == pWindow->m_workspace && Desktop::focusState()->window()->m_isMapped) {
             OPENINGON = getNodeFromWindow(Desktop::focusState()->window());
         } else {
-            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS));
+            OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS));
         }
 
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, PMONITOR))
@@ -570,7 +571,7 @@ void CHyprDwindleLayout::calculateWorkspace(const PHLWORKSPACE& pWorkspace) {
             SP<SDwindleNodeData> fakeNode    = makeShared<SDwindleNodeData>();
             fakeNode->self                   = fakeNode;
             fakeNode->pWindow                = PFULLWINDOW;
-            fakeNode->box                    = PMONITOR->logicalBoxMinusReserved();
+            fakeNode->box                    = workAreaOnWorkspace(pWorkspace);
             fakeNode->workspaceID            = pWorkspace->m_id;
             PFULLWINDOW->m_position          = fakeNode->box.pos();
             PFULLWINDOW->m_size              = fakeNode->box.size();

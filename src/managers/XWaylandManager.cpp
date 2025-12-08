@@ -1,7 +1,6 @@
 #include "XWaylandManager.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../events/Events.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -22,20 +21,20 @@ CHyprXWaylandManager::~CHyprXWaylandManager() {
 }
 
 SP<CWLSurfaceResource> CHyprXWaylandManager::getWindowSurface(PHLWINDOW pWindow) {
-    return pWindow ? pWindow->m_wlSurface->resource() : nullptr;
+    return pWindow ? pWindow->wlSurface()->resource() : nullptr;
 }
 
 void CHyprXWaylandManager::activateSurface(SP<CWLSurfaceResource> pSurface, bool activate) {
     if (!pSurface)
         return;
 
-    auto HLSurface = CWLSurface::fromResource(pSurface);
+    auto HLSurface = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!HLSurface) {
         Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-desktop surface, ignoring");
         return;
     }
 
-    const auto PWINDOW = HLSurface->getWindow();
+    const auto PWINDOW = Desktop::View::CWindow::fromView(HLSurface->view());
     if (!PWINDOW) {
         Debug::log(TRACE, "CHyprXWaylandManager::activateSurface on non-window surface, ignoring");
         return;

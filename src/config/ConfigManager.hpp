@@ -12,7 +12,7 @@
 #include <functional>
 #include <xf86drmMode.h>
 #include "../helpers/Monitor.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 
 #include "ConfigDataValues.hpp"
 #include "../SharedDefs.hpp"

@@ -24,7 +24,14 @@ message(STATUS "Gathering git info")
 
 # Make shader files includable
 execute_process(COMMAND ./scripts/generateShaderIncludes.sh
-                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                RESULT_VARIABLE HYPR_SHADER_GEN_RESULT)
+if(NOT HYPR_SHADER_GEN_RESULT EQUAL 0)
+  message(
+    FATAL_ERROR
+      "Failed to generate shader includes (scripts/generateShaderIncludes.sh), exit code: ${HYPR_SHADER_GEN_RESULT}"
+  )
+endif()
 
 find_package(PkgConfig REQUIRED)
 
@@ -235,7 +242,7 @@ configure_file(
 
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERATED TRUE)
 
-set(XKBCOMMMON_MINIMUM_VERSION 1.11.0)
+set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
 set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.90)
 set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
 set(LIBINPUT_MINIMUM_VERSION 1.28)
@@ -244,7 +251,7 @@ pkg_check_modules(
   deps
   REQUIRED
   IMPORTED_TARGET GLOBAL
-  xkbcommon>=${XKBCOMMMON_MINIMUM_VERSION}
+  xkbcommon>=${XKBCOMMON_MINIMUM_VERSION}
   uuid
   wayland-server>=${WAYLAND_SERVER_MINIMUM_VERSION}
   wayland-protocols>=${WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION}

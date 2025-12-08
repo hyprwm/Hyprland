@@ -128,7 +128,7 @@ SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
     return !m_cursorBuffers.empty() ? m_cursorBuffers.back() : nullptr;
 }
 
-void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
+void CCursorManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     if (!surf || !surf->resource())
         g_pPointerManager->resetCursorImage();
     else

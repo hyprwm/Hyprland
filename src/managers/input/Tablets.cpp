@@ -1,5 +1,5 @@
 #include "InputManager.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
 #include "../../managers/HookSystemManager.hpp"
@@ -38,7 +38,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceRes
 }
 
 static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
-    const auto LASTHLSURFACE = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+    const auto LASTHLSURFACE = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
     if (!LASTHLSURFACE || !tool->m_active) {
         if (tool->getSurface())
@@ -63,6 +63,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     if (!motion)
         return;
 
+    const auto WINDOW = Desktop::View::CWindow::fromView(LASTHLSURFACE->view());
+
     if (LASTHLSURFACE->constraint() && tool->aq()->type != Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE) {
         // cursor logic will completely break here as the cursor will be locked.
         // let's just "map" the desired position to the constraint area.
@@ -70,13 +72,13 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
         Vector2D local;
 
         // yes, this technically ignores any regions set by the app. Too bad!
-        if (LASTHLSURFACE->getWindow())
-            local = tool->m_absolutePos * LASTHLSURFACE->getWindow()->m_realSize->goal();
+        if (WINDOW)
+            local = tool->m_absolutePos * WINDOW->m_realSize->goal();
         else
             local = tool->m_absolutePos * BOX->size();
 
-        if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
-            local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
+        if (WINDOW && WINDOW->m_isX11)
+            local = local * WINDOW->m_X11SurfaceScaledBy;
 
         PROTO::tablet->motion(tool, local);
         return;
@@ -84,8 +86,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     auto local = CURSORPOS - BOX->pos();
 
-    if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
-        local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
+    if (WINDOW && WINDOW->m_isX11)
+        local = local * WINDOW->m_X11SurfaceScaledBy;
 
     PROTO::tablet->motion(tool, local);
 }

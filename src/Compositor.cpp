@@ -41,7 +41,7 @@
 #include "protocols/ColorManagement.hpp"
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
-#include "desktop/LayerSurface.hpp"
+#include "desktop/view/LayerSurface.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
@@ -884,7 +884,7 @@ void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
     if (!pWindow->m_fadingOut) {
         EMIT_HOOK_EVENT("destroyWindow", pWindow);
 
-        std::erase_if(m_windows, [&](SP<CWindow>& el) { return el == pWindow; });
+        std::erase_if(m_windows, [&](SP<Desktop::View::CWindow>& el) { return el == pWindow; });
         std::erase_if(m_windowsFadingOut, [&](PHLWINDOWREF el) { return el.lock() == pWindow; });
     }
 }
@@ -901,14 +901,14 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
     static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
     const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
-    const bool  ONLY_PRIORITY        = properties & FOCUS_PRIORITY;
+    const bool  ONLY_PRIORITY        = properties & Desktop::View::FOCUS_PRIORITY;
 
     const auto  isShadowedByModal = [](PHLWINDOW w) -> bool {
         return *PMODALPARENTBLOCKING && w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal();
     };
 
     // pinned windows on top of floating regardless
-    if (properties & ALLOW_FLOATING) {
+    if (properties & Desktop::View::ALLOW_FLOATING) {
         for (auto const& w : m_windows | std::views::reverse) {
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
@@ -980,20 +980,20 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             return nullptr;
         };
 
-        if (properties & ALLOW_FLOATING) {
+        if (properties & Desktop::View::ALLOW_FLOATING) {
             // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
             auto found = floating(true);
             if (found)
                 return found;
         }
 
-        if (properties & FLOATING_ONLY)
+        if (properties & Desktop::View::FLOATING_ONLY)
             return floating(false);
 
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY)
+        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY)
             return PWORKSPACE->getFullscreenWindow();
 
         auto found = floating(false);
@@ -1030,7 +1030,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
-                CBox box = (properties & USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
+                CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if (box.containsPoint(pos))
                     return w;
             }
@@ -1066,10 +1066,10 @@ SP<CWLSurfaceResource> CCompositor::vectorWindowToSurface(const Vector2D& pos, P
     if (PPOPUP) {
         const auto OFF = PPOPUP->coordsRelativeToParent();
         sl             = pos - pWindow->m_realPosition->goal() - OFF;
-        return PPOPUP->m_wlSurface->resource();
+        return PPOPUP->wlSurface()->resource();
     }
 
-    auto [surf, local] = pWindow->m_wlSurface->resource()->at(pos - pWindow->m_realPosition->goal(), true);
+    auto [surf, local] = pWindow->wlSurface()->resource()->at(pos - pWindow->m_realPosition->goal(), true);
     if (surf) {
         sl = local;
         return surf;
@@ -1091,7 +1091,7 @@ Vector2D CCompositor::vectorToSurfaceLocal(const Vector2D& vec, PHLWINDOW pWindo
 
     std::tuple<SP<CWLSurfaceResource>, Vector2D> iterData = {pSurface, {-1337, -1337}};
 
-    pWindow->m_wlSurface->resource()->breadthfirst(
+    pWindow->wlSurface()->resource()->breadthfirst(
         [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
             const auto PDATA = sc<std::tuple<SP<CWLSurfaceResource>, Vector2D>*>(data);
             if (surf == std::get<0>(*PDATA))
@@ -1130,7 +1130,7 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_mapped) || ls->m_alpha->value() == 0.f)
+            if (!ls->visible() || ls->m_fadingOut)
                 continue;
 
             auto SURFACEAT = ls->m_popupHead->at(pos, true);
@@ -1138,7 +1138,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& po
             if (SURFACEAT) {
                 *ppLayerSurfaceFound = ls.lock();
                 *sCoords             = pos - SURFACEAT->coordsGlobal();
-                return SURFACEAT->m_wlSurface->resource();
+                return SURFACEAT->wlSurface()->resource();
             }
         }
     }
@@ -1150,8 +1150,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
                                                          bool aboveLockscreen) {
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->m_mapped || ls->m_fadingOut || !ls->m_layerSurface || (ls->m_layerSurface && !ls->m_layerSurface->m_surface->m_mapped) || ls->m_alpha->value() == 0.f ||
-            (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
+        if (!ls->visible() || ls->m_fadingOut || (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
@@ -1175,7 +1174,12 @@ PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface || !pSurface->m_hlSurface)
         return nullptr;
 
-    return pSurface->m_hlSurface->getWindow();
+    const auto VIEW = pSurface->m_hlSurface->view();
+
+    if (VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
+        return nullptr;
+
+    return dynamicPointerCast<Desktop::View::CWindow>(VIEW);
 }
 
 PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {
@@ -1213,7 +1217,7 @@ bool CCompositor::isWindowActive(PHLWINDOW pWindow) {
     if (!pWindow->m_isMapped)
         return false;
 
-    const auto PSURFACE = pWindow->m_wlSurface->resource();
+    const auto PSURFACE = pWindow->wlSurface()->resource();
 
     return PSURFACE == Desktop::focusState()->surface() || pWindow == Desktop::focusState()->window();
 }
@@ -1819,7 +1823,9 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     if (pMonitorA->m_id == Desktop::focusState()->monitor()->m_id || pMonitorB->m_id == Desktop::focusState()->monitor()->m_id) {
         const auto LASTWIN = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB->getLastFocusedWindow() : PWORKSPACEA->getLastFocusedWindow();
         Desktop::focusState()->fullWindowFocus(
-            LASTWIN ? LASTWIN : (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING)));
+            LASTWIN ? LASTWIN :
+                      (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
+                                                            Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING)));
 
         const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
@@ -2069,19 +2075,19 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
 // TODO: move fs functions to Desktop::
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
     else
-        setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
 }
 
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenState state) {
+void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state) {
     static auto PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:allow_pin_fullscreen");
 
@@ -2341,11 +2347,11 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto const& ls : m_layers) {
-        if (ls->m_layerSurface && ls->m_layerSurface->m_surface == pSurface)
-            return ls;
-
-        if (!ls->m_layerSurface || !ls->m_mapped)
+        if (!ls->visible() || ls->m_fadingOut)
             continue;
+
+        if (ls->m_layerSurface->m_surface == pSurface)
+            return ls;
 
         ls->m_layerSurface->m_surface->breadthfirst(
             [&result](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
@@ -2831,7 +2837,7 @@ void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, d
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));
 
-    const auto PSURFACE = CWLSurface::fromResource(pSurface);
+    const auto PSURFACE = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
         Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredScaleForSurface", rc<uintptr_t>(pSurface.get()));
         return;
@@ -2844,7 +2850,7 @@ void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, d
 void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform) {
     pSurface->sendPreferredTransform(transform);
 
-    const auto PSURFACE = CWLSurface::fromResource(pSurface);
+    const auto PSURFACE = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!PSURFACE) {
         Debug::log(WARN, "Orphaned CWLSurfaceResource {:x} in setPreferredTransformForSurface", rc<uintptr_t>(pSurface.get()));
         return;

@@ -8,7 +8,7 @@
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
@@ -517,7 +517,7 @@ void CSeatManager::refocusGrab() {
         // try to find a surf in focus first
         const auto MOUSE = g_pInputManager->getMouseCoordsInternal();
         for (auto const& s : m_seatGrab->m_surfs) {
-            auto hlSurf = CWLSurface::fromResource(s.lock());
+            auto hlSurf = Desktop::View::CWLSurface::fromResource(s.lock());
             if (!hlSurf)
                 continue;
 
@@ -640,13 +640,13 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
                 focusedSurf = oldGrab->m_surfs.front().lock();
 
             if (focusedSurf) {
-                auto hlSurface = CWLSurface::fromResource(focusedSurf);
+                auto hlSurface = Desktop::View::CWLSurface::fromResource(focusedSurf);
                 if (hlSurface) {
-                    auto popup = hlSurface->getPopup();
+                    auto popup = Desktop::View::CPopup::fromView(hlSurface->view());
                     if (popup) {
                         auto t1Owner = popup->getT1Owner();
                         if (t1Owner)
-                            parentWindow = t1Owner->getWindow();
+                            parentWindow = Desktop::View::CWindow::fromView(t1Owner->view());
                     }
                 }
             }
@@ -667,22 +667,22 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         } else
             g_pInputManager->refocus();
 
-        auto           currentFocus = m_state.keyboardFocus.lock();
-        auto           refocus      = !currentFocus;
+        auto                          currentFocus = m_state.keyboardFocus.lock();
+        auto                          refocus      = !currentFocus;
 
-        SP<CWLSurface> surf;
-        PHLLS          layer;
+        SP<Desktop::View::CWLSurface> surf;
+        PHLLS                         layer;
 
         if (!refocus) {
-            surf  = CWLSurface::fromResource(currentFocus);
-            layer = surf ? surf->getLayer() : nullptr;
+            surf  = Desktop::View::CWLSurface::fromResource(currentFocus);
+            layer = surf ? Desktop::View::CLayerSurface::fromView(surf->view()) : nullptr;
         }
 
         if (!refocus && !layer) {
-            auto popup = surf ? surf->getPopup() : nullptr;
+            auto popup = surf ? Desktop::View::CPopup::fromView(surf->view()) : nullptr;
             if (popup) {
                 auto parent = popup->getT1Owner();
-                layer       = parent->getLayer();
+                layer       = Desktop::View::CLayerSurface::fromView(parent->view());
             }
         }
 

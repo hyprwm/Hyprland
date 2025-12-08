@@ -1,7 +1,7 @@
 #include "PointerConstraints.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
@@ -17,7 +17,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
     resource_->setOnDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -35,7 +35,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         m_hintSet = true;
 
         float      scale   = 1.f;
-        const auto PWINDOW = m_hlSurface->getWindow();
+        const auto PWINDOW = Desktop::View::CWindow::fromView(m_hlSurface->view());
         if (PWINDOW) {
             const auto ISXWL = PWINDOW->m_isX11;
             scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;
@@ -56,7 +56,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<C
     resource_->setOnDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -159,7 +159,7 @@ void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
     g_pInputManager->simulateMouseMovement(); // to warp the cursor if anything's amiss
 }
 
-SP<CWLSurface> CPointerConstraint::owner() {
+SP<Desktop::View::CWLSurface> CPointerConstraint::owner() {
     return m_hlSurface.lock();
 }
 

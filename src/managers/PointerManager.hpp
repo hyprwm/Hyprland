@@ -4,7 +4,7 @@
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
 #include "../helpers/math/Math.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
 #include <tuple>
@@ -40,7 +40,7 @@ class CPointerManager {
     void warpAbsolute(Vector2D abs, SP<IHID> dev);
 
     void setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2D& hotspot, const float& scale);
-    void setCursorSurface(SP<CWLSurface> buf, const Vector2D& hotspot);
+    void setCursorSurface(SP<Desktop::View::CWLSurface> buf, const Vector2D& hotspot);
     void resetCursorImage(bool apply = true);
 
     void lockSoftwareForMonitor(PHLMONITOR pMonitor);
@@ -140,16 +140,16 @@ class CPointerManager {
     } m_currentMonitorLayout;
 
     struct {
-        SP<Aquamarine::IBuffer> pBuffer;
-        SP<CTexture>            bufferTex;
-        WP<CWLSurface>          surface;
+        SP<Aquamarine::IBuffer>       pBuffer;
+        SP<CTexture>                  bufferTex;
+        WP<Desktop::View::CWLSurface> surface;
 
-        Vector2D                hotspot;
-        Vector2D                size;
-        float                   scale = 1.F;
+        Vector2D                      hotspot;
+        Vector2D                      size;
+        float                         scale = 1.F;
 
-        CHyprSignalListener     destroySurface;
-        CHyprSignalListener     commitSurface;
+        CHyprSignalListener           destroySurface;
+        CHyprSignalListener           commitSurface;
     } m_currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
     Vector2D m_pointerPos = {0, 0};

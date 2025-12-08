@@ -1,10 +1,10 @@
 #include "PointerWarp.hpp"
 #include "core/Compositor.hpp"
 #include "core/Seat.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/PointerManager.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
 
 CPointerWarpProtocol::CPointerWarpProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
@@ -27,11 +27,11 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (g_pSeatManager->m_state.pointerFocus != PSURFACE)
             return;
 
-        auto SURFBOXV = CWLSurface::fromResource(PSURFACE)->getSurfaceBoxGlobal();
-        if (!SURFBOXV.has_value())
+        auto WINDOW = Desktop::View::CWindow::fromView(Desktop::View::CWLSurface::fromResource(PSURFACE)->view());
+        if (!WINDOW)
             return;
 
-        const auto SURFBOX   = SURFBOXV->expand(1);
+        const auto SURFBOX   = WINDOW->getWindowMainSurfaceBox().expand(1);
         const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
         if (!SURFBOX.containsPoint(GLOBALPOS))

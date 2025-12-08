@@ -356,7 +356,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
                 break;
             if (c->m_surface.expired())
                 continue;
-            nodes2.push_back(c->m_surface.lock());
+            nodes2.emplace_back(c->m_surface.lock());
         }
     }
 
@@ -381,7 +381,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
                 continue;
             if (c->m_surface.expired())
                 continue;
-            nodes2.push_back(c->m_surface.lock());
+            nodes2.emplace_back(c->m_surface.lock());
         }
     }
 
@@ -391,7 +391,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
 
 void CWLSurfaceResource::breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
     std::vector<SP<CWLSurfaceResource>> surfs;
-    surfs.push_back(m_self.lock());
+    surfs.emplace_back(m_self.lock());
     bfHelper(surfs, fn, data);
 }
 
@@ -558,7 +558,9 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 
 SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     static const auto PFORCE_HDR = CConfigValue<Hyprlang::INT>("quirks:prefer_hdr");
-    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && m_hlSurface->getWindow() && m_hlSurface->getWindow()->m_class == "gamescope"))
+    const auto        WINDOW     = Desktop::View::CWindow::fromView(m_hlSurface->view());
+
+    if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->m_class == "gamescope"))
         return g_pCompositor->getHDRImageDescription();
 
     auto parent = m_self;
@@ -569,8 +571,8 @@ SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     WP<CMonitor> monitor;
     if (parent->m_enteredOutputs.size() == 1)
         monitor = parent->m_enteredOutputs[0];
-    else if (m_hlSurface.valid() && m_hlSurface->getWindow())
-        monitor = m_hlSurface->getWindow()->m_monitor;
+    else if (m_hlSurface.valid() && WINDOW)
+        monitor = WINDOW->m_monitor;
 
     return monitor ? monitor->m_imageDescription : g_pCompositor->getPreferredImageDescription();
 }

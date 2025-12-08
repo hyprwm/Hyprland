@@ -1,7 +1,7 @@
 #include "DesktopAnimationManager.hpp"
 
-#include "../../desktop/LayerSurface.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
+#include "../../desktop/view/Window.hpp"
 #include "../../desktop/Workspace.hpp"
 
 #include "../../config/ConfigManager.hpp"

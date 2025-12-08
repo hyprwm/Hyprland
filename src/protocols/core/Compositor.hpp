@@ -15,6 +15,7 @@
 #include "../../render/Texture.hpp"
 #include "../types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
@@ -25,7 +26,6 @@
 
 class CWLOutputResource;
 class CMonitor;
-class CWLSurface;
 class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
@@ -109,7 +109,7 @@ class CWLSurfaceResource {
     CSurfaceStateQueue                     m_stateQueue;
 
     WP<CWLSurfaceResource>                 m_self;
-    WP<CWLSurface>                         m_hlSurface;
+    WP<Desktop::View::CWLSurface>          m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;
     bool                                   m_mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;

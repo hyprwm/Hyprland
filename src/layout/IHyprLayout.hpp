@@ -4,7 +4,6 @@
 #include "../managers/input/InputManager.hpp"
 #include <any>
 
-class CWindow;
 class CGradientValueData;
 
 struct SWindowRenderLayoutHints {

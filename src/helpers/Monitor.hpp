@@ -335,8 +335,10 @@ class CMonitor {
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
-    WP<CWindow>                         m_previousFSWindow;
+
+    PHLWINDOWREF                        m_previousFSWindow;
     bool                                m_needsHDRupdate = false;
+
     NColorManagement::SImageDescription m_imageDescription;
     bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
 

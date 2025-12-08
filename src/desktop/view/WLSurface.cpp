@@ -1,9 +1,12 @@
 #include "WLSurface.hpp"
 #include "LayerSurface.hpp"
-#include "../desktop/Window.hpp"
-#include "../protocols/core/Compositor.hpp"
-#include "../protocols/LayerShell.hpp"
-#include "../render/Renderer.hpp"
+#include "Window.hpp"
+#include "../../protocols/core/Compositor.hpp"
+#include "../../protocols/LayerShell.hpp"
+#include "../../render/Renderer.hpp"
+
+using namespace Desktop;
+using namespace Desktop::View;
 
 void CWLSurface::assign(SP<CWLSurfaceResource> pSurface) {
     m_resource = pSurface;
@@ -11,30 +14,9 @@ void CWLSurface::assign(SP<CWLSurfaceResource> pSurface) {
     m_inert = false;
 }
 
-void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, PHLWINDOW pOwner) {
-    m_windowOwner = pOwner;
-    m_resource    = pSurface;
-    init();
-    m_inert = false;
-}
-
-void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, PHLLS pOwner) {
-    m_layerOwner = pOwner;
-    m_resource   = pSurface;
-    init();
-    m_inert = false;
-}
-
-void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, CSubsurface* pOwner) {
-    m_subsurfaceOwner = pOwner;
-    m_resource        = pSurface;
-    init();
-    m_inert = false;
-}
-
-void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, CPopup* pOwner) {
-    m_popupOwner = pOwner;
-    m_resource   = pSurface;
+void CWLSurface::assign(SP<CWLSurfaceResource> pSurface, SP<IView> pOwner) {
+    m_view     = pOwner;
+    m_resource = pSurface;
     init();
     m_inert = false;
 }
@@ -56,24 +38,24 @@ SP<CWLSurfaceResource> CWLSurface::resource() const {
 }
 
 bool CWLSurface::small() const {
-    if (!validMapped(m_windowOwner) || !exists())
+    if (!m_view || !m_view->visible() || m_view->type() != VIEW_TYPE_WINDOW || !exists())
         return false;
 
     if (!m_resource->m_current.texture)
         return false;
 
-    const auto O             = m_windowOwner.lock();
+    const auto O             = dynamicPointerCast<CWindow>(m_view.lock());
     const auto REPORTED_SIZE = O->getReportedSize();
 
     return REPORTED_SIZE.x > m_resource->m_current.size.x + 1 || REPORTED_SIZE.y > m_resource->m_current.size.y + 1;
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!validMapped(m_windowOwner) || !exists() || !small() || m_fillIgnoreSmall)
+    if (!m_view || !m_view->visible() || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || !m_fillIgnoreSmall)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
-    const auto O    = m_windowOwner.lock();
+    const auto O    = dynamicPointerCast<CWindow>(m_view.lock());
     const auto REP  = O->getReportedSize();
 
     return Vector2D{(REP.x - SIZE.x) / 2, (REP.y - SIZE.y) / 2}.clamp({}, {INFINITY, INFINITY}) * (O->m_realSize->value() / REP);
@@ -123,8 +105,8 @@ CRegion CWLSurface::computeDamage() const {
 
     damage.scale(SCALE);
     if (BOX.has_value()) {
-        if (m_windowOwner)
-            damage.intersect(CBox{{}, BOX->size() * m_windowOwner->m_X11SurfaceScaledBy});
+        if (m_view->type() == VIEW_TYPE_WINDOW)
+            damage.intersect(CBox{{}, BOX->size() * dynamicPointerCast<CWindow>(m_view.lock())->m_X11SurfaceScaledBy});
         else
             damage.intersect(CBox{{}, BOX->size()});
     }
@@ -142,11 +124,8 @@ void CWLSurface::destroy() {
 
     m_listeners.destroy.reset();
     m_resource->m_hlSurface.reset();
-    m_windowOwner.reset();
-    m_layerOwner.reset();
-    m_popupOwner      = nullptr;
-    m_subsurfaceOwner = nullptr;
-    m_inert           = true;
+    m_view.reset();
+    m_inert = true;
 
     if (g_pHyprRenderer && g_pHyprRenderer->m_lastCursorData.surf && g_pHyprRenderer->m_lastCursorData.surf->get() == this)
         g_pHyprRenderer->m_lastCursorData.surf.reset();
@@ -169,40 +148,19 @@ void CWLSurface::init() {
     Debug::log(LOG, "CWLSurface {:x} called init()", rc<uintptr_t>(this));
 }
 
-PHLWINDOW CWLSurface::getWindow() const {
-    return m_windowOwner.lock();
-}
-
-PHLLS CWLSurface::getLayer() const {
-    return m_layerOwner.lock();
-}
-
-CPopup* CWLSurface::getPopup() const {
-    return m_popupOwner;
-}
-
-CSubsurface* CWLSurface::getSubsurface() const {
-    return m_subsurfaceOwner;
+SP<IView> CWLSurface::view() const {
+    return m_view.lock();
 }
 
 bool CWLSurface::desktopComponent() const {
-    return !m_layerOwner.expired() || !m_windowOwner.expired() || m_subsurfaceOwner || m_popupOwner;
+    return m_view && m_view->visible();
 }
 
 std::optional<CBox> CWLSurface::getSurfaceBoxGlobal() const {
     if (!desktopComponent())
         return {};
 
-    if (!m_windowOwner.expired())
-        return m_windowOwner->getWindowMainSurfaceBox();
-    if (!m_layerOwner.expired())
-        return m_layerOwner->m_geometry;
-    if (m_popupOwner)
-        return CBox{m_popupOwner->coordsGlobal(), m_popupOwner->size()};
-    if (m_subsurfaceOwner)
-        return CBox{m_subsurfaceOwner->coordsGlobal(), m_subsurfaceOwner->size()};
-
-    return {};
+    return m_view->surfaceLogicalBox();
 }
 
 void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
@@ -214,27 +172,23 @@ SP<CPointerConstraint> CWLSurface::constraint() const {
 }
 
 bool CWLSurface::visible() {
-    if (!m_windowOwner.expired())
-        return g_pHyprRenderer->shouldRenderWindow(m_windowOwner.lock());
-    if (!m_layerOwner.expired())
-        return true;
-    if (m_popupOwner)
-        return m_popupOwner->visible();
-    if (m_subsurfaceOwner)
-        return m_subsurfaceOwner->visible();
+    if (m_view)
+        return m_view->visible();
     return true; // non-desktop, we don't know much.
 }
 
-SP<CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
+SP<Desktop::View::CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {
     if (!pSurface)
         return nullptr;
     return pSurface->m_hlSurface.lock();
 }
 
 bool CWLSurface::keyboardFocusable() const {
-    if (m_windowOwner || m_popupOwner || m_subsurfaceOwner)
+    if (!m_view)
+        return false;
+    if (m_view->type() == VIEW_TYPE_WINDOW || m_view->type() == VIEW_TYPE_SUBSURFACE || m_view->type() == VIEW_TYPE_POPUP)
         return true;
-    if (m_layerOwner && m_layerOwner->m_layerSurface)
-        return m_layerOwner->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
+    if (const auto LS = CLayerSurface::fromView(m_view.lock()); LS && LS->m_layerSurface)
+        return LS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
     return false;
 }

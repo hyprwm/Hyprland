@@ -1,6 +1,6 @@
 #include "DMABuffer.hpp"
 #include "WLBuffer.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 

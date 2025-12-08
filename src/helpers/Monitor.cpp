@@ -30,7 +30,7 @@
 #include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/Log.hpp"
@@ -1295,7 +1295,8 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
             if (!pWindow) {
                 if (*PFOLLOWMOUSE == 1)
-                    pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+                    pWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
+                                                                   Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
                 if (!pWindow)
                     pWindow = pWorkspace->getTopLeftWindow();
@@ -2038,7 +2039,7 @@ std::optional<NColorManagement::SImageDescription> CMonitor::getFSImageDescripti
     if (!FS_WINDOW)
         return {}; // should be unreachable
 
-    const auto ROOT_SURF = FS_WINDOW->m_wlSurface->resource();
+    const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
     return SURF ? SURF->m_colorManagement->imageDescription() : SImageDescription{};
 }

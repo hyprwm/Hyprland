@@ -68,7 +68,7 @@ static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHL
     }
 
     result.push_back(std::make_pair<>("HL_INITIAL_WORKSPACE_TOKEN",
-                                      g_pTokenManager->registerNewToken(SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337))));
+                                      g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337))));
 
     return result;
 }
@@ -1294,9 +1294,9 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
 
     if (*PWARPONWORKSPACECHANGE > 0) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
-        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+        auto HLSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+        if (PLAST && (!HLSurface || HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW))
             PLAST->warpCursor(*PWARPONWORKSPACECHANGE == 2);
     }
 
@@ -1344,16 +1344,17 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
         clientMode = std::stoi(ARGS[1]);
     } catch (std::exception& e) { clientMode = -1; }
 
-    const SFullscreenState STATE = SFullscreenState{.internal = (internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal),
-                                                    .client   = (clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client)};
+    const Desktop::View::SFullscreenState STATE =
+        Desktop::View::SFullscreenState{.internal = (internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal),
+                                        .client   = (clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client)};
 
     if (ARGS.size() <= 2 || ARGS[2] == "toggle") {
         if (internalMode != -1 && clientMode != -1 && PWINDOW->m_fullscreenState.internal == STATE.internal && PWINDOW->m_fullscreenState.client == STATE.client)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
         else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_fullscreenState.internal == STATE.internal)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_fullscreenState.client});
+            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_fullscreenState.client});
         else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_fullscreenState.client == STATE.client)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = FSMODE_NONE});
+            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = FSMODE_NONE});
         else
             g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
     } else if (ARGS[2] == "set") {
@@ -1463,7 +1464,9 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
     }
 
     if (PWINDOW == Desktop::focusState()->window()) {
-        if (const auto PATCOORDS = g_pCompositor->vectorToWindowUnified(OLDMIDDLE, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING, PWINDOW); PATCOORDS)
+        if (const auto PATCOORDS =
+                g_pCompositor->vectorToWindowUnified(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, PWINDOW);
+            PATCOORDS)
             Desktop::focusState()->fullWindowFocus(PATCOORDS);
         else
             g_pInputManager->refocus();
@@ -2135,9 +2138,9 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
 
     if (*PWARPONTOGGLESPECIAL > 0) {
         auto PLAST     = focusedWorkspace->getLastFocusedWindow();
-        auto HLSurface = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+        auto HLSurface = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-        if (PLAST && (!HLSurface || HLSurface->getWindow()))
+        if (PLAST && (!HLSurface || HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW))
             PLAST->warpCursor(*PWARPONTOGGLESPECIAL == 2);
     }
 
@@ -2398,9 +2401,9 @@ SDispatchResult CKeybindManager::pass(std::string regexp) {
     // pass all mf shit
     if (!XWTOXW) {
         if (g_pKeybindManager->m_lastCode != 0)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_wlSurface->resource());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->wlSurface()->resource(), {1, 1});
     }
 
     g_pSeatManager->sendKeyboardMods(g_pInputManager->getModsFromAllKBs(), 0, 0, 0);
@@ -2546,15 +2549,15 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
         }
 
         if (!isMouse)
-            g_pSeatManager->setKeyboardFocus(PWINDOW->m_wlSurface->resource());
+            g_pSeatManager->setKeyboardFocus(PWINDOW->wlSurface()->resource());
         else
-            g_pSeatManager->setPointerFocus(PWINDOW->m_wlSurface->resource(), {1, 1});
+            g_pSeatManager->setPointerFocus(PWINDOW->wlSurface()->resource(), {1, 1});
     }
 
     //copied the rest from pass and modified it
     // if wl -> xwl, activate destination
     if (PWINDOW && PWINDOW->m_isX11 && Desktop::focusState()->window() && !Desktop::focusState()->window()->m_isX11)
-        g_pXWaylandManager->activateSurface(PWINDOW->m_wlSurface->resource(), true);
+        g_pXWaylandManager->activateSurface(PWINDOW->wlSurface()->resource(), true);
     // if xwl -> xwl, send to current. Timing issues make this not work.
     if (PWINDOW && PWINDOW->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11)
         PWINDOW = nullptr;
@@ -2723,7 +2726,8 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
 
     const auto PWORKSPACE = PWINDOW->m_workspace;
 
-    PWORKSPACE->m_lastFocusedWindow = g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), RESERVED_EXTENTS | INPUT_EXTENTS);
+    PWORKSPACE->m_lastFocusedWindow =
+        g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(), Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS);
 
     g_pEventManager->postEvent(SHyprIPCEvent{"pin", std::format("{:x},{}", rc<uintptr_t>(PWINDOW.get()), sc<int>(PWINDOW->m_pinned))});
     EMIT_HOOK_EVENT("pin", PWINDOW);
@@ -2758,7 +2762,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
             return {};
 
         const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
-        const PHLWINDOW PWINDOW     = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, RESERVED_EXTENTS | INPUT_EXTENTS | ALLOW_FLOATING);
+        const PHLWINDOW PWINDOW = g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
@@ -3014,7 +3018,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) { // target is regular window
-        if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_groupRules & GROUP_SET_ALWAYS)) {
+        if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_groupRules & Desktop::View::GROUP_SET_ALWAYS)) {
             g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             PWINDOW->warpCursor();
         } else

@@ -3,14 +3,13 @@
 #include <string>
 #include <hyprcursor/hyprcursor.hpp>
 #include "../includes.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../macros.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/XCursorManager.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
-
-class CWLSurface;
 
 AQUAMARINE_FORWARD(IBuffer);
 
@@ -43,7 +42,7 @@ class CCursorManager {
     SP<Aquamarine::IBuffer> getCursorBuffer();
 
     void                    setCursorFromName(const std::string& name);
-    void                    setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot);
+    void                    setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot);
     void                    setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale);
     void                    setAnimationTimer(const int& frame, const int& delay);
 

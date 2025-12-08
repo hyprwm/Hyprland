@@ -637,7 +637,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
 
 Vector2D CPointerManager::getCursorPosForMonitor(PHLMONITOR pMonitor) {
     return CBox{m_pointerPos - pMonitor->m_position, {0, 0}}
-               .transform(wlTransformToHyprutils(invertTransform(pMonitor->m_transform)), pMonitor->m_transformedSize.x / pMonitor->m_scale,
+               .transform(Math::wlTransformToHyprutils(Math::invertTransform(pMonitor->m_transform)), pMonitor->m_transformedSize.x / pMonitor->m_scale,
                           pMonitor->m_transformedSize.y / pMonitor->m_scale)
                .pos() *
         pMonitor->m_scale;
@@ -648,7 +648,7 @@ Vector2D CPointerManager::transformedHotspot(PHLMONITOR pMonitor) {
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
     return CBox{m_currentCursorImage.hotspot * pMonitor->m_scale, {0, 0}}
-        .transform(wlTransformToHyprutils(invertTransform(pMonitor->m_transform)), pMonitor->m_cursorSwapchain->currentOptions().size.x,
+        .transform(Math::wlTransformToHyprutils(Math::invertTransform(pMonitor->m_transform)), pMonitor->m_cursorSwapchain->currentOptions().size.x,
                    pMonitor->m_cursorSwapchain->currentOptions().size.y)
         .pos();
 }

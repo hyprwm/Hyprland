@@ -752,7 +752,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     m_renderData.monitorProjection = Mat3x3::identity();
     if (pMonitor->m_transform != WL_OUTPUT_TRANSFORM_NORMAL) {
         const Vector2D tfmd = pMonitor->m_transform % 2 == 1 ? Vector2D{FBO->m_size.y, FBO->m_size.x} : FBO->m_size;
-        m_renderData.monitorProjection.translate(FBO->m_size / 2.0).transform(wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
+        m_renderData.monitorProjection.translate(FBO->m_size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
     }
 
     m_renderData.pCurrentMonData = &m_monitorRenderResources[pMonitor];
@@ -1382,7 +1382,7 @@ void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
 
     if (transform) {
         CBox       box = originalBox;
-        const auto TR  = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
+        const auto TR  = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
         box.transform(TR, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y);
 
         if (box != m_lastScissorBox) {
@@ -1488,7 +1488,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     m_renderData.renderModif.applyToBox(newBox);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     useProgram(m_shaders->m_shQUAD.program);
@@ -1498,7 +1498,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     m_shaders->m_shQUAD.setUniformFloat4(SHADER_COLOR, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
 
     CBox transformedBox = box;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -1649,10 +1649,10 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     static const auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
 
     // get the needed transform for this texture
-    const bool TRANSFORMS_MATCH = wlTransformToHyprutils(m_renderData.pMonitor->m_transform) == tex->m_transform; // FIXME: combine them properly!!!
+    const bool TRANSFORMS_MATCH = Math::wlTransformToHyprutils(m_renderData.pMonitor->m_transform) == tex->m_transform; // FIXME: combine them properly!!!
     eTransform TRANSFORM        = HYPRUTILS_TRANSFORM_NORMAL;
     if (m_monitorTransformEnabled || TRANSFORMS_MATCH)
-        TRANSFORM = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
+        TRANSFORM = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
 
     Mat3x3     matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
@@ -1754,12 +1754,12 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     if (usingFinalShader && *PDT == 0) {
         PHLMONITORREF pMonitor = m_renderData.pMonitor;
         Vector2D      p        = ((g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale);
-        p                      = p.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
+        p                      = p.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
         shader->setUniformFloat2(SHADER_POINTER, p.x / pMonitor->m_pixelSize.x, p.y / pMonitor->m_pixelSize.y);
 
         std::vector<float> pressedPos = m_pressedHistoryPositions | std::views::transform([&](const Vector2D& vec) {
                                             Vector2D pPressed = ((vec - pMonitor->m_position) * pMonitor->m_scale);
-                                            pPressed          = pPressed.transform(wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
+                                            pPressed          = pPressed.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
                                             return std::array<float, 2>{pPressed.x / pMonitor->m_pixelSize.x, pPressed.y / pMonitor->m_pixelSize.y};
                                         }) |
             std::views::join | std::ranges::to<std::vector<float>>();
@@ -1810,7 +1810,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     CBox transformedBox = newBox;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -1894,7 +1894,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     m_renderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
+    const auto TRANSFORM = Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
@@ -1941,7 +1941,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     m_renderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
+    const auto TRANSFORM = Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
@@ -1992,7 +1992,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     setCapStatus(GL_STENCIL_TEST, false);
 
     // get transforms for the full monitor
-    const auto TRANSFORM  = wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform));
+    const auto TRANSFORM  = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
     CBox       MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
     Mat3x3     matrix     = m_renderData.monitorProjection.projectBox(MONITORBOX, TRANSFORM);
     Mat3x3     glMatrix   = m_renderData.projection.copy().multiply(matrix);
@@ -2007,7 +2007,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
     // prep damage
     CRegion damage{*originalDamage};
-    damage.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    damage.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                      m_renderData.pMonitor->m_transformedSize.y);
     damage.expand(std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, BLUR_PASSES));
 
@@ -2422,7 +2422,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     const auto LASTBR = m_renderData.primarySurfaceUVBottomRight;
 
     CBox       transformedBox = box;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
     CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
@@ -2508,7 +2508,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     float  round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     const auto BLEND = m_blend;
@@ -2529,7 +2529,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
 
     CBox transformedBox = newBox;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -2592,7 +2592,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     float  round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     const auto BLEND = m_blend;
@@ -2617,7 +2617,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     m_shaders->m_shBORDER1.setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
     CBox transformedBox = newBox;
-    transformedBox.transform(wlTransformToHyprutils(invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
@@ -2671,7 +2671,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     const auto  col = color;
 
     Mat3x3      matrix = m_renderData.monitorProjection.projectBox(
-        newBox, wlTransformToHyprutils(invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     blend(true);
@@ -2752,7 +2752,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     CBox         monbox = {0, 0, mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale};
 
     // transform box as it will be drawn on a transformed projection
-    monbox.transform(wlTransformToHyprutils(mirrored->m_transform), mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale);
+    monbox.transform(Math::wlTransformToHyprutils(mirrored->m_transform), mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale);
 
     monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
@@ -2768,8 +2768,8 @@ void CHyprOpenGLImpl::renderMirrored() {
     data.box               = monbox;
     data.replaceProjection = Mat3x3::identity()
                                  .translate(monitor->m_pixelSize / 2.0)
-                                 .transform(wlTransformToHyprutils(monitor->m_transform))
-                                 .transform(wlTransformToHyprutils(invertTransform(mirrored->m_transform)))
+                                 .transform(Math::wlTransformToHyprutils(monitor->m_transform))
+                                 .transform(Math::wlTransformToHyprutils(Math::invertTransform(mirrored->m_transform)))
                                  .translate(-monitor->m_transformedSize / 2.0);
 
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));

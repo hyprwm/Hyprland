@@ -268,8 +268,9 @@ class CHyprOpenGLImpl {
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    DRMFormat    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                     getDRMFormats();
+    std::vector<uint64_t>                       getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                 createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
     bool                                        initShaders();

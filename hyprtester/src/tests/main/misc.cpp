@@ -46,6 +46,7 @@ static void testAnrDialogs() {
 
         ::kill(kitty->pid(), SIGSTOP);
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         Tests::waitUntilWindowsN(2);
 
         {
@@ -64,7 +65,6 @@ static void testAnrDialogs() {
 
     NLog::log("{}anrdialog: named workspaces", Colors::YELLOW);
     {
-
         OK(getFromSocket("/dispatch workspace name:yummy"));
 
         auto kitty = Tests::spawnKitty("bad_kitty");
@@ -83,6 +83,7 @@ static void testAnrDialogs() {
 
         ::kill(kitty->pid(), SIGSTOP);
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         Tests::waitUntilWindowsN(2);
 
         {
@@ -101,7 +102,6 @@ static void testAnrDialogs() {
 
     NLog::log("{}anrdialog: special workspaces", Colors::YELLOW);
     {
-
         OK(getFromSocket("/dispatch workspace special:apple"));
 
         auto kitty = Tests::spawnKitty("bad_kitty");
@@ -121,7 +121,13 @@ static void testAnrDialogs() {
 
         ::kill(kitty->pid(), SIGSTOP);
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
         Tests::waitUntilWindowsN(2);
+
+        {
+            auto str = getFromSocket("/activeworkspace");
+            EXPECT_CONTAINS(str, "windows: 0");
+        }
 
         {
             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))

@@ -47,10 +47,10 @@ namespace Desktop::Rule {
             bool                     pseudo         = false;
             bool                     pin            = false;
             bool                     noInitialFocus = false;
+            bool                     center         = false;
 
             std::optional<int>       fullscreenStateClient;
             std::optional<int>       fullscreenStateInternal;
-            std::optional<int>       center;
             std::optional<int>       content;
             std::optional<int>       noCloseFor;
 

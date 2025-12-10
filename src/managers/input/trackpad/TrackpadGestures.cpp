@@ -1,6 +1,7 @@
 #include "TrackpadGestures.hpp"
 
 #include "../InputManager.hpp"
+#include "../../../protocols/ShortcutsInhibit.hpp"
 
 #include <ranges>
 
@@ -114,6 +115,8 @@ void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
+    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+
     if (m_gestureFindFailed)
         return;
 
@@ -146,6 +149,9 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
                 continue;
 
             if (g->modMask != MODS)
+                continue;
+
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT)
                 continue;
 
             m_activeGesture     = g;
@@ -184,6 +190,8 @@ void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
+    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+
     if (m_gestureFindFailed)
         return;
 
@@ -209,6 +217,9 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
                 continue;
 
             if (g->modMask != MODS)
+                continue;
+
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT)
                 continue;
 
             m_activeGesture     = g;

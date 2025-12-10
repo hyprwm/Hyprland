@@ -97,6 +97,7 @@ class CScreenshareSession {
         CHyprSignalListener monitorModeChanged;
         CHyprSignalListener windowDestroyed;
         CHyprSignalListener windowSizeChanged;
+        CHyprSignalListener windowMonitorChanged;
     } m_listeners;
 
     void calculateConstraints();

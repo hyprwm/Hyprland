@@ -8,11 +8,22 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client, 
 }
 
 CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client, bool managed) : m_managed(managed), m_type(SHARE_WINDOW), m_window(window), m_client(client) {
-    m_listeners.windowDestroyed   = m_window->m_events.unmap.listen([this]() { stop(); });
-    m_listeners.windowSizeChanged = m_window->m_events.resize.listen([this]() {
+    m_listeners.windowDestroyed      = m_window->m_events.unmap.listen([this]() { stop(); });
+    m_listeners.windowSizeChanged    = m_window->m_events.resize.listen([this]() {
         calculateConstraints();
         m_events.constraintsChanged.emit();
     });
+    m_listeners.windowMonitorChanged = m_window->m_events.monitorChanged.listen([this]() {
+        m_listeners.monitorDestroyed   = monitor()->m_events.disconnect.listen([this]() { stop(); });
+        m_listeners.monitorModeChanged = monitor()->m_events.modeChanged.listen([this]() {
+            calculateConstraints();
+            m_events.constraintsChanged.emit();
+        });
+
+        calculateConstraints();
+        m_events.constraintsChanged.emit();
+    });
+
     init();
 }
 

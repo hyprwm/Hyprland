@@ -635,6 +635,13 @@ void CWindow::onMap() {
             m_events.resize.emit();
     });
 
+    m_realPosition->setUpdateCallback([this](auto) {
+        if (m_isMapped && m_monitor != m_prevMonitor) {
+            m_prevMonitor = m_monitor;
+            m_events.monitorChanged.emit();
+        }
+    });
+
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
     m_reportedSize = m_pendingReportedSize;

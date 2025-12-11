@@ -1,7 +1,5 @@
 #include <GLES3/gl32.h>
 #include <hyprgraphics/color/Color.hpp>
-#include <hyprutils/math/Box.hpp>
-#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <numbers>

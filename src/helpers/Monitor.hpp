@@ -11,7 +11,7 @@
 #include "CMType.hpp"
 
 #include <xf86drmMode.h>
-#include "Zoom.hpp"
+#include "MonitorZoomController.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include <optional>

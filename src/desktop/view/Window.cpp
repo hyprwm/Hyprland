@@ -154,7 +154,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return m_isMapped && !m_hidden && m_wlSurface && m_wlSurface->resource();
+    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && m_alpha->value() != 0.F));
 }
 
 std::optional<CBox> CWindow::logicalBox() const {

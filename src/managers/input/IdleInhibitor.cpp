@@ -40,10 +40,10 @@ void CInputManager::recheckIdleInhibitorStatus() {
 
         auto WLSurface = Desktop::View::CWLSurface::fromResource(ii->inhibitor->m_surface.lock());
 
-        if (!WLSurface)
+        if (!WLSurface || !WLSurface->view())
             continue;
 
-        if (WLSurface->visible()) {
+        if (WLSurface->view()->aliveAndVisible()) {
             PROTO::idle->setInhibit(true);
             return;
         }
@@ -85,10 +85,10 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
 
                 auto WLSurface = Desktop::View::CWLSurface::fromResource(surf);
 
-                if (!WLSurface)
+                if (!WLSurface || !WLSurface->view())
                     return;
 
-                if (WLSurface->visible())
+                if (WLSurface->view()->aliveAndVisible())
                     *sc<bool*>(data) = true;
             },
             &isInhibiting);

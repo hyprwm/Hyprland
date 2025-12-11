@@ -38,7 +38,6 @@ namespace Desktop::View {
         Vector2D               correctSmallVecBuf() const; // returns a corrective vector for small() surfaces, in BL coords
         Vector2D               getViewporterCorrectedSize() const;
         CRegion                computeDamage() const; // logical coordinates. May be wrong if the surface is unassigned
-        bool                   visible();
         bool                   keyboardFocusable() const;
 
         SP<IView>              view() const;

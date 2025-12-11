@@ -93,13 +93,13 @@ namespace Desktop::View {
     inline bool validMapped(PHLLS l) {
         if (!valid(l))
             return false;
-        return l->visible();
+        return l->aliveAndVisible();
     }
 
     inline bool validMapped(PHLLSREF l) {
         if (!valid(l))
             return false;
-        return l->visible();
+        return l->aliveAndVisible();
     }
 
 }

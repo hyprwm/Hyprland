@@ -18,6 +18,7 @@ namespace Desktop::View {
 
         virtual SP<Desktop::View::CWLSurface> wlSurface() const;
         virtual SP<CWLSurfaceResource>        resource() const;
+        virtual bool                          aliveAndVisible() const;
         virtual eViewType                     type() const              = 0;
         virtual bool                          visible() const           = 0;
         virtual bool                          desktopComponent() const  = 0;

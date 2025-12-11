@@ -11,7 +11,7 @@
   cairo,
   epoll-shim,
   git,
-  glaze,
+  glaze-hyprland,
   gtest,
   hyprcursor,
   hyprgraphics,
@@ -143,7 +143,7 @@ in
           aquamarine
           cairo
           git
-          glaze
+          glaze-hyprland
           gtest
           hyprcursor
           hyprgraphics

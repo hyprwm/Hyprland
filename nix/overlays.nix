@@ -30,6 +30,7 @@ in {
     inputs.hyprwayland-scanner.overlays.default
     inputs.hyprwire.overlays.default
     self.overlays.udis86
+    self.overlays.glaze
 
     # Hyprland packages themselves
     (final: _prev: let
@@ -109,5 +110,14 @@ in {
 
       patches = [];
     });
+  };
+
+  # Even though glaze itself disables it by default, nixpkgs sets ENABLE_SSL set to true.
+  # Since we don't include openssl, the build failes without the `enableSSL = false;` override
+  glaze = final: prev: {
+    glaze-hyprland = prev.glaze.override {
+      enableSSL = false;
+      enableInterop = false;
+    };
   };
 }

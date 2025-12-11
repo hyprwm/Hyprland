@@ -111,8 +111,10 @@ class CWLDataDeviceResource : public IDataDevice {
     WP<CWLDataDeviceResource>         m_self;
 
   private:
-    SP<CWlDataDevice> m_resource;
-    wl_client*        m_client = nullptr;
+    SP<CWlDataDevice>      m_resource;
+    wl_client*             m_client = nullptr;
+
+    WP<CWLSurfaceResource> m_entered;
 
     friend class CWLDataDeviceProtocol;
 };

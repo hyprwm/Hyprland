@@ -1487,7 +1487,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     }
 
     const auto PLASTWINDOW = Desktop::focusState()->window();
-    if (!PLASTWINDOW || !PLASTWINDOW->visible()) {
+    if (!PLASTWINDOW || !PLASTWINDOW->aliveAndVisible()) {
         if (*PMONITORFALLBACK)
             tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(arg));
 

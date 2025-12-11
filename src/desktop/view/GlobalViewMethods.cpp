@@ -18,7 +18,7 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
     std::vector<SP<IView>> views;
 
     for (const auto& w : g_pCompositor->m_windows) {
-        if (!w->visible() || w->m_workspace != ws)
+        if (!w->aliveAndVisible() || w->m_workspace != ws)
             continue;
 
         views.emplace_back(w);
@@ -38,7 +38,7 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
             w->m_popupHead->breadthfirst(
                 [&views](SP<CPopup> s, void* data) {
                     auto surf = s->wlSurface();
-                    if (!surf || !s->visible())
+                    if (!surf || !s->aliveAndVisible())
                         return;
 
                     views.emplace_back(surf->view());
@@ -48,7 +48,7 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
     }
 
     for (const auto& l : g_pCompositor->m_layers) {
-        if (!l->visible() || l->m_monitor != ws->m_monitor)
+        if (!l->aliveAndVisible() || l->m_monitor != ws->m_monitor)
             continue;
 
         views.emplace_back(l);
@@ -56,7 +56,7 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
         l->m_popupHead->breadthfirst(
             [&views](SP<CPopup> p, void* data) {
                 auto surf = p->wlSurface();
-                if (!surf || !p->visible())
+                if (!surf || !p->aliveAndVisible())
                     return;
 
                 views.emplace_back(surf->view());
@@ -65,7 +65,7 @@ std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
     }
 
     for (const auto& v : g_pCompositor->m_otherViews) {
-        if (!v->visible() || !v->desktopComponent())
+        if (!v->aliveAndVisible() || !v->desktopComponent())
             continue;
 
         if (v->type() == VIEW_TYPE_LOCK_SCREEN) {

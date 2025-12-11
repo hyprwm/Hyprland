@@ -38,7 +38,7 @@ SP<CWLSurfaceResource> CWLSurface::resource() const {
 }
 
 bool CWLSurface::small() const {
-    if (!m_view || !m_view->visible() || m_view->type() != VIEW_TYPE_WINDOW || !exists())
+    if (!m_view || !m_view->aliveAndVisible() || m_view->type() != VIEW_TYPE_WINDOW || !exists())
         return false;
 
     if (!m_resource->m_current.texture)
@@ -51,7 +51,7 @@ bool CWLSurface::small() const {
 }
 
 Vector2D CWLSurface::correctSmallVec() const {
-    if (!m_view || !m_view->visible() || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || !m_fillIgnoreSmall)
+    if (!m_view || !m_view->aliveAndVisible() || m_view->type() != VIEW_TYPE_WINDOW || !exists() || !small() || !m_fillIgnoreSmall)
         return {};
 
     const auto SIZE = getViewporterCorrectedSize();
@@ -169,12 +169,6 @@ void CWLSurface::appendConstraint(WP<CPointerConstraint> constraint) {
 
 SP<CPointerConstraint> CWLSurface::constraint() const {
     return m_constraint.lock();
-}
-
-bool CWLSurface::visible() {
-    if (m_view)
-        return m_view->visible();
-    return true; // non-desktop, we don't know much.
 }
 
 SP<Desktop::View::CWLSurface> CWLSurface::fromResource(SP<CWLSurfaceResource> pSurface) {

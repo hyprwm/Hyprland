@@ -1197,14 +1197,19 @@ int CWindow::surfacesCount() {
     return no;
 }
 
-void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
+bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
     const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
-    const Vector2D DELTA    = REALSIZE - NEWSIZE;
+    const bool     changed  = !(NEWSIZE == REALSIZE);
 
-    *m_realPosition = m_realPosition->goal() + DELTA / 2.0;
-    *m_realSize     = NEWSIZE;
+    if (changed) {
+        const Vector2D DELTA = REALSIZE - NEWSIZE;
+        *m_realPosition      = m_realPosition->goal() + DELTA / 2.0;
+        *m_realSize          = NEWSIZE;
+    }
+
+    return changed;
 }
 
 bool CWindow::isFullscreen() {
@@ -2554,8 +2559,8 @@ void CWindow::commitWindow() {
         const auto MINSIZE = m_xdgSurface->m_toplevel->layoutMinSize();
         const auto MAXSIZE = m_xdgSurface->m_toplevel->layoutMaxSize();
 
-        clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
-        g_pHyprRenderer->damageWindow(m_self.lock());
+        if (clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt))
+            g_pHyprRenderer->damageWindow(m_self.lock());
     }
 
     if (!m_workspace->m_visible)

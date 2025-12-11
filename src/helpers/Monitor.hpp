@@ -11,6 +11,7 @@
 #include "CMType.hpp"
 
 #include <xf86drmMode.h>
+#include "Zoom.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include <optional>
@@ -129,9 +130,7 @@ class CMonitor {
     uint32_t                    m_drmFormat     = DRM_FORMAT_INVALID;
     uint32_t                    m_prevDrmFormat = DRM_FORMAT_INVALID;
 
-    float                       m_previousZoomSeen     = 1.f;
-    bool                        m_isStartOfZoomSession = true;
-    CBox                        m_camerabox;
+    CMonitorZoomController      m_zoomController;
 
     bool                        m_dpmsStatus       = true;
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

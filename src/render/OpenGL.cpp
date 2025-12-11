@@ -850,76 +850,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     pushMonitorTransformEnabled(false);
 }
 
-void zoomWithDetachedCameraInstead(CBox* outputBox, const SCurrentRenderData& m_renderData) {
-    auto m = m_renderData.pMonitor;
-    if (m->m_zoomAnimProgress->value() != 1.0)
-        return;
-    auto monbox  = CBox(0, 0, m->m_size.x, m->m_size.y);
-    auto zoom    = m_renderData.mouseZoomFactor;
-    auto cameraW = monbox.w / zoom;
-    auto cameraH = monbox.h / zoom;
-    auto mouse   = g_pInputManager->getMouseCoordsInternal();
-
-    mouse.x -= m->m_position.x;
-    mouse.y -= m->m_position.y;
-
-    // Tracks if zoom step would have caused us to discontinuously snap in order to keep mouse in view
-    static bool zoomAloneBrokeUs = false;
-
-    if (m->m_previousZoomSeen != zoom) {
-        if (m->m_isStartOfZoomSession) {
-            m->m_isStartOfZoomSession = false;
-            m->m_camerabox            = CBox(0, 0, m->m_size.x, m->m_size.y);
-            m->m_previousZoomSeen     = 1.0f;
-        }
-        const CBox old = m->m_camerabox;
-
-        // mouse normalized inside screen (0..1)
-        const float mx = mouse.x / m->m_size.x;
-        const float my = mouse.y / m->m_size.y;
-        // world-space point under the cursor before zoom
-        const float mouseWorldX = old.x + mx * old.w;
-        const float mouseWorldY = old.y + my * old.h;
-        // compute new top-left so the same world point stays under the cursor
-        const float newX = mouseWorldX - mx * cameraW;
-        const float newY = mouseWorldY - my * cameraH;
-
-        m->m_camerabox = CBox(newX, newY, cameraW, cameraH);
-        if (!m->m_camerabox.copy().scaleFromCenter(.9).containsPoint(mouse))
-            zoomAloneBrokeUs = true;
-        m->m_previousZoomSeen = zoom;
-    }
-
-    // Keep mouse in cameraview
-    auto smallerbox = m->m_camerabox;
-    // Prevent zoom step from causing us to jerk to keep mouse in padded camera view,
-    // but let us switch to the padded camera once the mouse moves into the safe area
-    if (zoomAloneBrokeUs)
-        if (smallerbox.copy().scaleFromCenter(.9).containsPoint(mouse))
-            zoomAloneBrokeUs = false;
-    if (!zoomAloneBrokeUs)
-        smallerbox.scaleFromCenter(.9);
-    if (!smallerbox.containsPoint(mouse)) {
-        if (mouse.x < smallerbox.x)
-            m->m_camerabox.x -= smallerbox.x - mouse.x;
-        if (mouse.y < smallerbox.y)
-            m->m_camerabox.y -= smallerbox.y - mouse.y;
-        if (mouse.y > smallerbox.y + smallerbox.h)
-            m->m_camerabox.y += mouse.y - (smallerbox.y + smallerbox.h);
-        if (mouse.x > smallerbox.x + smallerbox.w)
-            m->m_camerabox.x += mouse.x - (smallerbox.x + smallerbox.w);
-    }
-
-    auto z = zoom * m->m_scale;
-    monbox.scale(z).translate(-m->m_camerabox.pos() * z);
-
-    *outputBox = monbox;
-}
-
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMRIGID          = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
-    static auto PZOOMDISABLEAA      = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
-    static auto PZOOMDETACHEDCAMERA = CConfigValue<Hyprlang::INT>("cursor:zoom_detached_camera");
+    static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
 
     TRACY_GPU_ZONE("RenderEnd");
 
@@ -930,26 +862,9 @@ void CHyprOpenGLImpl::end() {
 
         CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-        if (m_renderData.mouseZoomFactor != 1.f) {
-            const auto ZOOMCENTER = m_renderData.mouseZoomUseMouse ?
-                (g_pInputManager->getMouseCoordsInternal() - m_renderData.pMonitor->m_position) * m_renderData.pMonitor->m_scale :
-                m_renderData.pMonitor->m_transformedSize / 2.f;
-
-            monbox.translate(-ZOOMCENTER).scale(m_renderData.mouseZoomFactor).translate(*PZOOMRIGID ? m_renderData.pMonitor->m_transformedSize / 2.0 : ZOOMCENTER);
-
-            if (*PZOOMDETACHEDCAMERA)
-                zoomWithDetachedCameraInstead(&monbox, m_renderData);
-
-            monbox.x = std::min(monbox.x, 0.0);
-            monbox.y = std::min(monbox.y, 0.0);
-            if (monbox.x + monbox.width < m_renderData.pMonitor->m_transformedSize.x)
-                monbox.x = m_renderData.pMonitor->m_transformedSize.x - monbox.width;
-            if (monbox.y + monbox.height < m_renderData.pMonitor->m_transformedSize.y)
-                monbox.y = m_renderData.pMonitor->m_transformedSize.y - monbox.height;
-        } else {
-            if (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL)
-                m_renderData.pMonitor->m_isStartOfZoomSession = true;
-        }
+        if (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && m_renderData.mouseZoomFactor == 1.0f)
+            m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
+        m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
         m_applyFinalShader = !m_renderData.blockScreenShader;
         if (m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)

@@ -8,27 +8,29 @@
 #include "render/Renderer.hpp"
 
 void zoomWithDetachedCamera(CBox& result, CMonitorZoomController* zc, const SCurrentRenderData& m_renderData) {
-    const auto M       = m_renderData.pMonitor;
-    auto       monbox  = CBox(0, 0, M->m_size.x, M->m_size.y);
-    const auto ZOOM    = m_renderData.mouseZoomFactor;
-    const auto CAMERAW = monbox.w / ZOOM;
-    const auto CAMERAH = monbox.h / ZOOM;
-    const auto MOUSE   = g_pInputManager->getMouseCoordsInternal() - M->m_position;
+    const auto m      = m_renderData.pMonitor;
+    auto       monbox = CBox(0, 0, m->m_size.x, m->m_size.y);
+    const auto ZOOM   = m_renderData.mouseZoomFactor;
+    const auto MOUSE  = g_pInputManager->getMouseCoordsInternal() - m->m_position;
 
     if (zc->m_lastZoomLevel != ZOOM) {
         if (zc->m_resetCameraState) {
             zc->m_resetCameraState = false;
-            zc->m_camera           = CBox(0, 0, M->m_size.x, M->m_size.y);
+            zc->m_camera           = CBox(0, 0, m->m_size.x, m->m_size.y);
             zc->m_lastZoomLevel    = 1.0f;
         }
         const CBox old = zc->m_camera;
 
         // mouse normalized inside screen (0..1)
-        const float mx = MOUSE.x / M->m_size.x;
-        const float my = MOUSE.y / M->m_size.y;
+        const float mx = MOUSE.x / m->m_size.x;
+        const float my = MOUSE.y / m->m_size.y;
         // world-space point under the cursor before zoom
         const float mouseWorldX = old.x + (mx * old.w);
         const float mouseWorldY = old.y + (my * old.h);
+
+        const auto  CAMERAW = monbox.w / ZOOM;
+        const auto  CAMERAH = monbox.h / ZOOM;
+
         // compute new top-left so the same world point stays under the cursor
         const float newX = mouseWorldX - (mx * CAMERAW);
         const float newY = mouseWorldY - (my * CAMERAH);
@@ -60,7 +62,7 @@ void zoomWithDetachedCamera(CBox& result, CMonitorZoomController* zc, const SCur
             zc->m_camera.x += MOUSE.x - (smallerbox.x + smallerbox.w);
     }
 
-    auto z = ZOOM * M->m_scale;
+    auto z = ZOOM * m->m_scale;
     monbox.scale(z).translate(-zc->m_camera.pos() * z);
 
     result = monbox;
@@ -70,19 +72,19 @@ void CMonitorZoomController::applyZoomTransform(CBox& monbox, const SCurrentRend
     static auto PZOOMRIGID          = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
     static auto PZOOMDETACHEDCAMERA = CConfigValue<Hyprlang::INT>("cursor:zoom_detached_camera");
 
-    const auto  ORIGINAL = monbox;
-    const auto  MONITOR  = m_renderData.pMonitor;
-    const auto  INITANIM = MONITOR->m_zoomAnimProgress->value() != 1.0;
-    const auto  ZOOM     = m_renderData.mouseZoomFactor;
+    const auto  ZOOM = m_renderData.mouseZoomFactor;
 
     if (ZOOM != 1.0f) {
+        const auto m        = m_renderData.pMonitor;
+        const auto ORIGINAL = monbox;
+        const auto INITANIM = m->m_zoomAnimProgress->value() != 1.0;
+
         if (*PZOOMDETACHEDCAMERA && !INITANIM) {
             zoomWithDetachedCamera(monbox, this, m_renderData);
         } else {
-            const auto ZOOMCENTER =
-                m_renderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - MONITOR->m_position) * MONITOR->m_scale : MONITOR->m_transformedSize / 2.f;
+            const auto ZOOMCENTER = m_renderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m->m_position) * m->m_scale : m->m_transformedSize / 2.f;
 
-            monbox.translate(-ZOOMCENTER).scale(ZOOM).translate(*PZOOMRIGID ? MONITOR->m_transformedSize / 2.0 : ZOOMCENTER);
+            monbox.translate(-ZOOMCENTER).scale(ZOOM).translate(*PZOOMRIGID ? m->m_transformedSize / 2.0 : ZOOMCENTER);
         }
 
         monbox.x = std::min(monbox.x, 0.0);

@@ -7,8 +7,8 @@
 #include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
-#include "desktop/DesktopTypes.hpp"
-#include "desktop/Window.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/Window.hpp"
 #include "protocols/core/Output.hpp"
 #include <cstddef>
 #include <cstring>

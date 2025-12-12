@@ -58,6 +58,13 @@ namespace NSplashes {
         "Thanks ThatOneCalculator!",
         "The AUR packages always work, except for the times they don't.",
         "Funny animation compositor woo",
+        "Any computer is a laptop if you're brave enough!",
+        "So, you read a splash text.",
+        "Have you finished your homework?",
+        "Also try Sway",
+        "Now I am become Hyprland, the destroyer of desktops",
+        "Go to Settings to activate Hyprland.",
+        "Use alt+f4 for a 200% fps boost!",
         "3 years!",
         "Beauty will save the world", // 4th ricing comp winner - zacoons' choice
         // music reference / quote section

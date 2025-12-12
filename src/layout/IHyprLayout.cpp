@@ -985,7 +985,7 @@ Vector2D IHyprLayout::predictSizeForNewWindowFloating(PHLWINDOW pWindow) { // ge
 }
 
 Vector2D IHyprLayout::predictSizeForNewWindow(PHLWINDOW pWindow) {
-    bool     shouldBeFloated = g_pXWaylandManager->shouldBeFloated(pWindow, true) || pWindow->m_ruleApplicator->static_.floating.value_or(false);
+    bool     shouldBeFloated = g_pXWaylandManager->shouldBeFloated(pWindow, true) || pWindow->m_ruleApplicator->static_.floating;
 
     Vector2D sizePredicted = {};
 

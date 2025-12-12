@@ -26,6 +26,7 @@ class CAsyncDialogBox {
     SP<CPromise<std::string>> open();
     void                      kill();
     bool                      isRunning() const;
+    pid_t                     getPID() const;
 
     SP<CAsyncDialogBox>       lockSelf();
 

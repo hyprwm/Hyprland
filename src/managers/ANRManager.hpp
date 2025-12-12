@@ -44,7 +44,7 @@ class CANRManager {
         void                 killDialog();
         bool                 isDefunct() const;
         bool                 fitsWindow(PHLWINDOW pWindow) const;
-        pid_t                getPid() const;
+        pid_t                getPID() const;
         void                 ping();
     };
 

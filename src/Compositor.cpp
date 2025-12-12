@@ -894,7 +894,10 @@ bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
 }
 
 PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
-    const auto  PMONITOR             = getMonitorFromVector(pos);
+    const auto PMONITOR = getMonitorFromVector(pos);
+    if (!PMONITOR)
+        return nullptr;
+
     static auto PRESIZEONBORDER      = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
     static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");

@@ -646,16 +646,22 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     bool            found = false;
     SDispatchResult res;
 
-    if (pressed) {
-        if (keycodeToModifier(key.keycode))
-            m_mkMods.insert(key.keysym);
-        else
-            m_mkKeys.insert(key.keysym);
-    } else {
-        if (keycodeToModifier(key.keycode))
-            m_mkMods.erase(key.keysym);
-        else
-            m_mkKeys.erase(key.keysym);
+    // Skip keysym tracking for events with no keysym (e.g., scroll wheel events).
+    // Scroll events have keysym=0 and are always "pressed" (never released),
+    // so without this check, 0 gets inserted into m_mkKeys and never removed,
+    // breaking multi-key binds (binds flag 's'). See issue #8699.
+    if (key.keysym != 0) {
+        if (pressed) {
+            if (keycodeToModifier(key.keycode))
+                m_mkMods.insert(key.keysym);
+            else
+                m_mkKeys.insert(key.keysym);
+        } else {
+            if (keycodeToModifier(key.keycode))
+                m_mkMods.erase(key.keysym);
+            else
+                m_mkKeys.erase(key.keysym);
+        }
     }
 
     for (auto& k : m_keybinds) {

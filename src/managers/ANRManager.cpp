@@ -1,4 +1,5 @@
 #include "ANRManager.hpp"
+
 #include "../helpers/fs/FsUtils.hpp"
 #include "../debug/Log.hpp"
 #include "../macros.hpp"
@@ -29,6 +30,10 @@ CANRManager::CANRManager() {
         auto window = std::any_cast<PHLWINDOW>(data);
 
         for (const auto& d : m_data) {
+            // Window is ANR dialog
+            if (d->isRunning() && d->dialogBox->getPID() == window->getPID())
+                return;
+
             if (d->fitsWindow(window))
                 return;
         }
@@ -84,7 +89,7 @@ void CANRManager::onTick() {
 
         if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isRunning() && !data->dialogSaidWait) {
-                data->runDialog(firstWindow->m_title, firstWindow->m_class, data->getPid());
+                data->runDialog(firstWindow->m_title, firstWindow->m_class, data->getPID());
 
                 for (const auto& w : g_pCompositor->m_windows) {
                     if (!w->m_isMapped)
@@ -240,7 +245,7 @@ bool CANRManager::SANRData::isDefunct() const {
     return xdgBase.expired() && xwaylandSurface.expired();
 }
 
-pid_t CANRManager::SANRData::getPid() const {
+pid_t CANRManager::SANRData::getPID() const {
     if (xdgBase) {
         pid_t pid = 0;
         wl_client_get_credentials(xdgBase->client(), &pid, nullptr, nullptr);

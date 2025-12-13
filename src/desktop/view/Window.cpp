@@ -2050,14 +2050,10 @@ void CWindow::mapWindow() {
             requestedFSMonitor = MONITOR_INVALID;
         }
 
-        if (m_ruleApplicator->static_.floating.has_value())
-            m_isFloating = m_ruleApplicator->static_.floating.value();
-
-        if (m_ruleApplicator->static_.pseudo)
-            m_isPseudotiled = true;
-
-        if (m_ruleApplicator->static_.noInitialFocus)
-            m_noInitialFocus = true;
+        m_isFloating = m_ruleApplicator->static_.floating;
+        m_isPseudotiled = m_ruleApplicator->static_.pseudo;
+        m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus;
+        m_pinned = m_ruleApplicator->static_.pin;
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
@@ -2082,9 +2078,6 @@ void CWindow::mapWindow() {
                     Debug::log(ERR, "Error while parsing suppressevent windowrule: unknown event type {}", var);
             }
         }
-
-        if (m_ruleApplicator->static_.pin)
-            m_pinned = true;
 
         if (m_ruleApplicator->static_.fullscreen)
             requestedInternalFSMode = FSMODE_FULLSCREEN;

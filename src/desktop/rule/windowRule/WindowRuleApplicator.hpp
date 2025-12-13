@@ -40,8 +40,7 @@ namespace Desktop::Rule {
         struct {
             std::string              monitor, workspace, group;
 
-            std::optional<bool>      floating;
-
+            bool                     floating       = false;
             bool                     fullscreen     = false;
             bool                     maximize       = false;
             bool                     pseudo         = false;

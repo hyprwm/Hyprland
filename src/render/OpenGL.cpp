@@ -849,7 +849,6 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 }
 
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMRIGID     = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
     static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
 
     TRACY_GPU_ZONE("RenderEnd");
@@ -861,20 +860,9 @@ void CHyprOpenGLImpl::end() {
 
         CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-        if (m_renderData.mouseZoomFactor != 1.f) {
-            const auto ZOOMCENTER = m_renderData.mouseZoomUseMouse ?
-                (g_pInputManager->getMouseCoordsInternal() - m_renderData.pMonitor->m_position) * m_renderData.pMonitor->m_scale :
-                m_renderData.pMonitor->m_transformedSize / 2.f;
-
-            monbox.translate(-ZOOMCENTER).scale(m_renderData.mouseZoomFactor).translate(*PZOOMRIGID ? m_renderData.pMonitor->m_transformedSize / 2.0 : ZOOMCENTER);
-
-            monbox.x = std::min(monbox.x, 0.0);
-            monbox.y = std::min(monbox.y, 0.0);
-            if (monbox.x + monbox.width < m_renderData.pMonitor->m_transformedSize.x)
-                monbox.x = m_renderData.pMonitor->m_transformedSize.x - monbox.width;
-            if (monbox.y + monbox.height < m_renderData.pMonitor->m_transformedSize.y)
-                monbox.y = m_renderData.pMonitor->m_transformedSize.y - monbox.height;
-        }
+        if (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && m_renderData.mouseZoomFactor == 1.0f)
+            m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
+        m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
         m_applyFinalShader = !m_renderData.blockScreenShader;
         if (m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)

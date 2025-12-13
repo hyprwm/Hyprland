@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <iostream>
 #include <filesystem>
+#include <string>
 #include <print>
 #include <fstream>
 #include <algorithm>
@@ -136,7 +137,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         return false;
     }
 
-    if (DataState::pluginRepoExists(url)) {
+    if (DataState::pluginRepoExists(SPluginRepoIdentifier::fromUrl(url))) {
         std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Repository already installed."));
         return false;
     }
@@ -333,10 +334,13 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     std::string       repohash = execAndGet("cd " + m_szWorkingPluginDirectory + " && git rev-parse HEAD");
     if (repohash.length() > 0)
         repohash.pop_back();
-    repo.name = pManifest->m_repository.name.empty() ? url.substr(url.find_last_of('/') + 1) : pManifest->m_repository.name;
-    repo.url  = url;
-    repo.rev  = rev;
-    repo.hash = repohash;
+    auto lastSlash       = url.find_last_of('/');
+    auto secondLastSlash = url.find_last_of('/', lastSlash - 1);
+    repo.name            = pManifest->m_repository.name.empty() ? url.substr(lastSlash + 1) : pManifest->m_repository.name;
+    repo.author          = url.substr(secondLastSlash + 1, lastSlash - secondLastSlash - 1);
+    repo.url             = url;
+    repo.rev             = rev;
+    repo.hash            = repohash;
     for (auto const& p : pManifest->m_plugins) {
         repo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, false, p.failed});
     }
@@ -356,13 +360,13 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
     return true;
 }
 
-bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
-    if (!DataState::pluginRepoExists(urlOrName)) {
+bool CPluginManager::removePluginRepo(const SPluginRepoIdentifier identifier) {
+    if (!DataState::pluginRepoExists(identifier)) {
         std::println(stderr, "\n{}", failureString("Could not remove the repository. Repository is not installed."));
         return false;
     }
 
-    std::cout << Colors::YELLOW << "!" << Colors::RESET << Colors::RED << " removing a plugin repository: " << Colors::RESET << urlOrName << "\n  "
+    std::cout << Colors::YELLOW << "!" << Colors::RESET << Colors::RED << " removing a plugin repository: " << Colors::RESET << identifier.toString() << "\n  "
               << "Are you sure? [Y/n] ";
     std::fflush(stdout);
     std::string input;
@@ -373,7 +377,7 @@ bool CPluginManager::removePluginRepo(const std::string& urlOrName) {
         return false;
     }
 
-    DataState::removePluginRepo(urlOrName);
+    DataState::removePluginRepo(identifier);
 
     return true;
 }
@@ -444,7 +448,6 @@ eHeadersErrors CPluginManager::headersValid() {
 }
 
 bool CPluginManager::updateHeaders(bool force) {
-
     DataState::ensureStateStoreExists();
 
     const auto HLVER = getHyprlandVersion(false);
@@ -772,7 +775,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
             newrepo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }
-        DataState::removePluginRepo(newrepo.name);
+        DataState::removePluginRepo(SPluginRepoIdentifier::fromName(newrepo.name));
         DataState::addNewPluginRepo(newrepo);
 
         std::filesystem::remove_all(m_szWorkingPluginDirectory);
@@ -797,17 +800,23 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     return true;
 }
 
-bool CPluginManager::enablePlugin(const std::string& name) {
-    bool ret = DataState::setPluginEnabled(name, true);
+bool CPluginManager::enablePlugin(const SPluginRepoIdentifier identifier) {
+    bool ret = false;
+
+    switch (identifier.type) {
+        case IDENTIFIER_NAME:
+        case IDENTIFIER_AUTHOR_NAME: ret = DataState::setPluginEnabled(identifier, true); break;
+        default: return false;
+    }
     if (ret)
-        std::println("{}", successString("Enabled {}", name));
+        std::println("{}", successString("Enabled {}", identifier.name));
     return ret;
 }
 
-bool CPluginManager::disablePlugin(const std::string& name) {
-    bool ret = DataState::setPluginEnabled(name, false);
+bool CPluginManager::disablePlugin(const SPluginRepoIdentifier identifier) {
+    bool ret = DataState::setPluginEnabled(identifier, false);
     if (ret)
-        std::println("{}", successString("Disabled {}", name));
+        std::println("{}", successString("Disabled {}", identifier.name));
     return ret;
 }
 
@@ -928,7 +937,7 @@ void CPluginManager::listAllPlugins() {
     const auto REPOS = DataState::getAllRepositories();
 
     for (auto const& r : REPOS) {
-        std::println("{}", infoString("Repository {}:", r.name));
+        std::println("{}", infoString("Repository {} (by {}):", r.name, r.author));
 
         for (auto const& p : r.plugins) {
             std::println("  │ Plugin {}", p.name);

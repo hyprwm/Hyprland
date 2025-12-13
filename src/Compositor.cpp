@@ -1637,12 +1637,12 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
     const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
 
     auto       box = PMONITOR->logicalBox();
-    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.w + 2, box.h + 2))
+    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.x + box.w + 1, box.y + box.h + 1))
         return false;
 
     PMONITOR->m_reservedArea.applyip(box);
 
-    return VECNOTINRECT(point, box.x, box.y, box.x, box.y);
+    return VECNOTINRECT(point, box.x, box.y, box.x + box.w, box.y + box.h);
 }
 
 CBox CCompositor::calculateX11WorkArea() {

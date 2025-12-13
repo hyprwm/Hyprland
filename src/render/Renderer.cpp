@@ -121,12 +121,14 @@ CHyprRenderer::CHyprRenderer() {
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("mouseMove", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (!m_cursorHiddenConditions.hiddenOnKeyboard && m_cursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_lastInputTouch && !m_cursorHiddenConditions.hiddenOnTimeout)
+        if (!m_cursorHiddenConditions.hiddenOnKeyboard && m_cursorHiddenConditions.hiddenOnTouch == g_pInputManager->m_lastInputTouch &&
+            m_cursorHiddenConditions.hiddenOnTablet == g_pInputManager->m_lastInputTablet && !m_cursorHiddenConditions.hiddenOnTimeout)
             return;
 
         m_cursorHiddenConditions.hiddenOnKeyboard = false;
         m_cursorHiddenConditions.hiddenOnTimeout  = false;
         m_cursorHiddenConditions.hiddenOnTouch    = g_pInputManager->m_lastInputTouch;
+        m_cursorHiddenConditions.hiddenOnTablet   = g_pInputManager->m_lastInputTablet;
         ensureCursorRenderingMode();
     });
 
@@ -2111,19 +2113,23 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     static auto PINVISIBLE     = CConfigValue<Hyprlang::INT>("cursor:invisible");
     static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
+    static auto PHIDEONTABLET  = CConfigValue<Hyprlang::INT>("cursor:hide_on_tablet");
     static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
 
     if (*PCURSORTIMEOUT <= 0)
         m_cursorHiddenConditions.hiddenOnTimeout = false;
     if (*PHIDEONTOUCH == 0)
         m_cursorHiddenConditions.hiddenOnTouch = false;
+    if (*PHIDEONTABLET == 0)
+        m_cursorHiddenConditions.hiddenOnTablet = false;
     if (*PHIDEONKEY == 0)
         m_cursorHiddenConditions.hiddenOnKeyboard = false;
 
     if (*PCURSORTIMEOUT > 0)
         m_cursorHiddenConditions.hiddenOnTimeout = *PCURSORTIMEOUT < g_pInputManager->m_lastCursorMovement.getSeconds();
 
-    m_cursorHiddenByCondition = m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnKeyboard;
+    m_cursorHiddenByCondition =
+        m_cursorHiddenConditions.hiddenOnTimeout || m_cursorHiddenConditions.hiddenOnTouch || m_cursorHiddenConditions.hiddenOnTablet || m_cursorHiddenConditions.hiddenOnKeyboard;
 
     const bool HIDE = m_cursorHiddenByCondition || (*PINVISIBLE != 0);
 

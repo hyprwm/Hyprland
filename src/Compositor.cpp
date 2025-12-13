@@ -996,8 +996,18 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY)
-            return PWORKSPACE->getFullscreenWindow();
+        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+            const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
+
+            if (!FS_WINDOW)
+                return nullptr;
+
+            // for maximized windows, don't return a window if we are not directly on it.
+            if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                return PWORKSPACE->getFullscreenWindow();
+            else
+                return nullptr;
+        }
 
         auto found = floating(false);
         if (found)

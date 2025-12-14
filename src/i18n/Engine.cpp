@@ -639,49 +639,49 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Schermo {name}: la gamma di colori ampia è abilitata ma lo schermo non è in modalità 10-bit.");
 
     // ja_JP (Japanese)
-    huEngine->registerEntry("ja_JP", TXT_KEY_ANR_TITLE, "アプリは応答しません");
-    huEngine->registerEntry("ja_JP", TXT_KEY_ANR_CONTENT, "アプリ {title} ー {class}は応答しません。\n何をしたいですか？");
+    huEngine->registerEntry("ja_JP", TXT_KEY_ANR_TITLE, "アプリが応答しません");
+    huEngine->registerEntry("ja_JP", TXT_KEY_ANR_CONTENT, "アプリ {title} - {class} が応答しません。\nどうしますか？");
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_OPTION_TERMINATE, "強制終了");
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_OPTION_WAIT, "待機");
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_PROP_UNKNOWN, "（不明）");
 
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "アプリ<b>{app}</b>は不明な許可を要求します。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "アプリ<b>{app}</b>は画面へのアクセスを要求します。\n\n許可したいですか？");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "アプリ<b>{app}</b>は以下のプラグインをロード許可を要求します：<b>{plugin}</b>。\n\n許可したいですか？");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "新しいキーボードを見つけた：<b>{keyboard}</b>。\n\n稼働を許可したいですか？");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "アプリ <b>{app}</b> がパーミッションを求めています。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "アプリ <b>{app}</b> が画面をキャプチャしようとしています。\n\n許可しますか？");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "アプリ <b>{app}</b> がプラグイン <b>{plugin}</b> をロードしようとしています。\n\n許可しますか？");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "新しいキーボード <b>{keyboard}</b> が接続されました。\n\n使用を許可しますか？");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_UNKNOWN_NAME, "（不明）");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_TITLE, "許可要求");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ヒント：Hyprlandのコンフィグで通常の許可や却下を設定できます。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_TITLE, "パーミッションの要求");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ヒント：永続的なルールを Hyprland の設定ファイルに記述できます。");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW, "許可");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "保存して許可");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW_ONCE, "一度許可");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "許可して保存");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW_ONCE, "今回だけ許可");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_DENY, "却下");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "不明なアプリ (waylandクライアントID {wayland_id})");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "不明なアプリ（wayland クライアント ID {wayland_id}）");
 
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-                            "エンバイアロンメント変数「XDG_CURRENT_DESKTOP」は外部から「{value}」に設定しました。\n意図的ではなければ、問題は発生可能性があります。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_GUIUTILS, "システムにhyprland-guiutilsはインストールしていません。このパッケージをインストールしてください。");
+                            "環境変数 XDG_CURRENT_DESKTOP は外部から {value} に設定されています。\n意図的なものでなければ、何らかの問題を起こすかもしれません。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_GUIUTILS, "hyprland-guiutils がありません。このパッケージをインストールしてください。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_ASSETS,
-                            "{count}つの根本的なアセットをロードできませんでした。これはパッケージャーのせいだから、パッケージャーに文句してください。");
+                            "{count} 個の必要なアセットをロードできません。ディストリビューションのパッケージ作成者にこの問題を報告してください。");
     huEngine->registerEntry(
         "ja_JP", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "画面の位置設定は誤用です。画面{name}は他の画面の区域と重ね合わせます。\nウィキのモニターページで詳細を確認してください。これは<b>絶対に</b>問題になります。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "画面{name}は設定したモードを正常に受け入れませんでした。{mode}を使いました。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "画面{name}のスケールは無効：{scale}、代わりにおすすめのスケール{fixed_scale}を使いました。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "プラグイン{name}のロード失敗: {error}");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CMシェーダーのリロード失敗、rgba/rgbxを使いました。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "画面{name}：広い色域は設定していますけど、画面は10ビットモードに設定されていません。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprlandはstart-hyprlandなしで実行されました。これはデバグ環境以外でおすすめしません。");
+        "モニタのレイアウトが正しく設定されていません。モニタ {name} の表示領域が他のモニタと重複しています。\n詳細は Wiki の Monitor の項目を参照してください。これは<b>絶対に</b>問題を起こします。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "モニタ {name} のモード設定に失敗したため、モード {mode} を使用します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "モニタ {name} のスケール設定が正しくないため、代わりにスケール {fixed_scale} を使用します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "プラグイン {name} のロードで、エラー {error} が発生しました。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM シェーダのリロードに失敗したため、rgba/rgbx を使用します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "広色域が有効なモニタ {name} を使用していますが、画面表示の設定は 10 ビットになっていません。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "start-hyprland なしで Hyprland を実行しています。これは、デバッグ目的以外ではおすすめしません。");
 
-    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "安全モード");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "セーフモード");
     huEngine->registerEntry(
         "ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
-        "Hyprlandは安全モードに実行しました。これは、Hyprlandはクラッシュしましたから。\n安全モードはコンフィグをロードしなくて、問題を修正できる環境です。下のボタンでコンフィグを"
-        "ロードできます。\nデフォルトなキーバインドがあります。SUPER+Qはkitty、SUPER+Rは簡素なランチャー、SUPER+"
-        "MはHyprlandから退出。\nHyprlandを再び実行すれば、普通モードで実行します。");
-    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "コンフィグをロード");
-    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダーを開く");
-    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "分かりました、このウィンドウをクローズ");
+        "前回のセッションがクラッシュしました。Hyprland は設定ファイルをロードしない、セーフモードで動作しています。\n問題を解決するか、もしくは下のボタンで設定ファイルをロードしてください。"
+        "\nデフォルトのキーバインドは、SUPER+Q が kitty、SUPER+R が簡素なランチャー、SUPER+M が Hyprland の終了です。"
+	"\nHyprland を再起動することで、ノーマルモードで動作します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "設定ファイルをロード");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダを開く");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "了解しました、このウィンドウを閉じます");
 
     // lv_LV (Latvian)
     huEngine->registerEntry("lv_LV", TXT_KEY_ANR_TITLE, "Lietotne nereaģē");

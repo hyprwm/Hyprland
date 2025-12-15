@@ -1701,6 +1701,30 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "cursor:find_my_cursor",
+        .description = "enable the find my cursor feature. When triggered, shows a visual indicator around the cursor.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:find_my_cursor_duration",
+        .description = "duration in seconds for the find my cursor effect to fade out.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{1.0, 0.1, 10.0},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:find_my_cursor_scale",
+        .description = "scale of the find my cursor indicator.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2.0, 1.0, 10.0},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:find_my_cursor_on_shake",
+        .description = "automatically trigger find my cursor when rapidly shaking the cursor.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * ecosystem:

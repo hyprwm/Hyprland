@@ -107,6 +107,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["focusmonitor"]                   = focusMonitor;
     m_dispatchers["movecursortocorner"]             = moveCursorToCorner;
     m_dispatchers["movecursor"]                     = moveCursor;
+    m_dispatchers["findcursor"]                     = findCursor;
     m_dispatchers["workspaceopt"]                   = workspaceOpt;
     m_dispatchers["exit"]                           = exitHyprland;
     m_dispatchers["movecurrentworkspacetomonitor"]  = moveCurrentWorkspaceToMonitor;
@@ -1897,6 +1898,11 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
     g_pCompositor->warpCursorTo({x, y}, true);
     g_pInputManager->simulateMouseMovement();
 
+    return {};
+}
+
+SDispatchResult CKeybindManager::findCursor(std::string args) {
+    g_pPointerManager->triggerFindCursor();
     return {};
 }
 

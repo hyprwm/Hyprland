@@ -58,13 +58,20 @@ class CPointerManager {
     void damageCursor(PHLMONITOR pMonitor);
 
     //
-    Vector2D position();
-    Vector2D cursorSizeLogical();
-    void     storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     sendStoredMovement();
+    Vector2D        position();
+    Vector2D        cursorSizeLogical();
+    void            storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
+    void            setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
+    void            sendStoredMovement();
 
-    void     recheckEnteredOutputs();
+    void            recheckEnteredOutputs();
+    void            triggerFindCursor();
+    void            updateFindCursor();
+    float           updateCursorScale();
+
+    Time::steady_tp getFindCursorStartTime() const {
+        return m_findCursorState.startTime;
+    }
 
   private:
     void recheckPointerPosition();
@@ -157,6 +164,12 @@ class CPointerManager {
     uint64_t m_storedTime    = 0;
     Vector2D m_storedDelta   = {0, 0};
     Vector2D m_storedUnaccel = {0, 0};
+
+    struct {
+        bool            active = false;
+        Time::steady_tp startTime;
+        Vector2D        position;
+    } m_findCursorState;
 
     struct SMonitorPointerState {
         SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}

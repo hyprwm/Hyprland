@@ -5,6 +5,7 @@
 #include <hyprutils/math/Vector2D.hpp>
 #include <ranges>
 #include <algorithm>
+#include <deque>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../desktop/view/WLSurface.hpp"
@@ -150,6 +151,61 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     if (e.mouse)
         m_lastMousePos = getMouseCoordsInternal();
+
+    static auto PFINDMYCURSOR = CConfigValue<Hyprlang::INT>("cursor:find_my_cursor");
+    static auto PFINDONSHAKE  = CConfigValue<Hyprlang::INT>("cursor:find_my_cursor_on_shake");
+
+    if (e.mouse && *PFINDMYCURSOR != 0 && *PFINDONSHAKE != 0) {
+        const auto currentPos = getMouseCoordsInternal();
+        // Add current position to history
+        m_shakeDetector.recentPositions.push_back({currentPos, e.timeMs});
+
+        // Keep only recent positions within time window
+        while (!m_shakeDetector.recentPositions.empty() && (e.timeMs - m_shakeDetector.recentPositions.front().timeMs) > m_shakeDetector.TIME_WINDOW_MS) {
+            m_shakeDetector.recentPositions.pop_front();
+        }
+
+        // Limit the number of positions stored
+        while (m_shakeDetector.recentPositions.size() > m_shakeDetector.MAX_POSITIONS) {
+            m_shakeDetector.recentPositions.pop_front();
+        }
+
+        // Detect rapid left-right shaking
+        if (m_shakeDetector.recentPositions.size() >= 4) {
+            const auto& positions = m_shakeDetector.recentPositions;
+
+            // Count significant direction reversals by tracking strokes
+            // A stroke is continuous movement in one horizontal direction
+            int significantReversals = 0;
+            int strokeDirection      = 0; // -1 = left, 1 = right
+
+            for (size_t i = 1; i < positions.size(); ++i) {
+                const float deltaX = positions[i].pos.x - positions[i - 1].pos.x;
+
+                if (std::abs(deltaX) < 1.0f)
+                    continue; // Skip negligible movement
+
+                const int direction = (deltaX > 0) ? 1 : -1;
+
+                if (strokeDirection == 0) {
+                    // Start first stroke
+                    strokeDirection = direction;
+                } else if (direction == strokeDirection) {
+                    // Continue current stroke
+                } else {
+                    significantReversals++;
+                    strokeDirection = direction;
+                }
+            }
+
+            // Trigger on 3+ significant reversals (left-right-left pattern)
+            if (significantReversals >= 3) {
+                g_pPointerManager->triggerFindCursor();
+            }
+        }
+
+        g_pPointerManager->updateFindCursor();
+    }
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {

@@ -1351,6 +1351,8 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_ZONE("Render");
 
+    g_pPointerManager->updateFindCursor();
+
     static bool zoomLock = false;
     if (zoomLock && ZOOMFACTOR == 1.f) {
         g_pPointerManager->unlockSoftwareAll();

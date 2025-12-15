@@ -200,6 +200,7 @@ class CKeybindManager {
     static SDispatchResult swapSplit(std::string);
     static SDispatchResult moveCursorToCorner(std::string);
     static SDispatchResult moveCursor(std::string);
+    static SDispatchResult findCursor(std::string);
     static SDispatchResult workspaceOpt(std::string);
     static SDispatchResult renameWorkspace(std::string);
     static SDispatchResult exitHyprland(std::string);

@@ -2,6 +2,7 @@
 
 #include "../../defines.hpp"
 #include <list>
+#include <deque>
 #include <any>
 #include "../../helpers/WLClasses.hpp"
 #include "../../helpers/time/Timer.hpp"
@@ -260,6 +261,16 @@ class CInputManager {
     Vector2D m_lastMousePos   = {};
     double   m_mousePosDelta  = 0;
     bool     m_lastInputMouse = true;
+
+    struct SShakeDetector {
+        struct SMousePosition {
+            Vector2D pos;
+            uint32_t timeMs;
+        };
+        std::deque<SMousePosition> recentPositions;
+        static constexpr size_t    MAX_POSITIONS  = 150;
+        static constexpr uint32_t  TIME_WINDOW_MS = 1000;
+    } m_shakeDetector;
 
     // for holding focus on buttons held
     bool m_focusHeldByButtons   = false;

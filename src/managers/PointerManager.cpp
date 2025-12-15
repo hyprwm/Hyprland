@@ -518,10 +518,11 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         cairo_matrix_t matrixPre;
         cairo_matrix_init_identity(&matrixPre);
 
-        const auto TR = state->monitor->m_transform;
+        const auto TR         = state->monitor->m_transform;
+        const auto extraScale = updateCursorScale();
 
         // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
-        const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
+        const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale * extraScale);
         cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
 
         if (TR) {
@@ -575,7 +576,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, INT16_MAX, INT16_MAX}, RBO);
     g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F});
 
-    CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
+    const auto extraScale = updateCursorScale();
+
+    CBox       xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale * extraScale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
@@ -658,7 +661,10 @@ CBox CPointerManager::getCursorBoxLogicalForMonitor(PHLMONITOR pMonitor) {
 }
 
 CBox CPointerManager::getCursorBoxGlobal() {
-    return CBox{m_pointerPos, m_currentCursorImage.size / m_currentCursorImage.scale}.translate(-m_currentCursorImage.hotspot);
+    const auto scale   = updateCursorScale();
+    const auto size    = m_currentCursorImage.size / m_currentCursorImage.scale * scale;
+    const auto hotspot = m_currentCursorImage.hotspot * scale;
+    return CBox{m_pointerPos, size}.translate(-hotspot);
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
@@ -1127,4 +1133,49 @@ void CPointerManager::sendStoredMovement() {
     m_storedTime    = 0;
     m_storedDelta   = Vector2D{};
     m_storedUnaccel = Vector2D{};
+}
+
+void CPointerManager::triggerFindCursor() {
+    static auto PFINDENABLED = CConfigValue<Hyprlang::INT>("cursor:find_my_cursor");
+
+    if (*PFINDENABLED == 0)
+        return;
+
+    damageIfSoftware();
+
+    m_findCursorState.active    = true;
+    m_findCursorState.startTime = Time::steadyNow();
+    m_findCursorState.position  = m_pointerPos;
+
+    // Update cursor backend to re-render with new scale
+    updateCursorBackend();
+    damageIfSoftware();
+}
+
+void CPointerManager::updateFindCursor() {
+    static auto PDURATION = CConfigValue<Hyprlang::FLOAT>("cursor:find_my_cursor_duration");
+
+    const auto  elapsed  = Time::steadyNow() - m_findCursorState.startTime;
+    const auto  duration = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() / 1000.0;
+
+    if (duration >= *PDURATION) {
+        m_findCursorState.active = false;
+        // Reset cursor to normal size
+        damageIfSoftware();
+        updateCursorBackend();
+        damageIfSoftware();
+    }
+}
+
+float CPointerManager::updateCursorScale() {
+    if (!m_findCursorState.active)
+        return 1.0f;
+
+    static auto PFINDENABLED = CConfigValue<Hyprlang::INT>("cursor:find_my_cursor");
+    static auto PSCALE       = CConfigValue<Hyprlang::FLOAT>("cursor:find_my_cursor_scale");
+
+    if (*PFINDENABLED == 0)
+        return 1.0f;
+
+    return *PSCALE;
 }

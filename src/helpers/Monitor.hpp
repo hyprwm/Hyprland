@@ -11,6 +11,7 @@
 #include "CMType.hpp"
 
 #include <xf86drmMode.h>
+#include "MonitorZoomController.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -129,6 +130,8 @@ class CMonitor {
     SP<Aquamarine::CSwapchain>  m_cursorSwapchain;
     uint32_t                    m_drmFormat     = DRM_FORMAT_INVALID;
     uint32_t                    m_prevDrmFormat = DRM_FORMAT_INVALID;
+
+    CMonitorZoomController      m_zoomController;
 
     bool                        m_dpmsStatus       = true;
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.

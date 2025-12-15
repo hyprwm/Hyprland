@@ -147,6 +147,10 @@ bool CAsyncDialogBox::isRunning() const {
     return m_readEventSource;
 }
 
+pid_t CAsyncDialogBox::getPID() const {
+    return m_dialogPid;
+}
+
 SP<CAsyncDialogBox> CAsyncDialogBox::lockSelf() {
     return m_selfWeakReference.lock();
 }

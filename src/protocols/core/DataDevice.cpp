@@ -298,10 +298,17 @@ void CWLDataDeviceResource::sendDataOffer(SP<IDataOffer> offer) {
 void CWLDataDeviceResource::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
     if (const auto WL = offer->getWayland(); WL)
         m_resource->sendEnterRaw(serial, surf->getResource()->resource(), wl_fixed_from_double(local.x), wl_fixed_from_double(local.y), WL->m_resource->resource());
+
+    m_entered = surf;
+
     // FIXME: X11
 }
 
 void CWLDataDeviceResource::sendLeave() {
+    if (!m_entered)
+        return;
+
+    m_entered.reset();
     m_resource->sendLeave();
 }
 

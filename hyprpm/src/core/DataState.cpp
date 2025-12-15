@@ -93,6 +93,7 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
     auto DATA = toml::table{
         {"repository", toml::table{
             {"name", repo.name},
+            {"author", repo.author},
             {"hash", repo.hash},
             {"url", repo.url},
             {"rev", repo.rev}
@@ -122,31 +123,32 @@ void DataState::addNewPluginRepo(const SPluginRepository& repo) {
         Debug::die("{}", failureString("Failed to write plugin state"));
 }
 
-bool DataState::pluginRepoExists(const std::string& urlOrName) {
+bool DataState::pluginRepoExists(const SPluginRepoIdentifier identifier) {
     ensureStateStoreExists();
 
     for (const auto& stateFile : getPluginStates()) {
-        const auto STATE = toml::parse_file(stateFile.c_str());
-        const auto NAME  = STATE["repository"]["name"].value_or("");
-        const auto URL   = STATE["repository"]["url"].value_or("");
+        const auto STATE  = toml::parse_file(stateFile.c_str());
+        const auto NAME   = STATE["repository"]["name"].value_or("");
+        const auto AUTHOR = STATE["repository"]["author"].value_or("");
+        const auto URL    = STATE["repository"]["url"].value_or("");
 
-        if (URL == urlOrName || NAME == urlOrName)
+        if (identifier.matches(URL, NAME, AUTHOR))
             return true;
     }
 
     return false;
 }
 
-void DataState::removePluginRepo(const std::string& urlOrName) {
+void DataState::removePluginRepo(const SPluginRepoIdentifier identifier) {
     ensureStateStoreExists();
 
     for (const auto& stateFile : getPluginStates()) {
-        const auto STATE = toml::parse_file(stateFile.c_str());
-        const auto NAME  = STATE["repository"]["name"].value_or("");
-        const auto URL   = STATE["repository"]["url"].value_or("");
+        const auto STATE  = toml::parse_file(stateFile.c_str());
+        const auto NAME   = STATE["repository"]["name"].value_or("");
+        const auto AUTHOR = STATE["repository"]["author"].value_or("");
+        const auto URL    = STATE["repository"]["url"].value_or("");
 
-        if (URL == urlOrName || NAME == urlOrName) {
-
+        if (identifier.matches(URL, NAME, AUTHOR)) {
             // unload the plugins!!
             for (const auto& file : std::filesystem::directory_iterator(stateFile.parent_path())) {
                 if (!file.path().string().ends_with(".so"))
@@ -219,16 +221,18 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
     for (const auto& stateFile : getPluginStates()) {
         const auto        STATE = toml::parse_file(stateFile.c_str());
 
-        const auto        NAME = STATE["repository"]["name"].value_or("");
-        const auto        URL  = STATE["repository"]["url"].value_or("");
-        const auto        REV  = STATE["repository"]["rev"].value_or("");
-        const auto        HASH = STATE["repository"]["hash"].value_or("");
+        const auto        NAME   = STATE["repository"]["name"].value_or("");
+        const auto        AUTHOR = STATE["repository"]["author"].value_or("");
+        const auto        URL    = STATE["repository"]["url"].value_or("");
+        const auto        REV    = STATE["repository"]["rev"].value_or("");
+        const auto        HASH   = STATE["repository"]["hash"].value_or("");
 
         SPluginRepository repo;
-        repo.hash = HASH;
-        repo.name = NAME;
-        repo.url  = URL;
-        repo.rev  = REV;
+        repo.hash   = HASH;
+        repo.name   = NAME;
+        repo.author = AUTHOR;
+        repo.url    = URL;
+        repo.rev    = REV;
 
         for (const auto& [key, val] : STATE) {
             if (key == "repository")
@@ -247,7 +251,7 @@ std::vector<SPluginRepository> DataState::getAllRepositories() {
     return repos;
 }
 
-bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
+bool DataState::setPluginEnabled(const SPluginRepoIdentifier identifier, bool enabled) {
     ensureStateStoreExists();
 
     for (const auto& stateFile : getPluginStates()) {
@@ -256,8 +260,17 @@ bool DataState::setPluginEnabled(const std::string& name, bool enabled) {
             if (key == "repository")
                 continue;
 
-            if (key.str() != name)
-                continue;
+            switch (identifier.type) {
+                case IDENTIFIER_NAME:
+                    if (key.str() != identifier.name)
+                        continue;
+                    break;
+                case IDENTIFIER_AUTHOR_NAME:
+                    if (STATE["repository"]["author"] != identifier.author || key.str() != identifier.name)
+                        continue;
+                    break;
+                default: return false;
+            }
 
             const auto FAILED = STATE[key]["failed"].value_or(false);
 

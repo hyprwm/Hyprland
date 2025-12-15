@@ -894,7 +894,10 @@ bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
 }
 
 PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
-    const auto  PMONITOR             = getMonitorFromVector(pos);
+    const auto PMONITOR = getMonitorFromVector(pos);
+    if (!PMONITOR)
+        return nullptr;
+
     static auto PRESIZEONBORDER      = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
     static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
@@ -993,8 +996,18 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
         const auto        PWORKSPACE = getWorkspaceByID(WSPID);
 
-        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY)
-            return PWORKSPACE->getFullscreenWindow();
+        if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+            const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
+
+            if (!FS_WINDOW)
+                return nullptr;
+
+            // for maximized windows, don't return a window if we are not directly on it.
+            if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                return PWORKSPACE->getFullscreenWindow();
+            else
+                return nullptr;
+        }
 
         auto found = floating(false);
         if (found)
@@ -1130,7 +1143,7 @@ PHLMONITOR CCompositor::getRealMonitorFromOutput(SP<Aquamarine::IOutput> out) {
 SP<CWLSurfaceResource> CCompositor::vectorToLayerPopupSurface(const Vector2D& pos, PHLMONITOR monitor, Vector2D* sCoords, PHLLS* ppLayerSurfaceFound) {
     for (auto const& lsl : monitor->m_layerSurfaceLayers | std::views::reverse) {
         for (auto const& ls : lsl | std::views::reverse) {
-            if (!ls->visible() || ls->m_fadingOut)
+            if (!ls->aliveAndVisible())
                 continue;
 
             auto SURFACEAT = ls->m_popupHead->at(pos, true);
@@ -1150,7 +1163,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
                                                          bool aboveLockscreen) {
 
     for (auto const& ls : *layerSurfaces | std::views::reverse) {
-        if (!ls->visible() || ls->m_fadingOut || (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
+        if (!ls->aliveAndVisible() || (aboveLockscreen && ls->m_ruleApplicator->aboveLock().valueOrDefault() != 2))
             continue;
 
         auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
@@ -1379,6 +1392,9 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, char dir) {
 
     const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
     const auto PWORKSPACE    = pWindow->m_workspace;
+
+    if (!PWORKSPACE)
+        return nullptr; // ??
 
     return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow, pWindow->m_isFloating);
 }
@@ -1621,12 +1637,12 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
     const auto PMONITOR = pMonitor ? pMonitor : getMonitorFromVector(point);
 
     auto       box = PMONITOR->logicalBox();
-    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.w + 2, box.h + 2))
+    if (VECNOTINRECT(point, box.x - 1, box.y - 1, box.x + box.w + 1, box.y + box.h + 1))
         return false;
 
     PMONITOR->m_reservedArea.applyip(box);
 
-    return VECNOTINRECT(point, box.x, box.y, box.x, box.y);
+    return VECNOTINRECT(point, box.x, box.y, box.x + box.w, box.y + box.h);
 }
 
 CBox CCompositor::calculateX11WorkArea() {
@@ -2347,7 +2363,7 @@ PHLLS CCompositor::getLayerSurfaceFromSurface(SP<CWLSurfaceResource> pSurface) {
     std::pair<SP<CWLSurfaceResource>, bool> result = {pSurface, false};
 
     for (auto const& ls : m_layers) {
-        if (!ls->visible() || ls->m_fadingOut)
+        if (!ls->aliveAndVisible())
             continue;
 
         if (ls->m_layerSurface->m_surface == pSurface)

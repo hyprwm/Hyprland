@@ -355,7 +355,7 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    std::array<bool, CAP_STATUS_END>  m_capStatus;
+    std::array<bool, CAP_STATUS_END>  m_capStatus = {};
 
     std::vector<SDRMFormat>           m_drmFormats;
     bool                              m_hasModifiers = false;

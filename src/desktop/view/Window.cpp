@@ -154,7 +154,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return m_isMapped && !m_hidden && m_wlSurface && m_wlSurface->resource();
+    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && m_alpha->value() != 0.F));
 }
 
 std::optional<CBox> CWindow::logicalBox() const {
@@ -639,14 +639,13 @@ void CWindow::onMap() {
 }
 
 void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    if (PAV->getStyle() != "loop" || !PAV->enabled())
+    if (pav->getStyle() != "loop" || !pav->enabled())
         return;
 
-    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(PAV.get());
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
 
     PANIMVAR->setCallbackOnEnd(nullptr); // we remove the callback here because otherwise setvalueandwarp will recurse this
 
@@ -1197,14 +1196,19 @@ int CWindow::surfacesCount() {
     return no;
 }
 
-void CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
+bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
     const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
-    const Vector2D DELTA    = REALSIZE - NEWSIZE;
+    const bool     changed  = !(NEWSIZE == REALSIZE);
 
-    *m_realPosition = m_realPosition->goal() + DELTA / 2.0;
-    *m_realSize     = NEWSIZE;
+    if (changed) {
+        const Vector2D DELTA = REALSIZE - NEWSIZE;
+        *m_realPosition      = m_realPosition->goal() + DELTA / 2.0;
+        *m_realSize          = NEWSIZE;
+    }
+
+    return changed;
 }
 
 bool CWindow::isFullscreen() {
@@ -1907,16 +1911,14 @@ std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
 }
 
 static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
-    const auto PAV = pav.lock();
-    if (!PAV)
+    if (!pav)
         return;
 
-    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
     animvar->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsMove"));
 
-    const auto PHLWINDOW = animvar->m_Context.pWindow.lock();
-    if (PHLWINDOW)
-        PHLWINDOW->m_animatingIn = false;
+    if (animvar->m_Context.pWindow)
+        animvar->m_Context.pWindow->m_animatingIn = false;
 }
 
 void CWindow::mapWindow() {
@@ -2554,8 +2556,8 @@ void CWindow::commitWindow() {
         const auto MINSIZE = m_xdgSurface->m_toplevel->layoutMinSize();
         const auto MAXSIZE = m_xdgSurface->m_toplevel->layoutMaxSize();
 
-        clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt);
-        g_pHyprRenderer->damageWindow(m_self.lock());
+        if (clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt))
+            g_pHyprRenderer->damageWindow(m_self.lock());
     }
 
     if (!m_workspace->m_visible)

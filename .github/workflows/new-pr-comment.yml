@@ -7,6 +7,13 @@ on:
 
 jobs:
   comment:
+    if: >
+      github.event.pull_request.user.login != 'vaxerski' &&
+      github.event.pull_request.user.login != 'fufexan' &&
+      github.event.pull_request.user.login != 'gulafaran' &&
+      github.event.pull_request.user.login != 'ujint34' &&
+      github.event.pull_request.user.login != 'paideiadilemma' &&
+      github.event.pull_request.user.login != 'notashelf'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

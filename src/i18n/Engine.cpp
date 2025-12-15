@@ -645,12 +645,12 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_OPTION_WAIT, "待機");
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_PROP_UNKNOWN, "（不明）");
 
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "アプリ <b>{app}</b> がパーミッションを求めています。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "アプリ <b>{app}</b> が権限を求めています。");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "アプリ <b>{app}</b> が画面をキャプチャしようとしています。\n\n許可しますか？");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "アプリ <b>{app}</b> がプラグイン <b>{plugin}</b> をロードしようとしています。\n\n許可しますか？");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "新しいキーボード <b>{keyboard}</b> が接続されました。\n\n使用を許可しますか？");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_UNKNOWN_NAME, "（不明）");
-    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_TITLE, "パーミッションの要求");
+    huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_TITLE, "権限の要求");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ヒント：永続的なルールを Hyprland の設定ファイルに記述できます。");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW, "許可");
     huEngine->registerEntry("ja_JP", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "許可して保存");
@@ -681,7 +681,7 @@ I18n::CI18nEngine::CI18nEngine() {
 	"\nHyprland を再起動することで、ノーマルモードで動作します。");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "設定ファイルをロード");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダを開く");
-    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "了解しました、このウィンドウを閉じます");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "了解（このウィンドウを閉じる）");
 
     // lv_LV (Latvian)
     huEngine->registerEntry("lv_LV", TXT_KEY_ANR_TITLE, "Lietotne nereaģē");

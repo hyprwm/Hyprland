@@ -2047,14 +2047,10 @@ void CWindow::mapWindow() {
             requestedFSMonitor = MONITOR_INVALID;
         }
 
-        if (m_ruleApplicator->static_.floating.has_value())
-            m_isFloating = m_ruleApplicator->static_.floating.value();
-
-        if (m_ruleApplicator->static_.pseudo)
-            m_isPseudotiled = true;
-
-        if (m_ruleApplicator->static_.noInitialFocus)
-            m_noInitialFocus = true;
+        m_isFloating     = m_ruleApplicator->static_.floating.value_or(m_isFloating);
+        m_isPseudotiled  = m_ruleApplicator->static_.pseudo.value_or(m_isPseudotiled);
+        m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
+        m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
@@ -2080,13 +2076,10 @@ void CWindow::mapWindow() {
             }
         }
 
-        if (m_ruleApplicator->static_.pin)
-            m_pinned = true;
-
-        if (m_ruleApplicator->static_.fullscreen)
+        if (m_ruleApplicator->static_.fullscreen.value_or(false))
             requestedInternalFSMode = FSMODE_FULLSCREEN;
 
-        if (m_ruleApplicator->static_.maximize)
+        if (m_ruleApplicator->static_.maximize.value_or(false))
             requestedInternalFSMode = FSMODE_MAXIMIZED;
 
         if (!m_ruleApplicator->static_.group.empty()) {

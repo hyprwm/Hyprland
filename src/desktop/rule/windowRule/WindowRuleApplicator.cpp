@@ -481,7 +481,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 break;
             }
             case WINDOW_RULE_EFFECT_MOVE: {
-                static_.center = false;
+                static_.center   = false;
                 static_.position = effect;
                 break;
             }

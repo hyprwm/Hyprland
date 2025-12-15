@@ -40,12 +40,12 @@ namespace Desktop::Rule {
         struct {
             std::string              monitor, workspace, group;
 
-            bool                     floating       = false;
-            bool                     fullscreen     = false;
-            bool                     maximize       = false;
-            bool                     pseudo         = false;
-            bool                     pin            = false;
-            bool                     noInitialFocus = false;
+            std::optional<bool>      floating;
+            std::optional<bool>      fullscreen;
+            std::optional<bool>      maximize;
+            std::optional<bool>      pseudo;
+            std::optional<bool>      pin;
+            std::optional<bool>      noInitialFocus;
 
             std::optional<int>       fullscreenStateClient;
             std::optional<int>       fullscreenStateInternal;

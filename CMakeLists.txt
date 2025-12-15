@@ -321,6 +321,10 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
   endif()
 endif()
 
+if(BUILT_WITH_NIX)
+  add_compile_definitions(BUILT_WITH_NIX)
+endif()
+
 check_include_file("execinfo.h" EXECINFOH)
 if(EXECINFOH)
   message(STATUS "Configuration supports execinfo")

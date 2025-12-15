@@ -147,7 +147,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
-        if ((same_mon || next) && !Desktop::focusState()->monitor()) {
+        const auto monitor  = Desktop::focusState()->monitor();
+        if ((same_mon || next) && !monitor) {
             Debug::log(ERR, "Empty monitor workspace on monitor null!");
             return {WORKSPACE_INVALID};
         }
@@ -156,18 +157,24 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (same_mon) {
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
                 const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
-                if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
+                if (PMONITOR && (PMONITOR->m_id != monitor->m_id))
                     invalidWSes.insert(rule.workspaceId);
             }
         }
 
-        WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
+        WORKSPACEID id = next ? monitor->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
-                result.id = id;
-                return result;
+            if (invalidWSes.contains(id))
+                continue;
+            if (PWORKSPACE) {
+                if (PWORKSPACE->getWindows())
+                    continue;
+                if (same_mon && PWORKSPACE->m_monitor && PWORKSPACE->m_monitor->m_id != monitor->m_id)
+                    continue;
             }
+            result.id = id;
+            return result;
         }
     } else if (in.starts_with("prev")) {
         if (!Desktop::focusState()->monitor())

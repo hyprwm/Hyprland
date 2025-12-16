@@ -91,7 +91,7 @@ std::optional<CBox> CPopup::surfaceLogicalBox() const {
     if (!visible())
         return std::nullopt;
 
-    return CBox{t1ParentCoords(), size()};
+    return CBox{coordsGlobal(), size()};
 }
 
 bool CPopup::desktopComponent() const {
@@ -338,14 +338,14 @@ void CPopup::reposition() {
     m_resource->applyPositioning(box, COORDS);
 }
 
-SP<Desktop::View::CWLSurface> CPopup::getT1Owner() {
+SP<Desktop::View::CWLSurface> CPopup::getT1Owner() const  {
     if (m_windowOwner)
         return m_windowOwner->wlSurface();
     else
         return m_layerOwner->wlSurface();
 }
 
-Vector2D CPopup::coordsRelativeToParent() {
+Vector2D CPopup::coordsRelativeToParent() const  {
     Vector2D offset;
 
     if (!m_resource)
@@ -365,11 +365,11 @@ Vector2D CPopup::coordsRelativeToParent() {
     return offset;
 }
 
-Vector2D CPopup::coordsGlobal() {
+Vector2D CPopup::coordsGlobal() const  {
     return localToGlobal(coordsRelativeToParent());
 }
 
-Vector2D CPopup::localToGlobal(const Vector2D& rel) {
+Vector2D CPopup::localToGlobal(const Vector2D& rel)  const {
     return t1ParentCoords() + rel;
 }
 
@@ -483,7 +483,7 @@ bool CPopup::inert() const {
     return m_inert;
 }
 
-PHLMONITOR CPopup::getMonitor() {
+PHLMONITOR CPopup::getMonitor() const  {
     if (!m_windowOwner.expired())
         return m_windowOwner->m_monitor.lock();
     if (!m_layerOwner.expired())

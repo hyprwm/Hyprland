@@ -30,10 +30,10 @@ namespace Desktop::View {
         virtual bool                  desktopComponent() const;
         virtual std::optional<CBox>   surfaceLogicalBox() const;
 
-        SP<Desktop::View::CWLSurface> getT1Owner();
-        Vector2D                      coordsRelativeToParent();
-        Vector2D                      coordsGlobal();
-        PHLMONITOR                    getMonitor();
+        SP<Desktop::View::CWLSurface> getT1Owner() const;
+        Vector2D                      coordsRelativeToParent() const;
+        Vector2D                      coordsGlobal() const;
+        PHLMONITOR                    getMonitor() const;
 
         Vector2D                      size() const;
 
@@ -99,7 +99,7 @@ namespace Desktop::View {
         void        sendScale();
         void        fullyDestroy();
 
-        Vector2D    localToGlobal(const Vector2D& rel);
+        Vector2D    localToGlobal(const Vector2D& rel) const;
         Vector2D    t1ParentCoords() const;
         static void bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data);
     };

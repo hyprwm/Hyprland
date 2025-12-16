@@ -10,6 +10,7 @@
 #include <sys/poll.h>
 #include <csignal>
 #include <thread>
+#include <filesystem>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
@@ -119,16 +120,53 @@ static void stopClient(SClient& client) {
     client.proc.reset();
 }
 
+static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
+
+static bool checkFlag() {
+    bool exists = std::filesystem::exists(flagFile);
+    std::filesystem::remove(flagFile);
+    return exists;
+}
+
+static bool attemptCheckFlag(int attempts, int intervalMs) {
+    for (int i = 0; i < attempts; i++) {
+        if (checkFlag())
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
+    }
+
+    return false;
+}
+
 static bool test() {
     SClient client;
     if (!startClient(client))
         return false;
 
-    //basic test
+    NLog::log("{}Testing keybinds", Colors::GREEN);
+    //basic keybind test
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bind SUPER,Y,exec,touch " + flagFile), "ok");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), false);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+
+    //keybind bypass flag test
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindp SUPER,Y,exec,touch " + flagFile), "ok");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+
+    NLog::log("{}Testing gestures", Colors::GREEN);
+    //basic gesture test
     OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "floating: 1");
 
-    //test bypass flag
+    //gesture bypass flag test
     OK(getFromSocket("/dispatch plugin:test:gesture right,2"));
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "floating: 1");
 

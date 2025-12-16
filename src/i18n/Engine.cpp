@@ -663,9 +663,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_GUIUTILS, "hyprland-guiutils がありません。このパッケージをインストールしてください。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_ASSETS,
                             "{count} 個の必要なアセットをロードできません。ディストリビューションのパッケージ作成者にこの問題を報告してください。");
-    huEngine->registerEntry(
-        "ja_JP", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-        "モニタのレイアウトが正しく設定されていません。モニタ {name} の表示領域が他のモニタと重複しています。\n詳細は Wiki の Monitor の項目を参照してください。これは<b>絶対に</b>問題を起こします。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "モニタのレイアウトが正しく設定されていません。モニタ {name} の表示領域が他のモニタと重複しています。\n詳細は Wiki の Monitor "
+                            "の項目を参照してください。これは<b>絶対に</b>問題を起こします。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "モニタ {name} のモード設定に失敗したため、モード {mode} を使用します。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "モニタ {name} のスケール設定が正しくないため、代わりにスケール {fixed_scale} を使用します。");
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "プラグイン {name} のロードで、エラー {error} が発生しました。");
@@ -674,11 +674,11 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ja_JP", TXT_KEY_NOTIF_NO_WATCHDOG, "start-hyprland なしで Hyprland を実行しています。これは、デバッグ目的以外ではおすすめしません。");
 
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_TITLE, "セーフモード");
-    huEngine->registerEntry(
-        "ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
-        "前回のセッションがクラッシュしました。Hyprland は設定ファイルをロードしない、セーフモードで動作しています。\n問題を解決するか、もしくは下のボタンで設定ファイルをロードしてください。"
-        "\nデフォルトのキーバインドは、SUPER+Q が kitty、SUPER+R が簡素なランチャー、SUPER+M が Hyprland の終了です。"
-	"\nHyprland を再起動することで、ノーマルモードで動作します。");
+    huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "前回のセッションがクラッシュしました。Hyprland "
+                            "は設定ファイルをロードしない、セーフモードで動作しています。\n問題を解決するか、もしくは下のボタンで設定ファイルをロードしてください。"
+                            "\nデフォルトのキーバインドは、SUPER+Q が kitty、SUPER+R が簡素なランチャー、SUPER+M が Hyprland の終了です。"
+                            "\nHyprland を再起動することで、ノーマルモードで動作します。");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "設定ファイルをロード");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "クラッシュレポートフォルダを開く");
     huEngine->registerEntry("ja_JP", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "了解（このウィンドウを閉じる）");

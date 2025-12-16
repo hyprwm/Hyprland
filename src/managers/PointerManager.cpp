@@ -925,20 +925,6 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->frame = pointer->m_pointerEvents.frame.listen([] {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = Desktop::focusState()->monitor().get();
-            if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
-                auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
-                shouldSkip    = fsWindow && fsWindow->m_isX11;
-            }
-        }
-        g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->m_isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
-    });
-
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.listen([](const IPointer::SSwipeBeginEvent& event) {
         g_pInputManager->onSwipeBegin(event);
 
@@ -1110,21 +1096,7 @@ Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
 }
 
-void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    m_storedTime = time;
-    m_storedDelta += delta;
-    m_storedUnaccel += deltaUnaccel;
-}
-
-void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    m_storedTime    = time;
-    m_storedDelta   = delta;
-    m_storedUnaccel = deltaUnaccel;
-}
-
-void CPointerManager::sendStoredMovement() {
-    PROTO::relativePointer->sendRelativeMotion(m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
-    m_storedTime    = 0;
-    m_storedDelta   = Vector2D{};
-    m_storedUnaccel = Vector2D{};
+void CPointerManager::sendMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
+    PROTO::relativePointer->sendRelativeMotion(time * 1000, delta, deltaUnaccel);
+    g_pSeatManager->sendPointerFrame();
 }

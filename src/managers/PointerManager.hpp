@@ -60,9 +60,7 @@ class CPointerManager {
     //
     Vector2D position();
     Vector2D cursorSizeLogical();
-    void     storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     sendStoredMovement();
+    void     sendMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
 
     void     recheckEnteredOutputs();
 
@@ -95,7 +93,6 @@ class CPointerManager {
         CHyprSignalListener motionAbsolute;
         CHyprSignalListener button;
         CHyprSignalListener axis;
-        CHyprSignalListener frame;
 
         CHyprSignalListener swipeBegin;
         CHyprSignalListener swipeEnd;
@@ -153,10 +150,6 @@ class CPointerManager {
     } m_currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
     Vector2D m_pointerPos = {0, 0};
-
-    uint64_t m_storedTime    = 0;
-    Vector2D m_storedDelta   = {0, 0};
-    Vector2D m_storedUnaccel = {0, 0};
 
     struct SMonitorPointerState {
         SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}

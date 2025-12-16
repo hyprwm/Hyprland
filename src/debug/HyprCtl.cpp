@@ -1067,7 +1067,7 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
         result += __hyprland_api_get_hash();
         result += "\n";
 
-#if (!ISDEBUG && !defined(NO_XWAYLAND))
+#if (!ISDEBUG && !defined(NO_XWAYLAND) && !defined(BUILT_WITH_NIX))
         result += "no flags were set\n";
 #else
         result += "flags set:\n";
@@ -1076,6 +1076,9 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 #endif
 #ifdef NO_XWAYLAND
         result += "no xwayland\n";
+#endif
+#ifdef BUILT_WITH_NIX
+        result += "nix\n";
 #endif
 #endif
         return result;
@@ -1112,6 +1115,9 @@ std::string versionRequest(eHyprCtlOutputFormat format, std::string request) {
 #endif
 #ifdef NO_XWAYLAND
         result += "\"no xwayland\",";
+#endif
+#ifdef BUILT_WITH_NIX
+        result += "\"nix\",";
 #endif
 
         trimTrailingComma(result);

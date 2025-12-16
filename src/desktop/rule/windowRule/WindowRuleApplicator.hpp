@@ -41,13 +41,12 @@ namespace Desktop::Rule {
             std::string              monitor, workspace, group;
 
             std::optional<bool>      floating;
-
-            bool                     fullscreen     = false;
-            bool                     maximize       = false;
-            bool                     pseudo         = false;
-            bool                     pin            = false;
-            bool                     noInitialFocus = false;
-            bool                     center         = false;
+            std::optional<bool>      fullscreen;
+            std::optional<bool>      maximize;
+            std::optional<bool>      pseudo;
+            std::optional<bool>      pin;
+            std::optional<bool>      noInitialFocus;
+            std::optional<bool>      center;
 
             std::optional<int>       fullscreenStateClient;
             std::optional<int>       fullscreenStateInternal;

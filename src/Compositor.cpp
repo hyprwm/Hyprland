@@ -574,9 +574,6 @@ void CCompositor::cleanup() {
 
     for (auto const& m : m_monitors) {
         g_pHyprOpenGL->destroyMonitorResources(m);
-
-        m->m_output->state->setEnabled(false);
-        m->m_state.commit();
     }
 
     g_pXWayland.reset();

@@ -192,6 +192,7 @@ in
       dontStrip = debug;
 
       cmakeFlags = mapAttrsToList cmakeBool {
+        "BUILT_WITH_NIX" = true;
         "NO_XWAYLAND" = !enableXWayland;
         "LEGACY_RENDERER" = legacyRenderer;
         "NO_SYSTEMD" = !withSystemd;

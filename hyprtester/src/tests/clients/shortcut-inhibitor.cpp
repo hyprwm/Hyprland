@@ -128,6 +128,10 @@ static bool test() {
     OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "floating: 1");
 
+    //test bypass flag
+    OK(getFromSocket("/dispatch plugin:test:gesture right,2"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "floating: 1");
+
     stopClient(client);
 
     NLog::log("{}Reloading the config", Colors::YELLOW);

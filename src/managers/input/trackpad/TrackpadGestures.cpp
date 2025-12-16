@@ -1,6 +1,7 @@
 #include "TrackpadGestures.hpp"
 
 #include "../InputManager.hpp"
+#include "../../../config/ConfigValue.hpp"
 #include "../../../protocols/ShortcutsInhibit.hpp"
 
 #include <ranges>
@@ -55,7 +56,7 @@ const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
 }
 
 std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask,
-                                                               float deltaScale) {
+                                                               float deltaScale, float disableInhibit) {
     for (const auto& g : m_gestures) {
         if (g->fingerCount != fingerCount)
             continue;
@@ -85,14 +86,14 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
         }
     }
 
-    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale));
+    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale, disableInhibit));
 
     return {};
 }
 
-std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale) {
+std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale, float disableInhibit) {
     const auto IT = std::ranges::find_if(
-        m_gestures, [&](const auto& g) { return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale; });
+        m_gestures, [&](const auto& g) { return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit; });
 
     if (IT == m_gestures.end())
         return std::unexpected("Can't remove a non-existent gesture");
@@ -151,7 +152,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
             if (g->modMask != MODS)
                 continue;
 
-            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT)
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT && !g->disableInhibit)
                 continue;
 
             m_activeGesture     = g;
@@ -219,7 +220,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
             if (g->modMask != MODS)
                 continue;
 
-            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT)
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT && !g->disableInhibit)
                 continue;
 
             m_activeGesture     = g;

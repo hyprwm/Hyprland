@@ -402,26 +402,35 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     // then, we check if the workspace doesn't have a fullscreen window
     const auto PWORKSPACE   = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
     const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
-    if (PWORKSPACE->m_hasFullscreenWindow && !foundSurface && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-        pFoundWindow = PWORKSPACE->getFullscreenWindow();
+    if (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+        const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
+            (pFoundLayerSurface->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP ||
+             (pFoundLayerSurface->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !pFoundLayerSurface->m_aboveFullscreen));
 
-        if (!pFoundWindow) {
-            // what the fuck, somehow happens occasionally??
-            PWORKSPACE->m_hasFullscreenWindow = false;
-            return;
-        }
+        if (IS_LS_UNFOCUSABLE) {
+            foundSurface       = nullptr;
+            pFoundLayerSurface = nullptr;
 
-        if (PWINDOWIDEAL &&
-            ((PWINDOWIDEAL->m_isFloating && (PWINDOWIDEAL->m_createdOverFullscreen || PWINDOWIDEAL->m_pinned)) /* floating over fullscreen or pinned */
-             || (PMONITOR->m_activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
-            pFoundWindow = PWINDOWIDEAL;
+            pFoundWindow = PWORKSPACE->getFullscreenWindow();
 
-        if (!pFoundWindow->m_isX11) {
-            foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
-            surfacePos   = Vector2D(-1337, -1337);
-        } else {
-            foundSurface = pFoundWindow->wlSurface()->resource();
-            surfacePos   = pFoundWindow->m_realPosition->value();
+            if (!pFoundWindow) {
+                // what the fuck, somehow happens occasionally??
+                PWORKSPACE->m_hasFullscreenWindow = false;
+                return;
+            }
+
+            if (PWINDOWIDEAL &&
+                ((PWINDOWIDEAL->m_isFloating && (PWINDOWIDEAL->m_createdOverFullscreen || PWINDOWIDEAL->m_pinned)) /* floating over fullscreen or pinned */
+                 || (PMONITOR->m_activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
+                pFoundWindow = PWINDOWIDEAL;
+
+            if (!pFoundWindow->m_isX11) {
+                foundSurface = g_pCompositor->vectorWindowToSurface(mouseCoords, pFoundWindow, surfaceCoords);
+                surfacePos   = Vector2D(-1337, -1337);
+            } else {
+                foundSurface = pFoundWindow->wlSurface()->resource();
+                surfacePos   = pFoundWindow->m_realPosition->value();
+            }
         }
     }
 

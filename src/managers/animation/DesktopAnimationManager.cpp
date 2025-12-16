@@ -482,7 +482,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     if (ws->m_id == PMONITOR->activeWorkspaceID() || ws->m_id == PMONITOR->activeSpecialWorkspaceID()) {
         for (auto const& ls : PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
-            if (!ls->m_fadingOut)
+            if (!ls->m_fadingOut && !ls->m_aboveFullscreen)
                 *ls->m_alpha = FULLSCREEN && ws->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
     }

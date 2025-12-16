@@ -164,8 +164,9 @@ void CLayerSurface::onDestroy() {
 void CLayerSurface::onMap() {
     Debug::log(LOG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
 
-    m_mapped        = true;
-    m_interactivity = m_layerSurface->m_current.interactivity;
+    m_mapped          = true;
+    m_interactivity   = m_layerSurface->m_current.interactivity;
+    m_aboveFullscreen = true;
 
     m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
 
@@ -330,23 +331,10 @@ void CLayerSurface::onCommit() {
                 }
             }
 
-            // update alpha when window is in fullscreen
-            auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-            if (PWORKSPACE && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-                // warp if switching render layer so we don't see glitches and have clean fade
-                if ((m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) &&
-                    (m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP || m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY))
-                    m_alpha->setValueAndWarp(0.f);
+            m_layer           = m_layerSurface->m_current.layer;
+            m_aboveFullscreen = true;
 
-                // from overlay to top
-                if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY && m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-                    *m_alpha = 0.f;
-                // to overlay
-                if (m_layerSurface->m_current.layer == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
-                    *m_alpha = 1.f;
-            }
-
-            m_layer = m_layerSurface->m_current.layer;
+            g_pDesktopAnimationManager->setFullscreenFadeAnimation(PMONITOR->m_activeWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd

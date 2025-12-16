@@ -2164,10 +2164,14 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     PWINDOW->updateDecorationValues();
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
 
-    // make all windows on the same workspace under the fullscreen window
+    // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
             w->m_createdOverFullscreen = false;
+    }
+    for (auto const& ls : m_layers) {
+        if (ls->m_monitor == PMONITOR)
+            ls->m_aboveFullscreen = false;
     }
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(

@@ -45,9 +45,10 @@ namespace Desktop::View {
 
         PHLMONITORREF                           m_monitor;
 
-        bool                                    m_fadingOut     = false;
-        bool                                    m_readyToDelete = false;
-        bool                                    m_noProcess     = false;
+        bool                                    m_fadingOut       = false;
+        bool                                    m_readyToDelete   = false;
+        bool                                    m_noProcess       = false;
+        bool                                    m_aboveFullscreen = true;
 
         UP<Desktop::Rule::CLayerRuleApplicator> m_ruleApplicator;
 

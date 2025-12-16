@@ -1318,6 +1318,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         EMIT_HOOK_EVENT("workspace", pWorkspace);
     }
 
+    // set all LSes as not above fullscreen on workspace changes
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_self)
+            ls->m_aboveFullscreen = false;
+    }
+
     pWorkspace->m_events.activeChanged.emit();
 
     g_pHyprRenderer->damageMonitor(m_self.lock());

@@ -350,12 +350,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 const auto BOX = HLSurface->getSurfaceBoxGlobal();
 
                 if (BOX) {
-                    const auto PWINDOW = HLSurface->view()->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(HLSurface->view()) : nullptr;
+                    const auto PWINDOW = Desktop::View::CWindow::fromView(HLSurface->view());
+                    const auto LS      = Desktop::View::CLayerSurface::fromView(HLSurface->view());
                     surfacePos         = BOX->pos();
-                    pFoundLayerSurface =
-                        HLSurface->view()->type() == Desktop::View::VIEW_TYPE_LAYER_SURFACE ? dynamicPointerCast<Desktop::View::CLayerSurface>(HLSurface->view()) : nullptr;
-                    if (!pFoundLayerSurface)
-                        pFoundWindow = !PWINDOW || PWINDOW->isHidden() ? Desktop::focusState()->window() : PWINDOW;
+
+                    if (PWINDOW)
+                        pFoundWindow = PWINDOW;
+                    else if (LS)
+                        pFoundLayerSurface = LS;
+
                 } else // reset foundSurface, find one normally
                     foundSurface = nullptr;
             } else // reset foundSurface, find one normally
@@ -519,13 +522,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     m_emptyFocusCursorSet = false;
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
-
-    if (pFoundWindow && !pFoundWindow->m_isX11 && surfacePos != Vector2D(-1337, -1337)) {
-        // calc for oversized windows... fucking bullshit.
-        CBox geom = pFoundWindow->m_xdgSurface->m_current.geometry;
-
-        surfaceLocal = mouseCoords - surfacePos + geom.pos();
-    }
 
     if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
         surfaceLocal = surfaceLocal * pFoundWindow->m_X11SurfaceScaledBy;

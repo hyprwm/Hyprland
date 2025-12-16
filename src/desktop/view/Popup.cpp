@@ -68,7 +68,7 @@ eViewType CPopup::type() const {
 }
 
 bool CPopup::visible() const {
-    if (!m_mapped || !m_wlSurface->resource())
+    if ((!m_mapped || !m_wlSurface->resource()) && (!m_fadingOut || m_alpha->value() > 0.F))
         return false;
 
     if (!m_windowOwner.expired())
@@ -129,7 +129,7 @@ void CPopup::initAllSignals() {
     m_listeners.map        = m_resource->m_surface->m_events.map.listen([this] { this->onMap(); });
     m_listeners.unmap      = m_resource->m_surface->m_events.unmap.listen([this] { this->onUnmap(); });
     m_listeners.dismissed  = m_resource->m_events.dismissed.listen([this] { this->onUnmap(); });
-    m_listeners.destroy    = m_resource->m_surface->m_events.destroy.listen([this] { this->onDestroy(); });
+    m_listeners.destroy    = m_resource->m_events.destroy.listen([this] { this->onDestroy(); });
     m_listeners.commit     = m_resource->m_surface->m_events.commit.listen([this] { this->onCommit(); });
     m_listeners.newPopup   = m_resource->m_surface->m_events.newPopup.listen([this](const auto& resource) { this->onNewPopup(resource); });
 }
@@ -149,6 +149,11 @@ void CPopup::onDestroy() {
     m_subsurfaceHead.reset();
     m_children.clear();
     m_wlSurface.reset();
+
+    m_listeners.map.reset();
+    m_listeners.unmap.reset();
+    m_listeners.commit.reset();
+    m_listeners.newPopup.reset();
 
     if (m_fadingOut && m_alpha->isBeingAnimated()) {
         Debug::log(LOG, "popup {:x}: skipping full destroy, animating", rc<uintptr_t>(this));
@@ -394,6 +399,8 @@ void CPopup::recheckChildrenRecursive() {
     std::vector<WP<CPopup>> cpy;
     std::ranges::for_each(m_children, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
+        if (!c->visible())
+            continue;
         c->onCommit(true);
         c->recheckChildrenRecursive();
     }

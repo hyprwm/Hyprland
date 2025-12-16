@@ -7,8 +7,7 @@
 #include <algorithm>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
-#include "../../desktop/view/Window.hpp"
-#include "../../desktop/view/LayerSurface.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/CursorShape.hpp"
 #include "../../protocols/IdleInhibit.hpp"
@@ -172,15 +171,29 @@ void CInputManager::sendMotionEventsToFocused() {
     if (!Desktop::focusState()->surface() || isConstrained())
         return;
 
-    // todo: this sucks ass
-    const auto PWINDOW = g_pCompositor->getWindowFromSurface(Desktop::focusState()->surface());
-    const auto PLS     = g_pCompositor->getLayerSurfaceFromSurface(Desktop::focusState()->surface());
+    const auto SURF = Desktop::focusState()->surface();
 
-    const auto LOCAL = getMouseCoordsInternal() - (PWINDOW ? PWINDOW->m_realPosition->goal() : (PLS ? Vector2D{PLS->m_geometry.x, PLS->m_geometry.y} : Vector2D{}));
+    if (!SURF)
+        return;
+
+    const auto HLSurf = Desktop::View::CWLSurface::fromResource(SURF);
+
+    if (!HLSurf || !HLSurf->view())
+        return;
+
+    const auto VIEW = HLSurf->view();
+
+    if (!VIEW->aliveAndVisible())
+        return;
+
+    const auto BOX = HLSurf->getSurfaceBoxGlobal();
+
+    if (!BOX)
+        return;
 
     m_emptyFocusCursorSet = false;
 
-    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), LOCAL);
+    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), m_lastCursorPosFloored - BOX->pos());
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {

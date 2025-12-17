@@ -1,6 +1,8 @@
 #pragma once
 
 #include <shared_mutex>
+#include <unordered_map>
+#include <format>
 
 namespace Log {
     struct SRollingLogFollow {

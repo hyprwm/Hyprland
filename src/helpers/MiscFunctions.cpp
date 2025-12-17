@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif

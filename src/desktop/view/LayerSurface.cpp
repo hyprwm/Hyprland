@@ -50,8 +50,8 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
-    Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer),
-               pMonitor->m_name);
+    Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
+                     sc<int>(pLS->m_layer), pMonitor->m_name);
 
     return pLS;
 }
@@ -121,7 +121,7 @@ void CLayerSurface::onDestroy() {
     const auto PMONITOR = m_monitor.lock();
 
     if (!PMONITOR)
-        Log::logger->log(Log::WARN,  "Layersurface destroyed on an invalid monitor (removed?)");
+        Log::logger->log(Log::WARN, "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!m_fadingOut) {
         if (m_mapped) {
@@ -237,7 +237,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor || g_pCompositor->m_unsafeState) {
-        Log::logger->log(Log::WARN,  "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(m_self.lock());
 

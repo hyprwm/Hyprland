@@ -135,8 +135,8 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
 
-    Log::logger->log(Log::DEBUG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name, rc<uintptr_t>(MODULE), path,
-               PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
+    Log::logger->log(Log::DEBUG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name,
+                     rc<uintptr_t>(MODULE), path, PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
 
     return PLUGIN;
 }

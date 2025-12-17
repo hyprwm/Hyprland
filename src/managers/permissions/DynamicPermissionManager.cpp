@@ -82,19 +82,19 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 
     const auto LOOKUP = binaryNameForWlClient(client);
 
-    Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), rc<uintptr_t>(client),
-               LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
+    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission),
+                     rc<uintptr_t>(client), LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
     if (it == m_rules.end()) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission not cached, checking binary name");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking binary name");
 
         if (!LOOKUP.has_value())
-            Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: binary name check failed");
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: binary name check failed");
         else {
             const auto BINNAME = LOOKUP.value().contains("/") ? LOOKUP.value().substr(LOOKUP.value().find_last_of('/') + 1) : LOOKUP.value();
-            Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
 
             it = std::ranges::find_if(m_rules, [clientBinaryPath = LOOKUP.value(), permission](const auto& e) {
                 if (e->m_type != permission)
@@ -114,29 +114,29 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
             });
 
             if (it == m_rules.end())
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: no rule for binary");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for binary");
             else {
                 if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                    Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_ALLOW;
                 } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-                    Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_DENY;
                 } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-                    Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_PENDING;
                 } else
-                    Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
             }
         }
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
         return PERMISSION_RULE_ALLOW_MODE_DENY;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
@@ -158,8 +158,8 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
     if (pid > 0) {
         lookup = binaryNameForPid(pid);
 
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
-                   lookup.has_value() ? lookup.value() : "lookup failed: " + lookup.error());
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
+                         lookup.has_value() ? lookup.value() : "lookup failed: " + lookup.error());
 
         if (lookup.has_value())
             binaryName = *lookup;
@@ -169,7 +169,7 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [str, permission, pid](const auto& e) { return e->m_keyString == str && pid && pid == e->m_pid && e->m_type == permission; });
     if (it == m_rules.end()) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
 
         it = std::ranges::find_if(m_rules, [key = str, permission, &lookup](const auto& e) {
             if (e->m_type != permission)
@@ -186,33 +186,33 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         });
 
         if (it == m_rules.end())
-            Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: no rule for key");
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for key");
         else {
             if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
                 return PERMISSION_RULE_ALLOW_MODE_ALLOW;
             } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
                 return PERMISSION_RULE_ALLOW_MODE_DENY;
             } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
                 return PERMISSION_RULE_ALLOW_MODE_PENDING;
             } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ASK) {
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
                 askForPermission(nullptr, str, permission, pid);
                 return PERMISSION_RULE_ALLOW_MODE_PENDING;
             } else
-                Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
         }
 
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
         return PERMISSION_RULE_ALLOW_MODE_DENY;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
@@ -284,7 +284,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
         if (pr->hasError()) {
             // not reachable for now
-            Log::logger->log(Log::TRACE,  "CDynamicPermissionRule: error spawning dialog box");
+            Log::logger->log(Log::TRACE, "CDynamicPermissionRule: error spawning dialog box");
             if (r->m_promiseResolverForExternal)
                 r->m_promiseResolverForExternal->reject("error spawning dialog box");
             r->m_promiseResolverForExternal.reset();
@@ -293,7 +293,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
         const std::string& result = pr->result();
 
-        Log::logger->log(Log::TRACE,  "CDynamicPermissionRule: user returned {}", result);
+        Log::logger->log(Log::TRACE, "CDynamicPermissionRule: user returned {}", result);
 
         if (result.starts_with(ALLOW_ONCE))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;

@@ -250,7 +250,7 @@ void CXWaylandSurface::ping() {
     bool supportsPing = std::ranges::find(m_protocols, HYPRATOMS["_NET_WM_PING"]) != m_protocols.end();
 
     if (!supportsPing) {
-        Log::logger->log(Log::TRACE,  "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
+        Log::logger->log(Log::TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
         g_pANRManager->onResponse(m_self.lock());
         return;
     }

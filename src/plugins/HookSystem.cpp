@@ -300,7 +300,7 @@ static uintptr_t seekNewPageAddr() {
 
         uint64_t start = 0, end = 0;
         if (props[0].empty()) {
-            Log::logger->log(Log::WARN,  "seekNewPageAddr: unexpected line in self maps");
+            Log::logger->log(Log::WARN, "seekNewPageAddr: unexpected line in self maps");
             continue;
         }
 
@@ -310,7 +310,7 @@ static uintptr_t seekNewPageAddr() {
             start = std::stoull(startEnd[0], nullptr, 16);
             end   = std::stoull(startEnd[1], nullptr, 16);
         } catch (std::exception& e) {
-            Log::logger->log(Log::WARN,  "seekNewPageAddr: unexpected line in self maps: {}", line);
+            Log::logger->log(Log::WARN, "seekNewPageAddr: unexpected line in self maps: {}", line);
             continue;
         }
 

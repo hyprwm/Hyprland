@@ -78,8 +78,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
     clearManuallyAllocd();
 
-    Log::logger->log(Log::DEBUG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules, rules.model,
-               rules.options);
+    Log::logger->log(Log::DEBUG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules,
+                     rules.model, rules.options);
 
     if (!m_xkbFilePath.empty()) {
         auto path = absolutePath(m_xkbFilePath, g_pConfigManager->m_configCurrentPath);
@@ -99,8 +99,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
                                         ", options: " + rules.options + ", layout: " + rules.layout + " )");
 
-        Log::logger->log(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
-                   rules.options);
+        Log::logger->log(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules,
+                         rules.model, rules.options);
         memset(&XKBRULES, 0, sizeof(XKBRULES));
 
         m_currentRules.rules   = "";

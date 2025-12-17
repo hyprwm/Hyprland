@@ -564,7 +564,7 @@ SP<CWLSeatResource> CSeatManager::seatResourceForClient(wl_client* client) {
 
 void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
     if (source == m_selection.currentSelection) {
-        Log::logger->log(Log::WARN,  "[seat] duplicated setCurrentSelection?");
+        Log::logger->log(Log::WARN, "[seat] duplicated setCurrentSelection?");
         return;
     }
 
@@ -590,7 +590,7 @@ void CSeatManager::setCurrentSelection(SP<IDataSource> source) {
 
 void CSeatManager::setCurrentPrimarySelection(SP<IDataSource> source) {
     if (source == m_selection.currentPrimarySelection) {
-        Log::logger->log(Log::WARN,  "[seat] duplicated setCurrentPrimarySelection?");
+        Log::logger->log(Log::WARN, "[seat] duplicated setCurrentPrimarySelection?");
         return;
     }
 

@@ -529,7 +529,7 @@ void logSystemInfo() {
     Log::logger->log(Log::DEBUG, "Release: {}", std::string{unameInfo.release});
     Log::logger->log(Log::DEBUG, "Version: {}", std::string{unameInfo.version});
 
-    Log::logger->log(Log::DEBUG,  "\n");
+    Log::logger->log(Log::DEBUG, "\n");
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
@@ -558,13 +558,13 @@ void logSystemInfo() {
     Log::logger->log(Log::DEBUG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
-        Log::logger->log(Log::WARN,  "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        Log::logger->log(Log::WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
     }
 
     // log etc
     Log::logger->log(Log::DEBUG, "os-release:");
 
-    Log::logger->log(Log::DEBUG,  "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
+    Log::logger->log(Log::DEBUG, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
 int64_t getPPIDof(int64_t pid) {

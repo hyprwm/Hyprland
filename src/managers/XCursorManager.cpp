@@ -179,7 +179,7 @@ SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, floa
         return c;
     }
 
-    Log::logger->log(Log::WARN,  "XCursor couldn't find shape {} , using default cursor instead", shape);
+    Log::logger->log(Log::WARN, "XCursor couldn't find shape {} , using default cursor instead", shape);
     return m_defaultCursor;
 }
 
@@ -496,11 +496,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadStandardCursors(std::string cons
         auto        xImages = XcursorShapeLoadImages(i << 1 /* wtf xcursor? */, name.c_str(), size);
 
         if (!xImages) {
-            Log::logger->log(Log::WARN,  "XCursor failed to find a shape with name {}, trying size 24.", shape);
+            Log::logger->log(Log::WARN, "XCursor failed to find a shape with name {}, trying size 24.", shape);
             xImages = XcursorShapeLoadImages(i << 1 /* wtf xcursor? */, name.c_str(), 24);
 
             if (!xImages) {
-                Log::logger->log(Log::WARN,  "XCursor failed to find a shape with name {}, skipping", shape);
+                Log::logger->log(Log::WARN, "XCursor failed to find a shape with name {}, skipping", shape);
                 continue;
             }
         }
@@ -528,7 +528,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             std::error_code e1, e2;
             if ((!entry.is_regular_file(e1) && !entry.is_symlink(e2)) || e1 || e2) {
-                Log::logger->log(Log::WARN,  "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
+                Log::logger->log(Log::WARN, "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
                 continue;
             }
 
@@ -542,11 +542,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
             auto xImages = XcursorFileLoadImages(f.get(), size);
 
             if (!xImages) {
-                Log::logger->log(Log::WARN,  "XCursor failed to load image {}, trying size 24.", full);
+                Log::logger->log(Log::WARN, "XCursor failed to load image {}, trying size 24.", full);
                 xImages = XcursorFileLoadImages(f.get(), 24);
 
                 if (!xImages) {
-                    Log::logger->log(Log::WARN,  "XCursor failed to load image {}, skipping", full);
+                    Log::logger->log(Log::WARN, "XCursor failed to load image {}, skipping", full);
                     continue;
                 }
             }
@@ -578,7 +578,7 @@ void CXCursorManager::syncGsettings() {
         auto* gSettingsSchemaSource = g_settings_schema_source_get_default();
 
         if (!gSettingsSchemaSource) {
-            Log::logger->log(Log::WARN,  "GSettings default schema source does not exist, can't sync GSettings");
+            Log::logger->log(Log::WARN, "GSettings default schema source does not exist, can't sync GSettings");
             return false;
         }
 
@@ -596,14 +596,14 @@ void CXCursorManager::syncGsettings() {
     using SettingValue = std::variant<std::string, int>;
     auto setValue      = [&checkParamExists](std::string const& paramName, const SettingValue& paramValue, std::string const& category) {
         if (!checkParamExists(paramName, category)) {
-            Log::logger->log(Log::WARN,  "GSettings parameter doesn't exist {} in {}", paramName, category);
+            Log::logger->log(Log::WARN, "GSettings parameter doesn't exist {} in {}", paramName, category);
             return;
         }
 
         auto* gsettings = g_settings_new(category.c_str());
 
         if (!gsettings) {
-            Log::logger->log(Log::WARN,  "GSettings failed to allocate new settings with category {}", category);
+            Log::logger->log(Log::WARN, "GSettings failed to allocate new settings with category {}", category);
             return;
         }
 

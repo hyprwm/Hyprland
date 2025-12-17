@@ -1649,8 +1649,8 @@ void CWindow::updateX11SurfaceScale() {
 void CWindow::sendWindowSize(bool force) {
     const auto PMONITOR = m_monitor.lock();
 
-    Log::logger->log(Log::TRACE,  "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(this), this->m_title, m_realPosition->goal(),
-               m_realSize->goal(), force);
+    Log::logger->log(Log::TRACE, "sendWindowSize: window:{:x},title:{} with real pos {}, real size {} (force: {})", rc<uintptr_t>(this), this->m_title, m_realPosition->goal(),
+                     m_realSize->goal(), force);
 
     // TODO: this should be decoupled from setWindowSize IMO
     const auto REPORTPOS = realToReportPosition();
@@ -1682,7 +1682,7 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
         m_wlSurface->resource()->m_contentType = PROTO::contentType->getContentType(m_wlSurface->resource());
     // else disallow content type change if proto is used?
 
-    Log::logger->log(Log::INFO,  "ContentType for window {}", sc<int>(contentType));
+    Log::logger->log(Log::INFO, "ContentType for window {}", sc<int>(contentType));
     m_wlSurface->resource()->m_contentType->m_value = contentType;
 }
 
@@ -2406,7 +2406,7 @@ void CWindow::unmapWindow() {
     const auto  CURRENTFSMODE        = m_fullscreenState.internal;
 
     if (!wlSurface()->exists() || !m_isMapped) {
-        Log::logger->log(Log::WARN,  "{} unmapped without being mapped??", m_self.lock());
+        Log::logger->log(Log::WARN, "{} unmapped without being mapped??", m_self.lock());
         m_fadingOut = false;
         return;
     }

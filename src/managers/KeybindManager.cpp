@@ -307,8 +307,8 @@ void CKeybindManager::updateXKBTranslationState() {
                                       ", layout: " + LAYOUT + " )",
                                   CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 
-        Log::logger->log(Log::ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant,
-                   rules.rules, rules.model, rules.options);
+        Log::logger->log(Log::ERR, "[XKBTranslationState] Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout,
+                         rules.variant, rules.rules, rules.model, rules.options);
         memset(&rules, 0, sizeof(rules));
 
         PKEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);

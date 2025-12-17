@@ -96,7 +96,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
         switch (key) {
             default: {
                 if (key <= WINDOW_RULE_EFFECT_LAST_STATIC) {
-                    Log::logger->log(Log::TRACE,  "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                    Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                     break;
                 }
 
@@ -179,9 +179,9 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     // Includes sanity checks for the number of colors in each gradient
                     if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
-                        Log::logger->log(Log::WARN,  "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", effect);
+                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", effect);
                     else if (activeBorderGradient.m_colors.empty())
-                        Log::logger->log(Log::WARN,  "Bordercolor rule \"{}\" has no colors, ignoring", effect);
+                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has no colors, ignoring", effect);
                     else if (inactiveBorderGradient.m_colors.empty())
                         m_activeBorderColor.first = Types::COverridableVar(activeBorderGradient, Types::PRIORITY_WINDOW_RULE);
                     else {
@@ -451,7 +451,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
             default: {
-                Log::logger->log(Log::TRACE,  "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                 break;
             }
 

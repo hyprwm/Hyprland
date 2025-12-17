@@ -133,7 +133,8 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
     });
     m_resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x,
                                          uint32_t w_y, uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
-        LOGM(Log::TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll, fall);
+        LOGM(Log::TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll,
+             fall);
         m_surface->m_colorManagement->m_imageDescription.masteringPrimaries      = SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
                                                                                                 .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
                                                                                                 .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},

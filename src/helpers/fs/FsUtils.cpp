@@ -42,7 +42,7 @@ std::optional<std::string> NFsUtils::getDataHome() {
         }
         std::filesystem::permissions(dataRoot, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write | std::filesystem::perms::owner_exec, ec);
         if (ec)
-            Log::logger->log(Log::WARN,  "FsUtils::getDataHome: couldn't set perms on hyprland data store. Proceeding anyways.");
+            Log::logger->log(Log::WARN, "FsUtils::getDataHome: couldn't set perms on hyprland data store. Proceeding anyways.");
     }
 
     if (!std::filesystem::exists(dataRoot, ec) || ec) {

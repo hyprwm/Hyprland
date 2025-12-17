@@ -142,7 +142,7 @@ std::string CEventManager::formatEvent(const SHyprIPCEvent& event) const {
 
 void CEventManager::postEvent(const SHyprIPCEvent& event) {
     if (g_pCompositor->m_isShuttingDown) {
-        Log::logger->log(Log::WARN,  "Suppressed (shutting down) event of type {}, content: {}", event.event, event.data);
+        Log::logger->log(Log::WARN, "Suppressed (shutting down) event of type {}, content: {}", event.event, event.data);
         return;
     }
 

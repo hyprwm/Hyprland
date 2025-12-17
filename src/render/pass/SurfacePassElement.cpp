@@ -315,7 +315,7 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
 
 void CSurfacePassElement::discard() {
     if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
-        Log::logger->log(Log::TRACE,  "discard for invisible surface");
+        Log::logger->log(Log::TRACE, "discard for invisible surface");
         m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock(), true);
     }
 }

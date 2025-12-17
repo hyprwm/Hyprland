@@ -16,7 +16,7 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
     if (level == HC_LOG_TRACE)
         return;
 
-    Log::logger->log(Log::DEBUG,  "[hc] {}", message);
+    Log::logger->log(Log::DEBUG, "[hc] {}", message);
 }
 
 CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(cairo_image_surface_get_stride(surf)) {
@@ -83,7 +83,7 @@ CCursorManager::CCursorManager() {
         }
 
         if (m_size <= 0) {
-            Log::logger->log(Log::WARN,  "HYPRCURSOR_SIZE size not set, defaulting to size 24");
+            Log::logger->log(Log::WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
             m_size = 24;
         }
     } else {
@@ -97,7 +97,7 @@ CCursorManager::CCursorManager() {
         }
 
         if (m_size <= 0) {
-            Log::logger->log(Log::WARN,  "XCURSOR_SIZE size not set, defaulting to size 24");
+            Log::logger->log(Log::WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
             m_size = 24;
         }
     }

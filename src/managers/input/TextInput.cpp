@@ -112,7 +112,7 @@ void CTextInput::onCommit() {
     }
 
     if (!(isV3() ? m_v3Input->m_current.enabled.value : m_v1Input->m_active)) {
-        Log::logger->log(Log::WARN,  "Disabled TextInput commit?");
+        Log::logger->log(Log::WARN, "Disabled TextInput commit?");
         return;
     }
 

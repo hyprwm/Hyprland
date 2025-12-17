@@ -270,7 +270,7 @@ void CMonitor::onConnect(bool noRule) {
         applyMonitorRule(&monitorRule, true);
 
     if (!m_state.commit())
-        Log::logger->log(Log::WARN,  "state.commit() failed in CMonitor::onCommit");
+        Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onCommit");
 
     m_damage.setSize(m_transformedSize);
 
@@ -415,7 +415,7 @@ void CMonitor::onDisconnect(bool destroy) {
     Log::logger->log(Log::DEBUG, "Removed monitor {}!", m_name);
 
     if (!BACKUPMON) {
-        Log::logger->log(Log::WARN,  "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
+        Log::logger->log(Log::WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
         g_pCompositor->enterUnsafeState();
     }
 
@@ -453,7 +453,7 @@ void CMonitor::onDisconnect(bool destroy) {
     m_output->state->setEnabled(false);
 
     if (!m_state.commit())
-        Log::logger->log(Log::WARN,  "state.commit() failed in CMonitor::onDisconnect");
+        Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
 
     if (Desktop::focusState()->monitor() == m_self)
         Desktop::focusState()->rawMonitorFocus(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
@@ -738,12 +738,12 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_output->state->resetExplicitFences();
 
     if (Env::isTrace()) {
-        Log::logger->log(Log::TRACE,  "Monitor {} requested modes:", m_name);
+        Log::logger->log(Log::TRACE, "Monitor {} requested modes:", m_name);
         if (requestedModes.empty())
-            Log::logger->log(Log::TRACE,  "| None");
+            Log::logger->log(Log::TRACE, "| None");
         else {
             for (auto const& mode : requestedModes | std::views::reverse) {
-                Log::logger->log(Log::TRACE,  "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
+                Log::logger->log(Log::TRACE, "| {:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
             }
         }
     }
@@ -820,7 +820,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
             auto errorMessage = I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
                                                              {{"name", m_name}, {"mode", std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f)}});
-            Log::logger->log(Log::WARN,  errorMessage);
+            Log::logger->log(Log::WARN, errorMessage);
             g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
             m_refreshRate   = mode->refreshRate / 1000.f;
@@ -994,8 +994,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     // reload to fix mirrors
     g_pConfigManager->m_wantsMonitorReload = true;
 
-    Log::logger->log(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale, sc<int>(m_transform),
-               m_position, sc<int>(m_enabled10bit));
+    Log::logger->log(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale,
+                     sc<int>(m_transform), m_position, sc<int>(m_enabled10bit));
 
     EMIT_HOOK_EVENT("monitorLayoutChanged", nullptr);
 
@@ -1693,7 +1693,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (!*PTEARINGENABLED) {
         reasons |= TC_USER;
         if (!full) {
-            Log::logger->log(Log::WARN,  "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
+            Log::logger->log(Log::WARN, "Tearing commit requested but the master switch general:allow_tearing is off, ignoring");
             return reasons;
         }
     }
@@ -1701,7 +1701,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
-            Log::logger->log(Log::WARN,  "Tearing commit requested but scale factor is not 1, ignoring");
+            Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
             return reasons;
         }
     }
@@ -1709,7 +1709,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     if (!m_tearingState.canTear) {
         reasons |= TC_SUPPORT;
         if (!full) {
-            Log::logger->log(Log::WARN,  "Tearing commit requested but monitor doesn't support it, ignoring");
+            Log::logger->log(Log::WARN, "Tearing commit requested but monitor doesn't support it, ignoring");
             return reasons;
         }
     }
@@ -1821,8 +1821,8 @@ bool CMonitor::attemptDirectScanout() {
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     const auto params     = PSURFACE->m_current.buffer->dmabuf();
 
-    Log::logger->log(Log::TRACE,  "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
-               rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
+    Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+                     rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
@@ -1832,12 +1832,12 @@ bool CMonitor::attemptDirectScanout() {
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
-                Log::logger->log(Log::TRACE,  "attemptDirectScanout: failed basic test on cursor update");
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
                 return false;
             }
 
             if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE,  "attemptDirectScanout: failed to commit cursor update");
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
                 m_lastScanout.reset();
                 return false;
             }
@@ -1865,12 +1865,12 @@ bool CMonitor::attemptDirectScanout() {
     }
 
     m_output->state->setBuffer(PBUFFER);
-    Log::logger->log(Log::TRACE,  "attemptDirectScanout: setting presentation mode");
+    Log::logger->log(Log::TRACE, "attemptDirectScanout: setting presentation mode");
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (!m_state.test()) {
-        Log::logger->log(Log::TRACE,  "attemptDirectScanout: failed basic test");
+        Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
 
@@ -1884,7 +1884,7 @@ bool CMonitor::attemptDirectScanout() {
     bool ok = m_output->commit();
 
     if (!ok) {
-        Log::logger->log(Log::TRACE,  "attemptDirectScanout: failed to scanout surface");
+        Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
         m_lastScanout.reset();
         return false;
     }
@@ -1978,8 +1978,8 @@ void CMonitor::commitDPMSState(bool state) {
 }
 
 void CMonitor::debugLastPresentation(const std::string& message) {
-    Log::logger->log(Log::TRACE,  "{} (last presentation {} - {} fps)", message, m_lastPresentationTimer.getMillis(),
-               m_lastPresentationTimer.getMillis() > 0 ? 1000.0f / m_lastPresentationTimer.getMillis() : 0.0f);
+    Log::logger->log(Log::TRACE, "{} (last presentation {} - {} fps)", message, m_lastPresentationTimer.getMillis(),
+                     m_lastPresentationTimer.getMillis() > 0 ? 1000.0f / m_lastPresentationTimer.getMillis() : 0.0f);
 }
 
 void CMonitor::onCursorMovedOnMonitor() {
@@ -2094,7 +2094,7 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {
 void CMonitorState::ensureBufferPresent() {
     const auto STATE = m_owner->m_output->state->state();
     if (!STATE.enabled) {
-        Log::logger->log(Log::TRACE,  "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
+        Log::logger->log(Log::TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
     }
 
@@ -2136,7 +2136,7 @@ bool CMonitorState::updateSwapchain() {
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
-        Log::logger->log(Log::WARN,  "updateSwapchain: No mode?");
+        Log::logger->log(Log::WARN, "updateSwapchain: No mode?");
         return true;
     }
     options.format  = m_owner->m_drmFormat;

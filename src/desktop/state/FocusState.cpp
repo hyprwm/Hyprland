@@ -324,7 +324,7 @@ void CFocusState::addWindowToHistory(PHLWINDOW w) {
 void CFocusState::moveWindowToLatestInHistory(PHLWINDOW w) {
     const auto HISTORYPIVOT = std::ranges::find_if(m_windowFocusHistory, [&w](const auto& other) { return other.lock() == w; });
     if (HISTORYPIVOT == m_windowFocusHistory.end())
-        Log::logger->log(Log::TRACE,  "CFocusState: {} has no pivot in history, ignoring request to move to latest", w);
+        Log::logger->log(Log::TRACE, "CFocusState: {} has no pivot in history, ignoring request to move to latest", w);
     else
         std::rotate(m_windowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
 }

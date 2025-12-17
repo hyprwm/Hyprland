@@ -2049,7 +2049,7 @@ void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& t
 }
 
 void CHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
-    m_cursorHasSurface = surf;
+    m_cursorHasSurface = surf && surf->resource();
 
     m_lastCursorData.name     = "";
     m_lastCursorData.surf     = surf;

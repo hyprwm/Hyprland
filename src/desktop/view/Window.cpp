@@ -10,6 +10,7 @@
 
 #include <any>
 #include <bit>
+#include <fstream>
 #include <string_view>
 #include "Window.hpp"
 #include "LayerSurface.hpp"

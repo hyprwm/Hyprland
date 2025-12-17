@@ -42,14 +42,14 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlM
 
         m_ctms[PMONITOR->m_name] = MAT;
 
-        LOGM(LOG, "CTM set for output {}: {}", PMONITOR->m_name, m_ctms.at(PMONITOR->m_name).toString());
+        LOGM(Log::DEBUG, "CTM set for output {}: {}", PMONITOR->m_name, m_ctms.at(PMONITOR->m_name).toString());
     });
 
     m_resource->setCommit([this](CHyprlandCtmControlManagerV1* r) {
         if (m_blocked)
             return;
 
-        LOGM(LOG, "Committing ctms to outputs");
+        LOGM(Log::DEBUG, "Committing ctms to outputs");
 
         for (auto& m : g_pCompositor->m_monitors) {
             if (!m_ctms.contains(m->m_name)) {
@@ -100,7 +100,7 @@ void CHyprlandCTMControlProtocol::bindManager(wl_client* client, void* data, uin
     else
         m_manager = RESOURCE;
 
-    LOGM(LOG, "New CTM Manager at 0x{:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New CTM Manager at 0x{:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* res) {

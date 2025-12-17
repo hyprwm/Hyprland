@@ -1,9 +1,10 @@
 #include "defines.hpp"
-#include "debug/Log.hpp"
+#include "debug/log/Logger.hpp"
 #include "Compositor.hpp"
 #include "config/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
+#include "helpers/env/Env.hpp"
 
 #include <csignal>
 #include <cstdio>
@@ -132,7 +133,7 @@ int main(int argc, char** argv) {
                     return 1;
                 }
 
-                Debug::log(LOG, "User-specified config location: '{}'", configPath);
+                Log::logger->log(Log::DEBUG, "User-specified config location: '{}'", configPath);
 
                 it++;
 
@@ -219,17 +220,17 @@ int main(int argc, char** argv) {
         g_pCompositor->m_safeMode = true;
 
     if (!watchdogOk)
-        Debug::log(WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
+        Log::logger->log(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
 
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)
         return !g_pConfigManager->m_lastConfigVerificationWasSuccessful;
 
-    if (!envEnabled("HYPRLAND_NO_RT"))
+    if (!Env::envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();
 
-    Debug::log(LOG, "Hyprland init finished.");
+    Log::logger->log(Log::DEBUG, "Hyprland init finished.");
 
     // If all's good to go, start.
     g_pCompositor->startCompositor();
@@ -238,7 +239,7 @@ int main(int argc, char** argv) {
 
     g_pCompositor.reset();
 
-    Debug::log(LOG, "Hyprland has reached the end.");
+    Log::logger->log(Log::DEBUG, "Hyprland has reached the end.");
 
     return EXIT_SUCCESS;
 }

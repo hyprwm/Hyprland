@@ -41,7 +41,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!g_pSeatManager->serialValid(PSEAT, serial, false))
             return;
 
-        LOGM(LOG, "warped pointer to {}", GLOBALPOS);
+        LOGM(Log::DEBUG, "warped pointer to {}", GLOBALPOS);
 
         g_pPointerManager->warpTo(GLOBALPOS);
         g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);

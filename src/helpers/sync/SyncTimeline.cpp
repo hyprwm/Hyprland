@@ -16,7 +16,7 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_) {
     timeline->m_self  = timeline;
 
     if (drmSyncobjCreate(drmFD_, 0, &timeline->m_handle)) {
-        Debug::log(ERR, "CSyncTimeline: failed to create a drm syncobj??");
+        Log::logger->log(Log::ERR, "CSyncTimeline: failed to create a drm syncobj??");
         return nullptr;
     }
 
@@ -33,7 +33,7 @@ SP<CSyncTimeline> CSyncTimeline::create(int drmFD_, CFileDescriptor&& drmSyncobj
     timeline->m_self      = timeline;
 
     if (drmSyncobjFDToHandle(drmFD_, timeline->m_syncobjFD.get(), &timeline->m_handle)) {
-        Debug::log(ERR, "CSyncTimeline: failed to create a drm syncobj from fd??");
+        Log::logger->log(Log::ERR, "CSyncTimeline: failed to create a drm syncobj from fd??");
         return nullptr;
     }
 
@@ -57,7 +57,7 @@ std::optional<bool> CSyncTimeline::check(uint64_t point, uint32_t flags) {
     uint32_t signaled = 0;
     int      ret      = drmSyncobjTimelineWait(m_drmFD, &m_handle, &point, 1, 0, flags, &signaled);
     if (ret != 0 && ret != -ETIME_ERR) {
-        Debug::log(ERR, "CSyncTimeline::check: drmSyncobjTimelineWait failed");
+        Log::logger->log(Log::ERR, "CSyncTimeline::check: drmSyncobjTimelineWait failed");
         return std::nullopt;
     }
 
@@ -68,12 +68,12 @@ bool CSyncTimeline::addWaiter(std::function<void()>&& waiter, uint64_t point, ui
     auto eventFd = CFileDescriptor(eventfd(0, EFD_CLOEXEC));
 
     if (!eventFd.isValid()) {
-        Debug::log(ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
+        Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: failed to acquire an eventfd");
         return false;
     }
 
     if (drmSyncobjEventfd(m_drmFD, m_handle, point, eventFd.get(), flags)) {
-        Debug::log(ERR, "CSyncTimeline::addWaiter: drmSyncobjEventfd failed");
+        Log::logger->log(Log::ERR, "CSyncTimeline::addWaiter: drmSyncobjEventfd failed");
         return false;
     }
 
@@ -87,18 +87,18 @@ CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {
 
     uint32_t syncHandle = 0;
     if (drmSyncobjCreate(m_drmFD, 0, &syncHandle)) {
-        Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjCreate failed");
+        Log::logger->log(Log::ERR, "exportAsSyncFileFD: drmSyncobjCreate failed");
         return {};
     }
 
     if (drmSyncobjTransfer(m_drmFD, syncHandle, 0, m_handle, src, 0)) {
-        Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjTransfer failed");
+        Log::logger->log(Log::ERR, "exportAsSyncFileFD: drmSyncobjTransfer failed");
         drmSyncobjDestroy(m_drmFD, syncHandle);
         return {};
     }
 
     if (drmSyncobjExportSyncFile(m_drmFD, syncHandle, &sync)) {
-        Debug::log(ERR, "exportAsSyncFileFD: drmSyncobjExportSyncFile failed");
+        Log::logger->log(Log::ERR, "exportAsSyncFileFD: drmSyncobjExportSyncFile failed");
         drmSyncobjDestroy(m_drmFD, syncHandle);
         return {};
     }
@@ -111,18 +111,18 @@ bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, CFileDescriptor& fd) {
     uint32_t syncHandle = 0;
 
     if (drmSyncobjCreate(m_drmFD, 0, &syncHandle)) {
-        Debug::log(ERR, "importFromSyncFileFD: drmSyncobjCreate failed");
+        Log::logger->log(Log::ERR, "importFromSyncFileFD: drmSyncobjCreate failed");
         return false;
     }
 
     if (drmSyncobjImportSyncFile(m_drmFD, syncHandle, fd.get())) {
-        Debug::log(ERR, "importFromSyncFileFD: drmSyncobjImportSyncFile failed");
+        Log::logger->log(Log::ERR, "importFromSyncFileFD: drmSyncobjImportSyncFile failed");
         drmSyncobjDestroy(m_drmFD, syncHandle);
         return false;
     }
 
     if (drmSyncobjTransfer(m_drmFD, m_handle, dst, syncHandle, 0, 0)) {
-        Debug::log(ERR, "importFromSyncFileFD: drmSyncobjTransfer failed");
+        Log::logger->log(Log::ERR, "importFromSyncFileFD: drmSyncobjTransfer failed");
         drmSyncobjDestroy(m_drmFD, syncHandle);
         return false;
     }
@@ -133,12 +133,12 @@ bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, CFileDescriptor& fd) {
 
 bool CSyncTimeline::transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint) {
     if (m_drmFD != from->m_drmFD) {
-        Debug::log(ERR, "CSyncTimeline::transfer: cannot transfer timelines between gpus, {} -> {}", from->m_drmFD, m_drmFD);
+        Log::logger->log(Log::ERR, "CSyncTimeline::transfer: cannot transfer timelines between gpus, {} -> {}", from->m_drmFD, m_drmFD);
         return false;
     }
 
     if (drmSyncobjTransfer(m_drmFD, m_handle, toPoint, from->m_handle, fromPoint, 0)) {
-        Debug::log(ERR, "CSyncTimeline::transfer: drmSyncobjTransfer failed");
+        Log::logger->log(Log::ERR, "CSyncTimeline::transfer: drmSyncobjTransfer failed");
         return false;
     }
 
@@ -147,5 +147,5 @@ bool CSyncTimeline::transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_
 
 void CSyncTimeline::signal(uint64_t point) {
     if (drmSyncobjTimelineSignal(m_drmFD, &m_handle, &point, 1))
-        Debug::log(ERR, "CSyncTimeline::signal: drmSyncobjTimelineSignal failed");
+        Log::logger->log(Log::ERR, "CSyncTimeline::signal: drmSyncobjTimelineSignal failed");
 }

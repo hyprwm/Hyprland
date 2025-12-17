@@ -13,7 +13,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     auto OUTPUTRES = CWLOutputResource::fromResource(output);
 
     if UNLIKELY (!OUTPUTRES) {
-        LOGM(ERR, "No output in CGammaControl");
+        LOGM(Log::ERR, "No output in CGammaControl");
         m_resource->sendFailed();
         return;
     }
@@ -21,7 +21,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     m_monitor = OUTPUTRES->m_monitor;
 
     if UNLIKELY (!m_monitor || !m_monitor->m_output) {
-        LOGM(ERR, "No CMonitor");
+        LOGM(Log::ERR, "No CMonitor");
         m_resource->sendFailed();
         return;
     }
@@ -36,7 +36,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     m_gammaSize = m_monitor->m_output->getGammaSize();
 
     if UNLIKELY (m_gammaSize <= 0) {
-        LOGM(ERR, "Output {} doesn't support gamma", m_monitor->m_name);
+        LOGM(Log::ERR, "Output {} doesn't support gamma", m_monitor->m_name);
         m_resource->sendFailed();
         return;
     }
@@ -49,24 +49,24 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
     m_resource->setSetGamma([this](CZwlrGammaControlV1* gamma, int32_t fd) {
         CFileDescriptor gammaFd{fd};
         if UNLIKELY (!m_monitor) {
-            LOGM(ERR, "setGamma for a dead monitor");
+            LOGM(Log::ERR, "setGamma for a dead monitor");
             m_resource->sendFailed();
             return;
         }
 
-        LOGM(LOG, "setGamma for {}", m_monitor->m_name);
+        LOGM(Log::DEBUG, "setGamma for {}", m_monitor->m_name);
 
         // TODO: make CFileDescriptor getflags use F_GETFL
         int fdFlags = fcntl(gammaFd.get(), F_GETFL, 0);
         if UNLIKELY (fdFlags < 0) {
-            LOGM(ERR, "Failed to get fd flags");
+            LOGM(Log::ERR, "Failed to get fd flags");
             m_resource->sendFailed();
             return;
         }
 
         // TODO: make CFileDescriptor setflags use F_SETFL
         if UNLIKELY (fcntl(gammaFd.get(), F_SETFL, fdFlags | O_NONBLOCK) < 0) {
-            LOGM(ERR, "Failed to set fd flags");
+            LOGM(Log::ERR, "Failed to set fd flags");
             m_resource->sendFailed();
             return;
         }
@@ -81,7 +81,7 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
         }
 
         if (readBytes < 0 || sc<size_t>(readBytes) != m_gammaTable.size() * sizeof(uint16_t) || moreBytes != 0) {
-            LOGM(ERR, "Failed to read bytes");
+            LOGM(Log::ERR, "Failed to read bytes");
 
             if (sc<size_t>(readBytes) != m_gammaTable.size() * sizeof(uint16_t) || moreBytes > 0) {
                 gamma->error(ZWLR_GAMMA_CONTROL_V1_ERROR_INVALID_GAMMA, "Gamma ramps size mismatch");
@@ -136,7 +136,7 @@ void CGammaControl::applyToMonitor() {
     if UNLIKELY (!m_monitor || !m_monitor->m_output)
         return; // ??
 
-    LOGM(LOG, "setting to monitor {}", m_monitor->m_name);
+    LOGM(Log::DEBUG, "setting to monitor {}", m_monitor->m_name);
 
     if (!m_gammaTableSet) {
         m_monitor->m_output->state->setGammaLut({});
@@ -146,7 +146,7 @@ void CGammaControl::applyToMonitor() {
     m_monitor->m_output->state->setGammaLut(m_gammaTable);
 
     if (!m_monitor->m_state.test()) {
-        LOGM(LOG, "setting to monitor {} failed", m_monitor->m_name);
+        LOGM(Log::DEBUG, "setting to monitor {} failed", m_monitor->m_name);
         m_monitor->m_output->state->setGammaLut({});
     }
 
@@ -158,7 +158,7 @@ PHLMONITOR CGammaControl::getMonitor() {
 }
 
 void CGammaControl::onMonitorDestroy() {
-    LOGM(LOG, "Destroying gamma control for {}", m_monitor->m_name);
+    LOGM(Log::DEBUG, "Destroying gamma control for {}", m_monitor->m_name);
     m_resource->sendFailed();
 }
 

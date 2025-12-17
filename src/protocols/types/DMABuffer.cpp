@@ -25,12 +25,12 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
     if UNLIKELY (!eglImage) {
-        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
+        Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
         m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
         eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
 
         if UNLIKELY (!eglImage) {
-            Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
+            Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
     }
@@ -40,7 +40,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     m_success = m_texture->m_texID;
 
     if UNLIKELY (!m_success)
-        Debug::log(ERR, "Failed to create a dmabuf: texture is null");
+        Log::logger->log(Log::ERR, "Failed to create a dmabuf: texture is null");
 }
 
 CDMABuffer::~CDMABuffer() {

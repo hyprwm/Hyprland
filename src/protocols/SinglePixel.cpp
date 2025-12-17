@@ -4,7 +4,7 @@
 #include "render/Renderer.hpp"
 
 CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColor col_) {
-    LOGM(LOG, "New single-pixel buffer with color 0x{:x}", col_.getAsHex());
+    LOGM(Log::DEBUG, "New single-pixel buffer with color 0x{:x}", col_.getAsHex());
 
     m_color = col_.getAsHex();
 
@@ -21,7 +21,7 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
     size = {1, 1};
 
     if (!m_success)
-        Debug::log(ERR, "Failed creating a single pixel texture: null texture id");
+        Log::logger->log(Log::ERR, "Failed creating a single pixel texture: null texture id");
 }
 
 CSinglePixelBuffer::~CSinglePixelBuffer() {

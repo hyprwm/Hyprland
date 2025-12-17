@@ -206,7 +206,7 @@ CForeignToplevelWlrManager::CForeignToplevelWlrManager(SP<CZwlrForeignToplevelMa
     m_resource->setStop([this](CZwlrForeignToplevelManagerV1* h) {
         m_resource->sendFinished();
         m_finished = true;
-        LOGM(LOG, "CForeignToplevelWlrManager: finished");
+        LOGM(Log::DEBUG, "CForeignToplevelWlrManager: finished");
         PROTO::foreignToplevelWlr->onManagerResourceDestroy(this);
     });
 
@@ -228,13 +228,13 @@ void CForeignToplevelWlrManager::onMap(PHLWINDOW pWindow) {
         makeShared<CForeignToplevelHandleWlr>(makeShared<CZwlrForeignToplevelHandleV1>(m_resource->client(), m_resource->version(), 0), pWindow));
 
     if UNLIKELY (!NEWHANDLE->good()) {
-        LOGM(ERR, "Couldn't create a foreign handle");
+        LOGM(Log::ERR, "Couldn't create a foreign handle");
         m_resource->noMemory();
         PROTO::foreignToplevelWlr->m_handles.pop_back();
         return;
     }
 
-    LOGM(LOG, "Newly mapped window {:016x}", (uintptr_t)pWindow.get());
+    LOGM(Log::DEBUG, "Newly mapped window {:016x}", (uintptr_t)pWindow.get());
     m_resource->sendToplevel(NEWHANDLE->m_resource.get());
     NEWHANDLE->m_resource->sendAppId(pWindow->m_class.c_str());
     NEWHANDLE->m_resource->sendTitle(pWindow->m_title.c_str());
@@ -409,7 +409,7 @@ void CForeignToplevelWlrProtocol::bindManager(wl_client* client, void* data, uin
     const auto RESOURCE = m_managers.emplace_back(makeUnique<CForeignToplevelWlrManager>(makeShared<CZwlrForeignToplevelManagerV1>(client, ver, id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
-        LOGM(ERR, "Couldn't create a foreign list");
+        LOGM(Log::ERR, "Couldn't create a foreign list");
         wl_client_post_no_memory(client);
         m_managers.pop_back();
         return;

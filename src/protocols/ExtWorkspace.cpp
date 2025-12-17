@@ -273,7 +273,7 @@ void CExtWorkspaceManagerResource::onMonitorCreated(const PHLMONITOR& monitor) {
     group->sendToWorkspaces();
 
     if UNLIKELY (!group->good()) {
-        LOGM(ERR, "Couldn't create a workspace group object");
+        LOGM(Log::ERR, "Couldn't create a workspace group object");
         wl_client_post_no_memory(m_resource->client());
         return;
     }
@@ -287,7 +287,7 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
     ws->m_self = ws;
 
     if UNLIKELY (!ws->good()) {
-        LOGM(ERR, "Couldn't create a workspace object");
+        LOGM(Log::ERR, "Couldn't create a workspace object");
         wl_client_post_no_memory(m_resource->client());
         return;
     }
@@ -316,7 +316,7 @@ void CExtWorkspaceProtocol::bindManager(wl_client* client, void* data, uint32_t 
     manager->init(manager);
 
     if UNLIKELY (!manager->good()) {
-        LOGM(ERR, "Couldn't create a workspace manager");
+        LOGM(Log::ERR, "Couldn't create a workspace manager");
         wl_client_post_no_memory(client);
         return;
     }

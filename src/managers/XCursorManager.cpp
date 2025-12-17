@@ -13,7 +13,7 @@ extern "C" {
 #include "config/ConfigValue.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "../managers/CursorManager.hpp"
-#include "debug/Log.hpp"
+#include "debug/log/Logger.hpp"
 #include "XCursorManager.hpp"
 #include <memory>
 #include <variant>
@@ -121,7 +121,7 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
 
     auto paths = themePaths(m_themeName);
     if (paths.empty()) {
-        Debug::log(ERR, "XCursor librarypath is empty loading standard XCursors");
+        Log::logger->log(Log::ERR, "XCursor librarypath is empty loading standard XCursors");
         m_cursors = loadStandardCursors(m_themeName, m_lastLoadSize);
     } else {
         for (auto const& p : paths) {
@@ -129,12 +129,12 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
                 auto dirCursors = loadAllFromDir(p, m_lastLoadSize);
                 std::ranges::copy_if(dirCursors, std::back_inserter(m_cursors),
                                      [this](auto const& p) { return std::ranges::none_of(m_cursors, [&p](auto const& dp) { return dp->shape == p->shape; }); });
-            } catch (std::exception& e) { Debug::log(ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
+            } catch (std::exception& e) { Log::logger->log(Log::ERR, "XCursor path {} can't be loaded: threw error {}", p, e.what()); }
         }
     }
 
     if (m_cursors.empty()) {
-        Debug::log(ERR, "XCursor failed finding any shapes in theme \"{}\".", m_themeName);
+        Log::logger->log(Log::ERR, "XCursor failed finding any shapes in theme \"{}\".", m_themeName);
         m_defaultCursor = m_hyprCursor;
         return;
     }
@@ -147,12 +147,12 @@ void CXCursorManager::loadTheme(std::string const& name, int size, float scale) 
         auto it = std::ranges::find_if(m_cursors, [&legacyName](auto const& c) { return c->shape == legacyName; });
 
         if (it == m_cursors.end()) {
-            Debug::log(LOG, "XCursor failed to find a legacy shape with name {}, skipping", legacyName);
+            Log::logger->log(Log::DEBUG, "XCursor failed to find a legacy shape with name {}, skipping", legacyName);
             continue;
         }
 
         if (std::ranges::any_of(m_cursors, [&shape](auto const& dp) { return dp->shape == shape; })) {
-            Debug::log(LOG, "XCursor already has a shape {} loaded, skipping", shape);
+            Log::logger->log(Log::DEBUG, "XCursor already has a shape {} loaded, skipping", shape);
             continue;
         }
 
@@ -179,7 +179,7 @@ SP<SXCursors> CXCursorManager::getShape(std::string const& shape, int size, floa
         return c;
     }
 
-    Debug::log(WARN, "XCursor couldn't find shape {} , using default cursor instead", shape);
+    Log::logger->log(Log::WARN,  "XCursor couldn't find shape {} , using default cursor instead", shape);
     return m_defaultCursor;
 }
 
@@ -221,7 +221,7 @@ std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
         std::string              line;
         std::vector<std::string> themes;
 
-        Debug::log(LOG, "XCursor parsing index.theme {}", indexTheme);
+        Log::logger->log(Log::DEBUG, "XCursor parsing index.theme {}", indexTheme);
 
         while (std::getline(infile, line)) {
             if (line.empty())
@@ -290,12 +290,12 @@ std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
         std::stringstream ss(path);
         std::string       line;
 
-        Debug::log(LOG, "XCursor scanning theme {}", t);
+        Log::logger->log(Log::DEBUG, "XCursor scanning theme {}", t);
 
         while (std::getline(ss, line, ':')) {
             auto p = expandTilde(line + "/" + t + "/cursors");
             if (std::filesystem::exists(p) && std::filesystem::is_directory(p)) {
-                Debug::log(LOG, "XCursor using theme path {}", p);
+                Log::logger->log(Log::DEBUG, "XCursor using theme path {}", p);
                 paths.insert(p);
             }
 
@@ -303,7 +303,7 @@ std::set<std::string> CXCursorManager::themePaths(std::string const& theme) {
             if (std::filesystem::exists(inherit) && std::filesystem::is_regular_file(inherit)) {
                 auto inheritThemes = getInheritThemes(inherit);
                 for (auto const& i : inheritThemes) {
-                    Debug::log(LOG, "XCursor theme {} inherits {}", t, i);
+                    Log::logger->log(Log::DEBUG, "XCursor theme {} inherits {}", t, i);
                     inherits.insert(i);
                 }
             }
@@ -496,11 +496,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadStandardCursors(std::string cons
         auto        xImages = XcursorShapeLoadImages(i << 1 /* wtf xcursor? */, name.c_str(), size);
 
         if (!xImages) {
-            Debug::log(WARN, "XCursor failed to find a shape with name {}, trying size 24.", shape);
+            Log::logger->log(Log::WARN,  "XCursor failed to find a shape with name {}, trying size 24.", shape);
             xImages = XcursorShapeLoadImages(i << 1 /* wtf xcursor? */, name.c_str(), 24);
 
             if (!xImages) {
-                Debug::log(WARN, "XCursor failed to find a shape with name {}, skipping", shape);
+                Log::logger->log(Log::WARN,  "XCursor failed to find a shape with name {}, skipping", shape);
                 continue;
             }
         }
@@ -528,7 +528,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
         for (const auto& entry : std::filesystem::directory_iterator(path)) {
             std::error_code e1, e2;
             if ((!entry.is_regular_file(e1) && !entry.is_symlink(e2)) || e1 || e2) {
-                Debug::log(WARN, "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
+                Log::logger->log(Log::WARN,  "XCursor failed to load shape {}: {}", entry.path().stem().string(), e1 ? e1.message() : e2.message());
                 continue;
             }
 
@@ -542,11 +542,11 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
             auto xImages = XcursorFileLoadImages(f.get(), size);
 
             if (!xImages) {
-                Debug::log(WARN, "XCursor failed to load image {}, trying size 24.", full);
+                Log::logger->log(Log::WARN,  "XCursor failed to load image {}, trying size 24.", full);
                 xImages = XcursorFileLoadImages(f.get(), 24);
 
                 if (!xImages) {
-                    Debug::log(WARN, "XCursor failed to load image {}, skipping", full);
+                    Log::logger->log(Log::WARN,  "XCursor failed to load image {}, skipping", full);
                     continue;
                 }
             }
@@ -578,7 +578,7 @@ void CXCursorManager::syncGsettings() {
         auto* gSettingsSchemaSource = g_settings_schema_source_get_default();
 
         if (!gSettingsSchemaSource) {
-            Debug::log(WARN, "GSettings default schema source does not exist, can't sync GSettings");
+            Log::logger->log(Log::WARN,  "GSettings default schema source does not exist, can't sync GSettings");
             return false;
         }
 
@@ -596,14 +596,14 @@ void CXCursorManager::syncGsettings() {
     using SettingValue = std::variant<std::string, int>;
     auto setValue      = [&checkParamExists](std::string const& paramName, const SettingValue& paramValue, std::string const& category) {
         if (!checkParamExists(paramName, category)) {
-            Debug::log(WARN, "GSettings parameter doesn't exist {} in {}", paramName, category);
+            Log::logger->log(Log::WARN,  "GSettings parameter doesn't exist {} in {}", paramName, category);
             return;
         }
 
         auto* gsettings = g_settings_new(category.c_str());
 
         if (!gsettings) {
-            Debug::log(WARN, "GSettings failed to allocate new settings with category {}", category);
+            Log::logger->log(Log::WARN,  "GSettings failed to allocate new settings with category {}", category);
             return;
         }
 

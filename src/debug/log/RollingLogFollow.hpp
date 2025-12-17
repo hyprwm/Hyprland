@@ -2,8 +2,7 @@
 
 #include <shared_mutex>
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-namespace Debug {
+namespace Log {
     struct SRollingLogFollow {
         std::unordered_map<int, std::string> m_socketToRollingLogFollowQueue;
         std::shared_mutex                    m_mutex;
@@ -30,12 +29,14 @@ namespace Debug {
             return ret;
         };
 
-        void addLog(const std::string& log) {
+        void addLog(const std::string_view& log) {
             std::unique_lock<std::shared_mutex> w(m_mutex);
             m_running = true;
             std::vector<int> to_erase;
-            for (const auto& p : m_socketToRollingLogFollowQueue)
-                m_socketToRollingLogFollowQueue[p.first] += log + "\n";
+            for (const auto& p : m_socketToRollingLogFollowQueue) {
+                m_socketToRollingLogFollowQueue[p.first] += log;
+                m_socketToRollingLogFollowQueue[p.first] += "\n";
+            }
         }
 
         bool isRunning() {

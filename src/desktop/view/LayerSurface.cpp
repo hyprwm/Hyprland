@@ -24,7 +24,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_wlSurface->assign(resource->m_surface.lock(), pLS);
 
     if (!pMonitor) {
-        Debug::log(ERR, "New LS has no monitor??");
+        Log::logger->log(Log::ERR, "New LS has no monitor??");
         return pLS;
     }
 
@@ -50,7 +50,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_alpha->setValueAndWarp(0.f);
 
-    Debug::log(LOG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer),
+    Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace, sc<int>(pLS->m_layer),
                pMonitor->m_name);
 
     return pLS;
@@ -116,19 +116,19 @@ bool CLayerSurface::desktopComponent() const {
 }
 
 void CLayerSurface::onDestroy() {
-    Debug::log(LOG, "LayerSurface {:x} destroyed", rc<uintptr_t>(m_layerSurface.get()));
+    Log::logger->log(Log::DEBUG, "LayerSurface {:x} destroyed", rc<uintptr_t>(m_layerSurface.get()));
 
     const auto PMONITOR = m_monitor.lock();
 
     if (!PMONITOR)
-        Debug::log(WARN, "Layersurface destroyed on an invalid monitor (removed?)");
+        Log::logger->log(Log::WARN,  "Layersurface destroyed on an invalid monitor (removed?)");
 
     if (!m_fadingOut) {
         if (m_mapped) {
-            Debug::log(LOG, "Forcing an unmap of a LS that did a straight destroy!");
+            Log::logger->log(Log::DEBUG, "Forcing an unmap of a LS that did a straight destroy!");
             onUnmap();
         } else {
-            Debug::log(LOG, "Removing LayerSurface that wasn't mapped.");
+            Log::logger->log(Log::DEBUG, "Removing LayerSurface that wasn't mapped.");
             if (m_alpha)
                 g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT);
             m_fadingOut = true;
@@ -162,7 +162,7 @@ void CLayerSurface::onDestroy() {
 }
 
 void CLayerSurface::onMap() {
-    Debug::log(LOG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
+    Log::logger->log(Log::DEBUG, "LayerSurface {:x} mapped", rc<uintptr_t>(m_layerSurface.get()));
 
     m_mapped          = true;
     m_interactivity   = m_layerSurface->m_current.interactivity;
@@ -229,7 +229,7 @@ void CLayerSurface::onMap() {
 }
 
 void CLayerSurface::onUnmap() {
-    Debug::log(LOG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
+    Log::logger->log(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
     EMIT_HOOK_EVENT("closeLayer", m_self.lock());
@@ -237,7 +237,7 @@ void CLayerSurface::onUnmap() {
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
     if (!m_monitor || g_pCompositor->m_unsafeState) {
-        Debug::log(WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
+        Log::logger->log(Log::WARN,  "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(m_self.lock());
 

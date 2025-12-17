@@ -22,7 +22,7 @@ void CLayoutManager::switchToLayout(std::string layout) {
         }
     }
 
-    Debug::log(ERR, "Unknown layout!");
+    Log::logger->log(Log::ERR, "Unknown layout!");
 }
 
 bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
@@ -31,7 +31,7 @@ bool CLayoutManager::addLayout(const std::string& name, IHyprLayout* layout) {
 
     m_layouts.emplace_back(std::make_pair<>(name, layout));
 
-    Debug::log(LOG, "Added new layout {} at {:x}", name, rc<uintptr_t>(layout));
+    Log::logger->log(Log::DEBUG, "Added new layout {} at {:x}", name, rc<uintptr_t>(layout));
 
     return true;
 }
@@ -45,7 +45,7 @@ bool CLayoutManager::removeLayout(IHyprLayout* layout) {
     if (m_currentLayoutID == IT - m_layouts.begin())
         switchToLayout("dwindle");
 
-    Debug::log(LOG, "Removed a layout {} at {:x}", IT->first, rc<uintptr_t>(layout));
+    Log::logger->log(Log::DEBUG, "Removed a layout {} at {:x}", IT->first, rc<uintptr_t>(layout));
 
     std::erase(m_layouts, *IT);
 

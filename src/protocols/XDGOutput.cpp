@@ -25,7 +25,7 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
     const auto RESOURCE = m_managerResources.emplace_back(makeUnique<CZxdgOutputManagerV1>(client, ver, id)).get();
 
     if UNLIKELY (!RESOURCE->resource()) {
-        LOGM(LOG, "Couldn't bind XDGOutputMgr");
+        LOGM(Log::DEBUG, "Couldn't bind XDGOutputMgr");
         wl_client_post_no_memory(client);
         return;
     }
@@ -61,11 +61,11 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
     }
 
     if UNLIKELY (!PMONITOR) {
-        LOGM(ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
+        LOGM(Log::ERR, "New xdg_output from client {:x} ({}) has no CMonitor?!", (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
         return;
     }
 
-    LOGM(LOG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
+    LOGM(Log::DEBUG, "New xdg_output for {}: client {:x} ({})", PMONITOR->m_name, (uintptr_t)CLIENT, pXDGOutput->m_isXWayland ? "xwayland" : "not xwayland");
 
     const auto XDGVER = pXDGOutput->m_resource->version();
 
@@ -82,7 +82,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
 }
 
 void CXDGOutputProtocol::updateAllOutputs() {
-    LOGM(LOG, "updating all xdg_output heads");
+    LOGM(Log::DEBUG, "updating all xdg_output heads");
 
     for (auto const& o : m_xdgOutputs) {
         if (!o->m_monitor)

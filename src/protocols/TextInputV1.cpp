@@ -14,7 +14,7 @@ CTextInputV1::CTextInputV1(SP<CZwpTextInputV1> resource_) : m_resource(resource_
 
     m_resource->setActivate([this](CZwpTextInputV1* pMgr, wl_resource* seat, wl_resource* surface) {
         if UNLIKELY (!surface) {
-            LOGM(WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)this);
+            LOGM(Log::WARN, "Text-input-v1 PTI{:x}: No surface to activate text input on!", (uintptr_t)this);
             return;
         }
 
@@ -103,10 +103,10 @@ void CTextInputV1Protocol::bindManager(wl_client* client, void* data, uint32_t v
     RESOURCE->setOnDestroy([](CZwpTextInputManagerV1* pMgr) { PROTO::textInputV1->destroyResource(pMgr); });
     RESOURCE->setCreateTextInput([this](CZwpTextInputManagerV1* pMgr, uint32_t id) {
         const auto PTI = m_clients.emplace_back(makeShared<CTextInputV1>(makeShared<CZwpTextInputV1>(pMgr->client(), pMgr->version(), id)));
-        LOGM(LOG, "New TI V1 at {:x}", (uintptr_t)PTI.get());
+        LOGM(Log::DEBUG, "New TI V1 at {:x}", (uintptr_t)PTI.get());
 
         if UNLIKELY (!PTI->good()) {
-            LOGM(ERR, "Could not alloc wl_resource for TIV1");
+            LOGM(Log::ERR, "Could not alloc wl_resource for TIV1");
             pMgr->noMemory();
             PROTO::textInputV1->destroyResource(PTI.get());
             return;

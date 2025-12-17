@@ -1,5 +1,5 @@
 #include "EventLoopManager.hpp"
-#include "../../debug/Log.hpp"
+#include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
 #include "../../config/ConfigWatcher.hpp"
 
@@ -57,7 +57,7 @@ static int configWatcherWrite(int fd, uint32_t mask, void* data) {
 
 static int handleWaiterFD(int fd, uint32_t mask, void* data) {
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        Debug::log(ERR, "handleWaiterFD: readable waiter error");
+        Log::logger->log(Log::ERR, "handleWaiterFD: readable waiter error");
         return 0;
     }
 
@@ -96,7 +96,7 @@ void CEventLoopManager::enterLoop() {
 
     wl_display_run(m_wayland.display);
 
-    Debug::log(LOG, "Kicked off the event loop! :(");
+    Log::logger->log(Log::DEBUG, "Kicked off the event loop! :(");
 }
 
 void CEventLoopManager::onTimerFire() {

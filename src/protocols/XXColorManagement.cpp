@@ -72,9 +72,9 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(r
     // resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_ABSOLUTE);
     // resource->sendSupportedIntent(XX_COLOR_MANAGER_V4_RENDER_INTENT_RELATIVE_BPC);
 
-    m_resource->setDestroy([](CXxColorManagerV4* r) { LOGM(TRACE, "Destroy xx_color_manager at {:x} (generated default)", (uintptr_t)r); });
+    m_resource->setDestroy([](CXxColorManagerV4* r) { LOGM(Log::TRACE, "Destroy xx_color_manager at {:x} (generated default)", (uintptr_t)r); });
     m_resource->setGetOutput([](CXxColorManagerV4* r, uint32_t id, wl_resource* output) {
-        LOGM(TRACE, "Get output for id={}, output={}", id, (uintptr_t)output);
+        LOGM(Log::TRACE, "Get output for id={}, output={}", id, (uintptr_t)output);
         const auto RESOURCE =
             PROTO::xxColorManagement->m_outputs.emplace_back(makeShared<CXXColorManagementOutput>(makeShared<CXxColorManagementOutputV4>(r->client(), r->version(), id)));
 
@@ -87,11 +87,11 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(r
         RESOURCE->m_self = RESOURCE;
     });
     m_resource->setGetSurface([](CXxColorManagerV4* r, uint32_t id, wl_resource* surface) {
-        LOGM(TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
+        LOGM(Log::TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
+            LOGM(Log::ERR, "No surface for resource {}", (uintptr_t)surface);
             r->error(-1, "Invalid surface (2)");
             return;
         }
@@ -112,11 +112,11 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(r
         RESOURCE->m_self = RESOURCE;
     });
     m_resource->setGetFeedbackSurface([](CXxColorManagerV4* r, uint32_t id, wl_resource* surface) {
-        LOGM(TRACE, "Get feedback surface for id={}, surface={}", id, (uintptr_t)surface);
+        LOGM(Log::TRACE, "Get feedback surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
+            LOGM(Log::ERR, "No surface for resource {}", (uintptr_t)surface);
             r->error(-1, "Invalid surface (2)");
             return;
         }
@@ -133,11 +133,11 @@ CXXColorManager::CXXColorManager(SP<CXxColorManagerV4> resource_) : m_resource(r
         RESOURCE->m_self = RESOURCE;
     });
     m_resource->setNewIccCreator([](CXxColorManagerV4* r, uint32_t id) {
-        LOGM(WARN, "New ICC creator for id={} (unsupported)", id);
+        LOGM(Log::WARN, "New ICC creator for id={} (unsupported)", id);
         r->error(XX_COLOR_MANAGER_V4_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
     });
     m_resource->setNewParametricCreator([](CXxColorManagerV4* r, uint32_t id) {
-        LOGM(TRACE, "New parametric creator for id={}", id);
+        LOGM(Log::TRACE, "New parametric creator for id={}", id);
 
         const auto RESOURCE = PROTO::xxColorManagement->m_parametricCreators.emplace_back(
             makeShared<CXXColorManagementParametricCreator>(makeShared<CXxImageDescriptionCreatorParamsV4>(r->client(), r->version(), id)));
@@ -168,7 +168,7 @@ CXXColorManagementOutput::CXXColorManagementOutput(SP<CXxColorManagementOutputV4
     m_resource->setOnDestroy([this](CXxColorManagementOutputV4* r) { PROTO::xxColorManagement->destroyResource(this); });
 
     m_resource->setGetImageDescription([this](CXxColorManagementOutputV4* r, uint32_t id) {
-        LOGM(TRACE, "Get image description for output={}, id={}", (uintptr_t)r, id);
+        LOGM(Log::TRACE, "Get image description for output={}, id={}", (uintptr_t)r, id);
         if (m_imageDescription.valid())
             PROTO::xxColorManagement->destroyResource(m_imageDescription.get());
 
@@ -216,24 +216,24 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
         m_surface->m_colorManagement = RESOURCE;
 
         m_resource->setOnDestroy([this](CXxColorManagementSurfaceV4* r) {
-            LOGM(TRACE, "Destroy wp cm and xx cm for surface {}", (uintptr_t)m_surface);
+            LOGM(Log::TRACE, "Destroy wp cm and xx cm for surface {}", (uintptr_t)m_surface);
             if (m_surface.valid())
                 PROTO::colorManagement->destroyResource(m_surface->m_colorManagement.get());
             PROTO::xxColorManagement->destroyResource(this);
         });
     } else
         m_resource->setOnDestroy([this](CXxColorManagementSurfaceV4* r) {
-            LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+            LOGM(Log::TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
             PROTO::xxColorManagement->destroyResource(this);
         });
 
     m_resource->setDestroy([this](CXxColorManagementSurfaceV4* r) {
-        LOGM(TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
+        LOGM(Log::TRACE, "Destroy xx cm surface {}", (uintptr_t)m_surface);
         PROTO::xxColorManagement->destroyResource(this);
     });
 
     m_resource->setSetImageDescription([this](CXxColorManagementSurfaceV4* r, wl_resource* image_description, uint32_t render_intent) {
-        LOGM(TRACE, "Set image description for surface={}, desc={}, intent={}", (uintptr_t)r, (uintptr_t)image_description, render_intent);
+        LOGM(Log::TRACE, "Set image description for surface={}, desc={}, intent={}", (uintptr_t)r, (uintptr_t)image_description, render_intent);
 
         const auto PO = sc<CXxImageDescriptionV4*>(wl_resource_get_user_data(image_description));
         if (!PO) { // FIXME check validity
@@ -256,15 +256,15 @@ CXXColorManagementSurface::CXXColorManagementSurface(SP<CXxColorManagementSurfac
             m_surface->m_colorManagement->m_imageDescription = imageDescription->get()->m_settings;
             m_surface->m_colorManagement->setHasImageDescription(true);
         } else
-            LOGM(ERR, "Set image description for invalid surface");
+            LOGM(Log::ERR, "Set image description for invalid surface");
     });
     m_resource->setUnsetImageDescription([this](CXxColorManagementSurfaceV4* r) {
-        LOGM(TRACE, "Unset image description for surface={}", (uintptr_t)r);
+        LOGM(Log::TRACE, "Unset image description for surface={}", (uintptr_t)r);
         if (m_surface.valid()) {
             m_surface->m_colorManagement->m_imageDescription = SImageDescription{};
             m_surface->m_colorManagement->setHasImageDescription(false);
         } else
-            LOGM(ERR, "Unset image description for invalid surface");
+            LOGM(Log::ERR, "Unset image description for invalid surface");
     });
 }
 
@@ -278,7 +278,7 @@ wl_client* CXXColorManagementSurface::client() {
 
 const SImageDescription& CXXColorManagementSurface::imageDescription() {
     if (!hasImageDescription())
-        LOGM(WARN, "Reading imageDescription while none set. Returns default or empty values");
+        LOGM(Log::WARN, "Reading imageDescription while none set. Returns default or empty values");
     return m_imageDescription;
 }
 
@@ -312,20 +312,20 @@ CXXColorManagementFeedbackSurface::CXXColorManagementFeedbackSurface(SP<CXxColor
     m_client = m_resource->client();
 
     m_resource->setDestroy([this](CXxColorManagementFeedbackSurfaceV4* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(Log::TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::xxColorManagement->destroyResource(m_currentPreferred.get());
         PROTO::xxColorManagement->destroyResource(this);
     });
     m_resource->setOnDestroy([this](CXxColorManagementFeedbackSurfaceV4* r) {
-        LOGM(TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
+        LOGM(Log::TRACE, "Destroy xx cm feedback surface {}", (uintptr_t)m_surface);
         if (m_currentPreferred.valid())
             PROTO::xxColorManagement->destroyResource(m_currentPreferred.get());
         PROTO::xxColorManagement->destroyResource(this);
     });
 
     m_resource->setGetPreferred([this](CXxColorManagementFeedbackSurfaceV4* r, uint32_t id) {
-        LOGM(TRACE, "Get preferred for id {}", id);
+        LOGM(Log::TRACE, "Get preferred for id {}", id);
 
         if (m_currentPreferred.valid())
             PROTO::xxColorManagement->destroyResource(m_currentPreferred.get());
@@ -365,7 +365,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
     m_resource->setOnDestroy([this](CXxImageDescriptionCreatorParamsV4* r) { PROTO::xxColorManagement->destroyResource(this); });
 
     m_resource->setCreate([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t id) {
-        LOGM(TRACE, "Create image description from params for id {}", id);
+        LOGM(Log::TRACE, "Create image description from params for id {}", id);
 
         // FIXME actually check completeness
         if (!m_valuesSet) {
@@ -401,7 +401,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         PROTO::xxColorManagement->destroyResource(this);
     });
     m_resource->setSetTfNamed([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t tf) {
-        LOGM(TRACE, "Set image description transfer function to {}", tf);
+        LOGM(Log::TRACE, "Set image description transfer function to {}", tf);
         if (m_valuesSet & PC_TF) {
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Transfer function already set");
             return;
@@ -429,7 +429,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         m_valuesSet |= PC_TF;
     });
     m_resource->setSetTfPower([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t eexp) {
-        LOGM(TRACE, "Set image description tf power to {}", eexp);
+        LOGM(Log::TRACE, "Set image description tf power to {}", eexp);
         if (m_valuesSet & PC_TF_POWER) {
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Transfer function power already set");
             return;
@@ -438,7 +438,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         m_valuesSet |= PC_TF_POWER;
     });
     m_resource->setSetPrimariesNamed([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t primaries) {
-        LOGM(TRACE, "Set image description primaries by name {}", primaries);
+        LOGM(Log::TRACE, "Set image description primaries by name {}", primaries);
         if (m_valuesSet & PC_PRIMARIES) {
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Primaries already set");
             return;
@@ -464,7 +464,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
     });
     m_resource->setSetPrimaries(
         [this](CXxImageDescriptionCreatorParamsV4* r, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {
-            LOGM(TRACE, "Set image description primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
+            LOGM(Log::TRACE, "Set image description primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
             if (m_valuesSet & PC_PRIMARIES) {
                 r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Primaries already set");
                 return;
@@ -475,7 +475,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         });
     m_resource->setSetLuminances([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
         auto min = min_lum / 10000.0f;
-        LOGM(TRACE, "Set image description luminances to {} - {} ({})", min, max_lum, reference_lum);
+        LOGM(Log::TRACE, "Set image description luminances to {} - {} ({})", min, max_lum, reference_lum);
         if (m_valuesSet & PC_LUMINANCES) {
             r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Luminances already set");
             return;
@@ -489,7 +489,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
     });
     m_resource->setSetMasteringDisplayPrimaries(
         [this](CXxImageDescriptionCreatorParamsV4* r, int32_t r_x, int32_t r_y, int32_t g_x, int32_t g_y, int32_t b_x, int32_t b_y, int32_t w_x, int32_t w_y) {
-            LOGM(TRACE, "Set image description mastering primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
+            LOGM(Log::TRACE, "Set image description mastering primaries by values r:{},{} g:{},{} b:{},{} w:{},{}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y);
             // if (valuesSet & PC_MASTERING_PRIMARIES) {
             //     r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Mastering primaries already set");
             //     return;
@@ -499,7 +499,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         });
     m_resource->setSetMasteringLuminance([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t min_lum, uint32_t max_lum) {
         auto min = min_lum / 10000.0f;
-        LOGM(TRACE, "Set image description mastering luminances to {} - {}", min, max_lum);
+        LOGM(Log::TRACE, "Set image description mastering luminances to {} - {}", min, max_lum);
         // if (valuesSet & PC_MASTERING_LUMINANCES) {
         //     r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Mastering luminances already set");
         //     return;
@@ -512,7 +512,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         m_valuesSet |= PC_MASTERING_LUMINANCES;
     });
     m_resource->setSetMaxCll([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t max_cll) {
-        LOGM(TRACE, "Set image description max content light level to {}", max_cll);
+        LOGM(Log::TRACE, "Set image description max content light level to {}", max_cll);
         // if (valuesSet & PC_CLL) {
         //     r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Max CLL already set");
         //     return;
@@ -521,7 +521,7 @@ CXXColorManagementParametricCreator::CXXColorManagementParametricCreator(SP<CXxI
         m_valuesSet |= PC_CLL;
     });
     m_resource->setSetMaxFall([this](CXxImageDescriptionCreatorParamsV4* r, uint32_t max_fall) {
-        LOGM(TRACE, "Set image description max frame-average light level to {}", max_fall);
+        LOGM(Log::TRACE, "Set image description max frame-average light level to {}", max_fall);
         // if (valuesSet & PC_FALL) {
         //     r->error(XX_IMAGE_DESCRIPTION_CREATOR_PARAMS_V4_ERROR_ALREADY_SET, "Max FALL already set");
         //     return;
@@ -550,7 +550,7 @@ CXXColorManagementImageDescription::CXXColorManagementImageDescription(SP<CXxIma
     m_resource->setOnDestroy([this](CXxImageDescriptionV4* r) { PROTO::xxColorManagement->destroyResource(this); });
 
     m_resource->setGetInformation([this](CXxImageDescriptionV4* r, uint32_t id) {
-        LOGM(TRACE, "Get image information for image={}, id={}", (uintptr_t)r, id);
+        LOGM(Log::TRACE, "Get image information for image={}, id={}", (uintptr_t)r, id);
         if (!m_allowGetInformation) {
             r->error(XX_IMAGE_DESCRIPTION_V4_ERROR_NO_INFORMATION, "Image descriptions doesn't allow get_information request");
             return;
@@ -632,7 +632,7 @@ void CXXColorManagementProtocol::bindManager(wl_client* client, void* data, uint
         return;
     }
 
-    LOGM(TRACE, "New xx_color_manager at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::TRACE, "New xx_color_manager at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CXXColorManagementProtocol::onImagePreferredChanged() {

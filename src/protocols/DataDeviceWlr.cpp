@@ -14,16 +14,16 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
     m_resource->setReceive([this](CZwlrDataControlOfferV1* r, const char* mime, int32_t fd) {
         CFileDescriptor sendFd{fd};
         if (!m_source) {
-            LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
         if (m_dead) {
-            LOGM(WARN, "Possible bug: Receive on an offer that's dead");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         m_source->send(mime, std::move(sendFd));
     });
@@ -79,7 +79,7 @@ std::vector<std::string> CWLRDataSource::mimes() {
 
 void CWLRDataSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
-        LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAskSend with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CWLRDataSource::sendAskSend with non-existent mime");
         return;
     }
 
@@ -88,7 +88,7 @@ void CWLRDataSource::send(const std::string& mime, CFileDescriptor fd) {
 
 void CWLRDataSource::accepted(const std::string& mime) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end())
-        LOGM(ERR, "Compositor/App bug: CWLRDataSource::sendAccepted with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CWLRDataSource::sendAccepted with non-existent mime");
 
     // wlr has no accepted
 }
@@ -113,34 +113,34 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
     m_resource->setSetSelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
-            LOGM(LOG, "wlr reset selection received");
+            LOGM(Log::DEBUG, "wlr reset selection received");
             g_pSeatManager->setCurrentSelection(nullptr);
             return;
         }
 
         if (source && source->used())
-            LOGM(WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
-        LOGM(LOG, "wlr manager requests selection to {:x}", (uintptr_t)source.get());
+        LOGM(Log::DEBUG, "wlr manager requests selection to {:x}", (uintptr_t)source.get());
         g_pSeatManager->setCurrentSelection(source);
     });
 
     m_resource->setSetPrimarySelection([](CZwlrDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CWLRDataSource::fromResource(sourceR) : CSharedPointer<CWLRDataSource>{};
         if (!source) {
-            LOGM(LOG, "wlr reset primary selection received");
+            LOGM(Log::DEBUG, "wlr reset primary selection received");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 
         if (source && source->used())
-            LOGM(WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
-        LOGM(LOG, "wlr manager requests primary selection to {:x}", (uintptr_t)source.get());
+        LOGM(Log::DEBUG, "wlr manager requests primary selection to {:x}", (uintptr_t)source.get());
         g_pSeatManager->setCurrentPrimarySelection(source);
     });
 }
@@ -197,7 +197,7 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
 
         RESOURCE->sendInitialSelections();
 
-        LOGM(LOG, "New wlr data device bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New wlr data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setCreateDataSource([this](CZwlrDataControlManagerV1* r, uint32_t id) {
@@ -213,13 +213,13 @@ CWLRDataControlManagerResource::CWLRDataControlManagerResource(SP<CZwlrDataContr
         }
 
         if (!m_device)
-            LOGM(WARN, "New data source before a device was created");
+            LOGM(Log::WARN, "New data source before a device was created");
 
         RESOURCE->m_self = RESOURCE;
 
         m_sources.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New wlr data source bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New wlr data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
@@ -240,7 +240,7 @@ void CDataDeviceWLRProtocol::bindManager(wl_client* client, void* data, uint32_t
         return;
     }
 
-    LOGM(LOG, "New wlr_data_control_manager at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New wlr_data_control_manager at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CDataDeviceWLRProtocol::destroyResource(CWLRDataControlManagerResource* resource) {
@@ -278,7 +278,7 @@ void CDataDeviceWLRProtocol::sendSelectionToDevice(SP<CWLRDataDevice> dev, SP<ID
 
     OFFER->m_primary = primary;
 
-    LOGM(LOG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
+    LOGM(Log::DEBUG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
 
     dev->sendDataOffer(OFFER);
     OFFER->sendData();
@@ -298,7 +298,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
     }
 
     if (!source) {
-        LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
+        LOGM(Log::DEBUG, "resetting {}selection", primary ? "primary " : " ");
 
         for (auto const& d : m_devices) {
             sendSelectionToDevice(d, nullptr, primary);
@@ -307,7 +307,7 @@ void CDataDeviceWLRProtocol::setSelection(SP<IDataSource> source, bool primary) 
         return;
     }
 
-    LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
+    LOGM(Log::DEBUG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
     for (auto const& d : m_devices) {
         sendSelectionToDevice(d, source, primary);

@@ -103,7 +103,7 @@ std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerC
 
 void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
     if (m_activeGesture) {
-        Debug::log(ERR, "CTrackpadGestures::gestureBegin (swipe) but m_activeGesture is already present");
+        Log::logger->log(Log::ERR, "CTrackpadGestures::gestureBegin (swipe) but m_activeGesture is already present");
         return;
     }
 
@@ -121,7 +121,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
 
     // 5 was chosen because I felt like that's a good number.
     if (!m_activeGesture && (std::abs(m_currentTotalDelta.x) < 5 && std::abs(m_currentTotalDelta.y) < 5)) {
-        Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (swipe): gesture delta too small to start considering, waiting");
+        Log::logger->log(Log::TRACE,  "CTrackpadGestures::gestureUpdate (swipe): gesture delta too small to start considering, waiting");
         return;
     }
 
@@ -174,7 +174,7 @@ void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
 
 void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {
     if (m_activeGesture) {
-        Debug::log(ERR, "CTrackpadGestures::gestureBegin (pinch) but m_activeGesture is already present");
+        Log::logger->log(Log::ERR, "CTrackpadGestures::gestureBegin (pinch) but m_activeGesture is already present");
         return;
     }
 
@@ -189,7 +189,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
 
     // 0.1 was chosen because I felt like that's a good number.
     if (!m_activeGesture && std::abs(e.scale - 1.F) < 0.1) {
-        Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (pinch): gesture delta too small to start considering, waiting");
+        Log::logger->log(Log::TRACE,  "CTrackpadGestures::gestureUpdate (pinch): gesture delta too small to start considering, waiting");
         return;
     }
 

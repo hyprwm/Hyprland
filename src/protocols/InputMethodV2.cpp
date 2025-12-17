@@ -15,7 +15,7 @@ CInputMethodKeyboardGrabV2::CInputMethodKeyboardGrabV2(SP<CZwpInputMethodKeyboar
     m_resource->setOnDestroy([this](CZwpInputMethodKeyboardGrabV2* r) { PROTO::ime->destroyResource(this); });
 
     if (!g_pSeatManager->m_keyboard) {
-        LOGM(ERR, "IME called but no active keyboard???");
+        LOGM(Log::ERR, "IME called but no active keyboard???");
         return;
     }
 
@@ -36,13 +36,13 @@ void CInputMethodKeyboardGrabV2::sendKeyboardData(SP<IKeyboard> keyboard) {
 
     auto keymapFD = allocateSHMFile(keyboard->m_xkbKeymapV1String.length() + 1);
     if UNLIKELY (!keymapFD.isValid()) {
-        LOGM(ERR, "Failed to create a keymap file for keyboard grab");
+        LOGM(Log::ERR, "Failed to create a keymap file for keyboard grab");
         return;
     }
 
     void* data = mmap(nullptr, keyboard->m_xkbKeymapV1String.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, keymapFD.get(), 0);
     if UNLIKELY (data == MAP_FAILED) {
-        LOGM(ERR, "Failed to mmap a keymap file for keyboard grab");
+        LOGM(Log::ERR, "Failed to mmap a keymap file for keyboard grab");
         return;
     }
 
@@ -194,7 +194,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : m_resource(res
             return;
         }
 
-        LOGM(LOG, "New IME Popup with resource id {}", id);
+        LOGM(Log::DEBUG, "New IME Popup with resource id {}", id);
 
         m_popups.emplace_back(RESOURCE);
 
@@ -211,7 +211,7 @@ CInputMethodV2::CInputMethodV2(SP<CZwpInputMethodV2> resource_) : m_resource(res
             return;
         }
 
-        LOGM(LOG, "New IME Grab with resource id {}", id);
+        LOGM(Log::DEBUG, "New IME Grab with resource id {}", id);
 
         m_grabs.emplace_back(RESOURCE);
     });
@@ -367,7 +367,7 @@ void CInputMethodV2Protocol::onGetIME(CZwpInputMethodManagerV2* mgr, wl_resource
 
     RESOURCE->m_self = RESOURCE;
 
-    LOGM(LOG, "New IME with resource id {}", id);
+    LOGM(Log::DEBUG, "New IME with resource id {}", id);
 
     m_events.newIME.emit(RESOURCE);
 }

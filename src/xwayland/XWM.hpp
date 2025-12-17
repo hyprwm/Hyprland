@@ -71,11 +71,11 @@ class CXCBConnection {
 
     ~CXCBConnection() {
         if (m_connection) {
-            Debug::log(LOG, "Disconnecting XCB connection {:x}", rc<uintptr_t>(m_connection));
+            Log::logger->log(Log::DEBUG, "Disconnecting XCB connection {:x}", rc<uintptr_t>(m_connection));
             xcb_disconnect(m_connection);
             m_connection = nullptr;
         } else
-            Debug::log(ERR, "Double xcb_disconnect attempt");
+            Log::logger->log(Log::ERR, "Double xcb_disconnect attempt");
     }
 
     bool hasError() const {

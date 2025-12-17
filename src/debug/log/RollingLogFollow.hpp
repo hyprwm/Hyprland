@@ -3,6 +3,7 @@
 #include <shared_mutex>
 #include <unordered_map>
 #include <format>
+#include <vector>
 
 namespace Log {
     struct SRollingLogFollow {

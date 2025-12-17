@@ -738,16 +738,21 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
+    if (g_pCompositor->m_unsafeState)
+        return;
+
     auto b = getCursorBoxGlobal().expand(4);
 
     for (auto const& mw : m_monitorStates) {
-        if (mw->monitor.expired() || !mw->monitor->m_output)
+        auto monitor = mw->monitor;
+        if (monitor.expired() || !monitor->m_output || monitor->isMirror())
             continue;
 
         if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(mw->monitor.lock())) &&
-            b.overlaps({mw->monitor->m_position, mw->monitor->m_size})) {
-            g_pHyprRenderer->damageBox(b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
-            break;
+            b.overlaps({mw->monitor->m_position, mw->monitor->m_size}) && !mw->monitor->shouldSkipScheduleFrameOnMouseEvent()) {
+
+            CBox damageBox = b.copy().translate(-monitor->m_position).scale(monitor->m_scale).round();
+            mw->monitor->addDamage(damageBox);
         }
     }
 }

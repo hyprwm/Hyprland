@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>

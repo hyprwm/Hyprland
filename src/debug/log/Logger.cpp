@@ -58,3 +58,7 @@ void CLogger::recheckCfg() {
 const std::string& CLogger::rolling() {
     return m_logger.rollingLog();
 }
+
+Hyprutils::CLI::CLogger& CLogger::hu() {
+    return m_logger;
+}

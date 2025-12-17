@@ -39,7 +39,8 @@ namespace Log {
             log(level, logMsg);
         }
 
-        const std::string& rolling();
+        const std::string&       rolling();
+        Hyprutils::CLI::CLogger& hu();
 
       private:
         void                    recheckCfg();

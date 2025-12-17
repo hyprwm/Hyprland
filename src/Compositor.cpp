@@ -126,23 +126,6 @@ static void handleUserSignal(int sig) {
     }
 }
 
-static Hyprutils::CLI::eLogLevel aqLevelToHu(Aquamarine::eBackendLogLevel level) {
-    switch (level) {
-        case Aquamarine::eBackendLogLevel::AQ_LOG_TRACE: return Log::TRACE;
-        case Aquamarine::eBackendLogLevel::AQ_LOG_DEBUG: return Log::DEBUG;
-        case Aquamarine::eBackendLogLevel::AQ_LOG_ERROR: return Log::ERR;
-        case Aquamarine::eBackendLogLevel::AQ_LOG_WARNING: return Log::WARN;
-        case Aquamarine::eBackendLogLevel::AQ_LOG_CRITICAL: return Log::CRIT;
-        default: break;
-    }
-
-    return Log::DEBUG;
-}
-
-static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
-    Log::logger->log(aqLevelToHu(level), "[AQ] {}", msg);
-}
-
 bool CCompositor::setWatchdogFd(int fd) {
     m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
     return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
@@ -329,8 +312,11 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     // set the buffer size to 1MB to avoid disconnects due to an app hanging for a short while
     wl_display_set_default_max_buffer_size(m_wlDisplay, 1_MB);
 
-    Aquamarine::SBackendOptions options{};
-    options.logFunction = aqLog;
+    Aquamarine::SBackendOptions           options{};
+    SP<Hyprutils::CLI::CLoggerConnection> conn = makeShared<Hyprutils::CLI::CLoggerConnection>(Log::logger->hu());
+    conn->setLogLevel(Log::DEBUG);
+    conn->setName("aquamarine");
+    options.logConnection = std::move(conn);
 
     std::vector<Aquamarine::SBackendImplementationOptions> implementations;
     Aquamarine::SBackendImplementationOptions              option;

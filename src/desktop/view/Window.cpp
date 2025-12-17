@@ -2248,7 +2248,7 @@ void CWindow::mapWindow() {
             }
         }
 
-        if (m_ruleApplicator->static_.center) {
+        if (m_ruleApplicator->static_.center.value_or(false)) {
             const auto WORKAREA = PMONITOR->logicalBoxMinusReserved();
             *m_realPosition     = WORKAREA.middle() - m_realSize->goal() / 2.f;
         }

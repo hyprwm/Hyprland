@@ -197,7 +197,7 @@ in
         "LEGACY_RENDERER" = legacyRenderer;
         "NO_SYSTEMD" = !withSystemd;
         "CMAKE_DISABLE_PRECOMPILE_HEADERS" = true;
-        "NO_UWSM" = true;
+        "NO_UWSM" = !withSystemd;
         "NO_HYPRPM" = true;
         "TRACY_ENABLE" = false;
         "WITH_TESTS" = withTests;

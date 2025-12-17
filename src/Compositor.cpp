@@ -142,8 +142,9 @@ static void aqLog(Aquamarine::eBackendLogLevel level, std::string msg) {
     Debug::log(aqLevelToHl(level), "[AQ] {}", msg);
 }
 
-void CCompositor::setWatchdogFd(int fd) {
+bool CCompositor::setWatchdogFd(int fd) {
     m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
+    return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
 }
 
 void CCompositor::bumpNofile() {

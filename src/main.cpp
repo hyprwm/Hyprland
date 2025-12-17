@@ -211,10 +211,16 @@ int main(int argc, char** argv) {
 
     reapZombieChildrenAutomatically();
 
+    bool watchdogOk = watchdogFd > 0;
+
     if (watchdogFd > 0)
-        g_pCompositor->setWatchdogFd(watchdogFd);
+        watchdogOk = g_pCompositor->setWatchdogFd(watchdogFd);
     if (safeMode)
         g_pCompositor->m_safeMode = true;
+
+    if (!watchdogOk)
+        Debug::log(WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
+
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)

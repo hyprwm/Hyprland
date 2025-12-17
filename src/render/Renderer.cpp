@@ -1921,14 +1921,14 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         return;
     }
 
+    if (damageBox.empty())
+        return;
+
     if (scale != 1.0)
         damageBox.scale(scale);
 
     // schedule frame events
     g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
-
-    if (damageBox.empty())
-        return;
 
     damageBox.translate({x, y});
 

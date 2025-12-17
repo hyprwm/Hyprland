@@ -575,6 +575,11 @@ install(
         \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
         )")
 # session file
+configure_file(
+    ${CMAKE_SOURCE_DIR}/example/hyprland.desktop.in
+    ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
+    @ONLY
+)
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 

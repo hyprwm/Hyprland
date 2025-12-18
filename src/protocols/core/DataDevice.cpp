@@ -837,7 +837,7 @@ void CWLDataDeviceProtocol::renderDND(PHLMONITOR pMonitor, const Time::steady_tp
     CBox damageBox = CBox{surfacePos, m_dnd.dndSurface->m_current.size}.expand(5);
     g_pHyprRenderer->damageBox(damageBox);
 
-    g_pSurfaceManager->sendFrameCallbacks(m_dnd.dndSurface, when);
+    g_pSurfaceManager->scheduleForFrame(pMonitor, m_dnd.dndSurface);
 }
 
 bool CWLDataDeviceProtocol::dndActive() {

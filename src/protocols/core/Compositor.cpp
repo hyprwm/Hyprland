@@ -15,6 +15,7 @@
 #include "config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/SurfaceManager.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
@@ -433,7 +434,7 @@ void CWLSurfaceResource::map() {
 
     m_mapped = true;
 
-    g_pSurfaceManager->sendFrameCallbacks(m_self, Time::steadyNow());
+    g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), m_self);
 
     m_current.bufferDamage = CBox{{}, m_current.bufferSize};
     m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};

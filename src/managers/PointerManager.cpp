@@ -161,7 +161,7 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
 
         if (surf->resource()->m_current.texture) {
             m_currentCursorImage.size = surf->resource()->m_current.bufferSize;
-            g_pSurfaceManager->sendFrameCallbacks(surf->resource(), Time::steadyNow());
+            g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), surf->resource());
         }
     }
 
@@ -598,7 +598,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
 
     if (!state->hardwareFailed && state->softwareLocks == 0 && !forceRender) {
         if (m_currentCursorImage.surface)
-            g_pSurfaceManager->sendFrameCallbacks(m_currentCursorImage.surface->resource(), Time::steadyNow());
+            g_pSurfaceManager->scheduleForFrame(pMonitor, m_currentCursorImage.surface->resource());
 
         return;
     }
@@ -634,7 +634,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 
     if (m_currentCursorImage.surface)
-        g_pSurfaceManager->sendFrameCallbacks(m_currentCursorImage.surface->resource(), Time::steadyNow());
+        g_pSurfaceManager->scheduleForFrame(pMonitor, m_currentCursorImage.surface->resource());
 }
 
 Vector2D CPointerManager::getCursorPosForMonitor(PHLMONITOR pMonitor) {

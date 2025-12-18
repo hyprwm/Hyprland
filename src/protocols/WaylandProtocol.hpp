@@ -4,6 +4,7 @@
 #include "../helpers/memory/Memory.hpp"
 
 #include <functional>
+#include <sstream>
 
 #define RESOURCE_OR_BAIL(resname)                                                                                                                                                  \
     const auto resname = (CWaylandResource*)wl_resource_get_user_data(resource);                                                                                                   \

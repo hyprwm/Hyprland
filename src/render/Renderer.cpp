@@ -171,7 +171,7 @@ CHyprRenderer::CHyprRenderer() {
                 if (!w->wlSurface() || !w->wlSurface()->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                g_pSurfaceManager->sendFrameCallbacks(w->wlSurface()->resource(), Time::steadyNow());
+                g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), w->wlSurface()->resource());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->wlSurface()->resource());
                 FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
 
@@ -1742,7 +1742,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
         if (!view->aliveAndVisible())
             continue;
 
-        g_pSurfaceManager->sendFrameCallbacks(view->wlSurface()->resource(), Time::steadyNow());
+        g_pSurfaceManager->scheduleForFrame(pMonitor, view->wlSurface()->resource());
     }
 }
 

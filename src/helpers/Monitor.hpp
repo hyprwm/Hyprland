@@ -128,8 +128,9 @@ class CMonitor {
     std::optional<Vector2D>     m_forceSize;
     SP<Aquamarine::SOutputMode> m_currentMode;
     SP<Aquamarine::CSwapchain>  m_cursorSwapchain;
-    uint32_t                    m_drmFormat     = DRM_FORMAT_INVALID;
-    uint32_t                    m_prevDrmFormat = DRM_FORMAT_INVALID;
+    uint32_t                    m_drmFormat         = DRM_FORMAT_INVALID;
+    uint32_t                    m_prevDrmFormat     = DRM_FORMAT_INVALID;
+    uint32_t                    m_failedModeRetries = 0;
 
     CMonitorZoomController      m_zoomController;
 

@@ -96,7 +96,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
         switch (key) {
             default: {
                 if (key <= WINDOW_RULE_EFFECT_LAST_STATIC) {
-                    Debug::log(TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                    Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                     break;
                 }
 
@@ -118,21 +118,21 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
 
             case WINDOW_RULE_EFFECT_NONE: {
-                Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: BUG THIS: WINDOW_RULE_EFFECT_NONE??");
+                Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: BUG THIS: WINDOW_RULE_EFFECT_NONE??");
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING: {
                 try {
                     m_rounding.first.set(std::stoull(effect), Types::PRIORITY_WINDOW_RULE);
                     m_rounding.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding {}", effect); }
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING_POWER: {
                 try {
                     m_roundingPower.first.set(std::clamp(std::stof(effect), 1.F, 10.F), Types::PRIORITY_WINDOW_RULE);
                     m_roundingPower.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding_power {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding_power {}", effect); }
                 break;
             }
             case WINDOW_RULE_EFFECT_PERSISTENT_SIZE: {
@@ -179,16 +179,16 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     // Includes sanity checks for the number of colors in each gradient
                     if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
-                        Debug::log(WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", effect);
+                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", effect);
                     else if (activeBorderGradient.m_colors.empty())
-                        Debug::log(WARN, "Bordercolor rule \"{}\" has no colors, ignoring", effect);
+                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has no colors, ignoring", effect);
                     else if (inactiveBorderGradient.m_colors.empty())
                         m_activeBorderColor.first = Types::COverridableVar(activeBorderGradient, Types::PRIORITY_WINDOW_RULE);
                     else {
                         m_activeBorderColor.first   = Types::COverridableVar(activeBorderGradient, Types::PRIORITY_WINDOW_RULE);
                         m_inactiveBorderColor.first = Types::COverridableVar(inactiveBorderGradient, Types::PRIORITY_WINDOW_RULE);
                     }
-                } catch (std::exception& e) { Debug::log(ERR, "BorderColor rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "BorderColor rule \"{}\" failed with: {}", effect, e.what()); }
                 m_activeBorderColor.second   = rule->getPropertiesMask();
                 m_inactiveBorderColor.second = rule->getPropertiesMask();
                 break;
@@ -203,7 +203,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 else if (effect == "fullscreen")
                     m_idleInhibitMode.first.set(IDLEINHIBIT_FULLSCREEN, Types::PRIORITY_WINDOW_RULE);
                 else
-                    Debug::log(ERR, "Rule idleinhibit: unknown mode {}", effect);
+                    Log::logger->log(Log::ERR, "Rule idleinhibit: unknown mode {}", effect);
                 m_idleInhibitMode.second = rule->getPropertiesMask();
                 break;
             }
@@ -246,7 +246,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                         m_alphaInactive.first   = m_alpha.first;
                         m_alphaFullscreen.first = m_alpha.first;
                     }
-                } catch (std::exception& e) { Debug::log(ERR, "Opacity rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "Opacity rule \"{}\" failed with: {}", effect, e.what()); }
                 m_alpha.second           = rule->getPropertiesMask();
                 m_alphaInactive.second   = rule->getPropertiesMask();
                 m_alphaFullscreen.second = rule->getPropertiesMask();
@@ -270,14 +270,14 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     const auto VEC = configStringToVector2D(effect);
                     if (VEC.x < 1 || VEC.y < 1) {
-                        Debug::log(ERR, "Invalid size for maxsize");
+                        Log::logger->log(Log::ERR, "Invalid size for maxsize");
                         break;
                     }
 
                     m_maxSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
                     m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
 
-                } catch (std::exception& e) { Debug::log(ERR, "maxsize rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -293,13 +293,13 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     const auto VEC = configStringToVector2D(effect);
                     if (VEC.x < 1 || VEC.y < 1) {
-                        Debug::log(ERR, "Invalid size for maxsize");
+                        Log::logger->log(Log::ERR, "Invalid size for maxsize");
                         break;
                     }
 
                     m_minSize.first = Types::COverridableVar(VEC, Types::PRIORITY_WINDOW_RULE);
                     m_window->clampWindowSize(std::nullopt, m_minSize.first.value());
-                } catch (std::exception& e) { Debug::log(ERR, "minsize rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", effect, e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -310,7 +310,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     m_borderSize.second |= rule->getPropertiesMask();
                     if (oldBorderSize != m_borderSize.first.valueOrDefault())
                         result.needsRelayout = true;
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid border_size {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid border_size {}", effect); }
                 break;
             }
             case WINDOW_RULE_EFFECT_ALLOWS_INPUT: {
@@ -432,14 +432,14 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 try {
                     m_scrollMouse.first.set(std::clamp(std::stof(effect), 0.01F, 10.F), Types::PRIORITY_WINDOW_RULE);
                     m_scrollMouse.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_mouse {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_mouse {}", effect); }
                 break;
             }
             case WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD: {
                 try {
                     m_scrollTouchpad.first.set(std::clamp(std::stof(effect), 0.01F, 10.F), Types::PRIORITY_WINDOW_RULE);
                     m_scrollTouchpad.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_touchpad {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_touchpad {}", effect); }
                 break;
             }
         }
@@ -451,7 +451,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
             default: {
-                Debug::log(TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
+                Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
                 break;
             }
 
@@ -477,7 +477,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                     static_.fullscreenStateInternal = std::stoi(std::string{vars[0]});
                     if (!vars[1].empty())
                         static_.fullscreenStateClient = std::stoi(std::string{vars[1]});
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyStaticRule: invalid fullscreen state {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid fullscreen state {}", effect); }
                 break;
             }
             case WINDOW_RULE_EFFECT_MOVE: {
@@ -532,7 +532,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             case WINDOW_RULE_EFFECT_NOCLOSEFOR: {
                 try {
                     static_.noCloseFor = std::stoi(effect);
-                } catch (...) { Debug::log(ERR, "CWindowRuleApplicator::applyStaticRule: invalid no close for {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid no close for {}", effect); }
                 break;
             }
         }

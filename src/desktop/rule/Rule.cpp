@@ -1,5 +1,5 @@
 #include "Rule.hpp"
-#include "../../debug/Log.hpp"
+#include "../../debug/log/Logger.hpp"
 #include <re2/re2.h>
 
 #include "matchEngine/RegexMatchEngine.hpp"
@@ -84,7 +84,7 @@ IRule::IRule(const std::string& name) : m_name(name) {
 
 void IRule::registerMatch(eRuleProperty p, const std::string& s) {
     if (!RULE_ENGINES.contains(p)) {
-        Debug::log(ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
+        Log::logger->log(Log::ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
         return;
     }
 

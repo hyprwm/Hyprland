@@ -17,7 +17,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
             makeShared<CToplevelWindowMappingHandle>(makeShared<CHyprlandToplevelWindowMappingHandleV1>(m_resource->client(), m_resource->version(), handle)));
 
         if UNLIKELY (!NEWHANDLE->m_resource->resource()) {
-            LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
+            LOGM(Log::ERR, "Couldn't alloc mapping handle! (no memory)");
             m_resource->noMemory();
             return;
         }
@@ -36,7 +36,7 @@ CToplevelMappingManager::CToplevelMappingManager(SP<CHyprlandToplevelMappingMana
             makeShared<CToplevelWindowMappingHandle>(makeShared<CHyprlandToplevelWindowMappingHandleV1>(m_resource->client(), m_resource->version(), handle)));
 
         if UNLIKELY (!NEWHANDLE->m_resource->resource()) {
-            LOGM(ERR, "Couldn't alloc mapping handle! (no memory)");
+            LOGM(Log::ERR, "Couldn't alloc mapping handle! (no memory)");
             m_resource->noMemory();
             return;
         }
@@ -62,7 +62,7 @@ void CToplevelMappingProtocol::bindManager(wl_client* client, void* data, uint32
     const auto RESOURCE = m_managers.emplace_back(makeUnique<CToplevelMappingManager>(makeShared<CHyprlandToplevelMappingManagerV1>(client, ver, id))).get();
 
     if UNLIKELY (!RESOURCE->good()) {
-        LOGM(ERR, "Couldn't create a toplevel mapping manager");
+        LOGM(Log::ERR, "Couldn't create a toplevel mapping manager");
         wl_client_post_no_memory(client);
         m_managers.pop_back();
         return;

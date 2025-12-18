@@ -26,7 +26,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
 
     m_image = g_pHyprOpenGL->createEGLImage(dma);
     if (m_image == EGL_NO_IMAGE_KHR) {
-        Debug::log(ERR, "rb: createEGLImage failed");
+        Log::logger->log(Log::ERR, "rb: createEGLImage failed");
         return;
     }
 
@@ -42,7 +42,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Debug::log(ERR, "rbo: glCheckFramebufferStatus failed");
+        Log::logger->log(Log::ERR, "rbo: glCheckFramebufferStatus failed");
         return;
     }
 

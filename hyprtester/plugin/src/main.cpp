@@ -213,7 +213,7 @@ static SDispatchResult scroll(std::string in) {
         by = std::stod(in);
     } catch (...) { return SDispatchResult{.success = false, .error = "invalid input"}; }
 
-    Debug::log(LOG, "tester: scrolling by {}", by);
+    Log::logger->log(Log::DEBUG, "tester: scrolling by {}", by);
 
     g_mouse->m_pointerEvents.axis.emit(IPointer::SAxisEvent{
         .delta         = by,

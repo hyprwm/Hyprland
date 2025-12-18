@@ -63,7 +63,7 @@ void CLockNotifyProtocol::onGetNotification(CHyprlandLockNotifierV1* pMgr, uint3
 
 void CLockNotifyProtocol::onLocked() {
     if UNLIKELY (m_isLocked) {
-        LOGM(ERR, "Not sending lock notification. Already locked!");
+        LOGM(Log::ERR, "Not sending lock notification. Already locked!");
         return;
     }
 
@@ -76,7 +76,7 @@ void CLockNotifyProtocol::onLocked() {
 
 void CLockNotifyProtocol::onUnlocked() {
     if UNLIKELY (!m_isLocked) {
-        LOGM(ERR, "Not sending unlock notification. Not locked!");
+        LOGM(Log::ERR, "Not sending unlock notification. Not locked!");
         return;
     }
 

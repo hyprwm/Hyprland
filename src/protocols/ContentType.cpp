@@ -10,11 +10,11 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
     m_resource->setOnDestroy([this](CWpContentTypeManagerV1* r) { PROTO::contentType->destroyResource(this); });
 
     m_resource->setGetSurfaceContentType([](CWpContentTypeManagerV1* r, uint32_t id, wl_resource* surface) {
-        LOGM(TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
+        LOGM(Log::TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
+            LOGM(Log::ERR, "No surface for resource {}", (uintptr_t)surface);
             r->error(-1, "Invalid surface (2)");
             return;
         }

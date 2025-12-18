@@ -50,10 +50,10 @@ void CTextInput::initCallbacks() {
 }
 
 void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
-    Debug::log(LOG, "TI ENABLE");
+    Log::logger->log(Log::DEBUG, "TI ENABLE");
 
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        // Debug::log(WARN, "Enabling TextInput on no IME!");
+        // Log::logger->log(Log::WARN,  "Enabling TextInput on no IME!");
         return;
     }
 
@@ -70,7 +70,7 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
 void CTextInput::onDisabled() {
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        //  Debug::log(WARN, "Disabling TextInput on no IME!");
+        //  Log::logger->log(Log::WARN,  "Disabling TextInput on no IME!");
         return;
     }
 
@@ -107,12 +107,12 @@ void CTextInput::onReset() {
 
 void CTextInput::onCommit() {
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        //   Debug::log(WARN, "Committing TextInput on no IME!");
+        //   Log::logger->log(Log::WARN,  "Committing TextInput on no IME!");
         return;
     }
 
     if (!(isV3() ? m_v3Input->m_current.enabled.value : m_v1Input->m_active)) {
-        Debug::log(WARN, "Disabled TextInput commit?");
+        Log::logger->log(Log::WARN, "Disabled TextInput commit?");
         return;
     }
 
@@ -132,7 +132,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     m_listeners.surfaceDestroy.reset();
 
     m_listeners.surfaceUnmap = pSurface->m_events.unmap.listen([this] {
-        Debug::log(LOG, "Unmap TI owner1");
+        Log::logger->log(Log::DEBUG, "Unmap TI owner1");
 
         if (m_enterLocks)
             m_enterLocks--;
@@ -152,7 +152,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     });
 
     m_listeners.surfaceDestroy = pSurface->m_events.destroy.listen([this] {
-        Debug::log(LOG, "Destroy TI owner1");
+        Log::logger->log(Log::DEBUG, "Destroy TI owner1");
 
         if (m_enterLocks)
             m_enterLocks--;
@@ -188,7 +188,7 @@ void CTextInput::enter(SP<CWLSurfaceResource> pSurface) {
 
     m_enterLocks++;
     if (m_enterLocks != 1) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 1 locks in enter");
+        Log::logger->log(Log::ERR, "BUG THIS: TextInput has != 1 locks in enter");
         leave();
         m_enterLocks = 1;
     }
@@ -208,7 +208,7 @@ void CTextInput::leave() {
 
     m_enterLocks--;
     if (m_enterLocks != 0) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
+        Log::logger->log(Log::ERR, "BUG THIS: TextInput has != 0 locks in leave");
         m_enterLocks = 0;
     }
 

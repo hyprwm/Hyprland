@@ -87,7 +87,7 @@ CSHMPool::~CSHMPool() {
 }
 
 void CSHMPool::resize(size_t size_) {
-    LOGM(LOG, "Resizing a SHM pool from {} to {}", m_size, size_);
+    LOGM(Log::DEBUG, "Resizing a SHM pool from {} to {}", m_size, size_);
 
     if (m_data != MAP_FAILED)
         munmap(m_data, m_size);
@@ -96,13 +96,13 @@ void CSHMPool::resize(size_t size_) {
     m_data = mmap(nullptr, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd.get(), 0);
 
     if UNLIKELY (m_data == MAP_FAILED)
-        LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", m_size, m_fd.get());
+        LOGM(Log::ERR, "Couldn't mmap {} bytes from fd {} of shm client", m_size, m_fd.get());
 }
 
 static int shmIsSizeValid(CFileDescriptor& fd, size_t size) {
     struct stat st;
     if UNLIKELY (fstat(fd.get(), &st) == -1) {
-        LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd.get());
+        LOGM(Log::ERR, "Couldn't get stat for fd {} of shm client", fd.get());
         return 0;
     }
 

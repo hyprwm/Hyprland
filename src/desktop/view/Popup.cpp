@@ -137,7 +137,7 @@ void CPopup::initAllSignals() {
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
     const auto& POPUP = m_children.emplace_back(CPopup::create(popup, m_self));
     POPUP->m_self     = POPUP;
-    Debug::log(LOG, "New popup at {:x}", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "New popup at {:x}", rc<uintptr_t>(this));
 }
 
 void CPopup::onDestroy() {
@@ -156,7 +156,7 @@ void CPopup::onDestroy() {
     m_listeners.newPopup.reset();
 
     if (m_fadingOut && m_alpha->isBeingAnimated()) {
-        Debug::log(LOG, "popup {:x}: skipping full destroy, animating", rc<uintptr_t>(this));
+        Log::logger->log(Log::DEBUG, "popup {:x}: skipping full destroy, animating", rc<uintptr_t>(this));
         return;
     }
 
@@ -164,7 +164,7 @@ void CPopup::onDestroy() {
 }
 
 void CPopup::fullyDestroy() {
-    Debug::log(LOG, "popup {:x} fully destroying", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
     g_pHyprRenderer->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first == m_self; });
@@ -203,7 +203,7 @@ void CPopup::onMap() {
     m_alpha->setValueAndWarp(0.F);
     *m_alpha = 1.F;
 
-    Debug::log(LOG, "popup {:x}: mapped", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "popup {:x}: mapped", rc<uintptr_t>(this));
 }
 
 void CPopup::onUnmap() {
@@ -211,12 +211,12 @@ void CPopup::onUnmap() {
         return;
 
     if (!m_resource || !m_resource->m_surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
+        Log::logger->log(Log::ERR, "CPopup: orphaned (no surface/resource) and unmaps??");
         onDestroy();
         return;
     }
 
-    Debug::log(LOG, "popup {:x}: unmapped", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "popup {:x}: unmapped", rc<uintptr_t>(this));
 
     // if the popup committed a different size right now, we also need to damage the old size.
     const Vector2D MAX_DAMAGE_SIZE = {std::max(m_lastSize.x, m_resource->m_surface->m_surface->m_current.size.x),
@@ -271,7 +271,7 @@ void CPopup::onUnmap() {
 
 void CPopup::onCommit(bool ignoreSiblings) {
     if (!m_resource || !m_resource->m_surface) {
-        Debug::log(ERR, "CPopup: orphaned (no surface/resource) and commits??");
+        Log::logger->log(Log::ERR, "CPopup: orphaned (no surface/resource) and commits??");
         onDestroy();
         return;
     }
@@ -286,7 +286,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
-            Debug::log(LOG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
+            Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
         return;
     }
 
@@ -318,7 +318,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 }
 
 void CPopup::onReposition() {
-    Debug::log(LOG, "Popup {:x} requests reposition", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "Popup {:x} requests reposition", rc<uintptr_t>(this));
 
     m_requestedReposition = true;
 

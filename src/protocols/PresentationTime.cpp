@@ -126,7 +126,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
     }
 
     if (m_feedbacks.size() > 10000) {
-        LOGM(ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
+        LOGM(Log::ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
 
         // Move the elements from the 9000th position to the end of the vector.
         std::vector<UP<CPresentationFeedback>> newFeedbacks;

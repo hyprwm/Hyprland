@@ -113,7 +113,7 @@ void CHyprlandSurfaceProtocol::getSurface(CHyprlandSurfaceManagerV1* manager, ui
 
     if (iter != m_surfaces.end()) {
         if (iter->second->m_resource) {
-            LOGM(ERR, "HyprlandSurface already present for surface {:x}", (uintptr_t)surface.get());
+            LOGM(Log::ERR, "HyprlandSurface already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(HYPRLAND_SURFACE_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED, "HyprlandSurface already present");
             return;
         } else {

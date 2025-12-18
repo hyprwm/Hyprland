@@ -132,7 +132,7 @@ void CWLSurface::destroy() {
 
     m_resource.reset();
 
-    Debug::log(LOG, "CWLSurface {:x} called destroy()", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "CWLSurface {:x} called destroy()", rc<uintptr_t>(this));
 }
 
 void CWLSurface::init() {
@@ -145,7 +145,7 @@ void CWLSurface::init() {
 
     m_listeners.destroy = m_resource->m_events.destroy.listen([this] { destroy(); });
 
-    Debug::log(LOG, "CWLSurface {:x} called init()", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "CWLSurface {:x} called init()", rc<uintptr_t>(this));
 }
 
 SP<IView> CWLSurface::view() const {

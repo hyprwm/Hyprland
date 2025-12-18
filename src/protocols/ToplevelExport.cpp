@@ -38,7 +38,7 @@ void CToplevelExportClient::captureToplevel(CHyprlandToplevelExportManagerV1* pM
         makeShared<CToplevelExportFrame>(makeShared<CHyprlandToplevelExportFrameV1>(m_resource->client(), m_resource->version(), frame), overlayCursor_, handle));
 
     if UNLIKELY (!FRAME->good()) {
-        LOGM(ERR, "Couldn't alloc frame for sharing! (no memory)");
+        LOGM(Log::ERR, "Couldn't alloc frame for sharing! (no memory)");
         m_resource->noMemory();
         PROTO::toplevelExport->destroyResource(FRAME.get());
         return;
@@ -81,13 +81,13 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     m_cursorOverlayRequested = !!overlayCursor_;
 
     if UNLIKELY (!m_window) {
-        LOGM(ERR, "Client requested sharing of window handle {:x} which does not exist!", m_window);
+        LOGM(Log::ERR, "Client requested sharing of window handle {:x} which does not exist!", m_window);
         m_resource->sendFailed();
         return;
     }
 
     if UNLIKELY (!m_window->m_isMapped) {
-        LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable!", m_window);
+        LOGM(Log::ERR, "Client requested sharing of window handle {:x} which is not shareable!", m_window);
         m_resource->sendFailed();
         return;
     }
@@ -102,14 +102,14 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
-        LOGM(ERR, "No format supported by renderer in capture toplevel");
+        LOGM(Log::ERR, "No format supported by renderer in capture toplevel");
         m_resource->sendFailed();
         return;
     }
 
     const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(m_shmFormat);
     if UNLIKELY (!PSHMINFO) {
-        LOGM(ERR, "No pixel format supported by renderer in capture toplevel");
+        LOGM(Log::ERR, "No pixel format supported by renderer in capture toplevel");
         m_resource->sendFailed();
         return;
     }
@@ -132,18 +132,18 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
 void CToplevelExportFrame::copy(CHyprlandToplevelExportFrameV1* pFrame, wl_resource* buffer_, int32_t ignoreDamage) {
     if UNLIKELY (!good()) {
-        LOGM(ERR, "No frame in copyFrame??");
+        LOGM(Log::ERR, "No frame in copyFrame??");
         return;
     }
 
     if UNLIKELY (!validMapped(m_window)) {
-        LOGM(ERR, "Client requested sharing of window handle {:x} which is gone!", m_window);
+        LOGM(Log::ERR, "Client requested sharing of window handle {:x} which is gone!", m_window);
         m_resource->sendFailed();
         return;
     }
 
     if UNLIKELY (!m_window->m_isMapped) {
-        LOGM(ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", m_window);
+        LOGM(Log::ERR, "Client requested sharing of window handle {:x} which is not shareable (2)!", m_window);
         m_resource->sendFailed();
         return;
     }
@@ -393,7 +393,7 @@ void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_
     const auto CLIENT = m_clients.emplace_back(makeShared<CToplevelExportClient>(makeShared<CHyprlandToplevelExportManagerV1>(client, ver, id)));
 
     if (!CLIENT->good()) {
-        LOGM(LOG, "Failed to bind client! (out of memory)");
+        LOGM(Log::DEBUG, "Failed to bind client! (out of memory)");
         wl_client_post_no_memory(client);
         m_clients.pop_back();
         return;
@@ -401,7 +401,7 @@ void CToplevelExportProtocol::bindManager(wl_client* client, void* data, uint32_
 
     CLIENT->m_self = CLIENT;
 
-    LOGM(LOG, "Bound client successfully!");
+    LOGM(Log::DEBUG, "Bound client successfully!");
 }
 
 void CToplevelExportProtocol::destroyResource(CToplevelExportClient* client) {

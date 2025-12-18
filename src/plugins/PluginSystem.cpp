@@ -25,7 +25,7 @@ SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpeci
     return CPromise<CPlugin*>::make([path, pid, pidType, this](SP<CPromiseResolver<CPlugin*>> resolver) {
         const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(pidType != SPECIAL_PID_TYPE_NONE ? pidType : pid, path, PERMISSION_TYPE_PLUGIN);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            Debug::log(LOG, "CPluginSystem: Waiting for user confirmation to load {}", path);
+            Log::logger->log(Log::DEBUG, "CPluginSystem: Waiting for user confirmation to load {}", path);
 
             auto promise = g_pDynamicPermissionManager->promiseFor(pid, path, PERMISSION_TYPE_PLUGIN);
             if (!promise) { // already awaiting or something?
@@ -35,18 +35,18 @@ SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpeci
 
             promise->then([this, path, resolver](SP<CPromiseResult<eDynamicPermissionAllowMode>> result) {
                 if (result->hasError()) {
-                    Debug::log(ERR, "CPluginSystem: Error spawning permission prompt");
+                    Log::logger->log(Log::ERR, "CPluginSystem: Error spawning permission prompt");
                     resolver->reject("Error spawning permission prompt");
                     return;
                 }
 
                 if (result->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                    Debug::log(ERR, "CPluginSystem: Rejecting plugin load of {}, user denied", path);
+                    Log::logger->log(Log::ERR, "CPluginSystem: Rejecting plugin load of {}, user denied", path);
                     resolver->reject("user denied");
                     return;
                 }
 
-                Debug::log(LOG, "CPluginSystem: Loading {}, user allowed", path);
+                Log::logger->log(Log::DEBUG, "CPluginSystem: Loading {}, user allowed", path);
 
                 const auto RESULT = loadPluginInternal(path);
                 if (RESULT.has_value())
@@ -56,7 +56,7 @@ SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpeci
             });
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            Debug::log(LOG, "CPluginSystem: Rejecting plugin load, permission is disabled");
+            Log::logger->log(Log::DEBUG, "CPluginSystem: Rejecting plugin load, permission is disabled");
             resolver->reject("permission is disabled");
             return;
         }
@@ -71,7 +71,7 @@ SP<CPromise<CPlugin*>> CPluginSystem::loadPlugin(const std::string& path, eSpeci
 
 std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std::string& path) {
     if (getPluginByPath(path)) {
-        Debug::log(ERR, " [PluginSystem] Cannot load a plugin twice!");
+        Log::logger->log(Log::ERR, " [PluginSystem] Cannot load a plugin twice!");
         return std::unexpected("Cannot load a plugin twice!");
     }
 
@@ -83,7 +83,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     if (!MODULE) {
         std::string strerr = dlerror();
-        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded: {}", path, strerr);
+        Log::logger->log(Log::ERR, " [PluginSystem] Plugin {} could not be loaded: {}", path, strerr);
         m_loadedPlugins.pop_back();
         return std::unexpected(std::format("Plugin {} could not be loaded: {}", path, strerr));
     }
@@ -94,7 +94,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
     PPLUGIN_INIT_FUNC        initFunc   = rc<PPLUGIN_INIT_FUNC>(dlsym(MODULE, PLUGIN_INIT_FUNC_STR));
 
     if (!apiVerFunc || !initFunc) {
-        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path);
+        Log::logger->log(Log::ERR, " [PluginSystem] Plugin {} could not be loaded. (No apiver/init func)", path);
         dlclose(MODULE);
         m_loadedPlugins.pop_back();
         return std::unexpected(std::format("Plugin {} could not be loaded: {}", path, "missing apiver/init func"));
@@ -103,7 +103,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
     const std::string PLUGINAPIVER = apiVerFunc();
 
     if (PLUGINAPIVER != HYPRLAND_API_VERSION) {
-        Debug::log(ERR, " [PluginSystem] Plugin {} could not be loaded. (API version mismatch)", path);
+        Log::logger->log(Log::ERR, " [PluginSystem] Plugin {} could not be loaded. (API version mismatch)", path);
         dlclose(MODULE);
         m_loadedPlugins.pop_back();
         return std::unexpected(std::format("Plugin {} could not be loaded: {}", path, "API version mismatch"));
@@ -121,7 +121,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
         }
     } catch (std::exception& e) {
         m_allowConfigVars = false;
-        Debug::log(ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path, rc<uintptr_t>(MODULE));
+        Log::logger->log(Log::ERR, " [PluginSystem] Plugin {} (Handle {:x}) crashed in init. Unloading.", path, rc<uintptr_t>(MODULE));
         unloadPlugin(PLUGIN, true); // Plugin could've already hooked/done something
         return std::unexpected(std::format("Plugin {} could not be loaded: plugin crashed/threw in main: {}", path, e.what()));
     }
@@ -135,8 +135,8 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
 
     g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
 
-    Debug::log(LOG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name, rc<uintptr_t>(MODULE), path,
-               PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
+    Log::logger->log(Log::DEBUG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name,
+                     rc<uintptr_t>(MODULE), path, PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
 
     return PLUGIN;
 }
@@ -185,7 +185,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     dlclose(PLHANDLE);
 
-    Debug::log(LOG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
+    Log::logger->log(Log::DEBUG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
 
     // reload config to fix some stuf like e.g. unloadedPluginVars
     g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
@@ -207,7 +207,7 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
         if (!p->m_loadedWithConfig || std::ranges::find(plugins, p->m_path) != plugins.end())
             continue;
 
-        Debug::log(LOG, "Unloading plugin {} which is no longer present in config", p->m_path);
+        Log::logger->log(Log::DEBUG, "Unloading plugin {} which is no longer present in config", p->m_path);
         unloadPlugin(p.get(), false);
         changed = true;
     }
@@ -217,14 +217,14 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
         if (std::ranges::find_if(m_loadedPlugins, [&](const auto& other) { return other->m_path == path; }) != m_loadedPlugins.end())
             continue;
 
-        Debug::log(LOG, "Loading plugin {} which is now present in config", path);
+        Log::logger->log(Log::DEBUG, "Loading plugin {} which is now present in config", path);
 
         changed = true;
 
         loadPlugin(path, SPECIAL_PID_TYPE_CONFIG)->then([path](SP<CPromiseResult<CPlugin*>> result) {
             if (result->hasError()) {
                 const auto NAME = path.contains('/') ? path.substr(path.find_last_of('/') + 1) : path;
-                Debug::log(ERR, "CPluginSystem::updateConfigPlugins: failed to load plugin {}: {}", NAME, result->error());
+                Log::logger->log(Log::ERR, "CPluginSystem::updateConfigPlugins: failed to load plugin {}: {}", NAME, result->error());
                 g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, {{"name", NAME}, {"error", result->error()}}),
                                                             CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
                 return;
@@ -232,7 +232,7 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
 
             result->result()->m_loadedWithConfig = true;
 
-            Debug::log(LOG, "CPluginSystem::updateConfigPlugins: loaded {}", path);
+            Log::logger->log(Log::DEBUG, "CPluginSystem::updateConfigPlugins: loaded {}", path);
         });
     }
 }

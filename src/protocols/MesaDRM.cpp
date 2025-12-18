@@ -6,9 +6,9 @@
 #include "../render/OpenGL.hpp"
 
 CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs attrs_) {
-    LOGM(LOG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
+    LOGM(Log::DEBUG, "Creating a Mesa dmabuf, with id {}: size {}, fmt {}, planes {}", id, attrs_.size, attrs_.format, attrs_.planes);
     for (int i = 0; i < attrs_.planes; ++i) {
-        LOGM(LOG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i], attrs_.strides[i], attrs_.offsets[i]);
+        LOGM(Log::DEBUG, " | plane {}: mod {} fd {} stride {} offset {}", i, attrs_.modifier, attrs_.fds[i], attrs_.strides[i], attrs_.offsets[i]);
     }
 
     m_buffer                       = makeShared<CDMABuffer>(id, client, attrs_);
@@ -20,7 +20,7 @@ CMesaDRMBufferResource::CMesaDRMBufferResource(uint32_t id, wl_client* client, A
     });
 
     if (!m_buffer->m_success)
-        LOGM(ERR, "Possibly compositor bug: buffer failed to create");
+        LOGM(Log::ERR, "Possibly compositor bug: buffer failed to create");
 }
 
 CMesaDRMBufferResource::~CMesaDRMBufferResource() {
@@ -116,7 +116,7 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
     int        drmFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
 
     if (drmGetDevice2(drmFD, 0, &dev) != 0) {
-        LOGM(ERR, "Failed to get device from fd {}, disabling MesaDRM", drmFD);
+        LOGM(Log::ERR, "Failed to get device from fd {}, disabling MesaDRM", drmFD);
         removeGlobal();
         return;
     }
@@ -124,10 +124,10 @@ CMesaDRMProtocol::CMesaDRMProtocol(const wl_interface* iface, const int& ver, co
     if (dev->available_nodes & (1 << DRM_NODE_RENDER) && dev->nodes[DRM_NODE_RENDER]) {
         m_nodeName = dev->nodes[DRM_NODE_RENDER];
     } else if (dev->available_nodes & (1 << DRM_NODE_PRIMARY) && dev->nodes[DRM_NODE_PRIMARY]) {
-        LOGM(WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
+        LOGM(Log::WARN, "No DRM render node, falling back to primary {}", dev->nodes[DRM_NODE_PRIMARY]);
         m_nodeName = dev->nodes[DRM_NODE_PRIMARY];
     } else {
-        LOGM(ERR, "No usable DRM node (render or primary) found, disabling MesaDRM");
+        LOGM(Log::ERR, "No usable DRM node (render or primary) found, disabling MesaDRM");
         drmFreeDevice(&dev);
         removeGlobal();
         return;

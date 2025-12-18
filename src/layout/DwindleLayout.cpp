@@ -118,7 +118,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SP<SDwindleNodeData> pNode, bool 
         PMONITOR = WS->m_monitor.lock();
 
     if (!PMONITOR || !WS) {
-        Debug::log(ERR, "Orphaned Node {}!!", pNode);
+        Log::logger->log(Log::ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -135,7 +135,7 @@ void CHyprDwindleLayout::applyNodeDataToWindow(SP<SDwindleNodeData> pNode, bool 
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(g_pCompositor->getWorkspaceByID(pNode->workspaceID));
 
     if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
+        Log::logger->log(Log::ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         onWindowRemovedTiling(PWINDOW);
         return;
     }
@@ -316,7 +316,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
     } else
         OPENINGON = getFirstNodeOnWorkspace(pWindow->workspaceID());
 
-    Debug::log(LOG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->m_id);
+    Log::logger->log(Log::DEBUG, "OPENINGON: {}, Monitor: {}", OPENINGON, PMONITOR->m_id);
 
     if (OPENINGON && OPENINGON->workspaceID != PNODE->workspaceID) {
         // special workspace handling
@@ -489,7 +489,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     const auto PNODE = getNodeFromWindow(pWindow);
 
     if (!PNODE) {
-        Debug::log(ERR, "onWindowRemovedTiling node null?");
+        Log::logger->log(Log::ERR, "onWindowRemovedTiling node null?");
         return;
     }
 
@@ -502,7 +502,7 @@ void CHyprDwindleLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
     const auto PPARENT = PNODE->pParent;
 
     if (!PPARENT) {
-        Debug::log(LOG, "Removing last node (dwindle)");
+        Log::logger->log(Log::DEBUG, "Removing last node (dwindle)");
         std::erase(m_dwindleNodesData, PNODE);
         return;
     }
@@ -1015,7 +1015,7 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         std::string direction = ARGS[1];
 
         if (direction.empty()) {
-            Debug::log(ERR, "Expected direction for preselect");
+            Log::logger->log(Log::ERR, "Expected direction for preselect");
             return "";
         }
 

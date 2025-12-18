@@ -56,7 +56,7 @@ void IKeyboard::clearManuallyAllocd() {
 
 void IKeyboard::setKeymap(const SStringRuleNames& rules) {
     if (m_keymapOverridden) {
-        Debug::log(LOG, "Ignoring setKeymap: keymap is overridden");
+        Log::logger->log(Log::DEBUG, "Ignoring setKeymap: keymap is overridden");
         return;
     }
 
@@ -72,20 +72,20 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
     const auto CONTEXT = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 
     if (!CONTEXT) {
-        Debug::log(ERR, "setKeymap: CONTEXT null??");
+        Log::logger->log(Log::ERR, "setKeymap: CONTEXT null??");
         return;
     }
 
     clearManuallyAllocd();
 
-    Debug::log(LOG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules, rules.model,
-               rules.options);
+    Log::logger->log(Log::DEBUG, "Attempting to create a keymap for layout {} with variant {} (rules: {}, model: {}, options: {})", rules.layout, rules.variant, rules.rules,
+                     rules.model, rules.options);
 
     if (!m_xkbFilePath.empty()) {
         auto path = absolutePath(m_xkbFilePath, g_pConfigManager->m_configCurrentPath);
 
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
-            Debug::log(ERR, "Cannot open input:kb_file= file for reading");
+            Log::logger->log(Log::ERR, "Cannot open input:kb_file= file for reading");
         else {
             m_xkbKeymap = xkb_keymap_new_from_file(CONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             fclose(KEYMAPFILE);
@@ -99,8 +99,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
                                         ", options: " + rules.options + ", layout: " + rules.layout + " )");
 
-        Debug::log(ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules, rules.model,
-                   rules.options);
+        Log::logger->log(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules,
+                         rules.model, rules.options);
         memset(&XKBRULES, 0, sizeof(XKBRULES));
 
         m_currentRules.rules   = "";
@@ -129,12 +129,12 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
     for (size_t i = 0; i < std::min(LEDNAMES.size(), m_ledIndexes.size()); ++i) {
         m_ledIndexes[i] = xkb_map_led_get_index(m_xkbKeymap, LEDNAMES[i]);
-        Debug::log(LOG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES[i], m_ledIndexes[i]);
+        Log::logger->log(Log::DEBUG, "xkb: LED index {} (name {}) got index {}", i, LEDNAMES[i], m_ledIndexes[i]);
     }
 
     for (size_t i = 0; i < std::min(MODNAMES.size(), m_modIndexes.size()); ++i) {
         m_modIndexes[i] = xkb_map_mod_get_index(m_xkbKeymap, MODNAMES[i]);
-        Debug::log(LOG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES[i], m_modIndexes[i]);
+        Log::logger->log(Log::DEBUG, "xkb: Mod index {} (name {}) got index {}", i, MODNAMES[i], m_modIndexes[i]);
     }
 
     updateKeymapFD();
@@ -145,7 +145,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 }
 
 void IKeyboard::updateKeymapFD() {
-    Debug::log(LOG, "Updating keymap fd for keyboard {}", m_deviceName);
+    Log::logger->log(Log::DEBUG, "Updating keymap fd for keyboard {}", m_deviceName);
 
     if (m_xkbKeymapFD.isValid())
         m_xkbKeymapFD.reset();
@@ -162,11 +162,11 @@ void IKeyboard::updateKeymapFD() {
 
     CFileDescriptor rw, ro, rwV1, roV1;
     if (!allocateSHMFilePair(m_xkbKeymapString.length() + 1, rw, ro))
-        Debug::log(ERR, "IKeyboard: failed to allocate shm pair for the keymap");
+        Log::logger->log(Log::ERR, "IKeyboard: failed to allocate shm pair for the keymap");
     else if (!allocateSHMFilePair(m_xkbKeymapV1String.length() + 1, rwV1, roV1)) {
         ro.reset();
         rw.reset();
-        Debug::log(ERR, "IKeyboard: failed to allocate shm pair for keymap V1");
+        Log::logger->log(Log::ERR, "IKeyboard: failed to allocate shm pair for keymap V1");
     } else {
         auto keymapFDDest   = mmap(nullptr, m_xkbKeymapString.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rw.get(), 0);
         auto keymapV1FDDest = mmap(nullptr, m_xkbKeymapV1String.length() + 1, PROT_READ | PROT_WRITE, MAP_SHARED, rwV1.get(), 0);
@@ -174,7 +174,7 @@ void IKeyboard::updateKeymapFD() {
         rwV1.reset();
 
         if (keymapFDDest == MAP_FAILED || keymapV1FDDest == MAP_FAILED) {
-            Debug::log(ERR, "IKeyboard: failed to mmap a shm pair for the keymap");
+            Log::logger->log(Log::ERR, "IKeyboard: failed to mmap a shm pair for the keymap");
             ro.reset();
             roV1.reset();
         } else {
@@ -187,7 +187,7 @@ void IKeyboard::updateKeymapFD() {
         }
     }
 
-    Debug::log(LOG, "Updated keymap fd to {}, keymap V1 to: {}", m_xkbKeymapFD.get(), m_xkbKeymapV1FD.get());
+    Log::logger->log(Log::DEBUG, "Updated keymap fd to {}, keymap V1 to: {}", m_xkbKeymapFD.get(), m_xkbKeymapV1FD.get());
 }
 
 void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
@@ -206,7 +206,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
     m_xkbSymState    = nullptr;
 
     if (keymap) {
-        Debug::log(LOG, "Updating keyboard {:x}'s translation state from a provided keymap", rc<uintptr_t>(this));
+        Log::logger->log(Log::DEBUG, "Updating keyboard {:x}'s translation state from a provided keymap", rc<uintptr_t>(this));
         m_xkbStaticState = xkb_state_new(keymap);
         m_xkbState       = xkb_state_new(keymap);
         m_xkbSymState    = xkb_state_new(keymap);
@@ -221,7 +221,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
 
     for (uint32_t i = 0; i < LAYOUTSNUM; ++i) {
         if (xkb_state_layout_index_is_active(STATE, i, XKB_STATE_LAYOUT_EFFECTIVE) == 1) {
-            Debug::log(LOG, "Updating keyboard {:x}'s translation state from an active index {}", rc<uintptr_t>(this), i);
+            Log::logger->log(Log::DEBUG, "Updating keyboard {:x}'s translation state from an active index {}", rc<uintptr_t>(this), i);
 
             CVarList       keyboardLayouts(m_currentRules.layout, 0, ',');
             CVarList       keyboardModels(m_currentRules.model, 0, ',');
@@ -241,14 +241,14 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
             auto KEYMAP = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
             if (!KEYMAP) {
-                Debug::log(ERR, "updateXKBTranslationState: keymap failed 1, fallback without model/variant");
+                Log::logger->log(Log::ERR, "updateXKBTranslationState: keymap failed 1, fallback without model/variant");
                 rules.model   = "";
                 rules.variant = "";
                 KEYMAP        = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
 
             if (!KEYMAP) {
-                Debug::log(ERR, "updateXKBTranslationState: keymap failed 2, fallback to us");
+                Log::logger->log(Log::ERR, "updateXKBTranslationState: keymap failed 2, fallback to us");
                 rules.layout = "us";
                 KEYMAP       = xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
             }
@@ -264,7 +264,7 @@ void IKeyboard::updateXKBTranslationState(xkb_keymap* const keymap) {
         }
     }
 
-    Debug::log(LOG, "Updating keyboard {:x}'s translation state from an unknown index", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "Updating keyboard {:x}'s translation state from an unknown index", rc<uintptr_t>(this));
 
     xkb_rule_names rules = {
         .rules   = m_currentRules.rules.c_str(),

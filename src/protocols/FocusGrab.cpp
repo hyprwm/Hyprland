@@ -107,7 +107,7 @@ void CFocusGrab::refocusKeyboard() {
     if (surface)
         Desktop::focusState()->rawSurfaceFocus(surface);
     else
-        LOGM(ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
+        LOGM(Log::ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
 }
 
 void CFocusGrab::commit(bool removeOnly) {

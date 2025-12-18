@@ -99,7 +99,7 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
-        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        Log::logger->log(Log::ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
         PROTO::colorManagement->onImagePreferredChanged(0);
     }
 }
@@ -222,9 +222,9 @@ CProtocolManager::CProtocolManager() {
         if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
             if (g_pCompositor->supportsDrmSyncobjTimeline()) {
                 PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
-                Debug::log(LOG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
+                Log::logger->log(Log::DEBUG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
             } else
-                Debug::log(WARN, "DRM Syncobj Timeline not supported, skipping explicit sync protocol");
+                Log::logger->log(Log::WARN, "DRM Syncobj Timeline not supported, skipping explicit sync protocol");
         }
     }
 
@@ -232,7 +232,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
-        Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
+        Log::logger->log(Log::WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
 }
 
 CProtocolManager::~CProtocolManager() {

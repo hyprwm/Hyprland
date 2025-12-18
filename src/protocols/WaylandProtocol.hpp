@@ -4,6 +4,7 @@
 #include "../helpers/memory/Memory.hpp"
 
 #include <functional>
+#include <sstream>
 
 #define RESOURCE_OR_BAIL(resname)                                                                                                                                                  \
     const auto resname = (CWaylandResource*)wl_resource_get_user_data(resource);                                                                                                   \
@@ -28,16 +29,16 @@
 #define LOGM(level, ...)                                                                                                                                                           \
     do {                                                                                                                                                                           \
         std::ostringstream oss;                                                                                                                                                    \
-        if (level == WARN || level == ERR || level == CRIT) {                                                                                                                      \
+        if (level == Log::WARN || level == Log::ERR || level == Log::CRIT) {                                                                                                       \
             oss << "[" << __FILE__ << ":" << __LINE__ << "] ";                                                                                                                     \
-        } else if (level == LOG || level == INFO || level == TRACE) {                                                                                                              \
+        } else if (level == Log::DEBUG || level == Log::INFO || level == Log::TRACE) {                                                                                             \
             oss << "[" << EXTRACT_CLASS_NAME() << "] ";                                                                                                                            \
         }                                                                                                                                                                          \
         if constexpr (std::tuple_size<decltype(std::make_tuple(__VA_ARGS__))>::value == 1 && std::is_same_v<decltype(__VA_ARGS__), std::string>) {                                 \
             oss << __VA_ARGS__;                                                                                                                                                    \
-            Debug::log(level, oss.str());                                                                                                                                          \
+            Log::logger->log(level, oss.str());                                                                                                                                    \
         } else {                                                                                                                                                                   \
-            Debug::log(level, std::format("{}{}", oss.str(), std::format(__VA_ARGS__)));                                                                                           \
+            Log::logger->log(level, std::format("{}{}", oss.str(), std::format(__VA_ARGS__)));                                                                                     \
         }                                                                                                                                                                          \
     } while (0)
 

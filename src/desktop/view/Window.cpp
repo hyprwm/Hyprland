@@ -471,6 +471,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     const auto  OLDWORKSPACE = m_workspace;
 
+    bool        previouslyEmpty = !pWorkspace->hasWindow();
+
     if (OLDWORKSPACE->isVisible()) {
         m_movingToWorkspaceAlpha->setValueAndWarp(1.F);
         *m_movingToWorkspaceAlpha = 0.F;
@@ -496,6 +498,16 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
+
+        if (!OLDWORKSPACE->hasWindow()) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "depopulateworkspace", .data = std::format("{},{}", OLDWORKSPACE->m_id, OLDWORKSPACE->m_name)});
+            EMIT_HOOK_EVENT("depopulateWorkspace", OLDWORKSPACE);
+        }
+
+        if (previouslyEmpty) {
+            g_pEventManager->postEvent(SHyprIPCEvent{.event = "populateworkspace", .data = std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
+            EMIT_HOOK_EVENT("populateWorkspace", pWorkspace);
+        }
     }
 
     if (const auto SWALLOWED = m_swallowed.lock()) {
@@ -505,7 +517,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && !OLDWORKSPACE->hasWindow() && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -560,10 +572,10 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0)
+    if (m_workspace->m_isSpecialWorkspace && !m_workspace->hasWindow())
         m_lastWorkspace = m_monitor->activeWorkspaceID();
 
-    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_workspace && !m_workspace->hasWindow() && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -1934,7 +1946,9 @@ void CWindow::mapWindow() {
         Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = Desktop::focusState()->monitor();
     }
-    auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    auto PWORKSPACE               = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
+    bool workspacePreviouslyEmpty = !PWORKSPACE->hasWindow();
+
     m_monitor       = PMONITOR;
     m_workspace     = PWORKSPACE;
     m_isMapped      = true;
@@ -2224,6 +2238,9 @@ void CWindow::mapWindow() {
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
     EMIT_HOOK_EVENT("openWindowEarly", m_self.lock());
+    if (workspacePreviouslyEmpty) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"populateworkspace", std::format("{},{}", PWORKSPACE->m_id, PWORKSPACE->m_name)});
+    }
 
     if (m_isFloating) {
         g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_self.lock());
@@ -2364,6 +2381,10 @@ void CWindow::mapWindow() {
 
     // emit the hook event here after basic stuff has been initialized
     EMIT_HOOK_EVENT("openWindow", m_self.lock());
+    if (workspacePreviouslyEmpty) {
+        EMIT_HOOK_EVENT("populateWorkspace", m_self.lock());
+    }
+
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
@@ -2476,6 +2497,11 @@ void CWindow::unmapWindow() {
     // do this after onWindowRemoved because otherwise it'll think the window is invalid
     m_isMapped = false;
 
+    if (!m_workspace->hasWindow()) {
+        g_pEventManager->postEvent(SHyprIPCEvent{"depopulateworkspace", std::format("{},{}", m_workspace->m_id, m_workspace->m_name)});
+        EMIT_HOOK_EVENT("depopulateWorkspace", m_workspace);
+    }
+
     // refocus on a new window if needed
     if (wasLastWindow) {
         static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
@@ -2494,7 +2520,7 @@ void CWindow::unmapWindow() {
                 g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
         }
 
-        if (!PWINDOWCANDIDATE && m_workspace && m_workspace->getWindows() == 0)
+        if (!PWINDOWCANDIDATE && m_workspace && !m_workspace->hasWindow())
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

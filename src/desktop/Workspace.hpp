@@ -80,6 +80,7 @@ class CWorkspace {
     void             updateWindows();
     void             setPersistent(bool persistent);
     bool             isPersistent();
+    bool             hasWindow();
 
     struct {
         CSignalT<> destroy;

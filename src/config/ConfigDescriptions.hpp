@@ -16,6 +16,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
+        .value       = "general:screencast_border.enabled",
+        .description = "enable red border indicator when screen sharing",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "general:screencast_border.color",
+        .description = "border color when screen sharing",
+        .type        = CONFIG_OPTION_GRADIENT,
+        .data        = SConfigOptionDescription::SGradientData{"0xffff0000"},
+    },
+    SConfigOptionDescription{
         .value       = "general:gaps_in",
         .description = "gaps between windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,

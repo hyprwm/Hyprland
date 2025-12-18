@@ -514,6 +514,11 @@ void CScreencopyProtocol::destroyResource(CScreencopyClient* client) {
 }
 
 void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
+    // Damage the monitor before destroying the frame so the border updates
+    if (frame && frame->m_monitor) {
+        if (auto monitor = frame->m_monitor.lock())
+            g_pHyprRenderer->damageMonitor(monitor);
+    }
     std::erase_if(m_frames, [&](const auto& other) { return other.get() == frame; });
     std::erase_if(m_framesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }

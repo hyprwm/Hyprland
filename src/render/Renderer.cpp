@@ -41,6 +41,10 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
+#include "../protocols/Screencopy.hpp"
+#include "../config/ConfigDataValues.hpp"
+#include "../helpers/Color.hpp"
+#include "pass/BorderPassElement.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -1455,6 +1459,46 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = Colors::BLACK.modifyA(pMonitor->m_dpmsBlackOpacity->value());
         m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
+
+    // Render border around monitor if it's being shared
+    static auto PENABLED = CConfigValue<Hyprlang::INT>("general:screencast_border.enabled");
+    if (*PENABLED) {
+        // Check if monitor is being shared through screencopy
+        bool isMonitorShared = false;
+        if (PROTO::screencopy) {
+            for (const auto& frame : PROTO::screencopy->m_frames) {
+                if (frame && frame->m_monitor && frame->m_monitor.lock() == pMonitor) {
+                    isMonitorShared = frame->m_client->m_sentScreencast;
+                    break;
+                }
+            }
+        }
+
+        if (isMonitorShared) {
+            static auto                     PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
+            static auto                     PCOLOR      = CConfigValue<Hyprlang::CUSTOMTYPE>("general:screencast_border.color");
+            const int                       borderSize  = *PBORDERSIZE > 0 ? *PBORDERSIZE : 1;
+
+            const int                       scaledBorderSize = std::round(borderSize * pMonitor->m_scale);
+            CBox                            monitorBox       = {scaledBorderSize, scaledBorderSize, std::max(1, sc<int>(pMonitor->m_transformedSize.x) - (2 * scaledBorderSize)),
+                                                                std::max(1, sc<int>(pMonitor->m_transformedSize.y) - (2 * scaledBorderSize))};
+
+            const auto* const               PGRAD      = sc<CGradientValueData*>((PCOLOR.ptr())->getData());
+            CGradientValueData              borderGrad = PGRAD ? *PGRAD : CGradientValueData(Colors::RED); // fallback to red if config not loaded
+
+            CBorderPassElement::SBorderData borderData;
+            borderData.box           = monitorBox;
+            borderData.grad1         = borderGrad;
+            borderData.round         = 0;
+            borderData.outerRound    = -1;
+            borderData.roundingPower = 2.0f;
+            borderData.a             = 1.0f;
+            borderData.borderSize    = borderSize;
+            borderData.hasGrad2      = false;
+
+            m_renderPass.add(makeUnique<CBorderPassElement>(borderData));
+        }
     }
 
     EMIT_HOOK_EVENT("render", RENDER_LAST_MOMENT);

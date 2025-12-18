@@ -74,7 +74,7 @@ bool CToplevelExportClient::good() {
     return m_resource->resource();
 }
 
-CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : m_resource(resource_), m_window(pWindow_) {
+CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource_, int32_t overlayCursor_, PHLWINDOW pWindow_) : m_window(pWindow_), m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
@@ -411,6 +411,10 @@ void CToplevelExportProtocol::destroyResource(CToplevelExportClient* client) {
 }
 
 void CToplevelExportProtocol::destroyResource(CToplevelExportFrame* frame) {
+    // Damage the window before destroying the frame so the border updates
+    if (frame && frame->m_window) {
+        g_pHyprRenderer->damageWindow(frame->m_window);
+    }
     std::erase_if(m_frames, [&](const auto& other) { return other.get() == frame; });
     std::erase_if(m_framesAwaitingWrite, [&](const auto& other) { return !other || other.get() == frame; });
 }

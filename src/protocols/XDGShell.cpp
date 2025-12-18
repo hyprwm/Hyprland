@@ -465,7 +465,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         m_toplevel->m_self = RESOURCE;
 
         LOGM(LOG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
-        
+
         PHLWINDOW createdWindow = g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
 
         if (RESOURCE->m_parent && RESOURCE->m_parent->m_window->m_pinned)

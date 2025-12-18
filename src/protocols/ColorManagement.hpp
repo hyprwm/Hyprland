@@ -3,6 +3,9 @@
 #include <drm_mode.h>
 #include <vector>
 #include <cstdint>
+#include <utility> 
+#include <hyprutils/signal/Signal.hpp>
+
 #include "WaylandProtocol.hpp"
 #include "../helpers/Monitor.hpp"
 #include "core/Compositor.hpp"
@@ -13,13 +16,14 @@ class CColorManager;
 class CColorManagementOutput;
 class CColorManagementImageDescription;
 class CColorManagementProtocol;
+class CColorManagementImageDescriptionInfo; 
 
 class CColorManager {
   public:
     CColorManager(SP<CWpColorManagerV1> resource);
 
-    bool       good();
-    wl_client* client();
+    [[nodiscard]] bool good() const;
+    wl_client* client() const;
 
   private:
     SP<CWpColorManagerV1> m_resource;
@@ -29,15 +33,15 @@ class CColorManagementOutput {
   public:
     CColorManagementOutput(SP<CWpColorManagementOutputV1> resource, WP<CWLOutputResource> output);
 
-    bool                                 good();
-    wl_client*                           client();
+    [[nodiscard]] bool good() const;
+    wl_client* client() const;
 
     WP<CColorManagementOutput>           m_self;
     WP<CColorManagementImageDescription> m_imageDescription;
 
   private:
     SP<CWpColorManagementOutputV1> m_resource;
-    wl_client*                     m_client = nullptr;
+    wl_client* m_client = nullptr;
     WP<CWLOutputResource>          m_output;
 
     friend class CColorManagementProtocol;
@@ -49,8 +53,8 @@ class CColorManagementSurface {
     CColorManagementSurface(SP<CWLSurfaceResource> surface_); // temporary interface for frog CM
     CColorManagementSurface(SP<CWpColorManagementSurfaceV1> resource, SP<CWLSurfaceResource> surface_);
 
-    bool                                       good();
-    wl_client*                                 client();
+    [[nodiscard]] bool                         good() const;
+    wl_client* client() const;
 
     WP<CColorManagementSurface>                m_self;
     WP<CWLSurfaceResource>                     m_surface;
@@ -66,7 +70,7 @@ class CColorManagementSurface {
 
   private:
     SP<CWpColorManagementSurfaceV1>     m_resource;
-    wl_client*                          m_client = nullptr;
+    wl_client* m_client = nullptr;
     NColorManagement::SImageDescription m_imageDescription;
     NColorManagement::SImageDescription m_lastImageDescription;
     bool                                m_hasImageDescription = false;
@@ -81,21 +85,22 @@ class CColorManagementFeedbackSurface {
   public:
     CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_);
 
-    bool                                good();
-    wl_client*                          client();
+    [[nodiscard]] bool                  good() const;
+    wl_client* client() const;
 
     WP<CColorManagementFeedbackSurface> m_self;
     WP<CWLSurfaceResource>              m_surface;
 
   private:
     SP<CWpColorManagementSurfaceFeedbackV1> m_resource;
-    wl_client*                              m_client = nullptr;
+    wl_client* m_client = nullptr;
 
     uint32_t                                m_currentPreferredId = 0;
 
+    // Updated for Hyprutils signals
     struct {
-        CHyprSignalListener enter;
-        CHyprSignalListener leave;
+        SP<Hyprutils::Signal::CSignalListener> enter;
+        SP<Hyprutils::Signal::CSignalListener> leave;
     } m_listeners;
 
     void onPreferredChanged();
@@ -107,8 +112,8 @@ class CColorManagementIccCreator {
   public:
     CColorManagementIccCreator(SP<CWpImageDescriptionCreatorIccV1> resource);
 
-    bool                                good();
-    wl_client*                          client();
+    [[nodiscard]] bool                  good() const;
+    wl_client* client() const;
 
     WP<CColorManagementIccCreator>      m_self;
 
@@ -116,22 +121,23 @@ class CColorManagementIccCreator {
 
   private:
     SP<CWpImageDescriptionCreatorIccV1> m_resource;
-    wl_client*                          m_client = nullptr;
+    wl_client* m_client = nullptr;
 };
 
 class CColorManagementParametricCreator {
   public:
     CColorManagementParametricCreator(SP<CWpImageDescriptionCreatorParamsV1> resource);
 
-    bool                                  good();
-    wl_client*                            client();
+    [[nodiscard]] bool                    good() const;
+    wl_client* client() const;
 
     WP<CColorManagementParametricCreator> m_self;
 
     NColorManagement::SImageDescription   m_settings;
 
   private:
-    enum eValuesSet : uint32_t { // NOLINT
+    // Scoped enum for type safety (C++11/20)
+    enum class eValuesSet : uint32_t { 
         PC_TF                   = (1 << 0),
         PC_TF_POWER             = (1 << 1),
         PC_PRIMARIES            = (1 << 2),
@@ -142,26 +148,40 @@ class CColorManagementParametricCreator {
         PC_FALL                 = (1 << 7),
     };
 
+    // Helper to check flags safely
+    bool hasFlag(eValuesSet flag) const {
+        return m_valuesSet & std::to_underlying(flag);
+    }
+    
+    // Helper to set flags safely
+    void setFlag(eValuesSet flag) {
+        m_valuesSet |= std::to_underlying(flag);
+    }
+
     SP<CWpImageDescriptionCreatorParamsV1> m_resource;
-    wl_client*                             m_client    = nullptr;
-    uint32_t                               m_valuesSet = 0; // enum eValuesSet
+    wl_client* m_client    = nullptr;
+    uint32_t                               m_valuesSet = 0; 
 };
 
 class CColorManagementImageDescription {
   public:
     CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation);
 
-    bool                                 good();
-    wl_client*                           client();
+    [[nodiscard]] bool                   good() const;
+    wl_client* client() const;
     SP<CWpImageDescriptionV1>            resource();
 
     WP<CColorManagementImageDescription> m_self;
 
     NColorManagement::SImageDescription  m_settings;
 
+
+    std::vector<SP<CColorManagementImageDescriptionInfo>> m_infos;
+    void destroyResource(CColorManagementImageDescriptionInfo* resource);
+
   private:
     SP<CWpImageDescriptionV1> m_resource;
-    wl_client*                m_client              = nullptr;
+    wl_client* m_client              = nullptr;
     bool                      m_allowGetInformation = false;
 
     friend class CColorManagementOutput;
@@ -171,12 +191,12 @@ class CColorManagementImageDescriptionInfo {
   public:
     CColorManagementImageDescriptionInfo(SP<CWpImageDescriptionInfoV1> resource, const NColorManagement::SImageDescription& settings_);
 
-    bool       good();
-    wl_client* client();
+    [[nodiscard]] bool good() const;
+    wl_client* client() const;
 
   private:
     SP<CWpImageDescriptionInfoV1>       m_resource;
-    wl_client*                          m_client = nullptr;
+    wl_client* m_client = nullptr;
     NColorManagement::SImageDescription m_settings;
 };
 

@@ -12,7 +12,14 @@ SP<CWindowHistoryTracker> History::windowTracker() {
 }
 
 CWindowHistoryTracker::CWindowHistoryTracker() {
-    static auto P = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+    static auto P = g_pHookSystem->hookDynamic("openWindowEarly", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        // add a last track
+        m_history.insert(m_history.begin(), window);
+    });
+
+    static auto P1 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         auto window = std::any_cast<PHLWINDOW>(data);
 
         track(window);

@@ -1455,7 +1455,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                     // get idx
                     int         windowIDX = -1;
                     const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
-                    for (int64_t i = HISTORY.size() - 1; i > 0; --i) {
+                    for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
                         if (HISTORY[i] == w) {
                             windowIDX = i;
                             break;

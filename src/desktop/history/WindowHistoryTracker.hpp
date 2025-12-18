@@ -2,6 +2,8 @@
 
 #include "../DesktopTypes.hpp"
 
+#include <vector>
+
 namespace Desktop::History {
     class CWindowHistoryTracker {
       public:

@@ -5,6 +5,8 @@
 #include "../../macros.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
+#include <vector>
+
 namespace Desktop::History {
     class CWorkspaceHistoryTracker {
       public:

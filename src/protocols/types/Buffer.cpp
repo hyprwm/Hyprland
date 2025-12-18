@@ -31,7 +31,7 @@ void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
     if (m_hlEvents.backendRelease) {
         if (m_backendReleaseQueuedFn)
             m_backendReleaseQueuedFn();
-        Debug::log(LOG, "backendRelease emitted early");
+        Log::logger->log(Log::DEBUG, "backendRelease emitted early");
     }
 
     m_backendReleaseQueuedFn = fn;

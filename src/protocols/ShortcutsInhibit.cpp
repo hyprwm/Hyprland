@@ -62,7 +62,7 @@ void CKeyboardShortcutsInhibitProtocol::onInhibit(CZwpKeyboardShortcutsInhibitMa
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
         m_inhibitors.pop_back();
-        LOGM(ERR, "Failed to create an inhibitor resource");
+        LOGM(Log::ERR, "Failed to create an inhibitor resource");
         return;
     }
 }

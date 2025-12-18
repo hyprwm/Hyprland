@@ -38,7 +38,7 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
             case LAYER_RULE_EFFECT_NONE: {
-                Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
+                Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
                 break;
             }
             case LAYER_RULE_EFFECT_NO_ANIM: {
@@ -75,21 +75,21 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
                 try {
                     m_noScreenShare.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
                     m_noScreenShare.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_ABOVE_LOCK: {
                 try {
                     m_aboveLock.first.set(std::clamp(std::stoull(effect), 0ULL, 2ULL), Types::PRIORITY_WINDOW_RULE);
                     m_aboveLock.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_IGNORE_ALPHA: {
                 try {
                     m_ignoreAlpha.first.set(std::clamp(std::stof(effect), 0.F, 1.F), Types::PRIORITY_WINDOW_RULE);
                     m_ignoreAlpha.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_ANIMATION: {

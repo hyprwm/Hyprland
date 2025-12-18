@@ -248,5 +248,5 @@ void CrashReporter::createAndSaveCrash(int sig) {
 
     finalCrashReport += "\n\nLog tail:\n";
 
-    finalCrashReport += std::string_view(Debug::m_rollingLog).substr(Debug::m_rollingLog.find('\n') + 1);
+    finalCrashReport += Log::logger->rolling();
 }

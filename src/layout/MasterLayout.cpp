@@ -649,7 +649,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
         PMONITOR = WS->m_monitor.lock();
 
     if (!PMONITOR || !WS) {
-        Debug::log(ERR, "Orphaned Node {}!!", pNode);
+        Log::logger->log(Log::ERR, "Orphaned Node {}!!", pNode);
         return;
     }
 
@@ -678,7 +678,7 @@ void CHyprMasterLayout::applyNodeDataToWindow(SMasterNodeData* pNode) {
     auto        gapsIn = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
 
     if (!validMapped(PWINDOW)) {
-        Debug::log(ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
+        Log::logger->log(Log::ERR, "Node {} holding invalid {}!!", pNode, PWINDOW);
         return;
     }
 
@@ -1092,7 +1092,7 @@ std::any CHyprMasterLayout::layoutMessage(SLayoutMessageHeader header, std::stri
     CVarList vars(message, 0, ' ');
 
     if (vars.size() < 1 || vars[0].empty()) {
-        Debug::log(ERR, "layoutmsg called without params");
+        Log::logger->log(Log::ERR, "layoutmsg called without params");
         return 0;
     }
 

@@ -549,7 +549,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
             continue;
 
         if (t->m_seat.expired()) {
-            LOGM(ERR, "proximityIn on a tool without a seat parent");
+            LOGM(Log::ERR, "proximityIn on a tool without a seat parent");
             return;
         }
 
@@ -571,7 +571,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
     }
 
     if (!tabletResource || !toolResource) {
-        LOGM(ERR, "proximityIn on a tool and tablet without valid resource(s)??");
+        LOGM(Log::ERR, "proximityIn on a tool and tablet without valid resource(s)??");
         return;
     }
 
@@ -582,7 +582,7 @@ void CTabletV2Protocol::proximityIn(SP<CTabletTool> tool, SP<CTablet> tablet, SP
     toolResource->m_resource->sendProximityIn(serial, tabletResource->m_resource.get(), surf->getResource()->resource());
     toolResource->queueFrame();
 
-    LOGM(ERR, "proximityIn: found no resource to send enter");
+    LOGM(Log::ERR, "proximityIn: found no resource to send enter");
 }
 
 void CTabletV2Protocol::proximityOut(SP<CTabletTool> tool) {
@@ -623,7 +623,7 @@ void CTabletV2Protocol::mode(SP<CTabletPad> pad, uint32_t group, uint32_t mode, 
         if (t->m_pad != pad)
             continue;
         if (t->m_groups.size() <= group) {
-            LOGM(ERR, "BUG THIS: group >= t->groups.size()");
+            LOGM(Log::ERR, "BUG THIS: group >= t->groups.size()");
             return;
         }
         auto serial = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(t->m_resource->client()));
@@ -640,9 +640,9 @@ void CTabletV2Protocol::buttonPad(SP<CTabletPad> pad, uint32_t button, uint32_t 
 }
 
 void CTabletV2Protocol::strip(SP<CTabletPad> pad, uint32_t strip, double position, bool finger, uint32_t timeMs) {
-    LOGM(ERR, "FIXME: STUB: CTabletV2Protocol::strip not implemented");
+    LOGM(Log::ERR, "FIXME: STUB: CTabletV2Protocol::strip not implemented");
 }
 
 void CTabletV2Protocol::ring(SP<CTabletPad> pad, uint32_t ring, double position, bool finger, uint32_t timeMs) {
-    LOGM(ERR, "FIXME: STUB: CTabletV2Protocol::ring not implemented");
+    LOGM(Log::ERR, "FIXME: STUB: CTabletV2Protocol::ring not implemented");
 }

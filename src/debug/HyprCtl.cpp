@@ -40,7 +40,7 @@ using namespace Hyprutils::OS;
 #include "../devices/ITouch.hpp"
 #include "../devices/Tablet.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
-#include "debug/RollingLogFollow.hpp"
+#include "debug/log/RollingLogFollow.hpp"
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -957,11 +957,10 @@ static std::string rollinglogRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[\n\"log\":\"";
-        result += escapeJSONStrings(Debug::m_rollingLog);
+        result += escapeJSONStrings(Log::logger->rolling());
         result += "\"]";
-    } else {
-        result = Debug::m_rollingLog;
-    }
+    } else
+        result = Log::logger->rolling();
 
     return result;
 }
@@ -1260,7 +1259,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
 
     SDispatchResult res = DISPATCHER->second(DISPATCHARG);
 
-    Debug::log(LOG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
+    Log::logger->log(Log::DEBUG, "Hyprctl: dispatcher {} : {}{}", DISPATCHSTR, DISPATCHARG, res.success ? "" : " -> " + res.error);
 
     return res.success ? "ok" : res.error;
 }
@@ -1340,7 +1339,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.contains("workspace"))
         g_pConfigManager->ensurePersistentWorkspacesPresent();
 
-    Debug::log(LOG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
+    Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
     if (retval.empty())
         return "ok";
@@ -2223,23 +2222,23 @@ static bool successWrite(int fd, const std::string& data, bool needLog = true) {
         return true;
 
     if (needLog)
-        Debug::log(ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
+        Log::logger->log(Log::ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
 
     return false;
 }
 
 static void runWritingDebugLogThread(const int conn) {
     using namespace std::chrono_literals;
-    Debug::log(LOG, "In followlog thread, got connection, start writing: {}", conn);
+    Log::logger->log(Log::DEBUG, "In followlog thread, got connection, start writing: {}", conn);
     //will be finished, when reading side close connection
     std::thread([conn]() {
-        while (Debug::SRollingLogFollow::get().isRunning()) {
-            if (Debug::SRollingLogFollow::get().isEmpty(conn)) {
+        while (Log::SRollingLogFollow::get().isRunning()) {
+            if (Log::SRollingLogFollow::get().isEmpty(conn)) {
                 std::this_thread::sleep_for(1000ms);
                 continue;
             }
 
-            auto line = Debug::SRollingLogFollow::get().getLog(conn);
+            auto line = Log::SRollingLogFollow::get().getLog(conn);
             if (!successWrite(conn, line))
                 // We cannot write, when connection is closed. So thread will successfully exit by itself
                 break;
@@ -2247,7 +2246,7 @@ static void runWritingDebugLogThread(const int conn) {
             std::this_thread::sleep_for(100ms);
         }
         close(conn);
-        Debug::SRollingLogFollow::get().stopFor(conn);
+        Log::SRollingLogFollow::get().stopFor(conn);
     }).detach();
 }
 
@@ -2273,10 +2272,10 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     CRED_T   creds;
     uint32_t len = sizeof(creds);
     if (getsockopt(ACCEPTEDCONNECTION, CRED_LVL, CRED_OPT, &creds, &len) == -1)
-        Debug::log(ERR, "Hyprctl: failed to get peer creds");
+        Log::logger->log(Log::ERR, "Hyprctl: failed to get peer creds");
     else {
         g_pHyprCtl->m_currentRequestParams.pid = creds.CRED_PID;
-        Debug::log(LOG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
+        Log::logger->log(Log::DEBUG, "Hyprctl: new connection from pid {}", creds.CRED_PID);
     }
 
     //
@@ -2311,7 +2310,7 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
     try {
         reply = g_pHyprCtl->getReply(request);
     } catch (std::exception& e) {
-        Debug::log(ERR, "Error in request: {}", e.what());
+        Log::logger->log(Log::ERR, "Error in request: {}", e.what());
         reply = "Err: " + std::string(e.what());
     }
 
@@ -2331,10 +2330,10 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
         successWrite(ACCEPTEDCONNECTION, reply);
 
         if (isFollowUpRollingLogRequest(request)) {
-            Debug::log(LOG, "Followup rollinglog request received. Starting thread to write to socket.");
-            Debug::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
+            Log::logger->log(Log::DEBUG, "Followup rollinglog request received. Starting thread to write to socket.");
+            Log::SRollingLogFollow::get().startFor(ACCEPTEDCONNECTION);
             runWritingDebugLogThread(ACCEPTEDCONNECTION);
-            Debug::log(LOG, Debug::SRollingLogFollow::get().debugInfo());
+            Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
         } else
             close(ACCEPTEDCONNECTION);
 
@@ -2351,7 +2350,7 @@ void CHyprCtl::startHyprCtlSocket() {
     m_socketFD = CFileDescriptor{socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0)};
 
     if (!m_socketFD.isValid()) {
-        Debug::log(ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
+        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (1) IPC will not work.");
         return;
     }
 
@@ -2362,14 +2361,14 @@ void CHyprCtl::startHyprCtlSocket() {
     snprintf(SERVERADDRESS.sun_path, sizeof(SERVERADDRESS.sun_path), "%s", m_socketPath.c_str());
 
     if (bind(m_socketFD.get(), rc<sockaddr*>(&SERVERADDRESS), SUN_LEN(&SERVERADDRESS)) < 0) {
-        Debug::log(ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
+        Log::logger->log(Log::ERR, "Couldn't start the Hyprland Socket. (2) IPC will not work.");
         return;
     }
 
     // 10 max queued.
     listen(m_socketFD.get(), 10);
 
-    Debug::log(LOG, "Hypr socket started at {}", m_socketPath);
+    Log::logger->log(Log::DEBUG, "Hypr socket started at {}", m_socketPath);
 
     m_eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, m_socketFD.get(), WL_EVENT_READABLE, hyprCtlFDTick, nullptr);
 }

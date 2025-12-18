@@ -52,7 +52,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
-        LOGM(LOG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
+        LOGM(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
         pLock->sendDenied();
         return;
     }
@@ -60,7 +60,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
     if (m_sessionLock && !clientDenied() && !clientLocked())
         return; // Not allowing to relock in case the old lock is still in a limbo
 
-    LOGM(LOG, "Session got locked by {:x}", (uintptr_t)pLock.get());
+    LOGM(Log::DEBUG, "Session got locked by {:x}", (uintptr_t)pLock.get());
 
     m_sessionLock       = makeUnique<SSessionLock>();
     m_sessionLock->lock = pLock;
@@ -123,7 +123,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
                 return;
             }
 
-            LOGM(WARN, "Kicking lockscreen client, because it failed to render to all outputs within 5 seconds");
+            LOGM(Log::WARN, "Kicking lockscreen client, because it failed to render to all outputs within 5 seconds");
             g_pSessionLockManager->m_sessionLock->lock->sendDenied();
             g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
         },

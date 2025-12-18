@@ -85,7 +85,7 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
 
     if (iter != m_alphaModifiers.end()) {
         if (iter->second->m_resource) {
-            LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
+            LOGM(Log::ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
             return;
         } else {

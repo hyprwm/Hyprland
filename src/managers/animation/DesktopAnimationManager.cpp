@@ -279,7 +279,7 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     if (percstr.ends_with('%')) {
         try {
             movePerc = std::stoi(percstr.substr(0, percstr.length() - 1));
-        } catch (std::exception& e) { Debug::log(ERR, "Error in startAnim: invalid percentage"); }
+        } catch (std::exception& e) { Log::logger->log(Log::ERR, "Error in startAnim: invalid percentage"); }
     }
 
     if (ANIMSTYLE.starts_with("slidefade")) {

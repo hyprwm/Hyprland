@@ -11,14 +11,14 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : m_resource(
     if UNLIKELY (!good())
         return;
 
-    LOGM(LOG, "New OutputManager registered");
+    LOGM(Log::DEBUG, "New OutputManager registered");
 
     m_resource->setOnDestroy([this](CZwlrOutputManagerV1* r) { PROTO::outputManagement->destroyResource(this); });
 
     m_resource->setStop([this](CZwlrOutputManagerV1* r) { m_stopped = true; });
 
     m_resource->setCreateConfiguration([this](CZwlrOutputManagerV1* r, uint32_t id, uint32_t serial) {
-        LOGM(LOG, "Creating new configuration");
+        LOGM(Log::DEBUG, "Creating new configuration");
 
         const auto RESOURCE = PROTO::outputManagement->m_configurations.emplace_back(
             makeShared<COutputConfiguration>(makeShared<CZwlrOutputConfigurationV1>(m_resource->client(), m_resource->version(), id), m_self.lock()));
@@ -37,7 +37,7 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : m_resource(
         if (m == g_pCompositor->m_unsafeOutput)
             continue;
 
-        LOGM(LOG, " | sending output head for {}", m->m_name);
+        LOGM(Log::DEBUG, " | sending output head for {}", m->m_name);
 
         makeAndSendNewHead(m);
     }
@@ -171,9 +171,9 @@ void COutputHead::sendAllData() {
 
             if (m->m_mode == m_monitor->m_output->state->state().mode) {
                 if (m->m_mode)
-                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", m_monitor->m_name, m->m_mode->pixelSize.x, m->m_mode->pixelSize.y, m->m_mode->refreshRate);
+                    LOGM(Log::DEBUG, "  | sending current mode for {}: {}x{}@{}", m_monitor->m_name, m->m_mode->pixelSize.x, m->m_mode->pixelSize.y, m->m_mode->refreshRate);
                 else
-                    LOGM(LOG, "  | sending current mode for {}: null (fake)", m_monitor->m_name);
+                    LOGM(Log::DEBUG, "  | sending current mode for {}: null (fake)", m_monitor->m_name);
                 m_resource->sendCurrentMode(m->m_resource.get());
                 break;
             }
@@ -202,9 +202,9 @@ void COutputHead::updateMode() {
 
             if (m->m_mode == m_monitor->m_currentMode) {
                 if (m->m_mode)
-                    LOGM(LOG, "  | sending current mode for {}: {}x{}@{}", m_monitor->m_name, m->m_mode->pixelSize.x, m->m_mode->pixelSize.y, m->m_mode->refreshRate);
+                    LOGM(Log::DEBUG, "  | sending current mode for {}: {}x{}@{}", m_monitor->m_name, m->m_mode->pixelSize.x, m->m_mode->pixelSize.y, m->m_mode->refreshRate);
                 else
-                    LOGM(LOG, "  | sending current mode for {}: null (fake)", m_monitor->m_name);
+                    LOGM(Log::DEBUG, "  | sending current mode for {}: null (fake)", m_monitor->m_name);
                 m_resource->sendCurrentMode(m->m_resource.get());
                 break;
             }
@@ -243,7 +243,7 @@ void COutputMode::sendAllData() {
     if (!m_mode)
         return;
 
-    LOGM(LOG, "  | sending mode {}x{}@{}mHz, pref: {}", m_mode->pixelSize.x, m_mode->pixelSize.y, m_mode->refreshRate, m_mode->preferred);
+    LOGM(Log::DEBUG, "  | sending mode {}x{}@{}mHz, pref: {}", m_mode->pixelSize.x, m_mode->pixelSize.y, m_mode->refreshRate, m_mode->preferred);
 
     m_resource->sendSize(m_mode->pixelSize.x, m_mode->pixelSize.y);
     if (m_mode->refreshRate > 0)
@@ -271,14 +271,14 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
         const auto HEAD = PROTO::outputManagement->headFromResource(outputHead);
 
         if (!HEAD) {
-            LOGM(ERR, "No head in setEnableHead??");
+            LOGM(Log::ERR, "No head in setEnableHead??");
             return;
         }
 
         const auto PMONITOR = HEAD->monitor();
 
         if (!PMONITOR) {
-            LOGM(ERR, "No monitor in setEnableHead??");
+            LOGM(Log::ERR, "No monitor in setEnableHead??");
             return;
         }
 
@@ -293,25 +293,25 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
 
         m_heads.emplace_back(RESOURCE);
 
-        LOGM(LOG, "enableHead on {}. For now, doing nothing. Waiting for apply().", PMONITOR->m_name);
+        LOGM(Log::DEBUG, "enableHead on {}. For now, doing nothing. Waiting for apply().", PMONITOR->m_name);
     });
 
     m_resource->setDisableHead([this](CZwlrOutputConfigurationV1* r, wl_resource* outputHead) {
         const auto HEAD = PROTO::outputManagement->headFromResource(outputHead);
 
         if (!HEAD) {
-            LOGM(ERR, "No head in setDisableHead??");
+            LOGM(Log::ERR, "No head in setDisableHead??");
             return;
         }
 
         const auto PMONITOR = HEAD->monitor();
 
         if (!PMONITOR) {
-            LOGM(ERR, "No monitor in setDisableHead??");
+            LOGM(Log::ERR, "No monitor in setDisableHead??");
             return;
         }
 
-        LOGM(LOG, "disableHead on {}", PMONITOR->m_name);
+        LOGM(Log::DEBUG, "disableHead on {}", PMONITOR->m_name);
 
         SWlrManagerSavedOutputState newState;
         if (m_owner->m_monitorStates.contains(PMONITOR->m_name))
@@ -351,14 +351,14 @@ bool COutputConfiguration::good() {
 
 bool COutputConfiguration::applyTestConfiguration(bool test) {
     if (test) {
-        LOGM(WARN, "TODO: STUB: applyTestConfiguration for test not implemented, returning true.");
+        LOGM(Log::WARN, "TODO: STUB: applyTestConfiguration for test not implemented, returning true.");
         return true;
     }
 
-    LOGM(LOG, "Applying configuration");
+    LOGM(Log::DEBUG, "Applying configuration");
 
     if (!m_owner) {
-        LOGM(ERR, "applyTestConfiguration: no owner?!");
+        LOGM(Log::ERR, "applyTestConfiguration: no owner?!");
         return false;
     }
 
@@ -373,7 +373,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         if (!PMONITOR)
             continue;
 
-        LOGM(LOG, "Saving config for monitor {}", PMONITOR->m_name);
+        LOGM(Log::DEBUG, "Saving config for monitor {}", PMONITOR->m_name);
 
         SWlrManagerSavedOutputState newState;
         if (m_owner->m_monitorStates.contains(PMONITOR->m_name))
@@ -385,36 +385,36 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
             newState.resolution = head->m_state.mode->getMode()->pixelSize;
             newState.refresh    = head->m_state.mode->getMode()->refreshRate;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_MODE;
-            LOGM(LOG, " > Mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
+            LOGM(Log::DEBUG, " > Mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
         } else if (head->m_state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE) {
             newState.resolution = head->m_state.customMode.size;
             newState.refresh    = head->m_state.customMode.refresh;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
-            LOGM(LOG, " > Custom mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
+            LOGM(Log::DEBUG, " > Custom mode: {:.0f}x{:.0f}@{}mHz", newState.resolution.x, newState.resolution.y, newState.refresh);
         }
 
         if (head->m_state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_POSITION) {
             newState.position = head->m_state.position;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_POSITION;
-            LOGM(LOG, " > Position: {:.0f}, {:.0f}", head->m_state.position.x, head->m_state.position.y);
+            LOGM(Log::DEBUG, " > Position: {:.0f}, {:.0f}", head->m_state.position.x, head->m_state.position.y);
         }
 
         if (head->m_state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
             newState.adaptiveSync = head->m_state.adaptiveSync;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC;
-            LOGM(LOG, " > vrr: {}", newState.adaptiveSync);
+            LOGM(Log::DEBUG, " > vrr: {}", newState.adaptiveSync);
         }
 
         if (head->m_state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_SCALE) {
             newState.scale = head->m_state.scale;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_SCALE;
-            LOGM(LOG, " > scale: {:.2f}", newState.scale);
+            LOGM(Log::DEBUG, " > scale: {:.2f}", newState.scale);
         }
 
         if (head->m_state.committedProperties & eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_TRANSFORM) {
             newState.transform = head->m_state.transform;
             newState.committedProperties |= eWlrOutputCommittedProperties::OUTPUT_HEAD_COMMITTED_TRANSFORM;
-            LOGM(LOG, " > transform: {}", (uint8_t)newState.transform);
+            LOGM(Log::DEBUG, " > transform: {}", (uint8_t)newState.transform);
         }
 
         // reset properties for next set.
@@ -425,7 +425,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         m_owner->m_monitorStates[PMONITOR->m_name] = newState;
     }
 
-    LOGM(LOG, "Saved configuration");
+    LOGM(Log::DEBUG, "Saved configuration");
 
     return true;
 }
@@ -440,12 +440,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         const auto MODE = PROTO::outputManagement->modeFromResource(outputMode);
 
         if (!MODE || !MODE->getMode()) {
-            LOGM(ERR, "No mode in setMode??");
+            LOGM(Log::ERR, "No mode in setMode??");
             return;
         }
 
         if (!m_monitor) {
-            LOGM(ERR, "setMode on inert resource");
+            LOGM(Log::ERR, "setMode on inert resource");
             return;
         }
 
@@ -457,12 +457,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_MODE;
         m_state.mode = MODE;
 
-        LOGM(LOG, " | configHead for {}: set mode to {}x{}@{}", m_monitor->m_name, MODE->getMode()->pixelSize.x, MODE->getMode()->pixelSize.y, MODE->getMode()->refreshRate);
+        LOGM(Log::DEBUG, " | configHead for {}: set mode to {}x{}@{}", m_monitor->m_name, MODE->getMode()->pixelSize.x, MODE->getMode()->pixelSize.y, MODE->getMode()->refreshRate);
     });
 
     m_resource->setSetCustomMode([this](CZwlrOutputConfigurationHeadV1* r, int32_t w, int32_t h, int32_t refresh) {
         if (!m_monitor) {
-            LOGM(ERR, "setCustomMode on inert resource");
+            LOGM(Log::ERR, "setCustomMode on inert resource");
             return;
         }
 
@@ -477,19 +477,19 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         }
 
         if (refresh == 0) {
-            LOGM(LOG, " | configHead for {}: refreshRate 0, using old refresh rate of {:.2f}Hz", m_monitor->m_name, m_monitor->m_refreshRate);
+            LOGM(Log::DEBUG, " | configHead for {}: refreshRate 0, using old refresh rate of {:.2f}Hz", m_monitor->m_name, m_monitor->m_refreshRate);
             refresh = std::round(m_monitor->m_refreshRate * 1000.F);
         }
 
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_CUSTOM_MODE;
         m_state.customMode = {{w, h}, sc<uint32_t>(refresh)};
 
-        LOGM(LOG, " | configHead for {}: set custom mode to {}x{}@{}", m_monitor->m_name, w, h, refresh);
+        LOGM(Log::DEBUG, " | configHead for {}: set custom mode to {}x{}@{}", m_monitor->m_name, w, h, refresh);
     });
 
     m_resource->setSetPosition([this](CZwlrOutputConfigurationHeadV1* r, int32_t x, int32_t y) {
         if (!m_monitor) {
-            LOGM(ERR, "setMode on inert resource");
+            LOGM(Log::ERR, "setMode on inert resource");
             return;
         }
 
@@ -501,12 +501,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_POSITION;
         m_state.position = {x, y};
 
-        LOGM(LOG, " | configHead for {}: set pos to {}, {}", m_monitor->m_name, x, y);
+        LOGM(Log::DEBUG, " | configHead for {}: set pos to {}, {}", m_monitor->m_name, x, y);
     });
 
     m_resource->setSetTransform([this](CZwlrOutputConfigurationHeadV1* r, int32_t transform) {
         if (!m_monitor) {
-            LOGM(ERR, "setMode on inert resource");
+            LOGM(Log::ERR, "setMode on inert resource");
             return;
         }
 
@@ -523,12 +523,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_TRANSFORM;
         m_state.transform = sc<wl_output_transform>(transform);
 
-        LOGM(LOG, " | configHead for {}: set transform to {}", m_monitor->m_name, transform);
+        LOGM(Log::DEBUG, " | configHead for {}: set transform to {}", m_monitor->m_name, transform);
     });
 
     m_resource->setSetScale([this](CZwlrOutputConfigurationHeadV1* r, wl_fixed_t scale_) {
         if (!m_monitor) {
-            LOGM(ERR, "setMode on inert resource");
+            LOGM(Log::ERR, "setMode on inert resource");
             return;
         }
 
@@ -547,12 +547,12 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_SCALE;
         m_state.scale = scale;
 
-        LOGM(LOG, " | configHead for {}: set scale to {:.2f}", m_monitor->m_name, scale);
+        LOGM(Log::DEBUG, " | configHead for {}: set scale to {:.2f}", m_monitor->m_name, scale);
     });
 
     m_resource->setSetAdaptiveSync([this](CZwlrOutputConfigurationHeadV1* r, uint32_t as) {
         if (!m_monitor) {
-            LOGM(ERR, "setMode on inert resource");
+            LOGM(Log::ERR, "setMode on inert resource");
             return;
         }
 
@@ -569,7 +569,7 @@ COutputConfigurationHead::COutputConfigurationHead(SP<CZwlrOutputConfigurationHe
         m_state.committedProperties |= OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC;
         m_state.adaptiveSync = as;
 
-        LOGM(LOG, " | configHead for {}: set adaptiveSync to {}", m_monitor->m_name, as);
+        LOGM(Log::DEBUG, " | configHead for {}: set adaptiveSync to {}", m_monitor->m_name, as);
     });
 }
 
@@ -657,7 +657,7 @@ void COutputManagementProtocol::sendPendingSuccessEvents() {
     if (m_pendingConfigurationSuccessEvents.empty())
         return;
 
-    LOGM(LOG, "Sending {} pending configuration success events", m_pendingConfigurationSuccessEvents.size());
+    LOGM(Log::DEBUG, "Sending {} pending configuration success events", m_pendingConfigurationSuccessEvents.size());
 
     for (auto const& config : m_pendingConfigurationSuccessEvents) {
         if (!config)

@@ -30,7 +30,7 @@ void CInputPopup::onDestroy() {
 }
 
 void CInputPopup::onMap() {
-    Debug::log(LOG, "Mapped an IME Popup");
+    Log::logger->log(Log::DEBUG, "Mapped an IME Popup");
 
     updateBox();
     damageEntire();
@@ -44,7 +44,7 @@ void CInputPopup::onMap() {
 }
 
 void CInputPopup::onUnmap() {
-    Debug::log(LOG, "Unmapped an IME Popup");
+    Log::logger->log(Log::DEBUG, "Unmapped an IME Popup");
 
     damageEntire();
 }
@@ -57,7 +57,7 @@ void CInputPopup::damageEntire() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::damageentire");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::damageentire");
         return;
     }
     CBox box = globalBox();
@@ -68,7 +68,7 @@ void CInputPopup::damageSurface() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::damagesurface");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::damagesurface");
         return;
     }
 
@@ -150,7 +150,7 @@ CBox CInputPopup::globalBox() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::globalbox");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::globalbox");
         return {};
     }
     CBox parentBox = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500});

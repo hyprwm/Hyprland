@@ -60,7 +60,7 @@ SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName() const {
 }
 
 CWorkspace::~CWorkspace() {
-    Debug::log(LOG, "Destroying workspace ID {}", m_id);
+    Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
     // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
     if (g_pHookSystem)
@@ -90,7 +90,7 @@ void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
     }
 
     if (prev->m_id == m_id) {
-        Debug::log(LOG, "Tried to set prev workspace to the same as current one");
+        Log::logger->log(Log::DEBUG, "Tried to set prev workspace to the same as current one");
         return;
     }
 
@@ -156,14 +156,14 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             if (cur == 'r') {
                 WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("r[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 prop = prop.substr(2, prop.length() - 3);
 
                 if (!prop.contains("-")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -171,7 +171,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -179,12 +179,12 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     from = std::stoll(LHS);
                     to   = std::stoll(RHS);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 if (to < from || to < 1 || from < 1) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -195,7 +195,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 's') {
                 if (!prop.starts_with("s[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -210,7 +210,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'm') {
                 if (!prop.starts_with("m[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -225,7 +225,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'n') {
                 if (!prop.starts_with("n[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -246,7 +246,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             if (cur == 'w') {
                 WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("w[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -284,14 +284,14 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     // try single
 
                     if (!isNumber(prop)) {
-                        Debug::log(LOG, "Invalid selector {}", selector);
+                        Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                         return false;
                     }
 
                     try {
                         from = std::stoll(prop);
                     } catch (std::exception& e) {
-                        Debug::log(LOG, "Invalid selector {}", selector);
+                        Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                         return false;
                     }
 
@@ -314,7 +314,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -322,12 +322,12 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     from = std::stoll(LHS);
                     to   = std::stoll(RHS);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 if (to < from || to < 1 || from < 1) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -348,7 +348,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'f') {
                 if (!prop.starts_with("f[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -357,7 +357,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 try {
                     FSSTATE = std::stoi(prop);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -379,7 +379,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 continue;
             }
 
-            Debug::log(LOG, "Invalid selector {}", selector);
+            Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
             return false;
         }
 
@@ -522,7 +522,7 @@ void CWorkspace::rename(const std::string& name) {
     if (g_pCompositor->isWorkspaceSpecial(m_id))
         return;
 
-    Debug::log(LOG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
+    Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());

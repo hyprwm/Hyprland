@@ -277,19 +277,19 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
 
     if UNLIKELY (!PROTO::outputs.contains(monitor->m_name)) {
         // can happen on unplug/replug
-        LOGM(ERR, "enter() called on a non-existent output global");
+        LOGM(Log::ERR, "enter() called on a non-existent output global");
         return;
     }
 
     if UNLIKELY (PROTO::outputs.at(monitor->m_name)->isDefunct()) {
-        LOGM(ERR, "enter() called on a defunct output global");
+        LOGM(Log::ERR, "enter() called on a defunct output global");
         return;
     }
 
     auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);
 
     if UNLIKELY (!output || !output->getResource() || !output->getResource()->resource()) {
-        LOGM(ERR, "Cannot enter surface {:x} to {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
+        LOGM(Log::ERR, "Cannot enter surface {:x} to {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
@@ -306,7 +306,7 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);
 
     if UNLIKELY (!output) {
-        LOGM(ERR, "Cannot leave surface {:x} from {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
+        LOGM(Log::ERR, "Cannot leave surface {:x} from {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
@@ -627,7 +627,7 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     auto  shmAttrs = buf->shm();
 
     if (!shmAttrs.success) {
-        LOGM(TRACE, "updateCursorShm: ignoring, not a shm buffer");
+        LOGM(Log::TRACE, "updateCursorShm: ignoring, not a shm buffer");
         return;
     }
 
@@ -681,7 +681,7 @@ CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_re
         RESOURCE->m_self       = RESOURCE;
         RESOURCE->m_stateQueue = CSurfaceStateQueue(RESOURCE);
 
-        LOGM(LOG, "New wl_surface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New wl_surface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
 
         PROTO::compositor->m_events.newSurface.emit(RESOURCE);
     });
@@ -697,7 +697,7 @@ CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_re
 
         RESOURCE->m_self = RESOURCE;
 
-        LOGM(LOG, "New wl_region with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New wl_region with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
     });
 }
 

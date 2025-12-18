@@ -67,7 +67,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
             g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE);
             break;
 
-        default: Debug::log(ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;
+        default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;
     }
 
     return {};
@@ -89,7 +89,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surf
     static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
 
     if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
-        Debug::log(LOG, "Refusing focus to window shadowed by modal dialog");
+        Log::logger->log(Log::DEBUG, "Refusing focus to window shadowed by modal dialog");
         return;
     }
 
@@ -102,12 +102,12 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 
     if (!pWindow || !pWindow->priorityFocus()) {
         if (g_pSessionLockManager->isSessionLocked()) {
-            Debug::log(LOG, "Refusing a keyboard focus to a window because of a sessionlock");
+            Log::logger->log(Log::DEBUG, "Refusing a keyboard focus to a window because of a sessionlock");
             return;
         }
 
         if (!g_pInputManager->m_exclusiveLSes.empty()) {
-            Debug::log(LOG, "Refusing a keyboard focus to a window because of an exclusive ls");
+            Log::logger->log(Log::DEBUG, "Refusing a keyboard focus to a window because of an exclusive ls");
             return;
         }
     }
@@ -148,7 +148,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     }
 
     if (pWindow->m_ruleApplicator->noFocus().valueOrDefault()) {
-        Debug::log(LOG, "Ignoring focus to nofocus window!");
+        Log::logger->log(Log::DEBUG, "Ignoring focus to nofocus window!");
         return;
     }
 
@@ -234,7 +234,7 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         return;
 
     if (g_pSeatManager->m_seatGrab && !g_pSeatManager->m_seatGrab->accepts(pSurface)) {
-        Debug::log(LOG, "surface {:x} won't receive kb focus because grab rejected it", rc<uintptr_t>(pSurface.get()));
+        Log::logger->log(Log::DEBUG, "surface {:x} won't receive kb focus because grab rejected it", rc<uintptr_t>(pSurface.get()));
         return;
     }
 
@@ -257,9 +257,9 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         g_pSeatManager->setKeyboardFocus(pSurface);
 
     if (pWindowOwner)
-        Debug::log(LOG, "Set keyboard focus to surface {:x}, with {}", rc<uintptr_t>(pSurface.get()), pWindowOwner);
+        Log::logger->log(Log::DEBUG, "Set keyboard focus to surface {:x}, with {}", rc<uintptr_t>(pSurface.get()), pWindowOwner);
     else
-        Debug::log(LOG, "Set keyboard focus to surface {:x}", rc<uintptr_t>(pSurface.get()));
+        Log::logger->log(Log::DEBUG, "Set keyboard focus to surface {:x}", rc<uintptr_t>(pSurface.get()));
 
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_focusSurface = pSurface;
@@ -324,7 +324,7 @@ void CFocusState::addWindowToHistory(PHLWINDOW w) {
 void CFocusState::moveWindowToLatestInHistory(PHLWINDOW w) {
     const auto HISTORYPIVOT = std::ranges::find_if(m_windowFocusHistory, [&w](const auto& other) { return other.lock() == w; });
     if (HISTORYPIVOT == m_windowFocusHistory.end())
-        Debug::log(TRACE, "CFocusState: {} has no pivot in history, ignoring request to move to latest", w);
+        Log::logger->log(Log::TRACE, "CFocusState: {} has no pivot in history, ignoring request to move to latest", w);
     else
         std::rotate(m_windowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
 }

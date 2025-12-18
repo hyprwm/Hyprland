@@ -1,5 +1,5 @@
 #include "DonationNagManager.hpp"
-#include "../debug/Log.hpp"
+#include "../debug/log/Logger.hpp"
 #include "VersionKeeperManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
@@ -69,12 +69,12 @@ CDonationNagManager::CDonationNagManager() {
     // don't nag if the last nag was less than a month ago. This is
     // mostly for first-time nags, as other nags happen in specific time frames shorter than a month
     if (EPOCH - state.epoch < MONTH_IN_SECONDS) {
-        Debug::log(LOG, "DonationNag: last nag was {} days ago, too early for a nag.", sc<int>(std::round((EPOCH - state.epoch) / sc<double>(DAY_IN_SECONDS))));
+        Log::logger->log(Log::DEBUG, "DonationNag: last nag was {} days ago, too early for a nag.", sc<int>(std::round((EPOCH - state.epoch) / sc<double>(DAY_IN_SECONDS))));
         return;
     }
 
     if (!NFsUtils::executableExistsInPath("hyprland-donate-screen")) {
-        Debug::log(ERR, "DonationNag: executable doesn't exist, skipping.");
+        Log::logger->log(Log::ERR, "DonationNag: executable doesn't exist, skipping.");
         return;
     }
 
@@ -91,7 +91,7 @@ CDonationNagManager::CDonationNagManager() {
         if (DAY < nagPoint.dayStart || DAY > nagPoint.dayEnd)
             continue;
 
-        Debug::log(LOG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
+        Log::logger->log(Log::DEBUG, "DonationNag: hit nag month {} days {}-{}, it's {} today, nagging", MONTH, nagPoint.dayStart, nagPoint.dayEnd, DAY);
 
         fire();
 
@@ -103,10 +103,10 @@ CDonationNagManager::CDonationNagManager() {
     }
 
     if (!m_fired)
-        Debug::log(LOG, "DonationNag: didn't hit any nagging periods, checking update");
+        Log::logger->log(Log::DEBUG, "DonationNag: didn't hit any nagging periods, checking update");
 
     if (state.major < currentMajor) {
-        Debug::log(LOG, "DonationNag: hit nag for major update {} -> {}", state.major, currentMajor);
+        Log::logger->log(Log::DEBUG, "DonationNag: hit nag for major update {} -> {}", state.major, currentMajor);
 
         fire();
 
@@ -116,7 +116,7 @@ CDonationNagManager::CDonationNagManager() {
     }
 
     if (!m_fired)
-        Debug::log(LOG, "DonationNag: didn't hit nagging conditions");
+        Log::logger->log(Log::DEBUG, "DonationNag: didn't hit nagging conditions");
 }
 
 bool CDonationNagManager::fired() {

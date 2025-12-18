@@ -186,7 +186,7 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         SURF->m_role     = makeShared<CSubsurfaceRole>(RESOURCE);
         PARENT->m_subsurfaces.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New wl_subsurface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New wl_subsurface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
 
         PARENT->m_events.newSubsurface.emit(RESOURCE);
     });

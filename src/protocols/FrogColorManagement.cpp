@@ -26,15 +26,15 @@ CFrogColorManager::CFrogColorManager(SP<CFrogColorManagementFactoryV1> resource_
     if UNLIKELY (!good())
         return;
 
-    m_resource->setDestroy([](CFrogColorManagementFactoryV1* r) { LOGM(TRACE, "Destroy frog_color_management at {:x} (generated default)", (uintptr_t)r); });
+    m_resource->setDestroy([](CFrogColorManagementFactoryV1* r) { LOGM(Log::TRACE, "Destroy frog_color_management at {:x} (generated default)", (uintptr_t)r); });
     m_resource->setOnDestroy([this](CFrogColorManagementFactoryV1* r) { PROTO::frogColorManagement->destroyResource(this); });
 
     m_resource->setGetColorManagedSurface([](CFrogColorManagementFactoryV1* r, wl_resource* surface, uint32_t id) {
-        LOGM(TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
+        LOGM(Log::TRACE, "Get surface for id={}, surface={}", id, (uintptr_t)surface);
         auto SURF = CWLSurfaceResource::fromResource(surface);
 
         if (!SURF) {
-            LOGM(ERR, "No surface for resource {}", (uintptr_t)surface);
+            LOGM(Log::ERR, "No surface for resource {}", (uintptr_t)surface);
             r->error(-1, "Invalid surface (2)");
             return;
         }
@@ -74,24 +74,24 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         m_surface->m_colorManagement = RESOURCE;
 
         m_resource->setOnDestroy([this](CFrogColorManagedSurface* r) {
-            LOGM(TRACE, "Destroy frog cm and xx cm for surface {}", (uintptr_t)m_surface);
+            LOGM(Log::TRACE, "Destroy frog cm and xx cm for surface {}", (uintptr_t)m_surface);
             if (m_surface.valid())
                 PROTO::colorManagement->destroyResource(m_surface->m_colorManagement.get());
             PROTO::frogColorManagement->destroyResource(this);
         });
     } else
         m_resource->setOnDestroy([this](CFrogColorManagedSurface* r) {
-            LOGM(TRACE, "Destroy frog cm surface {}", (uintptr_t)m_surface);
+            LOGM(Log::TRACE, "Destroy frog cm surface {}", (uintptr_t)m_surface);
             PROTO::frogColorManagement->destroyResource(this);
         });
 
     m_resource->setDestroy([this](CFrogColorManagedSurface* r) {
-        LOGM(TRACE, "Destroy frog cm surface {}", (uintptr_t)m_surface);
+        LOGM(Log::TRACE, "Destroy frog cm surface {}", (uintptr_t)m_surface);
         PROTO::frogColorManagement->destroyResource(this);
     });
 
     m_resource->setSetKnownTransferFunction([this](CFrogColorManagedSurface* r, frogColorManagedSurfaceTransferFunction tf) {
-        LOGM(TRACE, "Set frog cm transfer function {} for {}", (uint32_t)tf, m_surface->id());
+        LOGM(Log::TRACE, "Set frog cm transfer function {} for {}", (uint32_t)tf, m_surface->id());
         switch (tf) {
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ:
                 m_surface->m_colorManagement->m_imageDescription.transferFunction =
@@ -100,7 +100,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
                 ;
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22:
                 if (m_pqIntentSent) {
-                    LOGM(TRACE,
+                    LOGM(Log::TRACE,
                          "FIXME: assuming broken enum value 2 (FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_GAMMA_22) referring to eotf value 2 (TRANSFER_FUNCTION_ST2084_PQ)");
                     m_surface->m_colorManagement->m_imageDescription.transferFunction =
                         convertTransferFunction(getWPTransferFunction(FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_ST2084_PQ));
@@ -108,7 +108,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
                 };
                 [[fallthrough]];
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_UNDEFINED:
-            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(TRACE, "FIXME: add tf support for {}", (uint32_t)tf); [[fallthrough]];
+            case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SCRGB_LINEAR: LOGM(Log::TRACE, "FIXME: add tf support for {}", (uint32_t)tf); [[fallthrough]];
             case FROG_COLOR_MANAGED_SURFACE_TRANSFER_FUNCTION_SRGB:
                 m_surface->m_colorManagement->m_imageDescription.transferFunction = convertTransferFunction(getWPTransferFunction(tf));
 
@@ -116,7 +116,7 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         }
     });
     m_resource->setSetKnownContainerColorVolume([this](CFrogColorManagedSurface* r, frogColorManagedSurfacePrimaries primariesName) {
-        LOGM(TRACE, "Set frog cm primaries {}", (uint32_t)primariesName);
+        LOGM(Log::TRACE, "Set frog cm primaries {}", (uint32_t)primariesName);
         switch (primariesName) {
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_UNDEFINED:
             case FROG_COLOR_MANAGED_SURFACE_PRIMARIES_REC709: m_surface->m_colorManagement->m_imageDescription.primaries = NColorPrimaries::BT709; break;
@@ -127,13 +127,14 @@ CFrogColorManagementSurface::CFrogColorManagementSurface(SP<CFrogColorManagedSur
         m_surface->m_colorManagement->setHasImageDescription(true);
     });
     m_resource->setSetRenderIntent([this](CFrogColorManagedSurface* r, frogColorManagedSurfaceRenderIntent intent) {
-        LOGM(TRACE, "Set frog cm intent {}", (uint32_t)intent);
+        LOGM(Log::TRACE, "Set frog cm intent {}", (uint32_t)intent);
         m_pqIntentSent = intent == FROG_COLOR_MANAGED_SURFACE_RENDER_INTENT_PERCEPTUAL;
         m_surface->m_colorManagement->setHasImageDescription(true);
     });
     m_resource->setSetHdrMetadata([this](CFrogColorManagedSurface* r, uint32_t r_x, uint32_t r_y, uint32_t g_x, uint32_t g_y, uint32_t b_x, uint32_t b_y, uint32_t w_x,
                                          uint32_t w_y, uint32_t max_lum, uint32_t min_lum, uint32_t cll, uint32_t fall) {
-        LOGM(TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll, fall);
+        LOGM(Log::TRACE, "Set frog primaries r:{},{} g:{},{} b:{},{} w:{},{} luminances {} - {} cll {} fall {}", r_x, r_y, g_x, g_y, b_x, b_y, w_x, w_y, min_lum, max_lum, cll,
+             fall);
         m_surface->m_colorManagement->m_imageDescription.masteringPrimaries      = SPCPRimaries{.red   = {.x = r_x / 50000.0f, .y = r_y / 50000.0f},
                                                                                                 .green = {.x = g_x / 50000.0f, .y = g_y / 50000.0f},
                                                                                                 .blue  = {.x = b_x / 50000.0f, .y = b_y / 50000.0f},
@@ -168,7 +169,7 @@ void CFrogColorManagementProtocol::bindManager(wl_client* client, void* data, ui
         return;
     }
 
-    LOGM(TRACE, "New frog_color_management at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::TRACE, "New frog_color_management at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CFrogColorManagementProtocol::destroyResource(CFrogColorManager* resource) {

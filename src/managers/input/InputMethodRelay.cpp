@@ -17,7 +17,7 @@ CInputMethodRelay::CInputMethodRelay() {
 
 void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     if (!m_inputMethod.expired()) {
-        Debug::log(ERR, "Cannot register 2 IMEs at once!");
+        Log::logger->log(Log::ERR, "Cannot register 2 IMEs at once!");
 
         pIME->unavailable();
 
@@ -30,7 +30,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         const auto PTI = getFocusedTextInput();
 
         if (!PTI) {
-            Debug::log(LOG, "No focused TextInput on IME Commit");
+            Log::logger->log(Log::DEBUG, "No focused TextInput on IME Commit");
             return;
         }
 
@@ -40,7 +40,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     m_listeners.destroyIME = pIME->m_events.destroy.listen([this] {
         const auto PTI = getFocusedTextInput();
 
-        Debug::log(LOG, "IME Destroy");
+        Log::logger->log(Log::DEBUG, "IME Destroy");
 
         if (PTI)
             PTI->leave();
@@ -50,7 +50,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
 
     m_listeners.newPopup = pIME->m_events.newPopup.listen([this](const SP<CInputMethodPopupV2>& popup) {
         m_inputMethodPopups.emplace_back(makeUnique<CInputPopup>(popup));
-        Debug::log(LOG, "New input popup");
+        Log::logger->log(Log::DEBUG, "New input popup");
     });
 
     if (!Desktop::focusState()->surface())

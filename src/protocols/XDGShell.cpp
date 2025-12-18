@@ -51,7 +51,7 @@ CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceReso
     });
 
     m_resource->setReposition([this](CXdgPopup* r, wl_resource* positionerRes, uint32_t token) {
-        LOGM(LOG, "Popup {:x} asks for reposition", (uintptr_t)this);
+        LOGM(Log::DEBUG, "Popup {:x} asks for reposition", (uintptr_t)this);
         m_lastRepositionToken = token;
         auto pos              = CXDGPositionerResource::fromResource(positionerRes);
         if (!pos)
@@ -61,7 +61,7 @@ CXDGPopupResource::CXDGPopupResource(SP<CXdgPopup> resource_, SP<CXDGSurfaceReso
     });
 
     m_resource->setGrab([this](CXdgPopup* r, wl_resource* seat, uint32_t serial) {
-        LOGM(LOG, "xdg_popup {:x} requests grab", (uintptr_t)this);
+        LOGM(Log::DEBUG, "xdg_popup {:x} requests grab", (uintptr_t)this);
         PROTO::xdgShell->addOrStartGrab(m_self.lock());
     });
 
@@ -79,7 +79,7 @@ void CXDGPopupResource::applyPositioning(const CBox& box, const Vector2D& t1coor
 
     m_geometry = m_positionerRules.getPosition(constraint, accumulateParentOffset() + t1coord);
 
-    LOGM(LOG, "Popup {:x} gets unconstrained to {} {}", (uintptr_t)this, m_geometry.pos(), m_geometry.size());
+    LOGM(Log::DEBUG, "Popup {:x} gets unconstrained to {} {}", (uintptr_t)this, m_geometry.pos(), m_geometry.size());
 
     configure(m_geometry);
 
@@ -125,7 +125,7 @@ void CXDGPopupResource::repositioned() {
     if LIKELY (!m_lastRepositionToken)
         return;
 
-    LOGM(LOG, "repositioned: sending reposition token {}", m_lastRepositionToken);
+    LOGM(Log::DEBUG, "repositioned: sending reposition token {}", m_lastRepositionToken);
 
     m_resource->sendRepositioned(m_lastRepositionToken);
     m_lastRepositionToken = 0;
@@ -263,7 +263,7 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         if (m_parent->m_window->m_pinned)
             m_self->m_window->m_pinned = true;
 
-        LOGM(LOG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
+        LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
     });
 }
 
@@ -408,7 +408,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
     });
 
     m_listeners.surfaceDestroy = m_surface->m_events.destroy.listen([this] {
-        LOGM(WARN, "wl_surface destroyed before its xdg_surface role object");
+        LOGM(Log::WARN, "wl_surface destroyed before its xdg_surface role object");
         m_listeners.surfaceDestroy.reset();
         m_listeners.surfaceCommit.reset();
 
@@ -464,7 +464,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         m_toplevel         = RESOURCE;
         m_toplevel->m_self = RESOURCE;
 
-        LOGM(LOG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
         PHLWINDOW createdWindow = g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
 
@@ -493,7 +493,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
         m_popup          = RESOURCE;
         RESOURCE->m_self = RESOURCE;
 
-        LOGM(LOG, "xdg_surface {:x} gets a popup {:x} owner {:x}", (uintptr_t)m_self.get(), (uintptr_t)RESOURCE.get(), (uintptr_t)parent.get());
+        LOGM(Log::DEBUG, "xdg_surface {:x} gets a popup {:x} owner {:x}", (uintptr_t)m_self.get(), (uintptr_t)RESOURCE.get(), (uintptr_t)parent.get());
 
         if (!parent)
             return;
@@ -511,7 +511,7 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
     });
 
     m_resource->setSetWindowGeometry([this](CXdgSurface* r, int32_t x, int32_t y, int32_t w, int32_t h) {
-        LOGM(LOG, "xdg_surface {:x} requests geometry {}x{} {}x{}", (uintptr_t)this, x, y, w, h);
+        LOGM(Log::DEBUG, "xdg_surface {:x} requests geometry {}x{} {}x{}", (uintptr_t)this, x, y, w, h);
         m_pending.geometry = {x, y, w, h};
     });
 }
@@ -605,7 +605,7 @@ CXDGPositionerRules::CXDGPositionerRules(SP<CXDGPositionerResource> positioner) 
 }
 
 CBox CXDGPositionerRules::getPosition(CBox constraint, const Vector2D& parentCoord) {
-    Debug::log(LOG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
+    Log::logger->log(Log::DEBUG, "GetPosition with constraint {} {} and parent {}", constraint.pos(), constraint.size(), parentCoord);
 
     // padding
     constraint.expand(-4);
@@ -751,7 +751,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : m_resource(resource_) {
 
         m_positioners.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New xdg_positioner at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New xdg_positioner at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setGetXdgSurface([this](CXdgWmBase* r, uint32_t id, wl_resource* surf) {
@@ -782,7 +782,7 @@ CXDGWMBase::CXDGWMBase(SP<CXdgWmBase> resource_) : m_resource(resource_) {
 
         m_surfaces.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New xdg_surface at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New xdg_surface at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setPong([this](CXdgWmBase* r, uint32_t serial) {
@@ -826,7 +826,7 @@ void CXDGShellProtocol::bindManager(wl_client* client, void* data, uint32_t ver,
 
     RESOURCE->m_self = RESOURCE;
 
-    LOGM(LOG, "New xdg_wm_base at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New xdg_wm_base at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CXDGShellProtocol::destroyResource(CXDGWMBase* resource) {

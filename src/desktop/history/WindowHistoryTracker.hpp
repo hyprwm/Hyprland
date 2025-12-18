@@ -23,4 +23,6 @@ namespace Desktop::History {
         void                      track(PHLWINDOW w);
         void                      gc();
     };
+
+    SP<CWindowHistoryTracker> windowTracker();
 };

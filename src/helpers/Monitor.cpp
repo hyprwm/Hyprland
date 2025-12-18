@@ -1480,29 +1480,6 @@ void CMonitor::moveTo(const Vector2D& pos) {
     m_position = pos;
 }
 
-SWorkspaceIDName CMonitor::getPrevWorkspaceIDName(const WORKSPACEID id) {
-    while (!m_prevWorkSpaces.empty()) {
-        const int PREVID = m_prevWorkSpaces.top();
-        m_prevWorkSpaces.pop();
-        if (PREVID == id) // skip same workspace
-            continue;
-
-        // recheck if previous workspace's was moved to another monitor
-        const auto ws = g_pCompositor->getWorkspaceByID(PREVID);
-        if (ws && ws->monitorID() == m_id)
-            return {.id = PREVID, .name = ws->m_name};
-    }
-
-    return {.id = WORKSPACE_INVALID};
-}
-
-void CMonitor::addPrevWorkspaceID(const WORKSPACEID id) {
-    if (!m_prevWorkSpaces.empty() && m_prevWorkSpaces.top() == id)
-        return;
-
-    m_prevWorkSpaces.emplace(id);
-}
-
 Vector2D CMonitor::middle() {
     return m_position + m_size / 2.f;
 }

@@ -15,28 +15,21 @@ namespace Desktop {
         CFocusState(CFocusState&)       = delete;
         CFocusState(const CFocusState&) = delete;
 
-        void                             fullWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr, bool preserveFocusHistory = false, bool forceFSCycle = false);
-        void                             rawWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr, bool preserveFocusHistory = false);
-        void                             rawSurfaceFocus(SP<CWLSurfaceResource> s, PHLWINDOW pWindowOwner = nullptr);
-        void                             rawMonitorFocus(PHLMONITOR m);
+        void                   fullWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr, bool forceFSCycle = false);
+        void                   rawWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr);
+        void                   rawSurfaceFocus(SP<CWLSurfaceResource> s, PHLWINDOW pWindowOwner = nullptr);
+        void                   rawMonitorFocus(PHLMONITOR m);
 
-        SP<CWLSurfaceResource>           surface();
-        PHLWINDOW                        window();
-        PHLMONITOR                       monitor();
-        const std::vector<PHLWINDOWREF>& windowHistory();
-
-        void                             addWindowToHistory(PHLWINDOW w);
+        SP<CWLSurfaceResource> surface();
+        PHLWINDOW              window();
+        PHLMONITOR             monitor();
 
       private:
-        void                      removeWindowFromHistory(PHLWINDOW w);
-        void                      moveWindowToLatestInHistory(PHLWINDOW w);
+        WP<CWLSurfaceResource> m_focusSurface;
+        PHLWINDOWREF           m_focusWindow;
+        PHLMONITORREF          m_focusMonitor;
 
-        WP<CWLSurfaceResource>    m_focusSurface;
-        PHLWINDOWREF              m_focusWindow;
-        PHLMONITORREF             m_focusMonitor;
-        std::vector<PHLWINDOWREF> m_windowFocusHistory; // first element is the most recently focused
-
-        SP<HOOK_CALLBACK_FN>      m_windowOpen, m_windowClose;
+        SP<HOOK_CALLBACK_FN>   m_windowOpen, m_windowClose;
     };
 
     SP<CFocusState> focusState();

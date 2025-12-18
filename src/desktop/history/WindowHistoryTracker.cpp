@@ -6,8 +6,13 @@
 using namespace Desktop;
 using namespace Desktop::History;
 
+SP<CWindowHistoryTracker> History::windowTracker() {
+    static SP<CWindowHistoryTracker> tracker = makeShared<CWindowHistoryTracker>();
+    return tracker;
+}
+
 CWindowHistoryTracker::CWindowHistoryTracker() {
-    static auto P2 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+    static auto P = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
         auto window = std::any_cast<PHLWINDOW>(data);
 
         track(window);

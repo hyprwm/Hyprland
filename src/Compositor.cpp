@@ -5,6 +5,8 @@
 #include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "desktop/state/FocusState.hpp"
+#include "desktop/history/WindowHistoryTracker.hpp"
+#include "desktop/history/WorkspaceHistoryTracker.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
@@ -661,6 +663,11 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the SeatManager!");
             g_pSeatManager = makeUnique<CSeatManager>();
+
+            // init focus state els
+            Desktop::History::windowTracker();
+            Desktop::History::workspaceTracker();
+
         } break;
         case STAGE_LATE: {
             Log::logger->log(Log::DEBUG, "Creating CHyprCtl");
@@ -1447,15 +1454,13 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
 
                     // get idx
                     int         windowIDX = -1;
-                    const auto& HISTORY   = Desktop::focusState()->windowHistory();
-                    for (size_t i = 0; i < HISTORY.size(); ++i) {
+                    const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
+                    for (int64_t i = HISTORY.size() - 1; i > 0; --i) {
                         if (HISTORY[i] == w) {
                             windowIDX = i;
                             break;
                         }
                     }
-
-                    windowIDX = Desktop::focusState()->windowHistory().size() - windowIDX;
 
                     if (windowIDX > leaderValue) {
                         leaderValue  = windowIDX;
@@ -1560,10 +1565,9 @@ static PHLWINDOW getWeakWindowPred(Iterator cur, Iterator end, Iterator begin, c
 PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next) {
     const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
     // also m_vWindowFocusHistory has reverse order, so when it is next - we need to reverse again
-    return next ? getWeakWindowPred(std::ranges::find(Desktop::focusState()->windowHistory() | std::views::reverse, cur), Desktop::focusState()->windowHistory().rend(),
-                                    Desktop::focusState()->windowHistory().rbegin(), FINDER) :
-                  getWeakWindowPred(std::ranges::find(Desktop::focusState()->windowHistory(), cur), Desktop::focusState()->windowHistory().end(),
-                                    Desktop::focusState()->windowHistory().begin(), FINDER);
+    const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
+    return next ? getWeakWindowPred(std::ranges::find(HISTORY, cur), HISTORY.end(), HISTORY.begin(), FINDER) :
+                  getWeakWindowPred(std::ranges::find(HISTORY | std::views::reverse, cur), HISTORY.rend(), HISTORY.rbegin(), FINDER);
 }
 
 PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev) {
@@ -1807,9 +1811,6 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
     pMonitorA->m_activeWorkspace = PWORKSPACEB;
     pMonitorB->m_activeWorkspace = PWORKSPACEA;
-
-    PWORKSPACEA->rememberPrevWorkspace(PWORKSPACEB);
-    PWORKSPACEB->rememberPrevWorkspace(PWORKSPACEA);
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);

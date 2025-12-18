@@ -37,6 +37,7 @@
 #include "AsyncResourceGatherer.hpp"
 #include <ranges>
 #include <algorithm>
+#include <fstream>
 #include <string>
 #include <xf86drm.h>
 #include <fcntl.h>

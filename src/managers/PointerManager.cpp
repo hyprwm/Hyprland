@@ -1100,8 +1100,3 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
 Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
 }
-
-void CPointerManager::sendMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    PROTO::relativePointer->sendRelativeMotion(time * 1000, delta, deltaUnaccel);
-    g_pSeatManager->sendPointerFrame();
-}

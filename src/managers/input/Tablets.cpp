@@ -216,9 +216,11 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
     PTOOL->m_active = e.in;
 
     if (!e.in) {
+        m_lastInputTablet = false;
         if (PTOOL->getSurface())
             unfocusTool(PTOOL);
     } else {
+        m_lastInputTablet = true;
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL);
     }

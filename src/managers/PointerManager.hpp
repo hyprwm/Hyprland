@@ -60,7 +60,6 @@ class CPointerManager {
     //
     Vector2D position();
     Vector2D cursorSizeLogical();
-    void     sendMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
 
     void     recheckEnteredOutputs();
 

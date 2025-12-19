@@ -130,11 +130,10 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
-    g_pPointerManager->sendMovement(e.timeMs, DELTA, unaccel);
-
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
@@ -146,6 +145,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     if (e.mouse)
         m_lastMousePos = getMouseCoordsInternal();
+
+    g_pSeatManager->sendPointerFrame();
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {

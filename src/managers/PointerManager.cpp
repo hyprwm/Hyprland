@@ -744,16 +744,20 @@ void CPointerManager::damageIfSoftware() {
     auto b = getCursorBoxGlobal().expand(4);
 
     for (auto const& mw : m_monitorStates) {
-        auto monitor = mw->monitor;
-        if (monitor.expired() || !monitor->m_output || monitor->isMirror())
+        auto monitor = mw->monitor.lock();
+        if (!monitor || !monitor->m_output || monitor->isMirror())
             continue;
 
-        if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(mw->monitor.lock())) &&
-            b.overlaps({mw->monitor->m_position, mw->monitor->m_size}) && !mw->monitor->shouldSkipScheduleFrameOnMouseEvent()) {
+        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(monitor));
+        if (!usesSoftwareCursor)
+            continue;
 
-            CBox damageBox = b.copy().translate(-monitor->m_position).scale(monitor->m_scale).round();
-            mw->monitor->addDamage(damageBox);
-        }
+        auto shouldAddDamage = !monitor->shouldSkipScheduleFrameOnMouseEvent() && b.overlaps({monitor->m_position, monitor->m_size});
+        if (!shouldAddDamage)
+            continue;
+
+        CBox damageBox = b.copy().translate(-monitor->m_position).scale(monitor->m_scale).round();
+        monitor->addDamage(damageBox);
     }
 }
 

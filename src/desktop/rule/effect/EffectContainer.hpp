@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <optional>
+#include <algorithm>
 
 namespace Desktop::Rule {
     template <typename T>

@@ -209,30 +209,34 @@ void CHyprAnimationManager::tick() {
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
-    for (const auto& PAV : m_vActiveAnimatedVariables) {
-        if (!PAV)
-            continue;
+    if (!m_vActiveAnimatedVariables.empty()) {
+        const auto CPY = m_vActiveAnimatedVariables;
 
-        // for disabled anims just warp
-        bool warp = !*PANIMENABLED || !PAV->enabled();
+        for (const auto& PAV : CPY) {
+            if (!PAV)
+                continue;
 
-        switch (PAV->m_Type) {
-            case AVARTYPE_FLOAT: {
-                auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated float");
-                handleUpdate(*pTypedAV, warp);
-            } break;
-            case AVARTYPE_VECTOR: {
-                auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
-                handleUpdate(*pTypedAV, warp);
-            } break;
-            case AVARTYPE_COLOR: {
-                auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
-                RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
-                handleUpdate(*pTypedAV, warp);
-            } break;
-            default: UNREACHABLE();
+            // for disabled anims just warp
+            bool warp = !*PANIMENABLED || !PAV->enabled();
+
+            switch (PAV->m_Type) {
+                case AVARTYPE_FLOAT: {
+                    auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
+                    RASSERT(pTypedAV, "Failed to upcast animated float");
+                    handleUpdate(*pTypedAV, warp);
+                } break;
+                case AVARTYPE_VECTOR: {
+                    auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+                    RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
+                    handleUpdate(*pTypedAV, warp);
+                } break;
+                case AVARTYPE_COLOR: {
+                    auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                    RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
+                    handleUpdate(*pTypedAV, warp);
+                } break;
+                default: UNREACHABLE();
+            }
         }
     }
 

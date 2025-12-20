@@ -57,29 +57,27 @@ class CWorkspace {
     bool        m_wasCreatedEmpty = true;
 
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool             inert();
-    MONITORID        monitorID();
-    PHLWINDOW        getLastFocusedWindow();
-    void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
-    std::string      getConfigName();
-    bool             matchesStaticSelector(const std::string& selector);
-    void             markInert();
-    SWorkspaceIDName getPrevWorkspaceIDName() const;
-    void             updateWindowDecos();
-    void             updateWindowData();
-    int              getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    int              getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    bool             hasUrgentWindow();
-    PHLWINDOW        getFirstWindow();
-    PHLWINDOW        getTopLeftWindow();
-    PHLWINDOW        getFullscreenWindow();
-    bool             isVisible();
-    bool             isVisibleNotCovered();
-    void             rename(const std::string& name = "");
-    void             forceReportSizesToWindows();
-    void             updateWindows();
-    void             setPersistent(bool persistent);
-    bool             isPersistent();
+    bool        inert();
+    MONITORID   monitorID();
+    PHLWINDOW   getLastFocusedWindow();
+    std::string getConfigName();
+    bool        matchesStaticSelector(const std::string& selector);
+    void        markInert();
+    void        updateWindowDecos();
+    void        updateWindowData();
+    int         getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    bool        hasUrgentWindow();
+    PHLWINDOW   getFirstWindow();
+    PHLWINDOW   getTopLeftWindow();
+    PHLWINDOW   getFullscreenWindow();
+    bool        isVisible();
+    bool        isVisibleNotCovered();
+    void        rename(const std::string& name = "");
+    void        forceReportSizesToWindows();
+    void        updateWindows();
+    void        setPersistent(bool persistent);
+    bool        isPersistent();
 
     struct {
         CSignalT<> destroy;
@@ -89,10 +87,7 @@ class CWorkspace {
     } m_events;
 
   private:
-    void init(PHLWORKSPACE self);
-    // Previous workspace ID and name is stored during a workspace change, allowing travel
-    // to the previous workspace.
-    SWorkspaceIDName     m_prevWorkspace;
+    void                 init(PHLWORKSPACE self);
 
     SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
     bool                 m_inert = true;

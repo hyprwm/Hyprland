@@ -16,19 +16,7 @@ SP<CFocusState> Desktop::focusState() {
     return state;
 }
 
-Desktop::CFocusState::CFocusState() {
-    m_windowOpen = g_pHookSystem->hookDynamic("openWindowEarly", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
-        addWindowToHistory(window);
-    });
-
-    m_windowClose = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
-        removeWindowFromHistory(window);
-    });
-}
+Desktop::CFocusState::CFocusState() = default;
 
 struct SFullscreenWorkspaceFocusResult {
     PHLWINDOW overrideFocusWindow = nullptr;
@@ -73,7 +61,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     return {};
 }
 
-void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface, bool preserveFocusHistory, bool forceFSCycle) {
+void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
     if (pWindow) {
         if (!pWindow->m_workspace)
             return;
@@ -93,10 +81,10 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surf
         return;
     }
 
-    rawWindowFocus(pWindow, surface, preserveFocusHistory);
+    rawWindowFocus(pWindow, surface);
 }
 
-void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface, bool preserveFocusHistory) {
+void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface) {
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
 
@@ -164,8 +152,6 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
         const auto PWORKSPACE = pWindow->m_workspace;
         // This is to fix incorrect feedback on the focus history.
         PWORKSPACE->m_lastFocusedWindow = pWindow;
-        if (m_focusMonitor->m_activeWorkspace)
-            PWORKSPACE->rememberPrevWorkspace(m_focusMonitor->m_activeWorkspace);
         if (PWORKSPACE->m_isSpecialWorkspace)
             m_focusMonitor->changeWorkspace(PWORKSPACE, false, true); // if special ws, open on current monitor
         else if (PMONITOR)
@@ -213,11 +199,6 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     g_pInputManager->recheckIdleInhibitorStatus();
-
-    if (!preserveFocusHistory) {
-        // move to front of the window history
-        moveWindowToLatestInHistory(pWindow);
-    }
 
     if (*PFOLLOWMOUSE == 0)
         g_pInputManager->sendMotionEventsToFocused();
@@ -307,24 +288,4 @@ PHLWINDOW CFocusState::window() {
 
 PHLMONITOR CFocusState::monitor() {
     return m_focusMonitor.lock();
-}
-
-const std::vector<PHLWINDOWREF>& CFocusState::windowHistory() {
-    return m_windowFocusHistory;
-}
-
-void CFocusState::removeWindowFromHistory(PHLWINDOW w) {
-    std::erase_if(m_windowFocusHistory, [&w](const auto& e) { return !e || e == w; });
-}
-
-void CFocusState::addWindowToHistory(PHLWINDOW w) {
-    m_windowFocusHistory.emplace_back(w);
-}
-
-void CFocusState::moveWindowToLatestInHistory(PHLWINDOW w) {
-    const auto HISTORYPIVOT = std::ranges::find_if(m_windowFocusHistory, [&w](const auto& other) { return other.lock() == w; });
-    if (HISTORYPIVOT == m_windowFocusHistory.end())
-        Log::logger->log(Log::TRACE, "CFocusState: {} has no pivot in history, ignoring request to move to latest", w);
-    else
-        std::rotate(m_windowFocusHistory.begin(), HISTORYPIVOT, HISTORYPIVOT + 1);
 }

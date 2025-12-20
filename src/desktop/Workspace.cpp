@@ -55,10 +55,6 @@ void CWorkspace::init(PHLWORKSPACE self) {
     EMIT_HOOK_EVENT("createWorkspace", this);
 }
 
-SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName() const {
-    return m_prevWorkspace;
-}
-
 CWorkspace::~CWorkspace() {
     Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
@@ -80,24 +76,6 @@ PHLWINDOW CWorkspace::getLastFocusedWindow() {
         return nullptr;
 
     return m_lastFocusedWindow.lock();
-}
-
-void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
-    if (!prev) {
-        m_prevWorkspace.id   = -1;
-        m_prevWorkspace.name = "";
-        return;
-    }
-
-    if (prev->m_id == m_id) {
-        Log::logger->log(Log::DEBUG, "Tried to set prev workspace to the same as current one");
-        return;
-    }
-
-    m_prevWorkspace.id   = prev->m_id;
-    m_prevWorkspace.name = prev->m_name;
-
-    prev->m_monitor->addPrevWorkspaceID(prev->m_id);
 }
 
 std::string CWorkspace::getConfigName() {

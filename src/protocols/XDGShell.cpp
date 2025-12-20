@@ -7,7 +7,10 @@
 #include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
+#include "../desktop/DesktopTypes.hpp"
+#include "../desktop/view/Window.hpp"
 #include "protocols/core/Output.hpp"
+#include <cstddef>
 #include <cstring>
 #include <ranges>
 
@@ -257,6 +260,9 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
         if (m_parent)
             m_parent->m_children.emplace_back(m_self);
 
+        if (m_parent->m_window->m_pinned)
+            m_self->m_window->m_pinned = true;
+
         LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
     });
 }
@@ -460,7 +466,10 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
         LOGM(Log::DEBUG, "xdg_surface {:x} gets a toplevel {:x}", (uintptr_t)m_owner.get(), (uintptr_t)RESOURCE.get());
 
-        g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
+        PHLWINDOW createdWindow = g_pCompositor->m_windows.emplace_back(Desktop::View::CWindow::create(m_self.lock()));
+
+        if (RESOURCE->m_parent && RESOURCE->m_parent->m_window->m_pinned)
+            createdWindow->m_pinned = true;
 
         for (auto const& p : m_popups) {
             if (!p)

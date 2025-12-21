@@ -56,7 +56,7 @@ const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
 }
 
 std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask,
-                                                               float deltaScale, float disableInhibit) {
+                                                               float deltaScale, bool disableInhibit) {
     for (const auto& g : m_gestures) {
         if (g->fingerCount != fingerCount)
             continue;
@@ -92,7 +92,7 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
 }
 
 std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale,
-                                                                  float disableInhibit) {
+                                                                  bool disableInhibit) {
     const auto IT = std::ranges::find_if(m_gestures, [&](const auto& g) {
         return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit;
     });

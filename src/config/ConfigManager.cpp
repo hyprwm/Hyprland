@@ -2850,7 +2850,7 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     int      startDataIdx   = 2;
     uint32_t modMask        = 0;
     float    deltaScale     = 1.F;
-    float    disableInhibit = false;
+    bool     disableInhibit = false;
 
     for (const auto arg : command.substr(7)) {
         switch (arg) {

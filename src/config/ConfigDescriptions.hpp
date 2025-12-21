@@ -2002,17 +2002,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
-     * Experimental
-    */
-
-    SConfigOptionDescription{
-        .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-
-    /*
      * Quirks
     */
 

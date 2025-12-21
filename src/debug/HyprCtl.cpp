@@ -45,6 +45,7 @@ using namespace Hyprutils::OS;
 #include "helpers/MiscFunctions.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/rule/Engine.hpp"
+#include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../version.h"
 
@@ -354,9 +355,10 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
 std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
-        for (size_t i = 0; i < Desktop::focusState()->windowHistory().size(); ++i) {
-            if (Desktop::focusState()->windowHistory()[i].lock() == wnd)
-                return i;
+        const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
+        for (size_t i = 0; i < HISTORY.size(); ++i) {
+            if (HISTORY[i].lock() == wnd)
+                return HISTORY.size() - i - 1; // reverse order for backwards compat
         }
         return -1;
     };

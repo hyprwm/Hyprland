@@ -1,5 +1,6 @@
 #include "TagMatchEngine.hpp"
 #include "../../../helpers/TagKeeper.hpp"
+#include <string>
 
 using namespace Desktop::Rule;
 

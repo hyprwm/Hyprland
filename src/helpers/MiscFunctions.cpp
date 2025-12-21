@@ -4,6 +4,7 @@
 #include "../Compositor.hpp"
 #include "../managers/TokenManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "Monitor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "fs/FsUtils.hpp"
@@ -179,7 +180,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};
 
-        const auto PREVWORKSPACEIDNAME = PWORKSPACE->getPrevWorkspaceIDName();
+        const auto PREVWORKSPACEIDNAME = Desktop::History::workspaceTracker()->previousWorkspaceIDName(PWORKSPACE);
 
         if (PREVWORKSPACEIDNAME.id == -1)
             return {WORKSPACE_INVALID};

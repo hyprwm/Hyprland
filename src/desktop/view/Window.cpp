@@ -15,6 +15,7 @@
 #include "Window.hpp"
 #include "LayerSurface.hpp"
 #include "../state/FocusState.hpp"
+#include "../history/WindowHistoryTracker.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/decorations/CHyprDropShadowDecoration.hpp"
 #include "../../render/decorations/CHyprGroupBarDecoration.hpp"
@@ -1553,7 +1554,7 @@ PHLWINDOW CWindow::getSwallower() {
         return candidates[0];
 
     // walk up the focus history and find the last focused
-    for (auto const& w : Desktop::focusState()->windowHistory()) {
+    for (auto const& w : Desktop::History::windowTracker()->fullHistory() | std::views::reverse) {
         if (!w)
             continue;
 

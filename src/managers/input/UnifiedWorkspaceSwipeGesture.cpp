@@ -246,7 +246,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_monitor->m_id));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
-            PWORKSPACEL->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
@@ -273,7 +272,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_monitor->m_id));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
-            PWORKSPACER->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
@@ -292,7 +290,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         pSwitchedTo = PWORKSPACER;
     }
-    pSwitchedTo->rememberPrevWorkspace(m_workspaceBegin);
 
     g_pHyprRenderer->damageMonitor(m_monitor.lock());
 

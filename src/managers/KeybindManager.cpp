@@ -1,6 +1,8 @@
 #include "../config/ConfigValue.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/history/WindowHistoryTracker.hpp"
+#include "../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
@@ -360,7 +362,6 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     const auto  PNEWMAINWORKSPACE = monitor->m_activeWorkspace;
 
     g_pInputManager->unconstrainMouse();
-    PNEWMAINWORKSPACE->rememberPrevWorkspace(PWORKSPACE);
 
     const auto PNEWWORKSPACE = monitor->m_activeSpecialWorkspace ? monitor->m_activeSpecialWorkspace : PNEWMAINWORKSPACE;
 
@@ -384,7 +385,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     return true;
 }
 
-void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory, bool forceFSCycle) {
+void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle) {
     static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
 
@@ -397,10 +398,10 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
     g_pInputManager->unconstrainMouse();
 
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, forceFSCycle);
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
@@ -1187,7 +1188,8 @@ static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSP
     }
 
     const bool             PER_MON = args.contains("_per_monitor");
-    const SWorkspaceIDName PPREVWS = PER_MON ? PMONITOR->getPrevWorkspaceIDName(PCURRENTWORKSPACE->m_id) : PCURRENTWORKSPACE->getPrevWorkspaceIDName();
+    const SWorkspaceIDName PPREVWS = PER_MON ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR.lock()) :
+                                               Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
     // Do nothing if there's no previous workspace, otherwise switch to it.
     if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_id) {
         Log::logger->log(Log::DEBUG, "No previous workspace to change to");
@@ -1205,7 +1207,6 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
     static auto PBACKANDFORTH                 = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
-    static auto PALLOWWORKSPACECYCLES         = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
     static auto PWORKSPACECENTERON            = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
     static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("binds:hide_special_on_workspace_change");
 
@@ -1226,7 +1227,8 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     if (workspaceToChangeTo == WORKSPACE_NOT_CHANGED)
         return {};
 
-    const SWorkspaceIDName PPREVWS = args.contains("_per_monitor") ? PMONITOR->getPrevWorkspaceIDName(PCURRENTWORKSPACE->m_id) : PCURRENTWORKSPACE->getPrevWorkspaceIDName();
+    const SWorkspaceIDName PPREVWS = args.contains("_per_monitor") ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR) :
+                                                                     Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
 
     const bool             BISWORKSPACECURRENT = workspaceToChangeTo == PCURRENTWORKSPACE->m_id;
     if (BISWORKSPACECURRENT && (!(*PBACKANDFORTH || EXPLICITPREVIOUS) || PPREVWS.id == -1)) {
@@ -1260,14 +1262,6 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     updateRelativeCursorCoords();
 
     Desktop::focusState()->rawMonitorFocus(PMONITORWORKSPACEOWNER);
-
-    if (BISWORKSPACECURRENT) {
-        if (*PALLOWWORKSPACECYCLES)
-            pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
-        else if (!EXPLICITPREVIOUS && !*PBACKANDFORTH)
-            pWorkspaceToChangeTo->rememberPrevWorkspace(nullptr);
-    } else
-        pWorkspaceToChangeTo->rememberPrevWorkspace(PCURRENTWORKSPACE);
 
     if (*PHIDESPECIALONWORKSPACECHANGE)
         PMONITORWORKSPACEOWNER->setSpecialWorkspace(nullptr);
@@ -1419,8 +1413,6 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
     else if (POLDWS->m_isSpecialWorkspace)
         POLDWS->m_monitor.lock()->setSpecialWorkspace(nullptr);
 
-    pWorkspace->rememberPrevWorkspace(POLDWS);
-
     pMonitor->changeWorkspace(pWorkspace);
 
     Desktop::focusState()->fullWindowFocus(PWINDOW);
@@ -1514,7 +1506,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
 
     // Found window in direction, switch to it
     if (PWINDOWTOCHANGETO) {
-        switchToWindow(PWINDOWTOCHANGETO, false, *PFULLCYCLE && PLASTWINDOW->isFullscreen());
+        switchToWindow(PWINDOWTOCHANGETO, *PFULLCYCLE && PLASTWINDOW->isFullscreen());
         return {};
     }
 
@@ -1571,9 +1563,9 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
 }
 
 SDispatchResult CKeybindManager::focusUrgentOrLast(std::string args) {
-    const auto PWINDOWURGENT = g_pCompositor->getUrgentWindow();
-    const auto PWINDOWPREV   = Desktop::focusState()->window() ? (Desktop::focusState()->windowHistory().size() < 2 ? nullptr : Desktop::focusState()->windowHistory()[1].lock()) :
-                                                                 (Desktop::focusState()->windowHistory().empty() ? nullptr : Desktop::focusState()->windowHistory()[0].lock());
+    const auto& HISTORY       = Desktop::History::windowTracker()->fullHistory();
+    const auto  PWINDOWURGENT = g_pCompositor->getUrgentWindow();
+    const auto  PWINDOWPREV   = Desktop::focusState()->window() ? (HISTORY.size() < 2 ? nullptr : HISTORY[1].lock()) : (HISTORY.empty() ? nullptr : HISTORY[0].lock());
 
     if (!PWINDOWURGENT && !PWINDOWPREV)
         return {.success = false, .error = "Window not found"};
@@ -1584,8 +1576,8 @@ SDispatchResult CKeybindManager::focusUrgentOrLast(std::string args) {
 }
 
 SDispatchResult CKeybindManager::focusCurrentOrLast(std::string args) {
-    const auto PWINDOWPREV = Desktop::focusState()->window() ? (Desktop::focusState()->windowHistory().size() < 2 ? nullptr : Desktop::focusState()->windowHistory()[1].lock()) :
-                                                               (Desktop::focusState()->windowHistory().empty() ? nullptr : Desktop::focusState()->windowHistory()[0].lock());
+    const auto& HISTORY     = Desktop::History::windowTracker()->fullHistory();
+    const auto  PWINDOWPREV = Desktop::focusState()->window() ? (HISTORY.size() < 2 ? nullptr : HISTORY[1].lock()) : (HISTORY.empty() ? nullptr : HISTORY[0].lock());
 
     if (!PWINDOWPREV)
         return {.success = false, .error = "Window not found"};
@@ -2064,7 +2056,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
     }
 
     static auto PBACKANDFORTH = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
-    const auto  PREVWS        = pWorkspace->getPrevWorkspaceIDName();
+    const auto  PREVWS        = Desktop::History::workspaceTracker()->previousWorkspaceIDName(pWorkspace);
 
     if (*PBACKANDFORTH && PCURRMONITOR->activeWorkspaceID() == workspaceID && PREVWS.id != -1) {
         // Workspace to focus is previous workspace

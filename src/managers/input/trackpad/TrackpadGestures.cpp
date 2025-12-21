@@ -91,9 +91,11 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
     return {};
 }
 
-std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale, float disableInhibit) {
-    const auto IT = std::ranges::find_if(
-        m_gestures, [&](const auto& g) { return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit; });
+std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale,
+                                                                  float disableInhibit) {
+    const auto IT = std::ranges::find_if(m_gestures, [&](const auto& g) {
+        return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit;
+    });
 
     if (IT == m_gestures.end())
         return std::unexpected("Can't remove a non-existent gesture");

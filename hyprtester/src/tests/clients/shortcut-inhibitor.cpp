@@ -90,7 +90,6 @@ static bool startClient(SClient& client) {
         return false;
     }
 
-
     std::string command = "on\n";
     if (write(client.writeFd.get(), command.c_str(), command.length()) == -1) {
         NLog::log("{}shortcut-inhibitor client write failed", Colors::RED);
@@ -122,7 +121,7 @@ static void stopClient(SClient& client) {
 
 static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
 
-static bool checkFlag() {
+static bool        checkFlag() {
     bool exists = std::filesystem::exists(flagFile);
     std::filesystem::remove(flagFile);
     return exists;

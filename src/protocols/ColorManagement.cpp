@@ -285,7 +285,7 @@ wl_client* CColorManagementSurface::client() {
 const SImageDescription& CColorManagementSurface::imageDescription() {
     if (!hasImageDescription())
         LOGM(Log::WARN, "Reading imageDescription while none set. Returns default or empty values");
-    
+
     return m_imageDescription->value();
 }
 

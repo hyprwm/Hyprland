@@ -349,10 +349,11 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
     static auto  PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
     static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
 
-    const auto   MASTERS      = getMastersOnWorkspace(pWorkspace->m_id);
-    const auto   WINDOWS      = getNodesOnWorkspace(pWorkspace->m_id);
-    const auto   STACKWINDOWS = WINDOWS - MASTERS;
-    const auto   WORKAREA     = workAreaOnWorkspace(pWorkspace);
+    const auto   MASTERS          = getMastersOnWorkspace(pWorkspace->m_id);
+    const auto   WINDOWS          = getNodesOnWorkspace(pWorkspace->m_id);
+    const auto   STACKWINDOWS     = WINDOWS - MASTERS;
+    const auto   WORKAREA         = workAreaOnWorkspace(pWorkspace);
+    const auto   UNRESERVED_WIDTH = WORKAREA.width + PMONITOR->m_reservedArea.left() + PMONITOR->m_reservedArea.right();
 
     if (orientation == ORIENTATION_CENTER) {
         if (STACKWINDOWS >= *SLAVECOUNTFORCENTER)
@@ -443,11 +444,12 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             nextX += WIDTH;
         }
     } else { // orientation left, right or center
-        float WIDTH       = *PIGNORERESERVED && centerMasterWindow ? PMONITOR->m_size.x : WORKAREA.w;
-        float heightLeft  = WORKAREA.h;
-        int   mastersLeft = MASTERS;
-        float nextX       = 0;
-        float nextY       = 0;
+        const float TOTAL_WIDTH = *PIGNORERESERVED && centerMasterWindow ? UNRESERVED_WIDTH : WORKAREA.w;
+        float       WIDTH       = TOTAL_WIDTH;
+        float       heightLeft  = WORKAREA.h;
+        int         mastersLeft = MASTERS;
+        float       nextX       = 0;
+        float       nextY       = 0;
 
         if (STACKWINDOWS > 0 || centerMasterWindow)
             WIDTH *= PMASTERNODE->percMaster;
@@ -455,7 +457,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
         if (orientation == ORIENTATION_RIGHT)
             nextX = WORKAREA.w - WIDTH;
         else if (centerMasterWindow)
-            nextX = ((*PIGNORERESERVED && centerMasterWindow ? PMONITOR->m_size.x : WORKAREA.w) - WIDTH) / 2;
+            nextX += (TOTAL_WIDTH - WIDTH) / 2;
 
         for (auto& nd : m_masterNodesData) {
             if (nd.workspaceID != pWorkspace->m_id || !nd.isMaster)
@@ -471,7 +473,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             }
 
             nd.size     = Vector2D(WIDTH, HEIGHT);
-            nd.position = (*PIGNORERESERVED && centerMasterWindow ? PMONITOR->m_position : WORKAREA.pos()) + Vector2D(nextX, nextY);
+            nd.position = (*PIGNORERESERVED && centerMasterWindow ? WORKAREA.pos() - Vector2D(PMONITOR->m_reservedArea.left(), 0.0) : WORKAREA.pos()) + Vector2D(nextX, nextY);
             applyNodeDataToWindow(&nd);
 
             mastersLeft--;
@@ -546,7 +548,7 @@ void CHyprMasterLayout::calculateWorkspace(PHLWORKSPACE pWorkspace) {
             nextY += HEIGHT;
         }
     } else { // slaves for centered master window(s)
-        const float WIDTH       = ((*PIGNORERESERVED ? PMONITOR->m_size.x : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
+        const float WIDTH       = ((*PIGNORERESERVED ? UNRESERVED_WIDTH : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
         float       heightLeft  = 0;
         float       heightLeftL = WORKAREA.h;
         float       heightLeftR = WORKAREA.h;

@@ -1921,13 +1921,22 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         return;
     }
 
-    if (damageBox.empty())
-        return;
+    if (damageBox.empty()) {
+        const auto VIEW = WLSURF->view();
+        if (VIEW->type() == Desktop::View::eViewType::VIEW_TYPE_WINDOW)
+            return;
 
-    if (scale != 1.0)
-        damageBox.scale(scale);
+        const auto BOX = VIEW->logicalBox();
+        if (!BOX || BOX->empty())
+            return;
 
-    damageBox.translate({x, y});
+        damageBox = *BOX;
+    } else {
+        if (scale != 1.0)
+            damageBox.scale(scale);
+
+        damageBox.translate({x, y});
+    }
 
     CRegion damageBoxForEach;
 

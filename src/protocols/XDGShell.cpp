@@ -257,11 +257,12 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
 
         m_parent = newp;
 
-        if (m_parent)
+        if (m_parent) {
             m_parent->m_children.emplace_back(m_self);
 
-        if (m_parent->m_window->m_pinned)
-            m_self->m_window->m_pinned = true;
+            if (m_parent->m_window && m_parent->m_window->m_pinned)
+                m_self->m_window->m_pinned = true;
+        }
 
         LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
     });

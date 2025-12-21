@@ -2956,35 +2956,31 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     }
 }
 
-SImageDescription CCompositor::getPreferredImageDescription() {
+PImageDescription CCompositor::getPreferredImageDescription() {
     if (!PROTO::colorManagement) {
         Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
-        return SImageDescription{};
+        return DEFAULT_IMAGE_DESCRIPTION;
     }
     Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
     // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
-    return m_monitors.size() == 1 ? m_monitors[0]->m_imageDescription : SImageDescription{.primaries = NColorPrimaries::BT709};
+    return m_monitors.size() == 1 ? m_monitors[0]->m_imageDescription : CImageDescription::from(SImageDescription{.primaries = NColorPrimaries::BT709});
 }
 
-SImageDescription CCompositor::getHDRImageDescription() {
+PImageDescription CCompositor::getHDRImageDescription() {
     if (!PROTO::colorManagement) {
         Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
-        return SImageDescription{};
+        return DEFAULT_IMAGE_DESCRIPTION;
     }
 
     return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?
-        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                          .primariesNameSet = true,
-                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                          .luminances       = {.min       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                               .max       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                               .reference = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}} :
-        SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                          .primariesNameSet = true,
-                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                          .luminances       = {.min = 0, .max = 10000, .reference = 203}};
+        CImageDescription::from(SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                                  .primariesNameSet = true,
+                                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                                  .luminances       = {.min       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
+                                                                       .max       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
+                                                                       .reference = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}}) :
+        DEFAULT_HDR_IMAGE_DESCRIPTION;
 }
 
 bool CCompositor::shouldChangePreferredImageDescription() {

@@ -112,6 +112,5 @@ namespace Desktop::View {
         } m_listeners;
 
         friend class ::CPointerConstraint;
-        friend class CXxColorManagerV4;
     };
 }

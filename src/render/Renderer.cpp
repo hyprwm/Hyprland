@@ -1620,7 +1620,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     pMonitor->m_previousFSWindow.reset(); // trigger CTM update
                 }
                 Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
-                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
+                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA);
             }
             pMonitor->m_needsHDRupdate = true;
         }
@@ -1658,9 +1658,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto FS_DESC = pMonitor->getFSImageDescription();
             if (FS_DESC.has_value()) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
-                pMonitor->m_noShaderCTM        = true;
-                const auto                 mat = FS_DESC->getPrimaries().convertMatrix(pMonitor->m_imageDescription.getPrimaries()).mat();
-                const std::array<float, 9> CTM = {
+                pMonitor->m_noShaderCTM               = true;
+                auto                       conversion = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
+                const auto                 mat        = conversion.mat();
+                const std::array<float, 9> CTM        = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //

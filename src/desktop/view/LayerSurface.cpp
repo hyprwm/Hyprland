@@ -332,9 +332,10 @@ void CLayerSurface::onCommit() {
             }
 
             m_layer           = m_layerSurface->m_current.layer;
-            m_aboveFullscreen = true;
+            m_aboveFullscreen = m_layerSurface->m_current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY;
 
-            g_pDesktopAnimationManager->setFullscreenFadeAnimation(PMONITOR->m_activeWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN);
+            // if in fullscreen, only overlay can be above.
+            *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd

@@ -1917,16 +1917,22 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         return;
     }
 
-    if (scale != 1.0)
-        damageBox.scale(scale);
+    if (damageBox.empty()) {
+        const auto VIEW = WLSURF->view();
+        if (VIEW->type() == Desktop::View::eViewType::VIEW_TYPE_WINDOW)
+            return;
 
-    // schedule frame events
-    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        const auto BOX = VIEW->logicalBox();
+        if (!BOX || BOX->empty())
+            return;
 
-    if (damageBox.empty())
-        return;
+        damageBox = *BOX;
+    } else {
+        if (scale != 1.0)
+            damageBox.scale(scale);
 
-    damageBox.translate({x, y});
+        damageBox.translate({x, y});
+    }
 
     CRegion damageBoxForEach;
 
@@ -2045,7 +2051,7 @@ void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& t
 }
 
 void CHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
-    m_cursorHasSurface = surf;
+    m_cursorHasSurface = surf && surf->resource();
 
     m_lastCursorData.name     = "";
     m_lastCursorData.surf     = surf;

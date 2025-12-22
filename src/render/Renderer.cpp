@@ -2136,30 +2136,19 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (HIDE == m_cursorHidden)
         return;
 
-    if (HIDE) {
+    if (HIDE)
         Debug::log(LOG, "Hiding the cursor (hl-mandated)");
-
-        for (auto const& m : g_pCompositor->m_monitors) {
-            if (!g_pPointerManager->softwareLockedFor(m))
-                continue;
-
-            damageMonitor(m); // TODO: maybe just damage the cursor area?
-        }
-
-        setCursorHidden(true);
-
-    } else {
+    else
         Debug::log(LOG, "Showing the cursor (hl-mandated)");
 
-        for (auto const& m : g_pCompositor->m_monitors) {
-            if (!g_pPointerManager->softwareLockedFor(m))
-                continue;
+    for (auto const& m : g_pCompositor->m_monitors) {
+        if (!g_pPointerManager->softwareLockedFor(m))
+            continue;
 
-            damageMonitor(m); // TODO: maybe just damage the cursor area?
-        }
-
-        setCursorHidden(false);
+        g_pPointerManager->damageCursor(m, m->shouldSkipScheduleFrameOnMouseEvent());
     }
+
+    setCursorHidden(HIDE);
 }
 
 void CHyprRenderer::setCursorHidden(bool hide) {

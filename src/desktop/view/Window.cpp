@@ -1930,6 +1930,10 @@ void CWindow::mapWindow() {
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
 
+    const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
+    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
+    const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal : FSMODE_NONE;
+
     auto        PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
         Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
@@ -2305,7 +2309,16 @@ void CWindow::mapWindow() {
 
     if (!m_ruleApplicator->noFocus().valueOrDefault() && !m_noInitialFocus && (!isX11OverrideRedirect() || (m_isX11 && m_xwaylandSurface->wantsFocus())) && !workspaceSilent &&
         (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
-        Desktop::focusState()->fullWindowFocus(m_self.lock());
+
+        // this window should gain focus: if it's grouped, preserve fullscreen state.
+        const bool SAME_GROUP = hasInGroup(LAST_FOCUS_WINDOW);
+
+        if (IS_LAST_IN_FS && SAME_GROUP) {
+            Desktop::focusState()->rawWindowFocus(m_self.lock());
+            g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE);
+        } else
+            Desktop::focusState()->fullWindowFocus(m_self.lock());
+
         m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
         m_dimPercent->setValueAndWarp(m_ruleApplicator->noDim().valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
@@ -2451,12 +2464,12 @@ void CWindow::unmapWindow() {
         m_swallowed.reset();
     }
 
-    bool wasLastWindow = false;
+    bool      wasLastWindow = false;
+    PHLWINDOW nextInGroup   = m_groupData.pNextWindow ? m_groupData.pNextWindow.lock() : nullptr;
 
     if (m_self.lock() == Desktop::focusState()->window()) {
         wasLastWindow = true;
-        Desktop::focusState()->window().reset();
-        Desktop::focusState()->surface().reset();
+        Desktop::focusState()->resetWindowFocus();
 
         g_pInputManager->releaseAllMouseButtons();
     }
@@ -2479,23 +2492,30 @@ void CWindow::unmapWindow() {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        static auto FOCUSONCLOSE     = CConfigValue<Hyprlang::INT>("input:focus_on_close");
-        PHLWINDOW   PWINDOWCANDIDATE = nullptr;
-        if (*FOCUSONCLOSE)
-            PWINDOWCANDIDATE = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
-                                                                     Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
-        else
-            PWINDOWCANDIDATE = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
+        static auto FOCUSONCLOSE = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+        PHLWINDOW   candidate    = nextInGroup;
 
-        Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", PWINDOWCANDIDATE);
-
-        if (PWINDOWCANDIDATE != Desktop::focusState()->window() && PWINDOWCANDIDATE) {
-            Desktop::focusState()->fullWindowFocus(PWINDOWCANDIDATE);
-            if (*PEXITRETAINSFS && CURRENTWINDOWFSSTATE)
-                g_pCompositor->setWindowFullscreenInternal(PWINDOWCANDIDATE, CURRENTFSMODE);
+        if (!candidate) {
+            if (*FOCUSONCLOSE)
+                candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
+                                                                  Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
+            else
+                candidate = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
         }
 
-        if (!PWINDOWCANDIDATE && m_workspace && m_workspace->getWindows() == 0)
+        Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
+
+        if (candidate != Desktop::focusState()->window() && candidate) {
+            if (candidate == nextInGroup)
+                Desktop::focusState()->rawWindowFocus(candidate);
+            else
+                Desktop::focusState()->fullWindowFocus(candidate);
+
+            if ((*PEXITRETAINSFS || candidate == nextInGroup) && CURRENTWINDOWFSSTATE)
+                g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
+        }
+
+        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

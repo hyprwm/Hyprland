@@ -20,6 +20,8 @@ namespace Desktop {
         void                   rawSurfaceFocus(SP<CWLSurfaceResource> s, PHLWINDOW pWindowOwner = nullptr);
         void                   rawMonitorFocus(PHLMONITOR m);
 
+        void                   resetWindowFocus();
+
         SP<CWLSurfaceResource> surface();
         PHLWINDOW              window();
         PHLMONITOR             monitor();

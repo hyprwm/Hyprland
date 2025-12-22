@@ -289,3 +289,8 @@ PHLWINDOW CFocusState::window() {
 PHLMONITOR CFocusState::monitor() {
     return m_focusMonitor.lock();
 }
+
+void CFocusState::resetWindowFocus() {
+    m_focusWindow.reset();
+    m_focusSurface.reset();
+}

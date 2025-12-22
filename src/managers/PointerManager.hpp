@@ -55,7 +55,7 @@ class CPointerManager {
     // this is needed e.g. during screensharing where
     // the software cursors aren't locked during the cursor move, but they
     // are rendered later.
-    void damageCursor(PHLMONITOR pMonitor);
+    void damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule = false);
 
     //
     Vector2D position();

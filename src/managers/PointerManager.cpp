@@ -1085,7 +1085,7 @@ void CPointerManager::detachTablet(SP<CTablet> tablet) {
     std::erase_if(m_tabletListeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
 }
 
-void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
+void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) {
     for (auto const& mw : m_monitorStates) {
         if (mw->monitor != pMonitor)
             continue;
@@ -1095,7 +1095,7 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
         if (b.empty())
             return;
 
-        g_pHyprRenderer->damageBox(b);
+        g_pHyprRenderer->damageBox(b, skipFrameSchedule);
 
         return;
     }

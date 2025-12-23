@@ -202,6 +202,7 @@ class CHyprOpenGLImpl {
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
         SP<CMonitor>           cmBackToSRGBSource;
+        bool                   finalMonitorCM = false;
     };
 
     struct SBorderRenderData {

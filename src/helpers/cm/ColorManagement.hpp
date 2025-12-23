@@ -3,6 +3,11 @@
 #include "color-management-v1.hpp"
 #include <hyprgraphics/color/Color.hpp>
 #include "../../helpers/memory/Memory.hpp"
+#include "../../helpers/math/Math.hpp"
+
+#include <filesystem>
+#include <vector>
+#include <expected>
 
 #define SDR_MIN_LUMINANCE 0.2
 #define SDR_MAX_LUMINANCE 80.0
@@ -11,6 +16,8 @@
 #define HDR_MAX_LUMINANCE 10000.0
 #define HDR_REF_LUMINANCE 203.0
 #define HLG_MAX_LUMINANCE 1000.0
+
+class CTexture;
 
 namespace NColorManagement {
     enum eNoShader : uint8_t {
@@ -140,7 +147,16 @@ namespace NColorManagement {
         };
     }
 
-    const SPCPRimaries& getPrimaries(ePrimaries name);
+    struct SVCGTTable16 {
+        uint16_t                             channels  = 0;
+        uint16_t                             entries   = 0;
+        uint16_t                             entrySize = 0;
+        std::array<std::vector<uint16_t>, 3> ch;
+    };
+
+    const SPCPRimaries&   getPrimaries(ePrimaries name);
+    std::optional<Mat3x3> rgbToXYZFromPrimaries(SPCPRimaries pr);
+    Mat3x3                adaptBradford(Hyprgraphics::CColor::xy srcW, Hyprgraphics::CColor::xy dstW);
 
     class CPrimaries {
       public:
@@ -163,22 +179,17 @@ namespace NColorManagement {
     };
 
     struct SImageDescription {
-        struct SIccFile {
-            int      fd     = -1;
-            uint32_t length = 0;
-            uint32_t offset = 0;
-            bool     operator==(const SIccFile& i2) const {
-                return fd == i2.fd;
-            }
-        } icc;
+        static std::expected<SImageDescription, std::string> fromICC(const std::filesystem::path& file);
 
-        bool              windowsScRGB = false;
+        //
+        std::vector<uint8_t> rawICC;
 
-        eTransferFunction transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
-        float             transferFunctionPower = 1.0f;
+        eTransferFunction    transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
+        float                transferFunctionPower = 1.0f;
+        bool                 windowsScRGB          = false;
 
-        bool              primariesNameSet = false;
-        ePrimaries        primariesNamed   = CM_PRIMARIES_SRGB;
+        bool                 primariesNameSet = false;
+        ePrimaries           primariesNamed   = CM_PRIMARIES_SRGB;
         // primaries are stored as FP values with the same scale as standard defines (0.0 - 1.0)
         // wayland protocol expects int32_t values multiplied by 1000000
         // drm expects uint16_t values multiplied by 50000
@@ -202,11 +213,23 @@ namespace NColorManagement {
             }
         } masteringLuminances;
 
+        // Matrix data from ICC
+        struct SICCData {
+            bool                        present = false;
+            size_t                      lutSize = 33;
+            std::vector<float>          lutDataPacked;
+            SP<CTexture>                lutTexture;
+            std::optional<SVCGTTable16> vcgt;
+        } icc;
+
         uint32_t maxCLL  = 0;
         uint32_t maxFALL = 0;
 
         bool     operator==(const SImageDescription& d2) const {
-            return icc == d2.icc && windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
+            if (icc.present || d2.icc.present)
+                return false;
+
+            return windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
                 (primariesNameSet == d2.primariesNameSet && (primariesNameSet ? primariesNamed == d2.primariesNamed : primaries == d2.primaries)) &&
                 masteringPrimaries == d2.masteringPrimaries && luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL &&
                 maxFALL == d2.maxFALL;
@@ -280,19 +303,19 @@ namespace NColorManagement {
     class CImageDescription {
       public:
         static WP<const CImageDescription> from(const SImageDescription& imageDescription);
-        static WP<const CImageDescription> from(const uint imageDescriptionId);
+        static WP<const CImageDescription> from(const uint32_t imageDescriptionId);
 
         WP<const CImageDescription>        with(const SImageDescription::SPCLuminances& luminances) const;
 
         const SImageDescription&           value() const;
-        uint                               id() const;
+        uint32_t                           id() const;
 
         WP<const CPrimaries>               getPrimaries() const;
 
       private:
         CImageDescription(const SImageDescription& imageDescription, const uint imageDescriptionId);
-        uint              m_id;
-        uint              m_primariesId;
+        uint32_t          m_id          = 0;
+        uint32_t          m_primariesId = 0;
         SImageDescription m_imageDescription;
     };
 
@@ -306,8 +329,8 @@ namespace NColorManagement {
                                                                                                 .luminances = {.min = 0, .max = 10000, .reference = 203}});
     ;
     static const auto SCRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
-        .windowsScRGB     = true,
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        .windowsScRGB     = true,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,

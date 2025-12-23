@@ -4,7 +4,6 @@
 precision highp float;
 in vec2 v_texcoord;
 
-uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 targetPrimaries;
@@ -172,9 +171,6 @@ void main() {
 
     pixColor = getColorForCoord(v_texcoord);
     pixColor.rgb *= pixColor[3];
-
-	if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
     pixColor *= alpha * additionalAlpha;
 

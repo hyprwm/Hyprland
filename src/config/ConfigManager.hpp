@@ -176,6 +176,7 @@ class CMonitorRuleParser {
     bool                       parseSDRBrightness(const std::string& value);
     bool                       parseSDRSaturation(const std::string& value);
     bool                       parseVRR(const std::string& value);
+    bool                       parseICC(const std::string& value);
 
     void                       setDisabled();
     void                       setMirror(const std::string& value);

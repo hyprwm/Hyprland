@@ -5,7 +5,6 @@ precision highp float;
 in vec4 v_color;
 in vec2 v_texcoord;
 
-uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 targetPrimaries;
@@ -17,8 +16,6 @@ uniform float radius;
 uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
-
-#include "CM.glsl"
 
 float pixAlphaRoundedDistance(float distanceToCorner) {
      if (distanceToCorner > radius) {
@@ -91,9 +88,6 @@ void main() {
 
     // premultiply
     pixColor.rgb *= pixColor[3];
-
-	if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
 	fragColor = pixColor;
 }

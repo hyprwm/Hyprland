@@ -872,28 +872,39 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_supportsWideColor = RULE->supportsHDR;
     m_supportsHDR       = RULE->supportsHDR;
 
-    m_cmType = RULE->cmType;
-    switch (m_cmType) {
-        case NCMType::CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? NCMType::CM_WIDE : NCMType::CM_SRGB; break;
-        case NCMType::CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? NCMType::CM_EDID : NCMType::CM_SRGB; break;
-        case NCMType::CM_HDR:
-        case NCMType::CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : NCMType::CM_SRGB; break;
-        default: break;
+    if (RULE->iccFile.empty()) {
+        // only apply explicit cm settings if we have no icc file
+
+        m_cmType = RULE->cmType;
+        switch (m_cmType) {
+            case NCMType::CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? NCMType::CM_WIDE : NCMType::CM_SRGB; break;
+            case NCMType::CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? NCMType::CM_EDID : NCMType::CM_SRGB; break;
+            case NCMType::CM_HDR:
+            case NCMType::CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : NCMType::CM_SRGB; break;
+            default: break;
+        }
+
+        m_sdrEotf = RULE->sdrEotf;
+
+        m_sdrMinLuminance = RULE->sdrMinLuminance;
+        m_sdrMaxLuminance = RULE->sdrMaxLuminance;
+
+        m_minLuminance    = RULE->minLuminance;
+        m_maxLuminance    = RULE->maxLuminance;
+        m_maxAvgLuminance = RULE->maxAvgLuminance;
+
+        applyCMType(m_cmType, m_sdrEotf);
+
+        m_sdrSaturation = RULE->sdrSaturation;
+        m_sdrBrightness = RULE->sdrBrightness;
+    } else {
+        auto image = NColorManagement::SImageDescription::fromICC(RULE->iccFile);
+        if (!image) {
+            Log::logger->log(Log::ERR, "icc for {} ({}) failed: {}", m_name, RULE->iccFile, image.error());
+            g_pConfigManager->addParseError(std::format("failed to apply icc {} to {}: {}", RULE->iccFile, m_name, image.error()));
+        } else
+            m_imageDescription = CImageDescription::from(*image);
     }
-
-    m_sdrEotf = RULE->sdrEotf;
-
-    m_sdrMinLuminance = RULE->sdrMinLuminance;
-    m_sdrMaxLuminance = RULE->sdrMaxLuminance;
-
-    m_minLuminance    = RULE->minLuminance;
-    m_maxLuminance    = RULE->maxLuminance;
-    m_maxAvgLuminance = RULE->maxAvgLuminance;
-
-    applyCMType(m_cmType, m_sdrEotf);
-
-    m_sdrSaturation = RULE->sdrSaturation;
-    m_sdrBrightness = RULE->sdrBrightness;
 
     Vector2D logicalSize = m_pixelSize / m_scale;
     if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {
@@ -975,6 +986,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     g_pCompositor->scheduleMonitorStateRecheck();
 
     m_damage.setSize(m_transformedSize);
+
+    updateVCGTRamps();
 
     // Set scale for all surfaces on this monitor, needed for some clients
     // but not on unsafe state to avoid crashes
@@ -2053,8 +2066,8 @@ bool CMonitor::canNoShaderCM() {
 
     const auto SRC_DESC_VALUE = SRC_DESC.value()->value();
 
-    if (SRC_DESC_VALUE.icc.fd >= 0 || m_imageDescription->value().icc.fd >= 0)
-        return false; // no ICC support
+    if (m_imageDescription->value().icc.present)
+        return false;
 
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
     // only primaries differ
@@ -2069,6 +2082,71 @@ bool CMonitor::canNoShaderCM() {
 
 bool CMonitor::doesNoShaderCM() {
     return m_noShaderCTM;
+}
+
+static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, size_t gammaSize) {
+    std::vector<uint16_t> out;
+    out.resize(gammaSize * 3);
+
+    //
+    auto sample = [&](int c, float x) -> uint16_t {
+        const float maxX = t.entries - 1;
+        x                = std::clamp(x, 0.F, maxX);
+
+        const size_t i0 = (size_t)std::floor(x);
+        const size_t i1 = std::min(i0 + 1, (size_t)t.entries - 1);
+        const float  f  = x - sc<float>(i0);
+
+        const float  v0 = sc<float>(t.ch[c][i0]);
+        const float  v1 = sc<float>(t.ch[c][i1]);
+        const float  v  = v0 + ((v1 - v0) * f);
+
+        int64_t      vi = std::round(v);
+        vi              = std::clamp(vi, sc<int64_t>(0), sc<int64_t>(65535));
+        return sc<uint16_t>(vi);
+    };
+
+    for (size_t i = 0; i < gammaSize; ++i) {
+        float          x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
+
+        const uint16_t r = sample(0, x);
+        const uint16_t g = sample(1, x);
+        const uint16_t b = sample(2, x);
+
+        out[i * 3 + 0] = r;
+        out[i * 3 + 1] = g;
+        out[i * 3 + 2] = b;
+    }
+
+    return out;
+}
+
+void CMonitor::updateVCGTRamps() {
+    auto gammaSize = m_output->getGammaSize();
+
+    if (gammaSize <= 10) {
+        Log::logger->log(Log::DEBUG, "CMonitor::updateVCGTRamps: skipping, no gamma ramp for output");
+        return;
+    }
+
+    if (!m_imageDescription->value().icc.vcgt) {
+        if (m_vcgtRampsSet)
+            m_output->state->setGammaLut({});
+
+        m_vcgtRampsSet = false;
+        return;
+    }
+
+    // build table
+    auto table = resampleInterleavedToKms(*m_imageDescription->value().icc.vcgt, gammaSize);
+
+    m_output->state->setGammaLut(table);
+
+    m_vcgtRampsSet = true;
+}
+
+bool CMonitor::gammaRampsInUse() {
+    return m_vcgtRampsSet;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

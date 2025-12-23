@@ -1576,8 +1576,12 @@ SDispatchResult CKeybindManager::focusUrgentOrLast(std::string args) {
 }
 
 SDispatchResult CKeybindManager::focusCurrentOrLast(std::string args) {
-    const auto& HISTORY     = Desktop::History::windowTracker()->fullHistory();
-    const auto  PWINDOWPREV = Desktop::focusState()->window() ? (HISTORY.size() < 2 ? nullptr : HISTORY[1].lock()) : (HISTORY.empty() ? nullptr : HISTORY[0].lock());
+    const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
+
+    if (HISTORY.size() <= 1)
+        return {.success = false, .error = "History too short"};
+
+    const auto PWINDOWPREV = HISTORY[HISTORY.size() - 2].lock();
 
     if (!PWINDOWPREV)
         return {.success = false, .error = "Window not found"};

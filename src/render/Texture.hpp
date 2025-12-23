@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
+#include <span>
 
 class IHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
@@ -11,6 +12,7 @@ enum eTextureType : int8_t {
     TEXTURE_INVALID = -1, // Invalid
     TEXTURE_RGBA    = 0,  // 4 channels
     TEXTURE_RGBX,         // discard A
+    TEXTURE_3D_LUT,       // 3D LUT
     TEXTURE_EXTERNAL,     // EGLImage
 };
 
@@ -24,6 +26,7 @@ class CTexture {
     CTexture(const CTexture&)  = delete;
 
     CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false);
+    CTexture(std::span<const float> lut3D, size_t N);
 
     CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
     // this ctor takes ownership of the eglImage.

@@ -19,7 +19,7 @@
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "../protocols/types/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/CursorManager.hpp"
@@ -777,6 +777,12 @@ void CHyprOpenGLImpl::end() {
 
     TRACY_GPU_ZONE("RenderEnd");
 
+    m_renderData.currentWindow.reset();
+    m_renderData.surface.reset();
+    m_renderData.currentLS.reset();
+    m_renderData.clipBox = {};
+    m_renderData.clipRegion.clear();
+
     // end the render, copy the data to the main framebuffer
     if LIKELY (m_offloadedFramebuffer) {
         m_renderData.damage = m_renderData.finalDamage;
@@ -800,10 +806,13 @@ void CHyprOpenGLImpl::end() {
         m_renderData.outFB->bind();
         blend(false);
 
-        if LIKELY (m_finalScreenShader->program() < 1 && !g_pHyprRenderer->m_crashingInProgress)
+        const auto PRIMITIVE_BLOCKED =
+            m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress || m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
+
+        if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
             renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
-        else
-            renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
+        else // we need to use renderTexture if we do any CM whatsoever.
+            renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {.finalMonitorCM = true});
 
         blend(true);
 
@@ -1054,7 +1063,7 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
     TRACY_GPU_ZONE("RenderClear");
 
-    glClearColor(color.r, color.g, color.b, color.a);
+    GLCALL(glClearColor(color.r, color.g, color.b, color.a));
 
     if (!m_renderData.damage.empty()) {
         m_renderData.damage.forEachRect([this](const auto& RECT) {
@@ -1067,7 +1076,7 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 void CHyprOpenGLImpl::blend(bool enabled) {
     if (enabled) {
         setCapStatus(GL_BLEND, true);
-        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // everything is premultiplied
+        GLCALL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)); // everything is premultiplied
     } else
         setCapStatus(GL_BLEND, false);
 
@@ -1086,7 +1095,7 @@ void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
         box.transform(TR, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y);
 
         if (box != m_lastScissorBox) {
-            glScissor(box.x, box.y, box.width, box.height);
+            GLCALL(glScissor(box.x, box.y, box.width, box.height));
             m_lastScissorBox = box;
         }
 
@@ -1095,7 +1104,7 @@ void CHyprOpenGLImpl::scissor(const CBox& originalBox, bool transform) {
     }
 
     if (originalBox != m_lastScissorBox) {
-        glScissor(originalBox.x, originalBox.y, originalBox.width, originalBox.height);
+        GLCALL(glScissor(originalBox.x, originalBox.y, originalBox.width, originalBox.height));
         m_lastScissorBox = originalBox;
     }
 
@@ -1288,22 +1297,42 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     const float maxLuminance = needsHDRmod ?
         imageDescription->value().getTFMaxLuminance(-1) :
         (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+
     shader->setUniformFloat(SHADER_MAX_LUMINANCE, maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000);
     shader->setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);
-    const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
-    if (!primariesConversionCache.contains(cacheKey)) {
-        auto                         conversion      = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
-        const auto                   mat             = conversion.mat();
-        const std::array<GLfloat, 9> glConvertMatrix = {
-            mat[0][0], mat[1][0], mat[2][0], //
-            mat[0][1], mat[1][1], mat[2][1], //
-            mat[0][2], mat[1][2], mat[2][2], //
-        };
-        primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
+
+    if (!targetImageDescription->value().icc.present) {
+        const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
+
+        if (!primariesConversionCache.contains(cacheKey)) {
+            auto                         conversion      = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
+            const auto                   mat             = conversion.mat();
+            const std::array<GLfloat, 9> glConvertMatrix = {
+                mat[0][0], mat[1][0], mat[2][0], //
+                mat[0][1], mat[1][1], mat[2][1], //
+                mat[0][2], mat[1][2], mat[2][2], //
+            };
+            primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
+        }
+        shader->setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
+
+        shader->setUniformInt(SHADER_USE_ICC, 0);
+        shader->setUniformInt(SHADER_LUT_3D, 8); // req'd for ogl
+    } else {
+        // ICC path, use a 3D LUT
+        shader->setUniformInt(SHADER_USE_ICC, 1);
+
+        // TODO: this sucks
+        GLCALL(glActiveTexture(GL_TEXTURE8));
+        targetImageDescription->value().icc.lutTexture->bind();
+
+        shader->setUniformInt(SHADER_LUT_3D, 8);
+        shader->setUniformFloat(SHADER_LUT_SIZE, targetImageDescription->value().icc.lutSize);
+
+        GLCALL(glActiveTexture(GL_TEXTURE0));
     }
-    shader->setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription) {
@@ -1368,7 +1397,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         }
     }
 
-    if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault())
+    if (data.finalMonitorCM || (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()))
         shaderFeatures &= ~SH_FEAT_RGBA;
 
     glActiveTexture(GL_TEXTURE0);
@@ -1392,14 +1421,17 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription()) :
         (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : DEFAULT_IMAGE_DESCRIPTION);
 
-    const auto sdrEOTF       = NTransferFunction::fromConfig();
-    auto       chosenSdrEotf = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+    const auto sdrEOTF        = NTransferFunction::fromConfig();
+    const bool IS_MONITOR_ICC = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
+    const auto chosenSdrEotf  = IS_MONITOR_ICC ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : // if the monitor is ICC'd, use SRGB for best ΔE.
+        (sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB); // otherwise use configured
     const auto targetImageDescription =
-        data.cmBackToSRGB ? CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}) : m_renderData.pMonitor->m_imageDescription;
+        !data.finalMonitorCM ? CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}) : m_renderData.pMonitor->m_imageDescription;
+    const bool CANT_CHECK_CM_EQUALITY = data.cmBackToSRGB || data.finalMonitorCM || (!m_renderData.surface || !m_renderData.surface->m_colorManagement);
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                                     /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                                        /* no shader needed */
-        || (imageDescription->id() == targetImageDescription->id() && !data.cmBackToSRGB) /* Source and target have the same image description */
+    const bool skipCM = !*PENABLECM || !m_cmSupported                                          /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                                             /* no shader needed */
+        || (imageDescription->id() == targetImageDescription->id() && !CANT_CHECK_CM_EQUALITY) /* Source and target have the same image description */
         || (((*PPASS && canPassHDRSurface) ||
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
@@ -1413,27 +1445,27 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
         if (data.round > 0)
             shaderFeatures |= SH_FEAT_ROUNDING;
+    }
 
-        if (!skipCM) {
-            shaderFeatures |= SH_FEAT_CM;
+    if (!skipCM) {
+        shaderFeatures |= SH_FEAT_CM;
 
-            const bool  needsSDRmod     = isSDR2HDR(imageDescription->value(), targetImageDescription->value());
-            const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
-            const float maxLuminance    = needsHDRmod ?
-                   imageDescription->value().getTFMaxLuminance(-1) :
-                   (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
-            const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
+        const bool  needsSDRmod     = isSDR2HDR(imageDescription->value(), targetImageDescription->value());
+        const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
+        const float maxLuminance    = needsHDRmod ?
+               imageDescription->value().getTFMaxLuminance(-1) :
+               (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+        const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
 
-            if (maxLuminance >= dstMaxLuminance * 1.01)
-                shaderFeatures |= SH_FEAT_TONEMAP;
+        if (maxLuminance >= dstMaxLuminance * 1.01)
+            shaderFeatures |= SH_FEAT_TONEMAP;
 
-            if (!data.cmBackToSRGB &&
-                (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
-                targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
-                ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
-                 (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
-                shaderFeatures |= SH_FEAT_SDR_MOD;
-        }
+        if (!data.cmBackToSRGB &&
+            (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+            targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+            ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
+             (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
+            shaderFeatures |= SH_FEAT_SDR_MOD;
     }
 
     if (!shader)
@@ -1605,8 +1637,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         });
     }
 
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    GLCALL(glBindVertexArray(0));
+    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
     tex->unbind();
 }
 
@@ -1759,24 +1791,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         WP<CShader> shader;
 
-        // From FB to sRGB
-        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-        if (!skipCM) {
-            shader = useShader(m_shaders->frag[SH_FRAG_CM_BLURPREPARE]);
-            passCMUniforms(shader, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
-            shader->setUniformFloat(SHADER_SDR_SATURATION,
-                                    m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrSaturation :
-                                        1.0f);
-            shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
-                                    m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrBrightness :
-                                        1.0f);
-        } else
-            shader = useShader(m_shaders->frag[SH_FRAG_BLURPREPARE]);
-
+        shader = useShader(m_shaders->frag[SH_FRAG_BLURPREPARE]);
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         shader->setUniformFloat(SHADER_CONTRAST, *PBLURCONTRAST);
         shader->setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
@@ -2238,14 +2253,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    WP<CShader> shader;
-
-    const bool  skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    if (!skipCM) {
-        shader = useShader(m_shaders->frag[SH_FRAG_CM_BORDER1]);
-        passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
-    } else
-        shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
+    WP<CShader> shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
@@ -2324,13 +2332,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    WP<CShader> shader;
-    const bool  skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    if (!skipCM) {
-        shader = useShader(m_shaders->frag[SH_FRAG_CM_BORDER1]);
-        passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
-    } else
-        shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
+    WP<CShader> shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
@@ -2403,11 +2405,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    auto       shader = useShader(m_shaders->frag[SH_FRAG_SHADOW]);
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    shader->setUniformInt(SHADER_SKIP_CM, skipCM);
-    if (!skipCM)
-        passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
+    auto shader = useShader(m_shaders->frag[SH_FRAG_SHADOW]);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
@@ -3050,9 +3048,9 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
 
     if (idx == CAP_STATUS_END) {
         if (status)
-            glEnable(cap);
+            GLCALL(glEnable(cap))
         else
-            glDisable(cap);
+            GLCALL(glDisable(cap));
 
         return;
     }
@@ -3062,10 +3060,10 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
 
     if (status) {
         m_capStatus[idx] = status;
-        glEnable(cap);
+        GLCALL(glEnable(cap));
     } else {
         m_capStatus[idx] = status;
-        glDisable(cap);
+        GLCALL(glDisable(cap));
     }
 }
 

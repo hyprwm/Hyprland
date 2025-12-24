@@ -74,6 +74,8 @@ void CHyprlandInstance::runHyprlandThread(bool safeMode) {
 void CHyprlandInstance::forceQuit() {
     m_hyprlandExiting = true;
     kill(m_hlPid, SIGTERM); // gracefully, can get stuck but it's unlikely
+
+    m_hlThread.join(); // needs this otherwise can crash
 }
 
 void CHyprlandInstance::clearFd(const Hyprutils::OS::CFileDescriptor& fd) {

@@ -456,6 +456,35 @@ static void testSubmap() {
     Tests::killAllWindows();
 }
 
+static void testBindsAfterScroll() {
+    NLog::log("{}Testing binds after scroll", Colors::GREEN);
+
+    clearFlag();
+    OK(getFromSocket("/keyword binds Alt_R,w,exec,touch " + flagFile));
+
+    // press keybind before scroll
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,0,108")); // Alt_R press
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,4,25"));  // w press
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,4,25"));  // w release
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,108")); // Alt_R release
+
+    // scroll
+    OK(getFromSocket("/dispatch plugin:test:scroll 120"));
+    OK(getFromSocket("/dispatch plugin:test:scroll -120"));
+    OK(getFromSocket("/dispatch plugin:test:scroll 120"));
+
+    // press keybind after scroll
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,0,108")); // Alt_R press
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,4,25"));  // w press
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,4,25"));  // w release
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,108")); // Alt_R release
+
+    clearFlag();
+    OK(getFromSocket("/keyword unbind Alt_R,w"));
+}
+
 static void testSubmapUniversal() {
     NLog::log("{}Testing submap universal", Colors::GREEN);
 
@@ -507,6 +536,7 @@ static bool test() {
     testShortcutRepeatKeyRelease();
     testSubmap();
     testSubmapUniversal();
+    testBindsAfterScroll();
 
     clearFlag();
     return !ret;

@@ -259,6 +259,11 @@ void CScreenshareFrame::renderWindow() {
 
     const auto NOW = Time::steadyNow();
 
+    Vector2D   xfmd = PMONITOR->m_transform % 2 == 1 ? Vector2D{m_session->m_box.h, m_session->m_box.w} : m_session->m_box.size();
+
+    g_pHyprOpenGL->m_renderData.projection = Mat3x3::outputProjection(xfmd, wlTransformToHyprutils(invertTransform(PMONITOR->m_transform)));
+    g_pHyprOpenGL->setViewport(0, 0, xfmd.x, xfmd.y);
+
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;

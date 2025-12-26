@@ -108,8 +108,9 @@ in
         # Fix hardcoded paths to /usr installation
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp
 
-        # Remove extra @PREFIX@ to fix pkg-config paths
+        # Remove extra @PREFIX@ to fix some paths
         sed -i "s#@PREFIX@/##g" hyprland.pc.in
+        sed -i "s#@PREFIX@/##g" example/hyprland.desktop.in
       '';
 
       env = {

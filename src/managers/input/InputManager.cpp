@@ -977,7 +977,7 @@ void CInputManager::onMouseFrame() {
 
     bool shouldSkip = false;
     if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-        auto PMONITOR = g_pCompositor->m_lastMonitor.get();
+        auto PMONITOR = Desktop::focusState()->monitor().get();
 		if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
 			auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
 			shouldSkip    = fsWindow && fsWindow->m_isX11;

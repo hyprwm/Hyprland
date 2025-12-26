@@ -13,24 +13,24 @@
 #include <wayland-server-core.h>
 
 CEis::CEis(std::string socketName) {
-    Debug::log(LOG, "[EIS] Init socket: {}", socketName);
+    Log::logger->log(Log::INFO, "[EIS] Init socket: {}", socketName);
 
     const char* xdg = getenv("XDG_RUNTIME_DIR");
     if (xdg)
         socketPath = std::string(xdg) + "/" + socketName;
 
     if (socketPath.empty()) {
-        Debug::log(ERR, "[EIS] Socket path is empty");
+        Log::logger->log(Log::ERR, "[EIS] Socket path is empty");
         return;
     }
 
     m_eisCtx = eis_new(nullptr);
 
     if (eis_setup_backend_socket(m_eisCtx, socketPath.c_str())) {
-        Debug::log(ERR, "[EIS] Cannot init eis socket on {}", socketPath);
+        Log::logger->log(Log::ERR, "[EIS] Cannot init eis socket on {}", socketPath);
         return;
     }
-    Debug::log(LOG, "[EIS] Listening on {}", socketPath);
+    Log::logger->log(Log::INFO, "[EIS] Listening on {}", socketPath);
 
     m_eventSource = wl_event_loop_add_fd(
         g_pCompositor->m_wlEventLoop, eis_get_fd(m_eisCtx), WL_EVENT_READABLE, [](int fd, uint32_t mask, void* data) { return ((CEis*)data)->pollEvents(); }, this);
@@ -38,7 +38,7 @@ CEis::CEis(std::string socketName) {
 
 CEis::~CEis() {
     wl_event_source_remove(m_eventSource);
-    Debug::log(LOG, "[EIS] Server fd {} destroyed", eis_get_fd(m_eisCtx));
+    Log::logger->log(Log::INFO, "[EIS] Server fd {} destroyed", eis_get_fd(m_eisCtx));
     eis_unref(m_eisCtx);
 }
 
@@ -71,16 +71,16 @@ int CEis::onEvent(eis_event* e) {
     switch (eis_event_get_type(e)) {
         case EIS_EVENT_CLIENT_CONNECT:
             eisClient = eis_event_get_client(e);
-            Debug::log(LOG, "[EIS] {} client connected: {}", eis_client_is_sender(eisClient) ? "Sender" : "Receiver", eis_client_get_name(eisClient));
+            Log::logger->log(Log::INFO, "[EIS] {} client connected: {}", eis_client_is_sender(eisClient) ? "Sender" : "Receiver", eis_client_get_name(eisClient));
 
             if (eis_client_is_sender(eisClient)) {
-                Debug::log(WARN, "[EIS] Unexpected sender client {} connected to input capture session", eis_client_get_name(eisClient));
+                Log::logger->log(Log::WARN, "[EIS] Unexpected sender client {} connected to input capture session", eis_client_get_name(eisClient));
                 eis_client_disconnect(eisClient);
                 return 0;
             }
 
             if (m_client.handle) {
-                Debug::log(WARN, "[EIS] Unexpected additional client {} connected to input capture session", eis_client_get_name(eisClient));
+                Log::logger->log(Log::WARN, "[EIS] Unexpected additional client {} connected to input capture session", eis_client_get_name(eisClient));
                 eis_client_disconnect(eisClient);
                 return 0;
             }
@@ -88,7 +88,7 @@ int CEis::onEvent(eis_event* e) {
             m_client.handle = eisClient;
 
             eis_client_connect(eisClient);
-            Debug::log(LOG, "[EIS] Creating new default seat");
+            Log::logger->log(Log::INFO, "[EIS] Creating new default seat");
             seat = eis_client_new_seat(eisClient, "default");
 
             eis_seat_configure_capability(seat, EIS_DEVICE_CAP_POINTER);
@@ -100,7 +100,7 @@ int CEis::onEvent(eis_event* e) {
             break;
         case EIS_EVENT_CLIENT_DISCONNECT:
             eisClient = eis_event_get_client(e);
-            Debug::log(LOG, "[EIS] {} disconnected", eis_client_get_name(eisClient));
+            Log::logger->log(Log::INFO, "[EIS] {} disconnected", eis_client_get_name(eisClient));
             eis_client_disconnect(eisClient);
 
             eis_seat_unref(m_client.seat);
@@ -109,7 +109,7 @@ int CEis::onEvent(eis_event* e) {
             m_client.handle = nullptr;
             break;
         case EIS_EVENT_SEAT_BIND:
-            Debug::log(LOG, "[EIS] Binding seats...");
+            Log::logger->log(Log::INFO, "[EIS] Binding seats...");
 
             if (eis_event_seat_has_capability(e, EIS_DEVICE_CAP_POINTER) && eis_event_seat_has_capability(e, EIS_DEVICE_CAP_BUTTON) &&
                 eis_event_seat_has_capability(e, EIS_DEVICE_CAP_SCROLL))
@@ -129,7 +129,7 @@ int CEis::onEvent(eis_event* e) {
             else if (device == m_client.keyboard) {
                 clearKeyboard();
             } else
-                Debug::log(WARN, "[EIS] Unknown device to close");
+                Log::logger->log(Log::WARN, "[EIS] Unknown device to close");
             break;
         default: return 0;
     }
@@ -140,7 +140,7 @@ void CEis::ensurePointer() {
     if (m_client.pointer)
         return;
 
-    Debug::log(LOG, "[EIS] Creating pointer");
+    Log::logger->log(Log::INFO, "[EIS] Creating pointer");
     eis_device* pointer = eis_seat_new_device(m_client.seat);
     eis_device_configure_name(pointer, "captured relative pointer");
     eis_device_configure_capability(pointer, EIS_DEVICE_CAP_POINTER);
@@ -167,20 +167,20 @@ void CEis::ensureKeyboard() {
     if (m_client.keyboard)
         return;
 
-    Debug::log(LOG, "[EIS] Creating keyboard");
+    Log::logger->log(Log::INFO, "[EIS] Creating keyboard");
     eis_device* keyboard = eis_seat_new_device(m_client.seat);
     eis_device_configure_name(keyboard, "captured keyboard");
     eis_device_configure_capability(keyboard, EIS_DEVICE_CAP_KEYBOARD);
 
     SKeymap _keymap = getKeymap();
     if (_keymap.fd != -1) {
-        Debug::log(LOG, "[EIS] Using keymap {}", _keymap.fd, _keymap.size);
+        Log::logger->log(Log::INFO, "[EIS] Using keymap {}", _keymap.fd, _keymap.size);
         eis_keymap* eis_keymap = eis_device_new_keymap(keyboard, EIS_KEYMAP_TYPE_XKB, _keymap.fd, _keymap.size);
         if (eis_keymap) {
             eis_keymap_add(eis_keymap);
             eis_keymap_unref(eis_keymap);
         } else {
-            Debug::log(LOG, "[EIS] Cannot open keymap");
+            Log::logger->log(Log::INFO, "[EIS] Cannot open keymap");
         }
     }
 
@@ -207,7 +207,7 @@ SKeymap CEis::getKeymap() {
 void CEis::clearPointer() {
     if (!m_client.pointer)
         return;
-    Debug::log(LOG, "[EIS] Clearing pointer");
+    Log::logger->log(Log::INFO, "[EIS] Clearing pointer");
 
     eis_device_remove(m_client.pointer);
     eis_device_unref(m_client.pointer);
@@ -217,7 +217,7 @@ void CEis::clearPointer() {
 void CEis::clearKeyboard() {
     if (!m_client.keyboard)
         return;
-    Debug::log(LOG, "[EIS] Clearing keyboard");
+    Log::logger->log(Log::INFO, "[EIS] Clearing keyboard");
 
     eis_device_remove(m_client.keyboard);
     eis_device_unref(m_client.keyboard);
@@ -229,7 +229,7 @@ int CEis::getFileDescriptor() {
 }
 
 void CEis::startEmulating(int sequence) {
-    Debug::log(LOG, "[EIS] Start Emulating");
+    Log::logger->log(Log::INFO, "[EIS] Start Emulating");
 
     if (m_client.pointer)
         eis_device_start_emulating(m_client.pointer, sequence);
@@ -239,7 +239,7 @@ void CEis::startEmulating(int sequence) {
 }
 
 void CEis::stopEmulating() {
-    Debug::log(LOG, "[EIS] Stop Emulating");
+    Log::logger->log(Log::INFO, "[EIS] Stop Emulating");
 
     if (m_client.pointer)
         eis_device_stop_emulating(m_client.pointer);

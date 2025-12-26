@@ -1088,7 +1088,12 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     pKeyboard->m_allowBinds        = ALLOWBINDS;
 
     const auto PERM = g_pDynamicPermissionManager->clientPermissionModeWithString(-1, pKeyboard->m_hlName, PERMISSION_TYPE_KEYBOARD);
+
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+
+        // disallow while pending
+        pKeyboard->m_allowed = false;
+
         const auto PROMISE = g_pDynamicPermissionManager->promiseFor(-1, pKeyboard->m_hlName, PERMISSION_TYPE_KEYBOARD);
         if (!PROMISE)
             Log::logger->log(Log::ERR, "BUG THIS: No promise for client permission for keyboard");

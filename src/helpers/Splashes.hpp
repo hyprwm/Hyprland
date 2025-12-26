@@ -61,7 +61,7 @@ namespace NSplashes {
         "3 years!",
         "Beauty will save the world", // 4th ricing comp winner - zacoons' choice
         // music reference / quote section
-        "J'remue le ciel, le jour, la nuit.",
+        "Je remue le ciel, le jour, la nuit.", // I am assuming the song this is from is Indila - Dernière Danse, and the quote would be this 
         "aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi, aezakmi!",
         "Wir sind schon sehr lang zusammen...",
         "I see a red door and I want it painted black.",

@@ -1973,11 +1973,22 @@ void CMonitor::onCursorMovedOnMonitor() {
 }
 
 bool CMonitor::supportsWideColor() {
-    return m_supportsWideColor || m_output->parsedEDID.supportsBT2020;
+    switch (m_supportsWideColor) {
+        case -1: return false;
+        case 1: return true;
+        default: return m_output->parsedEDID.supportsBT2020;
+    }
 }
 
 bool CMonitor::supportsHDR() {
-    return supportsWideColor() && (m_supportsHDR || (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false));
+    if (!supportsWideColor())
+        return false;
+
+    switch (m_supportsHDR) {
+        case -1: return false;
+        case 1: return true;
+        default: return m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->supportsPQ : false;
+    }
 }
 
 float CMonitor::minLuminance(float defaultValue) {

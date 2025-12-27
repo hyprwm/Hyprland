@@ -53,6 +53,7 @@ static const char* permissionToString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
         case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
         case PERMISSION_TYPE_KEYBOARD: return "PERMISSION_TYPE_KEYBOARD";
+        case PERMISSION_TYPE_INPUT_CAPTURE: return "PERMISSION_TYPE_INPUT_CAPTURE";
     }
 
     return "error";
@@ -254,6 +255,7 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         case PERMISSION_TYPE_PLUGIN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}, {"plugin", binaryPath}}); break;
         case PERMISSION_TYPE_KEYBOARD: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_KEYBOARD, {{"keyboard", binaryPath}}); break;
         case PERMISSION_TYPE_UNKNOWN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_UNKNOWN, {{"app", appName}}); break;
+        case PERMISSION_TYPE_INPUT_CAPTURE: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_INPUT_CAPTURE, {{"app", appName}}); break;
     }
 
     std::vector<std::string> options;

@@ -23,6 +23,7 @@
   hyprwire,
   libGL,
   libdrm,
+  libei,
   libexecinfo,
   libinput,
   libxkbcommon,
@@ -154,6 +155,7 @@ in
           hyprwire
           libdrm
           libGL
+          libei
           libinput
           libuuid
           libxkbcommon

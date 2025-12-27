@@ -2793,6 +2793,8 @@ SDispatchResult CKeybindManager::bringActiveToTop(std::string args) {
     if (Desktop::focusState()->window() && Desktop::focusState()->window()->m_isFloating)
         g_pCompositor->changeWindowZOrder(Desktop::focusState()->window(), true);
 
+    g_pInputManager->simulateMouseMovement();
+
     return {};
 }
 

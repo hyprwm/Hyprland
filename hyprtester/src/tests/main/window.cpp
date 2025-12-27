@@ -373,6 +373,45 @@ static void testMaximizeSize() {
     EXPECT(Tests::windowCount(), 0);
 }
 
+static void testBringActiveToTopMouseMovement() {
+    NLog::log("{}Testing bringactivetotop mouse movement", Colors::GREEN);
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword input:follow_mouse 2"));
+    OK(getFromSocket("/keyword input:float_switch_override_focus 0"));
+
+    EXPECT(spawnKitty("a"), true);
+    OK(getFromSocket("/dispatch setfloating"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 500 300,activewindow"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
+
+    EXPECT(spawnKitty("b"), true);
+    OK(getFromSocket("/dispatch setfloating"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 500 300,activewindow"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
+
+    auto getTopWindow = []() -> std::string {
+        auto clients = getFromSocket("/clients");
+        return (clients.rfind("class: a") > clients.rfind("class: b")) ? "a" : "b";
+    };
+
+    EXPECT(getTopWindow(), std::string("b"));
+    OK(getFromSocket("/dispatch movecursor 700 500"));
+
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: a");
+
+    OK(getFromSocket("/dispatch bringactivetotop"));
+    EXPECT(getTopWindow(), std::string("a"));
+
+    OK(getFromSocket("/dispatch plugin:test:click 272,1"));
+    OK(getFromSocket("/dispatch plugin:test:click 272,0"));
+
+    EXPECT(getTopWindow(), std::string("a"));
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -744,6 +783,8 @@ static bool test() {
     testGroupRules();
 
     testMaximizeSize();
+
+    testBringActiveToTopMouseMovement();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

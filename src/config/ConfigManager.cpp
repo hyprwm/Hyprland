@@ -638,6 +638,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:sensitivity", {0.f});
     registerConfigVar("input:accel_profile", {STRVAL_EMPTY});
     registerConfigVar("input:rotation", Hyprlang::INT{0});
+    registerConfigVar("input:flip_x", Hyprlang::INT{0});
+    registerConfigVar("input:flip_y", Hyprlang::INT{0});
     registerConfigVar("input:kb_file", {STRVAL_EMPTY});
     registerConfigVar("input:kb_layout", {"us"});
     registerConfigVar("input:kb_variant", {STRVAL_EMPTY});
@@ -667,8 +669,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("input:touchpad:tap-and-drag", Hyprlang::INT{1});
     registerConfigVar("input:touchpad:drag_lock", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:scroll_factor", {1.f});
-    registerConfigVar("input:touchpad:flip_x", Hyprlang::INT{0});
-    registerConfigVar("input:touchpad:flip_y", Hyprlang::INT{0});
     registerConfigVar("input:touchpad:drag_3fg", Hyprlang::INT{0});
     registerConfigVar("input:touchdevice:transform", Hyprlang::INT{-1});
     registerConfigVar("input:touchdevice:output", {"[[Auto]]"});
@@ -805,14 +805,14 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "transform", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("device", "output", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("device", "enabled", Hyprlang::INT{1});                  // only for mice, touchpads, and touchdevices
+    m_config->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for mice, touchpads, and touchdevices
+    m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for mice, touchpads, and touchdevices
     m_config->addSpecialConfigValue("device", "region_position", Hyprlang::VEC2{0, 0});      // only for tablets
     m_config->addSpecialConfigValue("device", "absolute_region_position", Hyprlang::INT{0}); // only for tablets
     m_config->addSpecialConfigValue("device", "region_size", Hyprlang::VEC2{0, 0});          // only for tablets
     m_config->addSpecialConfigValue("device", "relative_input", Hyprlang::INT{0});           // only for tablets
     m_config->addSpecialConfigValue("device", "active_area_position", Hyprlang::VEC2{0, 0}); // only for tablets
     m_config->addSpecialConfigValue("device", "active_area_size", Hyprlang::VEC2{0, 0});     // only for tablets
-    m_config->addSpecialConfigValue("device", "flip_x", Hyprlang::INT{0});                   // only for touchpads
-    m_config->addSpecialConfigValue("device", "flip_y", Hyprlang::INT{0});                   // only for touchpads
     m_config->addSpecialConfigValue("device", "drag_3fg", Hyprlang::INT{0});                 // only for touchpads
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
     m_config->addSpecialConfigValue("device", "share_states", Hyprlang::INT{0});             // only for virtualkeyboards

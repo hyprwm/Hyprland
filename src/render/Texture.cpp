@@ -58,6 +58,32 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
     createFromDma(attrs, image);
 }
 
+CTexture::CTexture(std::span<const float> lut3D, size_t N) : m_type(TEXTURE_3D_LUT), m_target(GL_TEXTURE_3D), m_size(lut3D.size() / 3, 1), m_isSynchronous(true) {
+    allocate();
+    bind();
+
+    GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+    setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    // Expand RGB->RGBA on upload (alpha=1)
+    std::vector<float> rgba;
+    rgba.resize(N * N * N * 4);
+    for (size_t i = 0, j = 0; i < N * N * N; ++i, j += 3) {
+        rgba[i * 4 + 0] = lut3D[j + 0];
+        rgba[i * 4 + 1] = lut3D[j + 1];
+        rgba[i * 4 + 2] = lut3D[j + 2];
+        rgba[i * 4 + 3] = 1.F;
+    }
+
+    GLCALL(glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, N, N, N, 0, GL_RGBA, GL_FLOAT, rgba.data()));
+
+    unbind();
+}
+
 void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 

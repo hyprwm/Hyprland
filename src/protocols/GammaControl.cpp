@@ -56,6 +56,12 @@ CGammaControl::CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* out
 
         LOGM(Log::DEBUG, "setGamma for {}", m_monitor->m_name);
 
+        if UNLIKELY (m_monitor->gammaRampsInUse()) {
+            LOGM(Log::ERR, "Monitor has gamma ramps in use (ICC?)");
+            m_resource->sendFailed();
+            return;
+        }
+
         // TODO: make CFileDescriptor getflags use F_GETFL
         int fdFlags = fcntl(gammaFd.get(), F_GETFL, 0);
         if UNLIKELY (fdFlags < 0) {

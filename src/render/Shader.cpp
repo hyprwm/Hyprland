@@ -67,7 +67,7 @@ void SShader::setUniformInt(eShaderUniform location, GLint v0) {
         return;
 
     cached = v0;
-    glUniform1i(uniformLocations[location], v0);
+    GLCALL(glUniform1i(uniformLocations[location], v0));
 }
 
 void SShader::setUniformFloat(eShaderUniform location, GLfloat v0) {
@@ -83,7 +83,7 @@ void SShader::setUniformFloat(eShaderUniform location, GLfloat v0) {
     }
 
     cached = v0;
-    glUniform1f(uniformLocations[location], v0);
+    GLCALL(glUniform1f(uniformLocations[location], v0));
 }
 
 void SShader::setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1) {
@@ -99,7 +99,7 @@ void SShader::setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1) 
     }
 
     cached = std::array<GLfloat, 2>{v0, v1};
-    glUniform2f(uniformLocations[location], v0, v1);
+    GLCALL(glUniform2f(uniformLocations[location], v0, v1));
 }
 
 void SShader::setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2) {
@@ -115,7 +115,7 @@ void SShader::setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, 
     }
 
     cached = std::array<GLfloat, 3>{v0, v1, v2};
-    glUniform3f(uniformLocations[location], v0, v1, v2);
+    GLCALL(glUniform3f(uniformLocations[location], v0, v1, v2));
 }
 
 void SShader::setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
@@ -131,7 +131,7 @@ void SShader::setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, 
     }
 
     cached = std::array<GLfloat, 4>{v0, v1, v2, v3};
-    glUniform4f(uniformLocations[location], v0, v1, v2, v3);
+    GLCALL(glUniform4f(uniformLocations[location], v0, v1, v2, v3));
 }
 
 void SShader::setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value) {
@@ -147,7 +147,7 @@ void SShader::setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLbool
     }
 
     cached = SUniformMatrix3Data{.count = count, .transpose = transpose, .value = value};
-    glUniformMatrix3fv(uniformLocations[location], count, transpose, value.data());
+    GLCALL(glUniformMatrix3fv(uniformLocations[location], count, transpose, value.data()));
 }
 
 void SShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value) {
@@ -163,7 +163,7 @@ void SShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLbo
     }
 
     cached = SUniformMatrix4Data{.count = count, .transpose = transpose, .value = value};
-    glUniformMatrix4x2fv(uniformLocations[location], count, transpose, value.data());
+    GLCALL(glUniformMatrix4x2fv(uniformLocations[location], count, transpose, value.data()));
 }
 
 void SShader::setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size) {
@@ -180,9 +180,9 @@ void SShader::setUniformfv(eShaderUniform location, GLsizei count, const std::ve
 
     cached = SUniformVData{.count = count, .value = value};
     switch (vec_size) {
-        case 1: glUniform1fv(uniformLocations[location], count, value.data()); break;
-        case 2: glUniform2fv(uniformLocations[location], count, value.data()); break;
-        case 4: glUniform4fv(uniformLocations[location], count, value.data()); break;
+        case 1: GLCALL(glUniform1fv(uniformLocations[location], count, value.data())); break;
+        case 2: GLCALL(glUniform2fv(uniformLocations[location], count, value.data())); break;
+        case 4: GLCALL(glUniform4fv(uniformLocations[location], count, value.data())); break;
         default: UNREACHABLE();
     }
 }

@@ -1560,52 +1560,52 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 }
 
-void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SImageDescription& imageDescription,
-                                     const NColorManagement::SImageDescription& targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
+void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                     bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
 
     if (m_renderData.surface.valid() &&
         ((!m_renderData.surface->m_colorManagement.valid() && *PSDREOTF >= 1) ||
          (*PSDREOTF == 2 && m_renderData.surface->m_colorManagement.valid() &&
-          imageDescription.transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB))) {
+          imageDescription->value().transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB))) {
         shader.setUniformInt(SHADER_SOURCE_TF, NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22);
     } else
-        shader.setUniformInt(SHADER_SOURCE_TF, imageDescription.transferFunction);
+        shader.setUniformInt(SHADER_SOURCE_TF, imageDescription->value().transferFunction);
 
-    shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription.transferFunction);
+    shader.setUniformInt(SHADER_TARGET_TF, targetImageDescription->value().transferFunction);
 
-    const auto                   targetPrimaries = targetImageDescription.primariesNameSet || targetImageDescription.primaries == SPCPRimaries{} ?
-                          getPrimaries(targetImageDescription.primariesNamed) :
-                          targetImageDescription.primaries;
+    const auto                   targetPrimaries = targetImageDescription->getPrimaries();
 
     const std::array<GLfloat, 8> glTargetPrimaries = {
-        targetPrimaries.red.x,  targetPrimaries.red.y,  targetPrimaries.green.x, targetPrimaries.green.y,
-        targetPrimaries.blue.x, targetPrimaries.blue.y, targetPrimaries.white.x, targetPrimaries.white.y,
+        targetPrimaries->value().red.x,  targetPrimaries->value().red.y,  targetPrimaries->value().green.x, targetPrimaries->value().green.y,
+        targetPrimaries->value().blue.x, targetPrimaries->value().blue.y, targetPrimaries->value().white.x, targetPrimaries->value().white.y,
     };
     shader.setUniformMatrix4x2fv(SHADER_TARGET_PRIMARIES, 1, false, glTargetPrimaries);
 
-    const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription, targetImageDescription);
-    const bool needsHDRmod = !needsSDRmod && isHDR2SDR(imageDescription, targetImageDescription);
+    const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
+    const bool needsHDRmod = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
 
-    shader.setUniformFloat2(SHADER_SRC_TF_RANGE, imageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            imageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
-    shader.setUniformFloat2(SHADER_DST_TF_RANGE, targetImageDescription.getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
-                            targetImageDescription.getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
+    shader.setUniformFloat2(SHADER_SRC_TF_RANGE, imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                            imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
+    shader.setUniformFloat2(SHADER_DST_TF_RANGE, targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                            targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
 
-    shader.setUniformFloat(SHADER_SRC_REF_LUMINANCE, imageDescription.getTFRefLuminance(-1));
-    shader.setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription.getTFRefLuminance(-1));
+    shader.setUniformFloat(SHADER_SRC_REF_LUMINANCE, imageDescription->value().getTFRefLuminance(-1));
+    shader.setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription->value().getTFRefLuminance(-1));
 
-    const float maxLuminance =
-        needsHDRmod ? imageDescription.getTFMaxLuminance(-1) : (imageDescription.luminances.max > 0 ? imageDescription.luminances.max : imageDescription.luminances.reference);
+    const float maxLuminance = needsHDRmod ?
+        imageDescription->value().getTFMaxLuminance(-1) :
+        (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
     shader.setUniformFloat(SHADER_MAX_LUMINANCE,
-                           maxLuminance * targetImageDescription.luminances.reference /
-                               (needsHDRmod ? imageDescription.getTFRefLuminance(-1) : imageDescription.luminances.reference));
-    shader.setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription.luminances.max > 0 ? targetImageDescription.luminances.max : 10000);
+                           maxLuminance * targetImageDescription->value().luminances.reference /
+                               (needsHDRmod ? imageDescription->value().getTFRefLuminance(-1) : imageDescription->value().luminances.reference));
+    shader.setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000);
     shader.setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
     shader.setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);
-    const auto cacheKey = std::make_pair(imageDescription.getId(), targetImageDescription.getId());
+    const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
     if (!primariesConversionCache.contains(cacheKey)) {
-        const auto                   mat             = imageDescription.getPrimaries().convertMatrix(targetImageDescription.getPrimaries()).mat();
+        auto                         conversion      = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
+        const auto                   mat             = conversion.mat();
         const std::array<GLfloat, 9> glConvertMatrix = {
             mat[0][0], mat[1][0], mat[2][0], //
             mat[0][1], mat[1][1], mat[2][1], //
@@ -1616,7 +1616,7 @@ void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const NColorManagement::SI
     shader.setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
 }
 
-void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const SImageDescription& imageDescription) {
+void CHyprOpenGLImpl::passCMUniforms(SShader& shader, const PImageDescription imageDescription) {
     passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
@@ -1699,13 +1699,13 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
     const bool canPassHDRSurface = isHDRSurface && !m_renderData.surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
 
-    auto       imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-              m_renderData.surface->m_colorManagement->imageDescription() :
-              (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : SImageDescription{});
+    const auto imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+        CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription()) :
+        (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : DEFAULT_IMAGE_DESCRIPTION);
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                                            /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                                               /* no shader needed */
-        || (imageDescription == m_renderData.pMonitor->m_imageDescription && !data.cmBackToSRGB) /* Source and target have the same image description */
+    const bool skipCM = !*PENABLECM || !m_cmSupported                                                        /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                                                           /* no shader needed */
+        || (imageDescription->id() == m_renderData.pMonitor->m_imageDescription->id() && !data.cmBackToSRGB) /* Source and target have the same image description */
         || (((*PPASS && canPassHDRSurface) ||
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
@@ -1719,8 +1719,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
         if (data.cmBackToSRGB) {
             static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
-            auto        chosenSdrEotf = *PSDREOTF > 0 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
-            passCMUniforms(*shader, imageDescription, NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}, true, -1, -1);
+            auto        chosenSdrEotf = *PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+            passCMUniforms(*shader, imageDescription, CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}), true, -1, -1);
         } else
             passCMUniforms(*shader, imageDescription);
     }
@@ -2028,18 +2028,20 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         useProgram(m_shaders->m_shBLURPREPARE.program);
 
         // From FB to sRGB
-        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
         m_shaders->m_shBLURPREPARE.setUniformInt(SHADER_SKIP_CM, skipCM);
         if (!skipCM) {
-            passCMUniforms(m_shaders->m_shBLURPREPARE, m_renderData.pMonitor->m_imageDescription, SImageDescription{});
+            passCMUniforms(m_shaders->m_shBLURPREPARE, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
             m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_SATURATION,
                                                        m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                               m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
+                                                                   NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                                            m_renderData.pMonitor->m_sdrSaturation :
                                                            1.0f);
             m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_BRIGHTNESS,
                                                        m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                               m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
+                                                                   NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                                            m_renderData.pMonitor->m_sdrBrightness :
                                                            1.0f);
         }
@@ -2509,10 +2511,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     useProgram(m_shaders->m_shBORDER1.program);
 
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
+        passCMUniforms(m_shaders->m_shBORDER1, DEFAULT_IMAGE_DESCRIPTION);
 
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
@@ -2593,10 +2595,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     useProgram(m_shaders->m_shBORDER1.program);
 
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shBORDER1, SImageDescription{});
+        passCMUniforms(m_shaders->m_shBORDER1, DEFAULT_IMAGE_DESCRIPTION);
 
     m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
@@ -2670,10 +2672,10 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     blend(true);
 
     useProgram(m_shaders->m_shSHADOW.program);
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription == SImageDescription{};
+    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     m_shaders->m_shSHADOW.setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shSHADOW, SImageDescription{});
+        passCMUniforms(m_shaders->m_shSHADOW, DEFAULT_IMAGE_DESCRIPTION);
 
     m_shaders->m_shSHADOW.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     m_shaders->m_shSHADOW.setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);

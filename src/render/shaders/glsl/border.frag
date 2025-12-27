@@ -36,7 +36,7 @@ vec4 okLabAToSrgb(vec4 lab) {
 			l * 4.0767416621 + m * -3.3077115913 + s * 0.2309699292, 
 			l * (-1.2684380046) + m * 2.6097574011 + s * (-0.3413193965),
 			l * (-0.0041960863) + m * (-0.7034186147) + s * 1.7076147010
-		), CM_TRANSFER_FUNCTION_SRGB
+		), CM_TRANSFER_FUNCTION_GAMMA22
 	), lab[3]);
 }
 

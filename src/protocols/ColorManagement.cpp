@@ -18,12 +18,12 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_LUMINANCES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_SCRGB);
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
+    m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
 
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_TF_POWER);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
-        m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
     }
 
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_SRGB);
@@ -35,10 +35,7 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DCI_P3);
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_DISPLAY_P3);
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB);
-
-    if (PROTO::colorManagement->m_debug) {
-        m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_CIE1931_XYZ);
-    }
+    m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_CIE1931_XYZ);
 
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22);
@@ -171,14 +168,10 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
             return;
         }
 
-        RESOURCE->m_self                          = RESOURCE;
-        RESOURCE->m_settings.windowsScRGB         = true;
-        RESOURCE->m_settings.primariesNamed       = NColorManagement::CM_PRIMARIES_SRGB;
-        RESOURCE->m_settings.primariesNameSet     = true;
-        RESOURCE->m_settings.primaries            = NColorPrimaries::BT709;
-        RESOURCE->m_settings.transferFunction     = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
-        RESOURCE->m_settings.luminances.reference = 203;
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings.updateId());
+        RESOURCE->m_self     = RESOURCE;
+        RESOURCE->m_settings = SCRGB_IMAGE_DESCRIPTION;
+
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -223,7 +216,7 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
             RESOURCE->m_settings = m_output->m_monitor->m_imageDescription;
-            RESOURCE->m_resource->sendReady(RESOURCE->m_settings.updateId());
+            RESOURCE->m_resource->sendReady(RESOURCE->m_settings->id());
         }
     });
 }
@@ -234,10 +227,6 @@ bool CColorManagementOutput::good() {
 
 wl_client* CColorManagementOutput::client() {
     return m_client;
-}
-
-CColorManagementSurface::CColorManagementSurface(SP<CWLSurfaceResource> surface_) : m_surface(surface_) {
-    // only for frog cm until wayland cm is adopted
 }
 
 CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1> resource, SP<CWLSurfaceResource> surface_) : m_surface(surface_), m_resource(resource) {
@@ -280,7 +269,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     });
     m_resource->setUnsetImageDescription([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Unset image description for surface={}", (uintptr_t)r);
-        m_imageDescription = SImageDescription{};
+        m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
         setHasImageDescription(false);
     });
 }
@@ -296,7 +285,8 @@ wl_client* CColorManagementSurface::client() {
 const SImageDescription& CColorManagementSurface::imageDescription() {
     if (!hasImageDescription())
         LOGM(Log::WARN, "Reading imageDescription while none set. Returns default or empty values");
-    return m_imageDescription;
+
+    return m_imageDescription->value();
 }
 
 bool CColorManagementSurface::hasImageDescription() {
@@ -327,13 +317,14 @@ bool CColorManagementSurface::needsHdrMetadataUpdate() {
 }
 
 bool CColorManagementSurface::isHDR() {
-    return m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_HLG || isWindowsScRGB();
+    return m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_HLG ||
+        isWindowsScRGB();
 }
 
 bool CColorManagementSurface::isWindowsScRGB() {
-    return m_imageDescription.windowsScRGB ||
+    return m_imageDescription->value().windowsScRGB ||
         // autodetect scRGB, might be incorrect
-        (m_imageDescription.primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR);
+        (m_imageDescription->value().primariesNamed == CM_PRIMARIES_SRGB && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR);
 }
 
 CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorManagementSurfaceFeedbackV1> resource, SP<CWLSurfaceResource> surface_) :
@@ -372,7 +363,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = m_surface->getPreferredImageDescription();
 
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings.updateId());
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
     });
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
@@ -394,9 +385,9 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = m_surface->getPreferredImageDescription();
-        m_currentPreferredId = RESOURCE->m_settings.updateId();
+        m_currentPreferredId = RESOURCE->m_settings->id();
 
-        if (!PROTO::colorManagement->m_debug && RESOURCE->m_settings.icc.fd >= 0) {
+        if (!PROTO::colorManagement->m_debug && RESOURCE->m_settings->value().icc.fd >= 0) {
             LOGM(Log::ERR, "FIXME: parse icc profile");
             r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
             return;
@@ -411,7 +402,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 
 void CColorManagementFeedbackSurface::onPreferredChanged() {
     if (m_surface->m_enteredOutputs.size() == 1) {
-        const auto newId = m_surface->getPreferredImageDescription().updateId();
+        const auto newId = m_surface->getPreferredImageDescription()->id();
         if (m_currentPreferredId != newId)
             m_resource->sendPreferredChanged(newId);
     }
@@ -460,8 +451,8 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
         }
 
         RESOURCE->m_self     = RESOURCE;
-        RESOURCE->m_settings = m_settings;
-        RESOURCE->resource()->sendReady(m_settings.updateId());
+        RESOURCE->m_settings = CImageDescription::from(m_settings);
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -514,8 +505,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
         }
 
         RESOURCE->m_self     = RESOURCE;
-        RESOURCE->m_settings = m_settings;
-        RESOURCE->resource()->sendReady(m_settings.updateId());
+        RESOURCE->m_settings = CImageDescription::from(m_settings);
+        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -577,6 +568,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             case WP_COLOR_MANAGER_V1_PRIMARIES_PAL:
             case WP_COLOR_MANAGER_V1_PRIMARIES_NTSC:
             case WP_COLOR_MANAGER_V1_PRIMARIES_GENERIC_FILM:
+            case WP_COLOR_MANAGER_V1_PRIMARIES_CIE1931_XYZ:
             case WP_COLOR_MANAGER_V1_PRIMARIES_DCI_P3:
             case WP_COLOR_MANAGER_V1_PRIMARIES_DISPLAY_P3:
             case WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB: break;
@@ -627,10 +619,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
                 r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_ALREADY_SET, "Mastering primaries already set");
                 return;
             }
-            if (!PROTO::colorManagement->m_debug) {
-                r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering primaries are not supported");
-                return;
-            }
+
             m_settings.masteringPrimaries = SPCPRimaries{.red   = {.x = r_x / PRIMARIES_SCALE, .y = r_y / PRIMARIES_SCALE},
                                                          .green = {.x = g_x / PRIMARIES_SCALE, .y = g_y / PRIMARIES_SCALE},
                                                          .blue  = {.x = b_x / PRIMARIES_SCALE, .y = b_y / PRIMARIES_SCALE},
@@ -653,10 +642,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_LUMINANCE, "Invalid luminances");
             return;
         }
-        if (!PROTO::colorManagement->m_debug) {
-            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "Mastering luminances are not supported");
-            return;
-        }
+
         m_settings.masteringLuminances = SImageDescription::SPCMasteringLuminances{.min = min, .max = max_lum};
         m_valuesSet |= PC_MASTERING_LUMINANCES;
     });
@@ -705,7 +691,7 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDe
             return;
         }
 
-        auto RESOURCE = makeShared<CColorManagementImageDescriptionInfo>(makeShared<CWpImageDescriptionInfoV1>(r->client(), r->version(), id), m_settings);
+        auto RESOURCE = makeShared<CColorManagementImageDescriptionInfo>(makeShared<CWpImageDescriptionInfoV1>(r->client(), r->version(), id), m_settings->value());
 
         if UNLIKELY (!RESOURCE->good())
             r->noMemory();

@@ -1515,6 +1515,7 @@ static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_m
 static hdr_output_metadata       createHDRMetadata(SImageDescription settings, SP<CMonitor> monitor) {
     uint8_t eotf = 0;
     switch (settings.transferFunction) {
+        case CM_TRANSFER_FUNCTION_GAMMA22:
         case CM_TRANSFER_FUNCTION_SRGB: eotf = 0; break; // used to send primaries and luminances to AQ. ignored for now
         case CM_TRANSFER_FUNCTION_ST2084_PQ: eotf = 2; break;
         case CM_TRANSFER_FUNCTION_EXT_LINEAR:
@@ -1527,9 +1528,11 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     const auto toNits  = [](uint32_t value) { return sc<uint16_t>(std::round(value)); };
     const auto to16Bit = [](float value) { return sc<uint16_t>(std::round(value * 50000)); };
 
-    auto       colorimetry = settings.primariesNameSet || settings.primaries == SPCPRimaries{} ? getPrimaries(settings.primariesNamed) : settings.primaries;
+    auto       colorimetry = settings.getPrimaries();
     auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
-                                                                          SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)};
+                                                                          (settings.luminances != SImageDescription::SPCLuminances{} ?
+                                                                               SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
+                                                                               SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
 
     Log::logger->log(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y,
                            colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
@@ -1617,7 +1620,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     pMonitor->m_previousFSWindow.reset(); // trigger CTM update
                 }
                 Log::logger->log(Log::INFO, wantHDR ? "[CM] Updating HDR metadata from monitor" : "[CM] Restoring SDR mode");
-                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription, pMonitor) : NO_HDR_METADATA);
+                pMonitor->m_output->state->setHDRMetadata(wantHDR ? createHDRMetadata(pMonitor->m_imageDescription->value(), pMonitor) : NO_HDR_METADATA);
             }
             pMonitor->m_needsHDRupdate = true;
         }
@@ -1655,9 +1658,10 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto FS_DESC = pMonitor->getFSImageDescription();
             if (FS_DESC.has_value()) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
-                pMonitor->m_noShaderCTM        = true;
-                const auto                 mat = FS_DESC->getPrimaries().convertMatrix(pMonitor->m_imageDescription.getPrimaries()).mat();
-                const std::array<float, 9> CTM = {
+                pMonitor->m_noShaderCTM               = true;
+                auto                       conversion = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
+                const auto                 mat        = conversion.mat();
+                const std::array<float, 9> CTM        = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //

@@ -403,9 +403,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(SShader&, const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription,
+    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(SShader&, const NColorManagement::SImageDescription& imageDescription);
+    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription);
     void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

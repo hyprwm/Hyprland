@@ -1562,10 +1562,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "render:cm_sdr_eotf",
-        .description = "Default transfer function for displaying SDR apps. 0 - Treat unspecified as sRGB, 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
-                       "unspecified and sRGB as Gamma 2.2",
+        .description = "Default transfer function for displaying SDR apps. 0 - Use default value (Gamma 2.2), 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2, 3 - Treat unspecified as sRGB",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "srgb,gamma22,gamma22force"},
+        .data        = SConfigOptionDescription::SChoiceData{0, "default,gamma22,gamma22force,srgb"},
     },
 
     /*
@@ -1997,17 +1997,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "master:always_keep_position",
         .description = "whether to keep the master window in its configured position when there are no slave windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-
-    /*
-     * Experimental
-    */
-
-    SConfigOptionDescription{
-        .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

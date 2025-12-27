@@ -33,7 +33,6 @@ class CDRMSyncobjSurfaceResource;
 class CFifoResource;
 class CCommitTimerResource;
 class CColorManagementSurface;
-class CFrogColorManagementSurface;
 class CContentType;
 
 class CWLCallbackResource {
@@ -126,7 +125,7 @@ class CWLSurfaceResource {
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
-    NColorManagement::SImageDescription    getPreferredImageDescription();
+    NColorManagement::PImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();
     bool                                   hasVisibleSubsurface();
 

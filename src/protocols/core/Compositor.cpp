@@ -556,7 +556,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
         dropCurrentBuffer();
 }
 
-SImageDescription CWLSurfaceResource::getPreferredImageDescription() {
+PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
     static const auto PFORCE_HDR = CConfigValue<Hyprlang::INT>("quirks:prefer_hdr");
     const auto        WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
 

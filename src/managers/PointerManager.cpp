@@ -17,6 +17,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../managers/SurfaceManager.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -160,7 +161,7 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
 
         if (surf->resource()->m_current.texture) {
             m_currentCursorImage.size = surf->resource()->m_current.bufferSize;
-            surf->resource()->frame(Time::steadyNow());
+            g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), surf->resource());
         }
     }
 
@@ -597,7 +598,8 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
 
     if (!state->hardwareFailed && state->softwareLocks == 0 && !forceRender) {
         if (m_currentCursorImage.surface)
-            m_currentCursorImage.surface->resource()->frame(now);
+            g_pSurfaceManager->scheduleForFrame(pMonitor, m_currentCursorImage.surface->resource());
+
         return;
     }
 
@@ -632,7 +634,7 @@ void CPointerManager::renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 
     if (m_currentCursorImage.surface)
-        m_currentCursorImage.surface->resource()->frame(now);
+        g_pSurfaceManager->scheduleForFrame(pMonitor, m_currentCursorImage.surface->resource());
 }
 
 Vector2D CPointerManager::getCursorPosForMonitor(PHLMONITOR pMonitor) {

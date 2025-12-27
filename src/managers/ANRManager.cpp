@@ -186,7 +186,7 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
     if (dialogBox && dialogBox->isRunning())
         killDialog();
 
-    static auto PFOLLOWPARENTWS   = CConfigValue<Hyprlang::INT>("misc:anr_follow_parent_workspace");
+    static auto PFOLLOWPARENTWS = CConfigValue<Hyprlang::INT>("misc:anr_follow_parent_workspace");
 
     const auto  OPTION_TERMINATE_STR = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_TERMINATE, {});
     const auto  OPTION_WAIT_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_WAIT, {});

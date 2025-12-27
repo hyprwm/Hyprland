@@ -1,7 +1,7 @@
 #include "Math.hpp"
 #include "../memory/Memory.hpp"
 
-Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
+Hyprutils::Math::eTransform Math::wlTransformToHyprutils(wl_output_transform t) {
     switch (t) {
         case WL_OUTPUT_TRANSFORM_NORMAL: return Hyprutils::Math::eTransform::HYPRUTILS_TRANSFORM_NORMAL;
         case WL_OUTPUT_TRANSFORM_180: return Hyprutils::Math::eTransform::HYPRUTILS_TRANSFORM_180;
@@ -16,7 +16,7 @@ Hyprutils::Math::eTransform wlTransformToHyprutils(wl_output_transform t) {
     return Hyprutils::Math::eTransform::HYPRUTILS_TRANSFORM_NORMAL;
 }
 
-wl_output_transform invertTransform(wl_output_transform tr) {
+wl_output_transform Math::invertTransform(wl_output_transform tr) {
     if ((tr & WL_OUTPUT_TRANSFORM_90) && !(tr & WL_OUTPUT_TRANSFORM_FLIPPED))
         tr = sc<wl_output_transform>(tr ^ sc<int>(WL_OUTPUT_TRANSFORM_180));
 

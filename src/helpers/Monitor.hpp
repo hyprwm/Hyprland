@@ -55,10 +55,10 @@ struct SMonitorRule {
     float                  sdrBrightness = 1.0f; // SDR -> HDR
     Desktop::CReservedArea reservedArea;
 
-    bool                   supportsWideColor = false; // false does nothing, true overrides EDID
-    bool                   supportsHDR       = false; // false does nothing, true overrides EDID
-    float                  sdrMinLuminance   = 0.2f;  // SDR -> HDR
-    int                    sdrMaxLuminance   = 80;    // SDR -> HDR
+    int                    supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    int                    supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    float                  sdrMinLuminance   = 0.2f; // SDR -> HDR
+    int                    sdrMaxLuminance   = 80;   // SDR -> HDR
 
     // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
     float              minLuminance    = -1.0f; // >= 0 overrides EDID
@@ -368,8 +368,8 @@ class CMonitor {
         CHyprSignalListener commit;
     } m_listeners;
 
-    bool  m_supportsWideColor = false;
-    bool  m_supportsHDR       = false;
+    int   m_supportsWideColor = 0;
+    int   m_supportsHDR       = 0;
     float m_minLuminance      = -1.0f;
     int   m_maxLuminance      = -1;
     int   m_maxAvgLuminance   = -1;

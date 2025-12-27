@@ -607,3 +607,7 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
 
     feedbackResource->m_lastFeedbackWasScanout = true;
 }
+
+dev_t CLinuxDMABufV1Protocol::getMainDevice() {
+    return m_mainDevice;
+}

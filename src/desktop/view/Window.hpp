@@ -92,6 +92,10 @@ namespace Desktop::View {
 
         struct {
             CSignalT<> destroy;
+            CSignalT<> unmap;
+            CSignalT<> hide;
+            CSignalT<> resize;
+            CSignalT<> monitorChanged;
         } m_events;
 
         WP<CXDGSurfaceResource> m_xdgSurface;
@@ -135,7 +139,7 @@ namespace Desktop::View {
         std::string      m_initialTitle    = "";
         std::string      m_initialClass    = "";
         PHLWORKSPACE     m_workspace;
-        PHLMONITORREF    m_monitor;
+        PHLMONITORREF    m_monitor, m_prevMonitor;
 
         bool             m_isMapped = false;
 

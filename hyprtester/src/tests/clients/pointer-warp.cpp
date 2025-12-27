@@ -101,8 +101,8 @@ static bool sendWarp(SClient& client, int x, int y) {
         return false;
 
     client.readBuf[bytesRead] = 0;
-    std::string recieved      = std::string{client.readBuf.data()};
-    recieved.pop_back();
+    std::string received      = std::string{client.readBuf.data()};
+    received.pop_back();
 
     return true;
 }

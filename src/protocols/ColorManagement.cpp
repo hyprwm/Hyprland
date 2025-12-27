@@ -233,7 +233,8 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     if UNLIKELY (!good())
         return;
 
-    m_client = m_resource->client();
+    m_client           = m_resource->client();
+    m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);

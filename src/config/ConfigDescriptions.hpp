@@ -1346,6 +1346,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{5, 1, 20},
     },
     SConfigOptionDescription{
+        .value       = "misc:anr_follow_parent_workspace",
+        .description = "wheter to open the ANR dialog on the workspace of parent",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "misc:screencopy_force_8b",
         .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
         .type        = CONFIG_OPTION_BOOL,

@@ -96,7 +96,9 @@ endfunction()
 
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("stable/xdg-shell" "xdg-shell" false)
+protocolnew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-unstable-v1" false)
 
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("pointer-scroll" PROTOS "xdg-shell")
 clientNew("child-window" PROTOS "xdg-shell")
+clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-unstable-v1")

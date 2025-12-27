@@ -129,14 +129,12 @@ void CHyprError::createQueued() {
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
         renderedcnt++;
     }
-    std::string q = m_queued;
     if (VISLINECOUNT < LINECOUNT) {
         std::string moreString = std::format("({} more...)", LINECOUNT - VISLINECOUNT);
         cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
         pango_layout_set_text(layoutText, moreString.c_str(), -1);
         pango_cairo_show_layout(CAIRO, layoutText);
     }
-    m_queued = q;
 
     m_lastHeight = HEIGHT;
 

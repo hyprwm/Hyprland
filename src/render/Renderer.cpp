@@ -1914,29 +1914,34 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (g_pCompositor->m_unsafeState)
         return;
 
-    const auto WLSURF    = Desktop::View::CWLSurface::fromResource(pSurface);
-    CRegion    damageBox = WLSURF ? WLSURF->computeDamage() : CRegion{};
+    const auto WLSURF = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
         Log::logger->log(Log::ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
 
-    if (damageBox.empty()) {
-        const auto VIEW = WLSURF->view();
-        if (VIEW->type() == Desktop::View::eViewType::VIEW_TYPE_WINDOW)
-            return;
+    // hack: schedule frame events
+    if (!WLSURF->resource()->m_current.callbacks.empty() && pSurface->m_hlSurface) {
+        const auto BOX = pSurface->m_hlSurface->getSurfaceBoxGlobal();
+        if (BOX && !BOX->empty()) {
+            for (auto const& m : g_pCompositor->m_monitors) {
+                if (!m->m_output)
+                    continue;
 
-        const auto BOX = VIEW->logicalBox();
-        if (!BOX || BOX->empty())
-            return;
-
-        damageBox = *BOX;
-    } else {
-        if (scale != 1.0)
-            damageBox.scale(scale);
-
-        damageBox.translate({x, y});
+                if (BOX->overlaps(m->logicalBox()))
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            }
+        }
     }
+
+    CRegion damageBox = WLSURF->computeDamage();
+    if (damageBox.empty())
+        return;
+
+    if (scale != 1.0)
+        damageBox.scale(scale);
+
+    damageBox.translate({x, y});
 
     CRegion damageBoxForEach;
 

@@ -1908,24 +1908,27 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (g_pCompositor->m_unsafeState)
         return;
 
-    const auto WLSURF    = Desktop::View::CWLSurface::fromResource(pSurface);
-    CRegion    damageBox = WLSURF ? WLSURF->computeDamage() : CRegion{};
+    const auto WLSURF = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
         Debug::log(ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
 
-    if (damageBox.empty()) {
+    CRegion damageBox;
+
+    // schedule frame events
+    if (!WLSURF->resource()->m_current.callbacks.empty()) {
         const auto VIEW = WLSURF->view();
-        if (VIEW->type() == Desktop::View::eViewType::VIEW_TYPE_WINDOW)
+        const auto BOX  = VIEW->logicalBox();
+        if (BOX.has_value())
+            damageBox = BOX.value();
+    }
+
+    if (damageBox.empty()) {
+        damageBox = WLSURF->computeDamage();
+        if (damageBox.empty())
             return;
 
-        const auto BOX = VIEW->logicalBox();
-        if (!BOX || BOX->empty())
-            return;
-
-        damageBox = *BOX;
-    } else {
         if (scale != 1.0)
             damageBox.scale(scale);
 

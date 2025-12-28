@@ -871,10 +871,10 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
             return SDispatchResult{.passEvent = true};
 
         if (MODE == MBIND_MOVE && PWINDOW->m_noMouseMove)
-            return {.success = false, .error = "changeMouseBindMode: Cannot move window, no_mouse_move is rule applied"};
+            return {.success = false, .error = "changeMouseBindMode: Cannot move window, no_mouse_move rule is applied"};
 
         if (MODE == MBIND_RESIZE && PWINDOW->m_noMouseResize)
-            return {.success = false, .error = "changeMouseBindMode: Cannot resize window, no_mouse_resize is rule applied"};
+            return {.success = false, .error = "changeMouseBindMode: Cannot resize window, no_mouse_resize rule is applied"};
 
         if (!Fullscreen::controller()->isFullscreen(PWINDOW) && MODE == MBIND_MOVE) {
             if (PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS))

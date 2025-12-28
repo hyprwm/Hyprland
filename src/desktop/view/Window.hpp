@@ -162,6 +162,8 @@ namespace Desktop::View {
 
         bool          m_firstMap     = false; // for layouts
         bool          m_isFloating   = false;
+        bool          m_noMouseMove     = false; // suppress mouse move
+        bool          m_noMouseResize   = false; // suppress mouse resize
         std::string   m_title        = "";
         std::string   m_class        = "";
         std::string   m_initialTitle = "";

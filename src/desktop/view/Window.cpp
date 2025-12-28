@@ -2057,6 +2057,8 @@ void CWindow::mapWindow() {
         m_isPseudotiled  = m_ruleApplicator->static_.pseudo.value_or(m_isPseudotiled);
         m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
+        m_noMouseMove    = m_ruleApplicator->static_.noMouseMove.value_or(m_noMouseMove);
+        m_noMouseResize  = m_ruleApplicator->static_.noMouseResize.value_or(m_noMouseResize);
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{

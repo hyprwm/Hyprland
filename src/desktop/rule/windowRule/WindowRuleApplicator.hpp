@@ -47,6 +47,8 @@ namespace Desktop::Rule {
             std::optional<bool>      pin;
             std::optional<bool>      noInitialFocus;
             std::optional<bool>      center;
+            std::optional<bool>      noMouseMove;
+            std::optional<bool>      noMouseResize;
 
             std::optional<int>       fullscreenStateClient;
             std::optional<int>       fullscreenStateInternal;

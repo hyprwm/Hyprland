@@ -1027,8 +1027,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
 
     // skip scheduling extra frames for fullsreen apps with vrr
     const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
-    const bool noBreak            = (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME));
-    const bool shouldSkip         = inFullscreenMode() && (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+    const bool noBreak            = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME));
+    const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {

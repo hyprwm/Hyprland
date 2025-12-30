@@ -373,6 +373,41 @@ static void testMaximizeSize() {
     EXPECT(Tests::windowCount(), 0);
 }
 
+static void testGroupFallbackFocus() {
+    NLog::log("{}Testing group fallback focus", Colors::GREEN);
+
+    EXPECT(spawnKitty("kitty_A"), true);
+
+    OK(getFromSocket("/dispatch togglegroup"));
+
+    EXPECT(spawnKitty("kitty_B"), true);
+    EXPECT(spawnKitty("kitty_C"), true);
+    EXPECT(spawnKitty("kitty_D"), true);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_D"), true);
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_D"));
+    OK(getFromSocket("/dispatch killactive"));
+
+    Tests::waitUntilWindowsN(3);
+
+    // Focus must return to the last focus, in this case B.
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_B"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
 static void testBringActiveToTopMouseMovement() {
     NLog::log("{}Testing bringactivetotop mouse movement", Colors::GREEN);
 
@@ -846,6 +881,8 @@ static bool test() {
     testMaximizeSize();
 
     testBringActiveToTopMouseMovement();
+
+    testGroupFallbackFocus();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

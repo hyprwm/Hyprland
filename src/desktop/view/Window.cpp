@@ -2437,7 +2437,24 @@ void CWindow::unmapWindow() {
     }
 
     bool      wasLastWindow = false;
-    PHLWINDOW nextInGroup   = m_groupData.pNextWindow ? m_groupData.pNextWindow.lock() : nullptr;
+    PHLWINDOW nextInGroup   = [this] -> PHLWINDOW {
+        if (!m_groupData.pNextWindow)
+            return nullptr;
+
+        // walk the history to find a suitable window
+        const auto HISTORY = Desktop::History::windowTracker()->fullHistory();
+        for (const auto& w : HISTORY | std::views::reverse) {
+            if (!w || !w->aliveAndVisible() || w == m_self)
+                continue;
+
+            if (!hasInGroup(w.lock()))
+                continue;
+
+            return w.lock();
+        }
+
+        return nullptr;
+    }();
 
     if (m_self.lock() == Desktop::focusState()->window()) {
         wasLastWindow = true;

@@ -2444,7 +2444,7 @@ void CWindow::unmapWindow() {
         // walk the history to find a suitable window
         const auto HISTORY = Desktop::History::windowTracker()->fullHistory();
         for (const auto& w : HISTORY | std::views::reverse) {
-            if (!w || !w->aliveAndVisible() || w == m_self)
+            if (!w || !w->m_isMapped || w == m_self)
                 continue;
 
             if (!hasInGroup(w.lock()))

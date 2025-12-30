@@ -11,8 +11,9 @@
 class CTrackpadGestures {
   public:
     void                             clearGestures();
-    std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
-    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale);
+    std::expected<void, std::string> addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale,
+                                                bool disableInhibit);
+    std::expected<void, std::string> removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale, bool disableInhibit);
 
     void                             gestureBegin(const IPointer::SSwipeBeginEvent& e);
     void                             gestureUpdate(const IPointer::SSwipeUpdateEvent& e);
@@ -32,6 +33,7 @@ class CTrackpadGestures {
         uint32_t                  modMask          = 0;
         eTrackpadGestureDirection direction        = TRACKPAD_GESTURE_DIR_NONE; // configured dir
         float                     deltaScale       = 1.F;
+        bool                      disableInhibit   = false;
         eTrackpadGestureDirection currentDirection = TRACKPAD_GESTURE_DIR_NONE; // actual dir of that select swipe
     };
 

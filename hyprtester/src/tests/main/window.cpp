@@ -462,6 +462,19 @@ static void testInitialFloatSize() {
         EXPECT(str.contains("size: 640,400"), true);
     }
 
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/dispatch exec [float yes]kitty"));
+
+    Tests::waitUntilWindowsN(1);
+
+    {
+        // Kitty by default opens as 640x400, if this changes this test will break
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("size: 640,400"), true);
+        EXPECT(str.contains("floating: 1"), true);
+    }
+
     Tests::killAllWindows();
 }
 

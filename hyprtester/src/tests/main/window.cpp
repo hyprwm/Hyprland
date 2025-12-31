@@ -457,6 +457,7 @@ static void testInitialFloatSize() {
     EXPECT(spawnKitty("amongus"), true);
 
     {
+        // Kitty by default opens as 640x400, if this changes this test will break
         auto str = getFromSocket("/clients");
         EXPECT(str.contains("size: 640,400"), true);
     }

@@ -736,18 +736,18 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
     m_resource->sendTfNamed(m_settings.transferFunction);
     m_resource->sendLuminances(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max, m_settings.luminances.reference);
 
-    // While primary color volume is about how color is encoded, the target
-    // color volume is the actually displayable color volume. If target color
-    // volume is equal to the primary color volume, then this event is not
-    // sent.
-    if (m_settings.masteringPrimaries != m_settings.primaries &&
-        (m_settings.masteringPrimaries.red.x != 0 || m_settings.masteringPrimaries.red.y != 0 ||     //
-         m_settings.masteringPrimaries.green.x != 0 || m_settings.masteringPrimaries.green.y != 0 || //
-         m_settings.masteringPrimaries.blue.x != 0 || m_settings.masteringPrimaries.blue.y != 0))
-        m_resource->sendTargetPrimaries(toProto(m_settings.masteringPrimaries.red.x), toProto(m_settings.masteringPrimaries.red.y), toProto(m_settings.masteringPrimaries.green.x),
-                                        toProto(m_settings.masteringPrimaries.green.y), toProto(m_settings.masteringPrimaries.blue.x),
-                                        toProto(m_settings.masteringPrimaries.blue.y), toProto(m_settings.masteringPrimaries.white.x),
-                                        toProto(m_settings.masteringPrimaries.white.y));
+    const auto& targetPrimaries = (                                                                                               //
+                                      m_settings.masteringPrimaries.red.x != 0 || m_settings.masteringPrimaries.red.y != 0 ||     //
+                                      m_settings.masteringPrimaries.green.x != 0 || m_settings.masteringPrimaries.green.y != 0 || //
+                                      m_settings.masteringPrimaries.blue.x != 0 || m_settings.masteringPrimaries.blue.y != 0) ?
+        m_settings.masteringPrimaries :
+        m_settings.primaries;
+
+    m_resource->sendTargetPrimaries(                                        //
+        toProto(targetPrimaries.red.x), toProto(targetPrimaries.red.y),     //
+        toProto(targetPrimaries.green.x), toProto(targetPrimaries.green.y), //
+        toProto(targetPrimaries.blue.x), toProto(targetPrimaries.blue.y),   //
+        toProto(targetPrimaries.white.x), toProto(targetPrimaries.white.y));
 
     if (m_settings.masteringLuminances.max > 0)
         m_resource->sendTargetLuminance(std::round(m_settings.masteringLuminances.min * 10000), m_settings.masteringLuminances.max);

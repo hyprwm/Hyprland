@@ -34,7 +34,6 @@ namespace Desktop::Rule {
         std::unordered_set<CWindowRuleEffectContainer::storageType> resetProps(std::underlying_type_t<eRuleProperty> props,
                                                                                Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
         void                                                        readStaticRules();
-        void                                                        applyStaticRules();
 
         // static props
         struct {

@@ -806,8 +806,10 @@ void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
 
             auto HLSurf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
-            if (HLSurf && HLSurf->view()->type() == Desktop::View::VIEW_TYPE_WINDOW)
-                g_pCompositor->changeWindowZOrder(dynamicPointerCast<Desktop::View::CWindow>(HLSurf->view()), true);
+            // pointerFocus can target a surface without a Desktop::View (e.g. IME popups), so view() may be null.
+            const auto PVIEW = HLSurf ? HLSurf->view() : nullptr;
+            if (PVIEW && PVIEW->type() == Desktop::View::VIEW_TYPE_WINDOW)
+                g_pCompositor->changeWindowZOrder(dynamicPointerCast<Desktop::View::CWindow>(PVIEW), true);
 
             break;
         }

@@ -878,10 +878,17 @@ void CHyprOpenGLImpl::end() {
         m_renderData.outFB->bind();
         blend(false);
 
-        if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress)
-            renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
-        else
-            renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
+        bool fastPath = (m_finalScreenShader.program < 1) && (!g_pHyprRenderer->m_crashingInProgress) && (m_renderData.pMonitor->m_transform == WL_OUTPUT_TRANSFORM_NORMAL) &&
+            (m_renderData.mouseZoomFactor == 1.0f);
+
+        if (fastPath)
+            renderBlitFrameBuffer(m_renderData.pCurrentMonData->offloadFB, *m_renderData.outFB, monbox);
+        else {
+            if (m_finalScreenShader.program < 1 && !g_pHyprRenderer->m_crashingInProgress)
+                renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
+            else
+                renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
+        }
 
         blend(true);
 
@@ -1873,6 +1880,23 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     tex->unbind();
+}
+
+void CHyprOpenGLImpl::renderBlitFrameBuffer(CFramebuffer& read, CFramebuffer& draw, const CBox& box) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, read.getFBID());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw.getFBID());
+
+    const auto mWidth  = (GLint)m_renderData.pMonitor->m_pixelSize.x;
+    const auto mHeight = (GLint)m_renderData.pMonitor->m_pixelSize.y;
+
+    m_renderData.damage.forEachRect([&](const auto& RECT) {
+        scissor(&RECT);
+        glBlitFramebuffer(0, 0, mWidth, mHeight, 0, 0, mWidth, mHeight, GL_COLOR_BUFFER_BIT, m_renderData.useNearestNeighbor ? GL_NEAREST : GL_LINEAR);
+    });
+
+    scissor(nullptr);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 }
 
 void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) {

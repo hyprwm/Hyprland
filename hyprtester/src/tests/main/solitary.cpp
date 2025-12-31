@@ -56,7 +56,7 @@ static bool test() {
     //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
     // }
 
-    // OK(getFromSocket("/dispatch setprop active immediate 1"));
+    // OK(getFromSocket("setprop active immediate 1"));
     // NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
     // {
     //     auto str = getFromSocket("/monitors");

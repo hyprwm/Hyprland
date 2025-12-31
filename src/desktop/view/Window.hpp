@@ -328,8 +328,6 @@ namespace Desktop::View {
         PHLWINDOW                  getSwallower();
         bool                       isX11OverrideRedirect();
         bool                       isModal();
-        Vector2D                   requestedMinSize();
-        Vector2D                   requestedMaxSize();
         Vector2D                   realToReportSize();
         Vector2D                   realToReportPosition();
         Vector2D                   xwaylandSizeToReal(Vector2D size);

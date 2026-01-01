@@ -305,3 +305,7 @@ bool CTextInput::hasCursorRectangle() {
 CBox CTextInput::cursorBox() {
     return CBox{isV3() ? m_v3Input->m_current.box.cursorBox : m_v1Input->m_cursorRectangle};
 }
+
+bool CTextInput::isEnabled() {
+    return isV3() ? m_v3Input->m_current.enabled.value : true;
+}

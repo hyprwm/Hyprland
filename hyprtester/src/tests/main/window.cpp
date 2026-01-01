@@ -454,7 +454,7 @@ static void testInitialFloatSize() {
     OK(getFromSocket("/keyword windowrule match:class kitty, float yes"));
     OK(getFromSocket("/keyword input:float_switch_override_focus 0"));
 
-    EXPECT(spawnKitty("amongus"), true);
+    EXPECT(spawnKitty("kitty"), true);
 
     {
         // Kitty by default opens as 640x400, if this changes this test will break
@@ -463,6 +463,8 @@ static void testInitialFloatSize() {
     }
 
     OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
 
     OK(getFromSocket("/dispatch exec [float yes]kitty"));
 

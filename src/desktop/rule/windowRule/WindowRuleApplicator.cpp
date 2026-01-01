@@ -537,7 +537,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
     return SRuleResult{};
 }
 
-void CWindowRuleApplicator::readStaticRules() {
+void CWindowRuleApplicator::readStaticRules(bool preRead) {
     if (!m_window)
         return;
 
@@ -592,7 +592,8 @@ void CWindowRuleApplicator::readStaticRules() {
     for (const auto& wr : execRules) {
         applyStaticRule(wr);
         applyDynamicRule(wr);
-        ruleEngine()->unregisterRule(wr);
+        if (!preRead)
+            ruleEngine()->unregisterRule(wr);
     }
 }
 

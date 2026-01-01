@@ -76,6 +76,11 @@ CTextInput* CInputMethodRelay::getFocusedTextInput() {
         return nullptr;
 
     for (auto const& ti : m_textInputs) {
+        if (ti->focusedSurface() == Desktop::focusState()->surface() && ti->isEnabled())
+            return ti.get();
+    }
+
+    for (auto const& ti : m_textInputs) {
         if (ti->focusedSurface() == Desktop::focusState()->surface())
             return ti.get();
     }

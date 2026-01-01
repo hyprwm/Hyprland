@@ -2546,6 +2546,9 @@ void CWindow::unmapWindow() {
 
 void CWindow::commitWindow() {
     if (!m_isX11 && m_xdgSurface->m_initialCommit) {
+        // try to calculate static rules already for any floats
+        m_ruleApplicator->readStaticRules(true);
+
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());

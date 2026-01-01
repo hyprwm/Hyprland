@@ -8,5 +8,5 @@ CWorkspaceMatchEngine::CWorkspaceMatchEngine(const std::string& s) : m_value(s) 
 }
 
 bool CWorkspaceMatchEngine::match(PHLWORKSPACE ws) {
-    return ws->matchesStaticSelector(m_value);
+    return ws && ws->matchesStaticSelector(m_value);
 }

@@ -784,7 +784,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
-    registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:cm_sdr_eotf", {"default"});
     registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
@@ -848,7 +848,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "mirror", {STRVAL_EMPTY});
     m_config->addSpecialConfigValue("monitorv2", "bitdepth", {STRVAL_EMPTY}); // TODO use correct type
     m_config->addSpecialConfigValue("monitorv2", "cm", {"auto"});
-    m_config->addSpecialConfigValue("monitorv2", "sdr_eotf", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "sdr_eotf", {"default"});
     m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
@@ -1198,8 +1198,9 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     if (VAL && VAL->m_bSetByUser)
         parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_eotf", output.c_str());
-    if (VAL && VAL->m_bSetByUser)
-        parser.rule().sdrEotf = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    if (VAL && VAL->m_bSetByUser) {
+        parser.rule().sdrEotf = NTransferFunction::fromString(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+    }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().sdrBrightness = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());

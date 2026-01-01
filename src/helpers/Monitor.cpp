@@ -2,6 +2,7 @@
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
+#include "../helpers/TransferFunction.hpp"
 #include "math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
@@ -28,6 +29,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../i18n/Engine.hpp"
+#include "../protocols/types/ColorManagement.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -476,13 +478,29 @@ void CMonitor::onDisconnect(bool destroy) {
     std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
-void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
-    auto        oldImageDescription = m_imageDescription;
-    static auto PSDREOTF            = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
-    auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
-                                                       (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
+    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
 
-    const auto  masteringPrimaries                                                        = getMasteringPrimaries();
+    switch (tf) {
+        case NTransferFunction::TF_DEFAULT:
+        case NTransferFunction::TF_GAMMA22:
+        case NTransferFunction::TF_FORCED_GAMMA22: return NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
+        case NTransferFunction::TF_SRGB: return NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+
+        case NTransferFunction::TF_AUTO: // use global setting
+            const auto sdrEOTF = NTransferFunction::fromString(*PSDREOTF);
+            switch (sdrEOTF) {
+                case NTransferFunction::TF_AUTO: return NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
+                default: return chooseTF(sdrEOTF);
+            }
+    }
+}
+
+void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf) {
+    auto                                                              oldImageDescription = m_imageDescription;
+    const auto                                                        chosenSdrEotf       = chooseTF(cmSdrEotf);
+
+    const auto                                                        masteringPrimaries  = getMasteringPrimaries();
     const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
     const auto                                                        maxFALL = this->maxFALL();
@@ -2149,11 +2167,12 @@ bool CMonitor::canNoShaderCM() {
     if (SRC_DESC_VALUE.icc.fd >= 0 || m_imageDescription->value().icc.fd >= 0)
         return false; // no ICC support
 
-    static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
+    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
+    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
     // only primaries differ
     return (
         (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
-         (*PSDREOTF == 2 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+         (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
           m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
         SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
         (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)

@@ -902,8 +902,14 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
         if (!image) {
             Log::logger->log(Log::ERR, "icc for {} ({}) failed: {}", m_name, RULE->iccFile, image.error());
             g_pConfigManager->addParseError(std::format("failed to apply icc {} to {}: {}", RULE->iccFile, m_name, image.error()));
-        } else
+        } else {
             m_imageDescription = CImageDescription::from(*image);
+            if (!m_imageDescription) {
+                Log::logger->log(Log::ERR, "icc for {} ({}) failed 2: {}", m_name, RULE->iccFile, image.error());
+                g_pConfigManager->addParseError(std::format("failed to apply icc {} to {}: {}", RULE->iccFile, m_name, image.error()));
+                m_imageDescription = CImageDescription::from(SImageDescription{});
+            }
+        }
     }
 
     Vector2D logicalSize = m_pixelSize / m_scale;

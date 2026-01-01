@@ -344,8 +344,8 @@ class CMonitor {
     PHLWINDOWREF                        m_previousFSWindow;
     bool                                m_needsHDRupdate = false;
 
-    NColorManagement::PImageDescription m_imageDescription;
-    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
+    NColorManagement::PImageDescription m_imageDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
+    bool                                m_noShaderCTM      = false; // sets drm CTM, restore needed
 
     // For the list lookup
 

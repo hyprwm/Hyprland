@@ -29,40 +29,6 @@ CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client, bo
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client, bool managed) :
     m_managed(managed), m_type(SHARE_REGION), m_monitor(monitor), m_captureBox(captureRegion), m_client(client) {
-    // transform the capture box from logical coords into buffer coords
-    if (m_monitor->m_transform % 2 == 1)
-        std::swap(m_captureBox.width, m_captureBox.height);
-
-    // flipped transforms
-    if (m_monitor->m_transform >= 4) {
-        if (m_monitor->m_transform % 2 == 0)
-            m_captureBox.x = -m_captureBox.x;
-        else
-            m_captureBox.y = -m_captureBox.y;
-    }
-
-    // rotate transforms
-    const auto POS = m_captureBox.pos();
-    switch (m_monitor->m_transform % 4) {
-        default:
-        case 0: // 0
-            break;
-        case 1: // 90
-            m_captureBox.x = -POS.y;
-            m_captureBox.y = POS.x;
-            break;
-        case 2: // 180
-            m_captureBox.x = -POS.x;
-            m_captureBox.y = -POS.y;
-            break;
-        case 3: // 270
-            m_captureBox.x = POS.y;
-            m_captureBox.y = -POS.x;
-            break;
-    }
-
-    m_captureBox.scale(m_monitor->m_scale);
-
     init();
 }
 
@@ -82,6 +48,9 @@ void CScreenshareSession::stop() {
 }
 
 void CScreenshareSession::init() {
+    // scale capture box since it's in logical coords
+    m_captureBox.scale(monitor()->m_scale);
+
     m_lastFrame.reset();
 
     m_listeners.monitorDestroyed   = monitor()->m_events.disconnect.listen([this]() { stop(); });
@@ -115,19 +84,16 @@ void CScreenshareSession::calculateConstraints() {
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_WINDOW:
-            m_bufferSize = m_window->m_realSize->value();
+            m_bufferSize = m_window->m_realSize->value().round();
             m_name       = m_window->m_title;
             break;
         case SHARE_REGION:
-            m_bufferSize = m_captureBox.size();
+            m_bufferSize = PMONITOR->m_transform % 2 == 0 ? m_captureBox.size() : Vector2D{m_captureBox.h, m_captureBox.w};
             m_name       = PMONITOR->m_name;
             break;
     }
 
     LOGM(Log::TRACE, "constraints changed for {}", m_name);
-
-    // schedule a frame so that when a screenshare starts it isn't black until the output is updated
-    g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
 const std::vector<DRMFormat>& CScreenshareSession::allowedFormats() const {

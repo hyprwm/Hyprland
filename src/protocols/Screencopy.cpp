@@ -67,7 +67,10 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
     m_resource->setCopy([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, false); });
     m_resource->setCopyWithDamage([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, true); });
 
-    m_listeners.stopped = m_session->m_events.stopped.listen([this]() { PROTO::screencopy->destroyResource(this); });
+    m_listeners.stopped = m_session->m_events.stopped.listen([this]() {
+        if (good())
+            m_resource->sendFailed();
+    });
 
     m_frame = m_session->nextFrame(overlayCursor);
 

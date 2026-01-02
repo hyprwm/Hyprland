@@ -62,7 +62,10 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     m_resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { shareFrame(res, !!ignoreDamage); });
 
-    m_listeners.stopped = m_session->m_events.stopped.listen([this]() { PROTO::toplevelExport->destroyResource(this); });
+    m_listeners.stopped = m_session->m_events.stopped.listen([this]() {
+        if (good())
+            m_resource->sendFailed();
+    });
 
     m_frame = m_session->nextFrame(overlayCursor);
 

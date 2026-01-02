@@ -106,6 +106,12 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     else
         m_damage = frameDamage.add(clientDamage);
 
+    // schedule a frame so that when a screenshare starts it isn't black until the output is updated
+    if (m_session->m_frameCounter < 5) {
+        g_pCompositor->scheduleFrameForMonitor(m_session->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+        g_pHyprRenderer->damageMonitor(m_session->monitor());
+    }
+
     m_damage.intersect(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_directScanoutBlocked = true;
@@ -141,8 +147,6 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    Vector2D   captureOffset = m_session->m_type == SHARE_MONITOR ? Vector2D{} : m_session->m_captureBox.pos();
-
     auto       TEXTURE = makeShared<CTexture>(PMONITOR->m_output->state->state().buffer);
 
     const bool IS_CM_AWARE                      = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
@@ -150,8 +154,8 @@ void CScreenshareFrame::renderMonitor() {
 
     // render monitor texture
     CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
-                      .translate({-captureOffset.x, -captureOffset.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-                      .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
+                      .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
+                      .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
@@ -171,8 +175,9 @@ void CScreenshareFrame::renderMonitor() {
             const auto popRel = popup->coordsRelativeToParent();
             popup->wlSurface()->resource()->breadthfirst(
                 [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                    const auto size    = surf->m_current.size;
-                    const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-captureOffset);
+                    const auto size = surf->m_current.size;
+                    const auto surfBox =
+                        CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
                         g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
@@ -191,8 +196,10 @@ void CScreenshareFrame::renderMonitor() {
         const auto REALPOS  = l->m_realPosition->value();
         const auto REALSIZE = l->m_realSize->value();
 
-        const auto noScreenShareBox =
-            CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-captureOffset);
+        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
+                                          .translate(-PMONITOR->m_position)
+                                          .scale(PMONITOR->m_scale)
+                                          .translate(-m_session->m_captureBox.pos());
 
         g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
 
@@ -222,7 +229,7 @@ void CScreenshareFrame::renderMonitor() {
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
                                           .translate(-PMONITOR->m_position)
                                           .scale(PMONITOR->m_scale)
-                                          .translate(-captureOffset);
+                                          .translate(-m_session->m_captureBox.pos());
 
         const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
@@ -240,9 +247,9 @@ void CScreenshareFrame::renderMonitor() {
     }
 
     if (m_overlayCursor) {
-        CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage,
-                                                    g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - captureOffset / PMONITOR->m_scale, true);
+        CRegion  fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+        Vector2D cursorPos  = g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position - m_session->m_captureBox.pos() / PMONITOR->m_scale;
+        g_pPointerManager->renderSoftwareCursorsFor(PMONITOR, Time::steadyNow(), fakeDamage, cursorPos, true);
     }
 }
 
@@ -436,9 +443,12 @@ Vector2D CScreenshareFrame::bufferSize() const {
 }
 
 wl_output_transform CScreenshareFrame::transform() const {
-    if (m_session->m_type == SHARE_MONITOR)
-        return m_session->monitor()->m_transform;
-    return WL_OUTPUT_TRANSFORM_NORMAL;
+    switch (m_session->m_type) {
+        case SHARE_REGION:
+        case SHARE_MONITOR: return m_session->monitor()->m_transform;
+        default:
+        case SHARE_WINDOW: return WL_OUTPUT_TRANSFORM_NORMAL;
+    }
 }
 
 const CRegion& CScreenshareFrame::damage() const {

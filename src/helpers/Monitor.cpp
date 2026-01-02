@@ -480,6 +480,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
 static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
     static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
+    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
 
     switch (tf) {
         case NTransferFunction::TF_DEFAULT:
@@ -488,11 +489,12 @@ static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
         case NTransferFunction::TF_SRGB: return NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
 
         case NTransferFunction::TF_AUTO: // use global setting
-            const auto sdrEOTF = NTransferFunction::fromString(*PSDREOTF);
             switch (sdrEOTF) {
                 case NTransferFunction::TF_AUTO: return NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
                 default: return chooseTF(sdrEOTF);
             }
+
+        default: UNREACHABLE();
     }
 }
 

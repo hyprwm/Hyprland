@@ -72,7 +72,7 @@ const Hyprgraphics::CMatrix3& CPrimaries::convertMatrix(const WP<const CPrimarie
     return primariesConversion[cacheKey];
 }
 
-CImageDescription::CImageDescription(const SImageDescription& imageDescription, const uint32_t imageDescriptionId) :
+CImageDescription::CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId) :
     m_id(imageDescriptionId), m_imageDescription(imageDescription) {
     m_primariesId = CPrimaries::from(m_imageDescription.getPrimaries())->id();
 }
@@ -87,7 +87,7 @@ PImageDescription CImageDescription::from(const SImageDescription& imageDescript
     return knownDescriptions.back();
 }
 
-PImageDescription CImageDescription::from(const uint32_t imageDescriptionId) {
+PImageDescription CImageDescription::from(const uint64_t imageDescriptionId) {
     ASSERT(imageDescriptionId <= knownDescriptions.size());
     return knownDescriptions[imageDescriptionId - 1];
 }
@@ -102,7 +102,7 @@ const SImageDescription& CImageDescription::value() const {
     return m_imageDescription;
 }
 
-uint CImageDescription::id() const {
+uint64_t CImageDescription::id() const {
     return m_id;
 }
 

@@ -84,7 +84,7 @@ class CScreenshareSession {
     std::string             m_name;
 
     std::vector<DRMFormat>  m_formats;
-    CBox                    m_box; // area of m_monitor to capture
+    Vector2D                m_bufferSize;
 
     CFramebuffer            m_tempFB;
 

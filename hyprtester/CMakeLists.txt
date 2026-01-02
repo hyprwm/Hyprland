@@ -48,7 +48,7 @@ pkg_check_modules(
   IMPORTED_TARGET
   hyprutils>=0.8.0
   wayland-client
-  wayland-protocols
+  wayland-protocols>=1.47
 )
 
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)

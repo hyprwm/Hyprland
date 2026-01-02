@@ -1199,7 +1199,16 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
         parser.parseCM(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdr_eotf", output.c_str());
     if (VAL && VAL->m_bSetByUser) {
-        parser.rule().sdrEotf = NTransferFunction::fromString(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        const std::string value = std::any_cast<Hyprlang::STRING>(VAL->getValue());
+        // remap legacy
+        if (value == "0")
+            parser.rule().sdrEotf = NTransferFunction::TF_AUTO;
+        else if (value == "1")
+            parser.rule().sdrEotf = NTransferFunction::TF_SRGB;
+        else if (value == "2")
+            parser.rule().sdrEotf = NTransferFunction::TF_GAMMA22;
+        else
+            parser.rule().sdrEotf = NTransferFunction::fromString(value);
     }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "sdrbrightness", output.c_str());
     if (VAL && VAL->m_bSetByUser)

@@ -135,6 +135,7 @@ struct SCurrentRenderData {
     bool                   useNearestNeighbor = false;
     bool                   blockScreenShader  = false;
     bool                   simplePass         = false;
+    bool                   transformDamage    = true;
 
     Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);

@@ -89,7 +89,7 @@ CBox CHyprXWaylandManager::getGeometryForWindow(PHLWINDOW pWindow) {
         box = pWindow->m_xdgSurface->m_current.geometry;
 
     Vector2D MINSIZE = pWindow->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
-    Vector2D MAXSIZE = pWindow->maxSize().value_or(Math::VECTOR2D_MAX);
+    Vector2D MAXSIZE = pWindow->maxSize().value_or(Math::VECTOR2D_MAX).clamp(MINSIZE + Vector2D{1, 1});
 
     Vector2D oldSize = box.size();
     box.w            = std::clamp(box.w, MINSIZE.x, MAXSIZE.x);

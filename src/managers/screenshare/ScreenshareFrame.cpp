@@ -108,10 +108,6 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
 
     m_damage.intersect(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    auto PMONITOR = m_session->monitor();
-    m_damage.transform(Math::wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
-    m_damage.scale(m_session->monitor()->m_scale);
-
     g_pHyprRenderer->m_directScanoutBlocked = true;
 
     return ERROR_NONE;
@@ -259,10 +255,11 @@ void CScreenshareFrame::renderWindow() {
 
     const auto NOW = Time::steadyNow();
 
-    Vector2D   xfmd = PMONITOR->m_transform % 2 == 1 ? Vector2D{m_session->m_box.h, m_session->m_box.w} : m_session->m_box.size();
-
-    g_pHyprOpenGL->m_renderData.projection = Mat3x3::outputProjection(xfmd, Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)));
-    g_pHyprOpenGL->setViewport(0, 0, xfmd.x, xfmd.y);
+    // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
+    g_pHyprOpenGL->m_renderData.monitorProjection = Mat3x3::identity();
+    g_pHyprOpenGL->m_renderData.projection        = Mat3x3::outputProjection(m_bufferSize, HYPRUTILS_TRANSFORM_NORMAL);
+    g_pHyprOpenGL->m_renderData.transformDamage   = false;
+    g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
     g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, RENDER_PASS_ALL, true, true);
@@ -439,11 +436,6 @@ Vector2D CScreenshareFrame::bufferSize() const {
 }
 
 wl_output_transform CScreenshareFrame::transform() const {
-    // windows are rendered with monitor transform applied
-    if (m_session->m_type == SHARE_WINDOW)
-        return m_session->monitor()->m_transform;
-
-    // monitor and region are rendered in normal transform
     return WL_OUTPUT_TRANSFORM_NORMAL;
 }
 

@@ -201,7 +201,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 2, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 

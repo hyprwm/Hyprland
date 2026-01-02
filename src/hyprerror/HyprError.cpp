@@ -83,7 +83,8 @@ void CHyprError::createQueued() {
     const double X      = PAD;
     const double Y      = TOPBAR ? PAD : PMONITOR->m_pixelSize.y - HEIGHT - PAD;
 
-    m_damageBox = {0, 0, sc<int>(PMONITOR->m_pixelSize.x), sc<int>(HEIGHT) + sc<int>(PAD) * 2};
+    m_damageBox = {sc<int>(PMONITOR->m_position.x), sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_pixelSize.y - (HEIGHT + PAD * 2))), sc<int>(PMONITOR->m_pixelSize.x),
+                   sc<int>(HEIGHT + PAD * 2)};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -111,6 +112,8 @@ void CHyprError::createQueued() {
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
     pango_layout_set_font_description(layoutText, pangoFD);
+    pango_layout_set_width(layoutText, (WIDTH - 2 * (1 + RADIUS)) * PANGO_SCALE);
+    pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
 
     float yoffset     = TOPBAR ? 0 : Y - PAD;
     int   renderedcnt = 0;
@@ -132,9 +135,8 @@ void CHyprError::createQueued() {
         pango_layout_set_text(layoutText, moreString.c_str(), -1);
         pango_cairo_show_layout(CAIRO, layoutText);
     }
-    m_queued = "";
 
-    m_lastHeight = yoffset + PAD + 1 - (TOPBAR ? 0 : Y - PAD);
+    m_lastHeight = HEIGHT;
 
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
@@ -200,12 +202,13 @@ void CHyprError::draw() {
         }
     }
 
-    const auto PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
 
-    CBox       monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
+    CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
-    m_damageBox.x = sc<int>(PMONITOR->m_position.x);
-    m_damageBox.y = sc<int>(PMONITOR->m_position.y);
+    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    m_damageBox.x            = sc<int>(PMONITOR->m_position.x);
+    m_damageBox.y            = sc<int>(PMONITOR->m_position.y + (*BAR_POSITION == 0 ? 0 : PMONITOR->m_pixelSize.y - m_damageBox.height));
 
     if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
         g_pHyprRenderer->damageBox(m_damageBox);

@@ -127,6 +127,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     static auto PKEEPUPPERGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
     static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
+    static auto PTEXTPADDING               = CConfigValue<Hyprlang::INT>("group:groupbar:text_padding");
     static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
     auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
     auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
@@ -228,11 +229,12 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 CTitleTex* pTitleTex = textureFromTitle(m_dwGroupMembers[WINDOWINDEX]->m_title);
 
                 if (!pTitleTex)
-                    pTitleTex = m_titleTexs.titleTexs
-                                    .emplace_back(makeUnique<CTitleTex>(m_dwGroupMembers[WINDOWINDEX].lock(),
-                                                                        Vector2D{m_barWidth * pMonitor->m_scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->m_scale},
-                                                                        pMonitor->m_scale))
-                                    .get();
+                    pTitleTex =
+                        m_titleTexs.titleTexs
+                            .emplace_back(makeUnique<CTitleTex>(
+                                m_dwGroupMembers[WINDOWINDEX].lock(),
+                                Vector2D{(m_barWidth - (*PTEXTPADDING * 2)) * pMonitor->m_scale, (*PTITLEFONTSIZE + 2L * BAR_TEXT_PAD) * pMonitor->m_scale}, pMonitor->m_scale))
+                            .get();
 
                 SP<CTexture> titleTex;
                 if (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window())
@@ -243,7 +245,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 rect.y += std::ceil(((rect.height - titleTex->m_size.y) / 2.0) - (*PTEXTOFFSET * pMonitor->m_scale));
                 rect.height = titleTex->m_size.y;
                 rect.width  = titleTex->m_size.x;
-                rect.x += std::round(((m_barWidth * pMonitor->m_scale) / 2.0) - (titleTex->m_size.x / 2.0));
+                rect.x += std::round((((m_barWidth + *PTEXTPADDING) * pMonitor->m_scale) / 2.0) - ((titleTex->m_size.x + *PTEXTPADDING) / 2.0));
                 rect.round();
 
                 CTexPassElement::SRenderData data;

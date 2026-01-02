@@ -106,6 +106,7 @@ CProtocolManager::CProtocolManager() {
 
     static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
+    static const auto PCMV1_2   = CConfigValue<Hyprlang::INT>("experimental:wp_cm_1_2");
 
     static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
 
@@ -201,7 +202,7 @@ CProtocolManager::CProtocolManager() {
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 2, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 2 : 1, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 

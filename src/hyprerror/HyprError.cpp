@@ -202,9 +202,9 @@ void CHyprError::draw() {
         }
     }
 
-    const auto PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
 
-    CBox       monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
+    CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
     static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
     m_damageBox.x            = sc<int>(PMONITOR->m_position.x);

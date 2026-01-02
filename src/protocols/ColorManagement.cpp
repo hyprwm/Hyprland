@@ -180,6 +180,31 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->sendMaybeReady();
     });
 
+    m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
+        LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);
+
+        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
+        if (!OLD_RES) {
+            OLD_RES->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), OLD_RES->m_allowGetInformation));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
+            return;
+        }
+
+        RESOURCE->m_self = RESOURCE;
+
+        RESOURCE->m_settings = OLD_RES->m_settings;
+
+        RESOURCE->sendMaybeReady();
+    });
+
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
 
     m_resource->sendDone();
@@ -724,6 +749,11 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDe
         // CColorManagementImageDescriptionInfo should send everything in the constructor and be ready for destroying at this point
         RESOURCE.reset();
     });
+}
+
+SP<CColorManagementImageDescription> CColorManagementImageDescription::fromReference(wl_resource* res) {
+    auto data = sc<CColorManagementImageDescription*>(sc<CWpImageDescriptionV1*>(wl_resource_get_user_data(res))->data());
+    return data ? data->m_self.lock() : nullptr;
 }
 
 bool CColorManagementImageDescription::good() {

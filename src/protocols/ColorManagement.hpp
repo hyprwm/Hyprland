@@ -146,21 +146,23 @@ class CColorManagementParametricCreator {
 class CColorManagementImageDescription {
   public:
     CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation);
+    static SP<CColorManagementImageDescription> fromReference(wl_resource* res);
 
-    bool                                 good();
-    wl_client*                           client();
-    SP<CWpImageDescriptionV1>            resource();
-    bool                                 sendMaybeReady();
+    bool                                        good();
+    wl_client*                                  client();
+    SP<CWpImageDescriptionV1>                   resource();
+    bool                                        sendMaybeReady();
 
-    WP<CColorManagementImageDescription> m_self;
+    WP<CColorManagementImageDescription>        m_self;
 
-    NColorManagement::PImageDescription  m_settings;
+    NColorManagement::PImageDescription         m_settings;
 
   private:
     SP<CWpImageDescriptionV1> m_resource;
     wl_client*                m_client              = nullptr;
     bool                      m_allowGetInformation = false;
 
+    friend class CColorManager;
     friend class CColorManagementOutput;
 };
 

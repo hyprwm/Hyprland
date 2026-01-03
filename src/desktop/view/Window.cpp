@@ -246,7 +246,7 @@ CBox CWindow::getFullWindowBoundingBox() const {
 CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     const auto PMONITOR = m_monitor.lock();
 
-    if (!PMONITOR)
+    if (!PMONITOR || !m_workspace)
         return {m_position, m_size};
 
     auto POS  = m_position;
@@ -259,20 +259,24 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};
     }
 
-    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, PMONITOR->m_reservedArea.top(), 1)) {
+    // get work area
+    const auto WORKAREA = g_pLayoutManager->getCurrentLayout()->workAreaOnWorkspace(m_workspace);
+    const auto RESERVED = CReservedArea{PMONITOR->logicalBox(), WORKAREA};
+
+    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, RESERVED.top(), 1)) {
         POS.y = PMONITOR->m_position.y;
-        SIZE.y += PMONITOR->m_reservedArea.top();
+        SIZE.y += RESERVED.top();
     }
-    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, PMONITOR->m_reservedArea.left(), 1)) {
+    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, RESERVED.left(), 1)) {
         POS.x = PMONITOR->m_position.x;
-        SIZE.x += PMONITOR->m_reservedArea.left();
+        SIZE.x += RESERVED.left();
     }
-    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - PMONITOR->m_reservedArea.right(), 1)) {
-        SIZE.x += PMONITOR->m_reservedArea.right();
-    }
-    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - PMONITOR->m_reservedArea.bottom(), 1)) {
-        SIZE.y += PMONITOR->m_reservedArea.bottom();
-    }
+
+    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - RESERVED.right(), 1))
+        SIZE.x += RESERVED.right();
+
+    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - RESERVED.bottom(), 1))
+        SIZE.y += RESERVED.bottom();
 
     return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};
 }
@@ -2542,6 +2546,9 @@ void CWindow::unmapWindow() {
 
 void CWindow::commitWindow() {
     if (!m_isX11 && m_xdgSurface->m_initialCommit) {
+        // try to calculate static rules already for any floats
+        m_ruleApplicator->readStaticRules(true);
+
         Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());

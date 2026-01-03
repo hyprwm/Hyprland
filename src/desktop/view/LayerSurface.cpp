@@ -23,24 +23,11 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
 
     pLS->m_wlSurface->assign(resource->m_surface.lock(), pLS);
 
-    if (!pMonitor) {
-        Log::logger->log(Log::ERR, "New LS has no monitor??");
-        return pLS;
-    }
-
-    if (pMonitor->m_mirrorOf)
-        pMonitor = g_pCompositor->m_monitors.front();
-
-    pLS->m_self = pLS;
-
-    pLS->m_namespace = resource->m_layerNamespace;
-
-    pLS->m_layer     = resource->m_current.layer;
-    pLS->m_popupHead = CPopup::create(pLS);
-    pLS->m_monitor   = pMonitor;
-    pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
-
     pLS->m_ruleApplicator = makeUnique<Desktop::Rule::CLayerRuleApplicator>(pLS);
+    pLS->m_self           = pLS;
+    pLS->m_namespace      = resource->m_layerNamespace;
+    pLS->m_layer          = resource->m_current.layer;
+    pLS->m_popupHead      = CPopup::create(pLS);
 
     g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
@@ -49,6 +36,19 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->registerCallbacks();
 
     pLS->m_alpha->setValueAndWarp(0.f);
+
+    if (!pMonitor) {
+        Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on NO MONITOR ?!", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
+                         sc<int>(pLS->m_layer));
+
+        return pLS;
+    }
+
+    if (pMonitor->m_mirrorOf)
+        pMonitor = g_pCompositor->m_monitors.front();
+
+    pLS->m_monitor = pMonitor;
+    pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
 
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} (namespace {} layer {}) created on monitor {}", rc<uintptr_t>(resource.get()), resource->m_layerNamespace,
                      sc<int>(pLS->m_layer), pMonitor->m_name);

@@ -73,8 +73,8 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
             }
             case LAYER_RULE_EFFECT_ORDER: {
                 try {
-                    m_noScreenShare.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_noScreenShare.second |= rule->getPropertiesMask();
+                    m_order.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
+                    m_order.second |= rule->getPropertiesMask();
                 } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }

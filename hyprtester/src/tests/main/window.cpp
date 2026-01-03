@@ -447,6 +447,39 @@ static void testBringActiveToTopMouseMovement() {
     Tests::killAllWindows();
 }
 
+static void testInitialFloatSize() {
+    NLog::log("{}Testing initial float size", Colors::GREEN);
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword windowrule match:class kitty, float yes"));
+    OK(getFromSocket("/keyword input:float_switch_override_focus 0"));
+
+    EXPECT(spawnKitty("kitty"), true);
+
+    {
+        // Kitty by default opens as 640x400, if this changes this test will break
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("size: 640,400"), true);
+    }
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch exec [float yes]kitty"));
+
+    Tests::waitUntilWindowsN(1);
+
+    {
+        // Kitty by default opens as 640x400, if this changes this test will break
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("size: 640,400"), true);
+        EXPECT(str.contains("floating: 1"), true);
+    }
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -877,12 +910,10 @@ static bool test() {
     Tests::killAllWindows();
 
     testGroupRules();
-
     testMaximizeSize();
-
     testBringActiveToTopMouseMovement();
-
     testGroupFallbackFocus();
+    testInitialFloatSize();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

@@ -505,6 +505,14 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             return;
         }
 
+        if ((m_valuesSet & PC_TF) && !(m_valuesSet & PC_LUMINANCES)) {
+            m_settings.luminances = {
+                .min       = m_settings.getTFMinLuminance(),
+                .max       = m_settings.getTFMaxLuminance(),
+                .reference = m_settings.getTFRefLuminance(),
+            };
+        }
+
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = CImageDescription::from(m_settings);
         RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
@@ -730,10 +738,15 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
     m_resource->sendPrimaries(toProto(m_settings.primaries.red.x), toProto(m_settings.primaries.red.y), toProto(m_settings.primaries.green.x),
                               toProto(m_settings.primaries.green.y), toProto(m_settings.primaries.blue.x), toProto(m_settings.primaries.blue.y),
                               toProto(m_settings.primaries.white.x), toProto(m_settings.primaries.white.y));
+
     if (m_settings.primariesNameSet)
         m_resource->sendPrimariesNamed(m_settings.primariesNamed);
-    m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));
+
     m_resource->sendTfNamed(m_settings.transferFunction);
+
+    if (m_settings.transferFunctionPower != 1.0f)
+        m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));
+
     m_resource->sendLuminances(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max, m_settings.luminances.reference);
 
     const auto& targetPrimaries = (                                                                                               //

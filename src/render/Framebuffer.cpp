@@ -52,7 +52,8 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    m_size = Vector2D(w, h);
+    m_drmFormat = drmFormat;
+    m_size      = Vector2D(w, h);
 
     return true;
 }

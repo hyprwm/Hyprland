@@ -74,7 +74,7 @@ static bool startClient(SClient& client) {
         }
     }
 
-    if (getFromSocket(std::format("/dispatch setprop pid:{} no_anim 1", client.proc->pid())) != "ok") {
+    if (getFromSocket(std::format("setprop pid:{} no_anim 1", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to disable animations for client window", Colors::RED, ret);
         return false;
     }

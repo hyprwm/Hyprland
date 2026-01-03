@@ -479,19 +479,8 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
                                                        (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 
-    const auto  masteringPrimaries = m_output->parsedEDID.chromaticityCoords.has_value() ?
-         NColorManagement::SPCPRimaries{
-             .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-             .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-             .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-             .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-        } :
-         NColorManagement::SPCPRimaries{};
-
-    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = {
-        .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
-        .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
-    };
+    const auto  masteringPrimaries                                                        = getMasteringPrimaries();
+    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
     switch (cmType) {
         case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
@@ -551,7 +540,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
             break;
         default: UNREACHABLE();
     }
-    if (m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0)
+    if ((m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
             .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min,            //
             .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max,            //
@@ -2074,6 +2063,24 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
     return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : DEFAULT_IMAGE_DESCRIPTION;
+}
+
+NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {
+    return m_output->parsedEDID.chromaticityCoords.has_value() ?
+        NColorManagement::SPCPRimaries{
+            .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
+            .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
+            .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
+            .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
+        } :
+        NColorManagement::SPCPRimaries{};
+}
+
+NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteringLuminances() {
+    return {
+        .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
+        .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
+    };
 }
 
 bool CMonitor::needsCM() {

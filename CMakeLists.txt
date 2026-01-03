@@ -265,7 +265,8 @@ pkg_check_modules(
   gbm
   gio-2.0
   re2
-  muparser)
+  muparser
+  lcms2)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

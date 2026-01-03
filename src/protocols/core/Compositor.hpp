@@ -20,7 +20,7 @@
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
-#include "../types/ColorManagement.hpp"
+#include "../../helpers/cm/ColorManagement.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
 

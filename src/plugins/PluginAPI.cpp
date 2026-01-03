@@ -407,7 +407,7 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
     if (!PLUGIN)
         return false;
 
-    std::erase(PLUGIN->m_registeredHyprctlCommands, cmd);
+    std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return !other || other == cmd; });
     g_pHyprCtl->unregisterCommand(cmd);
 
     return true;

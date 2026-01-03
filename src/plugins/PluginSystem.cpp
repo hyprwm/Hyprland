@@ -171,8 +171,10 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
         HyprlandAPI::removeDispatcher(plugin->m_handle, d);
 
     const auto rhc = plugin->m_registeredHyprctlCommands;
-    for (auto const& c : rhc)
-        HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, c);
+    for (auto const& c : rhc) {
+        if (const auto sp = c.lock())
+            HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, sp);
+    }
 
     g_pConfigManager->removePluginConfig(plugin->m_handle);
 

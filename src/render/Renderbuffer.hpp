@@ -14,7 +14,6 @@ class CRenderbuffer {
 
     bool                    good();
     void                    bind();
-    void                    bindFB();
     void                    unbind();
     CFramebuffer*           getFB();
     uint32_t                getFormat();

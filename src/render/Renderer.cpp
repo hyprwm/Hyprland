@@ -546,7 +546,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
-    const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
+    const auto fullAlpha       = renderdata.alpha * renderdata.fadeAlpha;
     const auto decorationAlpha = 1.f * renderdata.fadeAlpha;
 
     if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {

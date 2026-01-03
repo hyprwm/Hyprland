@@ -328,10 +328,13 @@ class CMonitor {
     bool        inHDR();
 
     /// Has an active workspace with a real fullscreen window
-    bool                                               inFullscreenMode();
-    std::optional<NColorManagement::PImageDescription> getFSImageDescription();
+    bool                                                        inFullscreenMode();
+    std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 
-    bool                                               needsCM();
+    NColorManagement::SPCPRimaries                              getMasteringPrimaries();
+    NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
+
+    bool                                                        needsCM();
     /// Can do CM without shader
     bool                                canNoShaderCM();
     bool                                doesNoShaderCM();

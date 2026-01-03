@@ -73,7 +73,6 @@ class CImageCopyCaptureCursorSession {
 
     // cursor session stuff
     bool     m_entered = false;
-    CBox     m_sourceBox;
     Vector2D m_pos, m_hotspot;
 
     // capture session stuff

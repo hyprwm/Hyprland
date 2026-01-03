@@ -16,6 +16,7 @@ class CImageCaptureSource {
 
     std::string             getName();
     std::string             getTypeName();
+    CBox                    logicalBox();
 
     WP<CImageCaptureSource> m_self;
 

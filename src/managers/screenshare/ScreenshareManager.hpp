@@ -43,6 +43,7 @@ struct std::formatter<eScreenshareType> : std::formatter<std::string> {
 };
 
 using FScreenshareCallback = std::function<void(eScreenshareResult result)>;
+using FSourceBoxCallback   = std::function<CBox(void)>;
 
 class CScreenshareFrame;
 class CWLPointerResource;
@@ -113,7 +114,7 @@ class CCursorshareSession {
     CCursorshareSession(CCursorshareSession&&)      = delete;
     ~CCursorshareSession();
 
-    eScreenshareError share(PHLMONITOR monitor, SP<IHLBuffer> buffer, FScreenshareCallback callback);
+    eScreenshareError share(PHLMONITOR monitor, SP<IHLBuffer> buffer, FSourceBoxCallback sourceBoxCallback, FScreenshareCallback callback);
     void              stop();
 
     // constraints
@@ -130,7 +131,8 @@ class CCursorshareSession {
     CCursorshareSession(wl_client* client, WP<CWLPointerResource> pointer);
 
     WP<CCursorshareSession> m_self;
-    bool                    m_stopped = false;
+    bool                    m_stopped            = false;
+    bool                    m_constraintsChanged = true;
 
     wl_client*              m_client;
     WP<CWLPointerResource>  m_pointer;
@@ -141,11 +143,20 @@ class CCursorshareSession {
     Vector2D  m_bufferSize;
 
     struct {
+        bool                 pending = false;
+        PHLMONITOR           monitor;
+        SP<IHLBuffer>        buffer;
+        FSourceBoxCallback   sourceBoxCallback;
+        FScreenshareCallback callback;
+    } m_pendingFrame;
+
+    struct {
         CHyprSignalListener pointerDestroyed;
         CHyprSignalListener cursorChanged;
     } m_listeners;
 
-    bool copy(PHLMONITOR monitor, SP<IHLBuffer> buffer, FScreenshareCallback callback);
+    bool copy();
+    void render();
     void calculateConstraints();
 
     friend class CScreenshareFrame;

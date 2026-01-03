@@ -6,6 +6,7 @@
 #include "LinuxDMABUF.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../render/OpenGL.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include <cstring>
 
 CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
@@ -95,11 +96,7 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
 
     const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
 
-    if (m_source->m_monitor) {
-        m_sourceBox = PMONITOR->logicalBox();
-    } else {
-        m_sourceBox = CBox{m_source->m_window->m_position, m_source->m_window->m_size};
-    }
+    // TODO: add listeners for source being destroyed
 
     sendCursorEvents();
     m_listeners.commit = PMONITOR->m_events.commit.listen([this, PMONITOR]() { sendCursorEvents(); });
@@ -129,7 +126,6 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
                 return;
             }
 
-            sendConstraints();
             createFrame(makeShared<CExtImageCopyCaptureFrameV1>(pMgr->client(), pMgr->version(), id));
         });
 
@@ -226,23 +222,11 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
 
         const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
 
-        bool       overlaps = m_sourceBox.overlaps(g_pPointerManager->getCursorBoxGlobal());
-        if (!overlaps) {
-            m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN);
-            m_frameResource.reset();
-            return;
-        }
-
-        auto error = m_session->share(PMONITOR, m_buffer, [this](eScreenshareResult result) {
-            if UNLIKELY (!m_frameResource || !m_frameResource->resource())
-                return;
-
+        auto       sourceBoxCallback = [this]() { return m_source ? m_source->logicalBox() : CBox(); };
+        auto       error             = m_session->share(PMONITOR, m_buffer, sourceBoxCallback, [this](eScreenshareResult result) {
             switch (result) {
                 case RESULT_COPIED: m_frameResource->sendReady(); break;
-                case RESULT_NOT_COPIED:
-                    m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN);
-                    m_frameResource.reset();
-                    break;
+                case RESULT_NOT_COPIED: m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
                 case RESULT_TIMESTAMP:
                     auto [sec, nsec] = Time::secNsec(Time::steadyNow());
                     uint32_t tvSecHi = (sizeof(sec) > 4) ? sec >> 32 : 0;
@@ -252,17 +236,20 @@ void CImageCopyCaptureCursorSession::createFrame(SP<CExtImageCopyCaptureFrameV1>
             }
         });
 
+        if (!m_frameResource)
+            return;
+
         switch (error) {
             case ERROR_NONE: m_captured = true; break;
-            case ERROR_NO_BUFFER: m_frameResource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_NO_BUFFER, "no buffer attached"); break;
+            case ERROR_NO_BUFFER:
+                m_frameResource->error(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_ERROR_NO_BUFFER, "no buffer attached");
+                m_frameResource.reset();
+                break;
             case ERROR_BUFFER_SIZE:
             case ERROR_BUFFER_FORMAT: m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_BUFFER_CONSTRAINTS); break;
             case ERROR_STOPPED: m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_STOPPED); break;
             case ERROR_UNKNOWN: m_frameResource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN); break;
         }
-
-        if (error != ERROR_NONE)
-            m_frameResource.reset();
     });
 
     // we should always copy over the entire cursor image, it doesn't cost much
@@ -319,8 +306,9 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
         return;
     }
 
-    const auto PMONITOR = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
-    bool       overlaps = m_sourceBox.overlaps(g_pPointerManager->getCursorBoxGlobal());
+    const auto PMONITOR  = m_source->m_monitor.expired() ? m_source->m_window->m_monitor.lock() : m_source->m_monitor.lock();
+    CBox       sourceBox = m_source->logicalBox();
+    bool       overlaps  = g_pPointerManager->getCursorBoxGlobal().overlaps(sourceBox);
 
     if (m_entered && !overlaps) {
         m_entered = false;
@@ -334,7 +322,7 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
     if (!overlaps)
         return;
 
-    Vector2D pos = g_pPointerManager->position() - m_sourceBox.pos();
+    Vector2D pos = g_pPointerManager->position() - sourceBox.pos();
     if (pos != m_pos) {
         m_pos = pos;
         m_resource->sendPosition(m_pos.x, m_pos.y);

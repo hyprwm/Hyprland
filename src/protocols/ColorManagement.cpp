@@ -505,6 +505,14 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             return;
         }
 
+        if ((m_valuesSet & PC_TF) && !(m_valuesSet & PC_LUMINANCES)) {
+            m_settings.luminances = {
+                .min       = m_settings.getTFMinLuminance(),
+                .max       = m_settings.getTFMaxLuminance(),
+                .reference = m_settings.getTFRefLuminance(),
+            };
+        }
+
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = CImageDescription::from(m_settings);
         RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
@@ -730,19 +738,39 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
     m_resource->sendPrimaries(toProto(m_settings.primaries.red.x), toProto(m_settings.primaries.red.y), toProto(m_settings.primaries.green.x),
                               toProto(m_settings.primaries.green.y), toProto(m_settings.primaries.blue.x), toProto(m_settings.primaries.blue.y),
                               toProto(m_settings.primaries.white.x), toProto(m_settings.primaries.white.y));
+
     if (m_settings.primariesNameSet)
         m_resource->sendPrimariesNamed(m_settings.primariesNamed);
-    m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));
+
     m_resource->sendTfNamed(m_settings.transferFunction);
+
+    if (m_settings.transferFunctionPower != 1.0f)
+        m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));
+
     m_resource->sendLuminances(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max, m_settings.luminances.reference);
 
-    // send expected display paramateres
-    m_resource->sendTargetPrimaries(toProto(m_settings.masteringPrimaries.red.x), toProto(m_settings.masteringPrimaries.red.y), toProto(m_settings.masteringPrimaries.green.x),
-                                    toProto(m_settings.masteringPrimaries.green.y), toProto(m_settings.masteringPrimaries.blue.x), toProto(m_settings.masteringPrimaries.blue.y),
-                                    toProto(m_settings.masteringPrimaries.white.x), toProto(m_settings.masteringPrimaries.white.y));
-    m_resource->sendTargetLuminance(std::round(m_settings.masteringLuminances.min * 10000), m_settings.masteringLuminances.max);
-    m_resource->sendTargetMaxCll(m_settings.maxCLL);
-    m_resource->sendTargetMaxFall(m_settings.maxFALL);
+    const auto& targetPrimaries = (                                                                                               //
+                                      m_settings.masteringPrimaries.red.x != 0 || m_settings.masteringPrimaries.red.y != 0 ||     //
+                                      m_settings.masteringPrimaries.green.x != 0 || m_settings.masteringPrimaries.green.y != 0 || //
+                                      m_settings.masteringPrimaries.blue.x != 0 || m_settings.masteringPrimaries.blue.y != 0) ?
+        m_settings.masteringPrimaries :
+        m_settings.primaries;
+
+    m_resource->sendTargetPrimaries(                                        //
+        toProto(targetPrimaries.red.x), toProto(targetPrimaries.red.y),     //
+        toProto(targetPrimaries.green.x), toProto(targetPrimaries.green.y), //
+        toProto(targetPrimaries.blue.x), toProto(targetPrimaries.blue.y),   //
+        toProto(targetPrimaries.white.x), toProto(targetPrimaries.white.y));
+
+    if (m_settings.masteringLuminances.max > 0)
+        m_resource->sendTargetLuminance(std::round(m_settings.masteringLuminances.min * 10000), m_settings.masteringLuminances.max);
+    else
+        m_resource->sendTargetLuminance(std::round(m_settings.luminances.min * 10000), m_settings.luminances.max);
+
+    if (m_settings.maxCLL > 0 || m_settings.maxFALL > 0) {
+        m_resource->sendTargetMaxCll(m_settings.maxCLL);
+        m_resource->sendTargetMaxFall(m_settings.maxFALL);
+    }
 
     m_resource->sendDone();
 }

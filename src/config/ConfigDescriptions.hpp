@@ -1116,6 +1116,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:text_padding",
+        .description = "set horizontal padding for a text",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 22},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:blur",
         .description = "enable background blur for groupbars",
         .type        = CONFIG_OPTION_BOOL,

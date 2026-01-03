@@ -16,9 +16,12 @@ CRenderbuffer::~CRenderbuffer() {
 
     unbind();
     m_framebuffer.release();
-    glDeleteRenderbuffers(1, &m_rbo);
 
-    g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_image);
+    if (m_rbo)
+        glDeleteRenderbuffers(1, &m_rbo);
+
+    if (m_image != EGL_NO_IMAGE_KHR)
+        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_image);
 }
 
 CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_hlBuffer(buffer), m_drmFormat(format) {
@@ -58,16 +61,10 @@ bool CRenderbuffer::good() {
 }
 
 void CRenderbuffer::bind() {
-    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-    bindFB();
-}
-
-void CRenderbuffer::bindFB() {
     m_framebuffer.bind();
 }
 
 void CRenderbuffer::unbind() {
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
     m_framebuffer.unbind();
 }
 

@@ -9,13 +9,10 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     bool firstAlloc = false;
     RASSERT((w > 0 && h > 0), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 
-    uint32_t glFormat = NFormatUtils::drmFormatToGL(drmFormat);
-    uint32_t glType   = NFormatUtils::glFormatToType(glFormat);
-
-    if (drmFormat != m_drmFormat || m_size != Vector2D{w, h})
-        release();
-
-    m_drmFormat = drmFormat;
+    const uint32_t glFormat      = NFormatUtils::drmFormatToGL(drmFormat);
+    const uint32_t glType        = NFormatUtils::glFormatToType(glFormat);
+    const bool     sizeChanged   = (m_size != Vector2D(w, h));
+    const bool     formatChanged = (drmFormat != m_drmFormat);
 
     if (!m_tex) {
         m_tex = makeShared<CTexture>();
@@ -34,7 +31,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
         firstAlloc    = true;
     }
 
-    if (firstAlloc || m_size != Vector2D(w, h)) {
+    if (firstAlloc || sizeChanged || formatChanged) {
         m_tex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, glFormat, w, h, 0, GL_RGBA, glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
@@ -80,7 +77,7 @@ void CFramebuffer::bind() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
 
     if (g_pHyprOpenGL)
-        g_pHyprOpenGL->setViewport(0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y);
+        g_pHyprOpenGL->setViewport(0, 0, m_size.x, m_size.y);
     else
         glViewport(0, 0, m_size.x, m_size.y);
 }

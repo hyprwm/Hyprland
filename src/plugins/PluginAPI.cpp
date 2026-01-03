@@ -396,7 +396,7 @@ APICALL SP<SHyprCtlCommand> HyprlandAPI::registerHyprCtlCommand(HANDLE handle, S
         return nullptr;
 
     auto PTR = g_pHyprCtl->registerCommand(cmd);
-    PLUGIN->m_registeredHyprctlCommands.push_back(WP<SHyprCtlCommand>(PTR));
+    PLUGIN->m_registeredHyprctlCommands.push_back(PTR);
     return PTR;
 }
 
@@ -407,7 +407,7 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
     if (!PLUGIN)
         return false;
 
-    std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return other.lock() == cmd; });
+    std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return !other || other == cmd; });
     g_pHyprCtl->unregisterCommand(cmd);
 
     return true;

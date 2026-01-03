@@ -50,7 +50,7 @@ using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");

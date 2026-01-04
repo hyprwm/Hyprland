@@ -108,8 +108,6 @@ struct SMonitorRenderData {
     CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
     CFramebuffer blurFB;
 
-    SP<CTexture> stencilTex = makeShared<CTexture>();
-
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
 };

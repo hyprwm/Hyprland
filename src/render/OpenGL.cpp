@@ -815,15 +815,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     // ensure a framebuffer for the monitor exists
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {
-        m_renderData.pCurrentMonData->stencilTex->allocate();
-
         m_renderData.pCurrentMonData->offloadFB.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
         m_renderData.pCurrentMonData->mirrorFB.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
         m_renderData.pCurrentMonData->mirrorSwapFB.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-
-        m_renderData.pCurrentMonData->offloadFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
-        m_renderData.pCurrentMonData->mirrorFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
-        m_renderData.pCurrentMonData->mirrorSwapFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
     }
 
     if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
@@ -1432,39 +1426,15 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
 
     m_renderData.currentFB->bind();
 
-    // make a stencil for rounded corners to work with blur
-    scissor(nullptr); // allow the entire window and stencil to render
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    setCapStatus(GL_STENCIL_TEST, true);
-
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
     scissor(box);
     CBox MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
     pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF = m_renderData.renderModif;
     m_renderData.renderModif    = {}; // fix shit
     renderTexture(POUTFB->getTexture(), MONITORBOX,
-                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = 0, .roundingPower = 2.0f, .allowCustomUV = false, .allowDim = false, .noAA = false});
+                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.0f, .allowCustomUV = false, .allowDim = false, .noAA = false});
     popMonitorTransformEnabled();
     m_renderData.renderModif = SAVEDRENDERMODIF;
-
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-    setCapStatus(GL_STENCIL_TEST, false);
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    scissor(nullptr);
 
     renderRectWithDamageInternal(box, col, data);
 }
@@ -1983,7 +1953,6 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
     const auto BLENDBEFORE = m_blend;
     blend(false);
-    setCapStatus(GL_STENCIL_TEST, false);
 
     // get transforms for the full monitor
     const auto TRANSFORM  = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
@@ -2386,34 +2355,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
 
     m_renderData.currentFB->bind();
 
-    // make a stencil for rounded corners to work with blur
-    scissor(nullptr); // allow the entire window and stencil to render
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    setCapStatus(GL_STENCIL_TEST, true);
-
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
-        renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    else
-        renderTexture(tex, box,
-                      STextureRenderData{.a             = data.a,
-                                         .round         = data.round,
-                                         .roundingPower = data.roundingPower,
-                                         .discardActive = true,
-                                         .allowCustomUV = true,
-                                         .wrapX         = data.wrapX,
-                                         .wrapY         = data.wrapY}); // discard opaque
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // stencil done. Render everything.
     const auto LASTTL = m_renderData.primarySurfaceUVTopLeft;
     const auto LASTBR = m_renderData.primarySurfaceUVBottomRight;
 
@@ -2452,12 +2393,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     m_renderData.primarySurfaceUVTopLeft     = LASTTL;
     m_renderData.primarySurfaceUVBottomRight = LASTBR;
 
-    // render the window, but clear stencil
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    // draw window
-    setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternal(tex, box,
                           STextureRenderData{
                               .damage        = &texDamage,
@@ -2471,10 +2406,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
                               .wrapX         = data.wrapX,
                               .wrapY         = data.wrapY,
                           });
-
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    scissor(nullptr);
 }
 
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& grad, SBorderRenderData data) {
@@ -3232,7 +3163,6 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
         RESIT->second.monitorMirrorFB.release();
         RESIT->second.blurFB.release();
         RESIT->second.offMainFB.release();
-        RESIT->second.stencilTex->destroyTexture();
         g_pHyprOpenGL->m_monitorRenderResources.erase(RESIT);
     }
 
@@ -3262,8 +3192,6 @@ void CHyprOpenGLImpl::bindOffMain() {
     if (!m_renderData.pCurrentMonData->offMainFB.isAllocated()) {
         m_renderData.pCurrentMonData->offMainFB.alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
                                                       m_renderData.pMonitor->m_output->state->state().drmFormat);
-
-        m_renderData.pCurrentMonData->offMainFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
     }
 
     m_renderData.pCurrentMonData->offMainFB.bind();

@@ -1524,3 +1524,19 @@ void CHyprMasterLayout::onEnable() {
 void CHyprMasterLayout::onDisable() {
     m_masterNodesData.clear();
 }
+
+std::optional<CHyprMasterLayout::SLayoutData> CHyprMasterLayout::getLayoutData(PHLWINDOW pWindow) {
+    auto* pNode = getNodeFromWindow(pWindow);
+    if (!pNode)
+        return std::nullopt;
+
+    auto*        pWorkspaceData = getMasterWorkspaceData(pWindow->workspaceID());
+    eOrientation orientation    = pWorkspaceData ? pWorkspaceData->orientation : ORIENTATION_LEFT;
+
+    return SLayoutData{
+        .isMaster    = pNode->isMaster,
+        .percMaster  = pNode->percMaster,
+        .percSize    = pNode->percSize,
+        .orientation = orientation,
+    };
+}

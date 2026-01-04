@@ -2650,9 +2650,20 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     layerBox.y =
         ((pLayer->m_realPosition->value().y - PMONITOR->m_position.y) * PMONITOR->m_scale) - (((pLayer->m_geometry.y - PMONITOR->m_position.y) * PMONITOR->m_scale) * scaleXY.y);
 
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+    const bool SHOULD_BLUR = shouldBlur(pLayer);
+
+    if (SHOULD_BLUR) {
+        CRectPassElement::SRectData data;
+        data.box   = CBox{pLayer->m_realPosition->value(), pLayer->m_realSize->value()}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).round();
+        data.color = CHyprColor{0, 0, 0, 0};
+        data.blur  = true;
+        data.blurA = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+        data.xray  = pLayer->m_ruleApplicator->xray().valueOr(false);
+
+        m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+    }
 
     CTexPassElement::SRenderData data;
     data.flipEndFrame = true;
@@ -2660,10 +2671,6 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     data.box          = layerBox;
     data.a            = pLayer->m_alpha->value();
     data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
-    if (SHOULD_BLUR)
-        data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2672,9 +2679,7 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
         return;
 
-    static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
-
-    const auto          FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
 
     if (!FBDATA->getTexture())
         return;
@@ -2684,21 +2689,27 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!PMONITOR)
         return;
 
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(popup);
+    const bool SHOULD_BLUR = shouldBlur(popup);
+
+    if (SHOULD_BLUR) {
+        CRectPassElement::SRectData data;
+        data.box   = CBox{popup->coordsGlobal(), popup->size()}.translate(-PMONITOR->m_position).scale(PMONITOR->m_scale).round();
+        data.color = CHyprColor{0, 0, 0, 0};
+        data.blur  = true;
+        data.blurA = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+        data.xray  = false;
+
+        m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+    }
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame          = true;
-    data.tex                   = FBDATA->getTexture();
-    data.box                   = {{}, PMONITOR->m_transformedSize};
-    data.a                     = popup->m_alpha->value();
-    data.damage                = fakeDamage;
-    data.blur                  = SHOULD_BLUR;
-    data.blurA                 = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
-    data.blockBlurOptimization = SHOULD_BLUR;                   // force no xray on this (popups never have xray)
-    if (SHOULD_BLUR)
-        data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
+    data.flipEndFrame = true;
+    data.tex          = FBDATA->getTexture();
+    data.box          = {{}, PMONITOR->m_transformedSize};
+    data.a            = popup->m_alpha->value();
+    data.damage       = fakeDamage;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

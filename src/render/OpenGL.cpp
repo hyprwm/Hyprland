@@ -890,6 +890,12 @@ void CHyprOpenGLImpl::end() {
         popMonitorTransformEnabled();
     }
 
+    // invalidate our render FBs to signal to the driver we don't need them anymore
+    m_renderData.pCurrentMonData->mirrorFB.invalidate();
+    m_renderData.pCurrentMonData->mirrorSwapFB.invalidate();
+    m_renderData.pCurrentMonData->offloadFB.invalidate();
+    m_renderData.pCurrentMonData->offMainFB.invalidate();
+
     // reset our data
     m_renderData.pMonitor.reset();
     m_renderData.mouseZoomFactor   = 1.f;

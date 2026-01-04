@@ -19,6 +19,7 @@ class CFramebuffer {
     SP<CTexture> getTexture();
     SP<CTexture> getStencilTex();
     GLuint       getFBID();
+    void         invalidate();
 
     Vector2D     m_size;
     DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;

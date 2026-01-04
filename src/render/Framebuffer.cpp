@@ -123,3 +123,11 @@ GLuint CFramebuffer::getFBID() {
 SP<CTexture> CFramebuffer::getStencilTex() {
     return m_stencilTex;
 }
+
+void CFramebuffer::invalidate() {
+    if (!isAllocated())
+        return;
+
+    GLenum attachments[] = {GL_COLOR_ATTACHMENT0};
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, attachments);
+}

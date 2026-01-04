@@ -400,15 +400,9 @@ static Hyprlang::CParseResult handleWindowrule(const char* c, const char* v) {
 }
 
 static Hyprlang::CParseResult handleWindowrulev2(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-
-    const auto             RESULT = g_pConfigManager->handleWindowrulev2(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    Hyprlang::CParseResult res;
+    res.setError("windowrulev2 is deprecated. Correct syntax can be found on the wiki.");
+    return res;
 }
 
 static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
@@ -424,14 +418,9 @@ static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
 }
 
 static Hyprlang::CParseResult handleLayerrulev2(const char* c, const char* v) {
-    const std::string      VALUE   = v;
-    const std::string      COMMAND = c;
-    const auto             RESULT  = g_pConfigManager->handleLayerrulev2(COMMAND, VALUE);
-
-    Hyprlang::CParseResult result;
-    if (RESULT.has_value())
-        result.setError(RESULT.value().c_str());
-    return result;
+    Hyprlang::CParseResult res;
+    res.setError("layerrulev2 doesn't exist. Correct syntax can be found on the wiki.");
+    return res;
 }
 
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
@@ -2973,10 +2962,6 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     return std::nullopt;
 }
 
-std::optional<std::string> CConfigManager::handleWindowrulev2(const std::string& command, const std::string& value) {
-    return std::format("windowrulev2 is depreciated. Correct syntax can be found on the wiki.");
-}
-
 std::optional<std::string> CConfigManager::handleLayerrule(const std::string& command, const std::string& value) {
     CVarList2                     data((std::string(value)));
 
@@ -3012,10 +2997,6 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
     m_keywordRules.emplace_back(std::move(rule));
 
     return std::nullopt;
-}
-
-std::optional<std::string> CConfigManager::handleLayerrulev2(const std::string& command, const std::string& value) {
-    return std::format("layerrulev2 doesn't exist. Find the correct syntax on the wiki, and stop using AI to solve your problems");
 }
 
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {

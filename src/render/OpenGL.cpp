@@ -891,9 +891,13 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
+    m_renderData.pCurrentMonData->mirrorFB.bind();
     m_renderData.pCurrentMonData->mirrorFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->mirrorSwapFB.bind();
     m_renderData.pCurrentMonData->mirrorSwapFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->offloadFB.bind();
     m_renderData.pCurrentMonData->offloadFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->offMainFB.bind();
     m_renderData.pCurrentMonData->offMainFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
 
     // reset our data

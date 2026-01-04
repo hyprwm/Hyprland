@@ -152,6 +152,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["global"]                         = global;
     m_dispatchers["setprop"]                        = setProp;
     m_dispatchers["forceidle"]                      = forceIdle;
+	m_dispatchers["releaseinputcapture"]			= releaseInputCapture;
 
     m_scrollTimer.reset();
 

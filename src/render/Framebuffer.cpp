@@ -78,7 +78,7 @@ void CFramebuffer::bind() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
 
     if (g_pHyprOpenGL)
-        g_pHyprOpenGL->setViewport(0, 0, m_size.x, m_size.y);
+        g_pHyprOpenGL->setViewport(0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y);
     else
         glViewport(0, 0, m_size.x, m_size.y);
 }

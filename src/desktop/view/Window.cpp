@@ -1495,6 +1495,15 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
+    // Preserve explicit workspace assignments (from rules or user actions) - don't reassign based on position
+    if (m_workspaceExplicitlyAssigned) {
+        auto newWorkspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->m_activeWorkspace;
+        if (m_workspace != newWorkspace)
+            Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: preserving explicit workspace '{}' (would have changed to '{}') for window '{}'", m_workspace->m_name,
+                             newWorkspace->m_name, m_title);
+        return;
+    }
+
     m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->m_activeWorkspace;
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
@@ -2147,8 +2156,10 @@ void CWindow::mapWindow() {
 
             PWORKSPACE = pWorkspace;
 
-            m_workspace = pWorkspace;
-            m_monitor   = pWorkspace->m_monitor;
+            m_workspace                   = pWorkspace;
+            m_workspaceExplicitlyAssigned = true;
+            Log::logger->log(Log::DEBUG, "Window '{}' explicitly assigned to workspace '{}' via window rule", m_title, pWorkspace->m_name);
+            m_monitor = pWorkspace->m_monitor;
 
             if (m_monitor.lock()->m_activeSpecialWorkspace && !pWorkspace->m_isSpecialWorkspace)
                 workspaceSilent = true;

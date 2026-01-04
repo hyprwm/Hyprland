@@ -399,11 +399,34 @@ static Hyprlang::CParseResult handleWindowrule(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleWindowrulev2(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = g_pConfigManager->handleWindowrulev2(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
 
     const auto             RESULT = g_pConfigManager->handleLayerrule(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
+static Hyprlang::CParseResult handleLayerrulev2(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+    const auto             RESULT  = g_pConfigManager->handleLayerrulev2(COMMAND, VALUE);
 
     Hyprlang::CParseResult result;
     if (RESULT.has_value())
@@ -870,6 +893,10 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handlePermission, "permission", {false});
     m_config->registerHandler(&::handleGesture, "gesture", {true});
     m_config->registerHandler(&::handleEnv, "env", {true});
+
+    // windowrulev2 and layerrulev2 errors
+    m_config->registerHandler(&::handleWindowrulev2, "windowrulev2", {false});
+    m_config->registerHandler(&::handleLayerrulev2, "layerrulev2", {false});
 
     // pluginza
     m_config->addSpecialCategory("plugin", {nullptr, true});
@@ -2946,6 +2973,10 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
     return std::nullopt;
 }
 
+std::optional<std::string> CConfigManager::handleWindowrulev2(const std::string& command, const std::string& value) {
+    return std::format("windowrulev2 is depreciated. Correct syntax can be found on the wiki.");
+}
+
 std::optional<std::string> CConfigManager::handleLayerrule(const std::string& command, const std::string& value) {
     CVarList2                     data((std::string(value)));
 
@@ -2981,6 +3012,10 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
     m_keywordRules.emplace_back(std::move(rule));
 
     return std::nullopt;
+}
+
+std::optional<std::string> CConfigManager::handleLayerrulev2(const std::string& command, const std::string& value) {
+    return std::format("layerrulev2 doesn't exist. Find the correct syntax on the wiki, and stop using AI to solve your problems");
 }
 
 const std::vector<SConfigOptionDescription>& CConfigManager::getAllDescriptions() {

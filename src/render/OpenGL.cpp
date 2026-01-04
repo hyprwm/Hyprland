@@ -891,10 +891,10 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    m_renderData.pCurrentMonData->mirrorFB.invalidate();
-    m_renderData.pCurrentMonData->mirrorSwapFB.invalidate();
-    m_renderData.pCurrentMonData->offloadFB.invalidate();
-    m_renderData.pCurrentMonData->offMainFB.invalidate();
+    m_renderData.pCurrentMonData->mirrorFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->mirrorSwapFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->offloadFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    m_renderData.pCurrentMonData->offMainFB.invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
 
     // reset our data
     m_renderData.pMonitor.reset();
@@ -1438,39 +1438,14 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
 
     m_renderData.currentFB->bind();
 
-    // make a stencil for rounded corners to work with blur
-    scissor(nullptr); // allow the entire window and stencil to render
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    setCapStatus(GL_STENCIL_TEST, true);
-
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    scissor(box);
     CBox MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
     pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF = m_renderData.renderModif;
     m_renderData.renderModif    = {}; // fix shit
     renderTexture(POUTFB->getTexture(), MONITORBOX,
-                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = 0, .roundingPower = 2.0f, .allowCustomUV = false, .allowDim = false, .noAA = false});
+                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
     popMonitorTransformEnabled();
     m_renderData.renderModif = SAVEDRENDERMODIF;
-
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-    setCapStatus(GL_STENCIL_TEST, false);
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    scissor(nullptr);
 
     renderRectWithDamageInternal(box, col, data);
 }
@@ -2392,32 +2367,35 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
 
     m_renderData.currentFB->bind();
 
-    // make a stencil for rounded corners to work with blur
-    scissor(nullptr); // allow the entire window and stencil to render
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
+    const auto NEEDS_STENCIL = m_renderData.discardMode != 0;
 
-    setCapStatus(GL_STENCIL_TEST, true);
+    if (NEEDS_STENCIL) {
+        scissor(nullptr); // allow the entire window and stencil to render
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
 
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        setCapStatus(GL_STENCIL_TEST, true);
 
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
-        renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-    else
-        renderTexture(tex, box,
-                      STextureRenderData{.a             = data.a,
-                                         .round         = data.round,
-                                         .roundingPower = data.roundingPower,
-                                         .discardActive = true,
-                                         .allowCustomUV = true,
-                                         .wrapX         = data.wrapX,
-                                         .wrapY         = data.wrapY}); // discard opaque
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    glStencilFunc(GL_EQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
+            renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
+        else
+            renderTexture(tex, box,
+                          STextureRenderData{.a             = data.a,
+                                             .round         = data.round,
+                                             .roundingPower = data.roundingPower,
+                                             .discardActive = true,
+                                             .allowCustomUV = true,
+                                             .wrapX         = data.wrapX,
+                                             .wrapY         = data.wrapY}); // discard opaque
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glStencilFunc(GL_EQUAL, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    }
 
     // stencil done. Render everything.
     const auto LASTTL = m_renderData.primarySurfaceUVTopLeft;
@@ -2458,10 +2436,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     m_renderData.primarySurfaceUVTopLeft     = LASTTL;
     m_renderData.primarySurfaceUVBottomRight = LASTBR;
 
-    // render the window, but clear stencil
-    glClearStencil(0);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
     // draw window
     setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternal(tex, box,
@@ -2478,8 +2452,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
                               .wrapY         = data.wrapY,
                           });
 
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    m_renderData.currentFB->invalidate({GL_STENCIL_ATTACHMENT});
     scissor(nullptr);
 }
 

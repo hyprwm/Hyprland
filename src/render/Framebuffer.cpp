@@ -124,10 +124,9 @@ SP<CTexture> CFramebuffer::getStencilTex() {
     return m_stencilTex;
 }
 
-void CFramebuffer::invalidate() {
+void CFramebuffer::invalidate(const std::vector<GLenum>& attachments) {
     if (!isAllocated())
         return;
 
-    GLenum attachments[] = {GL_COLOR_ATTACHMENT0};
-    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, attachments);
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
 }

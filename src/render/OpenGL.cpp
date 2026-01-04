@@ -1353,16 +1353,16 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
     TRACY_GPU_ZONE("RenderClear");
 
-    glClearColor(color.r, color.g, color.b, color.a);
+    // we specifically use a renderRect here to avoid some driver shenanigans,
+    // especially on intel. For more info, ask Tom.
 
-    if (!m_renderData.damage.empty()) {
-        m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
-            glClear(GL_COLOR_BUFFER_BIT);
-        });
-    }
+    const auto BLEND = m_blend;
+    blend(false);
 
-    scissor(nullptr);
+    CBox monbox = {{}, m_renderData.pMonitor->m_pixelSize};
+    renderRect(monbox, color, {.damage = &m_renderData.damage});
+
+    blend(BLEND);
 }
 
 void CHyprOpenGLImpl::blend(bool enabled) {

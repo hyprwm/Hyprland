@@ -482,6 +482,10 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     const auto  masteringPrimaries                                                        = getMasteringPrimaries();
     const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
+    const auto                                                        maxFALL =
+        m_maxAvgLuminance >= 0 ? m_maxAvgLuminance >= 0 : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
+    const auto maxCLL = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
+
     switch (cmType) {
         case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
         case NCMType::CM_WIDE:
@@ -490,7 +494,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                                                           .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
                                                           .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
                                                           .masteringPrimaries  = masteringPrimaries,
-                                                          .masteringLuminances = masteringLuminances});
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DCIP3:
             m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
@@ -498,7 +504,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                                                           .primariesNamed      = NColorManagement::CM_PRIMARIES_DCI_P3,
                                                           .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3),
                                                           .masteringPrimaries  = masteringPrimaries,
-                                                          .masteringLuminances = masteringLuminances});
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DP3:
             m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
@@ -506,7 +514,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                                                           .primariesNamed      = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
                                                           .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3),
                                                           .masteringPrimaries  = masteringPrimaries,
-                                                          .masteringLuminances = masteringLuminances});
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_ADOBE:
             m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
@@ -514,7 +524,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                                                           .primariesNamed      = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
                                                           .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB),
                                                           .masteringPrimaries  = masteringPrimaries,
-                                                          .masteringLuminances = masteringLuminances});
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_EDID:
             m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
@@ -522,7 +534,9 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                                                           .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
                                                           .primaries           = masteringPrimaries,
                                                           .masteringPrimaries  = masteringPrimaries,
-                                                          .masteringLuminances = masteringLuminances});
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_HDR: m_imageDescription = DEFAULT_HDR_IMAGE_DESCRIPTION; break;
         case NCMType::CM_HDR_EDID:
@@ -532,19 +546,21 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
                  .primaries = m_output->parsedEDID.chromaticityCoords.has_value() ? masteringPrimaries : NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
                  .masteringPrimaries  = masteringPrimaries,
-                 .luminances          = {.min       = m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                         .max       = m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                         .reference = m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance},
-                 .masteringLuminances = masteringLuminances});
+                 .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
+                                         .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
+                                         .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
+                 .masteringLuminances = masteringLuminances,
+                 .maxCLL              = maxCLL,
+                 .maxFALL             = maxFALL});
 
             break;
         default: UNREACHABLE();
     }
     if ((m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
-            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min,            //
-            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max,            //
-            .reference = m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : m_imageDescription->value().luminances.reference //
+            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min, //
+            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max, //
+            .reference = m_imageDescription->value().luminances.reference                                   //
         });
 
     if (oldImageDescription != m_imageDescription) {

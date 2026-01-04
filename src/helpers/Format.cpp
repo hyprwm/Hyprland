@@ -326,3 +326,7 @@ std::string NFormatUtils::drmModifierName(uint64_t mod) {
     free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }
+
+SHMFormat NFormatUtils::swapAlphaFormat(SHMFormat prevFormat) {
+    return prevFormat & 0x240 ? prevFormat ^ 0x19 : prevFormat & 0x2 ? prevFormat ^ 0x1900 : DRM_FORMAT_INVALID;
+}

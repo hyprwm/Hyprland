@@ -100,7 +100,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_shmFormat = NFormatUtils::swapAlphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(Log::ERR, "No format supported by renderer in capture toplevel");
         m_resource->sendFailed();
@@ -114,7 +114,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_dmabufFormat = NFormatUtils::swapAlphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 

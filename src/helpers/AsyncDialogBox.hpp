@@ -27,6 +27,7 @@ class CAsyncDialogBox {
     void                      kill();
     bool                      isRunning() const;
     pid_t                     getPID() const;
+    void                      setExecRule(std::string&& s);
 
     SP<CAsyncDialogBox>       lockSelf();
 
@@ -41,7 +42,8 @@ class CAsyncDialogBox {
     pid_t                             m_dialogPid       = 0;
     wl_event_source*                  m_readEventSource = nullptr;
     Hyprutils::OS::CFileDescriptor    m_pipeReadFd;
-    std::string                       m_stdout = "";
+    std::string                       m_stdout        = "";
+    std::string                       m_execRuleToken = "";
 
     const std::string                 m_title;
     const std::string                 m_description;

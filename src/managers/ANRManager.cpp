@@ -208,7 +208,6 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
         break;
     }
 
-
     dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {
             Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: error spawning dialog");

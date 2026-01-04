@@ -321,6 +321,8 @@ class CMonitor {
     float       minLuminance(float defaultValue = 0);
     int         maxLuminance(int defaultValue = 80);
     int         maxAvgLuminance(int defaultValue = 80);
+    float       maxFALL();
+    float       maxCLL();
 
     bool        wantsWideColor();
     bool        wantsHDR();

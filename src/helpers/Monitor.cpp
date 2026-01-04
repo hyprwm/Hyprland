@@ -482,9 +482,8 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     const auto  masteringPrimaries                                                        = getMasteringPrimaries();
     const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
-    const auto                                                        maxFALL =
-        m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
-    const auto maxCLL = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
+    const auto                                                        maxFALL = this->maxFALL();
+    const auto                                                        maxCLL  = this->maxCLL();
 
     switch (cmType) {
         case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
@@ -2038,6 +2037,14 @@ int CMonitor::maxLuminance(int defaultValue) {
 int CMonitor::maxAvgLuminance(int defaultValue) {
     return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance :
                                     (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : defaultValue);
+}
+
+float CMonitor::maxFALL() {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
+}
+
+float CMonitor::maxCLL() {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
 }
 
 bool CMonitor::wantsWideColor() {

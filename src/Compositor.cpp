@@ -2973,15 +2973,16 @@ PImageDescription CCompositor::getHDRImageDescription() {
     }
 
     return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?
-        CImageDescription::from(SImageDescription{.transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                                  .primariesNameSet    = true,
-                                                  .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
-                                                  .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                                  .masteringPrimaries  = m_monitors[0]->getMasteringPrimaries(),
-                                                  .luminances          = {.min       = m_monitors[0]->minLuminance(HDR_MIN_LUMINANCE),
-                                                                          .max       = m_monitors[0]->maxLuminance(HDR_MAX_LUMINANCE),
-                                                                          .reference = m_monitors[0]->maxAvgLuminance(HDR_REF_LUMINANCE)},
-                                                  .masteringLuminances = m_monitors[0]->getMasteringLuminances()}) :
+        CImageDescription::from(SImageDescription{
+            .transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+            .primariesNameSet    = true,
+            .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+            .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+            .masteringPrimaries  = m_monitors[0]->getMasteringPrimaries(),
+            .luminances          = {.min = m_monitors[0]->minLuminance(HDR_MIN_LUMINANCE), .max = m_monitors[0]->maxLuminance(HDR_MAX_LUMINANCE), .reference = HDR_REF_LUMINANCE},
+            .masteringLuminances = m_monitors[0]->getMasteringLuminances(),
+            .maxCLL              = m_monitors[0]->maxCLL(),
+            .maxFALL             = m_monitors[0]->maxFALL()}) :
         DEFAULT_HDR_IMAGE_DESCRIPTION;
 }
 

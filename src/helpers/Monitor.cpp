@@ -1026,8 +1026,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const bool shouldSkip = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        m_output->state->state().adaptiveSync;
+    const auto FS_WINDOW  = getFullscreenWindow();
+    const bool shouldSkip = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME)) && m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
@@ -1357,6 +1357,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pDesktopAnimationManager->startAnimation(m_activeSpecialWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + m_name});
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
+
+            // Reset layer surface state when closing special workspace
+            for (auto const& ls : g_pCompositor->m_layers) {
+                if (ls->m_monitor == m_self)
+                    ls->m_aboveFullscreen = false;
+            }
         }
         m_activeSpecialWorkspace.reset();
 
@@ -1396,6 +1402,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
 
+        // Reset layer surfaces on the old monitor when special workspace is stolen
+        for (auto const& ls : g_pCompositor->m_layers) {
+            if (ls->m_monitor == PMWSOWNER)
+                ls->m_aboveFullscreen = false;
+        }
+
         const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
                                                                PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
@@ -1408,6 +1420,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     pWorkspace->m_monitor               = m_self;
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
+
+    // Reset layer surface state when opening special workspace
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_self)
+            ls->m_aboveFullscreen = false;
+    }
 
     if (POLDSPECIAL)
         POLDSPECIAL->m_events.activeChanged.emit();
@@ -2017,16 +2035,28 @@ bool CMonitor::inHDR() {
 }
 
 bool CMonitor::inFullscreenMode() {
+    // Check special workspace first since it renders on top of regular workspaces
+    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return true;
     return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+}
+
+PHLWINDOW CMonitor::getFullscreenWindow() {
+    // Check special workspace first since it renders on top of regular workspaces
+    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return m_activeSpecialWorkspace->getFullscreenWindow();
+    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return m_activeWorkspace->getFullscreenWindow();
+    return nullptr;
 }
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
     if (!inFullscreenMode())
         return {};
 
-    const auto FS_WINDOW = m_activeWorkspace->getFullscreenWindow();
+    const auto FS_WINDOW = getFullscreenWindow();
     if (!FS_WINDOW)
-        return {}; // should be unreachable
+        return {};
 
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();

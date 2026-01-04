@@ -3,6 +3,7 @@
 #include <print>
 
 #include "helpers/Logger.hpp"
+#include "helpers/Nix.hpp"
 #include "core/State.hpp"
 #include "core/Instance.hpp"
 
@@ -76,6 +77,12 @@ int main(int argc, const char** argv, const char** envp) {
 
     if (!g_state->rawArgvNoBinPath.empty())
         g_logger->log(Hyprutils::CLI::LOG_WARN, "Arguments after -- are passed to Hyprland");
+
+    // check if our environment is OK
+    if (const auto RET = Nix::nixEnvironmentOk(); !RET) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "Nix environment check failed:\n{}", RET.error());
+        return 1;
+    }
 
     bool safeMode = false;
     while (true) {

@@ -483,7 +483,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
     const auto                                                        maxFALL =
-        m_maxAvgLuminance >= 0 ? m_maxAvgLuminance >= 0 : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
+        m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
     const auto maxCLL = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
 
     switch (cmType) {

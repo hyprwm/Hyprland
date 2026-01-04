@@ -200,6 +200,8 @@ class CHyprOpenGLImpl {
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
         SP<CMonitor>           cmBackToSRGBSource;
+        SP<CTexture>           ignoreASourceTex       = nullptr;
+        std::array<float, 4>   ignoreASourceTexCoords = {0};
     };
 
     struct SBorderRenderData {

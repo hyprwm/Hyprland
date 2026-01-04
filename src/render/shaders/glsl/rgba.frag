@@ -4,12 +4,15 @@
 precision highp float;
 in vec2 v_texcoord; // is in 0-1
 uniform sampler2D tex;
+uniform sampler2D discardTex;
 uniform float alpha;
 
 #include "rounding.glsl"
 
 uniform int discardOpaque;
 uniform int discardAlpha;
+uniform int discardTexEnabled;
+uniform vec4 discardTexCoords;
 uniform float discardAlphaValue;
 
 uniform int applyTint;
@@ -20,11 +23,22 @@ void main() {
 
     vec4 pixColor = texture(tex, v_texcoord);
 
-    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
-	    discard;
+    if (discardTexEnabled == 1) {
+        vec2 coord = vec2((v_texcoord.x - discardTexCoords[0]) * (discardTexCoords[1] - discardTexCoords[0]), (v_texcoord.y - discardTexCoords[2]) * (discardTexCoords[3] - discardTexCoords[2]));
+        vec4 texColor = texture(discardTex, coord);
 
-    if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
-        discard;
+        if (discardOpaque == 1 && texColor[3] * alpha == 1.0)
+            discard;
+
+        if (discardAlpha == 1 && texColor[3] <= discardAlphaValue)
+            discard;
+    } else {
+        if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+            discard;
+
+        if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
+            discard;
+    }
 
     if (applyTint == 1) {
 	    pixColor[0] = pixColor[0] * tint[0];

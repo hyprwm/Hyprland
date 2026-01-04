@@ -45,6 +45,7 @@ void CTexPassElement::draw(const CRegion& damage) {
                                          .overallA              = 1.F,
                                          .round                 = m_data.round,
                                          .roundingPower         = m_data.roundingPower,
+                                         .discardActive         = m_data.ignoreAlpha.has_value(),
                                          .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
                                      });
     } else {

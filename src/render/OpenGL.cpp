@@ -1011,6 +1011,9 @@ bool CHyprOpenGLImpl::initShaders() {
                 shaders->m_shCM.uniformLocations[SHADER_DISCARD_OPAQUE]      = glGetUniformLocation(prog, "discardOpaque");
                 shaders->m_shCM.uniformLocations[SHADER_DISCARD_ALPHA]       = glGetUniformLocation(prog, "discardAlpha");
                 shaders->m_shCM.uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = glGetUniformLocation(prog, "discardAlphaValue");
+                shaders->m_shCM.uniformLocations[SHADER_DISCARD_TEX_ENABLED] = glGetUniformLocation(prog, "discardTexEnabled");
+                shaders->m_shCM.uniformLocations[SHADER_DISCARD_TEX_COORDS]  = glGetUniformLocation(prog, "discardTexCoords");
+                shaders->m_shCM.uniformLocations[SHADER_DISCARD_SOURCE_TEX]  = glGetUniformLocation(prog, "discardTex");
                 shaders->m_shCM.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
                 shaders->m_shCM.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
                 shaders->m_shCM.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
@@ -1061,6 +1064,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_OPAQUE]      = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_ALPHA]       = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = glGetUniformLocation(prog, "discardAlphaValue");
+        shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_TEX_ENABLED] = glGetUniformLocation(prog, "discardTexEnabled");
+        shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_TEX_COORDS]  = glGetUniformLocation(prog, "discardTexCoords");
+        shaders->m_shRGBA.uniformLocations[SHADER_DISCARD_SOURCE_TEX]  = glGetUniformLocation(prog, "discardTex");
         shaders->m_shRGBA.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBA.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBA.uniformLocations[SHADER_USE_ALPHA_MATTE]     = glGetUniformLocation(prog, "useAlphaMatte");
@@ -1113,6 +1119,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_OPAQUE]      = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_ALPHA]       = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = glGetUniformLocation(prog, "discardAlphaValue");
+        shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_TEX_ENABLED] = glGetUniformLocation(prog, "discardTexEnabled");
+        shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_SOURCE_TEX]  = glGetUniformLocation(prog, "discardTex");
+        shaders->m_shRGBX.uniformLocations[SHADER_DISCARD_TEX_COORDS]  = glGetUniformLocation(prog, "discardTexCoords");
         shaders->m_shRGBX.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shRGBX.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shRGBX.createVao();
@@ -1130,6 +1139,9 @@ bool CHyprOpenGLImpl::initShaders() {
         shaders->m_shEXT.uniformLocations[SHADER_DISCARD_OPAQUE]      = glGetUniformLocation(prog, "discardOpaque");
         shaders->m_shEXT.uniformLocations[SHADER_DISCARD_ALPHA]       = glGetUniformLocation(prog, "discardAlpha");
         shaders->m_shEXT.uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = glGetUniformLocation(prog, "discardAlphaValue");
+        shaders->m_shEXT.uniformLocations[SHADER_DISCARD_TEX_ENABLED] = glGetUniformLocation(prog, "discardTexEnabled");
+        shaders->m_shEXT.uniformLocations[SHADER_DISCARD_SOURCE_TEX]  = glGetUniformLocation(prog, "discardTex");
+        shaders->m_shEXT.uniformLocations[SHADER_DISCARD_TEX_COORDS]  = glGetUniformLocation(prog, "discardTexCoords");
         shaders->m_shEXT.uniformLocations[SHADER_APPLY_TINT]          = glGetUniformLocation(prog, "applyTint");
         shaders->m_shEXT.uniformLocations[SHADER_TINT]                = glGetUniformLocation(prog, "tint");
         shaders->m_shEXT.createVao();
@@ -1767,6 +1779,15 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             shader->setUniformInt(SHADER_DISCARD_OPAQUE, !!(m_renderData.discardMode & DISCARD_OPAQUE));
             shader->setUniformInt(SHADER_DISCARD_ALPHA, !!(m_renderData.discardMode & DISCARD_ALPHA));
             shader->setUniformFloat(SHADER_DISCARD_ALPHA_VALUE, m_renderData.discardOpacity);
+            if (data.ignoreASourceTex) {
+                glActiveTexture(GL_TEXTURE2);
+                data.ignoreASourceTex->bind();
+                shader->setUniformInt(SHADER_DISCARD_TEX_ENABLED, 1);
+                shader->setUniformInt(SHADER_DISCARD_SOURCE_TEX, 2);
+                shader->setUniformFloat4(SHADER_DISCARD_TEX_COORDS, data.ignoreASourceTexCoords[0], data.ignoreASourceTexCoords[1], data.ignoreASourceTexCoords[2],
+                                         data.ignoreASourceTexCoords[3]);
+            } else
+                shader->setUniformInt(SHADER_DISCARD_TEX_ENABLED, 0);
         } else {
             shader->setUniformInt(SHADER_DISCARD_OPAQUE, 0);
             shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
@@ -1842,6 +1863,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    if (data.ignoreASourceTex) {
+        glActiveTexture(GL_TEXTURE2);
+        data.ignoreASourceTex->bind();
+    }
+    glActiveTexture(GL_TEXTURE0);
     tex->unbind();
 }
 
@@ -2362,10 +2388,12 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
-    CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
-                            transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
+    const auto TRANSFORMED_SIZE = m_renderData.pMonitor->m_transformedSize;
+
+    CBox       monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                                  transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
+                                  transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                                  transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
 
     m_renderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize;
     m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
@@ -2374,18 +2402,21 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     pushMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
-    renderTextureInternal(POUTFB->getTexture(), box,
-                          STextureRenderData{
-                              .damage        = &texDamage,
-                              .a             = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
-                              .round         = data.round,
-                              .roundingPower = data.roundingPower,
-                              .discardActive = false,
-                              .allowCustomUV = true,
-                              .noAA          = false,
-                              .wrapX         = data.wrapX,
-                              .wrapY         = data.wrapY,
-                          });
+    renderTextureInternal(
+        POUTFB->getTexture(), box,
+        STextureRenderData{
+            .damage                 = &texDamage,
+            .a                      = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
+            .round                  = data.round,
+            .roundingPower          = data.roundingPower,
+            .discardActive          = true,
+            .allowCustomUV          = true,
+            .noAA                   = false,
+            .wrapX                  = data.wrapX,
+            .wrapY                  = data.wrapY,
+            .ignoreASourceTex       = tex,
+            .ignoreASourceTexCoords = {box.x / TRANSFORMED_SIZE.x, (box.x + box.w) / TRANSFORMED_SIZE.x, box.y / TRANSFORMED_SIZE.y, (box.y + box.h) / TRANSFORMED_SIZE.y},
+        });
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     popMonitorTransformEnabled();

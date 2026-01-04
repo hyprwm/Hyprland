@@ -18,6 +18,121 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+// Uncomment once test vm can run hyprland-dialog
+// static void testAnrDialogs() {
+//     NLog::log("{}Testing ANR dialogs", Colors::YELLOW);
+//
+//     OK(getFromSocket("/keyword misc:enable_anr_dialog true"));
+//     OK(getFromSocket("/keyword misc:anr_missed_pings 1"));
+//
+//     NLog::log("{}ANR dialog: regular workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace 2"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "workspace: 2");
+//         }
+//
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "workspace: 2");
+//         }
+//     }
+//
+//     Tests::killAllWindows();
+//
+//     NLog::log("{}ANR dialog: named workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace name:yummy"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "yummy");
+//         }
+//
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "yummy");
+//         }
+//     }
+//
+//     Tests::killAllWindows();
+//
+//     NLog::log("{}ANR dialog: special workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace special:apple"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "special:apple");
+//         }
+//
+//         OK(getFromSocket("/dispatch togglespecialworkspace apple"));
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "special:apple");
+//         }
+//     }
+//
+//     OK(getFromSocket("/reload"));
+//     Tests::killAllWindows();
+// }
+
 static bool test() {
     NLog::log("{}Testing config: misc:", Colors::GREEN);
 

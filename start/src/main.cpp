@@ -17,7 +17,12 @@ using namespace Hyprutils::CLI;
     }
 
 constexpr const char* HELP_INFO = R"#(start-hyprland - A binary to properly start Hyprland via a watchdog process.
-Any arguments after -- are passed to Hyprland. For Hyprland help, run start-hyprland -- --help or Hyprland --help)#";
+Any arguments after -- are passed to Hyprland. For Hyprland help, run start-hyprland -- --help or Hyprland --help
+
+Additional arguments for start-hyprland:
+ --path [path]       -> Override Hyprland path
+ --no-nixgl          -> Force disable nixGL
+)#";
 
 //
 static void onSignal(int sig) {
@@ -48,7 +53,7 @@ int main(int argc, const char** argv, const char** envp) {
     terminateChildOnSignal(SIGTERM);
     terminateChildOnSignal(SIGINT);
 
-    int startArgv = -1;
+    int  startArgv = -1;
 
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];
@@ -68,6 +73,10 @@ int main(int argc, const char** argv, const char** envp) {
             }
 
             g_state->customPath = argv[++i];
+            continue;
+        }
+        if (arg == "--no-nixgl") {
+            g_state->noNixGl = true;
             continue;
         }
     }

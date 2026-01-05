@@ -1,6 +1,7 @@
 #include "Nix.hpp"
 
 #include "Logger.hpp"
+#include "../core/State.hpp"
 
 #include <filesystem>
 #include <algorithm>
@@ -81,6 +82,9 @@ std::expected<void, std::string> Nix::nixEnvironmentOk() {
 }
 
 bool Nix::shouldUseNixGL() {
+    if (g_state->noNixGl)
+        return false;
+
     // check if installed hyprland is nix'd
     CProcess proc("Hyprland", {"--version-json"});
     if (!proc.runSync()) {

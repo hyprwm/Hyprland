@@ -37,12 +37,14 @@
 #include "../../helpers/math/Expression.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/LayoutManager.hpp"
+#include "../../layout/target/WindowTarget.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -75,6 +77,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
+    pWindow->m_target = Layout::CWindowTarget::create(pWindow);
+
     return pWindow;
 }
 
@@ -99,6 +103,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
+
+    pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
     pWindow->wlSurface()->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
@@ -260,7 +266,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     }
 
     // get work area
-    const auto WORKAREA = g_pLayoutManager->getCurrentLayout()->workAreaOnWorkspace(m_workspace);
+    const auto WORKAREA = m_workspace->m_space->workArea();
     const auto RESERVED = CReservedArea{PMONITOR->logicalBox(), WORKAREA};
 
     if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, RESERVED.top(), 1)) {
@@ -353,14 +359,14 @@ void CWindow::addWindowDeco(UP<IHyprWindowDecoration> deco) {
     m_windowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
 }
 
 void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
     m_decosToRemove.push_back(deco);
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
 }
 
 void CWindow::uncacheWindowDecos() {
@@ -489,11 +495,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     OLDWORKSPACE->updateWindows();
     OLDWORKSPACE->updateWindowData();
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
 
     pWorkspace->updateWindows();
     pWorkspace->updateWindowData();
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -583,7 +589,7 @@ void CWindow::onUnmap() {
         m_workspace->updateWindows();
         m_workspace->updateWindowData();
     }
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_workspace.reset();
@@ -741,7 +747,7 @@ void CWindow::createGroup() {
             m_workspace->updateWindows();
             m_workspace->updateWindowData();
         }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", rc<uintptr_t>(this))});
@@ -763,7 +769,7 @@ void CWindow::destroyGroup() {
             m_workspace->updateWindows();
             m_workspace->updateWindowData();
         }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
         g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(this))});
@@ -786,14 +792,14 @@ void CWindow::destroyGroup() {
 
     for (auto const& w : members) {
         if (w->m_groupData.head)
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
-        w->m_groupData.head = false;
+            // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
+            w->m_groupData.head = false;
     }
 
     const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
     g_pKeybindManager->m_groupsLocked = true;
     for (auto const& w : members) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
+        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
         w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         w->updateWindowDecos();
     }
@@ -803,7 +809,7 @@ void CWindow::destroyGroup() {
         m_workspace->updateWindows();
         m_workspace->updateWindowData();
     }
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (!addresses.empty())
@@ -912,7 +918,7 @@ void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
     PCURRENT->setHidden(true);
     pWindow->setHidden(false); // can remove m_pLastWindow
 
-    g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
+    // g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
 
     if (PCURRENT->m_isFloating) {
         pWindow->m_realPosition->setValueAndWarp(PWINDOWPOSGOAL);
@@ -1804,21 +1810,21 @@ void CWindow::updateDecorationValues() {
     const bool IS_SHADOWED_BY_MODAL = m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel->anyChildModal();
 
     // border
-    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(m_self.lock());
-    if (RENDERDATA.isBorderGradient)
-        setBorderColor(*RENDERDATA.borderGradient);
-    else {
-        const bool GROUPLOCKED = m_groupData.pNextWindow.lock() ? getGroupHead()->m_groupData.locked : false;
-        if (m_self == Desktop::focusState()->window()) {
-            const auto* const ACTIVECOLOR =
-                !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
-            setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
-        } else {
-            const auto* const INACTIVECOLOR =
-                !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
-            setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
-        }
+    // const auto RENDERDATA = // g_pLayoutManager->getCurrentLayout()->requestRenderHints(m_self.lock());
+    // if (RENDERDATA.isBorderGradient)
+    //     setBorderColor(*RENDERDATA.borderGradient);
+    // else {
+    const bool GROUPLOCKED = m_groupData.pNextWindow.lock() ? getGroupHead()->m_groupData.locked : false;
+    if (m_self == Desktop::focusState()->window()) {
+        const auto* const ACTIVECOLOR =
+            !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
+        setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
+    } else {
+        const auto* const INACTIVECOLOR =
+            !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+        setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
     }
+    //}
 
     // opacity
     const auto PWORKSPACE = m_workspace;
@@ -2206,8 +2212,9 @@ void CWindow::mapWindow() {
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
     EMIT_HOOK_EVENT("openWindowEarly", m_self.lock());
 
+    g_layoutManager->newTarget(m_target, m_workspace->m_space);
+
     if (m_isFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_self.lock());
         m_createdOverFullscreen = true;
 
         if (!m_ruleApplicator->static_.size.empty()) {
@@ -2241,8 +2248,6 @@ void CWindow::mapWindow() {
 
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
     } else {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_self.lock());
-
         bool setPseudo = false;
 
         if (!m_ruleApplicator->static_.size.empty()) {
@@ -2342,10 +2347,10 @@ void CWindow::mapWindow() {
 
     // swallow
     if (SWALLOWER) {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
+        // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
         g_pHyprRenderer->damageWindow(SWALLOWER);
         SWALLOWER->setHidden(true);
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     }
 
     m_firstMap = false;
@@ -2358,7 +2363,7 @@ void CWindow::mapWindow() {
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
 
     // do animations
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
@@ -2433,7 +2438,7 @@ void CWindow::unmapWindow() {
             if (m_groupData.pNextWindow.lock())
                 m_swallowed->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
 
-            g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_swallowed.lock());
+            g_layoutManager->newTarget(m_swallowed->m_target, m_workspace->m_space);
         }
 
         m_swallowed->m_groupSwallowed = false;
@@ -2476,7 +2481,7 @@ void CWindow::unmapWindow() {
     if (PWORKSPACE->m_hasFullscreenWindow && isFullscreen())
         PWORKSPACE->m_hasFullscreenWindow = false;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
+    g_layoutManager->removeTarget(m_target);
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
@@ -2492,8 +2497,8 @@ void CWindow::unmapWindow() {
             if (*FOCUSONCLOSE)
                 candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
                                                                   Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
-            else
-                candidate = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
+            // else
+            //   candidate = // g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
         }
 
         Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
@@ -2549,7 +2554,7 @@ void CWindow::commitWindow() {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);
 
-        Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
+        Vector2D predSize = Vector2D{}; // g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 
@@ -2623,7 +2628,7 @@ void CWindow::destroyWindow() {
 
     m_listeners = {};
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
+    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
 
     m_readyToDelete = true;
 

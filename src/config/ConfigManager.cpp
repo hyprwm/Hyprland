@@ -24,7 +24,6 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -1313,7 +1312,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     for (auto const& m : g_pCompositor->m_monitors) {
         *(m->m_cursorZoom) = *PZOOMFACTOR;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
     }
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
@@ -1382,7 +1381,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     // update layout
-    g_pLayoutManager->switchToLayout(std::any_cast<Hyprlang::STRING>(m_config->getConfigValue("general:layout")));
+    // g_pLayoutManager->switchToLayout(std::any_cast<Hyprlang::STRING>(m_config->getConfigValue("general:layout")));
 
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
@@ -1444,8 +1443,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto const& m : g_pCompositor->m_monitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+      //  for (auto const& m : g_pCompositor->m_monitors)
+            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
     }
 
     // Update window border colors

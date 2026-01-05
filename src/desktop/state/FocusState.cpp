@@ -3,9 +3,10 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 
@@ -103,7 +104,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
         return;
 
-    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -127,7 +128,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 
         EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
 
-        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
+        // g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_focusSurface.reset();
 
@@ -196,7 +197,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
 
     g_pInputManager->recheckIdleInhibitorStatus();
 

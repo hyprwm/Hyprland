@@ -37,7 +37,6 @@
 #include "../../render/Renderer.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include "../../helpers/time/Time.hpp"
@@ -369,7 +368,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
     }
 
-    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
+    // g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
 
     // forced above all
     if (!g_pInputManager->m_exclusiveLSes.empty()) {

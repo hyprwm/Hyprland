@@ -1,6 +1,5 @@
 #include "FloatGesture.hpp"
 
-#include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/view/Window.hpp"
@@ -41,7 +40,7 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     }
 
     m_window->m_isFloating = !m_window->m_isFloating;
-    g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+    // g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
 
     m_posFrom  = m_window->m_realPosition->begun();
     m_sizeFrom = m_window->m_realSize->begun();
@@ -80,7 +79,7 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
         m_window->m_isFloating = !m_window->m_isFloating;
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+        // g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
         return;
     }
 

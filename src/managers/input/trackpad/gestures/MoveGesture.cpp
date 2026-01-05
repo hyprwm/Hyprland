@@ -2,7 +2,6 @@
 
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/view/Window.hpp"
-#include "../../../../managers/LayoutManager.hpp"
 #include "../../../../render/Renderer.hpp"
 
 void CMoveTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
@@ -19,7 +18,7 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
     const auto DELTA = e.swipe ? e.swipe->delta : e.pinch->delta;
 
     if (m_window->m_isFloating) {
-        g_pLayoutManager->getCurrentLayout()->moveActiveWindow(DELTA, m_window.lock());
+        // g_pLayoutManager->getCurrentLayout()->moveActiveWindow(DELTA, m_window.lock());
         m_window->m_realSize->warp();
         m_window->m_realPosition->warp();
         return;
@@ -52,10 +51,10 @@ void CMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
 
     if (std::abs(m_lastDelta.x) > std::abs(m_lastDelta.y)) {
         // horizontal
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(m_window.lock(), m_lastDelta.x > 0 ? "r" : "l");
+        // g_pLayoutManager->getCurrentLayout()->moveWindowTo(m_window.lock(), m_lastDelta.x > 0 ? "r" : "l");
     } else {
         // vertical
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(m_window.lock(), m_lastDelta.y > 0 ? "b" : "t");
+        // g_pLayoutManager->getCurrentLayout()->moveWindowTo(m_window.lock(), m_lastDelta.y > 0 ? "b" : "t");
     }
 
     const auto GOAL = m_window->m_realPosition->goal();

@@ -52,7 +52,6 @@ using namespace Hyprutils::OS;
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -672,23 +671,23 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
 static std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result = "";
-    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        result += "[";
+    // if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+    //     result += "[";
 
-        for (auto const& m : g_pLayoutManager->getAllLayoutNames()) {
-            result += std::format(
-                R"#(
-    "{}",)#",
-                m);
-        }
-        trimTrailingComma(result);
+    //     for (auto const& m : // g_pLayoutManager->getAllLayoutNames()) {
+    //         result += std::format(
+    //             R"#(
+    // "{}",)#",
+    //             m);
+    //     }
+    //     trimTrailingComma(result);
 
-        result += "\n]\n";
-    } else {
-        for (auto const& m : g_pLayoutManager->getAllLayoutNames()) {
-            result += std::format("{}\n", m);
-        }
-    }
+    //     result += "\n]\n";
+    // } else {
+    //     for (auto const& m : // g_pLayoutManager->getAllLayoutNames()) {
+    //         result += std::format("{}\n", m);
+    //     }
+    // }
     return result;
 }
 
@@ -1311,7 +1310,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
     if (COMMAND.contains("general:layout"))
-        g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
+        // g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
     if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
         g_pHyprOpenGL->m_reloadScreenShader = true;
@@ -1331,7 +1330,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         for (auto const& m : g_pCompositor->m_monitors) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
 
@@ -2188,7 +2187,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
         static auto PLAYOUT = CConfigValue<std::string>("general:layout");
 
-        g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
+        // g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
 
         g_pHyprOpenGL->m_reloadScreenShader = true;
 
@@ -2205,7 +2204,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
 

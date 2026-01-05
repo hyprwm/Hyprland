@@ -2,7 +2,6 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/state/FocusState.hpp"
-#include "managers/LayoutManager.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
@@ -405,11 +404,11 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     PHLWINDOW pWindow = m_window->getGroupWindowByIndex(WINDOWINDEX);
 
     // hack
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
     if (!pWindow->m_isFloating) {
         const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
         g_pKeybindManager->m_groupsLocked = true;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
         g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
     }
 
@@ -462,7 +461,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
             w->m_groupData.pNextWindow.reset();
             w->m_groupData.head   = false;
             w->m_groupData.locked = false;
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+            // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
         }
 
         // restores the group
@@ -478,7 +477,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
         members[0]->m_groupData.head   = true;
         members[0]->m_groupData.locked = WASLOCKED;
     } else
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+        // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
 
     pDraggedWindow->m_isFloating = pWindowInsertAfter->m_isFloating; // match the floating state of the window
 
@@ -490,7 +489,7 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     m_window->setGroupCurrent(pDraggedWindow);
     pDraggedWindow->applyGroupRules();
     pDraggedWindow->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
+    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
     if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
         pDraggedWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pDraggedWindow));

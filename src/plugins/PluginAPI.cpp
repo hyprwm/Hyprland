@@ -3,7 +3,6 @@
 #include "../debug/HyprCtl.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/HookSystemManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -62,25 +61,25 @@ APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, c
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+    // auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
-    if (!PLUGIN)
-        return false;
+    // if (!PLUGIN)
+    //     return false;
 
-    PLUGIN->m_registeredLayouts.push_back(layout);
+    // PLUGIN->m_registeredLayouts.push_back(layout);
 
-    return g_pLayoutManager->addLayout(name, layout);
+    // return // g_pLayoutManager->addLayout(name, layout);
 }
 
 APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+    // auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
-    if (!PLUGIN)
-        return false;
+    // if (!PLUGIN)
+    //     return false;
 
-    std::erase(PLUGIN->m_registeredLayouts, layout);
+    // std::erase(PLUGIN->m_registeredLayouts, layout);
 
-    return g_pLayoutManager->removeLayout(layout);
+    // return // g_pLayoutManager->removeLayout(layout);
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {
@@ -130,7 +129,7 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, 
 
     pWindow->addWindowDeco(std::move(pDecoration));
 
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 
     return true;
 }

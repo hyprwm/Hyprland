@@ -1,7 +1,6 @@
 #include "CloseGesture.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../managers/LayoutManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/eventLoop/EventLoopManager.hpp"
@@ -133,7 +132,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
             if (!window->m_isMapped)
                 return;
 
-            g_pLayoutManager->getCurrentLayout()->recalculateWindow(window.lock());
+            // g_pLayoutManager->getCurrentLayout()->recalculateWindow(window.lock());
             window->updateDecorationValues();
             window->sendWindowSize(true);
             *window->m_alpha = 1.F;

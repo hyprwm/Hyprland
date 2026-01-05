@@ -1,0 +1,32 @@
+#pragma once
+
+#include "../../helpers/math/Math.hpp"
+#include "../../helpers/memory/Memory.hpp"
+
+namespace Layout {
+    class ITarget;
+    class IFloatingAlgorithm;
+    class ITiledAlgorithm;
+    class CSpace;
+
+    class CAlgorithm {
+      public:
+        static SP<CAlgorithm> create(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);
+        ~CAlgorithm() = default;
+
+        void       addTarget(SP<ITarget> target);
+        void       removeTarget(SP<ITarget> target);
+
+        SP<CSpace> space() const;
+
+      private:
+        CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);
+
+        UP<ITiledAlgorithm>      m_tiled;
+        UP<IFloatingAlgorithm>   m_floating;
+        WP<CSpace>               m_space;
+        WP<CAlgorithm>           m_self;
+
+        std::vector<WP<ITarget>> m_tiledTargets, m_floatingTargets;
+    };
+}

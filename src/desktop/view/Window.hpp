@@ -26,6 +26,11 @@ struct SWorkspaceRule;
 
 class IWindowTransformer;
 
+namespace Layout {
+    class ITarget;
+    class CWindowTarget;
+}
+
 namespace Desktop::View {
 
     enum eGroupRules : uint8_t {
@@ -94,8 +99,10 @@ namespace Desktop::View {
             CSignalT<> destroy;
         } m_events;
 
-        WP<CXDGSurfaceResource> m_xdgSurface;
-        WP<CXWaylandSurface>    m_xwaylandSurface;
+        WP<CXDGSurfaceResource>   m_xdgSurface;
+        WP<CXWaylandSurface>      m_xwaylandSurface;
+
+        SP<Layout::CWindowTarget> m_target;
 
         // this is the position and size of the "bounding box"
         Vector2D m_position = Vector2D(0, 0);

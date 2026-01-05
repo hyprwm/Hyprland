@@ -1,7 +1,6 @@
 #include "DecorationPositioner.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../managers/HookSystemManager.hpp"
-#include "../../managers/LayoutManager.hpp"
 
 CDecorationPositioner::CDecorationPositioner() {
     static auto P = g_pHookSystem->hookDynamic("closeWindow", [this](void* call, SCallbackInfo& info, std::any data) {
@@ -278,7 +277,7 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
 
     if (WINDOWDATA->extents != SBoxExtents{{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}}) {
         WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+        // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     }
 }
 

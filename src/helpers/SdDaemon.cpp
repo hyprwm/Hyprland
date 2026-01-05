@@ -41,7 +41,7 @@ int NSystemd::sdNotify(int unsetEnvironment, const char* state) {
     // address length must be at most this; see man 7 unix
     size_t             addrLen = strnlen(addr, 107);
 
-    struct sockaddr_un unixAddr;
+    struct sockaddr_un unixAddr = {0};
     unixAddr.sun_family = AF_UNIX;
     strncpy(unixAddr.sun_path, addr, addrLen);
     if (unixAddr.sun_path[0] == '@')

@@ -53,7 +53,7 @@ int main(int argc, const char** argv, const char** envp) {
     terminateChildOnSignal(SIGTERM);
     terminateChildOnSignal(SIGINT);
 
-    int  startArgv = -1;
+    int startArgv = -1;
 
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];

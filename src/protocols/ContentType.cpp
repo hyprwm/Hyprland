@@ -6,7 +6,7 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
     if UNLIKELY (!good())
         return;
 
-    m_resource->setDestroy([](CWpContentTypeManagerV1* r) {});
+    m_resource->setDestroy([this](CWpContentTypeManagerV1* r) { PROTO::contentType->destroyResource(this); });
     m_resource->setOnDestroy([this](CWpContentTypeManagerV1* r) { PROTO::contentType->destroyResource(this); });
 
     m_resource->setGetSurfaceContentType([](CWpContentTypeManagerV1* r, uint32_t id, wl_resource* surface) {

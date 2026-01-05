@@ -96,10 +96,17 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
     }
 
     m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
-    m_target = GL_TEXTURE_2D;
-    m_type   = TEXTURE_RGBA;
-    m_size   = attrs.size;
-    m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+
+    // #TODO external only formats should be external aswell.
+    if (NFormatUtils::isFormatYUV(attrs.format)) {
+        m_target = GL_TEXTURE_EXTERNAL_OES;
+        m_type   = TEXTURE_EXTERNAL;
+    } else {
+        m_target = GL_TEXTURE_2D;
+        m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    }
+
+    m_size = attrs.size;
     allocate();
     m_eglImage = image;
 

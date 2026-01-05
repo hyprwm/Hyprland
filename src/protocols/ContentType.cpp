@@ -19,7 +19,7 @@ CContentTypeManager::CContentTypeManager(SP<CWpContentTypeManagerV1> resource) :
             return;
         }
 
-        if (SURF->m_colorManagement) {
+        if (SURF->m_contentType) {
             r->error(WP_CONTENT_TYPE_MANAGER_V1_ERROR_ALREADY_CONSTRUCTED, "CT manager already exists");
             return;
         }

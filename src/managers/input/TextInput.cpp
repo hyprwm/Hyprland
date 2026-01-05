@@ -22,13 +22,7 @@ void CTextInput::initCallbacks() {
         m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
         m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
         m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
-            m_listeners.surfaceUnmap.reset();
-            m_listeners.surfaceDestroy.reset();
-            g_pInputManager->m_relay.removeTextInput(this);
-            if (!g_pInputManager->m_relay.getFocusedTextInput())
-                g_pInputManager->m_relay.deactivateIME(this);
-        });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] { destroy(); });
 
         if (Desktop::focusState()->surface() && Desktop::focusState()->surface()->client() == INPUT->client())
             enter(Desktop::focusState()->surface());
@@ -39,14 +33,18 @@ void CTextInput::initCallbacks() {
         m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
         m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
         m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
-            m_listeners.surfaceUnmap.reset();
-            m_listeners.surfaceDestroy.reset();
-            g_pInputManager->m_relay.removeTextInput(this);
-            if (!g_pInputManager->m_relay.getFocusedTextInput())
-                g_pInputManager->m_relay.deactivateIME(this);
-        });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] { destroy(); });
     }
+}
+
+void CTextInput::destroy() {
+    m_listeners.surfaceUnmap.reset();
+    m_listeners.surfaceDestroy.reset();
+
+    g_pInputManager->m_relay.removeTextInput(this);
+
+    if (!g_pInputManager->m_relay.getFocusedTextInput())
+        g_pInputManager->m_relay.deactivateIME(nullptr, false);
 }
 
 void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {

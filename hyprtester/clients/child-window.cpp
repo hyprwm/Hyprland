@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <wayland-client.h>
 #include <wayland.hpp>

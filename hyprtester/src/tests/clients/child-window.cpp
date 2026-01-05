@@ -8,6 +8,7 @@
 #include <hyprutils/os/Process.hpp>
 
 #include <sys/poll.h>
+#include <unistd.h>
 #include <csignal>
 #include <thread>
 

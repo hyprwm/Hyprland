@@ -11,10 +11,7 @@ static int onDataRead(int fd, uint32_t mask, void* data) {
 CMainLoopExecutor::CMainLoopExecutor(std::function<void()>&& callback) : m_fn(std::move(callback)) {
 
     int fds[2];
-    pipe(fds);
-
-    RASSERT(fds[0] != 0, "CMainLoopExecutor: failed to open a pipe");
-    RASSERT(fds[1] != 0, "CMainLoopExecutor: failed to open a pipe");
+    RASSERT(pipe(fds) == 0, "CMainLoopExecutor: failed to open a pipe");
 
     m_event = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, fds[0], WL_EVENT_READABLE, ::onDataRead, this);
 

@@ -399,6 +399,12 @@ static Hyprlang::CParseResult handleWindowrule(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleWindowrulev2(const char* c, const char* v) {
+    Hyprlang::CParseResult res;
+    res.setError("windowrulev2 is deprecated. Correct syntax can be found on the wiki.");
+    return res;
+}
+
 static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -409,6 +415,12 @@ static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
     if (RESULT.has_value())
         result.setError(RESULT.value().c_str());
     return result;
+}
+
+static Hyprlang::CParseResult handleLayerrulev2(const char* c, const char* v) {
+    Hyprlang::CParseResult res;
+    res.setError("layerrulev2 doesn't exist. Correct syntax can be found on the wiki.");
+    return res;
 }
 
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
@@ -870,6 +882,10 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handlePermission, "permission", {false});
     m_config->registerHandler(&::handleGesture, "gesture", {true});
     m_config->registerHandler(&::handleEnv, "env", {true});
+
+    // windowrulev2 and layerrulev2 errors
+    m_config->registerHandler(&::handleWindowrulev2, "windowrulev2", {false});
+    m_config->registerHandler(&::handleLayerrulev2, "layerrulev2", {false});
 
     // pluginza
     m_config->addSpecialCategory("plugin", {nullptr, true});

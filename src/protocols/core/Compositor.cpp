@@ -500,7 +500,10 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
 
     if (state->updated.bits.acquire) {
         // wait on acquire point for this surface, from explicit sync protocol
-        state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
+        if (!state->acquire.addWaiter([state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); })) {
+            Log::logger->log(Log::ERR, "Failed to addWaiter in CWLSurfaceResource::scheduleState");
+            whenReadable(state, LOCK_REASON_FENCE);
+        }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
         m_stateQueue.unlock(state);

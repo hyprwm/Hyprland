@@ -1217,8 +1217,7 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
                                      const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
+    const auto sdrEOTF = NTransferFunction::fromConfig();
 
     if (m_renderData.surface.valid()) {
         if (m_renderData.surface->m_colorManagement.valid()) {
@@ -1381,9 +1380,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader = useShader(shader);
 
         if (data.cmBackToSRGB) {
-            static auto PSDREOTF      = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-            const auto  sdrEOTF       = NTransferFunction::fromString(*PSDREOTF);
-            auto        chosenSdrEotf = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+            const auto sdrEOTF       = NTransferFunction::fromConfig();
+            auto       chosenSdrEotf = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
             passCMUniforms(shader, imageDescription, CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}), true, -1, -1);
         } else
             passCMUniforms(shader, imageDescription);

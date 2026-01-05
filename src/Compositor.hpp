@@ -4,6 +4,7 @@
 
 #include <ranges>
 
+#include "helpers/math/Direction.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
@@ -113,16 +114,16 @@ class CCompositor {
     bool                   isWindowActive(PHLWINDOW);
     void                   changeWindowZOrder(PHLWINDOW, bool);
     void                   cleanupFadingOut(const MONITORID& monid);
-    PHLWINDOW              getWindowInDirection(PHLWINDOW, char);
-    PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, char dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
+    PHLWINDOW              getWindowInDirection(PHLWINDOW, Math::eDirection);
+    PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
     PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false);
     PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
     CBox                   calculateX11WorkArea();
-    PHLMONITOR             getMonitorInDirection(const char&);
-    PHLMONITOR             getMonitorInDirection(PHLMONITOR, const char&);
+    PHLMONITOR             getMonitorInDirection(Math::eDirection);
+    PHLMONITOR             getMonitorInDirection(PHLMONITOR, Math::eDirection);
     void                   updateAllWindowsAnimatedDecorationValues();
     MONITORID              getNextAvailableMonitorID(std::string const& name);
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);

@@ -9,6 +9,8 @@
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/os/File.hpp>
 
+#include <glaze/glaze.hpp>
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 
@@ -80,14 +82,20 @@ std::expected<void, std::string> Nix::nixEnvironmentOk() {
 
 bool Nix::shouldUseNixGL() {
     // check if installed hyprland is nix'd
-    CProcess proc("Hyprland", {"--version"});
+    CProcess proc("Hyprland", {"--version-json"});
     if (!proc.runSync()) {
         g_logger->log(Hyprutils::CLI::LOG_ERR, "failed to obtain hyprland version string");
         return false;
     }
 
-    CVarList2  lines(std::string{proc.stdOut()}, '\n', true);
-    const bool IS_NIX = std::ranges::any_of(lines, [](const auto& l) { return l == "nix"; });
+    auto json = glz::read_json<glz::generic>(proc.stdOut());
+    if (!json) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "failed to obtain hyprland version string (bad json)");
+        return false;
+    }
+
+    const auto FLAGS  = (*json)["flags"].get_array();
+    const bool IS_NIX = std::ranges::any_of(FLAGS, [](const auto& e) { return e.get_string() == std::string_view{"nix"}; });
 
     if (IS_NIX) {
         const auto NAME = getFromEtcOsRelease("NAME");

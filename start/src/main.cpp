@@ -84,6 +84,9 @@ int main(int argc, const char** argv, const char** envp) {
         return 1;
     }
 
+    if (Nix::shouldUseNixGL())
+        g_logger->log(Hyprutils::CLI::LOG_DEBUG, "Hyprland was compiled with Nix - will use nixGL");
+
     bool safeMode = false;
     while (true) {
         g_instance     = makeUnique<CHyprlandInstance>();

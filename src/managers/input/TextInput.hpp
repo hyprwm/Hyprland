@@ -39,6 +39,8 @@ class CTextInput {
     void                   setFocusedSurface(SP<CWLSurfaceResource> pSurface);
     void                   initCallbacks();
 
+    void                   destroy();
+
     WP<CWLSurfaceResource> m_focusedSurface;
     int                    m_enterLocks = 0;
     WP<CTextInputV3>       m_v3Input;

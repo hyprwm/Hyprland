@@ -479,8 +479,7 @@ void CMonitor::onDisconnect(bool destroy) {
 }
 
 static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
-    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
+    const auto sdrEOTF = NTransferFunction::fromConfig();
 
     switch (tf) {
         case NTransferFunction::TF_DEFAULT:
@@ -2169,8 +2168,7 @@ bool CMonitor::canNoShaderCM() {
     if (SRC_DESC_VALUE.icc.fd >= 0 || m_imageDescription->value().icc.fd >= 0)
         return false; // no ICC support
 
-    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
+    const auto sdrEOTF = NTransferFunction::fromConfig();
     // only primaries differ
     return (
         (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||

@@ -1248,8 +1248,7 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
                                      const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-    const auto  sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
+    const auto sdrEOTF = NTransferFunction::fromConfig();
 
     if (m_renderData.surface.valid()) {
         if (m_renderData.surface->m_colorManagement.valid()) {
@@ -1388,17 +1387,16 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
     }
 
-    const bool  isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
-    const bool  canPassHDRSurface = isHDRSurface && !m_renderData.surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
+    const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
+    const bool canPassHDRSurface = isHDRSurface && !m_renderData.surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
 
-    const auto  imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-         CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription()) :
-         (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : DEFAULT_IMAGE_DESCRIPTION);
+    const auto imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
+        CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription()) :
+        (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : DEFAULT_IMAGE_DESCRIPTION);
 
-    static auto PSDREOTF      = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
-    const auto  sdrEOTF       = NTransferFunction::fromString(*PSDREOTF);
-    auto        chosenSdrEotf = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
-    const auto  targetImageDescription =
+    const auto sdrEOTF       = NTransferFunction::fromConfig();
+    auto       chosenSdrEotf = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+    const auto targetImageDescription =
         data.cmBackToSRGB ? CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}) : m_renderData.pMonitor->m_imageDescription;
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                     /* CM unsupported or disabled */

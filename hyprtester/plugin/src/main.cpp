@@ -6,8 +6,6 @@
 #define private public
 #include <src/config/ConfigManager.hpp>
 #include <src/config/ConfigDescriptions.hpp>
-#include <src/layout/IHyprLayout.hpp>
-#include <src/managers/LayoutManager.hpp>
 #include <src/managers/input/InputManager.hpp>
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
@@ -53,7 +51,7 @@ static SDispatchResult snapMove(std::string in) {
     Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
     Vector2D size = PLASTWINDOW->m_realSize->goal();
 
-    g_pLayoutManager->getCurrentLayout()->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
+    // g_pLayoutManager->getCurrentLayout()->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
     *PLASTWINDOW->m_realPosition = pos.round();
 
     return {};

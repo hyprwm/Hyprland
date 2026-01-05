@@ -3,6 +3,8 @@
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
+#include "Group.hpp"
+
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 #include <sys/types.h>
 #include <sys/sysctl.h>
@@ -37,12 +39,15 @@
 #include "../../helpers/math/Expression.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/LayoutManager.hpp"
+#include "../../layout/target/WindowTarget.hpp"
+#include "../../layout/target/WindowGroupTarget.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -75,6 +80,8 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
 
+    pWindow->m_target = Layout::CWindowTarget::create(pWindow);
+
     return pWindow;
 }
 
@@ -99,6 +106,8 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
+
+    pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
     pWindow->wlSurface()->assign(pWindow->m_xdgSurface->m_surface.lock(), pWindow);
 
@@ -260,7 +269,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     }
 
     // get work area
-    const auto WORKAREA = g_pLayoutManager->getCurrentLayout()->workAreaOnWorkspace(m_workspace);
+    const auto WORKAREA = m_workspace->m_space->workArea();
     const auto RESERVED = CReservedArea{PMONITOR->logicalBox(), WORKAREA};
 
     if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, RESERVED.top(), 1)) {
@@ -353,14 +362,18 @@ void CWindow::addWindowDeco(UP<IHyprWindowDecoration> deco) {
     m_windowDecorations.emplace_back(std::move(deco));
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+
+    if (layoutTarget())
+        layoutTarget()->recalc();
 }
 
 void CWindow::removeWindowDeco(IHyprWindowDecoration* deco) {
     m_decosToRemove.push_back(deco);
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+
+    if (layoutTarget())
+        layoutTarget()->recalc();
 }
 
 void CWindow::uncacheWindowDecos() {
@@ -491,11 +504,9 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     OLDWORKSPACE->updateWindows();
     OLDWORKSPACE->updateWindowData();
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
 
     pWorkspace->updateWindows();
     pWorkspace->updateWindowData();
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -587,7 +598,7 @@ void CWindow::onUnmap() {
         m_workspace->updateWindows();
         m_workspace->updateWindowData();
     }
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_workspace.reset();
@@ -719,311 +730,6 @@ bool CWindow::hasPopupAt(const Vector2D& pos) {
     return popup && popup->wlSurface()->resource();
 }
 
-void CWindow::applyGroupRules() {
-    if ((m_groupRules & GROUP_SET && m_firstMap) || m_groupRules & GROUP_SET_ALWAYS)
-        createGroup();
-
-    if (m_groupData.pNextWindow.lock() && ((m_groupRules & GROUP_LOCK && m_firstMap) || m_groupRules & GROUP_LOCK_ALWAYS))
-        getGroupHead()->m_groupData.locked = true;
-}
-
-void CWindow::createGroup() {
-    if (m_groupData.deny) {
-        Log::logger->log(Log::DEBUG, "createGroup: window:{:x},title:{} is denied as a group, ignored", rc<uintptr_t>(this), this->m_title);
-        return;
-    }
-
-    if (m_groupData.pNextWindow.expired()) {
-        m_groupData.pNextWindow = m_self;
-        m_groupData.head        = true;
-        m_groupData.locked      = false;
-        m_groupData.deny        = false;
-
-        addWindowDeco(makeUnique<CHyprGroupBarDecoration>(m_self.lock()));
-
-        if (m_workspace) {
-            m_workspace->updateWindows();
-            m_workspace->updateWindowData();
-        }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
-        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("1,{:x}", rc<uintptr_t>(this))});
-    }
-
-    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-}
-
-void CWindow::destroyGroup() {
-    if (m_groupData.pNextWindow == m_self) {
-        if (m_groupRules & GROUP_SET_ALWAYS) {
-            Log::logger->log(Log::DEBUG, "destoryGroup: window:{:x},title:{} has rule [group set always], ignored", rc<uintptr_t>(this), this->m_title);
-            return;
-        }
-        m_groupData.pNextWindow.reset();
-        m_groupData.head = false;
-        updateWindowDecos();
-        if (m_workspace) {
-            m_workspace->updateWindows();
-            m_workspace->updateWindowData();
-        }
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
-        g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(this))});
-        m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        return;
-    }
-
-    std::string            addresses;
-    PHLWINDOW              curr = m_self.lock();
-    std::vector<PHLWINDOW> members;
-    do {
-        const auto PLASTWIN = curr;
-        curr                = curr->m_groupData.pNextWindow.lock();
-        PLASTWIN->m_groupData.pNextWindow.reset();
-        curr->setHidden(false);
-        members.push_back(curr);
-
-        addresses += std::format("{:x},", rc<uintptr_t>(curr.get()));
-    } while (curr.get() != this);
-
-    for (auto const& w : members) {
-        if (w->m_groupData.head)
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(curr);
-        w->m_groupData.head = false;
-    }
-
-    const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
-    g_pKeybindManager->m_groupsLocked = true;
-    for (auto const& w : members) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(w);
-        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        w->updateWindowDecos();
-    }
-    g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
-
-    if (m_workspace) {
-        m_workspace->updateWindows();
-        m_workspace->updateWindowData();
-    }
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
-    if (!addresses.empty())
-        addresses.pop_back();
-
-    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "togglegroup", .data = std::format("0,{}", addresses)});
-}
-
-PHLWINDOW CWindow::getGroupHead() {
-    PHLWINDOW curr = m_self.lock();
-    while (!curr->m_groupData.head)
-        curr = curr->m_groupData.pNextWindow.lock();
-    return curr;
-}
-
-PHLWINDOW CWindow::getGroupTail() {
-    PHLWINDOW curr = m_self.lock();
-    while (!curr->m_groupData.pNextWindow->m_groupData.head)
-        curr = curr->m_groupData.pNextWindow.lock();
-    return curr;
-}
-
-PHLWINDOW CWindow::getGroupCurrent() {
-    PHLWINDOW curr = m_self.lock();
-    while (curr->isHidden())
-        curr = curr->m_groupData.pNextWindow.lock();
-    return curr;
-}
-
-int CWindow::getGroupSize() {
-    int       size = 1;
-    PHLWINDOW curr = m_self.lock();
-    while (curr->m_groupData.pNextWindow != m_self) {
-        curr = curr->m_groupData.pNextWindow.lock();
-        size++;
-    }
-    return size;
-}
-
-bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
-    static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
-    bool        isGroup               = m_groupData.pNextWindow;
-    bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
-    return !g_pKeybindManager->m_groupsLocked                                                // global group lock disengaged
-        && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
-            || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked
-                && !(m_groupData.pNextWindow.lock() && getGroupHead()->m_groupData.locked))) //      source unlocked or isn't group
-        && !m_groupData.deny                                                                 // source is not denied entry
-        && !(m_groupRules & GROUP_BARRED && m_firstMap)                                      // group rule doesn't prevent adding window
-        && !disallowDragIntoGroup;                                                           // config allows groups to be merged
-}
-
-PHLWINDOW CWindow::getGroupWindowByIndex(int index) {
-    const int SIZE = getGroupSize();
-    index          = ((index % SIZE) + SIZE) % SIZE;
-    PHLWINDOW curr = getGroupHead();
-    while (index > 0) {
-        curr = curr->m_groupData.pNextWindow.lock();
-        index--;
-    }
-    return curr;
-}
-
-bool CWindow::hasInGroup(PHLWINDOW w) {
-    PHLWINDOW curr = m_groupData.pNextWindow.lock();
-    while (curr && curr != m_self) {
-        if (curr == w)
-            return true;
-        curr = curr->m_groupData.pNextWindow.lock();
-    }
-    return false;
-}
-
-void CWindow::setGroupCurrent(PHLWINDOW pWindow) {
-    PHLWINDOW curr     = m_groupData.pNextWindow.lock();
-    bool      isMember = false;
-    while (curr.get() != this) {
-        if (curr == pWindow) {
-            isMember = true;
-            break;
-        }
-        curr = curr->m_groupData.pNextWindow.lock();
-    }
-
-    if (!isMember && pWindow.get() != this)
-        return;
-
-    const auto PCURRENT   = getGroupCurrent();
-    const bool FULLSCREEN = PCURRENT->isFullscreen();
-    const auto WORKSPACE  = PCURRENT->m_workspace;
-    const auto MODE       = PCURRENT->m_fullscreenState.internal;
-
-    const auto CURRENTISFOCUS = PCURRENT == Desktop::focusState()->window();
-
-    const auto PWINDOWSIZE                 = PCURRENT->m_realSize->value();
-    const auto PWINDOWPOS                  = PCURRENT->m_realPosition->value();
-    const auto PWINDOWSIZEGOAL             = PCURRENT->m_realSize->goal();
-    const auto PWINDOWPOSGOAL              = PCURRENT->m_realPosition->goal();
-    const auto PWINDOWLASTFLOATINGSIZE     = PCURRENT->m_lastFloatingSize;
-    const auto PWINDOWLASTFLOATINGPOSITION = PCURRENT->m_lastFloatingPosition;
-
-    if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreenInternal(PCURRENT, FSMODE_NONE);
-
-    PCURRENT->setHidden(true);
-    pWindow->setHidden(false); // can remove m_pLastWindow
-
-    g_pLayoutManager->getCurrentLayout()->replaceWindowDataWith(PCURRENT, pWindow);
-
-    if (PCURRENT->m_isFloating) {
-        pWindow->m_realPosition->setValueAndWarp(PWINDOWPOSGOAL);
-        pWindow->m_realSize->setValueAndWarp(PWINDOWSIZEGOAL);
-        pWindow->sendWindowSize();
-    }
-
-    pWindow->m_realPosition->setValue(PWINDOWPOS);
-    pWindow->m_realSize->setValue(PWINDOWSIZE);
-
-    if (FULLSCREEN)
-        g_pCompositor->setWindowFullscreenInternal(pWindow, MODE);
-
-    pWindow->m_lastFloatingSize     = PWINDOWLASTFLOATINGSIZE;
-    pWindow->m_lastFloatingPosition = PWINDOWLASTFLOATINGPOSITION;
-
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
-    if (CURRENTISFOCUS)
-        Desktop::focusState()->rawWindowFocus(pWindow);
-
-    g_pHyprRenderer->damageWindow(pWindow);
-
-    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    pWindow->updateWindowDecos();
-}
-
-void CWindow::insertWindowToGroup(PHLWINDOW pWindow) {
-    const auto BEGINAT = m_self.lock();
-    const auto ENDAT   = m_groupData.pNextWindow.lock();
-
-    if (!pWindow->m_groupData.pNextWindow.lock()) {
-        BEGINAT->m_groupData.pNextWindow = pWindow;
-        pWindow->m_groupData.pNextWindow = ENDAT;
-        pWindow->m_groupData.head        = false;
-        pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
-        return;
-    }
-
-    const auto SHEAD = pWindow->getGroupHead();
-    const auto STAIL = pWindow->getGroupTail();
-
-    SHEAD->m_groupData.head          = false;
-    BEGINAT->m_groupData.pNextWindow = SHEAD;
-    STAIL->m_groupData.pNextWindow   = ENDAT;
-
-    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    pWindow->updateWindowDecos();
-}
-
-PHLWINDOW CWindow::getGroupPrevious() {
-    PHLWINDOW curr = m_groupData.pNextWindow.lock();
-
-    while (curr != m_self && curr->m_groupData.pNextWindow != m_self)
-        curr = curr->m_groupData.pNextWindow.lock();
-
-    return curr;
-}
-
-void CWindow::switchWithWindowInGroup(PHLWINDOW pWindow) {
-    if (!m_groupData.pNextWindow.lock() || !pWindow->m_groupData.pNextWindow.lock())
-        return;
-
-    if (m_groupData.pNextWindow.lock() == pWindow) { // A -> this -> pWindow -> B >> A -> pWindow -> this -> B
-        getGroupPrevious()->m_groupData.pNextWindow = pWindow;
-        m_groupData.pNextWindow                     = pWindow->m_groupData.pNextWindow;
-        pWindow->m_groupData.pNextWindow            = m_self;
-
-    } else if (pWindow->m_groupData.pNextWindow == m_self) { // A -> pWindow -> this -> B >> A -> this -> pWindow -> B
-        pWindow->getGroupPrevious()->m_groupData.pNextWindow = m_self;
-        pWindow->m_groupData.pNextWindow                     = m_groupData.pNextWindow;
-        m_groupData.pNextWindow                              = pWindow;
-
-    } else { // A -> this -> B | C -> pWindow -> D >> A -> pWindow -> B | C -> this -> D
-        std::swap(m_groupData.pNextWindow, pWindow->m_groupData.pNextWindow);
-        std::swap(getGroupPrevious()->m_groupData.pNextWindow, pWindow->getGroupPrevious()->m_groupData.pNextWindow);
-    }
-
-    std::swap(m_groupData.head, pWindow->m_groupData.head);
-    std::swap(m_groupData.locked, pWindow->m_groupData.locked);
-
-    pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-    pWindow->updateWindowDecos();
-}
-
-void CWindow::updateGroupOutputs() {
-    if (m_groupData.pNextWindow.expired())
-        return;
-
-    PHLWINDOW  curr = m_groupData.pNextWindow.lock();
-
-    const auto WS = m_workspace;
-
-    while (curr.get() != this) {
-        curr->m_monitor = m_monitor;
-        curr->moveToWorkspace(WS);
-
-        *curr->m_realPosition = m_realPosition->goal();
-        *curr->m_realSize     = m_realSize->goal();
-
-        curr = curr->m_groupData.pNextWindow.lock();
-    }
-}
-
 Vector2D CWindow::middle() {
     return m_realPosition->goal() + m_realSize->goal() / 2.f;
 }
@@ -1144,7 +850,7 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_isFloating || m_pinned || isFullscreen() || m_draggingTiled) {
+    if (!m_isFloating || m_pinned || isFullscreen()) {
         m_floatingOffset = Vector2D(0, 0);
         return;
     }
@@ -1468,7 +1174,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || isFullscreen() || g_pInputManager->m_currentlyDraggedWindow == m_self) {
+    if (!m_isFloating || isFullscreen() || g_layoutManager->dragController()->target() == m_self) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());
@@ -1684,20 +1390,17 @@ void CWindow::setContentType(NContentType::eContentType contentType) {
 }
 
 void CWindow::deactivateGroupMembers() {
-    auto curr = getGroupHead();
-    while (curr) {
-        if (curr != m_self.lock()) {
+    if (!m_group)
+        return;
+    for (const auto& w : m_group->windows()) {
+        if (w != m_self.lock()) {
             // we don't want to deactivate unfocused xwayland windows
             // because X is weird, keep the behavior for wayland windows
             // also its not really needed for xwayland windows
             // ref: #9760 #9294
-            if (!curr->m_isX11 && curr->m_xdgSurface && curr->m_xdgSurface->m_toplevel)
-                curr->m_xdgSurface->m_toplevel->setActive(false);
+            if (!w->m_isX11 && w->m_xdgSurface && w->m_xdgSurface->m_toplevel)
+                w->m_xdgSurface->m_toplevel->setActive(false);
         }
-
-        curr = curr->m_groupData.pNextWindow.lock();
-        if (curr == getGroupHead())
-            break;
     }
 }
 
@@ -1823,21 +1526,19 @@ void CWindow::updateDecorationValues() {
     const bool IS_SHADOWED_BY_MODAL = m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel->anyChildModal();
 
     // border
-    const auto RENDERDATA = g_pLayoutManager->getCurrentLayout()->requestRenderHints(m_self.lock());
-    if (RENDERDATA.isBorderGradient)
-        setBorderColor(*RENDERDATA.borderGradient);
-    else {
-        const bool GROUPLOCKED = m_groupData.pNextWindow.lock() ? getGroupHead()->m_groupData.locked : false;
-        if (m_self == Desktop::focusState()->window()) {
-            const auto* const ACTIVECOLOR =
-                !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
-            setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
-        } else {
-            const auto* const INACTIVECOLOR =
-                !m_groupData.pNextWindow.lock() ? (!m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
-            setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
-        }
+    // const auto RENDERDATA = // g_pLayoutManager->getCurrentLayout()->requestRenderHints(m_self.lock());
+    // if (RENDERDATA.isBorderGradient)
+    //     setBorderColor(*RENDERDATA.borderGradient);
+    // else {
+    const bool GROUPLOCKED = m_group ? m_group->locked() : false;
+    if (m_self == Desktop::focusState()->window()) {
+        const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
+        setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
+    } else {
+        const auto* const INACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+        setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
     }
+    //}
 
     // opacity
     const auto PWORKSPACE = m_workspace;
@@ -1924,6 +1625,7 @@ void CWindow::mapWindow() {
     static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
     static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PAUTOGROUP         = CConfigValue<Hyprlang::INT>("group:auto_group");
 
     const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
     const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
@@ -2048,8 +1750,8 @@ void CWindow::mapWindow() {
             requestedFSMonitor = MONITOR_INVALID;
         }
 
-        m_isFloating     = m_ruleApplicator->static_.floating.value_or(m_isFloating);
-        m_isPseudotiled  = m_ruleApplicator->static_.pseudo.value_or(m_isPseudotiled);
+        m_isFloating = m_ruleApplicator->static_.floating.value_or(m_isFloating);
+        m_target->setPseudo(m_ruleApplicator->static_.pseudo.value_or(m_target->isPseudo()));
         m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
 
@@ -2104,7 +1806,7 @@ void CWindow::mapWindow() {
                     } else if (v == "barred") {
                         m_groupRules |= Desktop::View::GROUP_BARRED;
                     } else if (v == "deny") {
-                        m_groupData.deny = true;
+                        m_groupRules |= Desktop::View::GROUP_DENY;
                     } else if (v == "override") {
                         // Clear existing rules
                         m_groupRules = Desktop::View::GROUP_OVERRIDE;
@@ -2208,9 +1910,9 @@ void CWindow::mapWindow() {
         m_isFloating = true;
 
     if (PWORKSPACE->m_defaultPseudo) {
-        m_isPseudotiled      = true;
         CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(m_self.lock());
-        m_pseudoSize         = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        m_target->setPseudoSize(Vector2D{desiredGeometry.width, desiredGeometry.height});
+        m_target->setPseudo(true);
     }
 
     updateWindowData();
@@ -2225,43 +1927,25 @@ void CWindow::mapWindow() {
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
     EMIT_HOOK_EVENT("openWindowEarly", m_self.lock());
 
+    if (*PAUTOGROUP                                                    // auto_group enabled
+        && Desktop::focusState()->window()                             // focused window exists
+        && canBeGroupedInto(Desktop::focusState()->window()->m_group)  // we can group
+        && Desktop::focusState()->window()->m_workspace == m_workspace // workspaces match, we're not opening on another ws
+    ) {
+        // add to group if we are focused on one
+        Desktop::focusState()->window()->m_group->add(m_self.lock());
+    } else
+        g_layoutManager->newTarget(m_target, m_workspace->m_space);
+
     if (m_isFloating) {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_self.lock());
         m_createdOverFullscreen = true;
-
-        if (!m_ruleApplicator->static_.size.empty()) {
-            const auto COMPUTED = calculateExpression(m_ruleApplicator->static_.size);
-            if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size);
-            else {
-                *m_realSize = *COMPUTED;
-                setHidden(false);
-            }
-        }
-
-        if (!m_ruleApplicator->static_.position.empty()) {
-            const auto COMPUTED = calculateExpression(m_ruleApplicator->static_.position);
-            if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.position);
-            else {
-                *m_realPosition = *COMPUTED + PMONITOR->m_position;
-                setHidden(false);
-            }
-        }
-
-        if (m_ruleApplicator->static_.center.value_or(false)) {
-            const auto WORKAREA = PMONITOR->logicalBoxMinusReserved();
-            *m_realPosition     = WORKAREA.middle() - m_realSize->goal() / 2.f;
-        }
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
-        m_pseudoSize = m_realSize->goal();
+        m_target->setPseudoSize(m_realSize->goal());
 
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
     } else {
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_self.lock());
-
         bool setPseudo = false;
 
         if (!m_ruleApplicator->static_.size.empty()) {
@@ -2269,14 +1953,14 @@ void CWindow::mapWindow() {
             if (!COMPUTED)
                 Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size);
             else {
-                setPseudo    = true;
-                m_pseudoSize = *COMPUTED;
+                setPseudo = true;
+                m_target->setPseudoSize(*COMPUTED);
                 setHidden(false);
             }
         }
 
         if (!setPseudo)
-            m_pseudoSize = m_realSize->goal() - Vector2D(10, 10);
+            m_target->setPseudoSize(m_realSize->goal() - Vector2D(10, 10));
     }
 
     const auto PFOCUSEDWINDOWPREV = Desktop::focusState()->window();
@@ -2306,7 +1990,7 @@ void CWindow::mapWindow() {
         (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
 
         // this window should gain focus: if it's grouped, preserve fullscreen state.
-        const bool SAME_GROUP = hasInGroup(LAST_FOCUS_WINDOW);
+        const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
 
         if (IS_LAST_IN_FS && SAME_GROUP) {
             Desktop::focusState()->rawWindowFocus(m_self.lock());
@@ -2361,10 +2045,8 @@ void CWindow::mapWindow() {
 
     // swallow
     if (SWALLOWER) {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
-        g_pHyprRenderer->damageWindow(SWALLOWER);
+        g_layoutManager->removeTarget(SWALLOWER->layoutTarget());
         SWALLOWER->setHidden(true);
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     }
 
     m_firstMap = false;
@@ -2377,7 +2059,7 @@ void CWindow::mapWindow() {
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
     updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(m_self.lock());
+    layoutTarget()->recalc();
 
     // do animations
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
@@ -2449,10 +2131,10 @@ void CWindow::unmapWindow() {
             m_swallowed->m_currentlySwallowed = false;
             m_swallowed->setHidden(false);
 
-            if (m_groupData.pNextWindow.lock())
+            if (m_group)
                 m_swallowed->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
 
-            g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_swallowed.lock());
+            g_layoutManager->newTarget(m_swallowed->layoutTarget(), m_workspace->m_space);
         }
 
         m_swallowed->m_groupSwallowed = false;
@@ -2461,7 +2143,7 @@ void CWindow::unmapWindow() {
 
     bool      wasLastWindow = false;
     PHLWINDOW nextInGroup   = [this] -> PHLWINDOW {
-        if (!m_groupData.pNextWindow)
+        if (!m_group)
             return nullptr;
 
         // walk the history to find a suitable window
@@ -2470,7 +2152,7 @@ void CWindow::unmapWindow() {
             if (!w || !w->m_isMapped || w == m_self)
                 continue;
 
-            if (!hasInGroup(w.lock()))
+            if (!m_group->has(w.lock()))
                 continue;
 
             return w.lock();
@@ -2486,7 +2168,7 @@ void CWindow::unmapWindow() {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    if (m_self.lock() == g_pInputManager->m_currentlyDraggedWindow.lock())
+    if (m_self.lock() == g_layoutManager->dragController()->target())
         CKeybindManager::changeMouseBindMode(MBIND_INVALID);
 
     // remove the fullscreen window status from workspace if we closed it
@@ -2495,7 +2177,10 @@ void CWindow::unmapWindow() {
     if (PWORKSPACE->m_hasFullscreenWindow && isFullscreen())
         PWORKSPACE->m_hasFullscreenWindow = false;
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
+    if (m_group)
+        m_group->remove(m_self.lock());
+
+    g_layoutManager->removeTarget(m_target);
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
@@ -2511,8 +2196,11 @@ void CWindow::unmapWindow() {
             if (*FOCUSONCLOSE)
                 candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
                                                                   Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
-            else
-                candidate = g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
+            else {
+                const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
+                if (CAND)
+                    candidate = CAND->window();
+            }
         }
 
         Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);
@@ -2568,7 +2256,7 @@ void CWindow::commitWindow() {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);
 
-        Vector2D predSize = g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
+        Vector2D predSize = Vector2D{}; // g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 
@@ -2642,7 +2330,7 @@ void CWindow::destroyWindow() {
 
     m_listeners = {};
 
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
+    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
 
     m_readyToDelete = true;
 
@@ -2771,4 +2459,27 @@ std::optional<Vector2D> CWindow::maxSize() {
         maxSize.y = NO_MAX_SIZE_LIMIT;
 
     return maxSize;
+}
+
+SP<Layout::ITarget> CWindow::layoutTarget() {
+    return m_group ? m_group->m_target : m_target;
+}
+
+bool CWindow::canBeGroupedInto(SP<CGroup> group) {
+    if (!group)
+        return false;
+
+    if (isX11OverrideRedirect())
+        return false;
+
+    static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
+    bool        isGroup               = m_group;
+    bool        disallowDragIntoGroup = g_layoutManager->dragController()->wasDraggingWindow() && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
+    return !g_pKeybindManager->m_groupsLocked           // global group lock disengaged
+        && ((m_groupRules & GROUP_INVADE && m_firstMap) // window ignore local group locks, or
+            || (!group->locked()                        //      target unlocked
+                && !(m_group && m_group->locked())))    //      source unlocked or isn't group
+        && !(m_groupRules & GROUP_DENY)                 // source is not denied entry
+        && !(m_groupRules & GROUP_BARRED && m_firstMap) // group rule doesn't prevent adding window
+        && !disallowDragIntoGroup;                      // config allows groups to be merged
 }

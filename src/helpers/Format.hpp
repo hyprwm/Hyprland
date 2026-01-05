@@ -28,6 +28,7 @@ namespace NFormatUtils {
 
     const SPixelFormat* getPixelFormatFromDRM(DRMFormat drm);
     const SPixelFormat* getPixelFormatFromGL(uint32_t glFormat, uint32_t glType, bool alpha);
+    bool                isFormatYUV(uint32_t drmFormat);
     bool                isFormatOpaque(DRMFormat drm);
     int                 pixelsPerBlock(const SPixelFormat* const fmt);
     int                 minStride(const SPixelFormat* const fmt, int32_t width);

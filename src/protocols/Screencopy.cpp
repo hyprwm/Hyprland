@@ -295,7 +295,7 @@ void CScreencopyFrame::renderMon() {
 void CScreencopyFrame::storeTempFB() {
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_tempFb.alloc(m_box.w, m_box.h);
+    m_tempFb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 

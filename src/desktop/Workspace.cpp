@@ -6,9 +6,7 @@
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../layout/space/Space.hpp"
-#include "../layout/algorithm/Algorithm.hpp"
-#include "../layout/algorithm/floating/default/DefaultFloatingAlgorithm.hpp"
-#include "../layout/algorithm/tiled/dwindle/DwindleAlgorithm.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
@@ -46,7 +44,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     });
 
     m_space = Layout::CSpace::create(m_self.lock());
-    m_space->setAlgorithmProvider(getLayoutAlgo());
+    m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
 
     m_inert = false;
 
@@ -545,8 +543,4 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
-}
-
-SP<Layout::CAlgorithm> CWorkspace::getLayoutAlgo() {
-    return Layout::CAlgorithm::create(makeUnique<Layout::Tiled::CDwindleAlgorithm>(), makeUnique<Layout::Floating::CDefaultFloatingAlgorithm>(), m_space);
 }

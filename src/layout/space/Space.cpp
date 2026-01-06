@@ -102,10 +102,18 @@ SP<CAlgorithm> CSpace::algorithm() const {
 }
 
 void CSpace::recalculate() {
-    m_algorithm->recalculate();
+    if (m_algorithm)
+        m_algorithm->recalculate();
 }
 
 void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
     t->setFullscreenMode(mode);
     recalculate();
+}
+
+std::expected<void, std::string> CSpace::layoutMsg(const std::string_view& sv) {
+    if (m_algorithm)
+        return m_algorithm->layoutMsg(sv);
+
+    return {};
 }

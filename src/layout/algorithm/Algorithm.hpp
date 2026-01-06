@@ -5,6 +5,8 @@
 
 #include "../LayoutManager.hpp"
 
+#include <expected>
+
 namespace Layout {
     class ITarget;
     class IFloatingAlgorithm;
@@ -16,21 +18,23 @@ namespace Layout {
         static SP<CAlgorithm> create(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);
         ~CAlgorithm() = default;
 
-        void       addTarget(SP<ITarget> target);
-        void       moveTarget(SP<ITarget> target);
-        void       removeTarget(SP<ITarget> target);
+        void                             addTarget(SP<ITarget> target);
+        void                             moveTarget(SP<ITarget> target);
+        void                             removeTarget(SP<ITarget> target);
 
-        void       setFloating(SP<ITarget> target, bool floating);
+        void                             setFloating(SP<ITarget> target, bool floating);
 
-        void       recalculate();
+        std::expected<void, std::string> layoutMsg(const std::string_view& sv);
 
-        void       resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void       moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                             recalculate();
 
-        SP<CSpace> space() const;
+        void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
-        size_t     tiledTargets() const;
-        size_t     floatingTargets() const;
+        SP<CSpace>                       space() const;
+
+        size_t                           tiledTargets() const;
+        size_t                           floatingTargets() const;
 
       private:
         CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);

@@ -8,7 +8,6 @@
 
 namespace Layout {
     class CSpace;
-    class CAlgorithm;
 };
 
 enum eFullscreenMode : int8_t {
@@ -94,14 +93,13 @@ class CWorkspace {
     } m_events;
 
   private:
-    void                   init(PHLWORKSPACE self);
-    SP<Layout::CAlgorithm> getLayoutAlgo();
+    void                 init(PHLWORKSPACE self);
 
-    SP<HOOK_CALLBACK_FN>   m_focusedWindowHook;
-    bool                   m_inert = true;
+    SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
+    bool                 m_inert = true;
 
-    SP<CWorkspace>         m_selfPersistent; // for persistent workspaces.
-    bool                   m_persistent = false;
+    SP<CWorkspace>       m_selfPersistent; // for persistent workspaces.
+    bool                 m_persistent = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

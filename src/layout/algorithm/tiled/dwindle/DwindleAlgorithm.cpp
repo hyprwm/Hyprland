@@ -384,6 +384,66 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getMasterNode() {
     return nullptr;
 }
 
+std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
+    const auto ARGS = CVarList(std::string{sv}, 0, ' ');
+
+    const auto CURRENT_NODE = getNodeFromWindow(Desktop::focusState()->window());
+
+    if (ARGS[0] == "togglesplit") {
+        if (CURRENT_NODE)
+            toggleSplit(CURRENT_NODE);
+    } else if (ARGS[0] == "swapsplit") {
+        if (CURRENT_NODE)
+            swapSplit(CURRENT_NODE);
+    } else if (ARGS[0] == "movetoroot") {
+        auto node = CURRENT_NODE;
+        if (!ARGS[1].empty()) {
+            auto w = g_pCompositor->getWindowByRegex(ARGS[1]);
+            if (w)
+                node = getNodeFromWindow(w);
+        }
+
+        const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
+        moveToRoot(node, STABLE);
+    } else if (ARGS[0] == "preselect") {
+        std::string direction = ARGS[1];
+
+        if (direction.empty()) {
+            Log::logger->log(Log::ERR, "Expected direction for preselect");
+            return std::unexpected("No direction for preselect");
+        }
+
+        switch (direction.front()) {
+            case 'u':
+            case 't': {
+                m_overrideDirection = DIRECTION_UP;
+                break;
+            }
+            case 'd':
+            case 'b': {
+                m_overrideDirection = DIRECTION_DOWN;
+                break;
+            }
+            case 'r': {
+                m_overrideDirection = DIRECTION_RIGHT;
+                break;
+            }
+            case 'l': {
+                m_overrideDirection = DIRECTION_LEFT;
+                break;
+            }
+            default: {
+                // any other character resets the focus direction
+                // needed for the persistent mode
+                m_overrideDirection = DIRECTION_DEFAULT;
+                break;
+            }
+        }
+    }
+
+    return {};
+}
+
 void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
     if (!x || !x->pParent)
         return;
@@ -396,10 +456,43 @@ void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
     x->pParent->recalcSizePosRecursive();
 }
 
-void CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData>) {
-    ;
+void CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
+        return;
+
+    std::swap(x->pParent->children[0], x->pParent->children[1]);
+
+    x->pParent->recalcSizePosRecursive();
 }
 
-void CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData>, bool stable) {
-    ;
+void CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {
+    if (!x || !x->pParent)
+        return;
+
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
+        return;
+
+    // already at root
+    if (!x->pParent->pParent)
+        return;
+
+    auto& pNode = x->pParent->children[0] == x ? x->pParent->children[0] : x->pParent->children[1];
+
+    // instead of [getMasterNodeOnWorkspace], we walk back to root since we need
+    // to know which children of root is our ancestor
+    auto pAncestor = x, pRoot = x->pParent.lock();
+    while (pRoot->pParent) {
+        pAncestor = pRoot;
+        pRoot     = pRoot->pParent.lock();
+    }
+
+    auto& pSwap = pRoot->children[0] == pAncestor ? pRoot->children[1] : pRoot->children[0];
+    std::swap(pNode, pSwap);
+    std::swap(pNode->pParent, pSwap->pParent);
+
+    // [stable] in that the focused window occupies same side of screen
+    if (stable)
+        std::swap(pRoot->children[0], pRoot->children[1]);
+
+    pRoot->recalcSizePosRecursive();
 }

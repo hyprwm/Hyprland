@@ -2597,9 +2597,9 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 }
 
 SDispatchResult CKeybindManager::layoutmsg(std::string msg) {
-    // SLayoutMessageHeader hd = {Desktop::focusState()->window()};
-    // g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
-
+    auto ret = g_layoutManager->layoutMsg(msg);
+    if (!ret)
+        return {.success = false, .error = ret.error()};
     return {};
 }
 

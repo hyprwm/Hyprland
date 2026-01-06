@@ -5,6 +5,8 @@
 
 #include "../LayoutManager.hpp"
 
+#include <expected>
+
 namespace Layout {
 
     class ITarget;
@@ -28,6 +30,9 @@ namespace Layout {
 
         // recalculate layout
         virtual void recalculate() = 0;
+
+        // optional: handle layout messages
+        virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
 
       protected:
         IModeAlgorithm() = default;

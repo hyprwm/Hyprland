@@ -385,7 +385,7 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getMasterNode() {
 }
 
 std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
-    const auto ARGS = CVarList(std::string{sv}, 0, ' ');
+    const auto ARGS = CVarList2(std::string{sv}, 0, ' ');
 
     const auto CURRENT_NODE = getNodeFromWindow(Desktop::focusState()->window());
 
@@ -398,7 +398,7 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
     } else if (ARGS[0] == "movetoroot") {
         auto node = CURRENT_NODE;
         if (!ARGS[1].empty()) {
-            auto w = g_pCompositor->getWindowByRegex(ARGS[1]);
+            auto w = g_pCompositor->getWindowByRegex(std::string{ARGS[1]});
             if (w)
                 node = getNodeFromWindow(w);
         }
@@ -406,7 +406,7 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
         const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
         moveToRoot(node, STABLE);
     } else if (ARGS[0] == "preselect") {
-        std::string direction = ARGS[1];
+        auto direction = ARGS[1];
 
         if (direction.empty()) {
             Log::logger->log(Log::ERR, "Expected direction for preselect");

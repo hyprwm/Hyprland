@@ -245,6 +245,7 @@ void CDragStateController::dragEnd() {
     Desktop::focusState()->fullWindowFocus(DRAGGINGTARGET->window());
 
     m_wasDraggingWindow = false;
+    m_dragMode          = MBIND_INVALID;
 }
 
 void CDragStateController::mouseMove(const Vector2D& mousePos) {

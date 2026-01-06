@@ -5,20 +5,32 @@
 #include "../../desktop/view/Window.hpp"
 
 namespace Layout {
+
     class CWindowTarget : public ITarget {
       public:
         static SP<CWindowTarget> create(PHLWINDOW w);
         virtual ~CWindowTarget() = default;
 
-        virtual eTargetType type();
+        virtual eTargetType                           type();
 
-        virtual void        setPosition(const CBox& box);
-        virtual void        assignToSpace(const SP<CSpace>& space);
+        virtual void                                  setPositionGlobal(const CBox& box);
+        virtual void                                  assignToSpace(const SP<CSpace>& space);
+        virtual PHLWINDOW                             window() const;
 
-        virtual bool        shouldBeFloated();
+        virtual bool                                  floating();
+        virtual void                                  setFloating(bool x);
+        virtual std::expected<CBox, eGeometryFailure> desiredGeometry();
+        virtual eFullscreenMode                       fullscreenMode();
+        virtual void                                  setFullscreenMode(eFullscreenMode mode);
+        virtual std::optional<Vector2D>               minSize();
+        virtual std::optional<Vector2D>               maxSize();
+        virtual void                                  damageEntire();
+        virtual void                                  warpPositionSize();
 
       private:
         CWindowTarget(PHLWINDOW w);
+
+        void         updatePos();
 
         PHLWINDOWREF m_window;
     };

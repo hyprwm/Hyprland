@@ -3,6 +3,8 @@
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/memory/Memory.hpp"
 
+#include "../LayoutManager.hpp"
+
 namespace Layout {
     class ITarget;
     class IFloatingAlgorithm;
@@ -15,7 +17,13 @@ namespace Layout {
         ~CAlgorithm() = default;
 
         void       addTarget(SP<ITarget> target);
+        void       moveTarget(SP<ITarget> target);
         void       removeTarget(SP<ITarget> target);
+
+        void       setFloating(SP<ITarget> target, bool floating);
+
+        void       resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void       moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
         SP<CSpace> space() const;
 

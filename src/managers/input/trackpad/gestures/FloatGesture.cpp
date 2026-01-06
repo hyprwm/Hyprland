@@ -3,6 +3,8 @@
 #include "../../../../render/Renderer.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/view/Window.hpp"
+#include "../../../../layout/LayoutManager.hpp"
+#include "../../../../layout/target/WindowTarget.hpp"
 
 constexpr const float MAX_DISTANCE = 250.F;
 
@@ -39,8 +41,7 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
         return;
     }
 
-    m_window->m_isFloating = !m_window->m_isFloating;
-    // g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+    g_layoutManager->changeFloatingMode(m_window->m_target);
 
     m_posFrom  = m_window->m_realPosition->begun();
     m_sizeFrom = m_window->m_realSize->begun();
@@ -78,8 +79,7 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        m_window->m_isFloating = !m_window->m_isFloating;
-        // g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(m_window.lock());
+        g_layoutManager->changeFloatingMode(m_window->m_target);
         return;
     }
 

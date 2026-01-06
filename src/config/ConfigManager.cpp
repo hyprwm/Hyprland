@@ -1443,8 +1443,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-      //  for (auto const& m : g_pCompositor->m_monitors)
-            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        //  for (auto const& m : g_pCompositor->m_monitors)
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
     }
 
     // Update window border colors

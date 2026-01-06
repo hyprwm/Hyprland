@@ -2572,7 +2572,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
 
     //if (!pWindow->m_isFloating)
-        // g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
 
     pWindow->moveToWorkspace(pWorkspace);
     pWindow->m_monitor = pWorkspace->m_monitor;
@@ -2604,8 +2604,8 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         if (!pWindow->m_isFloating)
             // g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
-        if (pWindow->m_isFloating)
-            *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
+            if (pWindow->m_isFloating)
+                *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
     }
 
     pWindow->updateToplevel();

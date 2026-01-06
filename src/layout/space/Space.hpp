@@ -5,6 +5,10 @@
 
 #include "../../desktop/DesktopTypes.hpp"
 
+#include "../LayoutManager.hpp"
+
+#include <optional>
+
 namespace Layout {
     class ITarget;
     class CAlgorithm;
@@ -14,13 +18,21 @@ namespace Layout {
         static SP<CSpace> create(PHLWORKSPACE w);
         ~CSpace() = default;
 
-        void        add(SP<ITarget> t);
-        void        remove(SP<ITarget> t);
+        void         add(SP<ITarget> t);
+        void         remove(SP<ITarget> t);
+        void         move(SP<ITarget> t);
 
-        void        setAlgorithmProvider(SP<CAlgorithm> algo);
-        void        recheckWorkArea();
+        void         setAlgorithmProvider(SP<CAlgorithm> algo);
+        void         recheckWorkArea();
 
-        const CBox& workArea() const;
+        void         toggleTargetFloating(SP<ITarget> t);
+
+        const CBox&  workArea() const;
+        PHLWORKSPACE workspace() const;
+        CBox         targetPositionLocal(SP<ITarget> t) const;
+
+        void         resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void         moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
       private:
         CSpace(PHLWORKSPACE parent);

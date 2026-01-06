@@ -22,7 +22,7 @@ CAlgorithm::CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& flo
 }
 
 void CAlgorithm::addTarget(SP<ITarget> target) {
-    const bool SHOULD_FLOAT = target->shouldBeFloated();
+    const bool SHOULD_FLOAT = target->floating();
 
     if (SHOULD_FLOAT) {
         m_floatingTargets.emplace_back(target);
@@ -53,6 +53,26 @@ void CAlgorithm::removeTarget(SP<ITarget> target) {
     Log::logger->log(Log::ERR, "BUG THIS: CAlgorithm::removeTarget, but not found");
 }
 
+void CAlgorithm::moveTarget(SP<ITarget> target) {
+    const bool SHOULD_FLOAT = target->floating();
+
+    if (SHOULD_FLOAT) {
+        m_floatingTargets.emplace_back(target);
+        m_floating->movedTarget(target);
+    } else {
+        m_tiledTargets.emplace_back(target);
+        m_tiled->movedTarget(target);
+    }
+}
+
 SP<CSpace> CAlgorithm::space() const {
     return m_space.lock();
+}
+
+void CAlgorithm::setFloating(SP<ITarget> target, bool floating) {
+    removeTarget(target);
+
+    target->setFloating(floating);
+
+    moveTarget(target);
 }

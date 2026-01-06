@@ -4,17 +4,24 @@
 
 using namespace Layout;
 
-void ITarget::setPosition(const CBox& box) {
-    m_box = box.copy().translate(m_space ? m_space->workArea().pos() : Vector2D{});
+void ITarget::setPositionGlobal(const CBox& box) {
+    m_box = box;
 }
 
 void ITarget::assignToSpace(const SP<CSpace>& space) {
+    if (m_space == space)
+        return;
+
+    const bool HAD_SPACE = !!m_space;
+
     if (m_space)
         m_space->remove(m_self.lock());
 
     m_space = space;
 
-    if (space)
+    if (space && HAD_SPACE)
+        space->move(m_self.lock());
+    else if (space)
         space->add(m_self.lock());
 
     if (!space)
@@ -23,4 +30,23 @@ void ITarget::assignToSpace(const SP<CSpace>& space) {
 
 SP<CSpace> ITarget::space() const {
     return m_space;
+}
+
+PHLWORKSPACE ITarget::workspace() const {
+    if (!m_space)
+        return nullptr;
+
+    return m_space->workspace();
+}
+
+CBox ITarget::position() const {
+    return m_box;
+}
+
+void ITarget::rememberFloatingSize(const Vector2D& size) {
+    m_floatingSize = size;
+}
+
+Vector2D ITarget::lastFloatingSize() const {
+    return m_floatingSize;
 }

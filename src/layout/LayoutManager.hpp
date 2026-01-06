@@ -2,6 +2,9 @@
 
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/math/Math.hpp"
+#include "../managers/input/InputManager.hpp"
+
+#include "supplementary/DragController.hpp"
 
 #include <optional>
 
@@ -53,10 +56,11 @@ namespace Layout {
 
         void                    changeFloatingMode(SP<ITarget> target);
 
-        void                    beginDragTarget(SP<ITarget> target);
-        void                    resizeTarget(SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void                    moveTarget(SP<ITarget> target);
-        void                    endDragTarget(SP<ITarget> target);
+        void                    beginDragTarget(SP<ITarget> target, eMouseBindMode mode);
+        void                    moveMouse(const Vector2D& mousePos);
+        void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void                    moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                    endDragTarget();
 
         void                    fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
 
@@ -73,6 +77,13 @@ namespace Layout {
         std::optional<Vector2D> predictSizeForNewTiledTarget();
 
         void                    fitIfFloatingOnMonitor(SP<ITarget> target);
+
+        void                    performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
+
+        const UP<Supplementary::CDragStateController>& dragController();
+
+      private:
+        UP<Supplementary::CDragStateController> m_dragStateController = makeUnique<Supplementary::CDragStateController>();
     };
 }
 

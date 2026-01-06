@@ -853,7 +853,7 @@ int CWindow::getGroupSize() {
 bool CWindow::canBeGroupedInto(PHLWINDOW pWindow) {
     static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
     bool        isGroup               = m_groupData.pNextWindow;
-    bool        disallowDragIntoGroup = g_pInputManager->m_wasDraggingWindow && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
+    bool        disallowDragIntoGroup = g_layoutManager->dragController()->wasDraggingWindow() && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
     return !g_pKeybindManager->m_groupsLocked                                                // global group lock disengaged
         && ((m_groupRules & GROUP_INVADE && m_firstMap)                                      // window ignore local group locks, or
             || (!pWindow->getGroupHead()->m_groupData.locked                                 //      target unlocked
@@ -1470,7 +1470,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || isFullscreen() || g_pInputManager->m_currentlyDraggedWindow == m_self) {
+    if (!m_isFloating || isFullscreen() || g_layoutManager->dragController()->target() == m_self) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());
@@ -2472,7 +2472,7 @@ void CWindow::unmapWindow() {
         g_pInputManager->releaseAllMouseButtons();
     }
 
-    if (m_self.lock() == g_pInputManager->m_currentlyDraggedWindow.lock())
+    if (m_self.lock() == g_layoutManager->dragController()->target())
         CKeybindManager::changeMouseBindMode(MBIND_INVALID);
 
     // remove the fullscreen window status from workspace if we closed it

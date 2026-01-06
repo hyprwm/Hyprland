@@ -26,6 +26,13 @@ void CSpace::add(SP<ITarget> t) {
         m_algorithm->addTarget(t);
 }
 
+void CSpace::move(SP<ITarget> t) {
+    m_targets.emplace_back(t);
+
+    if (m_algorithm)
+        m_algorithm->moveTarget(t);
+}
+
 void CSpace::remove(SP<ITarget> t) {
     std::erase(m_targets, t);
 
@@ -60,4 +67,26 @@ void CSpace::recheckWorkArea() {
 
 const CBox& CSpace::workArea() const {
     return m_workArea;
+}
+
+PHLWORKSPACE CSpace::workspace() const {
+    return m_parent.lock();
+}
+
+void CSpace::toggleTargetFloating(SP<ITarget> t) {
+    m_algorithm->setFloating(t, !t->floating());
+}
+
+CBox CSpace::targetPositionLocal(SP<ITarget> t) const {
+    return t->position().translate(-m_workArea.pos());
+}
+
+void CSpace::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
+    if (!m_algorithm)
+        return;
+}
+
+void CSpace::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
+    if (!m_algorithm)
+        return;
 }

@@ -2,11 +2,20 @@
 
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/memory/Memory.hpp"
+#include "../../desktop/Workspace.hpp"
+
+#include <expected>
+#include <cstdint>
 
 namespace Layout {
     enum eTargetType : uint8_t {
         TARGET_TYPE_WINDOW = 0,
         TARGET_TYPE_GROUP,
+    };
+
+    enum eGeometryFailure : uint8_t {
+        GEOMETRY_NO_DESIRED      = 0,
+        GEOMETRY_INVALID_DESIRED = 1,
     };
 
     class CSpace;
@@ -18,12 +27,26 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
-        virtual void       setPosition(const CBox& box);
-        virtual void       assignToSpace(const SP<CSpace>& space);
-        virtual SP<CSpace> space() const;
+        virtual void         setPositionGlobal(const CBox& box);
+        virtual CBox         position() const;
+        virtual void         assignToSpace(const SP<CSpace>& space);
+        virtual SP<CSpace>   space() const;
+        virtual PHLWORKSPACE workspace() const;
+        virtual PHLWINDOW    window() const = 0;
 
-        // general data getters
-        virtual bool shouldBeFloated() = 0;
+        virtual void         rememberFloatingSize(const Vector2D& size);
+        virtual Vector2D     lastFloatingSize() const;
+
+        //
+        virtual bool                                  floating()                              = 0;
+        virtual void                                  setFloating(bool x)                     = 0;
+        virtual std::expected<CBox, eGeometryFailure> desiredGeometry()                       = 0;
+        virtual eFullscreenMode                       fullscreenMode()                        = 0;
+        virtual void                                  setFullscreenMode(eFullscreenMode mode) = 0;
+        virtual std::optional<Vector2D>               minSize()                               = 0;
+        virtual std::optional<Vector2D>               maxSize()                               = 0;
+        virtual void                                  damageEntire()                          = 0;
+        virtual void                                  warpPositionSize()                      = 0;
 
       protected:
         ITarget() = default;
@@ -31,5 +54,6 @@ namespace Layout {
         CBox        m_box;
         SP<CSpace>  m_space;
         WP<ITarget> m_self;
+        Vector2D    m_floatingSize;
     };
 };

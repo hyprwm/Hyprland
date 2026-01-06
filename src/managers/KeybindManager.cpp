@@ -3249,6 +3249,8 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             parsePropTrivial(PWINDOW->m_ruleApplicator->RGBX(), VAL);
         else if (PROP == "sync_fullscreen")
             parsePropTrivial(PWINDOW->m_ruleApplicator->syncFullscreen(), VAL);
+        else if (PROP == "borderless_fullscreen")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->borderlessFullscreen(), VAL);
         else if (PROP == "immediate")
             parsePropTrivial(PWINDOW->m_ruleApplicator->tearing(), VAL);
         else if (PROP == "xray")

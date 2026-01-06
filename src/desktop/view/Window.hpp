@@ -71,6 +71,14 @@ namespace Desktop::View {
         eFullscreenMode client   = FSMODE_NONE;
     };
 
+    // Tolerance for borderless fullscreen detection (in pixels)
+    // Windows within this tolerance of monitor coverage are considered borderless fullscreen
+    constexpr double BORDERLESS_FULLSCREEN_TOLERANCE = 5.0;
+
+    // Helper function for borderless fullscreen coverage check
+    // Extracted for testability - checks if window covers the entire monitor viewport within tolerance
+    bool coversMonitorForBorderlessFullscreen(const Vector2D& windowPosRelativeToMonitor, const Vector2D& windowSize, const Vector2D& monitorSize);
+
     class CWindow : public IView {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
@@ -288,6 +296,8 @@ namespace Desktop::View {
         int                        surfacesCount();
         bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
         bool                       isFullscreen();
+        bool                       isBorderlessFullscreen();
+        bool                       isEffectivelyFullscreen();
         bool                       isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                        getRealBorderSize() const;
         float                      getScrollMouse();

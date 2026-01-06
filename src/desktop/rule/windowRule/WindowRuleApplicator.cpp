@@ -51,6 +51,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
     UNSET(dimAround)
     UNSET(RGBX)
     UNSET(syncFullscreen)
+    UNSET(borderlessFullscreen)
     UNSET(tearing)
     UNSET(xray)
     UNSET(renderUnfocused)
@@ -392,6 +393,11 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_SYNC_FULLSCREEN: {
                 m_syncFullscreen.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
                 m_syncFullscreen.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_BORDERLESS_FULLSCREEN: {
+                m_borderlessFullscreen.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_borderlessFullscreen.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_IMMEDIATE: {

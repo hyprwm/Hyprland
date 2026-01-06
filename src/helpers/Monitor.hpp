@@ -327,8 +327,10 @@ class CMonitor {
 
     bool        inHDR();
 
-    /// Has an active workspace with a real fullscreen window
-    bool                                               inFullscreenMode();
+    /// Has an active workspace with a fullscreen window (real or borderless with rule)
+    bool inFullscreenMode();
+    /// Get fullscreen window from active workspace (real or borderless with rule)
+    PHLWINDOW                                          getFullscreenWindow();
     std::optional<NColorManagement::PImageDescription> getFSImageDescription();
 
     bool                                               needsCM();

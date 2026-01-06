@@ -52,16 +52,6 @@ void CHyprlandInstance::runHyprlandThread(bool safeMode) {
 #elif defined(__FreeBSD__)
         int sig = SIGKILL;
         procctl(P_PID, getpid(), PROC_PDEATHSIG_CTL, &sig);
-#elif defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
-        pid_t ppid = getppid();
-        if (fork() == 0) {
-            for (;;) {
-                if (getppid() != ppid)
-                    kill(getpid(), SIGKILL);
-                sleep(1);
-            }
-            _exit(1);
-        }
 #endif
 
         execvp(g_state->customPath.value_or("Hyprland").c_str(), args.data());

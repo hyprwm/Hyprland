@@ -1,5 +1,5 @@
 #version 300 es
-//#extension GL_OES_EGL_image_external : require
+#extension GL_OES_EGL_image_external_essl3 : require
 #extension GL_ARB_shading_language_include : enable
 
 precision highp float;

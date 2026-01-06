@@ -162,7 +162,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
         .drmFormat        = DRM_FORMAT_XBGR16161616,
         .glInternalFormat = GL_RGBA16UI,
-        .glFormat         = GL_RGBA16UI,
+        .glFormat         = GL_RGBA_INTEGER,
         .glType           = GL_UNSIGNED_SHORT,
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XBGR16161616,
@@ -171,7 +171,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
         .drmFormat        = DRM_FORMAT_ABGR16161616,
         .glInternalFormat = GL_RGBA16UI,
-        .glFormat         = GL_RGBA16UI,
+        .glFormat         = GL_RGBA_INTEGER,
         .glType           = GL_UNSIGNED_SHORT,
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XBGR16161616,
@@ -207,20 +207,6 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .glFormat         = GL_RGB,
         .glType           = GL_UNSIGNED_BYTE,
         .bytesPerBlock    = 3,
-    },
-    {
-        .drmFormat        = DRM_FORMAT_BGR888,
-        .glInternalFormat = GL_RGB8,
-        .glFormat         = GL_RGB,
-        .glType           = GL_UNSIGNED_BYTE,
-        .bytesPerBlock    = 3,
-    },
-    {
-        .drmFormat        = DRM_FORMAT_RGBX4444,
-        .glInternalFormat = GL_RGBA4,
-        .glFormat         = GL_RGBA,
-        .glType           = GL_UNSIGNED_SHORT_4_4_4_4,
-        .bytesPerBlock    = 2,
     },
 };
 

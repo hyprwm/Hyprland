@@ -2575,8 +2575,6 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
 
     pWindow->moveToWorkspace(pWorkspace);
-    pWindow->m_workspaceExplicitlyAssigned = true;
-    Log::logger->log(Log::DEBUG, "Window '{}' explicitly assigned to workspace '{}' via user action", pWindow->m_title, pWorkspace->m_name);
     pWindow->m_monitor = pWorkspace->m_monitor;
 
     static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");

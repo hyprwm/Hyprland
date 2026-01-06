@@ -135,7 +135,6 @@ namespace Desktop::View {
         std::string      m_initialTitle    = "";
         std::string      m_initialClass    = "";
         PHLWORKSPACE     m_workspace;
-        bool             m_workspaceExplicitlyAssigned = false; // Track rule/user workspace assignments
         PHLMONITORREF    m_monitor;
 
         bool             m_isMapped = false;

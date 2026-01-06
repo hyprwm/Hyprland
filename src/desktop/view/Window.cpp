@@ -2035,8 +2035,8 @@ void CWindow::mapWindow() {
             requestedFSMonitor = MONITOR_INVALID;
         }
 
-        m_isFloating     = m_ruleApplicator->static_.floating.value_or(m_isFloating);
-        m_isPseudotiled  = m_ruleApplicator->static_.pseudo.value_or(m_isPseudotiled);
+        m_isFloating = m_ruleApplicator->static_.floating.value_or(m_isFloating);
+        m_target->setPseudo(m_ruleApplicator->static_.pseudo.value_or(m_target->isPseudo()));
         m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
 
@@ -2195,9 +2195,9 @@ void CWindow::mapWindow() {
         m_isFloating = true;
 
     if (PWORKSPACE->m_defaultPseudo) {
-        m_isPseudotiled      = true;
         CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(m_self.lock());
-        m_pseudoSize         = Vector2D(desiredGeometry.width, desiredGeometry.height);
+        m_target->setPseudoSize(Vector2D{desiredGeometry.width, desiredGeometry.height});
+        m_target->setPseudo(true);
     }
 
     updateWindowData();
@@ -2244,7 +2244,7 @@ void CWindow::mapWindow() {
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
-        m_pseudoSize = m_realSize->goal();
+        m_target->setPseudoSize(m_realSize->goal());
 
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
     } else {
@@ -2255,14 +2255,14 @@ void CWindow::mapWindow() {
             if (!COMPUTED)
                 Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size);
             else {
-                setPseudo    = true;
-                m_pseudoSize = *COMPUTED;
+                setPseudo = true;
+                m_target->setPseudoSize(*COMPUTED);
                 setHidden(false);
             }
         }
 
         if (!setPseudo)
-            m_pseudoSize = m_realSize->goal() - Vector2D(10, 10);
+            m_target->setPseudoSize(m_realSize->goal() - Vector2D(10, 10));
     }
 
     const auto PFOCUSEDWINDOWPREV = Desktop::focusState()->window();

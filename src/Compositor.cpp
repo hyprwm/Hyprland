@@ -71,6 +71,7 @@
 #include "helpers/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
+#include "layout/target/WindowTarget.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -2132,11 +2133,11 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                      Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         PWINDOW->updateDecorationValues();
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+        g_layoutManager->recalculateMonitor(PMONITOR);
         return;
     }
 
-    // g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
+    g_layoutManager->fullscreenRequestForTarget(PWINDOW->m_target, CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
 
     PWINDOW->m_fullscreenState.internal = state.internal;
     PWORKSPACE->m_fullscreenMode        = EFFECTIVE_MODE;
@@ -2149,7 +2150,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
                                                  Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 
     PWINDOW->updateDecorationValues();
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+    g_layoutManager->recalculateMonitor(PMONITOR);
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {

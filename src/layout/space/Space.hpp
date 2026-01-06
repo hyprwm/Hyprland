@@ -18,21 +18,26 @@ namespace Layout {
         static SP<CSpace> create(PHLWORKSPACE w);
         ~CSpace() = default;
 
-        void         add(SP<ITarget> t);
-        void         remove(SP<ITarget> t);
-        void         move(SP<ITarget> t);
+        void           add(SP<ITarget> t);
+        void           remove(SP<ITarget> t);
+        void           move(SP<ITarget> t);
 
-        void         setAlgorithmProvider(SP<CAlgorithm> algo);
-        void         recheckWorkArea();
+        void           setAlgorithmProvider(SP<CAlgorithm> algo);
+        void           recheckWorkArea();
+        void           setFullscreen(SP<ITarget> t, eFullscreenMode mode);
 
-        void         toggleTargetFloating(SP<ITarget> t);
+        void           recalculate();
 
-        const CBox&  workArea() const;
-        PHLWORKSPACE workspace() const;
-        CBox         targetPositionLocal(SP<ITarget> t) const;
+        void           toggleTargetFloating(SP<ITarget> t);
 
-        void         resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void         moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        const CBox&    workArea() const;
+        PHLWORKSPACE   workspace() const;
+        CBox           targetPositionLocal(SP<ITarget> t) const;
+
+        void           resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void           moveTarget(const Vector2D& Δ, SP<ITarget> target);
+
+        SP<CAlgorithm> algorithm() const;
 
       private:
         CSpace(PHLWORKSPACE parent);

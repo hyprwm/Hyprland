@@ -37,6 +37,10 @@ namespace Layout {
         virtual void         rememberFloatingSize(const Vector2D& size);
         virtual Vector2D     lastFloatingSize() const;
 
+        virtual void         setPseudo(bool x);
+        virtual bool         isPseudo() const;
+        virtual void         setPseudoSize(const Vector2D& size);
+
         //
         virtual bool                                  floating()                              = 0;
         virtual void                                  setFloating(bool x)                     = 0;
@@ -55,5 +59,7 @@ namespace Layout {
         SP<CSpace>  m_space;
         WP<ITarget> m_self;
         Vector2D    m_floatingSize;
+        bool        m_pseudo     = false;
+        Vector2D    m_pseudoSize = {1280, 720};
     };
 };

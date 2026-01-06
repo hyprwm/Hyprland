@@ -126,10 +126,6 @@ namespace Desktop::View {
         // for floating window offset in workspace animations
         Vector2D m_floatingOffset = Vector2D(0, 0);
 
-        // this is used for pseudotiling
-        bool     m_isPseudotiled = false;
-        Vector2D m_pseudoSize    = Vector2D(1280, 720);
-
         // for recovering relative cursor position
         Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 

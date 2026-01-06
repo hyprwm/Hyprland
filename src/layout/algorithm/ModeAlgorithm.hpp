@@ -26,8 +26,8 @@ namespace Layout {
         // a target is being resized by a delta. Corner none likely means not interactive
         virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE) = 0;
 
-        // a target is being moved by a delta
-        virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target) = 0;
+        // recalculate layout
+        virtual void recalculate() = 0;
 
       protected:
         IModeAlgorithm() = default;

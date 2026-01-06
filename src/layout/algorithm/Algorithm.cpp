@@ -2,7 +2,10 @@
 
 #include "FloatingAlgorithm.hpp"
 #include "TiledAlgorithm.hpp"
-#include "../target/Target.hpp"
+#include "../target/WindowTarget.hpp"
+#include "../space/Space.hpp"
+#include "../../desktop/view/Window.hpp"
+#include "../../helpers/Monitor.hpp"
 
 #include "../../debug/log/Logger.hpp"
 
@@ -75,4 +78,35 @@ void CAlgorithm::setFloating(SP<ITarget> target, bool floating) {
     target->setFloating(floating);
 
     moveTarget(target);
+}
+
+size_t CAlgorithm::tiledTargets() const {
+    return m_tiledTargets.size();
+}
+
+size_t CAlgorithm::floatingTargets() const {
+    return m_floatingTargets.size();
+}
+
+void CAlgorithm::recalculate() {
+    m_tiled->recalculate();
+    m_floating->recalculate();
+
+    const auto PWORKSPACE = m_space->workspace();
+    const auto PMONITOR   = PWORKSPACE->m_monitor;
+
+    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
+        // massive hack from the fullscreen func
+        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
+
+        if (PFULLWINDOW) {
+            if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+                *PFULLWINDOW->m_realPosition = PMONITOR->m_position;
+                *PFULLWINDOW->m_realSize     = PMONITOR->m_size;
+            } else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED)
+                PFULLWINDOW->m_target->setPositionGlobal(m_space->workArea());
+        }
+
+        return;
+    }
 }

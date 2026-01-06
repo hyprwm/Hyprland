@@ -48,7 +48,7 @@ namespace Layout {
 
     class CLayoutManager {
       public:
-        CLayoutManager()  = default;
+        CLayoutManager();
         ~CLayoutManager() = default;
 
         void                    newTarget(SP<ITarget> target, SP<CSpace> space);
@@ -79,6 +79,8 @@ namespace Layout {
         void                    fitIfFloatingOnMonitor(SP<ITarget> target);
 
         void                    performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
+
+        void                    recalculateMonitor(PHLMONITOR);
 
         const UP<Supplementary::CDragStateController>& dragController();
 

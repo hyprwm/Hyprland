@@ -8,7 +8,7 @@
 #include "../layout/space/Space.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/algorithm/floating/default/DefaultFloatingAlgorithm.hpp"
-#include "../layout/algorithm/tiled/test/TestTiledAlgorithm.hpp"
+#include "../layout/algorithm/tiled/dwindle/DwindleAlgorithm.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
@@ -548,5 +548,5 @@ bool CWorkspace::isPersistent() {
 }
 
 SP<Layout::CAlgorithm> CWorkspace::getLayoutAlgo() {
-    return Layout::CAlgorithm::create(makeUnique<Layout::Tiled::CTestTiledAlgorithm>(), makeUnique<Layout::Floating::CDefaultFloatingAlgorithm>(), m_space);
+    return Layout::CAlgorithm::create(makeUnique<Layout::Tiled::CDwindleAlgorithm>(), makeUnique<Layout::Floating::CDefaultFloatingAlgorithm>(), m_space);
 }

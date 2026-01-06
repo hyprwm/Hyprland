@@ -14,6 +14,11 @@ namespace Layout {
       public:
         virtual ~IFloatingAlgorithm() = default;
 
+        // a target is being moved by a delta
+        virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target) = 0;
+
+        virtual void recalculate();
+
       protected:
         IFloatingAlgorithm() = default;
 

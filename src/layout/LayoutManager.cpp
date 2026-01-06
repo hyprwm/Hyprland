@@ -5,8 +5,17 @@
 
 #include "../config/ConfigManager.hpp"
 #include "../Compositor.hpp"
+#include "../managers/HookSystemManager.hpp"
 
 using namespace Layout;
+
+CLayoutManager::CLayoutManager() {
+    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [](void* hk, SCallbackInfo& info, std::any param) {
+        for (const auto& ws : g_pCompositor->getWorkspaces()) {
+            ws->m_space->recheckWorkArea();
+        }
+    });
+}
 
 void CLayoutManager::newTarget(SP<ITarget> target, SP<CSpace> space) {
     // on a new target: remember desired pos for float, if available
@@ -48,7 +57,7 @@ void CLayoutManager::endDragTarget() {
 }
 
 void CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
-    ;
+    target->space()->setFullscreen(target, effectiveMode);
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b) {
@@ -248,4 +257,11 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
     sourcePos  = {sourceX.start, sourceY.start};
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
+}
+
+void CLayoutManager::recalculateMonitor(PHLMONITOR m) {
+    if (m->m_activeWorkspace)
+        m->m_activeWorkspace->m_space->recalculate();
+    if (m->m_activeSpecialWorkspace)
+        m->m_activeSpecialWorkspace->m_space->recalculate();
 }

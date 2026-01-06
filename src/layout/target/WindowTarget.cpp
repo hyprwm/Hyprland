@@ -1,8 +1,10 @@
 #include "WindowTarget.hpp"
 
 #include "../space/Space.hpp"
+#include "../algorithm/Algorithm.hpp"
 
 #include "../../protocols/core/Compositor.hpp"
+#include "../../config/ConfigManager.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../Compositor.hpp"
@@ -31,13 +33,153 @@ void CWindowTarget::setPositionGlobal(const CBox& box) {
 }
 
 void CWindowTarget::updatePos() {
-    m_window->m_position = m_box.pos();
-    m_window->m_size     = m_box.size();
 
-    *m_window->m_realPosition = m_box.pos();
-    *m_window->m_realSize     = m_box.size();
+    if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
+        m_window->m_position = m_box.pos();
+        m_window->m_size     = m_box.size();
 
-    m_window->sendWindowSize();
+        *m_window->m_realPosition = m_box.pos();
+        *m_window->m_realSize     = m_box.size();
+
+        m_window->sendWindowSize();
+
+        return;
+    }
+
+    // Tiled is more complicated.
+
+    const auto PMONITOR   = m_space->workspace()->m_monitor;
+    const auto PWORKSPACE = m_space->workspace();
+
+    // for gaps outer
+    const auto MONITOR_WORKAREA = m_space->workArea();
+    const bool DISPLAYLEFT      = STICKS(m_box.x, MONITOR_WORKAREA.x);
+    const bool DISPLAYRIGHT     = STICKS(m_box.x + m_box.w, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+    const bool DISPLAYTOP       = STICKS(m_box.y, MONITOR_WORKAREA.y);
+    const bool DISPLAYBOTTOM    = STICKS(m_box.y + m_box.h, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
+
+    // get specific gaps and rules for this workspace,
+    // if user specified them in config
+    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+
+    if (!validMapped(m_window)) {
+        if (m_window)
+            g_layoutManager->removeTarget(m_window->m_target);
+        return;
+    }
+
+    if (fullscreenMode() == FSMODE_FULLSCREEN)
+        return;
+
+    static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+    auto* const PGAPSIN     = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+
+    auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+    CBox        nodeBox = m_box;
+    nodeBox.round();
+
+    m_window->m_size     = nodeBox.size();
+    m_window->m_position = nodeBox.pos();
+
+    m_window->updateWindowDecos();
+
+    auto              calcPos  = m_window->m_position;
+    auto              calcSize = m_window->m_size;
+
+    const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("layout:single_window_aspect_ratio");
+    const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("layout:single_window_aspect_ratio_tolerance");
+
+    Vector2D          ratioPadding;
+
+    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1) {
+        const Vector2D originalSize = MONITOR_WORKAREA.size();
+
+        const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
+        const double   originalRatio  = originalSize.x / originalSize.y;
+
+        if (requestedRatio > originalRatio) {
+            double padding = originalSize.y - (originalSize.x / requestedRatio);
+
+            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.y)
+                ratioPadding = Vector2D{0., padding};
+        } else if (requestedRatio < originalRatio) {
+            double padding = originalSize.x - (originalSize.y * requestedRatio);
+
+            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.x)
+                ratioPadding = Vector2D{padding, 0.};
+        }
+    }
+
+    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? 0 : gapsIn.m_left), sc<double>(DISPLAYTOP ? 0 : gapsIn.m_top));
+
+    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? 0 : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
+
+    calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
+    calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
+
+    if (isPseudo()) {
+        // Calculate pseudo
+        float scale = 1;
+
+        // adjust if doesn't fit
+        if (m_pseudoSize.x > calcSize.x || m_pseudoSize.y > calcSize.y) {
+            if (m_pseudoSize.x > calcSize.x)
+                scale = calcSize.x / m_pseudoSize.x;
+
+            if (m_pseudoSize.y * scale > calcSize.y)
+                scale = calcSize.y / m_pseudoSize.y;
+
+            auto DELTA = calcSize - m_pseudoSize * scale;
+            calcSize   = m_pseudoSize * scale;
+            calcPos    = calcPos + DELTA / 2.f; // center
+        } else {
+            auto DELTA = calcSize - m_pseudoSize;
+            calcPos    = calcPos + DELTA / 2.f; // center
+            calcSize   = m_pseudoSize;
+        }
+    }
+
+    const auto RESERVED = m_window->getFullWindowReservedArea();
+    calcPos             = calcPos + RESERVED.topLeft;
+    calcSize            = calcSize - (RESERVED.topLeft + RESERVED.bottomRight);
+
+    Vector2D    availableSpace = calcSize;
+
+    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
+
+    if (*PCLAMP_TILED) {
+        const auto borderSize       = m_window->getRealBorderSize();
+        Vector2D   monitorAvailable = MONITOR_WORKAREA.size() - Vector2D{2.0 * borderSize, 2.0 * borderSize};
+
+        Vector2D   minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}).clamp(Vector2D{0, 0}, monitorAvailable);
+        Vector2D   maxSize = m_window->isFullscreen() ? Vector2D{INFINITY, INFINITY} :
+                                                        m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}).clamp(Vector2D{0, 0}, monitorAvailable);
+        calcSize           = calcSize.clamp(minSize, maxSize);
+
+        calcPos += (availableSpace - calcSize) / 2.0;
+
+        calcPos.x = std::clamp(calcPos.x, MONITOR_WORKAREA.x + borderSize, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w - calcSize.x - borderSize);
+        calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y + borderSize, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y - borderSize);
+    }
+
+    if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {
+        // if special, we adjust the coords a bit
+        static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("dwindle:special_scale_factor");
+
+        CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
+        wb.round(); // avoid rounding mess
+
+        *m_window->m_realPosition = wb.pos();
+        *m_window->m_realSize     = wb.size();
+    } else {
+        CBox wb = {calcPos, calcSize};
+        wb.round(); // avoid rounding mess
+
+        *m_window->m_realSize     = wb.size();
+        *m_window->m_realPosition = wb.pos();
+    }
+
+    m_window->updateWindowDecos();
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space) {

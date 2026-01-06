@@ -24,6 +24,8 @@ void CSpace::add(SP<ITarget> t) {
 
     if (m_algorithm)
         m_algorithm->addTarget(t);
+
+    m_parent->updateWindows();
 }
 
 void CSpace::move(SP<ITarget> t) {
@@ -31,6 +33,8 @@ void CSpace::move(SP<ITarget> t) {
 
     if (m_algorithm)
         m_algorithm->moveTarget(t);
+
+    m_parent->updateWindows();
 }
 
 void CSpace::remove(SP<ITarget> t) {
@@ -38,6 +42,8 @@ void CSpace::remove(SP<ITarget> t) {
 
     if (m_algorithm)
         m_algorithm->removeTarget(t);
+
+    m_parent->updateWindows();
 }
 
 void CSpace::setAlgorithmProvider(SP<CAlgorithm> algo) {
@@ -89,4 +95,17 @@ void CSpace::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner co
 void CSpace::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     if (!m_algorithm)
         return;
+}
+
+SP<CAlgorithm> CSpace::algorithm() const {
+    return m_algorithm;
+}
+
+void CSpace::recalculate() {
+    m_algorithm->recalculate();
+}
+
+void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
+    t->setFullscreenMode(mode);
+    recalculate();
 }

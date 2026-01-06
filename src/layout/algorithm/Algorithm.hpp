@@ -22,10 +22,15 @@ namespace Layout {
 
         void       setFloating(SP<ITarget> target, bool floating);
 
+        void       recalculate();
+
         void       resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void       moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
         SP<CSpace> space() const;
+
+        size_t     tiledTargets() const;
+        size_t     floatingTargets() const;
 
       private:
         CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);

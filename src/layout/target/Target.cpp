@@ -51,14 +51,17 @@ Vector2D ITarget::lastFloatingSize() const {
     return m_floatingSize;
 }
 
+void ITarget::recalc() {
+    setPositionGlobal(m_box);
+}
+
 void ITarget::setPseudo(bool x) {
     if (m_pseudo == x)
         return;
 
     m_pseudo = x;
 
-    // recalc
-    setPositionGlobal(m_box);
+    recalc();
 }
 
 bool ITarget::isPseudo() const {
@@ -67,4 +70,10 @@ bool ITarget::isPseudo() const {
 
 void ITarget::setPseudoSize(const Vector2D& size) {
     m_pseudoSize = size;
+
+    recalc();
+}
+
+Vector2D ITarget::pseudoSize() {
+    return m_pseudoSize;
 }

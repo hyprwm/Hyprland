@@ -384,8 +384,16 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getMasterNode() {
     return nullptr;
 }
 
-void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData>) {
-    ;
+void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
+    if (!x || !x->pParent)
+        return;
+
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
+        return;
+
+    x->pParent->splitTop = !x->pParent->splitTop;
+
+    x->pParent->recalcSizePosRecursive();
 }
 
 void CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData>) {

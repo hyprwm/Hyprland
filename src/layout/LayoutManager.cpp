@@ -45,7 +45,20 @@ void CLayoutManager::moveMouse(const Vector2D& mousePos) {
 }
 
 void CLayoutManager::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
-    ;
+    if (target->isPseudo()) {
+        auto fixedΔ = Δ;
+        if (corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT)
+            fixedΔ.x = -fixedΔ.x;
+        if (corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT)
+            fixedΔ.y = -fixedΔ.y;
+
+        auto       newPseudoSize    = target->pseudoSize() + fixedΔ;
+        const auto TARGET_TILE_SIZE = target->position().size();
+        newPseudoSize.x             = std::clamp(newPseudoSize.x, MIN_WINDOW_SIZE, TARGET_TILE_SIZE.x);
+        newPseudoSize.y             = std::clamp(newPseudoSize.y, MIN_WINDOW_SIZE, TARGET_TILE_SIZE.y);
+
+        target->setPseudoSize(newPseudoSize);
+    }
 }
 
 void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {

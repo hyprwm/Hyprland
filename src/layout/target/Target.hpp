@@ -33,6 +33,7 @@ namespace Layout {
         virtual SP<CSpace>   space() const;
         virtual PHLWORKSPACE workspace() const;
         virtual PHLWINDOW    window() const = 0;
+        virtual void         recalc();
 
         virtual void         rememberFloatingSize(const Vector2D& size);
         virtual Vector2D     lastFloatingSize() const;
@@ -40,6 +41,7 @@ namespace Layout {
         virtual void         setPseudo(bool x);
         virtual bool         isPseudo() const;
         virtual void         setPseudoSize(const Vector2D& size);
+        virtual Vector2D     pseudoSize();
 
         //
         virtual bool                                  floating()                              = 0;

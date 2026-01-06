@@ -1018,7 +1018,6 @@ bool CHyprOpenGLImpl::initShaders() {
                 getRoundingShaderUniforms(shaders->m_shCM);
                 shaders->m_shCM.uniformLocations[SHADER_PROJ]                = glGetUniformLocation(prog, "proj");
                 shaders->m_shCM.uniformLocations[SHADER_TEX]                 = glGetUniformLocation(prog, "tex");
-                shaders->m_shCM.uniformLocations[SHADER_TEX_EXTERNAL]        = glGetUniformLocation(prog, "tex_external");
                 shaders->m_shCM.uniformLocations[SHADER_TEX_TYPE]            = glGetUniformLocation(prog, "texType");
                 shaders->m_shCM.uniformLocations[SHADER_ALPHA_MATTE]         = glGetUniformLocation(prog, "texMatte");
                 shaders->m_shCM.uniformLocations[SHADER_ALPHA]               = glGetUniformLocation(prog, "alpha");
@@ -1695,7 +1694,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
-    if (!skipCM && !usingFinalShader)
+    if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
         shader = &m_shaders->m_shCM;
 
     useProgram(shader->program);
@@ -1711,11 +1710,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-
-    if (shader == &m_shaders->m_shCM && texType == TEXTURE_EXTERNAL)
-        shader->setUniformInt(SHADER_TEX_EXTERNAL, 0);
-    else
-        shader->setUniformInt(SHADER_TEX, 0);
+    shader->setUniformInt(SHADER_TEX, 0);
 
     if ((usingFinalShader && *PDT == 0) || CRASHING)
         shader->setUniformFloat(SHADER_TIME, m_globalTimer.getSeconds() - shader->initialTime);

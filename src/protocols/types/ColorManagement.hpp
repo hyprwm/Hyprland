@@ -58,7 +58,10 @@ namespace NColorManagement {
         return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return sc<wpColorManagerV1TransferFunction>(tf);
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            default: return sc<wpColorManagerV1TransferFunction>(tf);
+        }
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
         switch (tf) {

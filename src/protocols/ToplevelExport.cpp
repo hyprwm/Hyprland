@@ -285,8 +285,6 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     auto origin = Vector2D(0, 0);
     switch (PMONITOR->m_transform) {
         case WL_OUTPUT_TRANSFORM_FLIPPED_180:
@@ -308,7 +306,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         default: break;
     }
 
-    glReadPixels(origin.x, origin.y, m_box.width, m_box.height, glFormat, PFORMAT->glType, pixelData);
+    glReadPixels(origin.x, origin.y, m_box.width, m_box.height, PFORMAT->glFormat, PFORMAT->glType, pixelData);
 
     if (overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());

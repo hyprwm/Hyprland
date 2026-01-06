@@ -73,9 +73,11 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    if (format->swizzle.has_value()) {
+        setTexParameter(GL_TEXTURE_SWIZZLE_R, format->swizzle->at(0));
+        setTexParameter(GL_TEXTURE_SWIZZLE_G, format->swizzle->at(1));
+        setTexParameter(GL_TEXTURE_SWIZZLE_B, format->swizzle->at(2));
+        setTexParameter(GL_TEXTURE_SWIZZLE_A, format->swizzle->at(3));
     }
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
@@ -128,9 +130,11 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     bind();
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    if (format->swizzle.has_value()) {
+        setTexParameter(GL_TEXTURE_SWIZZLE_R, format->swizzle->at(0));
+        setTexParameter(GL_TEXTURE_SWIZZLE_G, format->swizzle->at(1));
+        setTexParameter(GL_TEXTURE_SWIZZLE_B, format->swizzle->at(2));
+        setTexParameter(GL_TEXTURE_SWIZZLE_A, format->swizzle->at(3));
     }
 
     damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {

@@ -6,32 +6,46 @@
 #include <xf86drm.h>
 #include <drm_fourcc.h>
 
-/*
-    DRM formats are LE, while OGL is BE. The two primary formats
-    will be flipped, so we will set flipRB which will later use swizzle
-    to flip the red and blue channels.
-    This will not work on GLES2, but I want to drop support for it one day anyways.
-*/
+#define SWIZZLE_A1GB {GL_ALPHA, GL_ONE, GL_GREEN, GL_BLUE}
+#define SWIZZLE_ABG1 {GL_ALPHA, GL_BLUE, GL_GREEN, GL_ONE}
+#define SWIZZLE_ABGR {GL_ALPHA, GL_BLUE, GL_GREEN, GL_RED}
+#define SWIZZLE_ARGB {GL_ALPHA, GL_RED, GL_GREEN, GL_BLUE}
+#define SWIZZLE_B1RG {GL_BLUE, GL_ONE, GL_RED, GL_GREEN}
+#define SWIZZLE_BARG {GL_BLUE, GL_ALPHA, GL_RED, GL_GREEN}
+#define SWIZZLE_BGR1 {GL_BLUE, GL_GREEN, GL_RED, GL_ONE}
+#define SWIZZLE_BGRA {GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA}
+#define SWIZZLE_G1AB {GL_GREEN, GL_ONE, GL_ALPHA, GL_BLUE}
+#define SWIZZLE_GBA1 {GL_GREEN, GL_BLUE, GL_ALPHA, GL_ONE}
+#define SWIZZLE_GBAR {GL_GREEN, GL_BLUE, GL_ALPHA, GL_RED}
+#define SWIZZLE_GRAB {GL_GREEN, GL_RED, GL_ALPHA, GL_BLUE}
+#define SWIZZLE_R001 {GL_RED, GL_ZERO, GL_ZERO, GL_ONE}
+#define SWIZZLE_R1BG {GL_RED, GL_ONE, GL_BLUE, GL_GREEN}
+#define SWIZZLE_RABG {GL_RED, GL_ALPHA, GL_BLUE, GL_GREEN}
+#define SWIZZLE_RG01 {GL_RED, GL_GREEN, GL_ZERO, GL_ONE}
+#define SWIZZLE_GR01 {GL_GREEN, GL_RED, GL_ZERO, GL_ONE}
+#define SWIZZLE_RGB1 {GL_RED, GL_GREEN, GL_BLUE, GL_ONE}
+#define SWIZZLE_RGBA {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA}
+
 inline const std::vector<SPixelFormat> GLES3_FORMATS = {
     {
         .drmFormat        = DRM_FORMAT_ARGB8888,
-        .flipRB           = true,
         .glInternalFormat = GL_RGBA8,
         .glFormat         = GL_RGBA,
         .glType           = GL_UNSIGNED_BYTE,
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XRGB8888,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_BGRA},
     },
     {
         .drmFormat        = DRM_FORMAT_XRGB8888,
-        .flipRB           = true,
         .glInternalFormat = GL_RGBA8,
         .glFormat         = GL_RGBA,
         .glType           = GL_UNSIGNED_BYTE,
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XRGB8888,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_BGR1},
     },
     {
         .drmFormat        = DRM_FORMAT_XBGR8888,
@@ -41,6 +55,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XBGR8888,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_ABGR8888,
@@ -50,6 +65,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XBGR8888,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_BGR888,
@@ -59,6 +75,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_BGR888,
         .bytesPerBlock    = 3,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_RGBX4444,
@@ -68,6 +85,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_RGBX4444,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_RGBA4444,
@@ -77,6 +95,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_RGBX4444,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_RGBX5551,
@@ -86,6 +105,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_RGBX5551,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_RGBA5551,
@@ -95,6 +115,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_RGBX5551,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_RGB565,
@@ -104,6 +125,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_RGB565,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_XBGR2101010,
@@ -113,6 +135,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_ABGR2101010,
@@ -122,6 +145,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XBGR2101010,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_XRGB2101010,
@@ -131,6 +155,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_BGR1},
     },
     {
         .drmFormat        = DRM_FORMAT_ARGB2101010,
@@ -140,6 +165,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XRGB2101010,
         .bytesPerBlock    = 4,
+        .swizzle          = {SWIZZLE_BGRA},
     },
     {
         .drmFormat        = DRM_FORMAT_XBGR16161616F,
@@ -149,6 +175,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock    = 8,
+        .swizzle          = {SWIZZLE_RGB1},
     },
     {
         .drmFormat        = DRM_FORMAT_ABGR16161616F,
@@ -158,6 +185,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XBGR16161616F,
         .bytesPerBlock    = 8,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_XBGR16161616,
@@ -167,6 +195,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = false,
         .alphaStripped    = DRM_FORMAT_XBGR16161616,
         .bytesPerBlock    = 8,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat        = DRM_FORMAT_ABGR16161616,
@@ -176,6 +205,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .withAlpha        = true,
         .alphaStripped    = DRM_FORMAT_XBGR16161616,
         .bytesPerBlock    = 8,
+        .swizzle          = {SWIZZLE_RGBA},
     },
     {
         .drmFormat     = DRM_FORMAT_YVYU,
@@ -193,6 +223,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .glFormat         = GL_RED,
         .glType           = GL_UNSIGNED_BYTE,
         .bytesPerBlock    = 1,
+        .swizzle          = {SWIZZLE_R001},
     },
     {
         .drmFormat        = DRM_FORMAT_GR88,
@@ -200,6 +231,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .glFormat         = GL_RG,
         .glType           = GL_UNSIGNED_BYTE,
         .bytesPerBlock    = 2,
+        .swizzle          = {SWIZZLE_RG01},
     },
     {
         .drmFormat        = DRM_FORMAT_RGB888,
@@ -207,6 +239,7 @@ inline const std::vector<SPixelFormat> GLES3_FORMATS = {
         .glFormat         = GL_RGB,
         .glType           = GL_UNSIGNED_BYTE,
         .bytesPerBlock    = 3,
+        .swizzle          = {SWIZZLE_BGR1},
     },
 };
 

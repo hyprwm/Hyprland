@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <GLES3/gl32.h>
 #include "math/Math.hpp"
 #include <aquamarine/backend/Misc.hpp>
 
@@ -9,15 +10,15 @@ using DRMFormat = uint32_t;
 using SHMFormat = uint32_t;
 
 struct SPixelFormat {
-    DRMFormat drmFormat        = 0; /* DRM_FORMAT_INVALID */
-    bool      flipRB           = false;
-    int       glInternalFormat = 0;
-    int       glFormat         = 0;
-    int       glType           = 0;
-    bool      withAlpha        = true;
-    DRMFormat alphaStripped    = 0; /* DRM_FORMAT_INVALID */
-    uint32_t  bytesPerBlock    = 0;
-    Vector2D  blockSize;
+    DRMFormat                           drmFormat        = 0; /* DRM_FORMAT_INVALID */
+    int                                 glInternalFormat = 0;
+    int                                 glFormat         = 0;
+    int                                 glType           = 0;
+    bool                                withAlpha        = true;
+    DRMFormat                           alphaStripped    = 0; /* DRM_FORMAT_INVALID */
+    uint32_t                            bytesPerBlock    = 0;
+    Vector2D                            blockSize;
+    std::optional<std::array<GLint, 4>> swizzle = std::nullopt;
 };
 
 using SDRMFormat = Aquamarine::SDRMFormat;

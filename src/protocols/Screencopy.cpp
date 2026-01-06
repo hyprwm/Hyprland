@@ -385,8 +385,6 @@ bool CScreencopyFrame::copyShm() {
         return false;
     }
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
@@ -402,11 +400,11 @@ bool CScreencopyFrame::copyShm() {
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
     if (packStride == sc<uint32_t>(shm.stride)) {
-        glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
+        glReadPixels(0, 0, m_box.w, m_box.h, PFORMAT->glFormat, PFORMAT->glType, pixelData);
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
             uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
+            glReadPixels(0, y, m_box.w, 1, PFORMAT->glFormat, PFORMAT->glType, pixelData + i * shm.stride);
         }
     }
 

@@ -22,6 +22,8 @@ namespace Layout::Tiled {
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
         virtual std::optional<Vector2D>          predictSizeForNewTarget();
 
+        virtual void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
+
       private:
         std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;
 

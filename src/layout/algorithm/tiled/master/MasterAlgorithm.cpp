@@ -254,6 +254,16 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
     ;
 }
 
+void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
+    auto nodeA = getNodeFromTarget(a);
+    auto nodeB = getNodeFromTarget(b);
+
+    if (nodeA)
+        nodeA->pTarget = b;
+    if (nodeB)
+        nodeB->pTarget = a;
+}
+
 void CMasterAlgorithm::recalculate() {
     calculateWorkspace();
 }
@@ -305,8 +315,8 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
 
         const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
 
-        if (PMASTER->pTarget.lock() != PWINDOW->m_target) {
-            const auto& NEWMASTER       = PWINDOW->m_target;
+        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
+            const auto& NEWMASTER       = PWINDOW->layoutTarget();
             const bool  newFocusToChild = vars.size() >= 2 && vars[1] == "child";
             g_layoutManager->switchTargets(NEWMASTER, NEWCHILD);
             const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
@@ -342,11 +352,11 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
 
         const auto& ARG = vars[1]; // returns empty string if out of bounds
 
-        if (PMASTER->pTarget.lock() != PWINDOW->m_target) {
+        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
             switchToWindow(PMASTER->pTarget.lock());
             // save previously focused window (only for `previous` mode)
             if (ARG == "previous")
-                m_workspaceData.focusMasterPrev = PWINDOW->m_target;
+                m_workspaceData.focusMasterPrev = PWINDOW->layoutTarget();
             return {};
         }
 
@@ -374,57 +384,57 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
             return std::unexpected("no window");
 
         const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PNEXTWINDOW = getNextTarget(PWINDOW->m_target, true, !NOLOOP);
+        const auto PNEXTWINDOW = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
         switchToWindow(PNEXTWINDOW);
     } else if (command == "cycleprev") {
         if (!PWINDOW)
             return std::unexpected("no window");
 
         const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PPREVWINDOW = getNextTarget(PWINDOW->m_target, false, !NOLOOP);
+        const auto PPREVWINDOW = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
         switchToWindow(PPREVWINDOW);
     } else if (command == "swapnext") {
         if (!validMapped(PWINDOW))
             return std::unexpected("no window");
 
-        if (PWINDOW->m_target->floating()) {
+        if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapnext"]("");
             return {};
         }
 
         const bool NOLOOP            = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->m_target, true, !NOLOOP);
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-            g_layoutManager->switchTargets(PWINDOW->m_target, PWINDOWTOSWAPWITH);
-            switchToWindow(PWINDOW->m_target);
+            g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
+            switchToWindow(PWINDOW->layoutTarget());
         }
     } else if (command == "swapprev") {
         if (!validMapped(PWINDOW))
             return std::unexpected("no window");
 
-        if (PWINDOW->m_target->floating()) {
+        if (PWINDOW->layoutTarget()->floating()) {
             g_pKeybindManager->m_dispatchers["swapnext"]("prev");
             return {};
         }
 
         const bool NOLOOP            = vars.size() >= 2 && vars[1] == "noloop";
-        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->m_target, false, !NOLOOP);
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
 
         if (PWINDOWTOSWAPWITH) {
             g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
-            g_layoutManager->switchTargets(PWINDOW->m_target, PWINDOWTOSWAPWITH);
-            switchToWindow(PWINDOW->m_target);
+            g_layoutManager->switchTargets(PWINDOW->layoutTarget(), PWINDOWTOSWAPWITH);
+            switchToWindow(PWINDOW->layoutTarget());
         }
     } else if (command == "addmaster") {
         if (!validMapped(PWINDOW))
             return std::unexpected("no window");
 
-        if (PWINDOW->m_target->floating())
+        if (PWINDOW->layoutTarget()->floating())
             return std::unexpected("window is floating");
 
-        const auto  PNODE = getNodeFromTarget(PWINDOW->m_target);
+        const auto  PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
         const auto  WINDOWS    = getNodesNo();
         const auto  MASTERS    = getMastersNo();
@@ -454,10 +464,10 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         if (!validMapped(PWINDOW))
             return std::unexpected("no window");
 
-        if (PWINDOW->m_target->floating())
+        if (PWINDOW->layoutTarget()->floating())
             return std::unexpected("window isnt tiled");
 
-        const auto PNODE = getNodeFromTarget(PWINDOW->m_target);
+        const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
         const auto WINDOWS = getNodesNo();
         const auto MASTERS = getMastersNo();
@@ -695,7 +705,7 @@ int CMasterAlgorithm::getNodesNo() {
 }
 
 SP<SMasterNodeData> CMasterAlgorithm::getNodeFromWindow(PHLWINDOW x) {
-    return getNodeFromTarget(x->m_target);
+    return getNodeFromTarget(x->layoutTarget());
 }
 
 SP<SMasterNodeData> CMasterAlgorithm::getNodeFromTarget(SP<ITarget> x) {
@@ -1047,5 +1057,5 @@ int CMasterAlgorithm::getMastersNo() {
 }
 
 bool CMasterAlgorithm::isWindowTiled(PHLWINDOW x) {
-    return x && !x->m_target->floating();
+    return x && !x->layoutTarget()->floating();
 }

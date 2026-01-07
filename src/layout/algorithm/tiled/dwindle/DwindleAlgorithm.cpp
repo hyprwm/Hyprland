@@ -9,6 +9,8 @@
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Layout;
 using namespace Layout::Tiled;
 
@@ -412,7 +414,19 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
         const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
 
         // Get the parent's parent
-        auto PPARENT2 = PPARENT->pParent;
+        auto                          PPARENT2 = PPARENT->pParent;
+
+        Hyprutils::Utils::CScopeGuard x([target, this] {
+            // snap all windows, don't animate resizes if they are manual
+            if (target == g_layoutManager->dragController()->target()) {
+                for (const auto& w : m_dwindleNodesData) {
+                    if (w->isNode)
+                        continue;
+
+                    w->pTarget->warpPositionSize();
+                }
+            }
+        });
 
         // No parent means we have only 2 windows, and thus one axis of freedom
         if (!PPARENT2) {
@@ -470,6 +484,16 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
             w->pTarget->warpPositionSize();
         }
     }
+}
+
+void CDwindleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
+    auto nodeA = getNodeFromTarget(a);
+    auto nodeB = getNodeFromTarget(b);
+
+    if (nodeA)
+        nodeA->pTarget = b;
+    if (nodeB)
+        nodeB->pTarget = a;
 }
 
 void CDwindleAlgorithm::recalculate() {
@@ -545,7 +569,7 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getNodeFromTarget(SP<ITarget> t) {
 }
 
 SP<SDwindleNodeData> CDwindleAlgorithm::getNodeFromWindow(PHLWINDOW w) {
-    return w ? getNodeFromTarget(w->m_target) : nullptr;
+    return w ? getNodeFromTarget(w->layoutTarget()) : nullptr;
 }
 
 int CDwindleAlgorithm::getNodes() {

@@ -97,7 +97,7 @@ void CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenM
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b) {
-    ;
+    a->swap(b);
 }
 
 void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& direction, bool silent) {

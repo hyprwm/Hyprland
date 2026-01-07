@@ -104,7 +104,7 @@ void CAlgorithm::recalculate() {
                 *PFULLWINDOW->m_realPosition = PMONITOR->m_position;
                 *PFULLWINDOW->m_realSize     = PMONITOR->m_size;
             } else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED)
-                PFULLWINDOW->m_target->setPositionGlobal(m_space->workArea());
+                PFULLWINDOW->layoutTarget()->setPositionGlobal(m_space->workArea());
         }
 
         return;
@@ -131,4 +131,21 @@ void CAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorne
 void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     if (target->floating())
         m_floating->moveTarget(Δ, target);
+}
+
+void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
+    if (a->floating() == b->floating()) {
+        if (a->floating())
+            m_floating->swapTargets(a, b);
+        else
+            m_tiled->swapTargets(a, b);
+    } else {
+        if (a->floating()) {
+            m_floating->swapTargets(a, b);
+            m_tiled->swapTargets(b, a);
+        } else {
+            m_tiled->swapTargets(a, b);
+            m_floating->swapTargets(b, a);
+        }
+    }
 }

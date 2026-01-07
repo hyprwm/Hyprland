@@ -1,4 +1,5 @@
 #include "Workspace.hpp"
+#include "view/Group.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "config/ConfigManager.hpp"
@@ -428,16 +429,16 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
 
 int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+    for (auto const& g : Desktop::View::groups()) {
+        const auto HEAD = g->head();
+
+        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
-        if (!w->m_groupData.head)
+        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
-            continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && g->current()->isHidden() == onlyVisible.value())
             continue;
         no++;
     }

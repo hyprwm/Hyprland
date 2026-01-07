@@ -7,6 +7,7 @@
 #include "desktop/state/FocusState.hpp"
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
+#include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
@@ -2137,7 +2138,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         return;
     }
 
-    g_layoutManager->fullscreenRequestForTarget(PWINDOW->m_target, CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
+    g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
 
     PWINDOW->m_fullscreenState.internal = state.internal;
     PWORKSPACE->m_fullscreenMode        = EFFECTIVE_MODE;
@@ -2572,53 +2573,56 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->m_position : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
 
-    //if (!pWindow->m_isFloating)
-    // g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
+    g_layoutManager->removeTarget(pWindow->layoutTarget());
 
     pWindow->moveToWorkspace(pWorkspace);
     pWindow->m_monitor = pWorkspace->m_monitor;
 
-    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
-        pFirstWindowOnWorkspace->m_groupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
+    // FIXME:
+    // static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
+    // if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+    //     pFirstWindowOnWorkspace->m_groupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
 
-        pWindow->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state. Needed to group tiled into floated and vice versa.
-        if (!pWindow->m_groupData.pNextWindow.expired()) {
-            PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
-            while (next != pWindow) {
-                next->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state of group members
-                next               = next->m_groupData.pNextWindow.lock();
-            }
-        }
+    //     pWindow->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state. Needed to group tiled into floated and vice versa.
+    //     if (!pWindow->m_groupData.pNextWindow.expired()) {
+    //         PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
+    //         while (next != pWindow) {
+    //             next->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state of group members
+    //             next               = next->m_groupData.pNextWindow.lock();
+    //         }
+    //     }
 
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? pFirstWindowOnWorkspace : pFirstWindowOnWorkspace->getGroupTail())->insertWindowToGroup(pWindow);
+    //     static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+    //     (*USECURRPOS ? pFirstWindowOnWorkspace : pFirstWindowOnWorkspace->getGroupTail())->insertWindowToGroup(pWindow);
 
-        pFirstWindowOnWorkspace->setGroupCurrent(pWindow);
-        pWindow->updateWindowDecos();
-        // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    //     pFirstWindowOnWorkspace->setGroupCurrent(pWindow);
+    //     pWindow->updateWindowDecos();
+    //     // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
+    //     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+    //         pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
-    } else {
-        if (!pWindow->m_isFloating)
-            // g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+    // } else {
+    //     if (!pWindow->m_isFloating)
+    //         // g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
-            if (pWindow->m_isFloating)
-                *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
-    }
+    //         if (pWindow->m_isFloating)
+    //             *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
+    // }
+
+    g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     pWindow->updateToplevel();
     pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     pWindow->uncacheWindowDecos();
-    pWindow->updateGroupOutputs();
 
-    if (!pWindow->m_groupData.pNextWindow.expired()) {
-        PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
-        while (next != pWindow) {
-            next->updateToplevel();
-            next = next->m_groupData.pNextWindow.lock();
+    if (pWindow->m_group) {
+        for (const auto& w : pWindow->m_group->windows()) {
+            if (w == pWindow)
+                continue;
+
+            w->moveToWorkspace(pWorkspace);
+            w->updateToplevel();
         }
     }
 

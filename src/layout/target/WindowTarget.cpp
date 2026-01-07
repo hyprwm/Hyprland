@@ -12,7 +12,7 @@
 
 using namespace Layout;
 
-SP<CWindowTarget> CWindowTarget::create(PHLWINDOW w) {
+SP<ITarget> CWindowTarget::create(PHLWINDOW w) {
     auto target    = SP<CWindowTarget>(new CWindowTarget(w));
     target->m_self = target;
     return target;
@@ -33,6 +33,9 @@ void CWindowTarget::setPositionGlobal(const CBox& box) {
 }
 
 void CWindowTarget::updatePos() {
+
+    if (!m_space)
+        return;
 
     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
         m_window->m_position = m_box.pos();
@@ -64,7 +67,7 @@ void CWindowTarget::updatePos() {
 
     if (!validMapped(m_window)) {
         if (m_window)
-            g_layoutManager->removeTarget(m_window->m_target);
+            g_layoutManager->removeTarget(m_window->layoutTarget());
         return;
     }
 

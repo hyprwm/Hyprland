@@ -107,3 +107,9 @@ void CDefaultFloatingAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> targe
     if (g_layoutManager->dragController()->target() == target)
         target->warpPositionSize();
 }
+
+void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
+    auto posABackup = a->position();
+    a->setPositionGlobal(b->position());
+    b->setPositionGlobal(posABackup);
+}

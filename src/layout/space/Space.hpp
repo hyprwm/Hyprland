@@ -23,6 +23,8 @@ namespace Layout {
         void                             remove(SP<ITarget> t);
         void                             move(SP<ITarget> t);
 
+        void                             swap(SP<ITarget> a, SP<ITarget> b);
+
         void                             setAlgorithmProvider(SP<CAlgorithm> algo);
         void                             recheckWorkArea();
         void                             setFullscreen(SP<ITarget> t, eFullscreenMode mode);

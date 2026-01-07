@@ -6,6 +6,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../layout/target/Target.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -129,7 +130,7 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, 
 
     pWindow->addWindowDeco(std::move(pDecoration));
 
-    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    pWindow->layoutTarget()->recalc();
 
     return true;
 }

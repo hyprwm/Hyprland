@@ -3,13 +3,14 @@
 #include "Target.hpp"
 
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/Group.hpp"
 
 namespace Layout {
 
-    class CWindowTarget : public ITarget {
+    class CWindowGroupTarget : public ITarget {
       public:
-        static SP<ITarget> create(PHLWINDOW w);
-        virtual ~CWindowTarget() = default;
+        static SP<CWindowGroupTarget> create(SP<Desktop::View::CGroup> g);
+        virtual ~CWindowGroupTarget() = default;
 
         virtual eTargetType                           type();
 
@@ -28,10 +29,10 @@ namespace Layout {
         virtual void                                  warpPositionSize();
 
       private:
-        CWindowTarget(PHLWINDOW w);
+        CWindowGroupTarget(SP<Desktop::View::CGroup> g);
 
-        void         updatePos();
+        void                      updatePos();
 
-        PHLWINDOWREF m_window;
+        WP<Desktop::View::CGroup> m_group;
     };
 };

@@ -31,6 +31,9 @@ namespace Layout {
         // recalculate layout
         virtual void recalculate() = 0;
 
+        // swap targets
+        virtual void swapTargets(SP<ITarget> a, SP<ITarget> b) = 0;
+
         // optional: handle layout messages
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
 

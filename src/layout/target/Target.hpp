@@ -30,6 +30,7 @@ namespace Layout {
         virtual void         setPositionGlobal(const CBox& box);
         virtual CBox         position() const;
         virtual void         assignToSpace(const SP<CSpace>& space);
+        virtual void         setSpaceGhost(const SP<CSpace>& space);
         virtual SP<CSpace>   space() const;
         virtual PHLWORKSPACE workspace() const;
         virtual PHLWINDOW    window() const = 0;
@@ -42,6 +43,7 @@ namespace Layout {
         virtual bool         isPseudo() const;
         virtual void         setPseudoSize(const Vector2D& size);
         virtual Vector2D     pseudoSize();
+        virtual void         swap(SP<ITarget> b);
 
         //
         virtual bool                                  floating()                              = 0;
@@ -62,6 +64,7 @@ namespace Layout {
         WP<ITarget> m_self;
         Vector2D    m_floatingSize;
         bool        m_pseudo     = false;
+        bool        m_ghostSpace = false; // ghost space means a target belongs to a space, but isn't sent to the layout
         Vector2D    m_pseudoSize = {1280, 720};
     };
 };

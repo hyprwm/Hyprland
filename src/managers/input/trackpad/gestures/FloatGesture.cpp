@@ -41,7 +41,7 @@ void CFloatTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
         return;
     }
 
-    g_layoutManager->changeFloatingMode(m_window->m_target);
+    g_layoutManager->changeFloatingMode(m_window->layoutTarget());
 
     m_posFrom  = m_window->m_realPosition->begun();
     m_sizeFrom = m_window->m_realSize->begun();
@@ -79,7 +79,7 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        g_layoutManager->changeFloatingMode(m_window->m_target);
+        g_layoutManager->changeFloatingMode(m_window->layoutTarget());
         return;
     }
 

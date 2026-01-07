@@ -23,6 +23,8 @@ namespace Layout {
         void                             moveTarget(SP<ITarget> target);
         void                             removeTarget(SP<ITarget> target);
 
+        void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
+
         void                             setFloating(SP<ITarget> target, bool floating);
 
         std::expected<void, std::string> layoutMsg(const std::string_view& sv);

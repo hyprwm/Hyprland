@@ -128,3 +128,8 @@ std::optional<Vector2D> CSpace::predictSizeForNewTiledTarget() {
 
     return std::nullopt;
 }
+
+void CSpace::swap(SP<ITarget> a, SP<ITarget> b) {
+    if (m_algorithm)
+        m_algorithm->swapTargets(a, b);
+}

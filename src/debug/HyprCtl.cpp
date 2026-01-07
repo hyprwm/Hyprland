@@ -44,6 +44,7 @@ using namespace Hyprutils::OS;
 #include "config/ConfigManager.hpp"
 #include "helpers/MiscFunctions.hpp"
 #include "../desktop/view/LayerSurface.hpp"
+#include "../desktop/view/Group.hpp"
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -330,23 +331,19 @@ static std::string getTagsData(PHLWINDOW w, eHyprCtlOutputFormat format) {
 
 static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     const bool isJson = format == eHyprCtlOutputFormat::FORMAT_JSON;
-    if (w->m_groupData.pNextWindow.expired())
+    if (!w->m_group)
         return isJson ? "" : "0";
 
     std::ostringstream result;
 
-    PHLWINDOW          head = w->getGroupHead();
-    PHLWINDOW          curr = head;
-    while (true) {
+    for (const auto& curr : w->m_group->windows()) {
         if (isJson)
             result << std::format("\"0x{:x}\"", rc<uintptr_t>(curr.get()));
         else
             result << std::format("{:x}", rc<uintptr_t>(curr.get()));
-        curr = curr->m_groupData.pNextWindow.lock();
-        // We've wrapped around to the start, break out without trailing comma
-        if (curr == head)
-            break;
-        result << (isJson ? ", " : ",");
+
+        if (curr != w->m_group->windows().back())
+            result << (isJson ? ", " : ",");
     }
 
     return result.str();
@@ -1594,7 +1591,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_active");
         static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_inactive");
 
-        const bool  GROUPLOCKED = PWINDOW->m_groupData.pNextWindow.lock() ? PWINDOW->getGroupHead()->m_groupData.locked : false;
+        const bool  GROUPLOCKED = PWINDOW->m_group ? PWINDOW->m_group->locked() : false;
 
         if (active) {
             auto* const       ACTIVECOL            = (CGradientValueData*)(PACTIVECOL.ptr())->getData();
@@ -1602,7 +1599,7 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             auto* const       GROUPACTIVECOL       = (CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
             auto* const       GROUPACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
             const auto* const ACTIVECOLOR =
-                !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
+                !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
 
             std::string borderColorString = PWINDOW->m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR).toString();
             if (FORMNORM)
@@ -1614,8 +1611,8 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             auto* const       NOGROUPINACTIVECOL     = (CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
             auto* const       GROUPINACTIVECOL       = (CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
             auto* const       GROUPINACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
-            const auto* const INACTIVECOLOR          = !PWINDOW->m_groupData.pNextWindow.lock() ? (!PWINDOW->m_groupData.deny ? INACTIVECOL : NOGROUPINACTIVECOL) :
-                                                                                                  (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
+            const auto* const INACTIVECOLOR          = !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) :
+                                                                           (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
 
             std::string       borderColorString = PWINDOW->m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR).toString();
             if (FORMNORM)

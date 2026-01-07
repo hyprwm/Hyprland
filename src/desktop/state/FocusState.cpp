@@ -204,7 +204,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     if (*PFOLLOWMOUSE == 0)
         g_pInputManager->sendMotionEventsToFocused();
 
-    if (pWindow->m_groupData.pNextWindow)
+    if (pWindow->m_group)
         pWindow->deactivateGroupMembers();
 }
 

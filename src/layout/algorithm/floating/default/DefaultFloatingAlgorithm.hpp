@@ -16,5 +16,7 @@ namespace Layout::Floating {
 
         virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target);
+
+        virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
     };
 };

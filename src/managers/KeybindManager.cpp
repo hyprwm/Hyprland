@@ -25,6 +25,7 @@
 #include "../config/ConfigManager.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/Engine.hpp"
+#include "../desktop/view/Group.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/target/WindowTarget.hpp"
 
@@ -1116,7 +1117,7 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
     if (g_layoutManager->dragController()->target())
         CKeybindManager::changeMouseBindMode(MBIND_INVALID);
 
-    g_layoutManager->changeFloatingMode(PWINDOW->m_target);
+    g_layoutManager->changeFloatingMode(PWINDOW->layoutTarget());
 
     if (PWINDOW->m_workspace) {
         PWINDOW->m_workspace->updateWindows();
@@ -1166,7 +1167,7 @@ SDispatchResult CKeybindManager::toggleActivePseudo(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    PWINDOW->m_target->setPseudo(!PWINDOW->m_target->isPseudo());
+    PWINDOW->layoutTarget()->setPseudo(!PWINDOW->layoutTarget()->isPseudo());
 
     return {};
 }
@@ -1480,15 +1481,15 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Prioritize focus change within groups if the window is a part of it.
-    if (*PGROUPCYCLE && PLASTWINDOW->m_groupData.pNextWindow) {
+    if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
         auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && g_pCompositor->m_monitors.size() == 1;
-        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->getGroupHead() || isTheOnlyGroupOnWs)) {
-            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->m_group->head() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->m_group->moveCurrent(false);
             return {};
         }
 
-        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->getGroupTail() || isTheOnlyGroupOnWs)) {
-            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_groupData.pNextWindow.lock());
+        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->m_group->tail() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->m_group->moveCurrent(true);
             return {};
         }
     }
@@ -1707,10 +1708,10 @@ SDispatchResult CKeybindManager::toggleGroup(std::string args) {
     if (PWINDOW->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
-    if (PWINDOW->m_groupData.pNextWindow.expired())
-        PWINDOW->createGroup();
+    if (!PWINDOW->m_group)
+        PWINDOW->m_group = Desktop::View::CGroup::create({PWINDOW});
     else
-        PWINDOW->destroyGroup();
+        PWINDOW->m_group->destroy();
 
     return {};
 }
@@ -1721,28 +1722,26 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    if (PWINDOW->m_groupData.pNextWindow.expired())
-        return {.success = false, .error = "No next window in group"};
+    if (!PWINDOW->m_group)
+        return {.success = false, .error = "No group"};
 
-    if (PWINDOW->m_groupData.pNextWindow.lock() == PWINDOW)
+    if (PWINDOW->m_group->size() == 1)
         return {.success = false, .error = "Only one window in group"};
 
     if (isNumber(args, false)) {
         // index starts from '1'; '0' means last window
-        const int INDEX = std::stoi(args);
-        if (INDEX > PWINDOW->getGroupSize())
-            return {.success = false, .error = "Index too big, there aren't that many windows in this group"};
-        if (INDEX == 0)
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupTail());
-        else
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupWindowByIndex(INDEX - 1));
+        try {
+            const int INDEX = std::stoi(args);
+            PWINDOW->m_group->setCurrent(INDEX);
+        } catch (...) { return {.success = false, .error = "invalid idx"}; }
+
         return {};
     }
 
     if (args != "b" && args != "prev")
-        PWINDOW->setGroupCurrent(PWINDOW->m_groupData.pNextWindow.lock());
+        PWINDOW->m_group->moveCurrent(true);
     else
-        PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
+        PWINDOW->m_group->moveCurrent(true);
 
     return {};
 }
@@ -2756,7 +2755,7 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE)
             PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS);
 
-        g_layoutManager->beginDragTarget(PWINDOW->m_target, MODE);
+        g_layoutManager->beginDragTarget(PWINDOW->layoutTarget(), MODE);
     } else {
         if (!g_layoutManager->dragController()->target())
             return {};
@@ -2823,17 +2822,15 @@ SDispatchResult CKeybindManager::lockActiveGroup(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PWINDOW->m_groupData.pNextWindow.lock())
+    if (!PWINDOW->m_group)
         return {.success = false, .error = "Not a group"};
 
-    const auto PHEAD = PWINDOW->getGroupHead();
-
     if (args == "lock")
-        PHEAD->m_groupData.locked = true;
+        PWINDOW->m_group->setLocked(true);
     else if (args == "toggle")
-        PHEAD->m_groupData.locked = !PHEAD->m_groupData.locked;
+        PWINDOW->m_group->setLocked(!PWINDOW->m_group->locked());
     else
-        PHEAD->m_groupData.locked = false;
+        PWINDOW->m_group->setLocked(false);
 
     PWINDOW->updateDecorationValues();
 
@@ -2841,24 +2838,20 @@ SDispatchResult CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection) {
-    if (pWindow->m_groupData.deny)
+    if (!pWindowInDirection->m_group || pWindowInDirection->m_group->denied())
         return;
 
     updateRelativeCursorCoords();
-
-    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes grouped property!
 
     if (pWindow->m_monitor != pWindowInDirection->m_monitor) {
         pWindow->moveToWorkspace(pWindowInDirection->m_workspace);
         pWindow->m_monitor = pWindowInDirection->m_monitor;
     }
 
-    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-    (*USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail())->insertWindowToGroup(pWindow);
+    pWindowInDirection->m_group->add(pWindow);
 
-    pWindowInDirection->setGroupCurrent(pWindow);
+    pWindowInDirection->m_group->setCurrent(pWindow);
     pWindow->updateWindowDecos();
-    // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     Desktop::focusState()->fullWindowFocus(pWindow);
     pWindow->warpCursor();
 
@@ -2866,41 +2859,21 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 }
 
 void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir) {
-    static auto        BFOCUSREMOVEDWINDOW = CConfigValue<Hyprlang::INT>("group:focus_removed_window");
-    const auto         PWINDOWPREV         = pWindow->getGroupPrevious();
-    Layout::eDirection direction;
+    static auto BFOCUSREMOVEDWINDOW = CConfigValue<Hyprlang::INT>("group:focus_removed_window");
 
-    switch (dir[0]) {
-        case 't':
-        case 'u': direction = Layout::DIRECTION_UP; break;
-        case 'd':
-        case 'b': direction = Layout::DIRECTION_DOWN; break;
-        case 'l': direction = Layout::DIRECTION_LEFT; break;
-        case 'r': direction = Layout::DIRECTION_RIGHT; break;
-        default: direction = Layout::DIRECTION_DEFAULT;
-    }
+    if (!pWindow->m_group)
+        return;
 
-    updateRelativeCursorCoords();
+    WP<Desktop::View::CGroup> group = pWindow->m_group;
 
-    if (pWindow->m_groupData.pNextWindow.lock() == pWindow) {
-        pWindow->destroyGroup();
-    } else {
-        // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    pWindow->m_group->remove(pWindow);
 
-        const auto GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
-        g_pKeybindManager->m_groupsLocked = true;
-
-        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
-
-        g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
-    }
-
-    if (*BFOCUSREMOVEDWINDOW) {
+    if (*BFOCUSREMOVEDWINDOW || !group) {
         Desktop::focusState()->fullWindowFocus(pWindow);
         pWindow->warpCursor();
     } else {
-        Desktop::focusState()->fullWindowFocus(PWINDOWPREV);
-        PWINDOWPREV->warpCursor();
+        Desktop::focusState()->fullWindowFocus(group->current());
+        group->current()->warpCursor();
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveoutofgroup", std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
@@ -2921,16 +2894,18 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 
     const auto PWINDOW = Desktop::focusState()->window();
 
-    if (!PWINDOW || PWINDOW->m_groupData.deny)
+    if (!PWINDOW)
         return {};
 
     auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
-    if (!PWINDOWINDIR || !PWINDOWINDIR->m_groupData.pNextWindow.lock())
+    if (!PWINDOWINDIR || !PWINDOWINDIR->m_group)
         return {};
 
+    const auto GROUP = PWINDOWINDIR->m_group;
+
     // Do not move window into locked group if binds:ignore_group_lock is false
-    if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_groupData.locked || (PWINDOW->m_groupData.pNextWindow.lock() && PWINDOW->getGroupHead()->m_groupData.locked)))
+    if (!*PIGNOREGROUPLOCK && (GROUP->locked() || (PWINDOW->m_group && PWINDOW->m_group->locked())))
         return {};
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
@@ -2954,7 +2929,7 @@ SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PWINDOW->m_groupData.pNextWindow.lock())
+    if (!PWINDOW->m_group)
         return {.success = false, .error = "Window not in a group"};
 
     moveWindowOutOfGroup(PWINDOW);
@@ -2986,15 +2961,15 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
 
     const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
-    const bool ISWINDOWGROUP       = PWINDOW->m_groupData.pNextWindow;
-    const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->getGroupHead()->m_groupData.locked;
-    const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_groupData.pNextWindow.lock() == PWINDOW;
+    const bool ISWINDOWGROUP       = PWINDOW->m_group;
+    const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->m_group->locked();
+    const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_group->size() == 1;
 
     updateRelativeCursorCoords();
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_isFloating
-    if (PWINDOWINDIR && PWINDOWINDIR->m_groupData.pNextWindow) { // target is group
-        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_groupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_groupData.deny)) {
+    if (PWINDOWINDIR && PWINDOWINDIR->m_group) { // target is group
+        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || PWINDOW->m_group->denied())) {
             // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
             PWINDOW->warpCursor();
         } else
@@ -3032,13 +3007,13 @@ SDispatchResult CKeybindManager::setIgnoreGroupLock(std::string args) {
 
 SDispatchResult CKeybindManager::denyWindowFromGroup(std::string args) {
     const auto PWINDOW = Desktop::focusState()->window();
-    if (!PWINDOW || (PWINDOW && PWINDOW->m_groupData.pNextWindow.lock()))
+    if (!PWINDOW || (PWINDOW && PWINDOW->m_group))
         return {};
 
     if (args == "toggle")
-        PWINDOW->m_groupData.deny = !PWINDOW->m_groupData.deny;
+        PWINDOW->m_group->setDenied(!PWINDOW->m_group->denied());
     else
-        PWINDOW->m_groupData.deny = args == "on";
+        PWINDOW->m_group->setDenied(args == "on");
 
     PWINDOW->updateDecorationValues();
 
@@ -3068,16 +3043,19 @@ SDispatchResult CKeybindManager::moveGroupWindow(std::string args) {
     if (!PLASTWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PLASTWINDOW->m_groupData.pNextWindow.lock())
+    if (!PLASTWINDOW->m_group)
         return {.success = false, .error = "Window not in a group"};
 
-    if ((!BACK && PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head) || (BACK && PLASTWINDOW->m_groupData.head)) {
-        std::swap(PLASTWINDOW->m_groupData.head, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head);
-        std::swap(PLASTWINDOW->m_groupData.locked, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.locked);
-    } else
-        PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_groupData.pNextWindow.lock());
+    const auto GROUP = PLASTWINDOW->m_group;
 
-    PLASTWINDOW->updateWindowDecos();
+    // FIXME: what the fuck is this supposed to do?
+    // if ((!BACK && PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head) || (BACK && PLASTWINDOW->m_groupData.head)) {
+    //     std::swap(PLASTWINDOW->m_groupData.head, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head);
+    //     std::swap(PLASTWINDOW->m_groupData.locked, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.locked);
+    // } else
+    //     PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_groupData.pNextWindow.lock());
+
+    // PLASTWINDOW->updateWindowDecos();
 
     return {};
 }

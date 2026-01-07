@@ -285,8 +285,6 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     auto origin = Vector2D(0, 0);
     switch (PMONITOR->m_transform) {
         case WL_OUTPUT_TRANSFORM_FLIPPED_180:
@@ -306,6 +304,26 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
             break;
         }
         default: break;
+    }
+
+    int glFormat = PFORMAT->glFormat;
+
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
+        }
     }
 
     glReadPixels(origin.x, origin.y, m_box.width, m_box.height, glFormat, PFORMAT->glType, pixelData);

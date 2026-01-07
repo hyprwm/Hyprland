@@ -508,7 +508,11 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
     const auto                                                        maxCLL  = this->maxCLL();
 
     switch (cmType) {
-        case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
+        case NCMType::CM_SRGB:
+            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
+                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB)});
+            break; // assumes SImageDescription defaults to sRGB
         case NCMType::CM_WIDE:
             m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
                                                           .primariesNameSet    = true,

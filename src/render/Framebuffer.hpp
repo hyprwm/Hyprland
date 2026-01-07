@@ -3,13 +3,14 @@
 #include "../defines.hpp"
 #include "../helpers/Format.hpp"
 #include "Texture.hpp"
+#include <drm_fourcc.h>
 
 class CFramebuffer {
   public:
     CFramebuffer();
     ~CFramebuffer();
 
-    bool         alloc(int w, int h, uint32_t format = GL_RGBA);
+    bool         alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
     void         addStencil(SP<CTexture> tex);
     void         bind();
     void         unbind();

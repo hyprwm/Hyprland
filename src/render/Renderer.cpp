@@ -2460,7 +2460,7 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_windowFramebuffers[ref];
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
+    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
     beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
@@ -2493,7 +2493,7 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_layerFramebuffers[pLayer];
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
+    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
     beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 
@@ -2527,7 +2527,7 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_popupFramebuffers[popup];
 
-    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
+    PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
     beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, PFRAMEBUFFER);
 

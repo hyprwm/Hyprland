@@ -192,15 +192,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
-    const auto format  = NFormatUtils::getPixelFormatFromDRM(m_monitor->m_output->state->state().drmFormat);
-
-    if (format->swizzle.has_value()) {
-        TEXTURE->bind();
-        TEXTURE->swizzle(format->swizzle.value());
-        TEXTURE->unbind();
-    }
-
+    auto       TEXTURE    = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
@@ -302,7 +294,7 @@ void CScreencopyFrame::renderMon() {
 void CScreencopyFrame::storeTempFB() {
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_tempFb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
+    m_tempFb.alloc(m_box.w, m_box.h);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -329,16 +321,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
-            CBox       texbox = {{}, m_box.size()};
-            auto       text   = m_tempFb.getTexture();
-            const auto format = NFormatUtils::getPixelFormatFromDRM(m_tempFb.m_drmFormat);
-
-            if (format->swizzle.has_value()) {
-                text->bind();
-                text->swizzle(format->swizzle.value());
-                text->unbind();
-            }
-
+            CBox texbox = {{}, m_box.size()};
             g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
@@ -379,16 +362,7 @@ bool CScreencopyFrame::copyShm() {
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
-            CBox       texbox = {{}, m_box.size()};
-            auto       text   = m_tempFb.getTexture();
-            const auto format = NFormatUtils::getPixelFormatFromDRM(m_tempFb.m_drmFormat);
-
-            if (format->swizzle.has_value()) {
-                text->bind();
-                text->swizzle(format->swizzle.value());
-                text->unbind();
-            }
-
+            CBox texbox = {{}, m_box.size()};
             g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
@@ -420,17 +394,23 @@ bool CScreencopyFrame::copyShm() {
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
-    int      glFormat   = GL_RGBA;
+    int      glFormat   = PFORMAT->glFormat;
 
-    if (PFORMAT->swizzle.has_value()) {
-        std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-        std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-        if (PFORMAT->swizzle == RGBA)
-            glFormat = GL_RGBA;
-        else if (PFORMAT->swizzle == BGRA)
-            glFormat = GL_BGRA_EXT;
-        else {
-            LOGM(Log::ERR, "Copied frame via shm will be broken or color flipped");
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
         }
     }
 

@@ -306,17 +306,23 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         default: break;
     }
 
-    int glFormat = GL_RGBA;
+    int glFormat = PFORMAT->glFormat;
 
-    if (PFORMAT->swizzle.has_value()) {
-        std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-        std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-        if (PFORMAT->swizzle == RGBA)
-            glFormat = GL_RGBA;
-        else if (PFORMAT->swizzle == BGRA)
-            glFormat = GL_BGRA_EXT;
-        else {
-            LOGM(Log::ERR, "Copied toplevel via shm will be broken or color flipped");
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
         }
     }
 

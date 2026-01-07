@@ -306,7 +306,21 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         default: break;
     }
 
-    glReadPixels(origin.x, origin.y, m_box.width, m_box.height, PFORMAT->glFormat, PFORMAT->glType, pixelData);
+    int glFormat = GL_RGBA;
+
+    if (PFORMAT->swizzle.has_value()) {
+        std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+        std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+        if (PFORMAT->swizzle == RGBA)
+            glFormat = GL_RGBA;
+        else if (PFORMAT->swizzle == BGRA)
+            glFormat = GL_BGRA_EXT;
+        else {
+            LOGM(Log::ERR, "Copied toplevel via shm will be broken or color flipped");
+        }
+    }
+
+    glReadPixels(origin.x, origin.y, m_box.width, m_box.height, glFormat, PFORMAT->glType, pixelData);
 
     if (overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());

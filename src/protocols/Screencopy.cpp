@@ -193,6 +193,13 @@ void CScreencopyFrame::share() {
 
 void CScreencopyFrame::renderMon() {
     auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    const auto format  = NFormatUtils::getPixelFormatFromDRM(m_monitor->m_output->state->state().drmFormat);
+
+    if (format->swizzle.has_value()) {
+        TEXTURE->bind();
+        TEXTURE->swizzle(format->swizzle.value());
+        TEXTURE->unbind();
+    }
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
@@ -322,7 +329,16 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
-            CBox texbox = {{}, m_box.size()};
+            CBox       texbox = {{}, m_box.size()};
+            auto       text   = m_tempFb.getTexture();
+            const auto format = NFormatUtils::getPixelFormatFromDRM(m_tempFb.m_drmFormat);
+
+            if (format->swizzle.has_value()) {
+                text->bind();
+                text->swizzle(format->swizzle.value());
+                text->unbind();
+            }
+
             g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
@@ -363,7 +379,16 @@ bool CScreencopyFrame::copyShm() {
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (m_tempFb.isAllocated()) {
-            CBox texbox = {{}, m_box.size()};
+            CBox       texbox = {{}, m_box.size()};
+            auto       text   = m_tempFb.getTexture();
+            const auto format = NFormatUtils::getPixelFormatFromDRM(m_tempFb.m_drmFormat);
+
+            if (format->swizzle.has_value()) {
+                text->bind();
+                text->swizzle(format->swizzle.value());
+                text->unbind();
+            }
+
             g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
             m_tempFb.release();
         } else
@@ -394,17 +419,29 @@ bool CScreencopyFrame::copyShm() {
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    const auto drmFmt     = NFormatUtils::getPixelFormatFromDRM(shm.format);
-    uint32_t   packStride = NFormatUtils::minStride(drmFmt, m_box.w);
+    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
+    int      glFormat   = GL_RGBA;
+
+    if (PFORMAT->swizzle.has_value()) {
+        std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+        std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+        if (PFORMAT->swizzle == RGBA)
+            glFormat = GL_RGBA;
+        else if (PFORMAT->swizzle == BGRA)
+            glFormat = GL_BGRA_EXT;
+        else {
+            LOGM(Log::ERR, "Copied frame via shm will be broken or color flipped");
+        }
+    }
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.
     if (packStride == sc<uint32_t>(shm.stride)) {
-        glReadPixels(0, 0, m_box.w, m_box.h, PFORMAT->glFormat, PFORMAT->glType, pixelData);
+        glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
     } else {
         for (size_t i = 0; i < m_box.h; ++i) {
             uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, PFORMAT->glFormat, PFORMAT->glType, pixelData + i * shm.stride);
+            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
         }
     }
 

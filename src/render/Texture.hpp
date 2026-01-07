@@ -37,6 +37,7 @@ class CTexture {
     void                        bind();
     void                        unbind();
     void                        setTexParameter(GLenum pname, GLint param);
+    void                        swizzle(const std::array<GLint, 4>& colors);
 
     eTextureType                m_type          = TEXTURE_RGBA;
     GLenum                      m_target        = GL_TEXTURE_2D;

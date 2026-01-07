@@ -73,12 +73,8 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (format->swizzle.has_value()) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, format->swizzle->at(0));
-        setTexParameter(GL_TEXTURE_SWIZZLE_G, format->swizzle->at(1));
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, format->swizzle->at(2));
-        setTexParameter(GL_TEXTURE_SWIZZLE_A, format->swizzle->at(3));
-    }
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
@@ -131,12 +127,8 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     bind();
 
-    if (format->swizzle.has_value()) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, format->swizzle->at(0));
-        setTexParameter(GL_TEXTURE_SWIZZLE_G, format->swizzle->at(1));
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, format->swizzle->at(2));
-        setTexParameter(GL_TEXTURE_SWIZZLE_A, format->swizzle->at(3));
-    }
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
 
     damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
@@ -216,4 +208,11 @@ void CTexture::setTexParameter(GLenum pname, GLint param) {
 
     m_cachedStates[idx] = param;
     GLCALL(glTexParameteri(m_target, pname, param));
+}
+
+void CTexture::swizzle(const std::array<GLint, 4>& colors) {
+    setTexParameter(GL_TEXTURE_SWIZZLE_R, colors.at(0));
+    setTexParameter(GL_TEXTURE_SWIZZLE_G, colors.at(1));
+    setTexParameter(GL_TEXTURE_SWIZZLE_B, colors.at(2));
+    setTexParameter(GL_TEXTURE_SWIZZLE_A, colors.at(3));
 }

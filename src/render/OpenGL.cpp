@@ -762,6 +762,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     if (!m_shadersInitialized)
         initShaders();
 
+    m_renderData.transformDamage = true;
     m_renderData.damage.set(damage);
     m_renderData.finalDamage.set(damage);
 
@@ -829,6 +830,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
         m_renderData.pCurrentMonData->monitorMirrorFB.release();
 
+    m_renderData.transformDamage = true;
     m_renderData.damage.set(damage_);
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 
@@ -1357,7 +1359,7 @@ void CHyprOpenGLImpl::clear(const CHyprColor& color) {
 
     if (!m_renderData.damage.empty()) {
         m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glClear(GL_COLOR_BUFFER_BIT);
         });
     }
@@ -1492,13 +1494,13 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
+                scissor(&RECT, m_renderData.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
         data.damage->forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -1842,13 +1844,13 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
+                scissor(&RECT, m_renderData.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
         data.damage->forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -1896,7 +1898,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
     m_renderData.damage.forEachRect([this](const auto& RECT) {
-        scissor(&RECT);
+        scissor(&RECT, m_renderData.transformDamage);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     });
 
@@ -1939,7 +1941,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
 
     m_renderData.damage.forEachRect([this](const auto& RECT) {
-        scissor(&RECT);
+        scissor(&RECT, m_renderData.transformDamage);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     });
 
@@ -2532,7 +2534,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     if (!borderRegion.empty()) {
         borderRegion.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -2620,7 +2622,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     if (!borderRegion.empty()) {
         borderRegion.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -2683,13 +2685,13 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
         if (!damageClip.empty()) {
             damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT);
+                scissor(&RECT, m_renderData.transformDamage);
                 glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
             });
         }
     } else {
         m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT);
+            scissor(&RECT, m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
     }
@@ -3317,18 +3319,30 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
     }
 }
 
-uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
+DRMFormat CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
     static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
 
-    if (!*PFORCE8BIT)
-        return pMonitor->m_output->state->state().drmFormat;
+    auto              monFmt = pMonitor->m_output->state->state().drmFormat;
 
-    auto fmt = pMonitor->m_output->state->state().drmFormat;
+    if (*PFORCE8BIT)
+        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
+            monFmt == DRM_FORMAT_XBGR2101010)
+            monFmt = DRM_FORMAT_XRGB8888;
 
-    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
-        return DRM_FORMAT_XRGB8888;
+    return monFmt;
+}
 
-    return fmt;
+std::vector<uint64_t> CHyprOpenGLImpl::getDRMFormatModifiers(DRMFormat drmFormat) {
+    SDRMFormat format;
+
+    for (const auto& fmt : m_drmFormats) {
+        if (fmt.drmFormat == drmFormat) {
+            format = fmt;
+            break;
+        }
+    }
+
+    return format.modifiers;
 }
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {

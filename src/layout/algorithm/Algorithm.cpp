@@ -116,3 +116,19 @@ std::expected<void, std::string> CAlgorithm::layoutMsg(const std::string_view& s
         return ret;
     return m_tiled->layoutMsg(sv);
 }
+
+std::optional<Vector2D> CAlgorithm::predictSizeForNewTiledTarget() {
+    return m_tiled->predictSizeForNewTarget();
+}
+
+void CAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
+    if (target->floating())
+        m_floating->resizeTarget(Δ, target, corner);
+    else
+        m_tiled->resizeTarget(Δ, target, corner);
+}
+
+void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
+    if (target->floating())
+        m_floating->moveTarget(Δ, target);
+}

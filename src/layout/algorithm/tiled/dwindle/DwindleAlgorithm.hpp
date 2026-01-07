@@ -20,6 +20,7 @@ namespace Layout::Tiled {
         virtual void                             recalculate();
 
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        virtual std::optional<Vector2D>          predictSizeForNewTarget();
 
       private:
         std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;

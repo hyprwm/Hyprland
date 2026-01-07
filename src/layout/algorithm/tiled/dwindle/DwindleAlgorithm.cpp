@@ -316,11 +316,196 @@ void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
 }
 
 void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
-    ;
+    if (!validMapped(target->window()))
+        return;
+
+    const auto PNODE = getNodeFromTarget(target);
+
+    if (!PNODE)
+        return;
+
+    static auto PANIMATE       = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
+    static auto PSMARTRESIZING = CConfigValue<Hyprlang::INT>("dwindle:smart_resizing");
+
+    // get some data about our window
+    const auto PMONITOR         = m_parent->space()->workspace()->m_monitor;
+    const auto MONITOR_WORKAREA = PMONITOR->logicalBoxMinusReserved();
+    const auto BOX              = target->position();
+    const bool DISPLAYLEFT      = STICKS(BOX.x, MONITOR_WORKAREA.x);
+    const bool DISPLAYRIGHT     = STICKS(BOX.x + BOX.w, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+    const bool DISPLAYTOP       = STICKS(BOX.y, MONITOR_WORKAREA.y);
+    const bool DISPLAYBOTTOM    = STICKS(BOX.y + BOX.h, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
+
+    // construct allowed movement
+    Vector2D allowedMovement = Δ;
+    if (DISPLAYLEFT && DISPLAYRIGHT)
+        allowedMovement.x = 0;
+
+    if (DISPLAYBOTTOM && DISPLAYTOP)
+        allowedMovement.y = 0;
+
+    if (*PSMARTRESIZING == 1) {
+        // Identify inner and outer nodes for both directions
+        SP<SDwindleNodeData> PVOUTER = nullptr;
+        SP<SDwindleNodeData> PVINNER = nullptr;
+        SP<SDwindleNodeData> PHOUTER = nullptr;
+        SP<SDwindleNodeData> PHINNER = nullptr;
+
+        const auto           LEFT   = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT || DISPLAYRIGHT;
+        const auto           TOP    = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT || DISPLAYBOTTOM;
+        const auto           RIGHT  = corner == CORNER_TOPRIGHT || corner == CORNER_BOTTOMRIGHT || DISPLAYLEFT;
+        const auto           BOTTOM = corner == CORNER_BOTTOMLEFT || corner == CORNER_BOTTOMRIGHT || DISPLAYTOP;
+        const auto           NONE   = corner == CORNER_NONE;
+
+        for (auto PCURRENT = PNODE; PCURRENT && PCURRENT->pParent; PCURRENT = PCURRENT->pParent.lock()) {
+            const auto PPARENT = PCURRENT->pParent;
+
+            if (!PVOUTER && PPARENT->splitTop && (NONE || (TOP && PPARENT->children[1] == PCURRENT) || (BOTTOM && PPARENT->children[0] == PCURRENT)))
+                PVOUTER = PCURRENT;
+            else if (!PVOUTER && !PVINNER && PPARENT->splitTop)
+                PVINNER = PCURRENT;
+            else if (!PHOUTER && !PPARENT->splitTop && (NONE || (LEFT && PPARENT->children[1] == PCURRENT) || (RIGHT && PPARENT->children[0] == PCURRENT)))
+                PHOUTER = PCURRENT;
+            else if (!PHOUTER && !PHINNER && !PPARENT->splitTop)
+                PHINNER = PCURRENT;
+
+            if (PVOUTER && PHOUTER)
+                break;
+        }
+
+        if (PHOUTER) {
+            PHOUTER->pParent->splitRatio = std::clamp(PHOUTER->pParent->splitRatio + allowedMovement.x * 2.f / PHOUTER->pParent->box.w, 0.1, 1.9);
+
+            if (PHINNER) {
+                const auto ORIGINAL = PHINNER->box.w;
+                PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+                if (PHINNER->pParent->children[0] == PHINNER)
+                    PHINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.x) / PHINNER->pParent->box.w * 2.f, 0.1, 1.9);
+                else
+                    PHINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.x) / PHINNER->pParent->box.w * 2.f, 0.1, 1.9);
+                PHINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            } else
+                PHOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+        }
+
+        if (PVOUTER) {
+            PVOUTER->pParent->splitRatio = std::clamp(PVOUTER->pParent->splitRatio + allowedMovement.y * 2.f / PVOUTER->pParent->box.h, 0.1, 1.9);
+
+            if (PVINNER) {
+                const auto ORIGINAL = PVINNER->box.h;
+                PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+                if (PVINNER->pParent->children[0] == PVINNER)
+                    PVINNER->pParent->splitRatio = std::clamp((ORIGINAL - allowedMovement.y) / PVINNER->pParent->box.h * 2.f, 0.1, 1.9);
+                else
+                    PVINNER->pParent->splitRatio = std::clamp(2 - (ORIGINAL + allowedMovement.y) / PVINNER->pParent->box.h * 2.f, 0.1, 1.9);
+                PVINNER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+            } else
+                PVOUTER->pParent->recalcSizePosRecursive(*PANIMATE == 0);
+        }
+    } else {
+        // get the correct containers to apply splitratio to
+        const auto PPARENT = PNODE->pParent;
+
+        if (!PPARENT)
+            return; // the only window on a workspace, ignore
+
+        const bool PARENTSIDEBYSIDE = !PPARENT->splitTop;
+
+        // Get the parent's parent
+        auto PPARENT2 = PPARENT->pParent;
+
+        // No parent means we have only 2 windows, and thus one axis of freedom
+        if (!PPARENT2) {
+            if (PARENTSIDEBYSIDE) {
+                allowedMovement.x *= 2.f / PPARENT->box.w;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            } else {
+                allowedMovement.y *= 2.f / PPARENT->box.h;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            }
+
+            return;
+        }
+
+        // Get first parent with other split
+        while (PPARENT2 && PPARENT2->splitTop == !PARENTSIDEBYSIDE)
+            PPARENT2 = PPARENT2->pParent;
+
+        // no parent, one axis of freedom
+        if (!PPARENT2) {
+            if (PARENTSIDEBYSIDE) {
+                allowedMovement.x *= 2.f / PPARENT->box.w;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.x, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            } else {
+                allowedMovement.y *= 2.f / PPARENT->box.h;
+                PPARENT->splitRatio = std::clamp(PPARENT->splitRatio + allowedMovement.y, 0.1, 1.9);
+                PPARENT->recalcSizePosRecursive(*PANIMATE == 0);
+            }
+
+            return;
+        }
+
+        // 2 axes of freedom
+        const auto SIDECONTAINER = PARENTSIDEBYSIDE ? PPARENT : PPARENT2;
+        const auto TOPCONTAINER  = PARENTSIDEBYSIDE ? PPARENT2 : PPARENT;
+
+        allowedMovement.x *= 2.f / SIDECONTAINER->box.w;
+        allowedMovement.y *= 2.f / TOPCONTAINER->box.h;
+
+        SIDECONTAINER->splitRatio = std::clamp(SIDECONTAINER->splitRatio + allowedMovement.x, 0.1, 1.9);
+        TOPCONTAINER->splitRatio  = std::clamp(TOPCONTAINER->splitRatio + allowedMovement.y, 0.1, 1.9);
+        SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
+        TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
+    }
 }
 
 void CDwindleAlgorithm::recalculate() {
     calculateWorkspace();
+}
+
+std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
+    // get window candidate
+    PHLWINDOW candidate = Desktop::focusState()->window();
+
+    if (!candidate || candidate->m_workspace != m_parent->space()->workspace())
+        candidate = m_parent->space()->workspace()->getFirstWindow();
+
+    // create a fake node
+    SDwindleNodeData node;
+
+    if (!candidate)
+        return Desktop::focusState()->monitor()->m_size;
+    else {
+        const auto PNODE = getNodeFromWindow(candidate);
+
+        if (!PNODE)
+            return {};
+
+        node = *PNODE;
+        node.pTarget.reset();
+
+        CBox        box = PNODE->box;
+
+        static auto PFLMULT = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+
+        bool        splitTop = box.h * *PFLMULT > box.w;
+
+        const auto  SPLITSIDE = !splitTop;
+
+        if (SPLITSIDE)
+            node.box = {{}, {box.w / 2.0, box.h}};
+        else
+            node.box = {{}, {box.w, box.h / 2.0}};
+
+        // TODO: make this better and more accurate
+
+        return node.box.size();
+    }
+
+    return {};
 }
 
 // --------- internal --------- //

@@ -259,7 +259,357 @@ void CMasterAlgorithm::recalculate() {
 }
 
 std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
+    auto switchToWindow = [&](SP<ITarget> target) {
+        if (!validMapped(target->window()))
+            return;
+
+        Desktop::focusState()->fullWindowFocus(target->window());
+        g_pCompositor->warpCursorTo(target->position().middle());
+
+        g_pInputManager->m_forcedFocus = target->window();
+        g_pInputManager->simulateMouseMovement();
+        g_pInputManager->m_forcedFocus.reset();
+    };
+
+    CVarList2 vars(std::string{sv}, 0, 's');
+
+    if (vars.size() < 1 || vars[0].empty()) {
+        Log::logger->log(Log::ERR, "layoutmsg called without params");
+        return std::unexpected("layoutmsg without params");
+    }
+
+    auto command = vars[0];
+
+    // swapwithmaster <master | child | auto> <ignoremaster>
+    // first message argument can have the following values:
+    // * master - keep the focus at the new master
+    // * child - keep the focus at the new child
+    // * auto (default) - swap the focus (keep the focus of the previously selected window)
+    // * ignoremaster - ignore if master is focused
+
+    const auto PWINDOW = Desktop::focusState()->window();
+
+    if (command == "swapwithmaster") {
+        if (!PWINDOW)
+            return std::unexpected("No focused window");
+
+        if (!isWindowTiled(PWINDOW))
+            return std::unexpected("focused window isn't tiled");
+
+        const auto PMASTER = getMasterNode();
+
+        if (!PMASTER)
+            return std::unexpected("no master node");
+
+        const auto NEWCHILD = PMASTER->pTarget.lock();
+
+        const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
+
+        if (PMASTER->pTarget.lock() != PWINDOW->m_target) {
+            const auto& NEWMASTER       = PWINDOW->m_target;
+            const bool  newFocusToChild = vars.size() >= 2 && vars[1] == "child";
+            g_layoutManager->switchTargets(NEWMASTER, NEWCHILD);
+            const auto NEWFOCUS = newFocusToChild ? NEWCHILD : NEWMASTER;
+            switchToWindow(NEWFOCUS);
+        } else if (!IGNORE_IF_MASTER) {
+            for (auto const& n : m_masterNodesData) {
+                if (!n->isMaster) {
+                    const auto NEWMASTER = n->pTarget.lock();
+                    g_layoutManager->switchTargets(NEWMASTER, NEWCHILD);
+                    const bool newFocusToMaster = vars.size() >= 2 && vars[1] == "master";
+                    const auto NEWFOCUS         = newFocusToMaster ? NEWMASTER : NEWCHILD;
+                    switchToWindow(NEWFOCUS);
+                    break;
+                }
+            }
+        }
+
+        return {};
+    }
+    // focusmaster <master | previous | auto>
+    // first message argument can have the following values:
+    // * master - keep the focus at the new master, even if it was focused before
+    // * previous - focus window which was previously switched from using `focusmaster previous` command, otherwise fallback to `auto`
+    // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
+    else if (command == "focusmaster") {
+        if (!PWINDOW)
+            return std::unexpected("no focused window");
+
+        const auto PMASTER = getMasterNode();
+
+        if (!PMASTER)
+            return std::unexpected("no master");
+
+        const auto& ARG = vars[1]; // returns empty string if out of bounds
+
+        if (PMASTER->pTarget.lock() != PWINDOW->m_target) {
+            switchToWindow(PMASTER->pTarget.lock());
+            // save previously focused window (only for `previous` mode)
+            if (ARG == "previous")
+                m_workspaceData.focusMasterPrev = PWINDOW->m_target;
+            return {};
+        }
+
+        const auto focusAuto = [&]() {
+            // focus first non-master window
+            for (auto const& n : m_masterNodesData) {
+                if (!n->isMaster) {
+                    switchToWindow(n->pTarget.lock());
+                    break;
+                }
+            }
+        };
+
+        if (ARG == "master")
+            return {};
+        // switch to previously saved window
+        else if (ARG == "previous") {
+            const auto PREVWINDOW = m_workspaceData.focusMasterPrev.lock();
+            const bool VALID      = validMapped(PREVWINDOW->window()) && PWINDOW != PREVWINDOW;
+            VALID ? switchToWindow(PREVWINDOW) : focusAuto();
+        } else
+            focusAuto();
+    } else if (command == "cyclenext") {
+        if (!PWINDOW)
+            return std::unexpected("no window");
+
+        const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
+        const auto PNEXTWINDOW = getNextTarget(PWINDOW->m_target, true, !NOLOOP);
+        switchToWindow(PNEXTWINDOW);
+    } else if (command == "cycleprev") {
+        if (!PWINDOW)
+            return std::unexpected("no window");
+
+        const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
+        const auto PPREVWINDOW = getNextTarget(PWINDOW->m_target, false, !NOLOOP);
+        switchToWindow(PPREVWINDOW);
+    } else if (command == "swapnext") {
+        if (!validMapped(PWINDOW))
+            return std::unexpected("no window");
+
+        if (PWINDOW->m_target->floating()) {
+            g_pKeybindManager->m_dispatchers["swapnext"]("");
+            return {};
+        }
+
+        const bool NOLOOP            = vars.size() >= 2 && vars[1] == "noloop";
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->m_target, true, !NOLOOP);
+
+        if (PWINDOWTOSWAPWITH) {
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            g_layoutManager->switchTargets(PWINDOW->m_target, PWINDOWTOSWAPWITH);
+            switchToWindow(PWINDOW->m_target);
+        }
+    } else if (command == "swapprev") {
+        if (!validMapped(PWINDOW))
+            return std::unexpected("no window");
+
+        if (PWINDOW->m_target->floating()) {
+            g_pKeybindManager->m_dispatchers["swapnext"]("prev");
+            return {};
+        }
+
+        const bool NOLOOP            = vars.size() >= 2 && vars[1] == "noloop";
+        const auto PWINDOWTOSWAPWITH = getNextTarget(PWINDOW->m_target, false, !NOLOOP);
+
+        if (PWINDOWTOSWAPWITH) {
+            g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+            g_layoutManager->switchTargets(PWINDOW->m_target, PWINDOWTOSWAPWITH);
+            switchToWindow(PWINDOW->m_target);
+        }
+    } else if (command == "addmaster") {
+        if (!validMapped(PWINDOW))
+            return std::unexpected("no window");
+
+        if (PWINDOW->m_target->floating())
+            return std::unexpected("window is floating");
+
+        const auto  PNODE = getNodeFromTarget(PWINDOW->m_target);
+
+        const auto  WINDOWS    = getNodesNo();
+        const auto  MASTERS    = getMastersNo();
+        static auto SMALLSPLIT = CConfigValue<Hyprlang::INT>("master:allow_small_split");
+
+        if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
+            return std::unexpected("nothing to do");
+
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+
+        if (!PNODE || PNODE->isMaster) {
+            // first non-master node
+            for (auto& n : m_masterNodesData) {
+                if (!n->isMaster) {
+                    n->isMaster = true;
+                    break;
+                }
+            }
+        } else {
+            PNODE->isMaster = true;
+        }
+
+        calculateWorkspace();
+
+    } else if (command == "removemaster") {
+
+        if (!validMapped(PWINDOW))
+            return std::unexpected("no window");
+
+        if (PWINDOW->m_target->floating())
+            return std::unexpected("window isnt tiled");
+
+        const auto PNODE = getNodeFromTarget(PWINDOW->m_target);
+
+        const auto WINDOWS = getNodesNo();
+        const auto MASTERS = getMastersNo();
+
+        if (WINDOWS < 2 || MASTERS < 2)
+            return std::unexpected("nothing to do");
+
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+
+        if (!PNODE || !PNODE->isMaster) {
+            // first non-master node
+            for (auto& nd : m_masterNodesData | std::views::reverse) {
+                if (nd->isMaster) {
+                    nd->isMaster = false;
+                    break;
+                }
+            }
+        } else {
+            PNODE->isMaster = false;
+        }
+
+        calculateWorkspace();
+    } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom" || command == "orientationcenter") {
+        if (!PWINDOW)
+            return std::unexpected("no window");
+
+        g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
+
+        if (command == "orientationleft")
+            m_workspaceData.orientation = ORIENTATION_LEFT;
+        else if (command == "orientationright")
+            m_workspaceData.orientation = ORIENTATION_RIGHT;
+        else if (command == "orientationtop")
+            m_workspaceData.orientation = ORIENTATION_TOP;
+        else if (command == "orientationbottom")
+            m_workspaceData.orientation = ORIENTATION_BOTTOM;
+        else if (command == "orientationcenter")
+            m_workspaceData.orientation = ORIENTATION_CENTER;
+
+        calculateWorkspace();
+    } else if (command == "orientationnext") {
+        runOrientationCycle(nullptr, 1);
+    } else if (command == "orientationprev") {
+        runOrientationCycle(nullptr, -1);
+    } else if (command == "orientationcycle") {
+        runOrientationCycle(&vars, 1);
+    } else if (command == "mfact") {
+        g_pKeybindManager->m_dispatchers["splitratio"](std::format("{} {}", vars[1], vars[2]));
+    } else if (command == "rollnext") {
+        const auto PNODE = getNodeFromWindow(PWINDOW);
+
+        if (!PNODE)
+            return std::unexpected("window couldnt be found");
+
+        const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNode();
+        if (!OLDMASTER)
+            return std::unexpected("no old master");
+
+        auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+
+        for (auto& nd : m_masterNodesData) {
+            if (!nd->isMaster) {
+                const auto newMaster = nd;
+                newMaster->isMaster  = true;
+
+                auto newMasterIt = std::ranges::find(m_masterNodesData, newMaster);
+
+                if (newMasterIt < oldMasterIt)
+                    std::ranges::rotate(newMasterIt, std::next(newMasterIt), oldMasterIt);
+                else if (newMasterIt > oldMasterIt)
+                    std::ranges::rotate(oldMasterIt, newMasterIt, std::next(newMasterIt));
+
+                switchToWindow(newMaster->pTarget.lock());
+                OLDMASTER->isMaster = false;
+
+                oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+                if (oldMasterIt != m_masterNodesData.end())
+                    std::ranges::rotate(oldMasterIt, std::next(oldMasterIt), m_masterNodesData.end());
+
+                break;
+            }
+        }
+
+        calculateWorkspace();
+    } else if (command == "rollprev") {
+        const auto PNODE = getNodeFromWindow(PWINDOW);
+
+        if (!PNODE)
+            return std::unexpected("window couldnt be found");
+
+        const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNode();
+        if (!OLDMASTER)
+            return std::unexpected("no old master");
+
+        auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+
+        for (auto& nd : m_masterNodesData | std::views::reverse) {
+            if (!nd->isMaster) {
+                const auto newMaster = nd;
+                newMaster->isMaster  = true;
+
+                auto newMasterIt = std::ranges::find(m_masterNodesData, newMaster);
+
+                if (newMasterIt < oldMasterIt)
+                    std::ranges::rotate(newMasterIt, std::next(newMasterIt), oldMasterIt);
+                else if (newMasterIt > oldMasterIt)
+                    std::ranges::rotate(oldMasterIt, newMasterIt, std::next(newMasterIt));
+
+                switchToWindow(newMaster->pTarget.lock());
+                OLDMASTER->isMaster = false;
+
+                oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+                if (oldMasterIt != m_masterNodesData.begin())
+                    std::ranges::rotate(m_masterNodesData.begin(), oldMasterIt, std::next(oldMasterIt));
+
+                break;
+            }
+        }
+
+        calculateWorkspace();
+    }
+
     return {};
+}
+
+std::optional<Vector2D> CMasterAlgorithm::predictSizeForNewTarget() {
+    static auto PNEWSTATUS = CConfigValue<std::string>("master:new_status");
+
+    const auto  MONITOR = m_parent->space()->workspace()->m_monitor;
+
+    if (!MONITOR)
+        return std::nullopt;
+
+    const int NODES = getNodesNo();
+
+    if (NODES <= 0)
+        return Desktop::focusState()->monitor()->m_size;
+
+    const auto MASTER = getMasterNode();
+    if (!MASTER) // wtf
+        return std::nullopt;
+
+    if (*PNEWSTATUS == "master") {
+        return MASTER->size;
+    } else {
+        const auto SLAVES = NODES - getMastersNo();
+
+        // TODO: make this better
+        return Vector2D{MONITOR->m_size.x - MASTER->size.x, MONITOR->m_size.y / (SLAVES + 1)};
+    }
+
+    return std::nullopt;
 }
 
 void CMasterAlgorithm::buildOrientationCycleVectorFromVars(std::vector<eOrientation>& cycle, Hyprutils::String::CVarList2* vars) {

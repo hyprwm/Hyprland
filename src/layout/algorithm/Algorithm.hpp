@@ -6,6 +6,7 @@
 #include "../LayoutManager.hpp"
 
 #include <expected>
+#include <optional>
 
 namespace Layout {
     class ITarget;
@@ -25,6 +26,7 @@ namespace Layout {
         void                             setFloating(SP<ITarget> target, bool floating);
 
         std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        std::optional<Vector2D>          predictSizeForNewTiledTarget();
 
         void                             recalculate();
 

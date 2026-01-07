@@ -90,11 +90,15 @@ CBox CSpace::targetPositionLocal(SP<ITarget> t) const {
 void CSpace::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
     if (!m_algorithm)
         return;
+
+    m_algorithm->resizeTarget(Δ, target, corner);
 }
 
 void CSpace::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
     if (!m_algorithm)
         return;
+
+    m_algorithm->moveTarget(Δ, target);
 }
 
 SP<CAlgorithm> CSpace::algorithm() const {
@@ -116,4 +120,11 @@ std::expected<void, std::string> CSpace::layoutMsg(const std::string_view& sv) {
         return m_algorithm->layoutMsg(sv);
 
     return {};
+}
+
+std::optional<Vector2D> CSpace::predictSizeForNewTiledTarget() {
+    if (m_algorithm)
+        return m_algorithm->predictSizeForNewTiledTarget();
+
+    return std::nullopt;
 }

@@ -22,7 +22,7 @@ namespace Layout::Tiled {
         WORKSPACEID  workspaceID = WORKSPACE_INVALID;
         eOrientation orientation = ORIENTATION_LEFT;
         // Previously focused non-master window when `focusmaster previous` command was issued
-        PHLWINDOWREF focusMasterPrev;
+        WP<ITarget> focusMasterPrev;
 
         //
         bool operator==(const SMasterWorkspaceData& rhs) const {
@@ -43,6 +43,7 @@ namespace Layout::Tiled {
         virtual void                             recalculate();
 
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        virtual std::optional<Vector2D>          predictSizeForNewTarget();
 
       private:
         std::vector<SP<SMasterNodeData>> m_masterNodesData;

@@ -32,6 +32,7 @@ namespace Layout {
         void                             toggleTargetFloating(SP<ITarget> t);
 
         std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        std::optional<Vector2D>          predictSizeForNewTiledTarget();
 
         const CBox&                      workArea() const;
         PHLWORKSPACE                     workspace() const;

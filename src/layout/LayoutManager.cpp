@@ -59,7 +59,11 @@ void CLayoutManager::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectC
         newPseudoSize.y             = std::clamp(newPseudoSize.y, MIN_WINDOW_SIZE, TARGET_TILE_SIZE.y);
 
         target->setPseudoSize(newPseudoSize);
+
+        return;
     }
+
+    target->space()->resizeTarget(Δ, target, corner);
 }
 
 std::expected<void, std::string> CLayoutManager::layoutMsg(const std::string_view& sv) {
@@ -78,7 +82,10 @@ std::expected<void, std::string> CLayoutManager::layoutMsg(const std::string_vie
 }
 
 void CLayoutManager::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
-    ;
+    if (!target->floating())
+        return;
+
+    target->space()->moveTarget(Δ, target);
 }
 
 void CLayoutManager::endDragTarget() {
@@ -110,7 +117,15 @@ void CLayoutManager::bringTargetToTop(SP<ITarget> target) {
 }
 
 std::optional<Vector2D> CLayoutManager::predictSizeForNewTiledTarget() {
-    return std::nullopt;
+    const auto FOCUSED_MON = Desktop::focusState()->monitor();
+
+    if (!FOCUSED_MON || !FOCUSED_MON->m_activeWorkspace)
+        return std::nullopt;
+
+    if (FOCUSED_MON->m_activeSpecialWorkspace)
+        return FOCUSED_MON->m_activeSpecialWorkspace->m_space->predictSizeForNewTiledTarget();
+
+    return FOCUSED_MON->m_activeWorkspace->m_space->predictSizeForNewTiledTarget();
 }
 
 void CLayoutManager::fitIfFloatingOnMonitor(SP<ITarget> target) {

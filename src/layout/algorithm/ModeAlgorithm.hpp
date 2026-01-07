@@ -34,6 +34,9 @@ namespace Layout {
         // optional: handle layout messages
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
 
+        // optional: predict new window's size
+        virtual std::optional<Vector2D> predictSizeForNewTarget();
+
       protected:
         IModeAlgorithm() = default;
 

@@ -378,8 +378,10 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
 
             DRAGGINGTARGET->setPositionGlobal(wb);
             DRAGGINGTARGET->warpPositionSize();
-        } else
+        } else {
             g_layoutManager->resizeTarget(TICKDELTA, DRAGGINGTARGET, m_grabbedCorner);
+            DRAGGINGTARGET->warpPositionSize();
+        }
     }
 
     // get middle point

@@ -304,8 +304,17 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 }
 
 void CLayoutManager::recalculateMonitor(PHLMONITOR m) {
-    if (m->m_activeWorkspace)
-        m->m_activeWorkspace->m_space->recalculate();
     if (m->m_activeSpecialWorkspace)
         m->m_activeSpecialWorkspace->m_space->recalculate();
+    if (m->m_activeWorkspace)
+        m->m_activeWorkspace->m_space->recalculate();
+}
+
+void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {
+    for (const auto& ws : g_pCompositor->getWorkspaces()) {
+        if (ws && ws->m_monitor == m) {
+            ws->m_space->recheckWorkArea();
+            ws->m_space->recalculate();
+        }
+    }
 }

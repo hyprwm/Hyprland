@@ -460,6 +460,16 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
         SIDECONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
         TOPCONTAINER->recalcSizePosRecursive(*PANIMATE == 0);
     }
+
+    // snap all windows, don't animate resizes if they are manual
+    if (target == g_layoutManager->dragController()->target()) {
+        for (const auto& w : m_dwindleNodesData) {
+            if (w->isNode)
+                continue;
+
+            w->pTarget->warpPositionSize();
+        }
+    }
 }
 
 void CDwindleAlgorithm::recalculate() {

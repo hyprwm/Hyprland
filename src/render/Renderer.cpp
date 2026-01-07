@@ -27,6 +27,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
@@ -1903,7 +1904,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     // damage the monitor if can
     damageMonitor(PMONITOR);
 
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
+    g_layoutManager->invalidateMonitorGeometries(PMONITOR);
 }
 
 void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {

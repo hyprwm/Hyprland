@@ -95,11 +95,13 @@ void CGroup::add(PHLWINDOW w) {
         return;
     }
 
-    m_windows.insert(m_windows.begin() + m_current + 1, w);
-    m_current++;
     w->m_group = m_self.lock();
     w->m_target->setSpaceGhost(m_target->space());
     w->m_target->setFloating(m_target->floating());
+
+    m_windows.insert(m_windows.begin() + m_current + 1, w);
+    m_current++;
+
     applyWindowDecosAndUpdates(w);
     updateWindowVisibility();
     m_target->recalc();

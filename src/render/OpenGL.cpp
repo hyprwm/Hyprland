@@ -974,13 +974,13 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    if (m_finalScreenShader->uniformLocations[SHADER_TIME] != -1)
-        m_finalScreenShader->initialTime = m_globalTimer.getSeconds();
+    if (m_finalScreenShader->getUniformLocation(SHADER_TIME) != -1)
+        m_finalScreenShader->setInitialTime(m_globalTimer.getSeconds());
 
     static auto uniformRequireNoDamage = [this](eShaderUniform uniform, const std::string& name) {
         if (*PDT == 0)
             return;
-        if (m_finalScreenShader->uniformLocations[uniform] == -1)
+        if (m_finalScreenShader->getUniformLocation(uniform) == -1)
             return;
 
         // The screen shader uses the uniform
@@ -1142,7 +1142,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     shader->setUniformFloat(SHADER_RADIUS, data.round);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -1371,7 +1371,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     shader->setUniformInt(SHADER_TEX, 0);
 
     if ((usingFinalShader && *PDT == 0) || CRASHING)
-        shader->setUniformFloat(SHADER_TIME, m_globalTimer.getSeconds() - shader->initialTime);
+        shader->setUniformFloat(SHADER_TIME, m_globalTimer.getSeconds() - shader->getInitialTime());
     else if (usingFinalShader)
         shader->setUniformFloat(SHADER_TIME, 0.f);
 
@@ -1473,7 +1473,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             shader->setUniformInt(SHADER_APPLY_TINT, 0);
     }
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
     if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
         const float customUVs[] = {
             m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVTopLeft.x,
@@ -1481,10 +1481,10 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y,
         };
 
-        glBindBuffer(GL_ARRAY_BUFFER, shader->uniformLocations[SHADER_SHADER_VBO_UV]);
+        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
     } else {
-        glBindBuffer(GL_ARRAY_BUFFER, shader->uniformLocations[SHADER_SHADER_VBO_UV]);
+        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
     }
 
@@ -1549,7 +1549,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     auto shader = useShader(m_shaders->frag[SH_FRAG_PASSTHRURGBA]);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     m_renderData.damage.forEachRect([this](const auto& RECT) {
         scissor(&RECT);
@@ -1590,7 +1590,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     auto matteTex = matte.getTexture();
     matteTex->bind();
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     m_renderData.damage.forEachRect([this](const auto& RECT) {
         scissor(&RECT);
@@ -1687,7 +1687,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         shader->setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
         shader->setUniformInt(SHADER_TEX, 0);
 
-        glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+        glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!damage.empty()) {
             damage.forEachRect([this](const auto& RECT) {
@@ -1727,7 +1727,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
             shader->setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x * 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y * 2.f));
         shader->setUniformInt(SHADER_TEX, 0);
 
-        glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+        glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!pDamage->empty()) {
             pDamage->forEachRect([this](const auto& RECT) {
@@ -1790,7 +1790,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         shader->setUniformInt(SHADER_TEX, 0);
 
-        glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+        glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
         if (!damage.empty()) {
             damage.forEachRect([this](const auto& RECT) {
@@ -2172,7 +2172,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
@@ -2260,7 +2260,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
     shader->setUniformFloat(SHADER_THICK, scaledBorderSize);
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
@@ -2327,7 +2327,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
 
-    glBindVertexArray(shader->uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};

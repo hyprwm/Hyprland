@@ -1491,9 +1491,9 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     if (!Desktop::focusState()->monitor())
         return {};
 
-    const auto WORKSPACE   = Desktop::focusState()->monitor()->m_activeWorkspace;
-    const auto WORKAREA    = workAreaOnWorkspace(WORKSPACE);
-    const int NODES = getNodesOnWorkspace(WORKSPACE->m_id);
+    const auto WORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
+    const auto WORKAREA  = workAreaOnWorkspace(WORKSPACE);
+    const int  NODES     = getNodesOnWorkspace(WORKSPACE->m_id);
 
     if (NODES <= 0)
         return WORKAREA.size();
@@ -1506,8 +1506,7 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
         return MASTER->size;
     } else {
         const auto SLAVES = NODES - getMastersOnWorkspace(WORKSPACE->m_id);
-
-        double width = WORKAREA.size().x;
+        double     width  = WORKAREA.size().x;
         if (SLAVES > 0)
             width -= MASTER->size.x;
         else

@@ -99,6 +99,7 @@ void CGroup::add(PHLWINDOW w) {
     m_current++;
     w->m_group = m_self.lock();
     w->m_target->setSpaceGhost(m_target->space());
+    w->m_target->setFloating(m_target->floating());
     applyWindowDecosAndUpdates(w);
     updateWindowVisibility();
     m_target->recalc();
@@ -116,7 +117,7 @@ void CGroup::remove(PHLWINDOW w) {
     if (!idx)
         return;
 
-    if (m_current >= *idx)
+    if (m_current >= *idx && idx != 0)
         m_current--;
 
     auto g = m_self.lock(); // keep ref to avoid uaf after w->m_group.reset()

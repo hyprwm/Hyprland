@@ -3,6 +3,7 @@
 #include "../../Algorithm.hpp"
 #include "../../../space/Space.hpp"
 #include "../../../target/WindowTarget.hpp"
+#include "../../../LayoutManager.hpp"
 
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
@@ -540,6 +541,49 @@ std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
     }
 
     return {};
+}
+
+void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silent) {
+    const auto     PNODE       = getNodeFromTarget(t);
+    const Vector2D originalPos = t->position().middle();
+
+    if (!PNODE || !t->window())
+        return;
+
+    Vector2D   focalPoint;
+
+    const auto WINDOWIDEALBB =
+        t->fullscreenMode() != FSMODE_NONE ? m_parent->space()->workspace()->m_monitor->logicalBox() : t->window()->getWindowIdealBoundingBoxIgnoreReserved();
+
+    switch (dir) {
+        case DIRECTION_UP: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;
+        case DIRECTION_DOWN: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, WINDOWIDEALBB.size().y + 1.0}; break;
+        case DIRECTION_LEFT: focalPoint = WINDOWIDEALBB.pos() + Vector2D{-1.0, WINDOWIDEALBB.size().y / 2.0}; break;
+        case DIRECTION_RIGHT: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x + 1.0, WINDOWIDEALBB.size().y / 2.0}; break;
+        default: return;
+    }
+
+    t->window()->setAnimationsToMove();
+
+    removeTarget(t);
+
+    m_overrideFocalPoint = focalPoint;
+
+    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
+
+    if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor)
+        return; // can't
+
+    movedTarget(t);
+
+    m_overrideFocalPoint.reset();
+
+    // restore focus to the previous position
+    if (silent) {
+        const auto PNODETOFOCUS = getClosestNode(originalPos);
+        if (PNODETOFOCUS && PNODETOFOCUS->pTarget)
+            Desktop::focusState()->fullWindowFocus(PNODETOFOCUS->pTarget->window());
+    }
 }
 
 // --------- internal --------- //

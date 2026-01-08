@@ -1675,7 +1675,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
     if (PWINDOWTOCHANGETO) {
         updateRelativeCursorCoords();
 
-        // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args, silent);
+        g_layoutManager->moveInDirection(PLASTWINDOW->layoutTarget(), args, silent);
         if (!silent)
             PLASTWINDOW->warpCursor();
         return {};
@@ -2955,7 +2955,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
         return {};
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
-        // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
         return {};
     }
 
@@ -2970,20 +2970,20 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_isFloating
     if (PWINDOWINDIR && PWINDOWINDIR->m_group) { // target is group
         if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || PWINDOW->m_group->denied())) {
-            // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+            g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) { // target is regular window
         if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_groupRules & Desktop::View::GROUP_SET_ALWAYS)) {
-            // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+            g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else
             moveWindowOutOfGroup(PWINDOW, args);
     } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) { // no target window
         moveWindowOutOfGroup(PWINDOW, args);
     } else if (!PWINDOWINDIR && !ISWINDOWGROUP) { // no target in dir and not in group
-        // g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
         PWINDOW->warpCursor();
     }
 

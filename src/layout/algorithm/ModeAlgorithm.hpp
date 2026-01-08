@@ -12,6 +12,8 @@ namespace Layout {
     class ITarget;
     class CAlgorithm;
 
+    enum eDirection : int8_t;
+
     class IModeAlgorithm {
       public:
         virtual ~IModeAlgorithm() = default;
@@ -33,6 +35,9 @@ namespace Layout {
 
         // swap targets
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b) = 0;
+
+        // move a target in a given direction
+        virtual void moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent) = 0;
 
         // optional: handle layout messages
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);

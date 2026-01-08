@@ -264,6 +264,25 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
         nodeB->pTarget = a;
 }
 
+void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent) {
+    const auto PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), directionToChar(dir));
+
+    if (!PWINDOW2 || !t->window())
+        return;
+
+    t->window()->setAnimationsToMove();
+
+    if (t->window()->m_workspace != PWINDOW2->m_workspace) {
+        // can't
+        return;
+    } else {
+        // if same monitor, switch windows
+        g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
+        if (silent)
+            Desktop::focusState()->fullWindowFocus(PWINDOW2);
+    }
+}
+
 void CMasterAlgorithm::recalculate() {
     calculateWorkspace();
 }

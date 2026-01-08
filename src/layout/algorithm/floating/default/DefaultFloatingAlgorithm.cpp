@@ -113,3 +113,7 @@ void CDefaultFloatingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     a->setPositionGlobal(b->position());
     b->setPositionGlobal(posABackup);
 }
+
+void CDefaultFloatingAlgorithm::moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent) {
+    ; // TODO:
+}

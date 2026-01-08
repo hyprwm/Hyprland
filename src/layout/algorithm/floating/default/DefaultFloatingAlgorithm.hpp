@@ -18,5 +18,6 @@ namespace Layout::Floating {
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
+        virtual void moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent);
     };
 };

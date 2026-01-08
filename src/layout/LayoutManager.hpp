@@ -47,6 +47,8 @@ namespace Layout {
         DIRECTION_LEFT
     };
 
+    char directionToChar(eDirection d);
+
     class CLayoutManager {
       public:
         CLayoutManager();

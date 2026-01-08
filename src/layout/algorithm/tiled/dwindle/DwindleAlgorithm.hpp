@@ -2,6 +2,7 @@
 
 namespace Layout {
     class CAlgorithm;
+    enum eDirection : int8_t;
 }
 
 namespace Layout::Tiled {
@@ -23,6 +24,7 @@ namespace Layout::Tiled {
         virtual std::optional<Vector2D>          predictSizeForNewTarget();
 
         virtual void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
+        virtual void                             moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent);
 
       private:
         std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;

@@ -133,3 +133,8 @@ void CSpace::swap(SP<ITarget> a, SP<ITarget> b) {
     if (m_algorithm)
         m_algorithm->swapTargets(a, b);
 }
+
+void CSpace::moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silent) {
+    if (m_algorithm)
+        m_algorithm->moveTargetInDirection(t, dir, silent);
+}

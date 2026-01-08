@@ -24,6 +24,7 @@ namespace Layout {
         void                             removeTarget(SP<ITarget> target);
 
         void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
+        void                             moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent);
 
         void                             setFloating(SP<ITarget> target, bool floating);
 

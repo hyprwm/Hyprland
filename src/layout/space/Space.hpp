@@ -14,6 +14,8 @@ namespace Layout {
     class ITarget;
     class CAlgorithm;
 
+    enum eDirection : int8_t;
+
     class CSpace {
       public:
         static SP<CSpace> create(PHLWORKSPACE w);
@@ -28,6 +30,8 @@ namespace Layout {
         void                             setAlgorithmProvider(SP<CAlgorithm> algo);
         void                             recheckWorkArea();
         void                             setFullscreen(SP<ITarget> t, eFullscreenMode mode);
+
+        void                             moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silent);
 
         void                             recalculate();
 

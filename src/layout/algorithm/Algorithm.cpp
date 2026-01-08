@@ -134,50 +134,35 @@ void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
 }
 
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
-    bool one = false, two = false;
-    for (auto& t : m_tiledTargets) {
-        if (t == a && !one) {
-            t   = b;
-            one = true;
-            continue;
-        } else if (t == b && !two) {
-            t   = a;
-            two = true;
-            continue;
-        }
+    auto swapFirst = [&a, &b](std::vector<WP<ITarget>>& targets) -> bool {
+        auto ia = std::ranges::find(targets, a);
+        auto ib = std::ranges::find(targets, b);
 
-        if (one && two)
-            break;
-    }
+        if (ia != std::ranges::end(targets) && ib != std::ranges::end(targets)) {
+            std::iter_swap(ia, ib);
+            return true;
+        } else if (ia != std::ranges::end(targets))
+            *ia = b;
+        else if (ib != std::ranges::end(targets))
+            *ib = a;
 
-    one = false, two = false;
-    for (auto& t : m_floatingTargets) {
-        if (t == a && !one) {
-            t   = b;
-            one = true;
-            continue;
-        } else if (t == b && !two) {
-            t   = a;
-            two = true;
-            continue;
-        }
+        return false;
+    };
 
-        if (one && two)
-            break;
-    }
+    if (!swapFirst(m_tiledTargets))
+        swapFirst(m_floatingTargets);
 
-    if (a->floating() == b->floating()) {
-        if (a->floating())
-            m_floating->swapTargets(a, b);
-        else
-            m_tiled->swapTargets(a, b);
-    } else {
-        if (a->floating()) {
-            m_floating->swapTargets(a, b);
-            m_tiled->swapTargets(b, a);
-        } else {
-            m_tiled->swapTargets(a, b);
-            m_floating->swapTargets(b, a);
-        }
-    }
+    const WP<IModeAlgorithm> algA = a->floating() ? WP<IModeAlgorithm>(m_floating) : WP<IModeAlgorithm>(m_tiled);
+    const WP<IModeAlgorithm> algB = b->floating() ? WP<IModeAlgorithm>(m_floating) : WP<IModeAlgorithm>(m_tiled);
+
+    algA->swapTargets(a, b);
+    if (algA != algB)
+        algB->swapTargets(b, a);
+}
+
+void CAlgorithm::moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silent) {
+    if (t->floating())
+        m_floating->moveTargetInDirection(t, dir, silent);
+    else
+        m_tiled->moveTargetInDirection(t, dir, silent);
 }

@@ -10,6 +10,16 @@
 
 using namespace Layout;
 
+char Layout::directionToChar(eDirection d) {
+    switch (d) {
+        case DIRECTION_UP: return 'u';
+        case DIRECTION_DOWN: return 'd';
+        case DIRECTION_LEFT: return 'l';
+        case DIRECTION_RIGHT: return 'r';
+        default: return 'r';
+    }
+}
+
 CLayoutManager::CLayoutManager() {
     static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [](void* hk, SCallbackInfo& info, std::any param) {
         for (const auto& ws : g_pCompositor->getWorkspaces()) {
@@ -101,7 +111,21 @@ void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& direction, bool silent) {
-    ;
+    eDirection dir = DIRECTION_DEFAULT;
+    switch (direction.at(0)) {
+        case 'l': dir = DIRECTION_LEFT; break;
+        case 'r': dir = DIRECTION_RIGHT; break;
+        case 't':
+        case 'u': dir = DIRECTION_UP; break;
+        case 'b':
+        case 'd': dir = DIRECTION_DOWN; break;
+        default: {
+            Log::logger->log(Log::ERR, "invalid direction for moveInDirection: {}", direction);
+            return;
+        }
+    }
+
+    target->space()->moveTargetInDirection(target, dir, silent);
 }
 
 SP<ITarget> CLayoutManager::getNextCandidate(SP<ITarget> from) {

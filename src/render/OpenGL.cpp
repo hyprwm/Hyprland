@@ -892,11 +892,12 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
-            bool       success = shaders->m_shCM.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
+            bool       success = shaders->frag[SH_FRAG_CM].createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
             if (m_shadersInitialized && m_cmSupported && success)
                 g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_CM_RELOAD_FAILED), CHyprColor{}, 15000, ICON_WARNING);
 
             m_cmSupported = success;
+
             if (!m_cmSupported)
                 Log::logger->log(
                     Log::ERR,
@@ -904,58 +905,29 @@ bool CHyprOpenGLImpl::initShaders() {
                     "about this!");
         }
 
-        const auto FRAGSHADOW             = processShader("shadow.frag", includes);
-        const auto FRAGBORDER1            = processShader("border.frag", includes);
-        const auto FRAGBLURPREPARE        = processShader("blurprepare.frag", includes);
-        const auto FRAGBLURFINISH         = processShader("blurfinish.frag", includes);
-        const auto QUADFRAGSRC            = processShader("quad.frag", includes);
-        const auto TEXFRAGSRCRGBA         = processShader("rgba.frag", includes);
-        const auto TEXFRAGSRCRGBAPASSTHRU = processShader("passthru.frag", includes);
-        const auto TEXFRAGSRCRGBAMATTE    = processShader("rgbamatte.frag", includes);
-        const auto FRAGGLITCH             = processShader("glitch.frag", includes);
-        const auto TEXFRAGSRCRGBX         = processShader("rgbx.frag", includes);
-        const auto TEXFRAGSRCEXT          = processShader("ext.frag", includes);
-        const auto FRAGBLUR1              = processShader("blur1.frag", includes);
-        const auto FRAGBLUR2              = processShader("blur2.frag", includes);
+        std::array<SFragShaderDesc, SH_FRAG_LAST - 1> FRAG_SHADERS = {{
+            {SH_FRAG_QUAD, "quad.frag"},
+            {SH_FRAG_RGBA, "rgba.frag"},
+            {SH_FRAG_PASSTHRURGBA, "passthru.frag"},
+            {SH_FRAG_MATTE, "rgbamatte.frag"},
+            {SH_FRAG_GLITCH, "glitch.frag"},
+            {SH_FRAG_RGBX, "rgbx.frag"},
+            {SH_FRAG_EXT, "ext.frag"},
+            {SH_FRAG_BLUR1, "blur1.frag"},
+            {SH_FRAG_BLUR2, "blur2.frag"},
+            {SH_FRAG_BLURPREPARE, "blurprepare.frag"},
+            {SH_FRAG_BLURFINISH, "blurfinish.frag"},
+            {SH_FRAG_SHADOW, "shadow.frag"},
+            {SH_FRAG_BORDER1, "border.frag"},
+        }};
 
-        if (!shaders->m_shQUAD.createProgram(shaders->TEXVERTSRC, QUADFRAGSRC, isDynamic))
-            return false;
+        for (const auto& desc : FRAG_SHADERS) {
+            const auto fragSrc = processShader(desc.file, includes);
 
-        if (!shaders->m_shRGBA.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBA, isDynamic))
-            return false;
-
-        if (!shaders->m_shPASSTHRURGBA.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAPASSTHRU, isDynamic))
-            return false;
-
-        if (!shaders->m_shMATTE.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBAMATTE, isDynamic))
-            return false;
-
-        if (!shaders->m_shGLITCH.createProgram(shaders->TEXVERTSRC, FRAGGLITCH, isDynamic))
-            return false;
-
-        if (!shaders->m_shRGBX.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCRGBX, isDynamic))
-            return false;
-
-        if (!shaders->m_shEXT.createProgram(shaders->TEXVERTSRC, TEXFRAGSRCEXT, isDynamic))
-            return false;
-
-        if (!shaders->m_shBLUR1.createProgram(shaders->TEXVERTSRC, FRAGBLUR1, isDynamic))
-            return false;
-
-        if (!shaders->m_shBLUR2.createProgram(shaders->TEXVERTSRC, FRAGBLUR2, isDynamic))
-            return false;
-
-        if (!shaders->m_shBLURPREPARE.createProgram(shaders->TEXVERTSRC, FRAGBLURPREPARE, isDynamic))
-            return false;
-
-        if (!shaders->m_shBLURFINISH.createProgram(shaders->TEXVERTSRC, FRAGBLURFINISH, isDynamic))
-            return false;
-
-        if (!shaders->m_shSHADOW.createProgram(shaders->TEXVERTSRC, FRAGSHADOW, isDynamic))
-            return false;
-
-        if (!shaders->m_shBORDER1.createProgram(shaders->TEXVERTSRC, FRAGBORDER1, isDynamic))
-            return false;
+            if (!shaders->frag[desc.id].createProgram(shaders->TEXVERTSRC, fragSrc, isDynamic)) {
+                return false;
+            }
+        }
 
     } catch (const std::exception& e) {
         if (!m_shadersInitialized)
@@ -1149,11 +1121,11 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
         newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    useProgram(m_shaders->m_shQUAD.program());
-    m_shaders->m_shQUAD.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    useProgram(m_shaders->frag[SH_FRAG_QUAD].program());
+    m_shaders->frag[SH_FRAG_QUAD].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
-    m_shaders->m_shQUAD.setUniformFloat4(SHADER_COLOR, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    m_shaders->frag[SH_FRAG_QUAD].setUniformFloat4(SHADER_COLOR, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
 
     CBox transformedBox = box;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
@@ -1163,12 +1135,12 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
     // Rounded corners
-    m_shaders->m_shQUAD.setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
-    m_shaders->m_shQUAD.setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    m_shaders->m_shQUAD.setUniformFloat(SHADER_RADIUS, data.round);
-    m_shaders->m_shQUAD.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
+    m_shaders->frag[SH_FRAG_QUAD].setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
+    m_shaders->frag[SH_FRAG_QUAD].setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
+    m_shaders->frag[SH_FRAG_QUAD].setUniformFloat(SHADER_RADIUS, data.round);
+    m_shaders->frag[SH_FRAG_QUAD].setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
-    glBindVertexArray(m_shaders->m_shQUAD.uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(m_shaders->frag[SH_FRAG_QUAD].uniformLocations[SHADER_SHADER_VAO]);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
@@ -1325,28 +1297,28 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     auto       texType = tex->m_type;
 
     if (CRASHING) {
-        shader           = &m_shaders->m_shGLITCH;
+        shader           = &m_shaders->frag[SH_FRAG_GLITCH];
         usingFinalShader = true;
     } else if (m_applyFinalShader && m_finalScreenShader.program()) {
         shader           = &m_finalScreenShader;
         usingFinalShader = true;
     } else {
         if (m_applyFinalShader) {
-            shader           = &m_shaders->m_shPASSTHRURGBA;
+            shader           = &m_shaders->frag[SH_FRAG_PASSTHRURGBA];
             usingFinalShader = true;
         } else {
             switch (tex->m_type) {
-                case TEXTURE_RGBA: shader = &m_shaders->m_shRGBA; break;
-                case TEXTURE_RGBX: shader = &m_shaders->m_shRGBX; break;
+                case TEXTURE_RGBA: shader = &m_shaders->frag[SH_FRAG_RGBA]; break;
+                case TEXTURE_RGBX: shader = &m_shaders->frag[SH_FRAG_RGBX]; break;
 
-                case TEXTURE_EXTERNAL: shader = &m_shaders->m_shEXT; break; // might be unused
+                case TEXTURE_EXTERNAL: shader = &m_shaders->frag[SH_FRAG_EXT]; break; // might be unused
                 default: RASSERT(false, "tex->m_iTarget unsupported!");
             }
         }
     }
 
     if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()) {
-        shader  = &m_shaders->m_shRGBX;
+        shader  = &m_shaders->frag[SH_FRAG_RGBX];
         texType = TEXTURE_RGBX;
     }
 
@@ -1379,11 +1351,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
-        shader = &m_shaders->m_shCM;
+        shader = &m_shaders->frag[SH_FRAG_CM];
 
     useProgram(shader->program());
 
-    if (shader == &m_shaders->m_shCM) {
+    if (shader == &m_shaders->frag[SH_FRAG_CM]) {
         shader->setUniformInt(SHADER_TEX_TYPE, texType);
         if (data.cmBackToSRGB) {
             static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
@@ -1559,7 +1531,7 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_shaders->m_shPASSTHRURGBA;
+    CShader*   shader = &m_shaders->frag[SH_FRAG_PASSTHRURGBA];
 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
@@ -1606,7 +1578,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFra
     Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
 
-    CShader*   shader = &m_shaders->m_shMATTE;
+    CShader*   shader = &m_shaders->frag[SH_FRAG_MATTE];
 
     useProgram(shader->program());
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
@@ -1693,33 +1665,33 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         currentTex->bind();
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        useProgram(m_shaders->m_shBLURPREPARE.program());
+        useProgram(m_shaders->frag[SH_FRAG_BLURPREPARE].program());
 
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-        m_shaders->m_shBLURPREPARE.setUniformInt(SHADER_SKIP_CM, skipCM);
+        m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformInt(SHADER_SKIP_CM, skipCM);
         if (!skipCM) {
-            passCMUniforms(m_shaders->m_shBLURPREPARE, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
-            m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_SATURATION,
-                                                       m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
-                                                                   NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                                           m_renderData.pMonitor->m_sdrSaturation :
-                                                           1.0f);
-            m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_SDR_BRIGHTNESS,
-                                                       m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                                               m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
-                                                                   NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                                           m_renderData.pMonitor->m_sdrBrightness :
-                                                           1.0f);
+            passCMUniforms(m_shaders->frag[SH_FRAG_BLURPREPARE], m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
+            m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformFloat(SHADER_SDR_SATURATION,
+                                                                 m_renderData.pMonitor->m_sdrSaturation > 0 &&
+                                                                         m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
+                                                                             NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                                     m_renderData.pMonitor->m_sdrSaturation :
+                                                                     1.0f);
+            m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformFloat(SHADER_SDR_BRIGHTNESS,
+                                                                 m_renderData.pMonitor->m_sdrBrightness > 0 &&
+                                                                         m_renderData.pMonitor->m_imageDescription->value().transferFunction ==
+                                                                             NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                                                     m_renderData.pMonitor->m_sdrBrightness :
+                                                                     1.0f);
         }
 
-        m_shaders->m_shBLURPREPARE.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-        m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_CONTRAST, *PBLURCONTRAST);
-        m_shaders->m_shBLURPREPARE.setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
-        m_shaders->m_shBLURPREPARE.setUniformInt(SHADER_TEX, 0);
+        m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+        m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformFloat(SHADER_CONTRAST, *PBLURCONTRAST);
+        m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
+        m_shaders->frag[SH_FRAG_BLURPREPARE].setUniformInt(SHADER_TEX, 0);
 
-        glBindVertexArray(m_shaders->m_shBLURPREPARE.uniformLocations[SHADER_SHADER_VAO]);
+        glBindVertexArray(m_shaders->frag[SH_FRAG_BLURPREPARE].uniformLocations[SHADER_SHADER_VAO]);
 
         if (!damage.empty()) {
             damage.forEachRect([this](const auto& RECT) {
@@ -1752,13 +1724,15 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         // prep two shaders
         pShader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         pShader->setUniformFloat(SHADER_RADIUS, *PBLURSIZE * a); // this makes the blursize change with a
-        if (pShader == &m_shaders->m_shBLUR1) {
-            m_shaders->m_shBLUR1.setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x / 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y / 2.f));
-            m_shaders->m_shBLUR1.setUniformInt(SHADER_PASSES, BLUR_PASSES);
-            m_shaders->m_shBLUR1.setUniformFloat(SHADER_VIBRANCY, *PBLURVIBRANCY);
-            m_shaders->m_shBLUR1.setUniformFloat(SHADER_VIBRANCY_DARKNESS, *PBLURVIBRANCYDARKNESS);
+        if (pShader == &m_shaders->frag[SH_FRAG_BLUR1]) {
+            m_shaders->frag[SH_FRAG_BLUR1].setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x / 2.f),
+                                                            0.5f / (m_renderData.pMonitor->m_pixelSize.y / 2.f));
+            m_shaders->frag[SH_FRAG_BLUR1].setUniformInt(SHADER_PASSES, BLUR_PASSES);
+            m_shaders->frag[SH_FRAG_BLUR1].setUniformFloat(SHADER_VIBRANCY, *PBLURVIBRANCY);
+            m_shaders->frag[SH_FRAG_BLUR1].setUniformFloat(SHADER_VIBRANCY_DARKNESS, *PBLURVIBRANCYDARKNESS);
         } else
-            m_shaders->m_shBLUR2.setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x * 2.f), 0.5f / (m_renderData.pMonitor->m_pixelSize.y * 2.f));
+            m_shaders->frag[SH_FRAG_BLUR2].setUniformFloat2(SHADER_HALFPIXEL, 0.5f / (m_renderData.pMonitor->m_pixelSize.x * 2.f),
+                                                            0.5f / (m_renderData.pMonitor->m_pixelSize.y * 2.f));
         pShader->setUniformInt(SHADER_TEX, 0);
 
         glBindVertexArray(pShader->uniformLocations[SHADER_SHADER_VAO]);
@@ -1789,12 +1763,12 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
     // and draw
     for (auto i = 1; i <= BLUR_PASSES; ++i) {
         tempDamage = damage.copy().scale(1.f / (1 << i));
-        drawPass(&m_shaders->m_shBLUR1, &tempDamage); // down
+        drawPass(&m_shaders->frag[SH_FRAG_BLUR1], &tempDamage); // down
     }
 
     for (auto i = BLUR_PASSES - 1; i >= 0; --i) {
-        tempDamage = damage.copy().scale(1.f / (1 << i)); // when upsampling we make the region twice as big
-        drawPass(&m_shaders->m_shBLUR2, &tempDamage);     // up
+        tempDamage = damage.copy().scale(1.f / (1 << i));       // when upsampling we make the region twice as big
+        drawPass(&m_shaders->frag[SH_FRAG_BLUR2], &tempDamage); // up
     }
 
     // finalize the image
@@ -1815,14 +1789,14 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        useProgram(m_shaders->m_shBLURFINISH.program());
-        m_shaders->m_shBLURFINISH.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-        m_shaders->m_shBLURFINISH.setUniformFloat(SHADER_NOISE, *PBLURNOISE);
-        m_shaders->m_shBLURFINISH.setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
+        useProgram(m_shaders->frag[SH_FRAG_BLURFINISH].program());
+        m_shaders->frag[SH_FRAG_BLURFINISH].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+        m_shaders->frag[SH_FRAG_BLURFINISH].setUniformFloat(SHADER_NOISE, *PBLURNOISE);
+        m_shaders->frag[SH_FRAG_BLURFINISH].setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);
 
-        m_shaders->m_shBLURFINISH.setUniformInt(SHADER_TEX, 0);
+        m_shaders->frag[SH_FRAG_BLURFINISH].setUniformInt(SHADER_TEX, 0);
 
-        glBindVertexArray(m_shaders->m_shBLURFINISH.uniformLocations[SHADER_SHADER_VAO]);
+        glBindVertexArray(m_shaders->frag[SH_FRAG_BLURFINISH].uniformLocations[SHADER_SHADER_VAO]);
 
         if (!damage.empty()) {
             damage.forEachRect([this](const auto& RECT) {
@@ -2175,19 +2149,19 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    useProgram(m_shaders->m_shBORDER1.program());
+    useProgram(m_shaders->frag[SH_FRAG_BORDER1].program());
 
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shBORDER1, DEFAULT_IMAGE_DESCRIPTION);
+        passCMUniforms(m_shaders->frag[SH_FRAG_BORDER1], DEFAULT_IMAGE_DESCRIPTION);
 
-    m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, sc<int>(grad.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ALPHA, data.a);
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    m_shaders->frag[SH_FRAG_BORDER1].setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_GRADIENT_LENGTH, grad.m_colorsOkLabA.size() / 4);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ANGLE, sc<int>(grad.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ALPHA, data.a);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
 
     CBox transformedBox = newBox;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
@@ -2196,15 +2170,15 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS, round);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_THICK, scaledBorderSize);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_RADIUS, round);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_THICK, scaledBorderSize);
 
-    glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(m_shaders->frag[SH_FRAG_BORDER1].uniformLocations[SHADER_SHADER_VAO]);
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
@@ -2259,23 +2233,23 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    useProgram(m_shaders->m_shBORDER1.program());
+    useProgram(m_shaders->frag[SH_FRAG_BORDER1].program());
 
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_SKIP_CM, skipCM);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shBORDER1, DEFAULT_IMAGE_DESCRIPTION);
+        passCMUniforms(m_shaders->frag[SH_FRAG_BORDER1], DEFAULT_IMAGE_DESCRIPTION);
 
-    m_shaders->m_shBORDER1.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE, sc<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    m_shaders->frag[SH_FRAG_BORDER1].setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_GRADIENT_LENGTH, grad1.m_colorsOkLabA.size() / 4);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ANGLE, sc<int>(grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
     if (!grad2.m_colorsOkLabA.empty())
-        m_shaders->m_shBORDER1.setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
-    m_shaders->m_shBORDER1.setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ALPHA, data.a);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_GRADIENT_LERP, lerp);
+        m_shaders->frag[SH_FRAG_BORDER1].setUniform4fv(SHADER_GRADIENT2, grad2.m_colorsOkLabA.size() / 4, grad2.m_colorsOkLabA);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformInt(SHADER_GRADIENT2_LENGTH, grad2.m_colorsOkLabA.size() / 4);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ANGLE2, sc<int>(grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ALPHA, data.a);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_GRADIENT_LERP, lerp);
 
     CBox transformedBox = newBox;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
@@ -2284,15 +2258,15 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    m_shaders->m_shBORDER1.setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS, round);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
-    m_shaders->m_shBORDER1.setUniformFloat(SHADER_THICK, scaledBorderSize);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat2(SHADER_FULL_SIZE_UNTRANSFORMED, sc<float>(newBox.width), sc<float>(newBox.height));
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_RADIUS, round);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_RADIUS_OUTER, data.outerRound == -1 ? round : data.outerRound);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
+    m_shaders->frag[SH_FRAG_BORDER1].setUniformFloat(SHADER_THICK, scaledBorderSize);
 
-    glBindVertexArray(m_shaders->m_shBORDER1.uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(m_shaders->frag[SH_FRAG_BORDER1].uniformLocations[SHADER_SHADER_VAO]);
 
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
@@ -2337,29 +2311,29 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    useProgram(m_shaders->m_shSHADOW.program());
+    useProgram(m_shaders->frag[SH_FRAG_SHADOW].program());
     const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    m_shaders->m_shSHADOW.setUniformInt(SHADER_SKIP_CM, skipCM);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformInt(SHADER_SKIP_CM, skipCM);
     if (!skipCM)
-        passCMUniforms(m_shaders->m_shSHADOW, DEFAULT_IMAGE_DESCRIPTION);
+        passCMUniforms(m_shaders->frag[SH_FRAG_SHADOW], DEFAULT_IMAGE_DESCRIPTION);
 
-    m_shaders->m_shSHADOW.setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    m_shaders->m_shSHADOW.setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
     const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
 
     // Rounded corners
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
-    m_shaders->m_shSHADOW.setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
-    m_shaders->m_shSHADOW.setUniformFloat(SHADER_RADIUS, range + round);
-    m_shaders->m_shSHADOW.setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
-    m_shaders->m_shSHADOW.setUniformFloat(SHADER_RANGE, range);
-    m_shaders->m_shSHADOW.setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat(SHADER_RADIUS, range + round);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat(SHADER_RANGE, range);
+    m_shaders->frag[SH_FRAG_SHADOW].setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
 
-    glBindVertexArray(m_shaders->m_shSHADOW.uniformLocations[SHADER_SHADER_VAO]);
+    glBindVertexArray(m_shaders->frag[SH_FRAG_SHADOW].uniformLocations[SHADER_SHADER_VAO]);
 
     if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
         CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};

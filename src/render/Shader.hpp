@@ -116,7 +116,6 @@ class CShader {
     void   logShaderError(const GLuint&, bool program = false, bool silent = false);
     GLuint compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     bool   createProgram(const std::string& vert, const std::string& frag, bool dynamic = false, bool silent = false);
-    void   createVao();
     void   setUniformInt(eShaderUniform location, GLint v0);
     void   setUniformFloat(eShaderUniform location, GLfloat v0);
     void   setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1);
@@ -132,5 +131,7 @@ class CShader {
 
   private:
     GLuint m_program = 0;
+    void   getUniformLocations();
+    void   createVao();
     void   setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size);
 };

@@ -109,7 +109,102 @@ bool CShader::createProgram(const std::string& vert, const std::string& frag, bo
     }
 
     m_program = prog;
+
+    getUniformLocations();
+    createVao();
     return true;
+}
+
+// its fine to call glGet on shaders that dont have the uniform
+// this however hardcodes the name now. #TODO maybe dont
+void CShader::getUniformLocations() {
+    auto getUniform = [this](const GLchar* name) { return glGetUniformLocation(m_program, name); };
+    auto getAttrib  = [this](const GLchar* name) { return glGetAttribLocation(m_program, name); };
+
+    uniformLocations[SHADER_PROJ]        = getUniform("proj");
+    uniformLocations[SHADER_COLOR]       = getUniform("color");
+    uniformLocations[SHADER_ALPHA_MATTE] = getUniform("texMatte");
+    uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
+
+    // shader has #include "CM.glsl"
+    uniformLocations[SHADER_SKIP_CM]           = getUniform("skipCM");
+    uniformLocations[SHADER_SOURCE_TF]         = getUniform("sourceTF");
+    uniformLocations[SHADER_TARGET_TF]         = getUniform("targetTF");
+    uniformLocations[SHADER_SRC_TF_RANGE]      = getUniform("srcTFRange");
+    uniformLocations[SHADER_DST_TF_RANGE]      = getUniform("dstTFRange");
+    uniformLocations[SHADER_TARGET_PRIMARIES]  = getUniform("targetPrimaries");
+    uniformLocations[SHADER_MAX_LUMINANCE]     = getUniform("maxLuminance");
+    uniformLocations[SHADER_SRC_REF_LUMINANCE] = getUniform("srcRefLuminance");
+    uniformLocations[SHADER_DST_MAX_LUMINANCE] = getUniform("dstMaxLuminance");
+    uniformLocations[SHADER_DST_REF_LUMINANCE] = getUniform("dstRefLuminance");
+    uniformLocations[SHADER_SDR_SATURATION]    = getUniform("sdrSaturation");
+    uniformLocations[SHADER_SDR_BRIGHTNESS]    = getUniform("sdrBrightnessMultiplier");
+    uniformLocations[SHADER_CONVERT_MATRIX]    = getUniform("convertMatrix");
+    //
+    uniformLocations[SHADER_TEX]                 = getUniform("tex");
+    uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
+    uniformLocations[SHADER_POS_ATTRIB]          = getAttrib("pos");
+    uniformLocations[SHADER_TEX_ATTRIB]          = getAttrib("texcoord");
+    uniformLocations[SHADER_MATTE_TEX_ATTRIB]    = getAttrib("texcoordMatte");
+    uniformLocations[SHADER_DISCARD_OPAQUE]      = getUniform("discardOpaque");
+    uniformLocations[SHADER_DISCARD_ALPHA]       = getUniform("discardAlpha");
+    uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = getUniform("discardAlphaValue");
+    /* set in createVao
+        uniformLocations[SHADER_SHADER_VAO]
+        uniformLocations[SHADER_SHADER_VBO_POS]
+        uniformLocations[SHADER_SHADER_VBO_UV]
+        */
+    uniformLocations[SHADER_TOP_LEFT]     = getUniform("topLeft");
+    uniformLocations[SHADER_BOTTOM_RIGHT] = getUniform("bottomRight");
+
+    // compat for screenshaders
+    auto fullSize = getUniform("fullSize");
+    if (fullSize == -1)
+        fullSize = getUniform("screen_size");
+    if (fullSize == -1)
+        fullSize = getUniform("screenSize");
+    uniformLocations[SHADER_FULL_SIZE] = fullSize;
+
+    uniformLocations[SHADER_FULL_SIZE_UNTRANSFORMED]   = getUniform("fullSizeUntransformed");
+    uniformLocations[SHADER_RADIUS]                    = getUniform("radius");
+    uniformLocations[SHADER_RADIUS_OUTER]              = getUniform("radiusOuter");
+    uniformLocations[SHADER_ROUNDING_POWER]            = getUniform("roundingPower");
+    uniformLocations[SHADER_THICK]                     = getUniform("thick");
+    uniformLocations[SHADER_HALFPIXEL]                 = getUniform("halfpixel");
+    uniformLocations[SHADER_RANGE]                     = getUniform("range");
+    uniformLocations[SHADER_SHADOW_POWER]              = getUniform("shadowPower");
+    uniformLocations[SHADER_USE_ALPHA_MATTE]           = getUniform("useAlphaMatte");
+    uniformLocations[SHADER_APPLY_TINT]                = getUniform("applyTint");
+    uniformLocations[SHADER_TINT]                      = getUniform("tint");
+    uniformLocations[SHADER_GRADIENT]                  = getUniform("gradient");
+    uniformLocations[SHADER_GRADIENT_LENGTH]           = getUniform("gradientLength");
+    uniformLocations[SHADER_GRADIENT2]                 = getUniform("gradient2");
+    uniformLocations[SHADER_GRADIENT2_LENGTH]          = getUniform("gradient2Length");
+    uniformLocations[SHADER_ANGLE]                     = getUniform("angle");
+    uniformLocations[SHADER_ANGLE2]                    = getUniform("angle2");
+    uniformLocations[SHADER_GRADIENT_LERP]             = getUniform("gradientLerp");
+    uniformLocations[SHADER_TIME]                      = getUniform("time");
+    uniformLocations[SHADER_DISTORT]                   = getUniform("distort");
+    uniformLocations[SHADER_WL_OUTPUT]                 = getUniform("wl_output");
+    uniformLocations[SHADER_CONTRAST]                  = getUniform("contrast");
+    uniformLocations[SHADER_PASSES]                    = getUniform("passes");
+    uniformLocations[SHADER_VIBRANCY]                  = getUniform("vibrancy");
+    uniformLocations[SHADER_VIBRANCY_DARKNESS]         = getUniform("vibrancy_darkness");
+    uniformLocations[SHADER_BRIGHTNESS]                = getUniform("brightness");
+    uniformLocations[SHADER_NOISE]                     = getUniform("noise");
+    uniformLocations[SHADER_POINTER]                   = getUniform("pointer_position");
+    uniformLocations[SHADER_POINTER_SHAPE]             = getUniform("pointer_shape");
+    uniformLocations[SHADER_POINTER_SWITCH_TIME]       = getUniform("pointer_switch_time");
+    uniformLocations[SHADER_POINTER_SHAPE_PREVIOUS]    = getUniform("pointer_shape_previous");
+    uniformLocations[SHADER_POINTER_PRESSED_POSITIONS] = getUniform("pointer_pressed_positions");
+    uniformLocations[SHADER_POINTER_HIDDEN]            = getUniform("pointer_hidden");
+    uniformLocations[SHADER_POINTER_KILLING]           = getUniform("pointer_killing");
+    uniformLocations[SHADER_POINTER_PRESSED_TIMES]     = getUniform("pointer_pressed_times");
+    uniformLocations[SHADER_POINTER_PRESSED_KILLED]    = getUniform("pointer_pressed_killed");
+    uniformLocations[SHADER_POINTER_PRESSED_TOUCHED]   = getUniform("pointer_pressed_touched");
+    uniformLocations[SHADER_POINTER_INACTIVE_TIMEOUT]  = getUniform("pointer_inactive_timeout");
+    uniformLocations[SHADER_POINTER_LAST_ACTIVE]       = getUniform("pointer_last_active");
+    uniformLocations[SHADER_POINTER_SIZE]              = getUniform("pointer_size");
 }
 
 void CShader::createVao() {

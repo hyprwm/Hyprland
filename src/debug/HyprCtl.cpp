@@ -1693,6 +1693,8 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->RGBX());
     else if (PROP == "sync_fullscreen")
         return windowPropToString(PWINDOW->m_ruleApplicator->syncFullscreen());
+    else if (PROP == "borderless_fullscreen")
+        return windowPropToString(PWINDOW->m_ruleApplicator->borderlessFullscreen());
     else if (PROP == "immediate")
         return windowPropToString(PWINDOW->m_ruleApplicator->tearing());
     else if (PROP == "xray")

@@ -105,6 +105,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, dimAround, false, WINDOW_RULE_EFFECT_DIM_AROUND)
         DEFINE_PROP(bool, RGBX, false, WINDOW_RULE_EFFECT_FORCE_RGBX)
         DEFINE_PROP(bool, syncFullscreen, true, WINDOW_RULE_EFFECT_SYNC_FULLSCREEN)
+        DEFINE_PROP(bool, borderlessFullscreen, false, WINDOW_RULE_EFFECT_BORDERLESS_FULLSCREEN)
         DEFINE_PROP(bool, tearing, false, WINDOW_RULE_EFFECT_IMMEDIATE)
         DEFINE_PROP(bool, xray, false, WINDOW_RULE_EFFECT_XRAY)
         DEFINE_PROP(bool, renderUnfocused, false, WINDOW_RULE_EFFECT_RENDER_UNFOCUSED)

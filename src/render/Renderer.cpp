@@ -1031,6 +1031,17 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOWS);
 
+    // Update TOP layer surface visibility based on fullscreen state
+    // This handles both real fullscreen and borderless fullscreen windows
+    {
+        const bool  shouldHide  = pMonitor->inFullscreenMode();
+        const float targetAlpha = shouldHide ? 0.f : 1.f;
+        for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
+            if (!ls->m_fadingOut && ls->m_alpha->goal() != targetAlpha)
+                *ls->m_alpha = targetAlpha;
+        }
+    }
+
     // Render surfaces above windows for monitor
     for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP]) {
         renderLayer(ls.lock(), pMonitor, time);
@@ -1567,7 +1578,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
 
-    const auto  FS_WINDOW = pMonitor->inFullscreenMode() ? pMonitor->m_activeWorkspace->getFullscreenWindow() : nullptr;
+    const auto  FS_WINDOW = pMonitor->getFullscreenWindow();
 
     if (pMonitor->supportsHDR()) {
         // HDR metadata determined by

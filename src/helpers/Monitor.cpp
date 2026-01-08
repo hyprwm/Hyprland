@@ -1026,8 +1026,8 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const bool shouldSkip = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        m_output->state->state().adaptiveSync;
+    const auto FS_WINDOW  = getFullscreenWindow();
+    const bool shouldSkip = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME)) && m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
@@ -2017,16 +2017,41 @@ bool CMonitor::inHDR() {
 }
 
 bool CMonitor::inFullscreenMode() {
-    return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+    // Fast path: check cached fullscreen state
+    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return true;
+
+    // Check for borderless fullscreen windows (requires window rule opt-in)
+    if (m_activeWorkspace) {
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (w->m_workspace == m_activeWorkspace && !w->isFullscreen() && w->isEffectivelyFullscreen())
+                return true;
+        }
+    }
+
+    return false;
+}
+
+PHLWINDOW CMonitor::getFullscreenWindow() {
+    // Fast path: check cached fullscreen state
+    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return m_activeWorkspace->getFullscreenWindow();
+
+    // Check for borderless fullscreen windows (requires window rule opt-in)
+    if (m_activeWorkspace) {
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (w->m_workspace == m_activeWorkspace && !w->isFullscreen() && w->isEffectivelyFullscreen())
+                return w;
+        }
+    }
+
+    return nullptr;
 }
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
-    if (!inFullscreenMode())
-        return {};
-
-    const auto FS_WINDOW = m_activeWorkspace->getFullscreenWindow();
+    const auto FS_WINDOW = getFullscreenWindow();
     if (!FS_WINDOW)
-        return {}; // should be unreachable
+        return {};
 
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();

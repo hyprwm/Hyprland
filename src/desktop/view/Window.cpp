@@ -53,6 +53,21 @@ using enum NContentType::eContentType;
 using namespace Desktop;
 using namespace Desktop::View;
 
+bool Desktop::View::coversMonitorForBorderlessFullscreen(const Vector2D& windowPosRelativeToMonitor, const Vector2D& windowSize, const Vector2D& monitorSize) {
+    // Window should start at or before monitor origin (within tolerance)
+    // A small positive offset is OK (e.g., 1px), but >= tolerance would leave visible background
+    if (windowPosRelativeToMonitor.x >= BORDERLESS_FULLSCREEN_TOLERANCE || windowPosRelativeToMonitor.y >= BORDERLESS_FULLSCREEN_TOLERANCE)
+        return false;
+
+    // Window should extend to or past monitor edge (within tolerance)
+    // Window end must be >= monitorSize - tolerance
+    const auto windowEnd = windowPosRelativeToMonitor + windowSize;
+    if (windowEnd.x < monitorSize.x - BORDERLESS_FULLSCREEN_TOLERANCE || windowEnd.y < monitorSize.y - BORDERLESS_FULLSCREEN_TOLERANCE)
+        return false;
+
+    return true;
+}
+
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
@@ -1223,6 +1238,33 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
 bool CWindow::isFullscreen() {
     return m_fullscreenState.internal != FSMODE_NONE;
+}
+
+bool CWindow::isBorderlessFullscreen() {
+    // Already proper fullscreen - not borderless
+    if (isFullscreen())
+        return false;
+
+    const auto mon = m_monitor.lock();
+    if (!mon || !m_workspace)
+        return false;
+
+    // Calculate window position relative to monitor
+    const auto windowPosRelativeToMonitor = m_realPosition->goal() - mon->m_position;
+
+    // Check if window covers the entire monitor viewport within tolerance
+    return coversMonitorForBorderlessFullscreen(windowPosRelativeToMonitor, m_realSize->goal(), mon->m_size);
+}
+
+bool CWindow::isEffectivelyFullscreen() {
+    if (isFullscreen())
+        return true;
+
+    // Check if borderless fullscreen is enabled via window rule
+    if (m_ruleApplicator && m_ruleApplicator->borderlessFullscreen().valueOrDefault() && isBorderlessFullscreen())
+        return true;
+
+    return false;
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {

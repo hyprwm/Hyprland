@@ -481,6 +481,110 @@ static void testInitialFloatSize() {
     Tests::killAllWindows();
 }
 
+static void testBorderlessFullscreen() {
+    NLog::log("{}Testing borderless fullscreen detection", Colors::GREEN);
+
+    Tests::killAllWindows();
+
+    // Test 1: Window rule can be set and queried
+    NLog::log("{}Testing borderless_fullscreen window rule", Colors::YELLOW);
+    OK(getFromSocket("/keyword windowrule match:class borderless_kitty, borderless_fullscreen 1"));
+    OK(getFromSocket("/keyword windowrule match:class borderless_kitty, float yes"));
+
+    if (!spawnKitty("borderless_kitty"))
+        return;
+
+    {
+        // Verify the rule was applied
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        EXPECT_CONTAINS(str, "1");
+    }
+
+    // Test 2: Resize window to match monitor size (1920x1080 in test config)
+    NLog::log("{}Testing window at monitor size", Colors::YELLOW);
+    OK(getFromSocket("/dispatch resizeactive exact 1920 1080"));
+    OK(getFromSocket("/dispatch moveactive exact 0 0"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1920,1080");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        // Window should NOT be reported as fullscreen (fullscreen: 0)
+        // because it's borderless fullscreen, not real fullscreen
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+
+    Tests::killAllWindows();
+
+    // Test 3: Window without rule should not have borderless_fullscreen enabled
+    NLog::log("{}Testing window without borderless_fullscreen rule", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    if (!spawnKitty("normal_kitty"))
+        return;
+
+    {
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        // Default should be 0 (false)
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    Tests::killAllWindows();
+
+    // Test 4: Test rule with explicit false value
+    NLog::log("{}Testing borderless_fullscreen 0 (disabled)", Colors::YELLOW);
+    OK(getFromSocket("/keyword windowrule match:class disabled_kitty, borderless_fullscreen 0"));
+    OK(getFromSocket("/keyword windowrule match:class disabled_kitty, float yes"));
+
+    if (!spawnKitty("disabled_kitty"))
+        return;
+
+    {
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    Tests::killAllWindows();
+
+    // Test 5: setprop can modify borderless_fullscreen at runtime
+    NLog::log("{}Testing setprop for borderless_fullscreen", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    if (!spawnKitty("setprop_kitty"))
+        return;
+
+    {
+        // Initially should be false (no rule)
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    OK(getFromSocket("/setprop active borderless_fullscreen 1"));
+
+    {
+        // Now should be true
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        EXPECT_CONTAINS(str, "1");
+    }
+
+    OK(getFromSocket("/setprop active borderless_fullscreen 0"));
+
+    {
+        // Back to false
+        auto str = getFromSocket("/getprop active borderless_fullscreen");
+        EXPECT_CONTAINS(str, "0");
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -915,6 +1019,7 @@ static bool test() {
     testBringActiveToTopMouseMovement();
     testGroupFallbackFocus();
     testInitialFloatSize();
+    testBorderlessFullscreen();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

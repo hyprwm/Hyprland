@@ -82,6 +82,8 @@ void CReservedArea::addType(eReservedDynamicType t, const Vector2D& topLeft, con
     auto& ref = m_dynamicReserved[t];
     ref.topLeft += topLeft;
     ref.bottomRight += bottomRight;
+    ref.topLeft     = ref.topLeft.clamp({0, 0});
+    ref.bottomRight = ref.bottomRight.clamp({0, 0});
     calculate();
 }
 

@@ -82,7 +82,7 @@ enum eMonitorExtraRenderFBs : uint8_t {
 };
 
 enum ePreparedFragmentShader : uint8_t {
-    SH_FRAG_QUAD,
+    SH_FRAG_QUAD = 0,
     SH_FRAG_RGBA,
     SH_FRAG_PASSTHRURGBA,
     SH_FRAG_MATTE,

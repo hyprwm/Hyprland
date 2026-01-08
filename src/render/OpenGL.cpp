@@ -926,9 +926,8 @@ bool CHyprOpenGLImpl::initShaders() {
         for (const auto& desc : FRAG_SHADERS) {
             const auto fragSrc = processShader(desc.file, includes);
 
-            if (!shaders->frag[desc.id]->createProgram(shaders->TEXVERTSRC, fragSrc, isDynamic)) {
+            if (!shaders->frag[desc.id]->createProgram(shaders->TEXVERTSRC, fragSrc, isDynamic))
                 return false;
-            }
         }
 
     } catch (const std::exception& e) {

@@ -6,6 +6,7 @@ using namespace Layout;
 
 void ITarget::setPositionGlobal(const CBox& box) {
     m_box = box;
+    m_box.round();
 }
 
 void ITarget::assignToSpace(const SP<CSpace>& space) {

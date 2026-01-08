@@ -161,6 +161,9 @@ void CGroup::moveCurrent(bool next) {
 }
 
 void CGroup::setCurrent(size_t idx) {
+    if (idx == m_current)
+        return;
+
     const auto FS_STATE  = m_target->fullscreenMode();
     const auto WASFOCUS  = Desktop::focusState()->window() == current();
     auto       oldWindow = m_windows.at(m_current).lock();
@@ -180,10 +183,13 @@ void CGroup::setCurrent(size_t idx) {
     }
 
     if (WASFOCUS)
-        Desktop::focusState()->fullWindowFocus(current());
+        Desktop::focusState()->rawWindowFocus(current());
 }
 
 void CGroup::setCurrent(PHLWINDOW w) {
+    if (w == current())
+        return;
+
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {
             setCurrent(i);

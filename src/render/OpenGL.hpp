@@ -106,9 +106,15 @@ struct SFragShaderDesc {
 };
 
 struct SPreparedShaders {
-    std::string                       TEXVERTSRC;
-    std::string                       TEXVERTSRC320;
-    std::array<CShader, SH_FRAG_LAST> frag;
+    SPreparedShaders() {
+        for (auto& f : frag) {
+            f = makeShared<CShader>();
+        }
+    }
+
+    std::string                           TEXVERTSRC;
+    std::string                           TEXVERTSRC320;
+    std::array<SP<CShader>, SH_FRAG_LAST> frag;
 };
 
 struct SMonitorRenderData {
@@ -285,7 +291,7 @@ class CHyprOpenGLImpl {
 
     bool                                              initShaders();
 
-    void                                              useProgram(GLuint prog);
+    WP<CShader>                                       useShader(WP<CShader> prog);
 
     void                                              ensureLockTexturesRendered(bool load);
 
@@ -384,7 +390,7 @@ class CHyprOpenGLImpl {
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;
-    CShader                           m_finalScreenShader;
+    SP<CShader>                       m_finalScreenShader;
     CTimer                            m_globalTimer;
     GLuint                            m_currentProgram;
     ASP<Hyprgraphics::CImageResource> m_backgroundResource;
@@ -411,9 +417,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(CShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(CShader&, const NColorManagement::PImageDescription imageDescription);
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
     void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

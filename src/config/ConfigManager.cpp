@@ -2837,7 +2837,7 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
     if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
         return "unknown permission allow mode";
 
-    if (m_isFirstLaunch)
+    if (m_isFirstLaunch && g_pDynamicPermissionManager)
         g_pDynamicPermissionManager->addConfigPermissionRule(std::string(data[0]), type, mode);
 
     return {};

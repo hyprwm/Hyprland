@@ -84,20 +84,20 @@ enum eMonitorExtraRenderFBs : uint8_t {
 struct SPreparedShaders {
     std::string TEXVERTSRC;
     std::string TEXVERTSRC320;
-    SShader     m_shQUAD;
-    SShader     m_shRGBA;
-    SShader     m_shPASSTHRURGBA;
-    SShader     m_shMATTE;
-    SShader     m_shRGBX;
-    SShader     m_shEXT;
-    SShader     m_shBLUR1;
-    SShader     m_shBLUR2;
-    SShader     m_shBLURPREPARE;
-    SShader     m_shBLURFINISH;
-    SShader     m_shSHADOW;
-    SShader     m_shBORDER1;
-    SShader     m_shGLITCH;
-    SShader     m_shCM;
+    CShader     m_shQUAD;
+    CShader     m_shRGBA;
+    CShader     m_shPASSTHRURGBA;
+    CShader     m_shMATTE;
+    CShader     m_shRGBX;
+    CShader     m_shEXT;
+    CShader     m_shBLUR1;
+    CShader     m_shBLUR2;
+    CShader     m_shBLURPREPARE;
+    CShader     m_shBLURFINISH;
+    CShader     m_shSHADOW;
+    CShader     m_shBORDER1;
+    CShader     m_shGLITCH;
+    CShader     m_shCM;
 };
 
 struct SMonitorRenderData {
@@ -274,8 +274,6 @@ class CHyprOpenGLImpl {
 
     bool                                              initShaders();
 
-    GLuint                                            createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
-    GLuint                                            compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
     void                                              useProgram(GLuint prog);
 
     void                                              ensureLockTexturesRendered(bool load);
@@ -375,13 +373,12 @@ class CHyprOpenGLImpl {
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;
-    SShader                           m_finalScreenShader;
+    CShader                           m_finalScreenShader;
     CTimer                            m_globalTimer;
     GLuint                            m_currentProgram;
     ASP<Hyprgraphics::CImageResource> m_backgroundResource;
     bool                              m_backgroundResourceFailed = false;
 
-    void                              logShaderError(const GLuint&, bool program = false, bool silent = false);
     void                              createBGTextureForMonitor(PHLMONITOR);
     void                              initDRMFormats();
     void                              initEGL(bool gbm);
@@ -403,9 +400,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+    void          passCMUniforms(CShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription);
+    void          passCMUniforms(CShader&, const NColorManagement::PImageDescription imageDescription);
     void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

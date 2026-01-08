@@ -19,7 +19,7 @@ void CMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate
     const auto DELTA = e.swipe ? e.swipe->delta : e.pinch->delta;
 
     if (m_window->m_isFloating) {
-        // g_pLayoutManager->getCurrentLayout()->moveActiveWindow(DELTA, m_window.lock());
+        g_layoutManager->moveTarget(DELTA, m_window->layoutTarget());
         m_window->m_realSize->warp();
         m_window->m_realPosition->warp();
         return;

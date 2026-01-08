@@ -28,6 +28,7 @@
 #include "../desktop/view/Group.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/target/WindowTarget.hpp"
+#include "../layout/space/Space.hpp"
 
 #include <optional>
 #include <iterator>
@@ -1124,7 +1125,6 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
         PWINDOW->m_workspace->updateWindowData();
     }
 
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     return {};
@@ -1605,7 +1605,7 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     Log::logger->log(Log::DEBUG, "Swapping active window with {}", args);
 
     updateRelativeCursorCoords();
-    // g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), PWINDOWTOCHANGETO->layoutTarget());
     PLASTWINDOW->warpCursor();
     return {};
 }
@@ -2166,7 +2166,7 @@ SDispatchResult CKeybindManager::resizeActive(std::string args) {
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size provided"};
 
-    // g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PLASTWINDOW->m_realSize->goal());
+    g_layoutManager->resizeTarget(SIZ - PLASTWINDOW->m_realSize->goal(), PLASTWINDOW->layoutTarget());
 
     if (PLASTWINDOW->m_realSize->goal().x > 1 && PLASTWINDOW->m_realSize->goal().y > 1)
         PLASTWINDOW->setHidden(false);
@@ -2185,7 +2185,7 @@ SDispatchResult CKeybindManager::moveActive(std::string args) {
 
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_realPosition->goal());
 
-    // g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PLASTWINDOW->m_realPosition->goal());
+    g_layoutManager->moveTarget(POS - PLASTWINDOW->m_realPosition->goal(), PLASTWINDOW->layoutTarget());
 
     return {};
 }
@@ -2207,7 +2207,7 @@ SDispatchResult CKeybindManager::moveWindow(std::string args) {
 
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realPosition->goal());
 
-    // g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_realPosition->goal(), PWINDOW);
+    g_layoutManager->moveTarget(POS - PWINDOW->m_realPosition->goal(), PWINDOW->layoutTarget());
 
     return {};
 }
@@ -2232,7 +2232,7 @@ SDispatchResult CKeybindManager::resizeWindow(std::string args) {
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size provided"};
 
-    // g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_realSize->goal(), CORNER_NONE, PWINDOW);
+    g_layoutManager->resizeTarget(SIZ - PWINDOW->m_realSize->goal(), PWINDOW->layoutTarget(), Layout::CORNER_NONE);
 
     if (PWINDOW->m_realSize->goal().x > 1 && PWINDOW->m_realSize->goal().y > 1)
         PWINDOW->setHidden(false);
@@ -2330,12 +2330,12 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
         // Unswallow
         pWindow->m_swallowed->m_currentlySwallowed = false;
         pWindow->m_swallowed->setHidden(false);
-        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow->m_swallowed.lock());
+        g_layoutManager->newTarget(pWindow->m_swallowed->layoutTarget(), pWindow->m_workspace->m_space);
     } else {
         // Reswallow
         pWindow->m_swallowed->m_currentlySwallowed = true;
         pWindow->m_swallowed->setHidden(true);
-        // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow->m_swallowed.lock());
+        g_layoutManager->removeTarget(pWindow->m_swallowed->layoutTarget());
     }
 
     return {};
@@ -2652,7 +2652,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
     if (toSwap == PLASTWINDOW)
         toSwap = g_pCompositor->getWindowCycle(PLASTWINDOW, true, std::nullopt, false, NEED_PREV);
 
-    // g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, toSwap);
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), toSwap->layoutTarget());
 
     PLASTWINDOW->m_lastCycledWindow = toSwap;
 
@@ -3252,10 +3252,12 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     if (PROP == "no_vrr")
         g_pConfigManager->ensureVRR(PWINDOW->m_monitor.lock());
 
-    for (auto const& m : g_pCompositor->m_monitors)
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+    for (auto const& m : g_pCompositor->m_monitors) {
+        if (m->m_activeWorkspace)
+            m->m_activeWorkspace->m_space->recalculate();
+    }
 
-        return {};
+    return {};
 }
 
 SDispatchResult CKeybindManager::forceIdle(std::string args) {

@@ -28,6 +28,7 @@
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../layout/LayoutManager.hpp"
+#include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
@@ -1304,7 +1305,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (pMonitor->m_scheduledRecalc) {
         pMonitor->m_scheduledRecalc = false;
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
+        pMonitor->m_activeWorkspace->m_space->recalculate();
     }
 
     if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0)

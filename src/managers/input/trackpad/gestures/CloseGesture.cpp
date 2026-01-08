@@ -7,6 +7,7 @@
 #include "../../../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../layout/target/Target.hpp"
 
 constexpr const float                   MAX_DISTANCE = 200.F;
 
@@ -132,7 +133,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
             if (!window->m_isMapped)
                 return;
 
-            // g_pLayoutManager->getCurrentLayout()->recalculateWindow(window.lock());
+            window->layoutTarget()->recalc();
             window->updateDecorationValues();
             window->sendWindowSize(true);
             *window->m_alpha = 1.F;

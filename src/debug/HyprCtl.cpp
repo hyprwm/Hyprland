@@ -58,6 +58,7 @@ using namespace Hyprutils::OS;
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
+#include "../layout/space/Space.hpp"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/ucred.h>
@@ -1325,7 +1326,8 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         for (auto const& m : g_pCompositor->m_monitors) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
-            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+            if (m->m_activeWorkspace)
+                m->m_activeWorkspace->m_space->recalculate();
         }
     }
 

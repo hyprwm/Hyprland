@@ -7,6 +7,7 @@
 #include "../Compositor.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../desktop/view/Group.hpp"
 
 using namespace Layout;
 
@@ -137,7 +138,13 @@ bool CLayoutManager::isReachable(SP<ITarget> target) {
 }
 
 void CLayoutManager::bringTargetToTop(SP<ITarget> target) {
-    ;
+    if (!target)
+        return;
+
+    if (target->window()->m_group) {
+        // grouped, change the current to this window
+        target->window()->m_group->setCurrent(target->window());
+    }
 }
 
 std::optional<Vector2D> CLayoutManager::predictSizeForNewTiledTarget() {

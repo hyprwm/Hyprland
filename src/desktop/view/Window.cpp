@@ -502,11 +502,9 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     OLDWORKSPACE->updateWindows();
     OLDWORKSPACE->updateWindowData();
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(OLDWORKSPACE->monitorID());
 
     pWorkspace->updateWindows();
     pWorkspace->updateWindowData();
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
@@ -2048,10 +2046,8 @@ void CWindow::mapWindow() {
 
     // swallow
     if (SWALLOWER) {
-        // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
-        g_pHyprRenderer->damageWindow(SWALLOWER);
+        g_layoutManager->removeTarget(SWALLOWER->layoutTarget());
         SWALLOWER->setHidden(true);
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     }
 
     m_firstMap = false;

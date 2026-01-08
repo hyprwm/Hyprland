@@ -156,10 +156,11 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     }
 
     const auto ls = plugin->m_registeredLayouts;
-    for (auto const& l : ls)
+    for (auto const& l : ls) {
         // g_pLayoutManager->removeLayout(l);
+    }
 
-        g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_handle);
+    g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_handle);
 
     const auto rd = plugin->m_registeredDecorations;
     for (auto const& d : rd)

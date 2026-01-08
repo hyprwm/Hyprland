@@ -18,6 +18,7 @@
 #include "../desktop/rule/layerRule/LayerRule.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../layout/space/Space.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -1313,7 +1314,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     for (auto const& m : g_pCompositor->m_monitors) {
         *(m->m_cursorZoom) = *PZOOMFACTOR;
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        if (m->m_activeWorkspace)
+            m->m_activeWorkspace->m_space->recalculate();
     }
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch

@@ -44,7 +44,7 @@ void CWindowGroupTarget::assignToSpace(const SP<CSpace>& space) {
 }
 
 bool CWindowGroupTarget::floating() {
-    return m_group->head()->m_target->floating();
+    return m_group->current()->m_target->floating();
 }
 
 void CWindowGroupTarget::setFloating(bool x) {
@@ -54,31 +54,31 @@ void CWindowGroupTarget::setFloating(bool x) {
 }
 
 std::expected<CBox, eGeometryFailure> CWindowGroupTarget::desiredGeometry() {
-    return m_group->head()->m_target->desiredGeometry();
+    return m_group->current()->m_target->desiredGeometry();
 }
 
 PHLWINDOW CWindowGroupTarget::window() const {
-    return m_group->head();
+    return m_group->current();
 }
 
 eFullscreenMode CWindowGroupTarget::fullscreenMode() {
-    return m_group->head()->m_fullscreenState.internal;
+    return m_group->current()->m_fullscreenState.internal;
 }
 
 void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
-    m_group->head()->m_fullscreenState.internal = mode;
+    m_group->current()->m_fullscreenState.internal = mode;
 }
 
 std::optional<Vector2D> CWindowGroupTarget::minSize() {
-    return m_group->head()->minSize();
+    return m_group->current()->minSize();
 }
 
 std::optional<Vector2D> CWindowGroupTarget::maxSize() {
-    return m_group->head()->maxSize();
+    return m_group->current()->maxSize();
 }
 
 void CWindowGroupTarget::damageEntire() {
-    g_pHyprRenderer->damageWindow(m_group->head());
+    g_pHyprRenderer->damageWindow(m_group->current());
 }
 
 void CWindowGroupTarget::warpPositionSize() {

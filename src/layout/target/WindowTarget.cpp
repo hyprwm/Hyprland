@@ -45,6 +45,7 @@ void CWindowTarget::updatePos() {
         *m_window->m_realSize     = m_box.size();
 
         m_window->sendWindowSize();
+        m_window->updateWindowDecos();
 
         return;
     }

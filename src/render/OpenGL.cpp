@@ -895,7 +895,7 @@ bool CHyprOpenGLImpl::initShaders() {
             const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
 
             bool       success = shaders->frag[SH_FRAG_CM]->createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
-            if (m_shadersInitialized && m_cmSupported && success)
+            if (m_shadersInitialized && m_cmSupported && !success)
                 g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_CM_RELOAD_FAILED), CHyprColor{}, 15000, ICON_WARNING);
 
             m_cmSupported = success;

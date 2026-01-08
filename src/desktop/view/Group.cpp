@@ -8,6 +8,7 @@
 #include "../../layout/space/Space.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../Compositor.hpp"
 
 #include <algorithm>
 
@@ -160,9 +161,24 @@ void CGroup::moveCurrent(bool next) {
 }
 
 void CGroup::setCurrent(size_t idx) {
-    const auto WASFOCUS = Desktop::focusState()->window() == current();
-    m_current           = std::clamp(idx, sc<size_t>(0), m_windows.size() - 1);
+    const auto FS_STATE  = m_target->fullscreenMode();
+    const auto WASFOCUS  = Desktop::focusState()->window() == current();
+    auto       oldWindow = m_windows.at(m_current).lock();
+
+    if (FS_STATE != FSMODE_NONE)
+        g_pCompositor->setWindowFullscreenInternal(oldWindow, FSMODE_NONE);
+
+    m_current = std::clamp(idx, sc<size_t>(0), m_windows.size() - 1);
     updateWindowVisibility();
+
+    auto newWindow = m_windows.at(m_current).lock();
+
+    if (FS_STATE != FSMODE_NONE) {
+        g_pCompositor->setWindowFullscreenInternal(newWindow, FS_STATE);
+        newWindow->m_target->warpPositionSize();
+        oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
+    }
+
     if (WASFOCUS)
         Desktop::focusState()->fullWindowFocus(current());
 }

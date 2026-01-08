@@ -19,6 +19,7 @@
 #include "../debug/HyprCtl.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../layout/space/Space.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
@@ -1423,6 +1424,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // update persistent workspaces
     if (!m_isFirstLaunch)
         ensurePersistentWorkspacesPresent();
+
+    // update layouts
+    Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
     EMIT_HOOK_EVENT("configReloaded", nullptr);
     if (g_pEventManager)

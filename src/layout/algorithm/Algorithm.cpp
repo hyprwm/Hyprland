@@ -166,3 +166,33 @@ void CAlgorithm::moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silen
     else
         m_tiled->moveTargetInDirection(t, dir, silent);
 }
+
+void CAlgorithm::updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo) {
+    algo->m_parent = m_self;
+
+    for (const auto& t : m_floatingTargets) {
+        m_floating->removeTarget(t.lock());
+        algo->newTarget(t.lock());
+    }
+
+    m_floating = std::move(algo);
+}
+
+void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
+    algo->m_parent = m_self;
+
+    for (const auto& t : m_tiledTargets) {
+        m_tiled->removeTarget(t.lock());
+        algo->newTarget(t.lock());
+    }
+
+    m_tiled = std::move(algo);
+}
+
+const UP<ITiledAlgorithm>& CAlgorithm::tiledAlgo() const {
+    return m_tiled;
+}
+
+const UP<IFloatingAlgorithm>& CAlgorithm::floatingAlgo() const {
+    return m_floating;
+}

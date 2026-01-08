@@ -59,6 +59,7 @@ using namespace Hyprutils::OS;
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../layout/space/Space.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/ucred.h>
@@ -1303,13 +1304,11 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pInputManager->setTabletConfigs();      // update tablets
     }
 
-    static auto PLAYOUT = CConfigValue<std::string>("general:layout");
-
     if (COMMAND.contains("general:layout"))
-        // g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
+        Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
-        if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
-            g_pHyprOpenGL->m_reloadScreenShader = true;
+    if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
+        g_pHyprOpenGL->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
         for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {

@@ -36,6 +36,12 @@ namespace Layout {
         void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
+        void                             updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
+        void                             updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
+
+        const UP<ITiledAlgorithm>&       tiledAlgo() const;
+        const UP<IFloatingAlgorithm>&    floatingAlgo() const;
+
         SP<CSpace>                       space() const;
 
         size_t                           tiledTargets() const;

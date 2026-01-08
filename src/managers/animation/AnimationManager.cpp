@@ -216,6 +216,9 @@ void CHyprAnimationManager::tick() {
             if (!PAV)
                 continue;
 
+            // lock this value while we are doing handleUpdate to avoid a UAF if an update callback destroys it
+            const auto LOCK = PAV.lock();
+
             // for disabled anims just warp
             bool warp = !*PANIMENABLED || !PAV->enabled();
 

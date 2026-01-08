@@ -135,7 +135,8 @@ void CGroup::remove(PHLWINDOW w) {
     // we do it after the above because switchTargets expects this to be a valid group
     m_windows.erase(m_windows.begin() + *idx);
 
-    updateWindowVisibility();
+    if (!m_windows.empty())
+        updateWindowVisibility();
 }
 
 void CGroup::moveCurrent(bool next) {

@@ -134,6 +134,38 @@ void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
 }
 
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
+    bool one = false, two = false;
+    for (auto& t : m_tiledTargets) {
+        if (t == a && !one) {
+            t   = b;
+            one = true;
+            continue;
+        } else if (t == b && !two) {
+            t   = a;
+            two = true;
+            continue;
+        }
+
+        if (one && two)
+            break;
+    }
+
+    one = false, two = false;
+    for (auto& t : m_floatingTargets) {
+        if (t == a && !one) {
+            t   = b;
+            one = true;
+            continue;
+        } else if (t == b && !two) {
+            t   = a;
+            two = true;
+            continue;
+        }
+
+        if (one && two)
+            break;
+    }
+
     if (a->floating() == b->floating()) {
         if (a->floating())
             m_floating->swapTargets(a, b);

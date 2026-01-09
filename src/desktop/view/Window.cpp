@@ -1495,7 +1495,22 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
-    m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->m_activeWorkspace;
+    const auto monitorByRequestedPosition = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f);
+    const auto currentMonitor             = m_workspace->m_monitor.lock();
+
+    Log::logger->log(
+        Log::DEBUG,
+        "onX11ConfigureRequest: window '{}' ({:#x}) - workspace '{}' (special={}), currentMonitor='{}', monitorByRequestedPosition='{}', pos={:.0f},{:.0f}, size={:.0f},{:.0f}",
+        m_title, (uintptr_t)this, m_workspace->m_name, m_workspace->m_isSpecialWorkspace, currentMonitor ? currentMonitor->m_name : "null",
+        monitorByRequestedPosition ? monitorByRequestedPosition->m_name : "null", m_realPosition->goal().x, m_realPosition->goal().y, m_realSize->goal().x, m_realSize->goal().y);
+
+    // Reassign workspace only when moving to a different monitor and not on a special workspace
+    // X11 apps send configure requests with positions based on XWayland's monitor layout, such as "0,0",
+    // which would incorrectly move windows off special workspaces
+    if (monitorByRequestedPosition && monitorByRequestedPosition != currentMonitor && !m_workspace->m_isSpecialWorkspace) {
+        Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: reassigning workspace from '{}' to '{}'", m_workspace->m_name, monitorByRequestedPosition->m_activeWorkspace->m_name);
+        m_workspace = monitorByRequestedPosition->m_activeWorkspace;
+    }
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 

@@ -189,7 +189,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
 
     Log::logger->log(Log::DEBUG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
 
-    // reload config to fix some stuf like e.g. unloadedPluginVars
+    // reload config to fix some stuff like e.g. unloadedPluginVars
     g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
 }
 

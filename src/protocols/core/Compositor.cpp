@@ -14,6 +14,8 @@
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../managers/SurfaceManager.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
@@ -225,10 +227,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_pending.opaque = RG->m_region;
     });
 
-    m_resource->setFrame([this](CWlSurface* r, uint32_t id) {
-        m_pending.updated.bits.frame = true;
-        m_pending.callbacks.emplace_back(makeShared<CWLCallbackResource>(makeShared<CWlCallback>(m_client, 1, id)));
-    });
+    m_resource->setFrame(
+        [this](CWlSurface* r, uint32_t id) { g_pSurfaceManager->addFrameCallback(m_self, makeShared<CWLCallbackResource>(makeShared<CWlCallback>(m_client, 1, id))); });
 
     m_resource->setOffset([this](CWlSurface* r, int32_t x, int32_t y) {
         m_pending.updated.bits.offset = true;
@@ -326,17 +326,6 @@ void CWLSurfaceResource::sendPreferredScale(int32_t scale) {
     if (m_resource->version() < 6)
         return;
     m_resource->sendPreferredBufferScale(scale);
-}
-
-void CWLSurfaceResource::frame(const Time::steady_tp& now) {
-    if (m_current.callbacks.empty())
-        return;
-
-    for (auto const& c : m_current.callbacks) {
-        c->send(now);
-    }
-
-    m_current.callbacks.clear();
 }
 
 void CWLSurfaceResource::resetRole() {
@@ -445,7 +434,7 @@ void CWLSurfaceResource::map() {
 
     m_mapped = true;
 
-    frame(Time::steadyNow());
+    g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), m_self);
 
     m_current.bufferDamage = CBox{{}, m_current.bufferSize};
     m_pending.bufferDamage = CBox{{}, m_pending.bufferSize};
@@ -656,7 +645,6 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
-    frame(when);
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
@@ -664,6 +652,7 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     else
         FEEDBACK->presented();
     PROTO::presentation->queueData(std::move(FEEDBACK));
+    g_pSurfaceManager->scheduleForFrame(pMonitor, m_self);
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_resource(resource_) {

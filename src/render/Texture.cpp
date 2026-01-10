@@ -96,7 +96,7 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
     m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
 
     // #TODO external only formats should be external aswell.
-    // also needs a seperate color shader.
+    // also needs a separate color shader.
     /*if (NFormatUtils::isFormatYUV(attrs.format)) {
         m_target = GL_TEXTURE_EXTERNAL_OES;
         m_type   = TEXTURE_EXTERNAL;

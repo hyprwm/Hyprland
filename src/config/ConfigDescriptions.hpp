@@ -1832,6 +1832,22 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
+     * layout:
+     */
+    SConfigOptionDescription{
+        .value       = "layout:single_window_aspect_ratio",
+        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
+    },
+    SConfigOptionDescription{
+        .value       = "layout:single_window_aspect_ratio_tolerance",
+        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
+    },
+
+    /*
      * dwindle:
      */
 
@@ -1909,18 +1925,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "dwindle:single_window_aspect_ratio",
-        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
-        .type        = CONFIG_OPTION_VECTOR,
-        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
-    },
-    SConfigOptionDescription{
-        .value       = "dwindle:single_window_aspect_ratio_tolerance",
-        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
-        .type        = CONFIG_OPTION_FLOAT,
-        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
     },
 
     /*

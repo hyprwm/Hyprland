@@ -2,7 +2,7 @@
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../desktop/state/FocusState.hpp"
-#include "managers/LayoutManager.hpp"
+#include "../../desktop/view/Group.hpp"
 #include <ranges>
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
@@ -65,19 +65,14 @@ eDecorationType CHyprGroupBarDecoration::getDecorationType() {
 //
 
 void CHyprGroupBarDecoration::updateWindow(PHLWINDOW pWindow) {
-    if (m_window->m_groupData.pNextWindow.expired()) {
+    if (!m_window->m_group) {
         m_window->removeWindowDeco(this);
         return;
     }
 
     m_dwGroupMembers.clear();
-    PHLWINDOW head = pWindow->getGroupHead();
-    m_dwGroupMembers.emplace_back(head);
-
-    PHLWINDOW curr = head->m_groupData.pNextWindow.lock();
-    while (curr != head) {
-        m_dwGroupMembers.emplace_back(curr);
-        curr = curr->m_groupData.pNextWindow.lock();
+    for (const auto& w : m_window->m_group->windows()) {
+        m_dwGroupMembers.emplace_back(w);
     }
 
     damageEntire();
@@ -158,7 +153,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
         rect.scale(pMonitor->m_scale).round();
 
-        const bool        GROUPLOCKED  = m_window->getGroupHead()->m_groupData.locked || g_pKeybindManager->m_groupsLocked;
+        const bool        GROUPLOCKED  = m_window->m_group->locked() || g_pKeybindManager->m_groupsLocked;
         const auto* const PCOLACTIVE   = GROUPLOCKED ? GROUPCOLACTIVELOCKED : GROUPCOLACTIVE;
         const auto* const PCOLINACTIVE = GROUPLOCKED ? GROUPCOLINACTIVELOCKED : GROUPCOLINACTIVE;
 
@@ -391,7 +386,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     static auto PSTACKED  = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
     static auto POUTERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
     static auto PINNERGAP = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
-    if (m_window.lock() == m_window->m_groupData.pNextWindow.lock())
+    if (m_window->m_group->size() == 1)
         return false;
 
     const float BARRELATIVEX = pos.x - assignedBoxGlobal().x;
@@ -404,18 +399,19 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     if (*PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP))
         return false;
 
-    PHLWINDOW pWindow = m_window->getGroupWindowByIndex(WINDOWINDEX);
+    PHLWINDOW pWindow = m_window->m_group->fromIndex(WINDOWINDEX);
 
     // hack
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
     if (!pWindow->m_isFloating) {
         const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
         g_pKeybindManager->m_groupsLocked = true;
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
+        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
         g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
     }
 
-    g_pInputManager->m_currentlyDraggedWindow = pWindow;
+    // FIXME:
+    // g_pInputManager->m_currentlyDraggedWindow = pWindow;
 
     if (!g_pCompositor->isWindowActive(pWindow))
         Desktop::focusState()->rawWindowFocus(pWindow);
@@ -432,70 +428,71 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
     static auto PINNERGAP                        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
     const bool  FLOATEDINTOTILED                 = !m_window->m_isFloating && !pDraggedWindow->m_draggingTiled;
 
-    g_pInputManager->m_wasDraggingWindow = false;
+    // FIXME:
+    // g_pInputManager->m_wasDraggingWindow = false;
 
-    if (!pDraggedWindow->canBeGroupedInto(m_window.lock()) || (*PDRAGINTOGROUP != 1 && *PDRAGINTOGROUP != 2) || (FLOATEDINTOTILED && !*PMERGEFLOATEDINTOTILEDONGROUPBAR) ||
-        (!*PMERGEGROUPSONGROUPBAR && pDraggedWindow->m_groupData.pNextWindow.lock() && m_window->m_groupData.pNextWindow.lock())) {
-        g_pInputManager->m_wasDraggingWindow = true;
-        return false;
-    }
+    // if (!pDraggedWindow->canBeGroupedInto(m_window.lock()) || (*PDRAGINTOGROUP != 1 && *PDRAGINTOGROUP != 2) || (FLOATEDINTOTILED && !*PMERGEFLOATEDINTOTILEDONGROUPBAR) ||
+    //     (!*PMERGEGROUPSONGROUPBAR && pDraggedWindow->m_groupData.pNextWindow.lock() && m_window->m_groupData.pNextWindow.lock())) {
+    //     g_pInputManager->m_wasDraggingWindow = true;
+    //     return false;
+    // }
 
-    const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_barHeight + *POUTERGAP) / 2 : pos.x - assignedBoxGlobal().x - m_barWidth / 2;
-    const float BARSIZE     = *PSTACKED ? m_barHeight + *POUTERGAP : m_barWidth + *PINNERGAP;
-    const int   WINDOWINDEX = BARRELATIVE < 0 ? -1 : BARRELATIVE / BARSIZE;
+    // const float BARRELATIVE = *PSTACKED ? pos.y - assignedBoxGlobal().y - (m_barHeight + *POUTERGAP) / 2 : pos.x - assignedBoxGlobal().x - m_barWidth / 2;
+    // const float BARSIZE     = *PSTACKED ? m_barHeight + *POUTERGAP : m_barWidth + *PINNERGAP;
+    // const int   WINDOWINDEX = BARRELATIVE < 0 ? -1 : BARRELATIVE / BARSIZE;
 
-    PHLWINDOW   pWindowInsertAfter = m_window->getGroupWindowByIndex(WINDOWINDEX);
-    PHLWINDOW   pWindowInsertEnd   = pWindowInsertAfter->m_groupData.pNextWindow.lock();
-    PHLWINDOW   pDraggedHead       = pDraggedWindow->m_groupData.pNextWindow.lock() ? pDraggedWindow->getGroupHead() : pDraggedWindow;
+    // PHLWINDOW   pWindowInsertAfter = m_window->m_group->fromIndex(WINDOWINDEX);
+    // PHLWINDOW   pWindowInsertEnd   = pWindowInsertAfter->m_groupData.pNextWindow.lock();
+    // PHLWINDOW   pDraggedHead       = pDraggedWindow->m_groupData.pNextWindow.lock() ? pDraggedWindow->getGroupHead() : pDraggedWindow;
 
-    if (!pDraggedWindow->m_groupData.pNextWindow.expired()) {
+    // if (!pDraggedWindow->m_groupData.pNextWindow.expired()) {
 
-        // stores group data
-        std::vector<PHLWINDOW> members;
-        PHLWINDOW              curr      = pDraggedHead;
-        const bool             WASLOCKED = pDraggedHead->m_groupData.locked;
-        do {
-            members.push_back(curr);
-            curr = curr->m_groupData.pNextWindow.lock();
-        } while (curr != members[0]);
+    //     // stores group data
+    //     std::vector<PHLWINDOW> members;
+    //     PHLWINDOW              curr      = pDraggedHead;
+    //     const bool             WASLOCKED = pDraggedHead->m_groupData.locked;
+    //     do {
+    //         members.push_back(curr);
+    //         curr = curr->m_groupData.pNextWindow.lock();
+    //     } while (curr != members[0]);
 
-        // removes all windows
-        for (const PHLWINDOW& w : members) {
-            w->m_groupData.pNextWindow.reset();
-            w->m_groupData.head   = false;
-            w->m_groupData.locked = false;
-            g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
-        }
+    //     // removes all windows
+    //     for (const PHLWINDOW& w : members) {
+    //         w->m_groupData.pNextWindow.reset();
+    //         w->m_groupData.head   = false;
+    //         w->m_groupData.locked = false;
+    //         // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(w);
+    //     }
 
-        // restores the group
-        for (auto it = members.begin(); it != members.end(); ++it) {
-            (*it)->m_isFloating    = pWindowInsertAfter->m_isFloating;           // match the floating state of group members
-            *(*it)->m_realSize     = pWindowInsertAfter->m_realSize->goal();     // match the size of group members
-            *(*it)->m_realPosition = pWindowInsertAfter->m_realPosition->goal(); // match the position of group members
-            if (std::next(it) != members.end())
-                (*it)->m_groupData.pNextWindow = *std::next(it);
-            else
-                (*it)->m_groupData.pNextWindow = members[0];
-        }
-        members[0]->m_groupData.head   = true;
-        members[0]->m_groupData.locked = WASLOCKED;
-    } else
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
+    //     // restores the group
+    //     for (auto it = members.begin(); it != members.end(); ++it) {
+    //         (*it)->m_isFloating    = pWindowInsertAfter->m_isFloating;           // match the floating state of group members
+    //         *(*it)->m_realSize     = pWindowInsertAfter->m_realSize->goal();     // match the size of group members
+    //         *(*it)->m_realPosition = pWindowInsertAfter->m_realPosition->goal(); // match the position of group members
+    //         if (std::next(it) != members.end())
+    //             (*it)->m_groupData.pNextWindow = *std::next(it);
+    //         else
+    //             (*it)->m_groupData.pNextWindow = members[0];
+    //     }
+    //     members[0]->m_groupData.head   = true;
+    //     members[0]->m_groupData.locked = WASLOCKED;
+    // } else
+    //     // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pDraggedWindow);
 
-    pDraggedWindow->m_isFloating = pWindowInsertAfter->m_isFloating; // match the floating state of the window
+    //     pDraggedWindow->m_isFloating = pWindowInsertAfter->m_isFloating; // match the floating state of the window
 
-    pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
+    // pWindowInsertAfter->insertWindowToGroup(pDraggedWindow);
 
-    if (WINDOWINDEX == -1)
-        std::swap(pDraggedHead->m_groupData.head, pWindowInsertEnd->m_groupData.head);
+    // if (WINDOWINDEX == -1)
+    //     std::swap(pDraggedHead->m_groupData.head, pWindowInsertEnd->m_groupData.head);
 
-    m_window->setGroupCurrent(pDraggedWindow);
-    pDraggedWindow->applyGroupRules();
-    pDraggedWindow->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
+    // m_window->setGroupCurrent(pDraggedWindow);
+    // pDraggedWindow->applyGroupRules();
+    // pDraggedWindow->updateWindowDecos();
+    // // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pDraggedWindow);
 
-    if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
-        pDraggedWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pDraggedWindow));
+    // if (!pDraggedWindow->getDecorationByType(DECORATION_GROUPBAR))
+    //     pDraggedWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pDraggedWindow));
 
     return true;
 }
@@ -519,7 +516,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)
             pressedCursorPos = pos;
         else if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && pressedCursorPos == pos)
-            g_pXWaylandManager->sendCloseWindow(m_window->getGroupWindowByIndex(WINDOWINDEX));
+            g_pXWaylandManager->sendCloseWindow(m_window->m_group->fromIndex(WINDOWINDEX));
 
         return true;
     }
@@ -536,10 +533,10 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         return true;
     }
 
-    PHLWINDOW pWindow = m_window->getGroupWindowByIndex(WINDOWINDEX);
+    PHLWINDOW pWindow = m_window->m_group->fromIndex(WINDOWINDEX);
 
     if (pWindow != m_window)
-        pWindow->setGroupCurrent(pWindow);
+        pWindow->m_group->setCurrent(pWindow);
 
     if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
         Desktop::focusState()->rawWindowFocus(pWindow);
@@ -553,13 +550,13 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
 bool CHyprGroupBarDecoration::onScrollOnDeco(const Vector2D& pos, const IPointer::SAxisEvent e) {
     static auto PGROUPBARSCROLLING = CConfigValue<Hyprlang::INT>("group:groupbar:scrolling");
 
-    if (!*PGROUPBARSCROLLING || m_window->m_groupData.pNextWindow.expired())
+    if (!*PGROUPBARSCROLLING || !m_window->m_group)
         return false;
 
     if (e.delta > 0)
-        m_window->setGroupCurrent(m_window->m_groupData.pNextWindow.lock());
+        m_window->m_group->moveCurrent(true);
     else
-        m_window->setGroupCurrent(m_window->getGroupPrevious());
+        m_window->m_group->moveCurrent(false);
 
     return true;
 }

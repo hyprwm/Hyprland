@@ -7,6 +7,7 @@
 #include "desktop/state/FocusState.hpp"
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
+#include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/ConfigWatcher.hpp"
@@ -62,7 +63,6 @@
 #include "managers/EventManager.hpp"
 #include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
-#include "managers/LayoutManager.hpp"
 #include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
@@ -71,6 +71,8 @@
 #include "debug/HyprDebugOverlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
+#include "layout/LayoutManager.hpp"
+#include "layout/target/WindowTarget.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -586,7 +588,7 @@ void CCompositor::cleanup() {
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
     g_pConfigManager.reset();
-    g_pLayoutManager.reset();
+    g_layoutManager.reset();
     g_pHyprError.reset();
     g_pConfigManager.reset();
     g_pKeybindManager.reset();
@@ -638,7 +640,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pHyprError = makeUnique<CHyprError>();
 
             Log::logger->log(Log::DEBUG, "Creating the LayoutManager!");
-            g_pLayoutManager = makeUnique<CLayoutManager>();
+            g_layoutManager = makeUnique<Layout::CLayoutManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
@@ -1812,8 +1814,8 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     pMonitorA->m_activeWorkspace = PWORKSPACEB;
     pMonitorB->m_activeWorkspace = PWORKSPACEA;
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
+    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
         PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
@@ -2021,7 +2023,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
         pWorkspace->m_events.activeChanged.emit();
 
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
 
         g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         pWorkspace->m_visible = true;
@@ -2034,7 +2036,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // finalize
     if (POLDMON) {
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->m_id);
+        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->m_id);
         if (valid(POLDMON->m_activeWorkspace))
             g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
                                                                    POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
@@ -2132,11 +2134,11 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                      Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         PWINDOW->updateDecorationValues();
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+        g_layoutManager->recalculateMonitor(PMONITOR);
         return;
     }
 
-    g_pLayoutManager->getCurrentLayout()->fullscreenRequestForWindow(PWINDOW, CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
+    g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
 
     PWINDOW->m_fullscreenState.internal = state.internal;
     PWORKSPACE->m_fullscreenMode        = EFFECTIVE_MODE;
@@ -2149,7 +2151,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
                                                  Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
 
     PWINDOW->updateDecorationValues();
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
+    g_layoutManager->recalculateMonitor(PMONITOR);
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {
@@ -2262,7 +2264,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     }
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || (w->isHidden() && !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w)))
+        if (!w->m_isMapped || (w->isHidden() /*&& !g_pLayoutManager->getCurrentLayout()->isWindowReachable(w)*/))
             continue;
 
         switch (mode) {
@@ -2571,53 +2573,56 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->m_position : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
 
-    if (!pWindow->m_isFloating)
-        g_pLayoutManager->getCurrentLayout()->onWindowRemovedTiling(pWindow);
+    g_layoutManager->removeTarget(pWindow->layoutTarget());
 
     pWindow->moveToWorkspace(pWorkspace);
     pWindow->m_monitor = pWorkspace->m_monitor;
 
-    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
-    if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
-        pFirstWindowOnWorkspace->m_groupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
+    // FIXME:
+    // static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
+    // if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow &&
+    //     pFirstWindowOnWorkspace->m_groupData.pNextWindow.lock() && pWindow->canBeGroupedInto(pFirstWindowOnWorkspace)) {
 
-        pWindow->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state. Needed to group tiled into floated and vice versa.
-        if (!pWindow->m_groupData.pNextWindow.expired()) {
-            PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
-            while (next != pWindow) {
-                next->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state of group members
-                next               = next->m_groupData.pNextWindow.lock();
-            }
-        }
+    //     pWindow->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state. Needed to group tiled into floated and vice versa.
+    //     if (!pWindow->m_groupData.pNextWindow.expired()) {
+    //         PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
+    //         while (next != pWindow) {
+    //             next->m_isFloating = pFirstWindowOnWorkspace->m_isFloating; // match the floating state of group members
+    //             next               = next->m_groupData.pNextWindow.lock();
+    //         }
+    //     }
 
-        static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-        (*USECURRPOS ? pFirstWindowOnWorkspace : pFirstWindowOnWorkspace->getGroupTail())->insertWindowToGroup(pWindow);
+    //     static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+    //     (*USECURRPOS ? pFirstWindowOnWorkspace : pFirstWindowOnWorkspace->getGroupTail())->insertWindowToGroup(pWindow);
 
-        pFirstWindowOnWorkspace->setGroupCurrent(pWindow);
-        pWindow->updateWindowDecos();
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    //     pFirstWindowOnWorkspace->setGroupCurrent(pWindow);
+    //     pWindow->updateWindowDecos();
+    //     // g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
 
-        if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
-            pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
+    //     if (!pWindow->getDecorationByType(DECORATION_GROUPBAR))
+    //         pWindow->addWindowDeco(makeUnique<CHyprGroupBarDecoration>(pWindow));
 
-    } else {
-        if (!pWindow->m_isFloating)
-            g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
+    // } else {
+    //     if (!pWindow->m_isFloating)
+    //         // g_pLayoutManager->getCurrentLayout()->onWindowCreatedTiling(pWindow);
 
-        if (pWindow->m_isFloating)
-            *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
-    }
+    //         if (pWindow->m_isFloating)
+    //             *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
+    // }
+
+    g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     pWindow->updateToplevel();
     pWindow->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     pWindow->uncacheWindowDecos();
-    pWindow->updateGroupOutputs();
 
-    if (!pWindow->m_groupData.pNextWindow.expired()) {
-        PHLWINDOW next = pWindow->m_groupData.pNextWindow.lock();
-        while (next != pWindow) {
-            next->updateToplevel();
-            next = next->m_groupData.pNextWindow.lock();
+    if (pWindow->m_group) {
+        for (const auto& w : pWindow->m_group->windows()) {
+            if (w == pWindow)
+                continue;
+
+            w->moveToWorkspace(pWorkspace);
+            w->updateToplevel();
         }
     }
 

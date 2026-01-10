@@ -188,21 +188,25 @@ void CANRManager::SANRData::runDialog(const std::string& appName, const std::str
 
     const auto OPTION_TERMINATE_STR = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_TERMINATE, {});
     const auto OPTION_WAIT_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_WAIT, {});
+    const auto OPTIONS              = std::vector{OPTION_TERMINATE_STR, OPTION_WAIT_STR};
+    const auto CLASS_STR            = appClass.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appClass;
+    const auto TITLE_STR            = appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName;
+    const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", TITLE_STR}, {"class", CLASS_STR}});
 
-    dialogBox =
-        CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}),
-                                I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT,
-                                                             {
-                                                                 //
-                                                                 {"class", appClass.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appClass}, //
-                                                                 {"title", appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName}    //
-                                                             }),
-                                std::vector<std::string>{
-                                    //
-                                    OPTION_TERMINATE_STR, //
-                                    OPTION_WAIT_STR       //
-                                } //
-        );
+    dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}), DESCRIPTION_STR, OPTIONS);
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!w->m_isMapped)
+            continue;
+
+        if (!fitsWindow(w))
+            continue;
+
+        if (w->m_workspace)
+            dialogBox->setExecRule(std::format("workspace {} silent", w->m_workspace->getConfigName()));
+
+        break;
+    }
 
     dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {

@@ -553,6 +553,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:gaps_in", Hyprlang::INT{2});
     registerConfigVar("group:groupbar:keep_upper_gap", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:text_offset", Hyprlang::INT{0});
+    registerConfigVar("group:groupbar:text_padding", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:blur", Hyprlang::INT{0});
 
     registerConfigVar("debug:log_damage", Hyprlang::INT{0});
@@ -2837,7 +2838,7 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
     if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
         return "unknown permission allow mode";
 
-    if (m_isFirstLaunch)
+    if (m_isFirstLaunch && g_pDynamicPermissionManager)
         g_pDynamicPermissionManager->addConfigPermissionRule(std::string(data[0]), type, mode);
 
     return {};

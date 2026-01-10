@@ -192,8 +192,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
-
+    auto       TEXTURE    = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
@@ -385,8 +384,6 @@ bool CScreencopyFrame::copyShm() {
         return false;
     }
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
@@ -396,8 +393,26 @@ bool CScreencopyFrame::copyShm() {
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    const auto drmFmt     = NFormatUtils::getPixelFormatFromDRM(shm.format);
-    uint32_t   packStride = NFormatUtils::minStride(drmFmt, m_box.w);
+    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
+    int      glFormat   = PFORMAT->glFormat;
+
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
+        }
+    }
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.

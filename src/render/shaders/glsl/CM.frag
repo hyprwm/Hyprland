@@ -1,11 +1,9 @@
 #version 300 es
-//#extension GL_OES_EGL_image_external : require
 #extension GL_ARB_shading_language_include : enable
 
 precision highp float;
 in vec2 v_texcoord;
 uniform sampler2D tex;
-//uniform samplerExternalOES texture0;
 
 uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
 // uniform int skipCM;
@@ -30,8 +28,8 @@ void main() {
     vec4 pixColor;
     if (texType == 1)
         pixColor = vec4(texture(tex, v_texcoord).rgb, 1.0);
-//    else if (texType == 2)
-//        pixColor = texture(texture0, v_texcoord);
+    //else if (texType == 2)
+    //    discard; // this shouldnt happen.
     else // assume rgba
         pixColor = texture(tex, v_texcoord);
 

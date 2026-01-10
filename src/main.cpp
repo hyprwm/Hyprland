@@ -31,6 +31,8 @@ static void help() {
     --config FILE       -c FILE  - Specify config file to use
     --socket NAME                - Sets the Wayland socket name (for Wayland socket handover)
     --wayland-fd FD              - Sets the Wayland socket fd (for Wayland socket handover)
+    --watchdog-fd FD             - Used by start-hyprland
+    --safe-mode                  - Starts Hyprland in safe mode
     --systeminfo                 - Prints system infos
     --i-am-really-stupid         - Omits root user privileges check (why would you do that?)
     --verify-config              - Do not run Hyprland, only print if the config has any errors
@@ -219,7 +221,7 @@ int main(int argc, char** argv) {
     if (safeMode)
         g_pCompositor->m_safeMode = true;
 
-    if (!watchdogOk)
+    if (!watchdogOk && !verifyConfig)
         Log::logger->log(Log::WARN, "WARNING: Hyprland is being launched without start-hyprland. This is highly advised against.");
 
     g_pCompositor->initServer(socketName, socketFd);

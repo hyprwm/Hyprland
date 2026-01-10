@@ -73,10 +73,8 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    }
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
@@ -96,10 +94,18 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
     }
 
     m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
+
+    // #TODO external only formats should be external aswell.
+    // also needs a seperate color shader.
+    /*if (NFormatUtils::isFormatYUV(attrs.format)) {
+        m_target = GL_TEXTURE_EXTERNAL_OES;
+        m_type   = TEXTURE_EXTERNAL;
+    } else {*/
     m_target = GL_TEXTURE_2D;
-    m_type   = TEXTURE_RGBA;
-    m_size   = attrs.size;
     m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    //}
+
+    m_size = attrs.size;
     allocate();
     m_eglImage = image;
 
@@ -121,10 +127,8 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     bind();
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    }
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
 
     damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
@@ -204,4 +208,11 @@ void CTexture::setTexParameter(GLenum pname, GLint param) {
 
     m_cachedStates[idx] = param;
     GLCALL(glTexParameteri(m_target, pname, param));
+}
+
+void CTexture::swizzle(const std::array<GLint, 4>& colors) {
+    setTexParameter(GL_TEXTURE_SWIZZLE_R, colors.at(0));
+    setTexParameter(GL_TEXTURE_SWIZZLE_G, colors.at(1));
+    setTexParameter(GL_TEXTURE_SWIZZLE_B, colors.at(2));
+    setTexParameter(GL_TEXTURE_SWIZZLE_A, colors.at(3));
 }

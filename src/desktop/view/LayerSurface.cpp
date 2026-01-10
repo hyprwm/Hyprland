@@ -26,7 +26,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_ruleApplicator = makeUnique<Desktop::Rule::CLayerRuleApplicator>(pLS);
     pLS->m_self           = pLS;
     pLS->m_namespace      = resource->m_layerNamespace;
-    pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+    pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->m_popupHead      = CPopup::create(pLS);
 
     g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
@@ -323,7 +323,7 @@ void CLayerSurface::onCommit() {
     if (m_layerSurface->m_current.committed != 0) {
         if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
 
-            const auto NEW_LAYER = std::clamp(m_layerSurface->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+            const auto NEW_LAYER = std::clamp(m_layerSurface->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
 
             for (auto it = PMONITOR->m_layerSurfaceLayers[m_layer].begin(); it != PMONITOR->m_layerSurfaceLayers[m_layer].end(); it++) {
                 if (*it == m_self) {

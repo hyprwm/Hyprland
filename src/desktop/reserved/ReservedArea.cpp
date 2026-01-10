@@ -6,11 +6,12 @@ using namespace Desktop;
 // fuck me. Writing this at 11pm, and I have an in-class test tomorrow.
 // I am failing that bitch
 
-CReservedArea::CReservedArea(const Vector2D& tl, const Vector2D& br) : m_initialTopLeft(tl), m_initialBottomRight(br) {
+CReservedArea::CReservedArea(const Vector2D& tl, const Vector2D& br) : m_initialTopLeft(tl.clamp({0, 0})), m_initialBottomRight(br.clamp({0, 0})) {
     calculate();
 }
 
-CReservedArea::CReservedArea(double top, double right, double bottom, double left) : m_initialTopLeft(left, top), m_initialBottomRight(right, bottom) {
+CReservedArea::CReservedArea(double top, double right, double bottom, double left) :
+    m_initialTopLeft(std::max(left, 0.0), std::max(top, 0.0)), m_initialBottomRight(std::max(right, 0.0), std::max(bottom, 0.0)) {
     calculate();
 }
 
@@ -81,6 +82,8 @@ void CReservedArea::addType(eReservedDynamicType t, const Vector2D& topLeft, con
     auto& ref = m_dynamicReserved[t];
     ref.topLeft += topLeft;
     ref.bottomRight += bottomRight;
+    ref.topLeft     = ref.topLeft.clamp({0, 0});
+    ref.bottomRight = ref.bottomRight.clamp({0, 0});
     calculate();
 }
 

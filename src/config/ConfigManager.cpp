@@ -779,6 +779,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:icc_vcgt_enabled", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -852,6 +853,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "min_luminance", Hyprlang::FLOAT{-1.0});
     m_config->addSpecialConfigValue("monitorv2", "max_luminance", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("monitorv2", "max_avg_luminance", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "icc", Hyprlang::STRING{""});
 
     // windowrule v3
     m_config->addSpecialCategory("windowrule", {.key = "name"});
@@ -1227,6 +1229,10 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "max_avg_luminance", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().maxAvgLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
+
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "icc", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().iccFile = std::any_cast<Hyprlang::STRING>(VAL->getValue());
 
     auto newrule = parser.rule();
 
@@ -2225,6 +2231,15 @@ bool CMonitorRuleParser::parseVRR(const std::string& value) {
     return true;
 }
 
+bool CMonitorRuleParser::parseICC(const std::string& val) {
+    if (val.empty()) {
+        m_error += "invalid icc ";
+        return false;
+    }
+    m_rule.iccFile = val;
+    return true;
+}
+
 void CMonitorRuleParser::setDisabled() {
     m_rule.disabled = true;
 }
@@ -2318,6 +2333,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             argno++;
         } else if (ARGS[argno] == "vrr") {
             parser.parseVRR(std::string(ARGS[argno + 1]));
+            argno++;
+        } else if (ARGS[argno] == "icc") {
+            parser.parseICC(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "workspace") {
             const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(std::string(ARGS[argno + 1]));

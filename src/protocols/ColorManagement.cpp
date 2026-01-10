@@ -3,7 +3,7 @@
 #include "color-management-v1.hpp"
 #include "../helpers/Monitor.hpp"
 #include "core/Output.hpp"
-#include "types/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include <cstdint>
 
 using namespace NColorManagement;
@@ -388,12 +388,6 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         RESOURCE->m_settings = m_surface->getPreferredImageDescription();
         m_currentPreferredId = RESOURCE->m_settings->id();
 
-        if (!PROTO::colorManagement->m_debug && RESOURCE->m_settings->value().icc.fd >= 0) {
-            LOGM(Log::ERR, "FIXME: parse icc profile");
-            r->error(WP_COLOR_MANAGER_V1_ERROR_UNSUPPORTED_FEATURE, "ICC profiles are not supported");
-            return;
-        }
-
         RESOURCE->resource()->sendReady(m_currentPreferredId);
     });
 
@@ -429,7 +423,7 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
         LOGM(Log::TRACE, "Create image description from icc for id {}", id);
 
         // FIXME actually check completeness
-        if (m_settings.icc.fd < 0 || !m_settings.icc.length) {
+        if (m_icc.fd < 0 || !m_icc.length) {
             r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INCOMPLETE_SET, "Missing required settings");
             return;
         }
@@ -443,10 +437,10 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
             return;
         }
 
-        LOGM(Log::ERR, "FIXME: Parse icc file {}({},{}) for id {}", m_settings.icc.fd, m_settings.icc.offset, m_settings.icc.length, id);
+        LOGM(Log::ERR, "FIXME: Parse icc file {}({},{}) for id {}", m_icc.fd, m_icc.offset, m_icc.length, id);
 
         // FIXME actually check support
-        if (m_settings.icc.fd < 0 || !m_settings.icc.length) {
+        if (m_icc.fd < 0 || !m_icc.length) {
             RESOURCE->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "unsupported");
             return;
         }
@@ -459,9 +453,9 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
     });
 
     m_resource->setSetIccFile([this](CWpImageDescriptionCreatorIccV1* r, int fd, uint32_t offset, uint32_t length) {
-        m_settings.icc.fd     = fd;
-        m_settings.icc.offset = offset;
-        m_settings.icc.length = length;
+        m_icc.fd     = fd;
+        m_icc.offset = offset;
+        m_icc.length = length;
     });
 }
 
@@ -723,8 +717,9 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
 
     const auto toProto = [](float value) { return sc<int32_t>(std::round(value * PRIMARIES_SCALE)); };
 
-    if (m_settings.icc.fd >= 0)
-        m_resource->sendIccFile(m_settings.icc.fd, m_settings.icc.length);
+    // FIXME:
+    // if (m_icc.fd >= 0)
+    //    m_resource->sendIccFile(m_icc.fd, m_icc.length);
 
     // send preferred client paramateres
     m_resource->sendPrimaries(toProto(m_settings.primaries.red.x), toProto(m_settings.primaries.red.y), toProto(m_settings.primaries.green.x),

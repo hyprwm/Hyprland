@@ -80,15 +80,32 @@ enum eShaderUniform : uint8_t {
     SHADER_LAST,
 };
 
-struct SShader {
-    SShader();
-    ~SShader();
+class CShader {
+  public:
+    CShader();
+    ~CShader();
 
-    GLuint                         program = 0;
+    bool   createProgram(const std::string& vert, const std::string& frag, bool dynamic = false, bool silent = false);
+    void   setUniformInt(eShaderUniform location, GLint v0);
+    void   setUniformFloat(eShaderUniform location, GLfloat v0);
+    void   setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1);
+    void   setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2);
+    void   setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+    void   setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value);
+    void   setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value);
+    void   setUniform1fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void   setUniform2fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void   setUniform4fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
+    void   destroy();
+    GLuint program() const;
+    GLint  getUniformLocation(eShaderUniform location) const;
+    int    getInitialTime() const;
+    void   setInitialTime(int time);
 
-    std::array<GLint, SHADER_LAST> uniformLocations;
-
-    float                          initialTime = 0;
+  private:
+    GLuint                         m_program     = 0;
+    float                          m_initialTime = 0;
+    std::array<GLint, SHADER_LAST> m_uniformLocations;
 
     struct SUniformMatrix3Data {
         GLsizei                count     = 0;
@@ -114,19 +131,9 @@ struct SShader {
         uniformStatus;
     //
 
-    void createVao();
-    void setUniformInt(eShaderUniform location, GLint v0);
-    void setUniformFloat(eShaderUniform location, GLfloat v0);
-    void setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1);
-    void setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2);
-    void setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
-    void setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value);
-    void setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value);
-    void setUniform1fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
-    void setUniform2fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
-    void setUniform4fv(eShaderUniform location, GLsizei count, const std::vector<float>& value);
-    void destroy();
-
-  private:
-    void setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size);
+    void   logShaderError(const GLuint&, bool program = false, bool silent = false);
+    GLuint compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
+    void   getUniformLocations();
+    void   createVao();
+    void   setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size);
 };

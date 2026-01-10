@@ -223,9 +223,9 @@ namespace NColorManagement {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR: return 0;
                 case CM_TRANSFER_FUNCTION_ST2084_PQ:
                 case CM_TRANSFER_FUNCTION_HLG: return HDR_MIN_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 0.01;
                 case CM_TRANSFER_FUNCTION_GAMMA22:
                 case CM_TRANSFER_FUNCTION_GAMMA28:
-                case CM_TRANSFER_FUNCTION_BT1886:
                 case CM_TRANSFER_FUNCTION_ST240:
                 case CM_TRANSFER_FUNCTION_LOG_100:
                 case CM_TRANSFER_FUNCTION_LOG_316:
@@ -243,9 +243,9 @@ namespace NColorManagement {
                     return SDR_MAX_LUMINANCE; // assume Windows scRGB. white color range 1.0 - 125.0 maps to SDR_MAX_LUMINANCE (80) - HDR_MAX_LUMINANCE (10000)
                 case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
                 case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 100;
                 case CM_TRANSFER_FUNCTION_GAMMA22:
                 case CM_TRANSFER_FUNCTION_GAMMA28:
-                case CM_TRANSFER_FUNCTION_BT1886:
                 case CM_TRANSFER_FUNCTION_ST240:
                 case CM_TRANSFER_FUNCTION_LOG_100:
                 case CM_TRANSFER_FUNCTION_LOG_316:
@@ -262,9 +262,9 @@ namespace NColorManagement {
                 case CM_TRANSFER_FUNCTION_EXT_LINEAR:
                 case CM_TRANSFER_FUNCTION_ST2084_PQ:
                 case CM_TRANSFER_FUNCTION_HLG: return HDR_REF_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 100;
                 case CM_TRANSFER_FUNCTION_GAMMA22:
                 case CM_TRANSFER_FUNCTION_GAMMA28:
-                case CM_TRANSFER_FUNCTION_BT1886:
                 case CM_TRANSFER_FUNCTION_ST240:
                 case CM_TRANSFER_FUNCTION_LOG_100:
                 case CM_TRANSFER_FUNCTION_LOG_316:

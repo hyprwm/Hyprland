@@ -50,7 +50,7 @@ using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
@@ -479,70 +479,87 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
                                                        (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 
+    const auto  masteringPrimaries                                                        = getMasteringPrimaries();
+    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
+
+    const auto                                                        maxFALL = this->maxFALL();
+    const auto                                                        maxCLL  = this->maxCLL();
+
     switch (cmType) {
         case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
         case NCMType::CM_WIDE:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DCIP3:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_DCI_P3,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DP3:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_ADOBE:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_EDID:
-            m_imageDescription =
-                CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                         .primariesNameSet = false,
-                                         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                         .primaries        = {
-                                                    .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                                    .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                                    .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                                    .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                         }});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = false,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+                                                          .primaries           = masteringPrimaries,
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_HDR: m_imageDescription = DEFAULT_HDR_IMAGE_DESCRIPTION; break;
         case NCMType::CM_HDR_EDID:
-            m_imageDescription =
-                CImageDescription::from({.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                         .primariesNameSet = false,
-                                         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                         .primaries        = m_output->parsedEDID.chromaticityCoords.has_value() ?
-                                                    NColorManagement::SPCPRimaries{
-                                                        .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                                        .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                                        .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                                        .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                             } :
-                                                    NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                         .luminances       = {.min       = m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                                              .max       = m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                                              .reference = m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}});
+            m_imageDescription = CImageDescription::from(
+                {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                 .primariesNameSet = false,
+                 .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                 .primaries = m_output->parsedEDID.chromaticityCoords.has_value() ? masteringPrimaries : NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                 .masteringPrimaries  = masteringPrimaries,
+                 .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
+                                         .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
+                                         .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
+                 .masteringLuminances = masteringLuminances,
+                 .maxCLL              = maxCLL,
+                 .maxFALL             = maxFALL});
 
             break;
         default: UNREACHABLE();
     }
-    if (m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0)
+    if ((m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
-            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min,            //
-            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max,            //
-            .reference = m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : m_imageDescription->value().luminances.reference //
+            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min, //
+            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max, //
+            .reference = m_imageDescription->value().luminances.reference                                   //
         });
 
     if (oldImageDescription != m_imageDescription) {
@@ -2022,6 +2039,14 @@ int CMonitor::maxAvgLuminance(int defaultValue) {
                                     (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : defaultValue);
 }
 
+float CMonitor::maxFALL() {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
+}
+
+float CMonitor::maxCLL() {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
+}
+
 bool CMonitor::wantsWideColor() {
     return supportsWideColor() && (wantsHDR() || m_imageDescription->value().primariesNamed == CM_PRIMARIES_BT2020);
 }
@@ -2061,6 +2086,24 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
     return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : DEFAULT_IMAGE_DESCRIPTION;
+}
+
+NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {
+    return m_output->parsedEDID.chromaticityCoords.has_value() ?
+        NColorManagement::SPCPRimaries{
+            .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
+            .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
+            .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
+            .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
+        } :
+        NColorManagement::SPCPRimaries{};
+}
+
+NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteringLuminances() {
+    return {
+        .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
+        .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
+    };
 }
 
 bool CMonitor::needsCM() {

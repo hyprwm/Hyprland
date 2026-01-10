@@ -1188,3 +1188,14 @@ Vector2D CHyprDwindleLayout::predictSizeForNewWindowTiled() {
 
     return {};
 }
+
+std::optional<CHyprDwindleLayout::SLayoutData> CHyprDwindleLayout::getLayoutData(PHLWINDOW pWindow) {
+    auto pNode = getNodeFromWindow(pWindow);
+    if (!pNode)
+        return std::nullopt;
+
+    return SLayoutData{
+        .splitRatio = pNode->splitRatio,
+        .splitTop   = pNode->splitTop,
+    };
+}

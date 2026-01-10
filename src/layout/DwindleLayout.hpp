@@ -66,6 +66,12 @@ class CHyprDwindleLayout : public IHyprLayout {
     virtual void                     onEnable();
     virtual void                     onDisable();
 
+    struct SLayoutData {
+        float splitRatio;
+        bool  splitTop;
+    };
+    std::optional<SLayoutData> getLayoutData(PHLWINDOW);
+
   private:
     std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;
 

@@ -53,6 +53,8 @@ using namespace Hyprutils::OS;
 #include "../managers/input/InputManager.hpp"
 #include "../managers/XWaylandManager.hpp"
 #include "../managers/LayoutManager.hpp"
+#include "../layout/DwindleLayout.hpp"
+#include "../layout/MasterLayout.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -353,6 +355,77 @@ static std::string getGroupedData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     return result.str();
 }
 
+static std::string orientationToString(eOrientation orientation) {
+    switch (orientation) {
+        case ORIENTATION_LEFT: return "left";
+        case ORIENTATION_TOP: return "top";
+        case ORIENTATION_RIGHT: return "right";
+        case ORIENTATION_BOTTOM: return "bottom";
+        case ORIENTATION_CENTER: return "center";
+        default: return "unknown";
+    }
+}
+
+static std::string getLayoutData(PHLWINDOW w, eHyprCtlOutputFormat format) {
+    if (!w->m_workspace || w->m_isFloating)
+        return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "";
+
+    auto* const pLayout = g_pLayoutManager->getCurrentLayout();
+    if (!pLayout)
+        return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "";
+
+    const std::string layoutName = pLayout->getLayoutName();
+
+    // try dwindle layout
+    if (auto* dwindleLayout = dynamic_cast<CHyprDwindleLayout*>(pLayout)) {
+        auto layoutData = dwindleLayout->getLayoutData(w);
+        if (!layoutData)
+            return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "";
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+            return std::format(R"#({{
+    "name": "{}",
+    "dwindle": {{
+        "splitRatio": {},
+        "splitDirection": "{}"
+    }}
+}})#",
+                               layoutName, layoutData->splitRatio, layoutData->splitTop ? "vertical" : "horizontal");
+        } else {
+            return std::format("{}\n\tdwindle:splitRatio: {}\n\tdwindle:splitDirection: {}", layoutName, layoutData->splitRatio,
+                               layoutData->splitTop ? "vertical" : "horizontal");
+        }
+    }
+
+    // try master layout
+    if (auto* masterLayout = dynamic_cast<CHyprMasterLayout*>(pLayout)) {
+        auto layoutData = masterLayout->getLayoutData(w);
+        if (!layoutData)
+            return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "";
+
+        const std::string orientation = orientationToString(layoutData->orientation);
+
+        if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+            return std::format(R"#({{
+    "name": "{}",
+    "master": {{
+        "isMaster": {},
+        "percMaster": {},
+        "percSize": {},
+        "orientation": "{}"
+    }}
+}})#",
+                               layoutName, layoutData->isMaster ? "true" : "false", layoutData->percMaster, layoutData->percSize, orientation);
+        } else {
+            return std::format("{}\n\tmaster:isMaster: {}\n\tmaster:percMaster: {}\n\tmaster:percSize: {}\n\tmaster:orientation: {}", layoutName,
+                               sc<int>(layoutData->isMaster), layoutData->percMaster, layoutData->percSize, orientation);
+        }
+    }
+
+    // unknown layout
+    return format == eHyprCtlOutputFormat::FORMAT_JSON ? "{}" : "";
+}
+
 std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     auto getFocusHistoryID = [](PHLWINDOW wnd) -> int {
         const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
@@ -394,7 +467,8 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "inhibitingIdle": {},
     "xdgTag": "{}",
     "xdgDescription": "{}",
-    "contentType": "{}"
+    "contentType": "{}",
+    "layout": {}
 }},)#",
             rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x),
             sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
@@ -403,20 +477,20 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             (sc<int>(w->m_isX11) == 1 ? "true" : "false"), (w->m_pinned ? "true" : "false"), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w),
             (g_pInputManager->isWindowInhibiting(w, false) ? "true" : "false"), escapeJSONStrings(w->xdgTag().value_or("")), escapeJSONStrings(w->xdgDescription().value_or("")),
-            escapeJSONStrings(NContentType::toString(w->getContentType())));
+            escapeJSONStrings(NContentType::toString(w->getContentType())), getLayoutData(w, format));
     } else {
         return std::format(
             "Window {:x} -> {}:\n\tmapped: {}\n\thidden: {}\n\tat: {},{}\n\tsize: {},{}\n\tworkspace: {} ({})\n\tfloating: {}\n\tpseudo: {}\n\tmonitor: {}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
             "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: {}\n\txdgTag: "
-            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\n",
+            "{}\n\txdgDescription: {}\n\tcontentType: {}\n\tlayout: {}\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->m_realPosition->goal().x), sc<int>(w->m_realPosition->goal().y),
             sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,
             (!w->m_workspace ? "" : w->m_workspace->m_name), sc<int>(w->m_isFloating), sc<int>(w->m_isPseudotiled), w->monitorID(), w->m_class, w->m_title, w->m_initialClass,
             w->m_initialTitle, w->getPID(), sc<int>(w->m_isX11), sc<int>(w->m_pinned), sc<uint8_t>(w->m_fullscreenState.internal), sc<uint8_t>(w->m_fullscreenState.client),
             getGroupedData(w, format), getTagsData(w, format), rc<uintptr_t>(w->m_swallowed.get()), getFocusHistoryID(w), sc<int>(g_pInputManager->isWindowInhibiting(w, false)),
-            w->xdgTag().value_or(""), w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()));
+            w->xdgTag().value_or(""), w->xdgDescription().value_or(""), NContentType::toString(w->getContentType()), getLayoutData(w, format));
     }
 }
 

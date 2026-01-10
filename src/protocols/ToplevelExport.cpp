@@ -100,7 +100,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_shmFormat = NFormatUtils::swapAlphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(Log::ERR, "No format supported by renderer in capture toplevel");
         m_resource->sendFailed();
@@ -114,7 +114,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_dmabufFormat = NFormatUtils::swapAlphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 
@@ -253,7 +253,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
         return false;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
 
     // render client at 0,0
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
@@ -355,7 +355,7 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer))
         return false;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (!m_window->m_ruleApplicator->noScreenShare().valueOrDefault()) {
             g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible

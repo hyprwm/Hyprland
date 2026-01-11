@@ -785,6 +785,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
+    registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});
 
     // devices
     m_config->addSpecialCategory("device", {"name"});

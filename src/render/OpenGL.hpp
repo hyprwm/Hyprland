@@ -90,6 +90,7 @@ enum ePreparedFragmentShader : uint8_t {
     SH_FRAG_EXT,
     SH_FRAG_BLUR1,
     SH_FRAG_BLUR2,
+    SH_FRAG_CM_BLURPREPARE,
     SH_FRAG_BLURPREPARE,
     SH_FRAG_BLURFINISH,
     SH_FRAG_SHADOW,

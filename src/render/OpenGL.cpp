@@ -885,6 +885,8 @@ bool CHyprOpenGLImpl::initShaders() {
         std::map<std::string, std::string> includes;
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
+        loadShaderInclude("gain.glsl", includes);
+
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
@@ -894,6 +896,7 @@ bool CHyprOpenGLImpl::initShaders() {
             std::vector<SFragShaderDesc> CM_SHADERS = {{
                 {SH_FRAG_CM_RGBA, "CMrgba.frag"},
                 {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
+                {SH_FRAG_CM_BLURPREPARE, "CMblurprepare.frag"},
             }};
 
             bool                         success = false;
@@ -1673,12 +1676,12 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         currentTex->bind();
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        auto shader = useShader(m_shaders->frag[SH_FRAG_BLURPREPARE]);
+        WP<CShader> shader;
 
         // From FB to sRGB
         const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-        shader->setUniformInt(SHADER_SKIP_CM, skipCM);
         if (!skipCM) {
+            shader = useShader(m_shaders->frag[SH_FRAG_CM_BLURPREPARE]);
             passCMUniforms(shader, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
@@ -1690,7 +1693,8 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
                                             m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                         m_renderData.pMonitor->m_sdrBrightness :
                                         1.0f);
-        }
+        } else
+            shader = useShader(m_shaders->frag[SH_FRAG_BLURPREPARE]);
 
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         shader->setUniformFloat(SHADER_CONTRAST, *PBLURCONTRAST);

@@ -7,7 +7,7 @@
 #include "../helpers/Monitor.hpp"
 #include "core/Compositor.hpp"
 #include "color-management-v1.hpp"
-#include "types/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 
 class CColorManager;
 class CColorManagementOutput;
@@ -109,6 +109,14 @@ class CColorManagementIccCreator {
     WP<CColorManagementIccCreator>      m_self;
 
     NColorManagement::SImageDescription m_settings;
+    struct SIccFile {
+        int      fd     = -1;
+        uint32_t length = 0;
+        uint32_t offset = 0;
+        bool     operator==(const SIccFile& i2) const {
+            return fd == i2.fd;
+        }
+    } m_icc;
 
   private:
     SP<CWpImageDescriptionCreatorIccV1> m_resource;

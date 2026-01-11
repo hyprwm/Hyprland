@@ -16,7 +16,7 @@
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
 #include <optional>
-#include "../protocols/types/ColorManagement.hpp"
+#include "cm/ColorManagement.hpp"
 #include "signal/Signal.hpp"
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -54,6 +54,7 @@ struct SMonitorRule {
     float                  sdrSaturation = 1.0f; // SDR -> HDR
     float                  sdrBrightness = 1.0f; // SDR -> HDR
     Desktop::CReservedArea reservedArea;
+    std::string            iccFile;
 
     int                    supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
     int                    supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
@@ -326,6 +327,7 @@ class CMonitor {
     bool        wantsHDR();
 
     bool        inHDR();
+    bool        gammaRampsInUse();
 
     /// Has an active workspace with a real fullscreen window (includes special workspace)
     bool inFullscreenMode();
@@ -344,8 +346,8 @@ class CMonitor {
     PHLWINDOWREF                        m_previousFSWindow;
     bool                                m_needsHDRupdate = false;
 
-    NColorManagement::PImageDescription m_imageDescription;
-    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
+    NColorManagement::PImageDescription m_imageDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
+    bool                                m_noShaderCTM      = false; // sets drm CTM, restore needed
 
     // For the list lookup
 
@@ -357,8 +359,10 @@ class CMonitor {
     void                    setupDefaultWS(const SMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
     void                    commitDPMSState(bool state);
+    void                    updateVCGTRamps();
 
     bool                    m_doneScheduled = false;
+    bool                    m_vcgtRampsSet  = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
 
     struct {

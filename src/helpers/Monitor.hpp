@@ -178,6 +178,7 @@ class CMonitor {
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
     bool         m_scanoutNeedsCursorUpdate = false;
+    int          m_scanoutDebounceCounter   = 0;
 
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;

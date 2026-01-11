@@ -1804,8 +1804,20 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
 bool CMonitor::attemptDirectScanout() {
     const auto blockedReason = isDSBlocked();
-    if (blockedReason)
+
+    // wait 30 frames without a blocker before enabling DS
+    if (blockedReason) {
+        if (!m_lastScanout.expired())
+            m_lastScanout.reset();
+
+        m_scanoutDebounceCounter = 0;
         return false;
+    }
+
+    if (m_scanoutDebounceCounter < 30) {
+        m_scanoutDebounceCounter++;
+        return false;
+    }
 
     const auto PCANDIDATE = m_solitaryClient.lock();
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();

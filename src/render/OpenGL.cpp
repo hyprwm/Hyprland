@@ -885,16 +885,25 @@ bool CHyprOpenGLImpl::initShaders() {
         std::map<std::string, std::string> includes;
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
-
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
 
         if (!*PCM)
             m_cmSupported = false;
         else {
-            const auto TEXFRAGSRCCM = processShader("CM.frag", includes);
+            std::vector<SFragShaderDesc> CM_SHADERS = {{
+                {SH_FRAG_CM_RGBA, "CMrgba.frag"},
+                {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
+            }};
 
-            bool       success = shaders->frag[SH_FRAG_CM]->createProgram(shaders->TEXVERTSRC, TEXFRAGSRCCM, true, true);
+            bool                         success = false;
+            for (const auto& desc : CM_SHADERS) {
+                const auto fragSrc = processShader(desc.file, includes);
+
+                if (!(success = shaders->frag[desc.id]->createProgram(shaders->TEXVERTSRC, fragSrc, true, true)))
+                    break;
+            }
+
             if (m_shadersInitialized && m_cmSupported && !success)
                 g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_CM_RELOAD_FAILED), CHyprColor{}, 15000, ICON_WARNING);
 
@@ -907,7 +916,7 @@ bool CHyprOpenGLImpl::initShaders() {
                     "about this!");
         }
 
-        std::array<SFragShaderDesc, SH_FRAG_LAST - 1> FRAG_SHADERS = {{
+        std::vector<SFragShaderDesc> FRAG_SHADERS = {{
             {SH_FRAG_QUAD, "quad.frag"},
             {SH_FRAG_RGBA, "rgba.frag"},
             {SH_FRAG_PASSTHRURGBA, "passthru.frag"},
@@ -1351,20 +1360,22 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
-    if (!skipCM && !usingFinalShader && (texType == TEXTURE_RGBA || texType == TEXTURE_RGBX))
-        shader = m_shaders->frag[SH_FRAG_CM];
+    if (!skipCM && !usingFinalShader) {
+        if (texType == TEXTURE_RGBA)
+            shader = m_shaders->frag[SH_FRAG_CM_RGBA];
+        else if (texType == TEXTURE_RGBX)
+            shader = m_shaders->frag[SH_FRAG_CM_RGBX];
 
-    shader = useShader(shader);
+        shader = useShader(shader);
 
-    if (shader == m_shaders->frag[SH_FRAG_CM]) {
-        shader->setUniformInt(SHADER_TEX_TYPE, texType);
         if (data.cmBackToSRGB) {
             static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
             auto        chosenSdrEotf = *PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
             passCMUniforms(shader, imageDescription, CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}), true, -1, -1);
         } else
             passCMUniforms(shader, imageDescription);
-    }
+    } else
+        shader = useShader(shader);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);

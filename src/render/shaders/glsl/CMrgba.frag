@@ -5,19 +5,17 @@ precision highp float;
 in vec2 v_texcoord;
 uniform sampler2D tex;
 
-uniform int texType; // eTextureType: 0 - rgba, 1 - rgbx, 2 - ext
-// uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
 uniform mat4x2 targetPrimaries;
 
 uniform float alpha;
 
-uniform int discardOpaque;
-uniform int discardAlpha;
+uniform bool discardOpaque;
+uniform bool discardAlpha;
 uniform float discardAlphaValue;
 
-uniform int applyTint;
+uniform bool applyTint;
 uniform vec3 tint;
 
 #include "rounding.glsl"
@@ -25,28 +23,22 @@ uniform vec3 tint;
 
 layout(location = 0) out vec4 fragColor;
 void main() {
-    vec4 pixColor;
-    if (texType == 1)
-        pixColor = vec4(texture(tex, v_texcoord).rgb, 1.0);
-    //else if (texType == 2)
-    //    discard; // this shouldnt happen.
-    else // assume rgba
-        pixColor = texture(tex, v_texcoord);
+    vec4 pixColor = texture(tex, v_texcoord);
 
-    if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
+    if (discardOpaque && pixColor.a * alpha == 1.0)
         discard;
 
-    if (discardAlpha == 1 && pixColor[3] <= discardAlphaValue)
+    if (discardAlpha && pixColor.a <= discardAlphaValue)
         discard;
 
     // this shader shouldn't be used when skipCM == 1
     pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
-    if (applyTint == 1)
-        pixColor = vec4(pixColor.rgb * tint.rgb, pixColor[3]);
+    if (applyTint)
+        pixColor.rgb *= tint;
 
     if (radius > 0.0)
         pixColor = rounding(pixColor);
-    
+
     fragColor = pixColor * alpha;
 }

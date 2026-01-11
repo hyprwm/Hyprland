@@ -95,7 +95,8 @@ enum ePreparedFragmentShader : uint8_t {
     SH_FRAG_SHADOW,
     SH_FRAG_BORDER1,
     SH_FRAG_GLITCH,
-    SH_FRAG_CM,
+    SH_FRAG_CM_RGBA,
+    SH_FRAG_CM_RGBX,
 
     SH_FRAG_LAST,
 };

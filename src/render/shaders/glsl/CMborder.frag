@@ -4,6 +4,10 @@
 precision highp float;
 in vec2 v_texcoord;
 
+uniform int sourceTF; // eTransferFunction
+uniform int targetTF; // eTransferFunction
+uniform mat4x2 targetPrimaries;
+
 uniform vec2 fullSizeUntransformed;
 uniform float radiusOuter;
 uniform float thick;
@@ -45,11 +49,11 @@ void main() {
     pixCoordOuter += vec2(1.0, 1.0) / fullSize;
 
     if (min(pixCoord.x, pixCoord.y) > 0.0 && radius > 0.0) {
-	    float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
-	    float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
+            float dist = pow(pow(pixCoord.x,roundingPower)+pow(pixCoord.y,roundingPower),1.0/roundingPower);
+            float distOuter = pow(pow(pixCoordOuter.x,roundingPower)+pow(pixCoordOuter.y,roundingPower),1.0/roundingPower);
         float h = (thick / 2.0);
 
-	    if (dist < radius - h) {
+            if (dist < radius - h) {
             // lower
             float normalized = smoothstep(0.0, 1.0, (dist - radius + thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
@@ -85,6 +89,8 @@ void main() {
 
     pixColor = getColorForCoord(v_texcoord);
     pixColor.rgb *= pixColor[3];
+
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
 
     pixColor *= alpha * additionalAlpha;
 

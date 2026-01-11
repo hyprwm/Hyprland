@@ -886,6 +886,7 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("rounding.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
         loadShaderInclude("gain.glsl", includes);
+        loadShaderInclude("border.glsl", includes);
 
         shaders->TEXVERTSRC    = processShader("tex300.vert", includes);
         shaders->TEXVERTSRC320 = processShader("tex320.vert", includes);
@@ -897,6 +898,7 @@ bool CHyprOpenGLImpl::initShaders() {
                 {SH_FRAG_CM_RGBA, "CMrgba.frag"},
                 {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
                 {SH_FRAG_CM_BLURPREPARE, "CMblurprepare.frag"},
+                {SH_FRAG_CM_BORDER1, "CMborder.frag"},
             }};
 
             bool                         success = false;
@@ -2157,12 +2159,14 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    auto       shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
+    WP<CShader> shader;
 
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    shader->setUniformInt(SHADER_SKIP_CM, skipCM);
-    if (!skipCM)
+    const bool  skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+    if (!skipCM) {
+        shader = useShader(m_shaders->frag[SH_FRAG_CM_BORDER1]);
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
+    } else
+        shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
@@ -2241,12 +2245,13 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     const auto BLEND = m_blend;
     blend(true);
 
-    auto       shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
-
-    const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    shader->setUniformInt(SHADER_SKIP_CM, skipCM);
-    if (!skipCM)
+    WP<CShader> shader;
+    const bool  skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+    if (!skipCM) {
+        shader = useShader(m_shaders->frag[SH_FRAG_CM_BORDER1]);
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
+    } else
+        shader = useShader(m_shaders->frag[SH_FRAG_BORDER1]);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);

@@ -81,23 +81,43 @@ enum eMonitorExtraRenderFBs : uint8_t {
     FB_MONITOR_RENDER_EXTRA_BLUR,
 };
 
+enum ePreparedFragmentShader : uint8_t {
+    SH_FRAG_QUAD = 0,
+    SH_FRAG_RGBA,
+    SH_FRAG_PASSTHRURGBA,
+    SH_FRAG_MATTE,
+    SH_FRAG_RGBX,
+    SH_FRAG_EXT,
+    SH_FRAG_BLUR1,
+    SH_FRAG_BLUR2,
+    SH_FRAG_CM_BLURPREPARE,
+    SH_FRAG_BLURPREPARE,
+    SH_FRAG_BLURFINISH,
+    SH_FRAG_SHADOW,
+    SH_FRAG_CM_BORDER1,
+    SH_FRAG_BORDER1,
+    SH_FRAG_GLITCH,
+    SH_FRAG_CM_RGBA,
+    SH_FRAG_CM_RGBX,
+
+    SH_FRAG_LAST,
+};
+
+struct SFragShaderDesc {
+    ePreparedFragmentShader id;
+    const char*             file;
+};
+
 struct SPreparedShaders {
-    std::string TEXVERTSRC;
-    std::string TEXVERTSRC320;
-    SShader     m_shQUAD;
-    SShader     m_shRGBA;
-    SShader     m_shPASSTHRURGBA;
-    SShader     m_shMATTE;
-    SShader     m_shRGBX;
-    SShader     m_shEXT;
-    SShader     m_shBLUR1;
-    SShader     m_shBLUR2;
-    SShader     m_shBLURPREPARE;
-    SShader     m_shBLURFINISH;
-    SShader     m_shSHADOW;
-    SShader     m_shBORDER1;
-    SShader     m_shGLITCH;
-    SShader     m_shCM;
+    SPreparedShaders() {
+        for (auto& f : frag) {
+            f = makeShared<CShader>();
+        }
+    }
+
+    std::string                           TEXVERTSRC;
+    std::string                           TEXVERTSRC320;
+    std::array<SP<CShader>, SH_FRAG_LAST> frag;
 };
 
 struct SMonitorRenderData {
@@ -274,9 +294,7 @@ class CHyprOpenGLImpl {
 
     bool                                              initShaders();
 
-    GLuint                                            createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
-    GLuint                                            compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
-    void                                              useProgram(GLuint prog);
+    WP<CShader>                                       useShader(WP<CShader> prog);
 
     void                                              ensureLockTexturesRendered(bool load);
 
@@ -375,13 +393,12 @@ class CHyprOpenGLImpl {
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;
-    SShader                           m_finalScreenShader;
+    SP<CShader>                       m_finalScreenShader;
     CTimer                            m_globalTimer;
     GLuint                            m_currentProgram;
     ASP<Hyprgraphics::CImageResource> m_backgroundResource;
     bool                              m_backgroundResourceFailed = false;
 
-    void                              logShaderError(const GLuint&, bool program = false, bool silent = false);
     void                              createBGTextureForMonitor(PHLMONITOR);
     void                              initDRMFormats();
     void                              initEGL(bool gbm);
@@ -403,9 +420,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription);
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
     void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

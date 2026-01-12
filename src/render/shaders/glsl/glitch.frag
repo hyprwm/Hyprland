@@ -5,7 +5,7 @@ in vec2 v_texcoord;
 uniform sampler2D tex;
 uniform float time; // quirk: time is set to 0 at the beginning, should be around 10 when crash.
 uniform float distort;
-uniform vec2 screenSize;
+uniform vec2 fullSize;
 
 float rand(float co) {
     return fract(sin(dot(vec2(co, co), vec2(12.9898, 78.233))) * 43758.5453);
@@ -31,7 +31,7 @@ void main() {
     float ABERR_OFFSET = 4.0 * (distort / 5.5) * time;
     float TEAR_AMOUNT = 9000.0 * (1.0 - (distort / 5.5));
     float TEAR_BANDS = 108.0 / 2.0 * (distort / 5.5) * 2.0;
-    float MELT_AMOUNT = (distort * 8.0) / screenSize.y;
+    float MELT_AMOUNT = (distort * 8.0) / fullSize.y;
 
     float NOISE = abs(mod(noise(v_texcoord) * distort * time * 2.771, 1.0)) * time / 10.0;
     if (time < 2.0)
@@ -44,7 +44,7 @@ void main() {
     if (time < 3.0)
         blockOffset = vec2(0,0);
 
-    float meltSeed = abs(mod(rand(floor(v_texcoord.x * screenSize.x * 17.719)) * 281.882, 1.0));
+    float meltSeed = abs(mod(rand(floor(v_texcoord.x * fullSize.x * 17.719)) * 281.882, 1.0));
     if (meltSeed < 0.8) {
         meltSeed = 0.0;
     } else {
@@ -52,11 +52,11 @@ void main() {
     }
     float meltAmount = MELT_AMOUNT * meltSeed;
 
-    vec2 pixCoord = vec2(v_texcoord.x + offset + NOISE * 3.0 / screenSize.x + blockOffset.x, v_texcoord.y - meltAmount + 0.02 * NOISE / screenSize.x + NOISE * 3.0 / screenSize.y  + blockOffset.y);
+    vec2 pixCoord = vec2(v_texcoord.x + offset + NOISE * 3.0 / fullSize.x + blockOffset.x, v_texcoord.y - meltAmount + 0.02 * NOISE / fullSize.x + NOISE * 3.0 / fullSize.y  + blockOffset.y);
 
     vec4 pixColor = texture(tex, pixCoord);
-    vec4 pixColorLeft = texture(tex, pixCoord + vec2(ABERR_OFFSET / screenSize.x, 0));
-    vec4 pixColorRight = texture(tex, pixCoord + vec2(-ABERR_OFFSET / screenSize.x, 0));
+    vec4 pixColorLeft = texture(tex, pixCoord + vec2(ABERR_OFFSET / fullSize.x, 0));
+    vec4 pixColorRight = texture(tex, pixCoord + vec2(-ABERR_OFFSET / fullSize.x, 0));
 
     pixColor[0] = pixColorLeft[0];
     pixColor[2] = pixColorRight[2];

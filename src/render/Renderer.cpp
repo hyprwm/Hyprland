@@ -1552,8 +1552,8 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
                       .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
                       .max_display_mastering_luminance = toNits(luminances.max),
                       .min_display_mastering_luminance = toNits(luminances.min * 10000),
-                      .max_cll                         = toNits(settings.maxCLL),
-                      .max_fall                        = toNits(settings.maxFALL),
+                      .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
+                      .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
             },
     };
 }

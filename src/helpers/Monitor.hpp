@@ -321,6 +321,8 @@ class CMonitor {
     float       minLuminance(float defaultValue = 0);
     int         maxLuminance(int defaultValue = 80);
     int         maxAvgLuminance(int defaultValue = 80);
+    float       maxFALL();
+    float       maxCLL();
 
     bool        wantsWideColor();
     bool        wantsHDR();
@@ -330,10 +332,13 @@ class CMonitor {
     /// Has an active workspace with a real fullscreen window (includes special workspace)
     bool inFullscreenMode();
     /// Get fullscreen window from active or special workspace
-    PHLWINDOW                                          getFullscreenWindow();
-    std::optional<NColorManagement::PImageDescription> getFSImageDescription();
+    PHLWINDOW                                                   getFullscreenWindow();
+    std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 
-    bool                                               needsCM();
+    NColorManagement::SPCPRimaries                              getMasteringPrimaries();
+    NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
+
+    bool                                                        needsCM();
     /// Can do CM without shader
     bool                                canNoShaderCM();
     bool                                doesNoShaderCM();

@@ -1244,15 +1244,13 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     shader->setUniformFloat2(SHADER_DST_TF_RANGE, targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
                              targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1));
 
-    shader->setUniformFloat(SHADER_SRC_REF_LUMINANCE, imageDescription->value().getTFRefLuminance(-1));
-    shader->setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription->value().getTFRefLuminance(-1));
+    shader->setUniformFloat(SHADER_SRC_REF_LUMINANCE, imageDescription->value().luminances.reference);
+    shader->setUniformFloat(SHADER_DST_REF_LUMINANCE, targetImageDescription->value().luminances.reference);
 
     const float maxLuminance = needsHDRmod ?
         imageDescription->value().getTFMaxLuminance(-1) :
         (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
-    shader->setUniformFloat(SHADER_MAX_LUMINANCE,
-                            maxLuminance * targetImageDescription->value().luminances.reference /
-                                (needsHDRmod ? imageDescription->value().getTFRefLuminance(-1) : imageDescription->value().luminances.reference));
+    shader->setUniformFloat(SHADER_MAX_LUMINANCE, maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000);
     shader->setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);

@@ -76,9 +76,19 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     if (format->swizzle.has_value())
         swizzle(format->swizzle.value());
 
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
+    }
+
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
+
     unbind();
 
     if (m_keepDataCopy) {
@@ -130,8 +140,16 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
     if (format->swizzle.has_value())
         swizzle(format->swizzle.value());
 
-    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
-        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
+    }
+
+    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+
+    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
 
@@ -139,6 +157,9 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
         int height = rect.y2 - rect.y1;
         GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
     });
+
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));

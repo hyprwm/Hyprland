@@ -2,8 +2,11 @@
 
 #include "../../helpers/Monitor.hpp"
 #include "../Workspace.hpp"
+#include "../state/FocusState.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../config/ConfigValue.hpp"
+
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Desktop;
 using namespace Desktop::History;
@@ -19,22 +22,9 @@ CWorkspaceHistoryTracker::CWorkspaceHistoryTracker() {
         track(workspace);
     });
 
-    static auto P1 = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
+    static auto P1 = g_pHookSystem->hookDynamic("focusedMon", [this](void* self, SCallbackInfo& info, std::any data) {
         auto mon = std::any_cast<PHLMONITOR>(data);
-        track(mon);
-    });
-}
-
-CWorkspaceHistoryTracker::SMonitorData& CWorkspaceHistoryTracker::dataFor(PHLMONITOR mon) {
-    for (auto& ref : m_monitorDatas) {
-        if (ref.monitor != mon)
-            continue;
-
-        return ref;
-    }
-
-    return m_monitorDatas.emplace_back(SMonitorData{
-        .monitor = mon,
+        track(mon->m_activeWorkspace);
     });
 }
 
@@ -55,41 +45,29 @@ void CWorkspaceHistoryTracker::track(PHLWORKSPACE w) {
     if (!w->m_monitor)
         return;
 
-    static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    static auto                   PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
 
-    auto&       data    = dataFor(w);
-    auto&       monData = dataFor(w->m_monitor.lock());
+    auto&                         data = dataFor(w);
 
-    if (!monData.workspace) {
-        data.previous.reset();
-        data.previousID   = WORKSPACE_INVALID;
-        data.previousName = "";
+    Hyprutils::Utils::CScopeGuard x([&] { setLastWorkspaceData(w); });
+
+    if (m_lastWorkspaceData.workspace == w && !*PALLOWWORKSPACECYCLES)
         return;
+
+    data.previous = m_lastWorkspaceData.workspace;
+    if (m_lastWorkspaceData.workspace) {
+        data.previousName = m_lastWorkspaceData.workspace->m_name;
+        data.previousID   = m_lastWorkspaceData.workspace->m_id;
+        data.previousMon  = m_lastWorkspaceData.workspace->m_monitor;
+    } else {
+        data.previousName = m_lastWorkspaceData.workspaceName;
+        data.previousID   = m_lastWorkspaceData.workspaceID;
+        data.previousMon  = m_lastWorkspaceData.monitor;
     }
-
-    if (monData.workspace == w && !*PALLOWWORKSPACECYCLES) {
-        track(w->m_monitor.lock());
-        return;
-    }
-
-    data.previous     = monData.workspace;
-    data.previousName = monData.workspace->m_name;
-    data.previousID   = monData.workspace->m_id;
-    data.previousMon  = monData.workspace->m_monitor;
-
-    track(w->m_monitor.lock());
-}
-
-void CWorkspaceHistoryTracker::track(PHLMONITOR mon) {
-    auto& data         = dataFor(mon);
-    data.workspace     = mon->m_activeWorkspace;
-    data.workspaceName = mon->m_activeWorkspace ? mon->m_activeWorkspace->m_name : "";
-    data.workspaceID   = mon->activeWorkspaceID();
 }
 
 void CWorkspaceHistoryTracker::gc() {
     std::erase_if(m_datas, [](const auto& e) { return !e.workspace; });
-    std::erase_if(m_monitorDatas, [](const auto& e) { return !e.monitor; });
 }
 
 const CWorkspaceHistoryTracker::SWorkspacePreviousData* CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws) {
@@ -155,4 +133,16 @@ SWorkspaceIDName CWorkspaceHistoryTracker::previousWorkspaceIDName(PHLWORKSPACE 
         return SWorkspaceIDName{.id = WORKSPACE_INVALID};
 
     return SWorkspaceIDName{.id = DATA->previousID, .name = DATA->previousName, .isAutoIDd = DATA->previousID <= 0};
+}
+
+void CWorkspaceHistoryTracker::setLastWorkspaceData(PHLWORKSPACE w) {
+    if (!w) {
+        m_lastWorkspaceData = {};
+        return;
+    }
+
+    m_lastWorkspaceData.workspace     = w;
+    m_lastWorkspaceData.workspaceID   = w->m_id;
+    m_lastWorkspaceData.workspaceName = w->m_name;
+    m_lastWorkspaceData.monitor       = w->m_monitor;
 }

@@ -896,7 +896,9 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             std::vector<SFragShaderDesc> CM_SHADERS = {{
                 {SH_FRAG_CM_RGBA, "CMrgba.frag"},
+                {SH_FRAG_CM_RGBA_DISCARD, "CMrgbadiscard.frag"},
                 {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
+                {SH_FRAG_CM_RGBX_DISCARD, "CMrgbadiscard.frag"},
                 {SH_FRAG_CM_BLURPREPARE, "CMblurprepare.frag"},
                 {SH_FRAG_CM_BORDER1, "CMborder.frag"},
             }};
@@ -1364,10 +1366,17 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader) {
-        if (texType == TEXTURE_RGBA)
-            shader = m_shaders->frag[SH_FRAG_CM_RGBA];
-        else if (texType == TEXTURE_RGBX)
-            shader = m_shaders->frag[SH_FRAG_CM_RGBX];
+        if (!data.discardActive) {
+            if (texType == TEXTURE_RGBA)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA];
+            else if (texType == TEXTURE_RGBX)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBX];
+        } else {
+            if (texType == TEXTURE_RGBA)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
+            else if (texType == TEXTURE_RGBX)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
+        }
 
         shader = useShader(shader);
 

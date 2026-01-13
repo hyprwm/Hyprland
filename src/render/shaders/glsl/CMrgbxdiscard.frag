@@ -10,6 +10,11 @@ uniform int targetTF; // eTransferFunction
 uniform mat4x2 targetPrimaries;
 
 uniform float alpha;
+
+uniform bool discardOpaque;
+uniform bool discardAlpha;
+uniform float discardAlphaValue;
+
 uniform bool applyTint;
 uniform vec3 tint;
 
@@ -18,7 +23,13 @@ uniform vec3 tint;
 
 layout(location = 0) out vec4 fragColor;
 void main() {
-    vec4 pixColor = texture(tex, v_texcoord);
+    vec4 pixColor = vec4(texture(tex, v_texcoord).rgb, 1.0);
+
+    if (discardOpaque && pixColor.a * alpha == 1.0)
+        discard;
+
+    if (discardAlpha && pixColor.a <= discardAlphaValue)
+        discard;
 
     // this shader shouldn't be used when skipCM == 1
     pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);

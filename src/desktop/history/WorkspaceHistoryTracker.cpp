@@ -4,6 +4,7 @@
 #include "../Workspace.hpp"
 #include "../state/FocusState.hpp"
 #include "../../managers/HookSystemManager.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../config/ConfigValue.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -24,7 +25,14 @@ CWorkspaceHistoryTracker::CWorkspaceHistoryTracker() {
 
     static auto P1 = g_pHookSystem->hookDynamic("focusedMon", [this](void* self, SCallbackInfo& info, std::any data) {
         auto mon = std::any_cast<PHLMONITOR>(data);
-        track(mon->m_activeWorkspace);
+
+        // This sucks ASS, but we have to do this because switching to a workspace on another mon will trigger a workspace event right afterwards and we don't
+        // want to remember the workspace that was not visible there
+        // TODO: do something about this
+        g_pEventLoopManager->doLater([this, mon = PHLMONITORREF{mon}] {
+            if (mon)
+                track(mon->m_activeWorkspace);
+        });
     });
 }
 
@@ -42,7 +50,7 @@ CWorkspaceHistoryTracker::SWorkspacePreviousData& CWorkspaceHistoryTracker::data
 }
 
 void CWorkspaceHistoryTracker::track(PHLWORKSPACE w) {
-    if (!w->m_monitor)
+    if (!w || !w->m_monitor || w == m_lastWorkspaceData.workspace)
         return;
 
     static auto                   PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");

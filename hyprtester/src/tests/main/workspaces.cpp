@@ -247,6 +247,18 @@ static void testMultimonBAF() {
         EXPECT_CONTAINS(str, "active workspace: 4");
         EXPECT_CONTAINS(str, "active workspace: 3");
     }
+
+    OK(getFromSocket("/dispatch workspace 2"));
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 1"));
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
+    }
+
+    Tests::killAllWindows();
 }
 
 static bool test() {

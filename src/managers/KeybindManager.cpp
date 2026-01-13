@@ -3164,11 +3164,21 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
     try {
         if (PROP == "max_size") {
-            PWINDOW->m_ruleApplicator->maxSizeOverride(Desktop::Types::COverridableVar(configStringToVector2D(VAL), Desktop::Types::PRIORITY_SET_PROP));
+            const auto SIZE = PWINDOW->calculateExpression(VAL);
+            if (!SIZE) {
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", VAL);
+                throw "failed to parse expression";
+            }
+            PWINDOW->m_ruleApplicator->maxSizeOverride(Desktop::Types::COverridableVar(*SIZE, Desktop::Types::PRIORITY_SET_PROP));
             PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_ruleApplicator->maxSize().value());
             PWINDOW->setHidden(false);
         } else if (PROP == "min_size") {
-            PWINDOW->m_ruleApplicator->minSizeOverride(Desktop::Types::COverridableVar(configStringToVector2D(VAL), Desktop::Types::PRIORITY_SET_PROP));
+            const auto SIZE = PWINDOW->calculateExpression(VAL);
+            if (!SIZE) {
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", VAL);
+                throw "failed to parse expression";
+            }
+            PWINDOW->m_ruleApplicator->minSizeOverride(Desktop::Types::COverridableVar(*SIZE, Desktop::Types::PRIORITY_SET_PROP));
             PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_ruleApplicator->minSize().value());
             PWINDOW->setHidden(false);
         } else if (PROP == "active_border_color" || PROP == "inactive_border_color") {

@@ -495,10 +495,10 @@ static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
 }
 
 void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf) {
-    auto       oldImageDescription = m_imageDescription;
-    const auto chosenSdrEotf       = chooseTF(cmSdrEotf);
+    auto                                                              oldImageDescription = m_imageDescription;
+    const auto                                                        chosenSdrEotf       = chooseTF(cmSdrEotf);
 
-    const auto  masteringPrimaries                                                        = getMasteringPrimaries();
+    const auto                                                        masteringPrimaries  = getMasteringPrimaries();
     const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
 
     const auto                                                        maxFALL = this->maxFALL();

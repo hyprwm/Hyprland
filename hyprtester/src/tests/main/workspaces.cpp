@@ -196,8 +196,6 @@ static bool testAsymmetricGaps() {
 static void testMultimonBAF() {
     NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
 
-    Tests::killAllWindows();
-
     OK(getFromSocket("/keyword binds:workspace_back_and_forth 1"));
 
     OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
@@ -597,14 +595,14 @@ static bool test() {
         EXPECT_CONTAINS(str, "class: kitty_B");
     }
 
+    // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
     testMultimonBAF();
 
     // destroy the headless output
     OK(getFromSocket("/output remove HEADLESS-3"));
-
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 
     testSpecialWorkspaceFullscreen();
 

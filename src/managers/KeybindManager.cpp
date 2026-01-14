@@ -3179,7 +3179,7 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
                 throw "failed to parse expression";
             }
             PWINDOW->m_ruleApplicator->minSizeOverride(Desktop::Types::COverridableVar(*SIZE, Desktop::Types::PRIORITY_SET_PROP));
-            PWINDOW->clampWindowSize(std::nullopt, PWINDOW->m_ruleApplicator->minSize().value());
+            PWINDOW->clampWindowSize(PWINDOW->m_ruleApplicator->minSize().value(), std::nullopt);
             PWINDOW->setHidden(false);
         } else if (PROP == "active_border_color" || PROP == "inactive_border_color") {
             CGradientValueData colorData = {};

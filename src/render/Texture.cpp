@@ -4,6 +4,9 @@
 #include "../protocols/types/Buffer.hpp"
 #include "../helpers/Format.hpp"
 #include <cstring>
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 
 CTexture::CTexture() = default;
 
@@ -61,7 +64,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
 void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+    const auto format = getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
     m_type          = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
@@ -93,7 +96,7 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
         return;
     }
 
-    m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
+    m_opaque = isDrmFormatOpaque(attrs.format);
 
     // #TODO external only formats should be external aswell.
     // also needs a seperate color shader.
@@ -102,7 +105,7 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
         m_type   = TEXTURE_EXTERNAL;
     } else {*/
     m_target = GL_TEXTURE_2D;
-    m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    m_type   = isDrmFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
     //}
 
     m_size = attrs.size;
@@ -122,7 +125,7 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+    const auto format = getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
     bind();

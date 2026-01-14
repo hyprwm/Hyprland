@@ -1,5 +1,8 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 
 CFramebuffer::CFramebuffer() {
     ;
@@ -30,7 +33,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     }
 
     if (firstAlloc || sizeChanged || formatChanged) {
-        const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+        const auto format = getPixelFormatFromDRM(drmFormat);
         m_tex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);

@@ -234,8 +234,8 @@ static void testMultimonBAF() {
         EXPECT_CONTAINS(str, "workspace ID 4 ");
     }
 
-    OK(getFromSocket("/dispatch workspace 2"));
-    OK(getFromSocket("/dispatch workspace 2"));
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 3"));
 
     {
         auto str = getFromSocket("/activeworkspace");
@@ -245,7 +245,7 @@ static void testMultimonBAF() {
     {
         auto str = getFromSocket("/monitors");
         EXPECT_CONTAINS(str, "active workspace: 4");
-        EXPECT_CONTAINS(str, "active workspace: 2");
+        EXPECT_CONTAINS(str, "active workspace: 3");
     }
 
     OK(getFromSocket("/dispatch workspace 2"));

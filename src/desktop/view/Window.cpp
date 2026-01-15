@@ -2220,8 +2220,8 @@ void CWindow::mapWindow() {
     // m_hasSwallower prevents secondary windows to swallow the parent when it's been unswallowed with `toggleswallow`.
     if (SWALLOWEE && !SWALLOWEE->m_hasSwallower) {
         SWALLOWEE->m_currentlySwallowed = true;
-        SWALLOWEE->m_hasSwallower = true;
-        m_swallowee = SWALLOWEE;
+        SWALLOWEE->m_hasSwallower       = true;
+        m_swallowee                     = SWALLOWEE;
     }
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
@@ -2459,7 +2459,7 @@ void CWindow::unmapWindow() {
         }
 
         SWALLOWEE->m_groupSwallowed = false;
-        SWALLOWEE->m_hasSwallower = false;
+        SWALLOWEE->m_hasSwallower   = false;
         m_swallowee.reset();
     }
 

@@ -2340,19 +2340,19 @@ SDispatchResult CKeybindManager::tagWindow(std::string args) {
 SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
     PHLWINDOWREF pWindow = Desktop::focusState()->window();
 
-    if (!valid(pWindow) || !valid(pWindow->m_swallowed))
+    if (!valid(pWindow) || !valid(pWindow->m_swallowee))
         return {};
 
-    if (pWindow->m_swallowed->m_currentlySwallowed) {
+    if (pWindow->m_swallowee->m_currentlySwallowed) {
         // Unswallow
-        pWindow->m_swallowed->m_currentlySwallowed = false;
-        pWindow->m_swallowed->setHidden(false);
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow->m_swallowed.lock());
+        pWindow->m_swallowee->m_currentlySwallowed = false;
+        pWindow->m_swallowee->setHidden(false);
+        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow->m_swallowee.lock());
     } else {
         // Reswallow
-        pWindow->m_swallowed->m_currentlySwallowed = true;
-        pWindow->m_swallowed->setHidden(true);
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow->m_swallowed.lock());
+        pWindow->m_swallowee->m_currentlySwallowed = true;
+        pWindow->m_swallowee->setHidden(true);
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow->m_swallowee.lock());
     }
 
     return {};

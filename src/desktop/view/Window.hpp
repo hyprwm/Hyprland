@@ -232,7 +232,7 @@ namespace Desktop::View {
         PHLANIMVAR<float> m_movingToWorkspaceAlpha;
 
         // swallowing
-        PHLWINDOWREF m_swallowed;
+        PHLWINDOWREF m_swallowee;
         bool         m_currentlySwallowed = false;
         bool         m_groupSwallowed     = false;
         bool         m_hasSwallower       = false;
@@ -323,7 +323,7 @@ namespace Desktop::View {
         std::string                fetchTitle();
         std::string                fetchClass();
         void                       warpCursor(bool force = false);
-        PHLWINDOW                  getSwallower();
+        PHLWINDOW                  getSwallowee();
         bool                       isX11OverrideRedirect();
         bool                       isModal();
         Vector2D                   realToReportSize();

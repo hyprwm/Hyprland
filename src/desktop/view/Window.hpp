@@ -221,6 +221,7 @@ namespace Desktop::View {
         PHLWINDOWREF m_swallowed;
         bool         m_currentlySwallowed = false;
         bool         m_groupSwallowed     = false;
+        bool         m_hasSwallower       = false;
 
         // for toplevel monitor events
         MONITORID m_lastSurfaceMonitorID = -1;

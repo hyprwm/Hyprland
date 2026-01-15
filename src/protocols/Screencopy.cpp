@@ -425,6 +425,7 @@ bool CScreencopyFrame::copyShm() {
         }
     }
 
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
     g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

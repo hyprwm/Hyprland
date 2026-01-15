@@ -334,6 +334,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     }
 
     outFB.unbind();
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     return true;

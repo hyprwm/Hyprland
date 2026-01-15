@@ -161,6 +161,7 @@ class CCompositor {
     void                                onNewMonitor(SP<Aquamarine::IOutput> output);
     void                                ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
     std::optional<unsigned int>         getVTNr();
+    bool                                isVRRActiveOnAnyMonitor() const;
 
     NColorManagement::PImageDescription getPreferredImageDescription();
     NColorManagement::PImageDescription getHDRImageDescription();

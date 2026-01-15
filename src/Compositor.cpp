@@ -3099,3 +3099,7 @@ std::optional<unsigned int> CCompositor::getVTNr() {
 
     return ttynum;
 }
+
+bool CCompositor::isVRRActiveOnAnyMonitor() const {
+    return std::ranges::any_of(m_monitors, [](const PHLMONITOR& m) { return m->m_vrrActive; });
+}

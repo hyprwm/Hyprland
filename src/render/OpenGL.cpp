@@ -1502,10 +1502,20 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     // at the cost of some temporar vram usage.
     glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
     if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        const float customUVs[] = {
-            m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVTopLeft.x,
-            m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVBottomRight.y,
-            m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y,
+        constexpr float UV_EPSILON = 1.0f / 65536.0f;
+        auto            clamp      = [](float v) -> float {
+            float clamped = std::min(1.0f - UV_EPSILON, std::max(0.0f, v));
+            return sc<uint16_t>(std::round(clamped * 65535.0f));
+        };
+
+        const uint16_t customUVs[] = {
+            clamp(m_renderData.primarySurfaceUVBottomRight.x), clamp(m_renderData.primarySurfaceUVTopLeft.y),
+
+            clamp(m_renderData.primarySurfaceUVTopLeft.x),     clamp(m_renderData.primarySurfaceUVTopLeft.y),
+
+            clamp(m_renderData.primarySurfaceUVBottomRight.x), clamp(m_renderData.primarySurfaceUVBottomRight.y),
+
+            clamp(m_renderData.primarySurfaceUVTopLeft.x),     clamp(m_renderData.primarySurfaceUVBottomRight.y),
         };
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
     } else

@@ -35,12 +35,13 @@
 struct gbm_device;
 class CHyprRenderer;
 
-inline const float fullVerts[] = {
-    1, 0, // top right
-    0, 0, // top left
-    1, 1, // bottom right
-    0, 1, // bottom left
+inline const uint16_t fullVerts[] = {
+    65535, 0,     // top right
+    0,     0,     // top left
+    65535, 65535, // bottom right
+    0,     65535, // bottom left
 };
+
 inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 enum eDiscardMode : uint8_t {

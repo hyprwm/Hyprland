@@ -18,7 +18,7 @@ class CMonitorFrameScheduler {
     CMonitorFrameScheduler& operator=(CMonitorFrameScheduler&&)      = delete;
 
     void                    onSyncFired();
-    void                    onPresented();
+    void                    onPresented(const Time::steady_tp& when);
     void                    onFrame();
 
   private:
@@ -28,12 +28,10 @@ class CMonitorFrameScheduler {
 
     bool                       m_renderAtFrame = true;
     bool                       m_pendingThird  = false;
+    bool                       m_skipThird     = false;
     hrc::time_point            m_lastRenderBegun;
 
     PHLMONITORREF              m_monitor;
-
-    UP<CEGLSync>               m_sync;
-
     WP<CMonitorFrameScheduler> m_self;
 
     friend class CMonitor;

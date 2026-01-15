@@ -3,6 +3,7 @@
 #include "../Compositor.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/SurfaceManager.hpp"
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
@@ -16,7 +17,7 @@ bool CMonitorFrameScheduler::newSchedulingEnabled() {
 
 void CMonitorFrameScheduler::onSyncFired() {
 
-    if (!newSchedulingEnabled())
+    if (!newSchedulingEnabled() || m_skipThird)
         return;
 
     // Sync fired: reset submitted state, set as rendered. Check the last render time. If we are running
@@ -25,21 +26,27 @@ void CMonitorFrameScheduler::onSyncFired() {
     if (std::chrono::duration_cast<std::chrono::microseconds>(hrc::now() - m_lastRenderBegun).count() / 1000.F < 1000.F / m_monitor->m_refreshRate) {
         // we are in. Frame is valid. We can just render as normal.
         Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, didn't miss.", m_monitor->m_name);
+        if (!m_renderAtFrame)
+            g_pCompositor->scheduleFrameForMonitor(m_monitor.lock());
+
         m_renderAtFrame = true;
+        return;
+    } else if (m_renderAtFrame) {
+        m_renderAtFrame = false;
+        g_pCompositor->scheduleFrameForMonitor(m_monitor.lock());
         return;
     }
 
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, missed.", m_monitor->m_name);
-
+    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onSyncFired, rendering third frame.", m_monitor->m_name);
     // we are out. The frame is taking too long to render. Begin rendering immediately, but don't commit yet.
-    m_pendingThird  = true;
-    m_renderAtFrame = false; // block frame rendering, we already scheduled
+    m_pendingThird = true;
 
     m_lastRenderBegun = hrc::now();
 
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
     auto self = m_self;
+    g_pSurfaceManager->sendScheduledFrames(m_monitor, Time::steadyNow());
 
     g_pHyprRenderer->renderMonitor(m_monitor.lock(), false);
 
@@ -49,31 +56,28 @@ void CMonitorFrameScheduler::onSyncFired() {
     onFinishRender();
 }
 
-void CMonitorFrameScheduler::onPresented() {
+void CMonitorFrameScheduler::onPresented(const Time::steady_tp& now) {
+    g_pSurfaceManager->sendScheduledFrames(m_monitor, now);
+
     if (!newSchedulingEnabled())
         return;
+
+    m_skipThird = false;
 
     if (!m_pendingThird)
         return;
 
     Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending.", m_monitor->m_name);
-
     m_pendingThird = false;
+    auto mon       = m_monitor.lock();
 
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", m_monitor->m_name);
+    g_pHyprRenderer->commitPendingAndDoExplicitSync(mon, true); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
+    m_skipThird = true;
 
-    m_pendingThird = false;
-
-    g_pEventLoopManager->doLater([m = m_monitor.lock()] {
-        if (!m)
-            return;
-        g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
-
-        // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
-        // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
-        if (m->m_damage.hasChanged())
-            g_pCompositor->scheduleFrameForMonitor(m);
-    });
+    // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
+    // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
+    if (mon->m_damage.hasChanged())
+        g_pCompositor->scheduleFrameForMonitor(mon);
 }
 
 void CMonitorFrameScheduler::onFrame() {
@@ -100,20 +104,12 @@ void CMonitorFrameScheduler::onFrame() {
         return;
     }
 
-    if (!m_renderAtFrame) {
-        Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, but m_renderAtFrame = false.", m_monitor->m_name);
-        return;
-    }
-
-    Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> frame event, render = true, rendering normally.", m_monitor->m_name);
-
     m_lastRenderBegun = hrc::now();
-
     // get a ref to ourselves. renderMonitor can destroy this scheduler if it decides to perform a monitor reload
     // FIXME: this is horrible. "renderMonitor" should not be able to do that.
     auto self = m_self;
 
-    g_pHyprRenderer->renderMonitor(m_monitor.lock());
+    g_pHyprRenderer->renderMonitor(m_monitor.lock(), true, (m_renderAtFrame && !m_pendingThird));
 
     if (!self)
         return;
@@ -122,8 +118,12 @@ void CMonitorFrameScheduler::onFrame() {
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
-    m_sync = CEGLSync::create(); // this destroys the old sync
-    g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
+    if (!m_monitor->m_inFence.isValid()) {
+        Log::logger->log(Log::ERR, "CMonitorFrameScheduler: {} -> onFinishRender, m_inFence is not valid.", m_monitor->m_name);
+        return;
+    }
+
+    g_pEventLoopManager->doOnReadable(m_monitor->m_inFence.duplicate(), [this, self = m_self] {
         if (!self) // might've gotten destroyed
             return;
         onSyncFired();

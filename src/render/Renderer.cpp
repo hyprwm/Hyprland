@@ -16,6 +16,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/GlobalViewMethods.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../managers/SurfaceManager.hpp"
 #include "../protocols/SessionLock.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/XDGShell.hpp"
@@ -170,9 +171,10 @@ CHyprRenderer::CHyprRenderer() {
                 if (!w->wlSurface() || !w->wlSurface()->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                w->wlSurface()->resource()->frame(Time::steadyNow());
+                g_pSurfaceManager->scheduleForFrame(Desktop::focusState()->monitor(), w->wlSurface()->resource());
                 auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->wlSurface()->resource());
                 FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
+
                 FEEDBACK->discarded();
                 PROTO::presentation->queueData(std::move(FEEDBACK));
             }
@@ -1260,7 +1262,7 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit, bool dropBuffers) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -1488,7 +1490,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
                                                                 Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
     if (commit)
-        commitPendingAndDoExplicitSync(pMonitor);
+        commitPendingAndDoExplicitSync(pMonitor, dropBuffers);
 
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;
@@ -1558,7 +1560,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     };
 }
 
-bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor, bool dropBuffers) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
@@ -1678,6 +1680,28 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
 
+    if (!g_pHyprOpenGL->explicitSyncSupported()) {
+        static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+        Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
+
+        // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderer seems to bug out aswell.
+        if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
+            glFinish();
+        else
+            glFlush(); // mark an implicit sync point
+
+        pMonitor->m_inFence.reset();
+    } else {
+        if (pMonitor->m_inFence.isValid()) {
+            if (m_renderMode == RENDER_MODE_NORMAL) {
+                pMonitor->m_output->state->setExplicitInFence(pMonitor->m_inFence.get());
+            }
+        }
+    }
+
+    if (dropBuffers)
+        g_pSurfaceManager->dropBuffers(pMonitor);
+
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
@@ -1718,7 +1742,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
         if (!view->aliveAndVisible())
             continue;
 
-        view->wlSurface()->resource()->frame(now);
+        g_pSurfaceManager->scheduleForFrame(pMonitor, view->wlSurface()->resource());
     }
 }
 
@@ -2362,42 +2386,29 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         else
             glFlush(); // mark an implicit sync point
 
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
         if (renderingDoneCallback)
             renderingDoneCallback();
+    } else {
+        UP<CEGLSync> eglSync = CEGLSync::create();
+        if (eglSync && eglSync->isValid()) {
+            if (renderingDoneCallback) {
+                g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback]() {
+                    if (renderingDoneCallback)
+                        renderingDoneCallback();
+                });
+            }
 
-        return;
-    }
-
-    UP<CEGLSync> eglSync = CEGLSync::create();
-    if (eglSync && eglSync->isValid()) {
-        for (auto const& buf : m_usedAsyncBuffers) {
-            for (const auto& releaser : buf->m_syncReleasers) {
-                releaser->addSyncFileFd(eglSync->fd());
+            if (m_renderMode == RENDER_MODE_NORMAL) {
+                PMONITOR->m_inFence = eglSync->takeFd();
+                g_pSurfaceManager->addFence(PMONITOR);
+            }
+        } else {
+            Log::logger->log(Log::ERR, "renderer: Explicit sync failed, calling renderingDoneCallback without sync");
+            if (renderingDoneCallback) {
+                Log::logger->log(Log::ERR, "renderer: Explicit sync failed, calling renderingDoneCallback without sync");
+                renderingDoneCallback();
             }
         }
-
-        // release buffer refs with release points now, since syncReleaser handles actual buffer release based on EGLSync
-        std::erase_if(m_usedAsyncBuffers, [](const auto& buf) { return !buf->m_syncReleasers.empty(); });
-
-        // release buffer refs without release points when EGLSync sync_file/fence is signalled
-        g_pEventLoopManager->doOnReadable(eglSync->fd().duplicate(), [renderingDoneCallback, prevbfs = std::move(m_usedAsyncBuffers)]() mutable {
-            prevbfs.clear();
-            if (renderingDoneCallback)
-                renderingDoneCallback();
-        });
-        m_usedAsyncBuffers.clear();
-
-        if (m_renderMode == RENDER_MODE_NORMAL) {
-            PMONITOR->m_inFence = eglSync->takeFd();
-            PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
-        }
-    } else {
-        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, releasing resources");
-
-        m_usedAsyncBuffers.clear(); // release all buffer refs and hope implicit sync works
-        if (renderingDoneCallback)
-            renderingDoneCallback();
     }
 }
 

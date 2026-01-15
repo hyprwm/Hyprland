@@ -218,14 +218,14 @@ void CShader::createVao() {
         glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts.data(), GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_POS_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SVertex), (void*)offsetof(SVertex, x));
+        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, x));
     }
 
     // UV VBO (dynamic, may be updated per frame)
     if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1 && shaderVbo != 0) {
         glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_TEX_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SVertex), (void*)offsetof(SVertex, u));
+        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, u));
     }
 
     glBindVertexArray(0);

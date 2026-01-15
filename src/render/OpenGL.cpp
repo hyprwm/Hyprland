@@ -1507,12 +1507,10 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     auto verts = fullVerts;
 
     if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        auto           clamp = [](float v) -> uint16_t { return (uint16_t)std::clamp(std::lround(v * 65535.0f), 0L, 65535L); };
-
-        const uint16_t u0 = clamp(m_renderData.primarySurfaceUVTopLeft.x);
-        const uint16_t v0 = clamp(m_renderData.primarySurfaceUVTopLeft.y);
-        const uint16_t u1 = clamp(m_renderData.primarySurfaceUVBottomRight.x);
-        const uint16_t v1 = clamp(m_renderData.primarySurfaceUVBottomRight.y);
+        const float u0 = m_renderData.primarySurfaceUVTopLeft.x;
+        const float v0 = m_renderData.primarySurfaceUVTopLeft.y;
+        const float u1 = m_renderData.primarySurfaceUVBottomRight.x;
+        const float v1 = m_renderData.primarySurfaceUVBottomRight.y;
 
         verts[0].u = u0;
         verts[0].v = v0;

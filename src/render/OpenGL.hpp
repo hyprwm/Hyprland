@@ -36,15 +36,15 @@ struct gbm_device;
 class CHyprRenderer;
 
 struct SVertex {
-    uint16_t x, y; // position
-    uint16_t u, v; // uv
+    float x, y; // position
+    float u, v; // uv
 };
 
 constexpr std::array<SVertex, 4> fullVerts = {{
-    {0, 0, 0, 0},                 // top left
-    {0, 65535, 0, 65535},         // bottom left
-    {65535, 0, 65535, 0},         // top right
-    {65535, 65535, 65535, 65535}, // bottom right
+    {0.0f, 0.0f, 0.0f, 0.0f}, // top-left
+    {0.0f, 1.0f, 0.0f, 1.0f}, // bottom-left
+    {1.0f, 0.0f, 1.0f, 0.0f}, // top-right
+    {1.0f, 1.0f, 1.0f, 1.0f}, // bottom-right
 }};
 
 inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};

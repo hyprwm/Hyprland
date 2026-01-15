@@ -16,6 +16,8 @@ class CDesktopAnimationManager {
     void startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left = true, bool instant = false);
 
     void setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimationType type);
+    void setFadeInWindowOnFocusOverFullscreen(PHLWINDOW pWindow, PHLWORKSPACE ws);
+
     void overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude = nullptr);
 
   private:

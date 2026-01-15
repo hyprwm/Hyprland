@@ -785,10 +785,10 @@ static bool test() {
 
     Tests::killAllWindows();
 
-    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:match:class magic_kitty"));
+    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:match:class magic_kitty_2"));
     OK(getFromSocket("/keyword windowrule[border-magic-kitty]:border_color rgba(c6ff00ff) rgba(ff0000ee) 45deg"));
 
-    if (!spawnKitty("magic_kitty"))
+    if (!spawnKitty("magic_kitty_2"))
         return false;
 
     {

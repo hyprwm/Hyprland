@@ -193,6 +193,68 @@ static bool testAsymmetricGaps() {
     return true;
 }
 
+static void testMultimonBAF() {
+    NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
+
+    OK(getFromSocket("/keyword binds:workspace_back_and_forth 1"));
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch workspace 2"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 4"));
+    OK(getFromSocket("/dispatch workspace 4"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 2"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 2"));
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 1"));
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
+    }
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
@@ -527,12 +589,14 @@ static bool test() {
         EXPECT_CONTAINS(str, "class: kitty_B");
     }
 
-    // destroy the headless output
-    OK(getFromSocket("/output remove HEADLESS-3"));
-
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
+
+    testMultimonBAF();
+
+    // destroy the headless output
+    OK(getFromSocket("/output remove HEADLESS-3"));
 
     testSpecialWorkspaceFullscreen();
 

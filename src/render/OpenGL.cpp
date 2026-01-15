@@ -43,6 +43,7 @@
 #include <fcntl.h>
 #include <gbm.h>
 #include <filesystem>
+#include <cstring>
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
@@ -1496,30 +1497,34 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
-    glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
+    glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO));
+
     // this tells GPU can keep reading the old block for previous draws while the CPU writes to a new one.
     // to avoid stalls if renderTextureInternal is called multiple times on same renderpass
     // at the cost of some temporar vram usage.
     glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
+
+    auto verts = fullVerts;
+
     if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        constexpr float UV_EPSILON = 1.0f / 65536.0f;
-        auto            clamp      = [](float v) -> float {
-            float clamped = std::min(1.0f - UV_EPSILON, std::max(0.0f, v));
-            return sc<uint16_t>(std::round(clamped * 65535.0f));
-        };
+        auto           clamp = [](float v) -> uint16_t { return (uint16_t)std::clamp(std::lround(v * 65535.0f), 0L, 65535L); };
 
-        const uint16_t customUVs[] = {
-            clamp(m_renderData.primarySurfaceUVBottomRight.x), clamp(m_renderData.primarySurfaceUVTopLeft.y),
+        const uint16_t u0 = clamp(m_renderData.primarySurfaceUVTopLeft.x);
+        const uint16_t v0 = clamp(m_renderData.primarySurfaceUVTopLeft.y);
+        const uint16_t u1 = clamp(m_renderData.primarySurfaceUVBottomRight.x);
+        const uint16_t v1 = clamp(m_renderData.primarySurfaceUVBottomRight.y);
 
-            clamp(m_renderData.primarySurfaceUVTopLeft.x),     clamp(m_renderData.primarySurfaceUVTopLeft.y),
+        verts[0].u = u0;
+        verts[0].v = v0;
+        verts[1].u = u0;
+        verts[1].v = v1;
+        verts[2].u = u1;
+        verts[2].v = v0;
+        verts[3].u = u1;
+        verts[3].v = v1;
+    }
 
-            clamp(m_renderData.primarySurfaceUVBottomRight.x), clamp(m_renderData.primarySurfaceUVBottomRight.y),
-
-            clamp(m_renderData.primarySurfaceUVTopLeft.x),     clamp(m_renderData.primarySurfaceUVBottomRight.y),
-        };
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
-    } else
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data());
 
     if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
         CRegion damageClip = m_renderData.clipBox;

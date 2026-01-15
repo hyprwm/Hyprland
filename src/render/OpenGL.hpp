@@ -35,14 +35,19 @@
 struct gbm_device;
 class CHyprRenderer;
 
-inline const uint16_t fullVerts[] = {
-    65535, 0,     // top right
-    0,     0,     // top left
-    65535, 65535, // bottom right
-    0,     65535, // bottom left
+struct SVertex {
+    uint16_t x, y; // position
+    uint16_t u, v; // uv
 };
 
-inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
+constexpr std::array<SVertex, 4> fullVerts = {{
+    {0, 0, 0, 0},                 // top left
+    {0, 65535, 0, 65535},         // bottom left
+    {65535, 0, 65535, 0},         // top right
+    {65535, 65535, 65535, 65535}, // bottom right
+}};
+
+inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 enum eDiscardMode : uint8_t {
     DISCARD_OPAQUE = 1,

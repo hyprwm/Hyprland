@@ -208,7 +208,7 @@ void CShader::getUniformLocations() {
 }
 
 void CShader::createVao() {
-    GLuint shaderVao = 0, shaderVbo = 0, shaderVboUv = 0;
+    GLuint shaderVao = 0, shaderVbo = 0;
 
     glGenVertexArrays(1, &shaderVao);
     glBindVertexArray(shaderVao);
@@ -216,30 +216,26 @@ void CShader::createVao() {
     if (m_uniformLocations[SHADER_POS_ATTRIB] != -1) {
         glGenBuffers(1, &shaderVbo);
         glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts.data(), GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_POS_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, nullptr);
+        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SVertex), (void*)offsetof(SVertex, x));
     }
 
     // UV VBO (dynamic, may be updated per frame)
-    if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1) {
-        glGenBuffers(1, &shaderVboUv);
-        glBindBuffer(GL_ARRAY_BUFFER, shaderVboUv);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts, GL_DYNAMIC_DRAW); // Initial dummy UVs
+    if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1 && shaderVbo != 0) {
+        glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_TEX_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, nullptr);
+        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_UNSIGNED_SHORT, GL_TRUE, sizeof(SVertex), (void*)offsetof(SVertex, u));
     }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    m_uniformLocations[SHADER_SHADER_VAO]     = shaderVao;
-    m_uniformLocations[SHADER_SHADER_VBO_POS] = shaderVbo;
-    m_uniformLocations[SHADER_SHADER_VBO_UV]  = shaderVboUv;
+    m_uniformLocations[SHADER_SHADER_VAO] = shaderVao;
+    m_uniformLocations[SHADER_SHADER_VBO] = shaderVbo;
 
     RASSERT(m_uniformLocations[SHADER_SHADER_VAO] >= 0, "SHADER_SHADER_VAO could not be created");
-    RASSERT(m_uniformLocations[SHADER_SHADER_VBO_POS] >= 0, "SHADER_SHADER_VBO_POS could not be created");
-    RASSERT(m_uniformLocations[SHADER_SHADER_VBO_UV] >= 0, "SHADER_SHADER_VBO_UV could not be created");
+    RASSERT(m_uniformLocations[SHADER_SHADER_VBO] >= 0, "SHADER_SHADER_VBO_POS could not be created");
 }
 
 void CShader::setUniformInt(eShaderUniform location, GLint v0) {
@@ -390,20 +386,16 @@ void CShader::destroy() {
     if (m_program == 0)
         return;
 
-    GLuint shaderVao, shaderVbo, shaderVboUv;
+    GLuint shaderVao, shaderVbo;
 
-    shaderVao   = m_uniformLocations[SHADER_SHADER_VAO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VAO];
-    shaderVbo   = m_uniformLocations[SHADER_SHADER_VBO_POS] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO_POS];
-    shaderVboUv = m_uniformLocations[SHADER_SHADER_VBO_UV] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO_UV];
+    shaderVao = m_uniformLocations[SHADER_SHADER_VAO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VAO];
+    shaderVbo = m_uniformLocations[SHADER_SHADER_VBO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO];
 
     if (shaderVao)
         glDeleteVertexArrays(1, &shaderVao);
 
     if (shaderVbo)
         glDeleteBuffers(1, &shaderVbo);
-
-    if (shaderVboUv)
-        glDeleteBuffers(1, &shaderVboUv);
 
     glDeleteProgram(m_program);
     m_program = 0;

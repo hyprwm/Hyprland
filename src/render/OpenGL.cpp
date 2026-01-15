@@ -1496,19 +1496,20 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
+    glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
+    // this tells GPU can keep reading the old block for previous draws while the CPU writes to a new one.
+    // to avoid stalls if renderTextureInternal is called multiple times on same renderpass
+    // at the cost of some temporar vram usage.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
     if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
         const float customUVs[] = {
             m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVTopLeft.x,
             m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVBottomRight.y,
             m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y,
         };
-
-        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
+    } else
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
-    }
 
     if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
         CRegion damageClip = m_renderData.clipBox;

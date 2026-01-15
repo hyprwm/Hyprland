@@ -23,6 +23,7 @@ enum eRectCorner : uint8_t {
     CORNER_TOPRIGHT    = (1 << 1),
     CORNER_BOTTOMRIGHT = (1 << 2),
     CORNER_BOTTOMLEFT  = (1 << 3),
+    CORNER_KEYBOARD    = (1 << 4),
 };
 
 inline eRectCorner cornerFromBox(const CBox& box, const Vector2D& pos) {

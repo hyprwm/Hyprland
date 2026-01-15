@@ -785,6 +785,21 @@ static bool test() {
 
     Tests::killAllWindows();
 
+    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:match:class magic_kitty"));
+    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:border_color rgba(c6ff00ff) rgba(ff0000ee) 45deg"));
+
+    if (!spawnKitty("magic_kitty"))
+        return false;
+
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "c6ff00ff");
+        EXPECT_CONTAINS(str, "ff0000ee");
+        EXPECT_CONTAINS(str, "45deg");
+    }
+
+    Tests::killAllWindows();
+
     if (!spawnKitty("tag_kitty"))
         return false;
 

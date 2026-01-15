@@ -2527,8 +2527,11 @@ void CWindow::unmapWindow() {
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
-            g_pInputManager->refocus();
+        if (!candidate && m_workspace && m_workspace->getWindows() == 0) {
+            static auto PSWITCHMONEMPTY = CConfigValue<Hyprlang::INT>("misc:switch_monitor_on_empty");
+            if (*PSWITCHMONEMPTY)
+                g_pInputManager->refocus();
+        }
 
         g_pInputManager->sendMotionEventsToFocused();
 

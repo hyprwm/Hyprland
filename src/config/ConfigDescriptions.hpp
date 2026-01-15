@@ -1261,6 +1261,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
+        .value       = "misc:switch_monitor_on_empty",
+        .description = "Whether to switch to another monitor when the last window on a workspace is closed and the mouse is on that monitor",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "misc:allow_session_lock_restore",
         .description = "if true, will allow you to restart a lockscreen app in case it crashes (red screen of death)",
         .type        = CONFIG_OPTION_BOOL,

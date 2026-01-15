@@ -216,6 +216,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     static auto PFOLLOWONDND          = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
     static auto PFLOATBEHAVIOR        = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
     static auto PMOUSEFOCUSMON        = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
+    static auto PSWITCHMONEMPTY       = CConfigValue<Hyprlang::INT>("misc:switch_monitor_on_empty");
     static auto PRESIZEONBORDER       = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PRESIZECURSORICON     = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
 
@@ -281,7 +282,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                              rc<uintptr_t>(CONSTRAINT.get()));
     }
 
-    if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
+    if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || (refocus && *PSWITCHMONEMPTY)) && m_forcedFocus.expired())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     // check for windows that have focus priority like our permission popups
@@ -1580,13 +1581,16 @@ void CInputManager::refocus(std::optional<Vector2D> overridePos) {
 }
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
+    static auto PSWITCHMONEMPTY = CConfigValue<Hyprlang::INT>("misc:switch_monitor_on_empty");
+
     if (!m_exclusiveLSes.empty()) {
         Log::logger->log(Log::DEBUG, "CInputManager::refocusLastWindow: ignoring, exclusive LS present.");
         return false;
     }
 
     if (!pMonitor) {
-        refocus();
+        if (*PSWITCHMONEMPTY)
+            refocus();
         return true;
     }
 
@@ -1623,7 +1627,8 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
             Desktop::focusState()->fullWindowFocus(PLASTWINDOW);
         }
 
-        refocus();
+        if (*PSWITCHMONEMPTY)
+            refocus();
     }
 
     return true;

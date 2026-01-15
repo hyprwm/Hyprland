@@ -485,10 +485,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
     }
 }
 
-void CDesktopAnimationManager::setFadeInWindowOnFocusOverFullscreen(PHLWINDOW pWindow, PHLWORKSPACE ws){
-    if (!ws || !ws->m_hasFullscreenWindow) 
-        return;
-
+void CDesktopAnimationManager::setFadeInWindowOnFocusOverFullscreen(PHLWINDOW pWindow) {
     if (pWindow->m_fadingOut || pWindow->isFullscreen())
         return;
 

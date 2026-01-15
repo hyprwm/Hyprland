@@ -418,10 +418,6 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCy
             Desktop::focusState()->rawMonitorFocus(PNEWMON);
         }
     }
-    if (PWINDOWTOCHANGETO->m_isFloating && PWINDOWTOCHANGETO->m_workspace->m_hasFullscreenWindow) {
-        g_pDesktopAnimationManager->setFadeInWindowOnFocusOverFullscreen(PWINDOWTOCHANGETO, PWINDOWTOCHANGETO->m_workspace);
-        PWINDOWTOCHANGETO->m_createdOverFullscreen = true;
-    }
 };
 
 bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {

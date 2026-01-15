@@ -2090,9 +2090,12 @@ void CWindow::mapWindow() {
 
     // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
     const auto SWALLOWER = getSwallower();
-    m_swallowed          = SWALLOWER;
-    if (m_swallowed)
-        m_swallowed->m_currentlySwallowed = true;
+    // m_hasSwallower prevents secondary windows to swallow the parent when it's been unswallowed with `toggleswallow`.
+    if (SWALLOWER && !SWALLOWER->m_hasSwallower) {
+        SWALLOWER->m_currentlySwallowed = true;
+        SWALLOWER->m_hasSwallower = true;
+        m_swallowed = SWALLOWER;
+    }
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
@@ -2223,7 +2226,7 @@ void CWindow::mapWindow() {
     }
 
     // swallow
-    if (SWALLOWER) {
+    if (m_swallowed) {
         g_layoutManager->removeTarget(SWALLOWER->layoutTarget());
         SWALLOWER->setHidden(true);
     }
@@ -2321,6 +2324,7 @@ void CWindow::unmapWindow() {
         }
 
         m_swallowed->m_groupSwallowed = false;
+        m_swallowed->m_hasSwallower = false;
         m_swallowed.reset();
     }
 

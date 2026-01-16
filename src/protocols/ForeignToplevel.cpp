@@ -145,7 +145,7 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
         }
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("windowTitle", [this](void* self, SCallbackInfo& info, std::any data) {
+    static auto P2 = g_pHookSystem->hookDynamic("windowtitle", [this](void* self, SCallbackInfo& info, std::any data) {
         auto window = std::any_cast<PHLWINDOW>(data);
 
         if (!windowValidForForeign(window))

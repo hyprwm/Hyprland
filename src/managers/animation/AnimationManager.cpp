@@ -252,8 +252,8 @@ void CHyprAnimationManager::frameTick() {
     if (!shouldTickForNext())
         return;
 
-    if (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
-        !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
+    if UNLIKELY (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
+                 !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
         return;
 
     if (!m_lastTickValid || m_lastTickTimer.getMillis() >= 1.0f) {

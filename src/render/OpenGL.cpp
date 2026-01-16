@@ -770,29 +770,29 @@ void CHyprOpenGLImpl::end() {
     TRACY_GPU_ZONE("RenderEnd");
 
     // end the render, copy the data to the main framebuffer
-    if (m_offloadedFramebuffer) {
+    if LIKELY (m_offloadedFramebuffer) {
         m_renderData.damage = m_renderData.finalDamage;
         pushMonitorTransformEnabled(true);
 
         CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-        if (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && m_renderData.mouseZoomFactor == 1.0f)
+        if LIKELY (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && m_renderData.mouseZoomFactor == 1.0f)
             m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
         m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
         m_applyFinalShader = !m_renderData.blockScreenShader;
-        if (m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
+        if UNLIKELY (m_renderData.mouseZoomFactor != 1.F && m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
             m_renderData.useNearestNeighbor = true;
 
         // copy the damaged areas into the mirror buffer
         // we can't use the offloadFB for mirroring, as it contains artifacts from blurring
-        if (!m_renderData.pMonitor->m_mirrors.empty() && !m_fakeFrame)
+        if UNLIKELY (!m_renderData.pMonitor->m_mirrors.empty() && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
         m_renderData.outFB->bind();
         blend(false);
 
-        if (m_finalScreenShader->program() < 1 && !g_pHyprRenderer->m_crashingInProgress)
+        if LIKELY (m_finalScreenShader->program() < 1 && !g_pHyprRenderer->m_crashingInProgress)
             renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox);
         else
             renderTexture(m_renderData.pCurrentMonData->offloadFB.getTexture(), monbox, {});
@@ -827,13 +827,13 @@ void CHyprOpenGLImpl::end() {
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,
     // but I haven't seen a single plugin yet use these, so it's better to drop a bit of vram.
-    if (m_renderData.pCurrentMonData->offMainFB.isAllocated())
+    if UNLIKELY (m_renderData.pCurrentMonData->offMainFB.isAllocated())
         m_renderData.pCurrentMonData->offMainFB.release();
 
     // check for gl errors
     const GLenum ERR = glGetError();
 
-    if (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
+    if UNLIKELY (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
         RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
 }
 
@@ -3076,7 +3076,7 @@ UP<CEGLSync> CEGLSync::create() {
 
     EGLSyncKHR sync = g_pHyprOpenGL->m_proc.eglCreateSyncKHR(g_pHyprOpenGL->m_eglDisplay, EGL_SYNC_NATIVE_FENCE_ANDROID, nullptr);
 
-    if (sync == EGL_NO_SYNC_KHR) {
+    if UNLIKELY (sync == EGL_NO_SYNC_KHR) {
         Log::logger->log(Log::ERR, "eglCreateSyncKHR failed");
         return nullptr;
     }
@@ -3085,7 +3085,7 @@ UP<CEGLSync> CEGLSync::create() {
     glFlush();
 
     int fd = g_pHyprOpenGL->m_proc.eglDupNativeFenceFDANDROID(g_pHyprOpenGL->m_eglDisplay, sync);
-    if (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
+    if UNLIKELY (fd == EGL_NO_NATIVE_FENCE_FD_ANDROID) {
         Log::logger->log(Log::ERR, "eglDupNativeFenceFDANDROID failed");
         return nullptr;
     }
@@ -3099,10 +3099,10 @@ UP<CEGLSync> CEGLSync::create() {
 }
 
 CEGLSync::~CEGLSync() {
-    if (m_sync == EGL_NO_SYNC_KHR)
+    if UNLIKELY (m_sync == EGL_NO_SYNC_KHR)
         return;
 
-    if (g_pHyprOpenGL && g_pHyprOpenGL->m_proc.eglDestroySyncKHR(g_pHyprOpenGL->m_eglDisplay, m_sync) != EGL_TRUE)
+    if UNLIKELY (g_pHyprOpenGL && g_pHyprOpenGL->m_proc.eglDestroySyncKHR(g_pHyprOpenGL->m_eglDisplay, m_sync) != EGL_TRUE)
         Log::logger->log(Log::ERR, "eglDestroySyncKHR failed");
 }
 

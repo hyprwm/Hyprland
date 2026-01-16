@@ -902,10 +902,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
     static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
 
-    if (!pMonitor)
+    if UNLIKELY (!pMonitor)
         return;
 
-    if (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
+    if UNLIKELY (g_pSessionLockManager->isSessionLocked() && !*PSESSIONLOCKXRAY) {
         // We stop to render workspaces as soon as the lockscreen was sent the "locked" or "finished" (aka denied) event.
         // In addition we make sure to stop rendering workspaces after misc:lockdead_screen_delay has passed.
         if (g_pSessionLockManager->shallConsiderLockMissing() || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
@@ -919,10 +919,10 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate));
-    if (scale != 1.f)
+    if UNLIKELY (scale != 1.f)
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
-    if (!RENDERMODIFDATA.modifs.empty())
+    if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
         g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
 
     CScopeGuard x([&RENDERMODIFDATA] {
@@ -931,7 +931,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         }
     });
 
-    if (!pWorkspace) {
+    if UNLIKELY (!pWorkspace) {
         // allow rendering without a workspace. In this case, just render layers.
 
         renderBackground(pMonitor);
@@ -957,7 +957,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         return;
     }
 
-    if (!*PXPMODE) {
+    if LIKELY (!*PXPMODE) {
         renderBackground(pMonitor);
 
         for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND]) {
@@ -974,13 +974,13 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     // pre window pass
     g_pHyprOpenGL->preWindowPass();
 
-    if (pWorkspace->m_hasFullscreenWindow)
+    if UNLIKELY /* subjective? */ (pWorkspace->m_hasFullscreenWindow)
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
     else
         renderWorkspaceWindows(pMonitor, pWorkspace, time);
 
     // and then special
-    if (pMonitor->m_specialFade->value() != 0.F) {
+    if UNLIKELY (pMonitor->m_specialFade->value() != 0.F) {
         const auto SPECIALANIMPROGRS = pMonitor->m_specialFade->getCurveValue();
         const bool ANIMOUT           = !pMonitor->m_activeSpecialWorkspace;
 
@@ -2370,7 +2370,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 
     UP<CEGLSync> eglSync = CEGLSync::create();
-    if (eglSync && eglSync->isValid()) {
+    if LIKELY (eglSync && eglSync->isValid()) {
         for (auto const& buf : m_usedAsyncBuffers) {
             for (const auto& releaser : buf->m_syncReleasers) {
                 releaser->addSyncFileFd(eglSync->fd());

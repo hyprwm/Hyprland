@@ -1,6 +1,7 @@
 #include "WorkspaceAlgoMatcher.hpp"
 
 #include "../../config/ConfigValue.hpp"
+#include "../../config/ConfigManager.hpp"
 
 #include "../algorithm/Algorithm.hpp"
 #include "../space/Space.hpp"
@@ -51,15 +52,18 @@ UP<IFloatingAlgorithm> CWorkspaceAlgoMatcher::algoForNameFloat(const std::string
     return m_floatingAlgos.at(DEFAULT_FLOATING_ALGO)();
 }
 
-SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w) {
+std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) {
     static auto PLAYOUT = CConfigValue<Hyprlang::STRING>("general:layout");
 
-    return CAlgorithm::create(algoForNameTiled(*PLAYOUT), makeUnique<Floating::CDefaultFloatingAlgorithm>(), w->m_space);
+    auto        rule = g_pConfigManager->getWorkspaceRuleFor(w);
+    return rule.layout.value_or(*PLAYOUT);
+}
+
+SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w) {
+    return CAlgorithm::create(algoForNameTiled(tiledAlgoForWorkspace(w)), makeUnique<Floating::CDefaultFloatingAlgorithm>(), w->m_space);
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
-    static auto PLAYOUT = CConfigValue<Hyprlang::STRING>("general:layout");
-
     // TODO: make this ID-based, string comparison is slow
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (!ws)
@@ -70,10 +74,12 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
         if (!TILED_ALGO)
             continue;
 
-        if (m_algoNames.at(&typeid(*TILED_ALGO.get())) == *PLAYOUT)
+        const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
+
+        if (m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
             continue;
 
         // needs a switchup
-        ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(*PLAYOUT));
+        ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));
     }
 }

@@ -1043,6 +1043,18 @@ void CMasterAlgorithm::calculateWorkspace() {
     }
 }
 
+SP<ITarget> CMasterAlgorithm::getNextCandidate(SP<ITarget> old) {
+    const auto MIDDLE = old->position().middle();
+
+    if (const auto NODE = getClosestNode(MIDDLE); NODE)
+        return NODE->pTarget.lock();
+
+    if (const auto NODE = getMasterNode(); NODE)
+        return NODE->pTarget.lock();
+
+    return nullptr;
+}
+
 SP<ITarget> CMasterAlgorithm::getNextTarget(SP<ITarget> t, bool next, bool loop) {
     if (t->floating())
         return nullptr;
@@ -1077,4 +1089,19 @@ int CMasterAlgorithm::getMastersNo() {
 
 bool CMasterAlgorithm::isWindowTiled(PHLWINDOW x) {
     return x && !x->layoutTarget()->floating();
+}
+
+SP<SMasterNodeData> CMasterAlgorithm::getClosestNode(const Vector2D& point) {
+    SP<SMasterNodeData> res         = nullptr;
+    double              distClosest = -1;
+    for (auto& n : m_masterNodesData) {
+        if (n->pTarget && Desktop::View::validMapped(n->pTarget->window())) {
+            auto distAnother = vecToRectDistanceSquared(point, n->position, n->position + n->size);
+            if (!res || distAnother < distClosest) {
+                res         = n;
+                distClosest = distAnother;
+            }
+        }
+    }
+    return res;
 }

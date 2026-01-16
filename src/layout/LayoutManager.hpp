@@ -73,7 +73,7 @@ namespace Layout {
 
         void                             moveInDirection(SP<ITarget> target, const std::string& direction, bool silent = false);
 
-        SP<ITarget>                      getNextCandidate(SP<ITarget> from);
+        SP<ITarget>                      getNextCandidate(SP<CSpace> space, SP<ITarget> from);
 
         bool                             isReachable(SP<ITarget> target);
 

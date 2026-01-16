@@ -26,6 +26,8 @@ namespace Layout {
         void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
         void                             moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent);
 
+        SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+
         void                             setFloating(SP<ITarget> target, bool floating);
 
         std::expected<void, std::string> layoutMsg(const std::string_view& sv);

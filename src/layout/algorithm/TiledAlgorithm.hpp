@@ -14,6 +14,8 @@ namespace Layout {
       public:
         virtual ~ITiledAlgorithm() = default;
 
+        virtual SP<ITarget> getNextCandidate(SP<ITarget> old) = 0;
+
       protected:
         ITiledAlgorithm() = default;
 

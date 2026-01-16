@@ -25,6 +25,8 @@ namespace Layout::Supplementary {
         UP<ITiledAlgorithm>                                            algoForNameTiled(const std::string& s);
         UP<IFloatingAlgorithm>                                         algoForNameFloat(const std::string& s);
 
+        std::string                                                    tiledAlgoForWorkspace(const PHLWORKSPACE&);
+
         std::map<std::string, std::function<UP<ITiledAlgorithm>()>>    m_tiledAlgos;
         std::map<std::string, std::function<UP<IFloatingAlgorithm>()>> m_floatingAlgos;
 

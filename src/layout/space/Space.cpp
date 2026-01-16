@@ -138,3 +138,7 @@ void CSpace::moveTargetInDirection(SP<ITarget> t, eDirection dir, bool silent) {
     if (m_algorithm)
         m_algorithm->moveTargetInDirection(t, dir, silent);
 }
+
+SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
+    return !m_algorithm ? nullptr : m_algorithm->getNextCandidate(old);
+}

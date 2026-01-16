@@ -5,6 +5,7 @@
 #include "../target/WindowTarget.hpp"
 #include "../space/Space.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../helpers/Monitor.hpp"
 
 #include "../../debug/log/Logger.hpp"
@@ -195,4 +196,34 @@ const UP<ITiledAlgorithm>& CAlgorithm::tiledAlgo() const {
 
 const UP<IFloatingAlgorithm>& CAlgorithm::floatingAlgo() const {
     return m_floating;
+}
+
+SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
+    if (old->floating()) {
+        // use window history to determine best target
+        for (const auto& w : Desktop::History::windowTracker()->fullHistory() | std::views::reverse) {
+            if (!w->m_workspace || w->m_workspace->m_space != m_space || !w->layoutTarget() || !w->layoutTarget()->space())
+                continue;
+
+            return w->layoutTarget();
+        }
+
+        // no history, fall back
+    } else {
+        // ask the layout
+        const auto CANDIDATE = m_tiled->getNextCandidate(old);
+        if (CANDIDATE)
+            return CANDIDATE;
+
+        // no candidate, fall back
+    }
+
+    // fallback: try to focus anything
+    if (!m_tiledTargets.empty())
+        return m_tiledTargets.back().lock();
+    if (!m_floatingTargets.empty())
+        return m_floatingTargets.back().lock();
+
+    // god damn it, maybe empty?
+    return nullptr;
 }

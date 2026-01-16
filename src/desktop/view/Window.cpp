@@ -2197,8 +2197,11 @@ void CWindow::unmapWindow() {
             if (*FOCUSONCLOSE)
                 candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
                                                                   Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
-            // else
-            //   candidate = // g_pLayoutManager->getCurrentLayout()->getNextWindowCandidate(m_self.lock());
+            else {
+                const auto CAND = g_layoutManager->getNextCandidate(m_workspace->m_space, layoutTarget());
+                if (CAND)
+                    candidate = CAND->window();
+            }
         }
 
         Log::logger->log(Log::DEBUG, "On closed window, new focused candidate is {}", candidate);

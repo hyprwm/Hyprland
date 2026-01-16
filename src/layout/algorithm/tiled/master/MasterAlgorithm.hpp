@@ -43,6 +43,8 @@ namespace Layout::Tiled {
         virtual void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         virtual void                             recalculate();
 
+        virtual SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+
         virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
         virtual std::optional<Vector2D>          predictSizeForNewTarget();
 
@@ -65,6 +67,7 @@ namespace Layout::Tiled {
         SP<SMasterNodeData>              getNodeFromWindow(PHLWINDOW);
         SP<SMasterNodeData>              getNodeFromTarget(SP<ITarget>);
         SP<SMasterNodeData>              getMasterNode();
+        SP<SMasterNodeData>              getClosestNode(const Vector2D&);
         void                             calculateWorkspace();
         SP<ITarget>                      getNextTarget(SP<ITarget>, bool, bool);
         int                              getMastersNo();

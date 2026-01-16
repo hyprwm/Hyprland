@@ -1747,62 +1747,15 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
 }
 
 SDispatchResult CKeybindManager::toggleSplit(std::string args) {
-    // SLayoutMessageHeader header;
-    // header.pWindow = Desktop::focusState()->window();
-
-    // if (!header.pWindow)
-    //     return {.success = false, .error = "Window not found"};
-
-    // const auto PWORKSPACE = header.pWindow->m_workspace;
-
-    // if (PWORKSPACE->m_hasFullscreenWindow)
-    //     return {.success = false, .error = "Can't split windows that already split"};
-
-    // // g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
-
-    // return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::swapSplit(std::string args) {
-    // SLayoutMessageHeader header;
-    // header.pWindow = Desktop::focusState()->window();
-
-    // if (!header.pWindow)
-    //     return {.success = false, .error = "Window not found"};
-
-    // const auto PWORKSPACE = header.pWindow->m_workspace;
-
-    // if (PWORKSPACE->m_hasFullscreenWindow)
-    //     return {.success = false, .error = "Can't split windows that already split"};
-
-    // // g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "swapsplit");
-
-    // return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::alterSplitRatio(std::string args) {
-    std::optional<float> splitResult;
-    bool                 exact = false;
-
-    if (args.starts_with("exact")) {
-        exact       = true;
-        splitResult = getPlusMinusKeywordResult(args.substr(5), 0);
-    } else
-        splitResult = getPlusMinusKeywordResult(args, 0);
-
-    if (!splitResult.has_value()) {
-        Log::logger->log(Log::ERR, "Splitratio invalid in alterSplitRatio!");
-        return {.success = false, .error = "Splitratio invalid in alterSplitRatio!"};
-    }
-
-    const auto PLASTWINDOW = Desktop::focusState()->window();
-
-    if (!PLASTWINDOW)
-        return {.success = false, .error = "Window not found"};
-
-    // g_pLayoutManager->getCurrentLayout()->alterSplitRatio(PLASTWINDOW, splitResult.value(), exact);
-
-    return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::focusMonitor(std::string arg) {
@@ -1885,59 +1838,7 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
 }
 
 SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
-
-    // FIXME: nuke this?
-    // current workspace
-    // const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
-
-    // if (!PWORKSPACE)
-    //     return {.success = false, .error = "Workspace not found"}; // ????
-
-    // if (args == "allpseudo") {
-    //     PWORKSPACE->m_defaultPseudo = !PWORKSPACE->m_defaultPseudo;
-
-    //     // apply
-    //     for (auto const& w : g_pCompositor->m_windows) {
-    //         if (!w->m_isMapped || w->m_workspace != PWORKSPACE)
-    //             continue;
-
-    //         w->m_isPseudotiled = PWORKSPACE->m_defaultPseudo;
-    //     }
-    // } else if (args == "allfloat") {
-    //     PWORKSPACE->m_defaultFloating = !PWORKSPACE->m_defaultFloating;
-    //     // apply
-
-    //     // we make a copy because changeWindowFloatingMode might invalidate the iterator
-    //     std::vector<PHLWINDOW> ptrs(g_pCompositor->m_windows.begin(), g_pCompositor->m_windows.end());
-
-    //     for (auto const& w : ptrs) {
-    //         if (!w->m_isMapped || w->m_workspace != PWORKSPACE || w->isHidden())
-    //             continue;
-
-    //         if (!w->m_requestsFloat && w->m_isFloating != PWORKSPACE->m_defaultFloating) {
-    //             const auto SAVEDPOS  = w->m_realPosition->goal();
-    //             const auto SAVEDSIZE = w->m_realSize->goal();
-
-    //             w->m_isFloating = PWORKSPACE->m_defaultFloating;
-    //             // g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
-
-    //             if (PWORKSPACE->m_defaultFloating) {
-    //                 w->m_realPosition->setValueAndWarp(SAVEDPOS);
-    //                 w->m_realSize->setValueAndWarp(SAVEDSIZE);
-    //                 *w->m_realSize     = w->m_realSize->value() + Vector2D(4, 4);
-    //                 *w->m_realPosition = w->m_realPosition->value() - Vector2D(2, 2);
-    //             }
-    //         }
-    //     }
-    // } else {
-    //     Log::logger->log(Log::ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
-    //     return {.success = false, .error = std::format("Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args)};
-    // }
-
-    // recalc mon
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(Desktop::focusState()->monitor()->m_id);
-
-    return {};
+    return {.success = false, .error = "workspaceopt is deprecated"};
 }
 
 SDispatchResult CKeybindManager::renameWorkspace(std::string args) {

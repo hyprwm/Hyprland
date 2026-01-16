@@ -1623,6 +1623,8 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.onCreatedEmptyRunCmd = rule2.onCreatedEmptyRunCmd;
     if (rule2.defaultName.has_value())
         mergedRule.defaultName = rule2.defaultName;
+    if (rule2.layout.has_value())
+        mergedRule.layout = rule2.layout;
     if (!rule2.layoutopts.empty()) {
         for (const auto& layoutopt : rule2.layoutopts) {
             mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
@@ -2674,6 +2676,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             opt             = opt.substr(0, opt.find(':'));
 
             wsRule.layoutopts[opt] = val;
+        } else if ((delim = rule.find("layout:")) != std::string::npos) {
+            std::string layout = rule.substr(delim + 7);
+            wsRule.layout      = std::move(layout);
         }
 
         return {};

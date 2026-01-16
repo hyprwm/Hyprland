@@ -129,8 +129,8 @@ void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& dire
     target->space()->moveTargetInDirection(target, dir, silent);
 }
 
-SP<ITarget> CLayoutManager::getNextCandidate(SP<ITarget> from) {
-    return nullptr;
+SP<ITarget> CLayoutManager::getNextCandidate(SP<CSpace> space, SP<ITarget> from) {
+    return space->getNextCandidate(from);
 }
 
 bool CLayoutManager::isReachable(SP<ITarget> target) {

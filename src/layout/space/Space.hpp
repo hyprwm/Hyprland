@@ -27,6 +27,8 @@ namespace Layout {
 
         void                             swap(SP<ITarget> a, SP<ITarget> b);
 
+        SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+
         void                             setAlgorithmProvider(SP<CAlgorithm> algo);
         void                             recheckWorkArea();
         void                             setFullscreen(SP<ITarget> t, eFullscreenMode mode);

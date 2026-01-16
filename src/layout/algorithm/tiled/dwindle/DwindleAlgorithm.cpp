@@ -487,6 +487,18 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
     }
 }
 
+SP<ITarget> CDwindleAlgorithm::getNextCandidate(SP<ITarget> old) {
+    const auto MIDDLE = old->position().middle();
+
+    if (const auto NODE = getClosestNode(MIDDLE); NODE)
+        return NODE->pTarget.lock();
+
+    if (const auto NODE = getFirstNode(); NODE)
+        return NODE->pTarget.lock();
+
+    return nullptr;
+}
+
 void CDwindleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto nodeA = getNodeFromTarget(a);
     auto nodeB = getNodeFromTarget(b);

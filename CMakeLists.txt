@@ -313,6 +313,8 @@ if(USE_TRACY)
   option(TRACY_ON_DEMAND "" ON)
   add_subdirectory(subprojects/tracy)
 
+  add_compile_options(-fno-omit-frame-pointer)
+
   target_link_libraries(hyprland_lib PUBLIC Tracy::TracyClient)
 
   if(USE_TRACY_GPU)

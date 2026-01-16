@@ -2648,15 +2648,15 @@ void CWindow::destroyWindow() {
 
     m_xdgSurface.reset();
 
-    if (!m_fadingOut) {
-        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
-    }
-
     m_listeners.unmap.reset();
     m_listeners.destroy.reset();
     m_listeners.map.reset();
     m_listeners.commit.reset();
+
+    if (!m_fadingOut) {
+        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
+        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
+    }
 }
 
 void CWindow::activateX11() {

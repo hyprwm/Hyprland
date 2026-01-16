@@ -151,7 +151,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     CGradientValueData activeBorderGradient   = {};
                     CGradientValueData inactiveBorderGradient = {};
                     bool               active                 = true;
-                    CVarList           colorsAndAngles        = CVarList(trim(effect.substr(effect.find_first_of(' ') + 1)), 0, 's', true);
+                    CVarList           colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
 
                     // Basic form has only two colors, everything else can be parsed as a gradient
                     if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {

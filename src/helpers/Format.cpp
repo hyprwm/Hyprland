@@ -327,6 +327,18 @@ std::string NFormatUtils::drmModifierName(uint64_t mod) {
     return name;
 }
 
-SHMFormat NFormatUtils::swapAlphaFormat(SHMFormat prevFormat) {
-    return prevFormat & 0x240 ? prevFormat ^ 0x19 : prevFormat & 0x2 ? prevFormat ^ 0x1900 : DRM_FORMAT_INVALID;
+DRMFormat NFormatUtils::alphaFormat(DRMFormat prevFormat) {
+    constexpr uint32_t XRGB8888 = ((uint32_t)'X' | (uint32_t)'R' << 8) | ((uint32_t)'2' << 16 | (uint32_t)'4' << 24); // recreation from drm_fourcc.h
+    constexpr uint32_t ARGB8888 = ((uint32_t)'A' | (uint32_t)'R' << 8) | ((uint32_t)'2' << 16 | (uint32_t)'4' << 24); // recreation from drm_fourcc.h
+    switch (prevFormat) {
+        case XRGB8888: return ARGB8888; // only instance where DRM_FORMAT and WL_SHM_FORMAT differ
+        case WL_SHM_FORMAT_XBGR8888: return WL_SHM_FORMAT_ABGR8888;
+        case WL_SHM_FORMAT_BGRX8888: return WL_SHM_FORMAT_BGRA8888;
+        case WL_SHM_FORMAT_RGBX8888: return WL_SHM_FORMAT_RGBA8888;
+        case WL_SHM_FORMAT_XRGB2101010: return WL_SHM_FORMAT_ARGB2101010;
+        case WL_SHM_FORMAT_XBGR2101010: return WL_SHM_FORMAT_ABGR2101010;
+        case WL_SHM_FORMAT_RGBX1010102: return WL_SHM_FORMAT_RGBA1010102;
+        case WL_SHM_FORMAT_BGRX1010102: return WL_SHM_FORMAT_BGRA1010102;
+        default: return 0;
+    }
 }

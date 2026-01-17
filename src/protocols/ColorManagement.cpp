@@ -37,7 +37,12 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB);
     m_resource->sendSupportedPrimariesNamed(WP_COLOR_MANAGER_V1_PRIMARIES_CIE1931_XYZ);
 
-    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);
+    if (m_resource->version() == 1) {
+        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB);
+        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_SRGB);
+    } else
+        m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4);
+
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA22);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_GAMMA28);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR);
@@ -48,7 +53,6 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_100);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_LOG_316);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_XVYCC);
-    m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_SRGB);
     m_resource->sendSupportedTfNamed(WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST428);
 
     m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_PERCEPTUAL);
@@ -57,6 +61,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_SATURATION);
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_ABSOLUTE);
         m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_RELATIVE_BPC);
+        if (m_resource->version() > 1)
+            m_resource->sendSupportedIntent(WP_COLOR_MANAGER_V1_RENDER_INTENT_ABSOLUTE_NO_ADAPTATION);
     }
 
     m_resource->setDestroy([](CWpColorManagerV1* r) { LOGM(Log::TRACE, "Destroy WP_color_manager at {:x} (generated default)", (uintptr_t)r); });
@@ -171,7 +177,32 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = SCRGB_IMAGE_DESCRIPTION;
 
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
+        RESOURCE->sendMaybeReady();
+    });
+
+    m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
+        LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);
+
+        const auto OLD_RES = CColorManagementImageDescription::fromReference(ref);
+        if (!OLD_RES) {
+            OLD_RES->resource()->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_UNSUPPORTED, "Not found");
+            return;
+        }
+
+        const auto RESOURCE = PROTO::colorManagement->m_imageDescriptions.emplace_back(
+            makeShared<CColorManagementImageDescription>(makeShared<CWpImageDescriptionV1>(r->client(), r->version(), id), OLD_RES->m_allowGetInformation));
+
+        if UNLIKELY (!RESOURCE->good()) {
+            r->noMemory();
+            PROTO::colorManagement->m_imageDescriptions.pop_back();
+            return;
+        }
+
+        RESOURCE->m_self = RESOURCE;
+
+        RESOURCE->m_settings = OLD_RES->m_settings;
+
+        RESOURCE->sendMaybeReady();
     });
 
     m_resource->setOnDestroy([this](CWpColorManagerV1* r) { PROTO::colorManagement->destroyResource(this); });
@@ -216,7 +247,8 @@ CColorManagementOutput::CColorManagementOutput(SP<CWpColorManagementOutputV1> re
             RESOURCE->m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_NO_OUTPUT, "No output");
         else {
             RESOURCE->m_settings = m_output->m_monitor->m_imageDescription;
-            RESOURCE->m_resource->sendReady(RESOURCE->m_settings->id());
+
+            RESOURCE->sendMaybeReady();
         }
     });
 }
@@ -364,7 +396,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = m_surface->getPreferredImageDescription();
 
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
+        RESOURCE->sendMaybeReady();
     });
 
     m_resource->setGetPreferredParametric([this](CWpColorManagementSurfaceFeedbackV1* r, uint32_t id) {
@@ -394,7 +426,7 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
             return;
         }
 
-        RESOURCE->resource()->sendReady(m_currentPreferredId);
+        RESOURCE->sendMaybeReady();
     });
 
     m_listeners.enter = m_surface->m_events.enter.listen([this](const auto& monitor) { onPreferredChanged(); });
@@ -404,8 +436,14 @@ CColorManagementFeedbackSurface::CColorManagementFeedbackSurface(SP<CWpColorMana
 void CColorManagementFeedbackSurface::onPreferredChanged() {
     if (m_surface->m_enteredOutputs.size() == 1) {
         const auto newId = m_surface->getPreferredImageDescription()->id();
-        if (m_currentPreferredId != newId)
-            m_resource->sendPreferredChanged(newId);
+        if (m_currentPreferredId != newId) {
+            const uint32_t lo = sc<uint32_t>(newId & 0xFFFFFFFF);
+            const uint32_t hi = sc<uint32_t>(newId >> 32);
+            if (m_resource->version() > 1)
+                m_resource->sendPreferredChanged2(hi, lo);
+            else if (!hi)
+                m_resource->sendPreferredChanged(lo);
+        }
     }
 }
 
@@ -453,7 +491,8 @@ CColorManagementIccCreator::CColorManagementIccCreator(SP<CWpImageDescriptionCre
 
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = CImageDescription::from(m_settings);
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
+
+        RESOURCE->sendMaybeReady();
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -515,7 +554,8 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
 
         RESOURCE->m_self     = RESOURCE;
         RESOURCE->m_settings = CImageDescription::from(m_settings);
-        RESOURCE->resource()->sendReady(RESOURCE->m_settings->id());
+
+        RESOURCE->sendMaybeReady();
 
         PROTO::colorManagement->destroyResource(this);
     });
@@ -540,6 +580,7 @@ CColorManagementParametricCreator::CColorManagementParametricCreator(SP<CWpImage
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_XVYCC: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_SRGB: break;
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_ST428: break;
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4: break;
             default: r->error(WP_IMAGE_DESCRIPTION_CREATOR_PARAMS_V1_ERROR_INVALID_TF, "Unsupported transfer function"); return;
         }
 
@@ -710,6 +751,11 @@ CColorManagementImageDescription::CColorManagementImageDescription(SP<CWpImageDe
     });
 }
 
+SP<CColorManagementImageDescription> CColorManagementImageDescription::fromReference(wl_resource* res) {
+    auto data = sc<CColorManagementImageDescription*>(sc<CWpImageDescriptionV1*>(wl_resource_get_user_data(res))->data());
+    return data ? data->m_self.lock() : nullptr;
+}
+
 bool CColorManagementImageDescription::good() {
     return m_resource->resource();
 }
@@ -720,6 +766,22 @@ wl_client* CColorManagementImageDescription::client() {
 
 SP<CWpImageDescriptionV1> CColorManagementImageDescription::resource() {
     return m_resource;
+}
+
+bool CColorManagementImageDescription::sendMaybeReady() {
+    const uint32_t lo = sc<uint32_t>(m_settings->id() & 0xFFFFFFFF);
+    const uint32_t hi = sc<uint32_t>(m_settings->id() >> 32);
+
+    if (m_resource->version() > 1)
+        m_resource->sendReady2(hi, lo);
+    else if (!hi)
+        m_resource->sendReady(lo);
+    else {
+        m_resource->sendFailed(WP_IMAGE_DESCRIPTION_V1_CAUSE_LOW_VERSION, "id is too large");
+        return false;
+    }
+
+    return true;
 }
 
 CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CWpImageDescriptionInfoV1> resource, const SImageDescription& settings_) :

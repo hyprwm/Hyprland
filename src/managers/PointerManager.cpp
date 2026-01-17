@@ -572,8 +572,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, INT16_MAX, INT16_MAX}, RBO);
-    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F});
+    const auto& damageSize = state->monitor->m_output->cursorPlaneSize();
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damageSize.x, damageSize.y}, RBO);
+    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
@@ -583,8 +584,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     g_pHyprOpenGL->end();
     g_pHyprOpenGL->m_renderData.pMonitor.reset();
-
-    g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 
     return buf;
 }

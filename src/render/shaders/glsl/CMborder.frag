@@ -6,7 +6,7 @@ in vec2 v_texcoord;
 
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 targetPrimaries;
+uniform mat3 targetPrimariesXYZ;
 
 uniform vec2 fullSizeUntransformed;
 uniform float radiusOuter;
@@ -90,7 +90,7 @@ void main() {
     pixColor = getColorForCoord(v_texcoord);
     pixColor.rgb *= pixColor[3];
 
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, primaries2xyz(targetPrimaries));
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimariesXYZ);
 
     pixColor *= alpha * additionalAlpha;
 

@@ -11,7 +11,7 @@ namespace Layout::Floating {
         virtual ~CDefaultFloatingAlgorithm() = default;
 
         virtual void newTarget(SP<ITarget> target);
-        virtual void movedTarget(SP<ITarget> target);
+        virtual void movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void removeTarget(SP<ITarget> target);
 
         virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);

@@ -67,7 +67,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
     }
 }
 
-void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target) {
+void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
     auto       LAST_SIZE    = target->lastFloatingSize();
     const auto CURRENT_SIZE = target->position().size();
 

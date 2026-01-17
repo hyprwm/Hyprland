@@ -186,8 +186,8 @@ void CWindowTarget::updatePos() {
     m_window->updateWindowDecos();
 }
 
-void CWindowTarget::assignToSpace(const SP<CSpace>& space) {
-    ITarget::assignToSpace(space);
+void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
+    ITarget::assignToSpace(space, focalPoint);
 
     if (!space)
         return;

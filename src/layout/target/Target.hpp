@@ -29,7 +29,7 @@ namespace Layout {
         // position is within its space
         virtual void         setPositionGlobal(const CBox& box);
         virtual CBox         position() const;
-        virtual void         assignToSpace(const SP<CSpace>& space);
+        virtual void         assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void         setSpaceGhost(const SP<CSpace>& space);
         virtual SP<CSpace>   space() const;
         virtual PHLWORKSPACE workspace() const;

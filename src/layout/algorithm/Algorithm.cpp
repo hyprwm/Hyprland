@@ -57,15 +57,15 @@ void CAlgorithm::removeTarget(SP<ITarget> target) {
     Log::logger->log(Log::ERR, "BUG THIS: CAlgorithm::removeTarget, but not found");
 }
 
-void CAlgorithm::moveTarget(SP<ITarget> target) {
+void CAlgorithm::moveTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
     const bool SHOULD_FLOAT = target->floating();
 
     if (SHOULD_FLOAT) {
         m_floatingTargets.emplace_back(target);
-        m_floating->movedTarget(target);
+        m_floating->movedTarget(target, focalPoint);
     } else {
         m_tiledTargets.emplace_back(target);
-        m_tiled->movedTarget(target);
+        m_tiled->movedTarget(target, focalPoint);
     }
 }
 

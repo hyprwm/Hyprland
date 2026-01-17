@@ -22,7 +22,7 @@ namespace Layout {
         virtual void newTarget(SP<ITarget> target) = 0;
 
         // a target moved into the algorithm (from another)
-        virtual void movedTarget(SP<ITarget> target) = 0;
+        virtual void movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt) = 0;
 
         // a target removed
         virtual void removeTarget(SP<ITarget> target) = 0;

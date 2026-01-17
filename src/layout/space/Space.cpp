@@ -28,11 +28,11 @@ void CSpace::add(SP<ITarget> t) {
     m_parent->updateWindows();
 }
 
-void CSpace::move(SP<ITarget> t) {
+void CSpace::move(SP<ITarget> t, std::optional<Vector2D> focalPoint) {
     m_targets.emplace_back(t);
 
     if (m_algorithm)
-        m_algorithm->moveTarget(t);
+        m_algorithm->moveTarget(t, focalPoint);
 
     m_parent->updateWindows();
 }

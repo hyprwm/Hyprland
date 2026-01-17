@@ -20,7 +20,7 @@ namespace Layout {
         ~CAlgorithm() = default;
 
         void                             addTarget(SP<ITarget> target);
-        void                             moveTarget(SP<ITarget> target);
+        void                             moveTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
         void                             removeTarget(SP<ITarget> target);
 
         void                             swapTargets(SP<ITarget> a, SP<ITarget> b);

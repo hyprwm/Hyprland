@@ -36,7 +36,7 @@ void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
 }
 
-void CMasterAlgorithm::movedTarget(SP<ITarget> target) {
+void CMasterAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
     addTarget(target, false);
 }
 
@@ -267,15 +267,23 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Layout::eDirection dir, bool silent) {
     const auto PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), directionToChar(dir));
 
-    if (!PWINDOW2 || !t->window())
+    if (!t->window())
         return;
+
+    PHLWORKSPACE targetWs;
+
+    if (!PWINDOW2 && t->space() && t->space()->workspace()) {
+        // try to find a monitor in dir
+        const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), directionToChar(dir));
+        targetWs             = PMONINDIR->m_activeWorkspace;
+    } else
+        targetWs = PWINDOW2->m_workspace;
 
     t->window()->setAnimationsToMove();
 
-    if (t->window()->m_workspace != PWINDOW2->m_workspace) {
-        // can't
-        return;
-    } else {
+    if (t->window()->m_workspace != targetWs) {
+        t->assignToSpace(targetWs->m_space);
+    } else if (PWINDOW2) {
         // if same monitor, switch windows
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
         if (silent)

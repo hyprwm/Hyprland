@@ -23,7 +23,7 @@ namespace Layout {
 
         void                             add(SP<ITarget> t);
         void                             remove(SP<ITarget> t);
-        void                             move(SP<ITarget> t);
+        void                             move(SP<ITarget> t, std::optional<Vector2D> focalPoint = std::nullopt);
 
         void                             swap(SP<ITarget> a, SP<ITarget> b);
 

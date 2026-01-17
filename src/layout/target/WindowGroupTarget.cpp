@@ -35,8 +35,8 @@ void CWindowGroupTarget::updatePos() {
     }
 }
 
-void CWindowGroupTarget::assignToSpace(const SP<CSpace>& space) {
-    ITarget::assignToSpace(space);
+void CWindowGroupTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
+    ITarget::assignToSpace(space, focalPoint);
 
     for (const auto& w : m_group->windows()) {
         w->m_target->setSpaceGhost(space);

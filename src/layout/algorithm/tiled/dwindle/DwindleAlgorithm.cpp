@@ -270,8 +270,10 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
     calculateWorkspace();
 }
 
-void CDwindleAlgorithm::movedTarget(SP<ITarget> target) {
+void CDwindleAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
+    m_overrideFocalPoint = focalPoint;
     addTarget(target, false);
+    m_overrideFocalPoint.reset();
 }
 
 void CDwindleAlgorithm::removeTarget(SP<ITarget> target) {
@@ -579,16 +581,18 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, eDirection dir, boo
 
     removeTarget(t);
 
-    m_overrideFocalPoint = focalPoint;
-
     const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
 
-    if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor)
-        return; // can't
+    if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor) {
+        // move with a focal point
 
-    movedTarget(t);
+        if (PMONITORFOCAL->m_activeWorkspace)
+            t->assignToSpace(PMONITORFOCAL->m_activeWorkspace->m_space);
 
-    m_overrideFocalPoint.reset();
+        return;
+    }
+
+    movedTarget(t, focalPoint);
 
     // restore focus to the previous position
     if (silent) {

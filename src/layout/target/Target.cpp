@@ -9,7 +9,7 @@ void ITarget::setPositionGlobal(const CBox& box) {
     m_box.round();
 }
 
-void ITarget::assignToSpace(const SP<CSpace>& space) {
+void ITarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
     if (m_space == space && !m_ghostSpace)
         return;
 
@@ -21,7 +21,7 @@ void ITarget::assignToSpace(const SP<CSpace>& space) {
     m_space = space;
 
     if (space && HAD_SPACE)
-        space->move(m_self.lock());
+        space->move(m_self.lock(), focalPoint);
     else if (space)
         space->add(m_self.lock());
 

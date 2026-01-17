@@ -10,6 +10,8 @@
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Layout;
 using namespace Layout::Tiled;
 
@@ -251,7 +253,135 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
 }
 
 void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
-    ;
+    const auto PNODE = getNodeFromTarget(target);
+
+    if (!PNODE)
+        return;
+
+    const auto   PMONITOR            = m_parent->space()->workspace()->m_monitor;
+    static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+
+    const auto   WORKAREA      = PMONITOR->logicalBoxMinusReserved();
+    const bool   DISPLAYBOTTOM = STICKS(PNODE->position.y + PNODE->size.y, WORKAREA.y + WORKAREA.h);
+    const bool   DISPLAYRIGHT  = STICKS(PNODE->position.x + PNODE->size.x, WORKAREA.x + WORKAREA.w);
+    const bool   DISPLAYTOP    = STICKS(PNODE->position.y, WORKAREA.y);
+    const bool   DISPLAYLEFT   = STICKS(PNODE->position.x, WORKAREA.x);
+
+    const bool   LEFT = corner == CORNER_TOPLEFT || corner == CORNER_BOTTOMLEFT;
+    const bool   TOP  = corner == CORNER_TOPLEFT || corner == CORNER_TOPRIGHT;
+    const bool   NONE = corner == CORNER_NONE;
+
+    const auto   MASTERS      = getMastersNo();
+    const auto   WINDOWS      = getNodesNo();
+    const auto   STACKWINDOWS = WINDOWS - MASTERS;
+
+    eOrientation orientation = getDynamicOrientation();
+    bool         centered    = orientation == ORIENTATION_CENTER && (STACKWINDOWS >= *SLAVECOUNTFORCENTER);
+    double       delta       = 0;
+
+    if (getNodesNo() == 1 && !centered)
+        return;
+
+    m_forceWarps = true;
+
+    switch (orientation) {
+        case ORIENTATION_LEFT: delta = Δ.x / PMONITOR->m_size.x; break;
+        case ORIENTATION_RIGHT: delta = -Δ.x / PMONITOR->m_size.x; break;
+        case ORIENTATION_BOTTOM: delta = -Δ.y / PMONITOR->m_size.y; break;
+        case ORIENTATION_TOP: delta = Δ.y / PMONITOR->m_size.y; break;
+        case ORIENTATION_CENTER:
+            delta = Δ.x / PMONITOR->m_size.x;
+            if (STACKWINDOWS >= *SLAVECOUNTFORCENTER) {
+                if (!NONE || !PNODE->isMaster)
+                    delta *= 2;
+                if ((!PNODE->isMaster && DISPLAYLEFT) || (PNODE->isMaster && LEFT && *PSMARTRESIZING))
+                    delta = -delta;
+            }
+            break;
+        default: UNREACHABLE();
+    }
+
+    for (auto& n : m_masterNodesData) {
+        if (n->isMaster)
+            n->percMaster = std::clamp(n->percMaster + delta, 0.05, 0.95);
+    }
+
+    // check the up/down resize
+    const bool isStackVertical = orientation == ORIENTATION_LEFT || orientation == ORIENTATION_RIGHT || orientation == ORIENTATION_CENTER;
+
+    const auto RESIZEDELTA = isStackVertical ? Δ.y : Δ.x;
+
+    auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
+    if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
+        nodesInSameColumn = DISPLAYRIGHT ? (nodesInSameColumn + 1) / 2 : nodesInSameColumn / 2;
+
+    const auto SIZE = isStackVertical ? WORKAREA.h / nodesInSameColumn : WORKAREA.w / nodesInSameColumn;
+
+    if (RESIZEDELTA != 0 && nodesInSameColumn > 1) {
+        if (!*PSMARTRESIZING) {
+            PNODE->percSize = std::clamp(PNODE->percSize + RESIZEDELTA / SIZE, 0.05, 1.95);
+        } else {
+            const auto  NODEIT    = std::ranges::find(m_masterNodesData, PNODE);
+            const auto  REVNODEIT = std::ranges::find(m_masterNodesData | std::views::reverse, PNODE);
+
+            const float totalSize       = isStackVertical ? WORKAREA.h : WORKAREA.w;
+            const float minSize         = totalSize / nodesInSameColumn * 0.2;
+            const bool  resizePrevNodes = isStackVertical ? (TOP || DISPLAYBOTTOM) && !DISPLAYTOP : (LEFT || DISPLAYRIGHT) && !DISPLAYLEFT;
+
+            int         nodesLeft = 0;
+            float       sizeLeft  = 0;
+            int         nodeCount = 0;
+            // check the sizes of all the nodes to be resized for later calculation
+            auto checkNodesLeft = [&sizeLeft, &nodesLeft, orientation, isStackVertical, &nodeCount, PNODE](auto it) {
+                if (it->isMaster != PNODE->isMaster)
+                    return;
+                nodeCount++;
+                if (!it->isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
+                    return;
+                sizeLeft += isStackVertical ? it->size.y : it->size.x;
+                nodesLeft++;
+            };
+            float resizeDiff;
+            if (resizePrevNodes) {
+                std::for_each(std::next(REVNODEIT), m_masterNodesData.rend(), checkNodesLeft);
+                resizeDiff = -RESIZEDELTA;
+            } else {
+                std::for_each(std::next(NODEIT), m_masterNodesData.end(), checkNodesLeft);
+                resizeDiff = RESIZEDELTA;
+            }
+
+            const float nodeSize        = isStackVertical ? PNODE->size.y : PNODE->size.x;
+            const float maxSizeIncrease = sizeLeft - nodesLeft * minSize;
+            const float maxSizeDecrease = minSize - nodeSize;
+
+            // leaves enough room for the other nodes
+            resizeDiff = std::clamp(resizeDiff, maxSizeDecrease, maxSizeIncrease);
+            PNODE->percSize += resizeDiff / SIZE;
+
+            // resize the other nodes
+            nodeCount            = 0;
+            auto resizeNodesLeft = [maxSizeIncrease, resizeDiff, minSize, orientation, isStackVertical, SIZE, &nodeCount, nodesLeft, PNODE](auto& it) {
+                if (it->isMaster != PNODE->isMaster)
+                    return;
+                nodeCount++;
+                // if center orientation, only resize when on the same side
+                if (!it->isMaster && orientation == ORIENTATION_CENTER && nodeCount % 2 == 1)
+                    return;
+                const float size               = isStackVertical ? it->size.y : it->size.x;
+                const float resizeDeltaForEach = maxSizeIncrease != 0 ? resizeDiff * (size - minSize) / maxSizeIncrease : resizeDiff / nodesLeft;
+                it->percSize -= resizeDeltaForEach / SIZE;
+            };
+            if (resizePrevNodes)
+                std::for_each(std::next(REVNODEIT), m_masterNodesData.rend(), resizeNodesLeft);
+            else
+                std::for_each(std::next(NODEIT), m_masterNodesData.end(), resizeNodesLeft);
+        }
+    }
+
+    recalculate();
+
+    m_forceWarps = false;
 }
 
 void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
@@ -288,6 +418,8 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Layout::eDirection d
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
         if (silent)
             Desktop::focusState()->fullWindowFocus(PWINDOW2);
+
+        recalculate();
     }
 }
 
@@ -759,19 +891,28 @@ void CMasterAlgorithm::calculateWorkspace() {
     if (!PMASTERNODE)
         return;
 
-    eOrientation orientation         = getDynamicOrientation();
-    bool         centerMasterWindow  = false;
-    static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
-    static auto  CMFALLBACK          = CConfigValue<std::string>("master:center_master_fallback");
-    static auto  PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
-    static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+    Hyprutils::Utils::CScopeGuard x([this] {
+        if (!m_forceWarps)
+            return;
 
-    const auto   MASTERS          = getMastersNo();
-    const auto   WINDOWS          = getNodesNo();
-    const auto   STACKWINDOWS     = WINDOWS - MASTERS;
-    const auto   WORKAREA         = m_parent->space()->workArea();
-    const auto   PMONITOR         = m_parent->space()->workspace()->m_monitor;
-    const auto   UNRESERVED_WIDTH = WORKAREA.width + PMONITOR->m_reservedArea.left() + PMONITOR->m_reservedArea.right();
+        for (const auto& n : m_masterNodesData) {
+            n->pTarget->warpPositionSize();
+        }
+    });
+
+    eOrientation                  orientation         = getDynamicOrientation();
+    bool                          centerMasterWindow  = false;
+    static auto                   SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto                   CMFALLBACK          = CConfigValue<std::string>("master:center_master_fallback");
+    static auto                   PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
+    static auto                   PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+
+    const auto                    MASTERS          = getMastersNo();
+    const auto                    WINDOWS          = getNodesNo();
+    const auto                    STACKWINDOWS     = WINDOWS - MASTERS;
+    const auto                    WORKAREA         = m_parent->space()->workArea();
+    const auto                    PMONITOR         = m_parent->space()->workspace()->m_monitor;
+    const auto                    UNRESERVED_WIDTH = WORKAREA.width + PMONITOR->m_reservedArea.left() + PMONITOR->m_reservedArea.right();
 
     if (orientation == ORIENTATION_CENTER) {
         if (STACKWINDOWS >= *SLAVECOUNTFORCENTER)

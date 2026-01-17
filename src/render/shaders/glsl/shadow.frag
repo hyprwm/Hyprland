@@ -93,7 +93,7 @@ void main() {
     pixColor.rgb *= pixColor[3];
 
 	if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
+        pixColor = doColorManagement(pixColor, sourceTF, targetTF, primaries2xyz(targetPrimaries));
 
 	fragColor = pixColor;
 }

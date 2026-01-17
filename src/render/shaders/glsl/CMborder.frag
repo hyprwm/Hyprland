@@ -90,7 +90,7 @@ void main() {
     pixColor = getColorForCoord(v_texcoord);
     pixColor.rgb *= pixColor[3];
 
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, primaries2xyz(targetPrimaries));
 
     pixColor *= alpha * additionalAlpha;
 

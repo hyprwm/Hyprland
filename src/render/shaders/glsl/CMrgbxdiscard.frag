@@ -32,7 +32,7 @@ void main() {
         discard;
 
     // this shader shouldn't be used when skipCM == 1
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, primaries2xyz(targetPrimaries));
 
     if (applyTint)
         pixColor.rgb *= tint;

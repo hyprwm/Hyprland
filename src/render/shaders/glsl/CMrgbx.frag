@@ -21,7 +21,7 @@ void main() {
     vec4 pixColor = vec4(texture(tex, v_texcoord).rgb, 1.0);
 
     // this shader shouldn't be used when skipCM == 1
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, primaries2xyz(targetPrimaries));
 
     if (applyTint)
         pixColor.rgb *= tint;

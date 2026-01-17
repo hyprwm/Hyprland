@@ -13,6 +13,9 @@
 
 #include <algorithm>
 #include <hyprutils/math/Vector2D.hpp>
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
@@ -107,7 +110,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(m_shmFormat);
+    const auto PSHMINFO = getPixelFormatFromDRM(m_shmFormat);
     if UNLIKELY (!PSHMINFO) {
         LOGM(Log::ERR, "No pixel format supported by renderer in capture toplevel");
         m_resource->sendFailed();
@@ -120,7 +123,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     m_box.transform(Math::wlTransformToHyprutils(PMONITOR->m_transform), PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y).round();
 
-    m_shmStride = NFormatUtils::minStride(PSHMINFO, m_box.w);
+    m_shmStride = minStride(PSHMINFO, m_box.w);
 
     m_resource->sendBuffer(NFormatUtils::drmToShm(m_shmFormat), m_box.width, m_box.height, m_shmStride);
 
@@ -269,7 +272,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
     }
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         g_pHyprRenderer->endRender();
         return false;
@@ -313,11 +316,9 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
     if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
         if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
+            if (PFORMAT->swizzle == SWIZZLE_RGBA)
                 glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
+            else if (PFORMAT->swizzle == SWIZZLE_BGRA)
                 glFormat = GL_BGRA_EXT;
             else {
                 LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");

@@ -9,8 +9,10 @@
 #include <linux/sync_file.h>
 #endif
 #include <sys/ioctl.h>
+#include <hyprgraphics/egl/Egl.hpp>
 
 using namespace Hyprutils::OS;
+using namespace Hyprgraphics::Egl;
 
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
@@ -36,7 +38,7 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     }
 
     m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
-    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
+    m_opaque  = isDrmFormatOpaque(m_attrs.format);
     m_success = m_texture->m_texID;
 
     if UNLIKELY (!m_success)

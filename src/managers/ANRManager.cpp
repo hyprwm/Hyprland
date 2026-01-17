@@ -53,8 +53,9 @@ CANRManager::CANRManager() {
             d->killDialog();
             d->missedResponses = 0;
             d->dialogSaidWait  = false;
-            return;
         }
+
+        std::erase_if(m_data, [&window](auto& w) { return w == window; });
     });
 
     m_timer->updateTimeout(TIMER_TIMEOUT);

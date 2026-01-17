@@ -385,7 +385,7 @@ static void testFloatingFocusOnFullscreen() {
 
     OK(getFromSocket("/dispatch cyclenext"));
 
-    OK(getFromSocket("/dispatch plugin:test:floating_on_fullscreen"));
+    OK(getFromSocket("/dispatch plugin:test:floating_focus_on_fullscreen"));
 
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

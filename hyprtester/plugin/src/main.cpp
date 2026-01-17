@@ -327,7 +327,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:keybind", ::keybind);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_rule", ::addRule);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_rule", ::checkRule);
-    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:floating_on_fullscreen", ::floatingFocusOnFullscreen);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:floating_focus_on_fullscreen", ::floatingFocusOnFullscreen);
 
     // init mouse
     g_mouse = CTestMouse::create(false);

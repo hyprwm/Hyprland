@@ -127,19 +127,19 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 
     // shader has #include "CM.glsl"
-    m_uniformLocations[SHADER_SKIP_CM]           = getUniform("skipCM");
-    m_uniformLocations[SHADER_SOURCE_TF]         = getUniform("sourceTF");
-    m_uniformLocations[SHADER_TARGET_TF]         = getUniform("targetTF");
-    m_uniformLocations[SHADER_SRC_TF_RANGE]      = getUniform("srcTFRange");
-    m_uniformLocations[SHADER_DST_TF_RANGE]      = getUniform("dstTFRange");
-    m_uniformLocations[SHADER_TARGET_PRIMARIES]  = getUniform("targetPrimaries");
-    m_uniformLocations[SHADER_MAX_LUMINANCE]     = getUniform("maxLuminance");
-    m_uniformLocations[SHADER_SRC_REF_LUMINANCE] = getUniform("srcRefLuminance");
-    m_uniformLocations[SHADER_DST_MAX_LUMINANCE] = getUniform("dstMaxLuminance");
-    m_uniformLocations[SHADER_DST_REF_LUMINANCE] = getUniform("dstRefLuminance");
-    m_uniformLocations[SHADER_SDR_SATURATION]    = getUniform("sdrSaturation");
-    m_uniformLocations[SHADER_SDR_BRIGHTNESS]    = getUniform("sdrBrightnessMultiplier");
-    m_uniformLocations[SHADER_CONVERT_MATRIX]    = getUniform("convertMatrix");
+    m_uniformLocations[SHADER_SKIP_CM]              = getUniform("skipCM");
+    m_uniformLocations[SHADER_SOURCE_TF]            = getUniform("sourceTF");
+    m_uniformLocations[SHADER_TARGET_TF]            = getUniform("targetTF");
+    m_uniformLocations[SHADER_SRC_TF_RANGE]         = getUniform("srcTFRange");
+    m_uniformLocations[SHADER_DST_TF_RANGE]         = getUniform("dstTFRange");
+    m_uniformLocations[SHADER_TARGET_PRIMARIES_XYZ] = getUniform("targetPrimariesXYZ");
+    m_uniformLocations[SHADER_MAX_LUMINANCE]        = getUniform("maxLuminance");
+    m_uniformLocations[SHADER_SRC_REF_LUMINANCE]    = getUniform("srcRefLuminance");
+    m_uniformLocations[SHADER_DST_MAX_LUMINANCE]    = getUniform("dstMaxLuminance");
+    m_uniformLocations[SHADER_DST_REF_LUMINANCE]    = getUniform("dstRefLuminance");
+    m_uniformLocations[SHADER_SDR_SATURATION]       = getUniform("sdrSaturation");
+    m_uniformLocations[SHADER_SDR_BRIGHTNESS]       = getUniform("sdrBrightnessMultiplier");
+    m_uniformLocations[SHADER_CONVERT_MATRIX]       = getUniform("convertMatrix");
     //
     m_uniformLocations[SHADER_TEX]                 = getUniform("tex");
     m_uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
@@ -208,7 +208,7 @@ void CShader::getUniformLocations() {
 }
 
 void CShader::createVao() {
-    GLuint shaderVao = 0, shaderVbo = 0, shaderVboUv = 0;
+    GLuint shaderVao = 0, shaderVbo = 0;
 
     glGenVertexArrays(1, &shaderVao);
     glBindVertexArray(shaderVao);
@@ -216,30 +216,26 @@ void CShader::createVao() {
     if (m_uniformLocations[SHADER_POS_ATTRIB] != -1) {
         glGenBuffers(1, &shaderVbo);
         glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts.data(), GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_POS_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glVertexAttribPointer(m_uniformLocations[SHADER_POS_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, x));
     }
 
     // UV VBO (dynamic, may be updated per frame)
-    if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1) {
-        glGenBuffers(1, &shaderVboUv);
-        glBindBuffer(GL_ARRAY_BUFFER, shaderVboUv);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), fullVerts, GL_DYNAMIC_DRAW); // Initial dummy UVs
+    if (m_uniformLocations[SHADER_TEX_ATTRIB] != -1 && shaderVbo != 0) {
+        glBindBuffer(GL_ARRAY_BUFFER, shaderVbo);
         glEnableVertexAttribArray(m_uniformLocations[SHADER_TEX_ATTRIB]);
-        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glVertexAttribPointer(m_uniformLocations[SHADER_TEX_ATTRIB], 2, GL_FLOAT, GL_FALSE, sizeof(SVertex), (void*)offsetof(SVertex, u));
     }
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    m_uniformLocations[SHADER_SHADER_VAO]     = shaderVao;
-    m_uniformLocations[SHADER_SHADER_VBO_POS] = shaderVbo;
-    m_uniformLocations[SHADER_SHADER_VBO_UV]  = shaderVboUv;
+    m_uniformLocations[SHADER_SHADER_VAO] = shaderVao;
+    m_uniformLocations[SHADER_SHADER_VBO] = shaderVbo;
 
     RASSERT(m_uniformLocations[SHADER_SHADER_VAO] >= 0, "SHADER_SHADER_VAO could not be created");
-    RASSERT(m_uniformLocations[SHADER_SHADER_VBO_POS] >= 0, "SHADER_SHADER_VBO_POS could not be created");
-    RASSERT(m_uniformLocations[SHADER_SHADER_VBO_UV] >= 0, "SHADER_SHADER_VBO_UV could not be created");
+    RASSERT(m_uniformLocations[SHADER_SHADER_VBO] >= 0, "SHADER_SHADER_VBO_POS could not be created");
 }
 
 void CShader::setUniformInt(eShaderUniform location, GLint v0) {
@@ -390,20 +386,16 @@ void CShader::destroy() {
     if (m_program == 0)
         return;
 
-    GLuint shaderVao, shaderVbo, shaderVboUv;
+    GLuint shaderVao, shaderVbo;
 
-    shaderVao   = m_uniformLocations[SHADER_SHADER_VAO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VAO];
-    shaderVbo   = m_uniformLocations[SHADER_SHADER_VBO_POS] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO_POS];
-    shaderVboUv = m_uniformLocations[SHADER_SHADER_VBO_UV] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO_UV];
+    shaderVao = m_uniformLocations[SHADER_SHADER_VAO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VAO];
+    shaderVbo = m_uniformLocations[SHADER_SHADER_VBO] == -1 ? 0 : m_uniformLocations[SHADER_SHADER_VBO];
 
     if (shaderVao)
         glDeleteVertexArrays(1, &shaderVao);
 
     if (shaderVbo)
         glDeleteBuffers(1, &shaderVbo);
-
-    if (shaderVboUv)
-        glDeleteBuffers(1, &shaderVboUv);
 
     glDeleteProgram(m_program);
     m_program = 0;

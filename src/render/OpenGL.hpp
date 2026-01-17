@@ -35,13 +35,19 @@
 struct gbm_device;
 class CHyprRenderer;
 
-inline const float fullVerts[] = {
-    1, 0, // top right
-    0, 0, // top left
-    1, 1, // bottom right
-    0, 1, // bottom left
+struct SVertex {
+    float x, y; // position
+    float u, v; // uv
 };
-inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
+
+constexpr std::array<SVertex, 4> fullVerts = {{
+    {0.0f, 0.0f, 0.0f, 0.0f}, // top-left
+    {0.0f, 1.0f, 0.0f, 1.0f}, // bottom-left
+    {1.0f, 0.0f, 1.0f, 0.0f}, // top-right
+    {1.0f, 1.0f, 1.0f, 1.0f}, // bottom-right
+}};
+
+inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 enum eDiscardMode : uint8_t {
     DISCARD_OPAQUE = 1,
@@ -98,7 +104,9 @@ enum ePreparedFragmentShader : uint8_t {
     SH_FRAG_BORDER1,
     SH_FRAG_GLITCH,
     SH_FRAG_CM_RGBA,
+    SH_FRAG_CM_RGBA_DISCARD,
     SH_FRAG_CM_RGBX,
+    SH_FRAG_CM_RGBX_DISCARD,
 
     SH_FRAG_LAST,
 };

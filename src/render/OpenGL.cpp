@@ -43,6 +43,7 @@
 #include <fcntl.h>
 #include <gbm.h>
 #include <filesystem>
+#include <cstring>
 #include "./shaders/Shaders.hpp"
 
 using namespace Hyprutils::OS;
@@ -896,7 +897,9 @@ bool CHyprOpenGLImpl::initShaders() {
         else {
             std::vector<SFragShaderDesc> CM_SHADERS = {{
                 {SH_FRAG_CM_RGBA, "CMrgba.frag"},
+                {SH_FRAG_CM_RGBA_DISCARD, "CMrgbadiscard.frag"},
                 {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
+                {SH_FRAG_CM_RGBX_DISCARD, "CMrgbadiscard.frag"},
                 {SH_FRAG_CM_BLURPREPARE, "CMblurprepare.frag"},
                 {SH_FRAG_CM_BORDER1, "CMborder.frag"},
             }};
@@ -1228,13 +1231,14 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
 
     shader->setUniformInt(SHADER_TARGET_TF, targetImageDescription->value().transferFunction);
 
-    const auto                   targetPrimaries = targetImageDescription->getPrimaries();
-
-    const std::array<GLfloat, 8> glTargetPrimaries = {
-        targetPrimaries->value().red.x,  targetPrimaries->value().red.y,  targetPrimaries->value().green.x, targetPrimaries->value().green.y,
-        targetPrimaries->value().blue.x, targetPrimaries->value().blue.y, targetPrimaries->value().white.x, targetPrimaries->value().white.y,
+    const auto                   targetPrimaries      = targetImageDescription->getPrimaries();
+    const auto                   mat                  = targetPrimaries->value().toXYZ().mat();
+    const std::array<GLfloat, 9> glTargetPrimariesXYZ = {
+        mat[0][0], mat[1][0], mat[2][0], //
+        mat[0][1], mat[1][1], mat[2][1], //
+        mat[0][2], mat[1][2], mat[2][2], //
     };
-    shader->setUniformMatrix4x2fv(SHADER_TARGET_PRIMARIES, 1, false, glTargetPrimaries);
+    shader->setUniformMatrix3fv(SHADER_TARGET_PRIMARIES_XYZ, 1, false, glTargetPrimariesXYZ);
 
     const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
     const bool needsHDRmod = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
@@ -1364,10 +1368,17 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader) {
-        if (texType == TEXTURE_RGBA)
-            shader = m_shaders->frag[SH_FRAG_CM_RGBA];
-        else if (texType == TEXTURE_RGBX)
-            shader = m_shaders->frag[SH_FRAG_CM_RGBX];
+        if (!data.discardActive) {
+            if (texType == TEXTURE_RGBA)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA];
+            else if (texType == TEXTURE_RGBX)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBX];
+        } else {
+            if (texType == TEXTURE_RGBA)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
+            else if (texType == TEXTURE_RGBX)
+                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
+        }
 
         shader = useShader(shader);
 
@@ -1487,19 +1498,32 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
-    if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        const float customUVs[] = {
-            m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVTopLeft.x,
-            m_renderData.primarySurfaceUVTopLeft.y,     m_renderData.primarySurfaceUVBottomRight.x, m_renderData.primarySurfaceUVBottomRight.y,
-            m_renderData.primarySurfaceUVTopLeft.x,     m_renderData.primarySurfaceUVBottomRight.y,
-        };
+    glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO));
 
-        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(customUVs), customUVs);
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO_UV));
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(fullVerts), fullVerts);
+    // this tells GPU can keep reading the old block for previous draws while the CPU writes to a new one.
+    // to avoid stalls if renderTextureInternal is called multiple times on same renderpass
+    // at the cost of some temporar vram usage.
+    glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
+
+    auto verts = fullVerts;
+
+    if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+        const float u0 = m_renderData.primarySurfaceUVTopLeft.x;
+        const float v0 = m_renderData.primarySurfaceUVTopLeft.y;
+        const float u1 = m_renderData.primarySurfaceUVBottomRight.x;
+        const float v1 = m_renderData.primarySurfaceUVBottomRight.y;
+
+        verts[0].u = u0;
+        verts[0].v = v0;
+        verts[1].u = u0;
+        verts[1].v = v1;
+        verts[2].u = u1;
+        verts[2].v = v0;
+        verts[3].u = u1;
+        verts[3].v = v1;
     }
+
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data());
 
     if (!m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
         CRegion damageClip = m_renderData.clipBox;

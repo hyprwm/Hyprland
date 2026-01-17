@@ -213,7 +213,7 @@ bool IHyprLayout::onWindowCreatedAutoGroup(PHLWINDOW pWindow) {
                Desktop::focusState()->window() :
                (pWindow->m_workspace ? pWindow->m_workspace->getFirstWindow() : nullptr);
     const bool      FLOATEDINTOTILED = pWindow->m_isFloating && OPENINGON && !OPENINGON->m_isFloating;
-    const bool      SWALLOWING       = pWindow->m_swallowed || pWindow->m_groupSwallowed;
+    const bool      SWALLOWING       = pWindow->m_swallowee || pWindow->m_groupSwallowed;
 
     if ((*PAUTOGROUP || SWALLOWING)                      // continue if auto_group is enabled or if dealing with window swallowing.
         && OPENINGON                                     // this shouldn't be 0, but honestly, better safe than sorry.

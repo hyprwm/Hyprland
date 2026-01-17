@@ -16,21 +16,28 @@ target_include_directories(hyprctl PRIVATE "hw-protocols")
 
 # Hyprwire
 
-function(hyprprotocol protoPath protoName)
-  set(path ${CMAKE_CURRENT_SOURCE_DIR}/${protoPath})
+pkg_get_variable(HYPRWIRE_PROTOCOLS_DIR hyprwire-protocols pkgdatadir)
+message(STATUS "Found hyprwire-protocols at ${HYPRWIRE_PROTOCOLS_DIR}")
+
+function(hyprprotocol protoPath protoName external)
+  if(external)
+    set(path ${protoPath})
+  else()
+    set(path ${HYPRWIRE_PROTOCOLS_DIR}/${protoPath})
+  endif()
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/hw-protocols/${protoName}-client.cpp
            ${CMAKE_CURRENT_SOURCE_DIR}/hw-protocols/${protoName}-client.hpp
-           ${CMAKE_CURRENT_SOURCE_DIR}/hw-protocols/${protoName}-spec.hpp
     COMMAND hyprwire-scanner --client ${path}/${protoName}.xml
             ${CMAKE_CURRENT_SOURCE_DIR}/hw-protocols/
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   target_sources(hyprctl PRIVATE hw-protocols/${protoName}-client.cpp
                                    hw-protocols/${protoName}-client.hpp
-                                   hw-protocols/${protoName}-spec.hpp)
+                                   )
 endfunction()
 
-hyprprotocol(hw-protocols hyprpaper_core)
+hyprprotocol(hw-protocols hyprpaper_core true)
+hyprprotocol(hyprtavern hp_hyprtavern_core_v1 false)
 
 # binary
 install(TARGETS hyprctl)

@@ -7,7 +7,7 @@ uniform sampler2D tex;
 
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 targetPrimaries;
+uniform mat3 targetPrimariesXYZ;
 
 uniform float alpha;
 uniform bool applyTint;
@@ -21,7 +21,7 @@ void main() {
     vec4 pixColor = texture(tex, v_texcoord);
 
     // this shader shouldn't be used when skipCM == 1
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimaries);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimariesXYZ);
 
     if (applyTint)
         pixColor.rgb *= tint;

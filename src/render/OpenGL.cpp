@@ -1231,13 +1231,14 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
 
     shader->setUniformInt(SHADER_TARGET_TF, targetImageDescription->value().transferFunction);
 
-    const auto                   targetPrimaries = targetImageDescription->getPrimaries();
-
-    const std::array<GLfloat, 8> glTargetPrimaries = {
-        targetPrimaries->value().red.x,  targetPrimaries->value().red.y,  targetPrimaries->value().green.x, targetPrimaries->value().green.y,
-        targetPrimaries->value().blue.x, targetPrimaries->value().blue.y, targetPrimaries->value().white.x, targetPrimaries->value().white.y,
+    const auto                   targetPrimaries      = targetImageDescription->getPrimaries();
+    const auto                   mat                  = targetPrimaries->value().toXYZ().mat();
+    const std::array<GLfloat, 9> glTargetPrimariesXYZ = {
+        mat[0][0], mat[1][0], mat[2][0], //
+        mat[0][1], mat[1][1], mat[2][1], //
+        mat[0][2], mat[1][2], mat[2][2], //
     };
-    shader->setUniformMatrix4x2fv(SHADER_TARGET_PRIMARIES, 1, false, glTargetPrimaries);
+    shader->setUniformMatrix3fv(SHADER_TARGET_PRIMARIES_XYZ, 1, false, glTargetPrimariesXYZ);
 
     const bool needsSDRmod = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
     const bool needsHDRmod = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());

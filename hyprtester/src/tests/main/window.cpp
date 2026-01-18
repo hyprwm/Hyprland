@@ -25,6 +25,28 @@ static bool spawnKitty(const std::string& class_, const std::vector<std::string>
     return true;
 }
 
+/// Spawns a kitty and creates a file and returns its name. The removal of the file triggers
+/// activation of the spawned kitty window.
+///
+/// On failure, returns an empty string, possibly leaving a temporary file.
+static std::string spawnKittyActivating(const std::string& class_ = "kitty_activating") {
+    // `XXXXXX` is what `mkstemp` expects to find in the string
+    std::string tmpFilename = (std::filesystem::temp_directory_path() / "XXXXXX").string();
+    int         fd          = mkstemp(tmpFilename.data());
+    if (fd < 0) {
+        NLog::log("{}Error: could not create tmp file: errno {}", Colors::RED, errno);
+        return "";
+    }
+    (void)close(fd);
+    bool ok =
+        spawnKitty(class_, {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"});
+    if (!ok) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return "";
+    }
+    return tmpFilename;
+}
+
 static std::string getWindowAttribute(const std::string& winInfo, const std::string& attr) {
     auto pos = winInfo.find(attr);
     if (pos == std::string::npos) {
@@ -198,7 +220,7 @@ static void testGroupRules() {
     Tests::killAllWindows();
 }
 
-static bool isActiveWindow(const std::string& class_, char fullscreen, bool log = true) {
+static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
     auto        winClass      = getWindowAttribute(activeWin, "class:");
     auto        winFullscreen = getWindowAttribute(activeWin, "fullscreen:").back();
@@ -211,13 +233,13 @@ static bool isActiveWindow(const std::string& class_, char fullscreen, bool log 
     }
 }
 
-static bool waitForActiveWindow(const std::string& class_, char fullscreen, int maxTries = 50) {
+static bool waitForActiveWindow(const std::string& class_, char fullscreen = '0', bool logLastCheck = true, int maxTries = 50) {
     int cnt = 0;
     while (!isActiveWindow(class_, fullscreen, false)) {
         ++cnt;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (cnt > maxTries) {
-            return isActiveWindow(class_, fullscreen, true);
+            return isActiveWindow(class_, fullscreen, logLastCheck);
         }
     }
     return true;
@@ -232,24 +254,6 @@ static bool testWindowFocusOnFullscreenConflict() {
         return false;
 
     OK(getFromSocket("/keyword misc:focus_on_activate true"));
-
-    auto spawnKittyActivating = [] -> std::string {
-        // `XXXXXX` is what `mkstemp` expects to find in the string
-        std::string tmpFilename = (std::filesystem::temp_directory_path() / "XXXXXX").string();
-        int         fd          = mkstemp(tmpFilename.data());
-        if (fd < 0) {
-            NLog::log("{}Error: could not create tmp file: errno {}", Colors::RED, errno);
-            return "";
-        }
-        (void)close(fd);
-        bool ok = spawnKitty("kitty_activating",
-                             {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"});
-        if (!ok) {
-            NLog::log("{}Error: failed to spawn kitty", Colors::RED);
-            return "";
-        }
-        return tmpFilename;
-    };
 
     // Unfullscreen on conflict
     {
@@ -479,6 +483,67 @@ static void testInitialFloatSize() {
     }
 
     Tests::killAllWindows();
+}
+
+/// Tests that the `focus_on_activate` effect of window rules always overrides
+/// the `misc:focus_on_activate` variable.
+static bool testWindowRuleFocusOnActivate() {
+    OK(getFromSocket("/reload"));
+
+    if (!spawnKitty("kitty_default")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    // Do not focus anyone automatically
+    ///////////OK(getFromSocket("/keyword windowrule match:class .*, no_initial_focus true"));
+
+    // `focus_on_activate off` takes over
+    {
+        OK(getFromSocket("/keyword misc:focus_on_activate true"));
+        OK(getFromSocket("/keyword windowrule match:class kitty_antifocus, focus_on_activate off"));
+
+        const std::string removeToActivate = spawnKittyActivating("kitty_antifocus");
+        if (removeToActivate.empty()) {
+            return false;
+        }
+        EXPECT(waitForActiveWindow("kitty_antifocus"), true);
+        OK(getFromSocket("/dispatch focuswindow class:kitty_default"));
+        EXPECT(isActiveWindow("kitty_default"), true);
+
+        std::filesystem::remove(removeToActivate);
+        // The focus should NOT transition, since the window rule explicitly forbids that
+        EXPECT(waitForActiveWindow("kitty_antifocus", '0', false), false);
+    }
+
+    // `focus_on_activate on` takes over
+    {
+        OK(getFromSocket("/keyword misc:focus_on_activate false"));
+        OK(getFromSocket("/keyword windowrule match:class kitty_superfocus, focus_on_activate on"));
+
+        const std::string removeToActivate = spawnKittyActivating("kitty_superfocus");
+        if (removeToActivate.empty()) {
+            return false;
+        }
+        EXPECT(waitForActiveWindow("kitty_superfocus"), true);
+        OK(getFromSocket("/dispatch focuswindow class:kitty_default"));
+        EXPECT(isActiveWindow("kitty_default"), true);
+
+        std::filesystem::remove(removeToActivate);
+        // Now that we requested activation, the focus SHOULD transition to kitty_superfocus, according to the window rule
+        EXPECT(waitForActiveWindow("kitty_superfocus"), true);
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
 }
 
 static bool test() {
@@ -932,6 +997,7 @@ static bool test() {
     testBringActiveToTopMouseMovement();
     testGroupFallbackFocus();
     testInitialFloatSize();
+    testWindowRuleFocusOnActivate();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

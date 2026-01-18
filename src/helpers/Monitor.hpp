@@ -154,6 +154,7 @@ class CMonitor {
 
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;
+    Time::steady_tp             m_estimatedNextVblank;
 
     bool                        m_isBeingLeased = false;
 
@@ -369,6 +370,7 @@ class CMonitor {
 
     bool                    m_doneScheduled = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
+    Time::steady_tp         m_lastPageflip;
 
     struct {
         CHyprSignalListener frame;

@@ -15,6 +15,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/cursor/CursorShapeOverrideController.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
+#include "desktop/history/WindowHistoryTracker.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);
@@ -888,11 +889,28 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         return PWORKSPACE->getFullscreenWindow();
 
     if (pWindow->m_isFloating) {
+        auto WinIsValidFloatingCandidate = [pWindow](const PHLWINDOW windowToCheck) {
+            return windowToCheck->m_isMapped && 
+                    !windowToCheck->isHidden() && 
+                    windowToCheck->m_isFloating && 
+                    !windowToCheck->isX11OverrideRedirect() && 
+                    windowToCheck->m_workspace == pWindow->m_workspace && 
+                    !windowToCheck->m_X11ShouldntFocus &&
+                    !windowToCheck->m_ruleApplicator->noFocus().valueOrDefault() && 
+                    windowToCheck != pWindow;
+        };
+
+        // Walk up focus history to get last floating
+        const auto HISTORY = Desktop::History::windowTracker()->fullHistory();
+        for (const auto& w : HISTORY | std::views::reverse) {
+            if (!WinIsValidFloatingCandidate(w.lock()))
+                continue;
+            return w.lock();
+        }
 
         // find whether there is a floating window below this one
         for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_isMapped && !w->isHidden() && w->m_isFloating && !w->isX11OverrideRedirect() && w->m_workspace == pWindow->m_workspace && !w->m_X11ShouldntFocus &&
-                !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pWindow) {
+            if (WinIsValidFloatingCandidate(w)) {
                 if (VECINRECT((pWindow->m_size / 2.f + pWindow->m_position), w->m_position.x, w->m_position.y, w->m_position.x + w->m_size.x, w->m_position.y + w->m_size.y)) {
                     return w;
                 }
@@ -911,8 +929,7 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 
         // if not, floating window
         for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_isMapped && !w->isHidden() && w->m_isFloating && !w->isX11OverrideRedirect() && w->m_workspace == pWindow->m_workspace && !w->m_X11ShouldntFocus &&
-                !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pWindow)
+            if (WinIsValidFloatingCandidate(w))
                 return w;
         }
 

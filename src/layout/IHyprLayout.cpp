@@ -889,18 +889,18 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
         return PWORKSPACE->getFullscreenWindow();
 
     if (pWindow->m_isFloating) {
-        auto WinIsValidFloatingCandidate = [pWindow](const PHLWINDOW windowToCheck) {
-            return windowToCheck->m_isMapped && !windowToCheck->isHidden() && windowToCheck->m_isFloating && !windowToCheck->isX11OverrideRedirect() &&
-                windowToCheck->m_workspace == pWindow->m_workspace && !windowToCheck->m_X11ShouldntFocus && !windowToCheck->m_ruleApplicator->noFocus().valueOrDefault() &&
-                windowToCheck != pWindow;
+        auto WinIsValidFloatingCandidate = [pWindow](const PHLWINDOW win) {
+            return win->m_isMapped && !win->isHidden() && win->m_isFloating && !win->isX11OverrideRedirect() && win->m_workspace == pWindow->m_workspace &&
+                !win->m_X11ShouldntFocus && !win->m_ruleApplicator->noFocus().valueOrDefault() && win != pWindow;
         };
 
         // Walk up focus history to get last floating
         const auto HISTORY = Desktop::History::windowTracker()->fullHistory();
         for (const auto& w : HISTORY | std::views::reverse) {
-            if (!WinIsValidFloatingCandidate(w.lock()))
-                continue;
-            return w.lock();
+            if (auto win = w.lock()) {
+                if (WinIsValidFloatingCandidate(win))
+                    return win;
+            }
         }
 
         // find whether there is a floating window below this one

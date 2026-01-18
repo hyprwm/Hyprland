@@ -8,6 +8,7 @@
 
 #include "../../config/ConfigManager.hpp"
 #include "../../Compositor.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType type, bool force) {
@@ -482,6 +483,13 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
                 *ls->m_alpha = FULLSCREEN && ws->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
         }
     }
+}
+
+void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, float fade) {
+    if (pWindow->m_fadingOut || !pWindow->m_isFloating)
+        return;
+
+    *pWindow->m_alpha = fade;
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {

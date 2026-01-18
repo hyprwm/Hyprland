@@ -8,6 +8,7 @@
 #include "../../managers/HookSystemManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
+#include "managers/animation/DesktopAnimationManager.hpp"
 
 using namespace Desktop;
 
@@ -32,6 +33,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
         pWindow->m_createdOverFullscreen = true;
+        g_pDesktopAnimationManager->setFullscreenFloatingFade(pWindow, 1.f);
         g_pHyprRenderer->damageWindow(pWindow);
         return {};
     }

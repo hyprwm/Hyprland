@@ -296,6 +296,24 @@ static SDispatchResult checkRule(std::string in) {
     return {};
 }
 
+static SDispatchResult floatingFocusOnFullscreen(std::string in) {
+    const auto PLASTWINDOW = Desktop::focusState()->window();
+
+    if (!PLASTWINDOW)
+        return {.success = false, .error = "No window"};
+
+    if (!PLASTWINDOW->m_isFloating)
+        return {.success = false, .error = "Window must be floating"};
+
+    if (PLASTWINDOW->m_alpha != 1.f)
+        return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
+
+    if (!PLASTWINDOW->m_createdOverFullscreen)
+        return {.success = false, .error = "floating window doesnt get flagged as createdOverFullscreen"};
+
+    return {};
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -309,6 +327,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:keybind", ::keybind);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_rule", ::addRule);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_rule", ::checkRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:floating_focus_on_fullscreen", ::floatingFocusOnFullscreen);
 
     // init mouse
     g_mouse = CTestMouse::create(false);

@@ -19,13 +19,16 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
 #include "../desktop/rule/Engine.hpp"
+#include "../desktop/view/Group.hpp"
+#include "../layout/LayoutManager.hpp"
+#include "../layout/target/WindowTarget.hpp"
+#include "../layout/space/Space.hpp"
 
 #include <optional>
 #include <iterator>
@@ -322,10 +325,10 @@ void CKeybindManager::updateXKBTranslationState() {
 }
 
 bool CKeybindManager::ensureMouseBindState() {
-    if (!g_pInputManager->m_currentlyDraggedWindow)
+    if (!g_layoutManager->dragController()->target())
         return false;
 
-    if (!g_pInputManager->m_currentlyDraggedWindow.expired()) {
+    if (g_layoutManager->dragController()->target()) {
         changeMouseBindMode(MBIND_INVALID);
         return true;
     }
@@ -751,9 +754,9 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             // Require mouse to stay inside drag_threshold for clicks, outside for drags
             // Check if either a mouse bind has triggered or currently over the threshold (maybe there is no mouse bind on the same key)
             const auto THRESHOLDREACHED = key.mousePosAtPress.distanceSq(g_pInputManager->getMouseCoordsInternal()) > std::pow(*PDRAGTHRESHOLD, 2);
-            if (k->click && (g_pInputManager->m_dragThresholdReached || THRESHOLDREACHED))
+            if (k->click && (g_layoutManager->dragController()->dragThresholdReached() || THRESHOLDREACHED))
                 continue;
-            else if (k->drag && !g_pInputManager->m_dragThresholdReached && !THRESHOLDREACHED)
+            else if (k->drag && !g_layoutManager->dragController()->dragThresholdReached() && !THRESHOLDREACHED)
                 continue;
         }
 
@@ -810,7 +813,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             found = true;
     }
 
-    g_pInputManager->m_dragThresholdReached = false;
+    g_layoutManager->dragController()->resetDragThresholdReached();
 
     // if keybind wasn't found (or dispatcher said to) then pass event
     res.passEvent |= !found;
@@ -1112,32 +1115,16 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
         return {};
 
     // remove drag status
-    if (!g_pInputManager->m_currentlyDraggedWindow.expired())
+    if (g_layoutManager->dragController()->target())
         CKeybindManager::changeMouseBindMode(MBIND_INVALID);
 
-    if (PWINDOW->m_groupData.pNextWindow.lock() && PWINDOW->m_groupData.pNextWindow.lock() != PWINDOW) {
-        const auto PCURRENT = PWINDOW->getGroupCurrent();
-
-        PCURRENT->m_isFloating = !PCURRENT->m_isFloating;
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PCURRENT);
-
-        PHLWINDOW curr = PCURRENT->m_groupData.pNextWindow.lock();
-        while (curr != PCURRENT) {
-            curr->m_isFloating = PCURRENT->m_isFloating;
-            curr               = curr->m_groupData.pNextWindow.lock();
-        }
-    } else {
-        PWINDOW->m_isFloating = !PWINDOW->m_isFloating;
-
-        g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(PWINDOW);
-    }
+    g_layoutManager->changeFloatingMode(PWINDOW->layoutTarget());
 
     if (PWINDOW->m_workspace) {
         PWINDOW->m_workspace->updateWindows();
         PWINDOW->m_workspace->updateWindowData();
     }
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PWINDOW->monitorID());
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     return {};
@@ -1180,10 +1167,7 @@ SDispatchResult CKeybindManager::toggleActivePseudo(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    PWINDOW->m_isPseudotiled = !PWINDOW->m_isPseudotiled;
-
-    if (!PWINDOW->isFullscreen())
-        g_pLayoutManager->getCurrentLayout()->recalculateWindow(PWINDOW);
+    PWINDOW->layoutTarget()->setPseudo(!PWINDOW->layoutTarget()->isPseudo());
 
     return {};
 }
@@ -1497,15 +1481,15 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
         g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
 
     // Prioritize focus change within groups if the window is a part of it.
-    if (*PGROUPCYCLE && PLASTWINDOW->m_groupData.pNextWindow) {
+    if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
         auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && g_pCompositor->m_monitors.size() == 1;
-        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->getGroupHead() || isTheOnlyGroupOnWs)) {
-            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->getGroupPrevious());
+        if (arg == 'l' && (PLASTWINDOW != PLASTWINDOW->m_group->head() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->m_group->moveCurrent(false);
             return {};
         }
 
-        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->getGroupTail() || isTheOnlyGroupOnWs)) {
-            PLASTWINDOW->setGroupCurrent(PLASTWINDOW->m_groupData.pNextWindow.lock());
+        else if (arg == 'r' && (PLASTWINDOW != PLASTWINDOW->m_group->tail() || isTheOnlyGroupOnWs)) {
+            PLASTWINDOW->m_group->moveCurrent(true);
             return {};
         }
     }
@@ -1621,7 +1605,7 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     Log::logger->log(Log::DEBUG, "Swapping active window with {}", args);
 
     updateRelativeCursorCoords();
-    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, PWINDOWTOCHANGETO);
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), PWINDOWTOCHANGETO->layoutTarget());
     PLASTWINDOW->warpCursor();
     return {};
 }
@@ -1691,7 +1675,7 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
     if (PWINDOWTOCHANGETO) {
         updateRelativeCursorCoords();
 
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args, silent);
+        g_layoutManager->moveInDirection(PLASTWINDOW->layoutTarget(), args, silent);
         if (!silent)
             PLASTWINDOW->warpCursor();
         return {};
@@ -1724,10 +1708,10 @@ SDispatchResult CKeybindManager::toggleGroup(std::string args) {
     if (PWINDOW->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
-    if (PWINDOW->m_groupData.pNextWindow.expired())
-        PWINDOW->createGroup();
+    if (!PWINDOW->m_group)
+        PWINDOW->m_group = Desktop::View::CGroup::create({PWINDOW});
     else
-        PWINDOW->destroyGroup();
+        PWINDOW->m_group->destroy();
 
     return {};
 }
@@ -1738,89 +1722,40 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "Window not found"};
 
-    if (PWINDOW->m_groupData.pNextWindow.expired())
-        return {.success = false, .error = "No next window in group"};
+    if (!PWINDOW->m_group)
+        return {.success = false, .error = "No group"};
 
-    if (PWINDOW->m_groupData.pNextWindow.lock() == PWINDOW)
+    if (PWINDOW->m_group->size() == 1)
         return {.success = false, .error = "Only one window in group"};
 
     if (isNumber(args, false)) {
         // index starts from '1'; '0' means last window
-        const int INDEX = std::stoi(args);
-        if (INDEX > PWINDOW->getGroupSize())
-            return {.success = false, .error = "Index too big, there aren't that many windows in this group"};
-        if (INDEX == 0)
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupTail());
-        else
-            PWINDOW->setGroupCurrent(PWINDOW->getGroupWindowByIndex(INDEX - 1));
+        try {
+            const int INDEX = std::stoi(args);
+            PWINDOW->m_group->setCurrent(INDEX);
+        } catch (...) { return {.success = false, .error = "invalid idx"}; }
+
         return {};
     }
 
     if (args != "b" && args != "prev")
-        PWINDOW->setGroupCurrent(PWINDOW->m_groupData.pNextWindow.lock());
+        PWINDOW->m_group->moveCurrent(true);
     else
-        PWINDOW->setGroupCurrent(PWINDOW->getGroupPrevious());
+        PWINDOW->m_group->moveCurrent(true);
 
     return {};
 }
 
 SDispatchResult CKeybindManager::toggleSplit(std::string args) {
-    SLayoutMessageHeader header;
-    header.pWindow = Desktop::focusState()->window();
-
-    if (!header.pWindow)
-        return {.success = false, .error = "Window not found"};
-
-    const auto PWORKSPACE = header.pWindow->m_workspace;
-
-    if (PWORKSPACE->m_hasFullscreenWindow)
-        return {.success = false, .error = "Can't split windows that already split"};
-
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "togglesplit");
-
-    return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::swapSplit(std::string args) {
-    SLayoutMessageHeader header;
-    header.pWindow = Desktop::focusState()->window();
-
-    if (!header.pWindow)
-        return {.success = false, .error = "Window not found"};
-
-    const auto PWORKSPACE = header.pWindow->m_workspace;
-
-    if (PWORKSPACE->m_hasFullscreenWindow)
-        return {.success = false, .error = "Can't split windows that already split"};
-
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "swapsplit");
-
-    return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::alterSplitRatio(std::string args) {
-    std::optional<float> splitResult;
-    bool                 exact = false;
-
-    if (args.starts_with("exact")) {
-        exact       = true;
-        splitResult = getPlusMinusKeywordResult(args.substr(5), 0);
-    } else
-        splitResult = getPlusMinusKeywordResult(args, 0);
-
-    if (!splitResult.has_value()) {
-        Log::logger->log(Log::ERR, "Splitratio invalid in alterSplitRatio!");
-        return {.success = false, .error = "Splitratio invalid in alterSplitRatio!"};
-    }
-
-    const auto PLASTWINDOW = Desktop::focusState()->window();
-
-    if (!PLASTWINDOW)
-        return {.success = false, .error = "Window not found"};
-
-    g_pLayoutManager->getCurrentLayout()->alterSplitRatio(PLASTWINDOW, splitResult.value(), exact);
-
-    return {};
+    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::focusMonitor(std::string arg) {
@@ -1903,58 +1838,7 @@ SDispatchResult CKeybindManager::moveCursor(std::string args) {
 }
 
 SDispatchResult CKeybindManager::workspaceOpt(std::string args) {
-
-    // current workspace
-    const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
-
-    if (!PWORKSPACE)
-        return {.success = false, .error = "Workspace not found"}; // ????
-
-    if (args == "allpseudo") {
-        PWORKSPACE->m_defaultPseudo = !PWORKSPACE->m_defaultPseudo;
-
-        // apply
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_isMapped || w->m_workspace != PWORKSPACE)
-                continue;
-
-            w->m_isPseudotiled = PWORKSPACE->m_defaultPseudo;
-        }
-    } else if (args == "allfloat") {
-        PWORKSPACE->m_defaultFloating = !PWORKSPACE->m_defaultFloating;
-        // apply
-
-        // we make a copy because changeWindowFloatingMode might invalidate the iterator
-        std::vector<PHLWINDOW> ptrs(g_pCompositor->m_windows.begin(), g_pCompositor->m_windows.end());
-
-        for (auto const& w : ptrs) {
-            if (!w->m_isMapped || w->m_workspace != PWORKSPACE || w->isHidden())
-                continue;
-
-            if (!w->m_requestsFloat && w->m_isFloating != PWORKSPACE->m_defaultFloating) {
-                const auto SAVEDPOS  = w->m_realPosition->goal();
-                const auto SAVEDSIZE = w->m_realSize->goal();
-
-                w->m_isFloating = PWORKSPACE->m_defaultFloating;
-                g_pLayoutManager->getCurrentLayout()->changeWindowFloatingMode(w);
-
-                if (PWORKSPACE->m_defaultFloating) {
-                    w->m_realPosition->setValueAndWarp(SAVEDPOS);
-                    w->m_realSize->setValueAndWarp(SAVEDSIZE);
-                    *w->m_realSize     = w->m_realSize->value() + Vector2D(4, 4);
-                    *w->m_realPosition = w->m_realPosition->value() - Vector2D(2, 2);
-                }
-            }
-        }
-    } else {
-        Log::logger->log(Log::ERR, "Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args);
-        return {.success = false, .error = std::format("Invalid arg in workspaceOpt, opt \"{}\" doesn't exist.", args)};
-    }
-
-    // recalc mon
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(Desktop::focusState()->monitor()->m_id);
-
-    return {};
+    return {.success = false, .error = "workspaceopt is deprecated"};
 }
 
 SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
@@ -2183,7 +2067,7 @@ SDispatchResult CKeybindManager::resizeActive(std::string args) {
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size provided"};
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PLASTWINDOW->m_realSize->goal());
+    g_layoutManager->resizeTarget(SIZ - PLASTWINDOW->m_realSize->goal(), PLASTWINDOW->layoutTarget());
 
     if (PLASTWINDOW->m_realSize->goal().x > 1 && PLASTWINDOW->m_realSize->goal().y > 1)
         PLASTWINDOW->setHidden(false);
@@ -2202,7 +2086,7 @@ SDispatchResult CKeybindManager::moveActive(std::string args) {
 
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(args, PLASTWINDOW->m_realPosition->goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PLASTWINDOW->m_realPosition->goal());
+    g_layoutManager->moveTarget(POS - PLASTWINDOW->m_realPosition->goal(), PLASTWINDOW->layoutTarget());
 
     return {};
 }
@@ -2224,7 +2108,7 @@ SDispatchResult CKeybindManager::moveWindow(std::string args) {
 
     const auto POS = g_pCompositor->parseWindowVectorArgsRelative(MOVECMD, PWINDOW->m_realPosition->goal());
 
-    g_pLayoutManager->getCurrentLayout()->moveActiveWindow(POS - PWINDOW->m_realPosition->goal(), PWINDOW);
+    g_layoutManager->moveTarget(POS - PWINDOW->m_realPosition->goal(), PWINDOW->layoutTarget());
 
     return {};
 }
@@ -2249,7 +2133,7 @@ SDispatchResult CKeybindManager::resizeWindow(std::string args) {
     if (SIZ.x < 1 || SIZ.y < 1)
         return {.success = false, .error = "Invalid size provided"};
 
-    g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PWINDOW->m_realSize->goal(), CORNER_NONE, PWINDOW);
+    g_layoutManager->resizeTarget(SIZ - PWINDOW->m_realSize->goal(), PWINDOW->layoutTarget(), Layout::CORNER_NONE);
 
     if (PWINDOW->m_realSize->goal().x > 1 && PWINDOW->m_realSize->goal().y > 1)
         PWINDOW->setHidden(false);
@@ -2347,12 +2231,12 @@ SDispatchResult CKeybindManager::toggleSwallow(std::string args) {
         // Unswallow
         pWindow->m_swallowed->m_currentlySwallowed = false;
         pWindow->m_swallowed->setHidden(false);
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow->m_swallowed.lock());
+        g_layoutManager->newTarget(pWindow->m_swallowed->layoutTarget(), pWindow->m_workspace->m_space);
     } else {
         // Reswallow
         pWindow->m_swallowed->m_currentlySwallowed = true;
         pWindow->m_swallowed->setHidden(true);
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow->m_swallowed.lock());
+        g_layoutManager->removeTarget(pWindow->m_swallowed->layoutTarget());
     }
 
     return {};
@@ -2613,9 +2497,9 @@ SDispatchResult CKeybindManager::sendshortcut(std::string args) {
 }
 
 SDispatchResult CKeybindManager::layoutmsg(std::string msg) {
-    SLayoutMessageHeader hd = {Desktop::focusState()->window()};
-    g_pLayoutManager->getCurrentLayout()->layoutMessage(hd, msg);
-
+    auto ret = g_layoutManager->layoutMsg(msg);
+    if (!ret)
+        return {.success = false, .error = ret.error()};
     return {};
 }
 
@@ -2669,7 +2553,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
     if (toSwap == PLASTWINDOW)
         toSwap = g_pCompositor->getWindowCycle(PLASTWINDOW, true, std::nullopt, false, NEED_PREV);
 
-    g_pLayoutManager->getCurrentLayout()->switchWindows(PLASTWINDOW, toSwap);
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), toSwap->layoutTarget());
 
     PLASTWINDOW->m_lastCycledWindow = toSwap;
 
@@ -2760,7 +2644,7 @@ SDispatchResult CKeybindManager::mouse(std::string args) {
 
 SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) {
     if (MODE != MBIND_INVALID) {
-        if (!g_pInputManager->m_currentlyDraggedWindow.expired() || g_pInputManager->m_dragMode != MBIND_INVALID)
+        if (g_layoutManager->dragController()->target())
             return {};
 
         const auto      MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
@@ -2772,18 +2656,12 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE)
             PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS);
 
-        if (g_pInputManager->m_currentlyDraggedWindow.expired())
-            g_pInputManager->m_currentlyDraggedWindow = PWINDOW;
-
-        g_pInputManager->m_dragMode = MODE;
-
-        g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
+        g_layoutManager->beginDragTarget(PWINDOW->layoutTarget(), MODE);
     } else {
-        if (g_pInputManager->m_currentlyDraggedWindow.expired() || g_pInputManager->m_dragMode == MBIND_INVALID)
+        if (!g_layoutManager->dragController()->target())
             return {};
 
-        g_pLayoutManager->getCurrentLayout()->onEndDragWindow();
-        g_pInputManager->m_dragMode = MODE;
+        g_layoutManager->endDragTarget();
     }
 
     return {};
@@ -2845,17 +2723,15 @@ SDispatchResult CKeybindManager::lockActiveGroup(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PWINDOW->m_groupData.pNextWindow.lock())
+    if (!PWINDOW->m_group)
         return {.success = false, .error = "Not a group"};
 
-    const auto PHEAD = PWINDOW->getGroupHead();
-
     if (args == "lock")
-        PHEAD->m_groupData.locked = true;
+        PWINDOW->m_group->setLocked(true);
     else if (args == "toggle")
-        PHEAD->m_groupData.locked = !PHEAD->m_groupData.locked;
+        PWINDOW->m_group->setLocked(!PWINDOW->m_group->locked());
     else
-        PHEAD->m_groupData.locked = false;
+        PWINDOW->m_group->setLocked(false);
 
     PWINDOW->updateDecorationValues();
 
@@ -2863,24 +2739,20 @@ SDispatchResult CKeybindManager::lockActiveGroup(std::string args) {
 }
 
 void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection) {
-    if (pWindow->m_groupData.deny)
+    if (!pWindowInDirection->m_group || pWindowInDirection->m_group->denied())
         return;
 
     updateRelativeCursorCoords();
-
-    g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow); // This removes grouped property!
 
     if (pWindow->m_monitor != pWindowInDirection->m_monitor) {
         pWindow->moveToWorkspace(pWindowInDirection->m_workspace);
         pWindow->m_monitor = pWindowInDirection->m_monitor;
     }
 
-    static auto USECURRPOS = CConfigValue<Hyprlang::INT>("group:insert_after_current");
-    (*USECURRPOS ? pWindowInDirection : pWindowInDirection->getGroupTail())->insertWindowToGroup(pWindow);
+    pWindowInDirection->m_group->add(pWindow);
 
-    pWindowInDirection->setGroupCurrent(pWindow);
+    pWindowInDirection->m_group->setCurrent(pWindow);
     pWindow->updateWindowDecos();
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
     Desktop::focusState()->fullWindowFocus(pWindow);
     pWindow->warpCursor();
 
@@ -2889,40 +2761,20 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 
 void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir) {
     static auto BFOCUSREMOVEDWINDOW = CConfigValue<Hyprlang::INT>("group:focus_removed_window");
-    const auto  PWINDOWPREV         = pWindow->getGroupPrevious();
-    eDirection  direction;
 
-    switch (dir[0]) {
-        case 't':
-        case 'u': direction = DIRECTION_UP; break;
-        case 'd':
-        case 'b': direction = DIRECTION_DOWN; break;
-        case 'l': direction = DIRECTION_LEFT; break;
-        case 'r': direction = DIRECTION_RIGHT; break;
-        default: direction = DIRECTION_DEFAULT;
-    }
+    if (!pWindow->m_group)
+        return;
 
-    updateRelativeCursorCoords();
+    WP<Desktop::View::CGroup> group = pWindow->m_group;
 
-    if (pWindow->m_groupData.pNextWindow.lock() == pWindow) {
-        pWindow->destroyGroup();
-    } else {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
+    pWindow->m_group->remove(pWindow);
 
-        const auto GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
-        g_pKeybindManager->m_groupsLocked = true;
-
-        g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow, direction);
-
-        g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
-    }
-
-    if (*BFOCUSREMOVEDWINDOW) {
+    if (*BFOCUSREMOVEDWINDOW || !group) {
         Desktop::focusState()->fullWindowFocus(pWindow);
         pWindow->warpCursor();
     } else {
-        Desktop::focusState()->fullWindowFocus(PWINDOWPREV);
-        PWINDOWPREV->warpCursor();
+        Desktop::focusState()->fullWindowFocus(group->current());
+        group->current()->warpCursor();
     }
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveoutofgroup", std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
@@ -2943,16 +2795,18 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 
     const auto PWINDOW = Desktop::focusState()->window();
 
-    if (!PWINDOW || PWINDOW->m_groupData.deny)
+    if (!PWINDOW)
         return {};
 
     auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
-    if (!PWINDOWINDIR || !PWINDOWINDIR->m_groupData.pNextWindow.lock())
+    if (!PWINDOWINDIR || !PWINDOWINDIR->m_group)
         return {};
 
+    const auto GROUP = PWINDOWINDIR->m_group;
+
     // Do not move window into locked group if binds:ignore_group_lock is false
-    if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_groupData.locked || (PWINDOW->m_groupData.pNextWindow.lock() && PWINDOW->getGroupHead()->m_groupData.locked)))
+    if (!*PIGNOREGROUPLOCK && (GROUP->locked() || (PWINDOW->m_group && PWINDOW->m_group->locked())))
         return {};
 
     moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
@@ -2976,7 +2830,7 @@ SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PWINDOW->m_groupData.pNextWindow.lock())
+    if (!PWINDOW->m_group)
         return {.success = false, .error = "Window not in a group"};
 
     moveWindowOutOfGroup(PWINDOW);
@@ -3002,35 +2856,35 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
         return {};
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked) {
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
         return {};
     }
 
     const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, arg);
 
-    const bool ISWINDOWGROUP       = PWINDOW->m_groupData.pNextWindow;
-    const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->getGroupHead()->m_groupData.locked;
-    const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_groupData.pNextWindow.lock() == PWINDOW;
+    const bool ISWINDOWGROUP       = PWINDOW->m_group;
+    const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->m_group->locked();
+    const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_group->size() == 1;
 
     updateRelativeCursorCoords();
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_isFloating
-    if (PWINDOWINDIR && PWINDOWINDIR->m_groupData.pNextWindow) { // target is group
-        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->getGroupHead()->m_groupData.locked || ISWINDOWGROUPLOCKED || PWINDOW->m_groupData.deny)) {
-            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+    if (PWINDOWINDIR && PWINDOWINDIR->m_group) { // target is group
+        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || PWINDOW->m_group->denied())) {
+            g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else
             moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
     } else if (PWINDOWINDIR) { // target is regular window
         if ((!*PIGNOREGROUPLOCK && ISWINDOWGROUPLOCKED) || !ISWINDOWGROUP || (ISWINDOWGROUPSINGLE && PWINDOW->m_groupRules & Desktop::View::GROUP_SET_ALWAYS)) {
-            g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+            g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else
             moveWindowOutOfGroup(PWINDOW, args);
     } else if ((*PIGNOREGROUPLOCK || !ISWINDOWGROUPLOCKED) && ISWINDOWGROUP) { // no target window
         moveWindowOutOfGroup(PWINDOW, args);
     } else if (!PWINDOWINDIR && !ISWINDOWGROUP) { // no target in dir and not in group
-        g_pLayoutManager->getCurrentLayout()->moveWindowTo(PWINDOW, args);
+        g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
         PWINDOW->warpCursor();
     }
 
@@ -3054,13 +2908,13 @@ SDispatchResult CKeybindManager::setIgnoreGroupLock(std::string args) {
 
 SDispatchResult CKeybindManager::denyWindowFromGroup(std::string args) {
     const auto PWINDOW = Desktop::focusState()->window();
-    if (!PWINDOW || (PWINDOW && PWINDOW->m_groupData.pNextWindow.lock()))
+    if (!PWINDOW || (PWINDOW && PWINDOW->m_group))
         return {};
 
     if (args == "toggle")
-        PWINDOW->m_groupData.deny = !PWINDOW->m_groupData.deny;
+        PWINDOW->m_group->setDenied(!PWINDOW->m_group->denied());
     else
-        PWINDOW->m_groupData.deny = args == "on";
+        PWINDOW->m_group->setDenied(args == "on");
 
     PWINDOW->updateDecorationValues();
 
@@ -3090,16 +2944,19 @@ SDispatchResult CKeybindManager::moveGroupWindow(std::string args) {
     if (!PLASTWINDOW)
         return {.success = false, .error = "No window found"};
 
-    if (!PLASTWINDOW->m_groupData.pNextWindow.lock())
+    if (!PLASTWINDOW->m_group)
         return {.success = false, .error = "Window not in a group"};
 
-    if ((!BACK && PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head) || (BACK && PLASTWINDOW->m_groupData.head)) {
-        std::swap(PLASTWINDOW->m_groupData.head, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head);
-        std::swap(PLASTWINDOW->m_groupData.locked, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.locked);
-    } else
-        PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_groupData.pNextWindow.lock());
+    const auto GROUP = PLASTWINDOW->m_group;
 
-    PLASTWINDOW->updateWindowDecos();
+    // FIXME: what the fuck is this supposed to do?
+    // if ((!BACK && PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head) || (BACK && PLASTWINDOW->m_groupData.head)) {
+    //     std::swap(PLASTWINDOW->m_groupData.head, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head);
+    //     std::swap(PLASTWINDOW->m_groupData.locked, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.locked);
+    // } else
+    //     PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_groupData.pNextWindow.lock());
+
+    // PLASTWINDOW->updateWindowDecos();
 
     return {};
 }
@@ -3296,8 +3153,10 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     if (PROP == "no_vrr")
         g_pConfigManager->ensureVRR(PWINDOW->m_monitor.lock());
 
-    for (auto const& m : g_pCompositor->m_monitors)
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+    for (auto const& m : g_pCompositor->m_monitors) {
+        if (m->m_activeWorkspace)
+            m->m_activeWorkspace->m_space->recalculate();
+    }
 
     return {};
 }

@@ -26,7 +26,14 @@ struct SWorkspaceRule;
 
 class IWindowTransformer;
 
+namespace Layout {
+    class ITarget;
+    class CWindowTarget;
+}
+
 namespace Desktop::View {
+
+    class CGroup;
 
     enum eGroupRules : uint8_t {
         // effective only during first map, except for _ALWAYS variant
@@ -38,6 +45,7 @@ namespace Desktop::View {
         GROUP_LOCK_ALWAYS = 1 << 4,
         GROUP_INVADE      = 1 << 5, // Force enter a group, event if lock is engaged
         GROUP_OVERRIDE    = 1 << 6, // Override other rules
+        GROUP_DENY        = 1 << 7, // deny
     };
 
     enum eGetWindowProperties : uint8_t {
@@ -97,6 +105,8 @@ namespace Desktop::View {
         WP<CXDGSurfaceResource> m_xdgSurface;
         WP<CXWaylandSurface>    m_xwaylandSurface;
 
+        SP<Layout::ITarget>     m_target;
+
         // this is the position and size of the "bounding box"
         Vector2D m_position = Vector2D(0, 0);
         Vector2D m_size     = Vector2D(0, 0);
@@ -118,10 +128,6 @@ namespace Desktop::View {
 
         // for floating window offset in workspace animations
         Vector2D m_floatingOffset = Vector2D(0, 0);
-
-        // this is used for pseudotiling
-        bool     m_isPseudotiled = false;
-        Vector2D m_pseudoSize    = Vector2D(1280, 720);
 
         // for recovering relative cursor position
         Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
@@ -229,15 +235,10 @@ namespace Desktop::View {
         std::string m_initialWorkspaceToken = "";
 
         // for groups
-        struct SGroupData {
-            PHLWINDOWREF pNextWindow; // nullptr means no grouping. Self means single group.
-            bool         head   = false;
-            bool         locked = false; // per group lock
-            bool         deny   = false; // deny window from enter a group or made a group
-        } m_groupData;
-        uint16_t m_groupRules = Desktop::View::GROUP_NONE;
+        SP<CGroup> m_group;
+        uint16_t   m_groupRules = Desktop::View::GROUP_NONE;
 
-        bool     m_tearingHint = false;
+        bool       m_tearingHint = false;
 
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;
@@ -300,21 +301,6 @@ namespace Desktop::View {
         bool                       isInCurvedCorner(double x, double y);
         bool                       hasPopupAt(const Vector2D& pos);
         int                        popupsCount();
-        void                       applyGroupRules();
-        void                       createGroup();
-        void                       destroyGroup();
-        PHLWINDOW                  getGroupHead();
-        PHLWINDOW                  getGroupTail();
-        PHLWINDOW                  getGroupCurrent();
-        PHLWINDOW                  getGroupPrevious();
-        PHLWINDOW                  getGroupWindowByIndex(int);
-        bool                       hasInGroup(PHLWINDOW);
-        int                        getGroupSize();
-        bool                       canBeGroupedInto(PHLWINDOW pWindow);
-        void                       setGroupCurrent(PHLWINDOW pWindow);
-        void                       insertWindowToGroup(PHLWINDOW pWindow);
-        void                       updateGroupOutputs();
-        void                       switchWithWindowInGroup(PHLWINDOW pWindow);
         void                       setAnimationsToMove();
         void                       onWorkspaceAnimUpdate();
         void                       onFocusAnimUpdate();
@@ -347,6 +333,8 @@ namespace Desktop::View {
         std::optional<Vector2D>    calculateExpression(const std::string& s);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();
+        SP<Layout::ITarget>        layoutTarget();
+        bool                       canBeGroupedInto(SP<CGroup> group);
 
         CBox                       getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

@@ -15,7 +15,7 @@
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/cursor/CursorShapeOverrideController.hpp"
 #include "../desktop/rule/windowRule/WindowRule.hpp"
-#include "desktop/history/WindowHistoryTracker.hpp"
+#include "../desktop/history/WindowHistoryTracker.hpp"
 
 void IHyprLayout::onWindowCreated(PHLWINDOW pWindow, eDirection direction) {
     CBox       desiredGeometry = g_pXWaylandManager->getGeometryForWindow(pWindow);

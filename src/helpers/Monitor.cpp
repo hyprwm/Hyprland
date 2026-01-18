@@ -63,7 +63,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
     g_pAnimationManager->createAnimation(0.F, m_dpmsBlackOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
 
-    m_lastPageflip = Time::steadyNow();
+    m_lastPageflip        = Time::steadyNow();
+    m_estimatedNextVblank = m_lastPageflip;
 }
 
 CMonitor::~CMonitor() {
@@ -142,16 +143,15 @@ void CMonitor::onConnect(bool noRule) {
             });
         }
 
+        auto           now               = Time::steadyNow();
+        auto           minVBlankInterval = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / m_refreshRate));
+        const uint64_t pageflipsSince    = now >= m_lastPageflip ? (now - m_lastPageflip) / minVBlankInterval : 0;
+        m_estimatedNextVblank            = m_lastPageflip + minVBlankInterval * (pageflipsSince + 1);
+        m_lastPageflip                   = now;
+
         m_frameScheduler->onPresented();
 
         m_events.presented.emit();
-
-        auto           now               = Time::steadyNow();
-        auto           minVBlankInterval = std::chrono::nanoseconds(1'000'000'000'000ull / sc<long>(m_refreshRate));
-        const uint64_t pageflipsSince    = now >= m_lastPageflip ? (now - m_lastPageflip) / minVBlankInterval : 0;
-        m_estimatedNextVblank            = m_lastPageflip + minVBlankInterval * (pageflipsSince + 1);
-
-        m_lastPageflip = Time::steadyNow();
     });
 
     m_listeners.destroy = m_output->events.destroy.listen([this] {

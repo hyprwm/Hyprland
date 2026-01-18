@@ -1683,8 +1683,12 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
 
-    auto deadline = pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
-    setDeadline(deadline, m_currentBuffer.fence);
+    auto deadline =
+        pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    if (deadline) {
+        setDeadline(deadline.value(), m_currentBuffer.fence);
+        pMonitor->m_estimatedNextVblank = std::nullopt;
+    }
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

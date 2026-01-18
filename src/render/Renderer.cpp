@@ -1914,21 +1914,32 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (g_pCompositor->m_unsafeState)
         return;
 
-    const auto WLSURF    = Desktop::View::CWLSurface::fromResource(pSurface);
-    CRegion    damageBox = WLSURF ? WLSURF->computeDamage() : CRegion{};
+    const auto WLSURF = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
         Log::logger->log(Log::ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
         return;
     }
 
-    if (scale != 1.0)
-        damageBox.scale(scale);
+    // hack: schedule frame events
+    if (!WLSURF->resource()->m_current.callbacks.empty() && pSurface->m_hlSurface) {
+        const auto BOX = pSurface->m_hlSurface->getSurfaceBoxGlobal();
+        if (BOX && !BOX->empty()) {
+            for (auto const& m : g_pCompositor->m_monitors) {
+                if (!m->m_output)
+                    continue;
 
-    // schedule frame events
-    g_pCompositor->scheduleFrameForMonitor(g_pCompositor->getMonitorFromVector(Vector2D(x, y)), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+                if (BOX->overlaps(m->logicalBox()))
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            }
+        }
+    }
 
+    CRegion damageBox = WLSURF->computeDamage();
     if (damageBox.empty())
         return;
+
+    if (scale != 1.0)
+        damageBox.scale(scale);
 
     damageBox.translate({x, y});
 
@@ -2049,7 +2060,7 @@ void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& t
 }
 
 void CHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
-    m_cursorHasSurface = surf;
+    m_cursorHasSurface = surf && surf->resource();
 
     m_lastCursorData.name     = "";
     m_lastCursorData.surf     = surf;
@@ -2140,30 +2151,19 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     if (HIDE == m_cursorHidden)
         return;
 
-    if (HIDE) {
+    if (HIDE)
         Log::logger->log(Log::DEBUG, "Hiding the cursor (hl-mandated)");
-
-        for (auto const& m : g_pCompositor->m_monitors) {
-            if (!g_pPointerManager->softwareLockedFor(m))
-                continue;
-
-            damageMonitor(m); // TODO: maybe just damage the cursor area?
-        }
-
-        setCursorHidden(true);
-
-    } else {
+    else
         Log::logger->log(Log::DEBUG, "Showing the cursor (hl-mandated)");
 
-        for (auto const& m : g_pCompositor->m_monitors) {
-            if (!g_pPointerManager->softwareLockedFor(m))
-                continue;
+    for (auto const& m : g_pCompositor->m_monitors) {
+        if (!g_pPointerManager->softwareLockedFor(m))
+            continue;
 
-            damageMonitor(m); // TODO: maybe just damage the cursor area?
-        }
-
-        setCursorHidden(false);
+        g_pPointerManager->damageCursor(m, m->shouldSkipScheduleFrameOnMouseEvent());
     }
+
+    setCursorHidden(HIDE);
 }
 
 void CHyprRenderer::setCursorHidden(bool hide) {

@@ -890,14 +890,9 @@ PHLWINDOW IHyprLayout::getNextWindowCandidate(PHLWINDOW pWindow) {
 
     if (pWindow->m_isFloating) {
         auto WinIsValidFloatingCandidate = [pWindow](const PHLWINDOW windowToCheck) {
-            return windowToCheck->m_isMapped && 
-                    !windowToCheck->isHidden() && 
-                    windowToCheck->m_isFloating && 
-                    !windowToCheck->isX11OverrideRedirect() && 
-                    windowToCheck->m_workspace == pWindow->m_workspace && 
-                    !windowToCheck->m_X11ShouldntFocus &&
-                    !windowToCheck->m_ruleApplicator->noFocus().valueOrDefault() && 
-                    windowToCheck != pWindow;
+            return windowToCheck->m_isMapped && !windowToCheck->isHidden() && windowToCheck->m_isFloating && !windowToCheck->isX11OverrideRedirect() &&
+                windowToCheck->m_workspace == pWindow->m_workspace && !windowToCheck->m_X11ShouldntFocus && !windowToCheck->m_ruleApplicator->noFocus().valueOrDefault() &&
+                windowToCheck != pWindow;
         };
 
         // Walk up focus history to get last floating

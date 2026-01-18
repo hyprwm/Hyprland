@@ -42,6 +42,11 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
 
+#if defined(__linux__)
+#include <linux/dma-buf.h>
+#include <linux/sync_file.h>
+#endif
+
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
@@ -1698,6 +1703,33 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     return ok;
 }
 
+void CHyprRenderer::setDeadline(const Time::steady_tp& deadline, Hyprutils::OS::CFileDescriptor& fence) {
+#ifdef SYNC_IOC_SET_DEADLINE
+    if (!fence.isValid()) {
+        return;
+    }
+    sync_set_deadline args{
+        .deadline_ns = uint64_t(deadline.time_since_epoch().count()),
+        .pad         = 0,
+    };
+    drmIoctl(fence.get(), SYNC_IOC_SET_DEADLINE, &args);
+#endif
+}
+
+Hyprutils::OS::CFileDescriptor CHyprRenderer::getBufferFence(SP<Aquamarine::IBuffer> buffer) {
+    CFileDescriptor fence;
+#ifdef DMA_BUF_IOCTL_EXPORT_SYNC_FILE
+    dma_buf_export_sync_file req{
+        .flags = DMA_BUF_SYNC_READ,
+        .fd    = -1,
+    };
+    if (drmIoctl(buffer->dmabuf().fds[0], DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &req) == 0) {
+        fence = CFileDescriptor{req.fd};
+    }
+#endif
+    return fence;
+}
+
 void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
@@ -2292,16 +2324,16 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer) {
+        m_currentBuffer.buffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_currentBuffer.buffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
-        m_currentBuffer = buffer;
+        m_currentBuffer.buffer = buffer;
 
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat);
+        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer.buffer, pMonitor->m_output->state->state().drmFormat);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->m_name);
         return false;
@@ -2311,6 +2343,9 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
+
+    m_currentBuffer.fence    = getBufferFence(m_currentBuffer.buffer);
+    m_currentBuffer.deadline = pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
 
     if (mode == RENDER_MODE_NORMAL) {
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);
@@ -2336,7 +2371,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         if (m_currentRenderbuffer)
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
+        m_currentBuffer       = {};
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
@@ -2350,8 +2385,10 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (m_renderMode == RENDER_MODE_NORMAL)
-        PMONITOR->m_output->state->setBuffer(m_currentBuffer);
+    if (m_renderMode == RENDER_MODE_NORMAL) {
+        PMONITOR->m_output->state->setBuffer(m_currentBuffer.buffer);
+        setDeadline(m_currentBuffer.deadline, m_currentBuffer.fence);
+    }
 
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");

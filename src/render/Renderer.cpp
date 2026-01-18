@@ -1683,6 +1683,9 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
 
+    auto deadline = pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    setDeadline(deadline, m_currentBuffer.fence);
+
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
@@ -1708,6 +1711,7 @@ void CHyprRenderer::setDeadline(const Time::steady_tp& deadline, Hyprutils::OS::
     if (!fence.isValid()) {
         return;
     }
+
     sync_set_deadline args{
         .deadline_ns = uint64_t(deadline.time_since_epoch().count()),
         .pad         = 0,
@@ -2344,8 +2348,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         return false;
     }
 
-    m_currentBuffer.fence    = getBufferFence(m_currentBuffer.buffer);
-    m_currentBuffer.deadline = pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    m_currentBuffer.fence = getBufferFence(m_currentBuffer.buffer);
 
     if (mode == RENDER_MODE_NORMAL) {
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);
@@ -2385,10 +2388,8 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return;
 
-    if (m_renderMode == RENDER_MODE_NORMAL) {
+    if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer.buffer);
-        setDeadline(m_currentBuffer.deadline, m_currentBuffer.fence);
-    }
 
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");

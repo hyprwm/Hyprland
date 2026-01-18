@@ -123,7 +123,6 @@ class CHyprRenderer {
     struct SBuffer {
         SP<Aquamarine::IBuffer>        buffer = nullptr;
         Hyprutils::OS::CFileDescriptor fence;
-        Time::steady_tp                deadline;
     };
 
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

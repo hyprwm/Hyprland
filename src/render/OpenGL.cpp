@@ -1313,6 +1313,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     auto        texType = tex->m_type;
 
+    uint8_t     shaderFeatures = 0;
+
     if (CRASHING) {
         shader           = m_shaders->frag[SH_FRAG_GLITCH];
         usingFinalShader = true;
@@ -1325,8 +1327,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             usingFinalShader = true;
         } else {
             switch (tex->m_type) {
-                case TEXTURE_RGBA: shader = m_shaders->frag[SH_FRAG_RGBA]; break;
-                case TEXTURE_RGBX: shader = m_shaders->frag[SH_FRAG_RGBX]; break;
+                case TEXTURE_RGBA: shaderFeatures |= SH_FEAT_RGBA; break;
+                case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
 
                 case TEXTURE_EXTERNAL: shader = m_shaders->frag[SH_FRAG_EXT]; break; // might be unused
                 default: RASSERT(false, "tex->m_iTarget unsupported!");
@@ -1335,7 +1337,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     }
 
     if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()) {
-        shader  = m_shaders->frag[SH_FRAG_RGBX];
+        shaderFeatures &= ~SH_FEAT_RGBA;
         texType = TEXTURE_RGBX;
     }
 
@@ -1368,28 +1370,24 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
     if (!skipCM && !usingFinalShader) {
-        if (!data.discardActive) {
-            if (texType == TEXTURE_RGBA)
-                shader = m_shaders->frag[SH_FRAG_CM_RGBA];
-            else if (texType == TEXTURE_RGBX)
-                shader = m_shaders->frag[SH_FRAG_CM_RGBX];
-        } else {
-            if (texType == TEXTURE_RGBA)
-                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
-            else if (texType == TEXTURE_RGBX)
-                shader = m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD];
-        }
+        shaderFeatures |= SH_FEAT_CM;
+        if (data.discardActive)
+            shaderFeatures |= SH_FEAT_DISCARD;
+    }
 
-        shader = useShader(shader);
+    if (!shader)
+        shader = getSurfaceShader(shaderFeatures);
 
+    shader = useShader(shader);
+
+    if (!skipCM && !usingFinalShader) {
         if (data.cmBackToSRGB) {
             static auto PSDREOTF      = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
             auto        chosenSdrEotf = *PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
             passCMUniforms(shader, imageDescription, CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}), true, -1, -1);
         } else
             passCMUniforms(shader, imageDescription);
-    } else
-        shader = useShader(shader);
+    }
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
@@ -3028,6 +3026,18 @@ uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {
     return m_exts.EGL_ANDROID_native_fence_sync_ext;
+}
+
+WP<CShader> CHyprOpenGLImpl::getSurfaceShader(uint8_t features) {
+    if (features & SH_FEAT_CM) {
+        if (features & SH_FEAT_DISCARD) {
+            return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD] : m_shaders->frag[SH_FRAG_CM_RGBX_DISCARD];
+        } else {
+            return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_CM_RGBA] : m_shaders->frag[SH_FRAG_CM_RGBX];
+        }
+    } else {
+        return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_RGBA] : m_shaders->frag[SH_FRAG_RGBX];
+    }
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

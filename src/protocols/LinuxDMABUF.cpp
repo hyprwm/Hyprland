@@ -497,6 +497,15 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 std::erase_if(m_formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
                 resetFormatTable();
             });
+
+            static auto configReloaded = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) {
+                static const auto PSKIP_NON_KMS = CConfigValue<Hyprlang::INT>("quirks:skip_non_kms_dmabuf_formats");
+                static auto       prev          = *PSKIP_NON_KMS;
+                if (prev != *PSKIP_NON_KMS) {
+                    prev = *PSKIP_NON_KMS;
+                    resetFormatTable();
+                }
+            });
         }
 
         m_formatTable = makeUnique<CDMABUFFormatTable>(eglTranche, tches);

@@ -149,8 +149,8 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.stateCommit.emit(state);
 
         if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
-            state->buffer->m_syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
-            if (state->buffer->m_syncFd.isValid())
+            state->buffer->m_syncFence = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportFence();
+            if (state->buffer->m_syncFence.fd().isValid())
                 m_stateQueue.lock(state, LOCK_REASON_FENCE);
         }
 
@@ -507,9 +507,9 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
         m_stateQueue.unlock(state, LOCK_REASON_FENCE);
-    } else if (state->buffer && state->buffer->m_syncFd.isValid()) {
+    } else if (state->buffer && state->buffer->m_syncFence.fd().isValid()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
-        g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
+        g_pEventLoopManager->doOnReadable(state->buffer->m_syncFence.fd().duplicate(), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
         m_stateQueue.unlock(state, LOCK_REASON_FENCE);

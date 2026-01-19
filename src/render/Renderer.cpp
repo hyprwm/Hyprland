@@ -42,11 +42,6 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
 
-#if defined(__linux__)
-#include <linux/dma-buf.h>
-#include <linux/sync_file.h>
-#endif
-
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
@@ -1686,7 +1681,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     auto deadline =
         pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
     if (deadline) {
-        setDeadline(deadline.value(), m_currentBuffer.fence);
+        m_currentBuffer.fence.setDeadline(deadline.value());
         pMonitor->m_estimatedNextVblank = std::nullopt;
     }
 
@@ -1708,34 +1703,6 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     return ok;
-}
-
-void CHyprRenderer::setDeadline(const Time::steady_tp& deadline, Hyprutils::OS::CFileDescriptor& fence) {
-#ifdef SYNC_IOC_SET_DEADLINE
-    if (!fence.isValid()) {
-        return;
-    }
-
-    sync_set_deadline args{
-        .deadline_ns = uint64_t(deadline.time_since_epoch().count()),
-        .pad         = 0,
-    };
-    drmIoctl(fence.get(), SYNC_IOC_SET_DEADLINE, &args);
-#endif
-}
-
-Hyprutils::OS::CFileDescriptor CHyprRenderer::getBufferFence(SP<Aquamarine::IBuffer> buffer) {
-    CFileDescriptor fence;
-#ifdef DMA_BUF_IOCTL_EXPORT_SYNC_FILE
-    dma_buf_export_sync_file req{
-        .flags = DMA_BUF_SYNC_READ,
-        .fd    = -1,
-    };
-    if (drmIoctl(buffer->dmabuf().fds[0], DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &req) == 0) {
-        fence = CFileDescriptor{req.fd};
-    }
-#endif
-    return fence;
 }
 
 void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
@@ -2352,7 +2319,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         return false;
     }
 
-    m_currentBuffer.fence = getBufferFence(m_currentBuffer.buffer);
+    m_currentBuffer.fence = CFence{m_currentBuffer.buffer->dmabuf().fds[0]};
 
     if (mode == RENDER_MODE_NORMAL) {
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);

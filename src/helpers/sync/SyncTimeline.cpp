@@ -107,7 +107,7 @@ CFileDescriptor CSyncTimeline::exportAsSyncFileFD(uint64_t src) {
     return CFileDescriptor{sync};
 }
 
-bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, CFileDescriptor& fd) {
+bool CSyncTimeline::importFromSyncFileFD(uint64_t dst, const CFileDescriptor& fd) {
     uint32_t syncHandle = 0;
 
     if (drmSyncobjCreate(m_drmFD, 0, &syncHandle)) {

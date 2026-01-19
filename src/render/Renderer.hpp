@@ -10,6 +10,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "../helpers/Fence.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -121,8 +122,8 @@ class CHyprRenderer {
 
   private:
     struct SBuffer {
-        SP<Aquamarine::IBuffer>        buffer = nullptr;
-        Hyprutils::OS::CFileDescriptor fence;
+        SP<Aquamarine::IBuffer> buffer = nullptr;
+        CFence                  fence;
     };
 
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
@@ -141,23 +142,21 @@ class CHyprRenderer {
     void renderBackground(PHLMONITOR pMonitor);
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
-    void setDeadline(const Time::steady_tp& deadline, Hyprutils::OS::CFileDescriptor& fence);
-    Hyprutils::OS::CFileDescriptor getBufferFence(SP<Aquamarine::IBuffer> buffer);
 
-    bool                           shouldBlur(PHLLS ls);
-    bool                           shouldBlur(PHLWINDOW w);
-    bool                           shouldBlur(WP<Desktop::View::CPopup> p);
+    bool shouldBlur(PHLLS ls);
+    bool shouldBlur(PHLWINDOW w);
+    bool shouldBlur(WP<Desktop::View::CPopup> p);
 
-    bool                           m_cursorHidden            = false;
-    bool                           m_cursorHiddenByCondition = false;
-    bool                           m_cursorHasSurface        = false;
-    SP<CRenderbuffer>              m_currentRenderbuffer     = nullptr;
-    SBuffer                        m_currentBuffer           = {};
-    eRenderMode                    m_renderMode              = RENDER_MODE_NORMAL;
-    bool                           m_nvidia                  = false;
-    bool                           m_intel                   = false;
-    bool                           m_software                = false;
-    bool                           m_mgpu                    = false;
+    bool m_cursorHidden                     = false;
+    bool m_cursorHiddenByCondition          = false;
+    bool m_cursorHasSurface                 = false;
+    SP<CRenderbuffer> m_currentRenderbuffer = nullptr;
+    SBuffer           m_currentBuffer       = {};
+    eRenderMode       m_renderMode          = RENDER_MODE_NORMAL;
+    bool              m_nvidia              = false;
+    bool              m_intel               = false;
+    bool              m_software            = false;
+    bool              m_mgpu                = false;
 
     struct {
         bool hiddenOnTouch    = false;

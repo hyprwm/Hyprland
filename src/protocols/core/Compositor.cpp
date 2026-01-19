@@ -148,10 +148,43 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         // fifo and fences first
         m_events.stateCommit.emit(state);
 
-        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
+        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
             state->buffer->m_syncFence = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportFence();
-            if (state->buffer->m_syncFence.fd().isValid())
-                m_stateQueue.lock(state, LOCK_REASON_FENCE);
+
+            if (state->buffer->m_syncFence.fd().isValid()) {
+                Time::steady_tp deadline = Time::steadyNow();
+                if (m_enteredOutputs.empty() && m_hlSurface) {
+                    for (const auto& m : g_pCompositor->m_monitors) {
+                        if (!m || !m->m_enabled)
+                            continue;
+
+                        auto box = m_hlSurface->getSurfaceBoxGlobal();
+                        if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                            if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank)
+                                continue; // dont estimate vblank on tearing or vrr.
+
+                            deadline = m->m_estimatedNextVblank.value();
+                            break;
+                        }
+                    }
+                } else {
+                    for (const auto& m : m_enteredOutputs) {
+                        if (!m)
+                            continue;
+
+                        if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank)
+                            continue; // dont estimate vblank on tearing or vrr
+
+                        deadline = m->m_estimatedNextVblank.value();
+                        break;
+                    }
+                }
+
+                state->buffer->m_syncFence.setDeadline(deadline);
+
+                if (!state->updated.bits.acquire)
+                    m_stateQueue.lock(state, LOCK_REASON_FENCE);
+            }
         }
 
         // now for timer.

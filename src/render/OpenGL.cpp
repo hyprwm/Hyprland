@@ -904,6 +904,9 @@ bool CHyprOpenGLImpl::initShaders() {
         loadShaderInclude("do_tonemap.glsl", includes);
         loadShaderInclude("sdr_mod.glsl", includes);
         loadShaderInclude("do_sdr_mod.glsl", includes);
+        loadShaderInclude("primaries_xyz.glsl", includes);
+        loadShaderInclude("primaries_xyz_uniform.glsl", includes);
+        loadShaderInclude("primaries_xyz_const.glsl", includes);
         loadShaderInclude("gain.glsl", includes);
         loadShaderInclude("border.glsl", includes);
 
@@ -914,10 +917,6 @@ bool CHyprOpenGLImpl::initShaders() {
             m_cmSupported = false;
         else {
             std::vector<SFragShaderDesc> CM_SHADERS = {{
-                {SH_FRAG_CM_RGBA, "CMrgba.frag"},
-                {SH_FRAG_CM_RGBA_DISCARD, "CMrgbadiscard.frag"},
-                {SH_FRAG_CM_RGBX, "CMrgbx.frag"},
-                {SH_FRAG_CM_RGBX_DISCARD, "CMrgbadiscard.frag"},
                 {SH_FRAG_CM_BLURPREPARE, "CMblurprepare.frag"},
                 {SH_FRAG_CM_BORDER1, "CMborder.frag"},
             }};
@@ -944,11 +943,9 @@ bool CHyprOpenGLImpl::initShaders() {
 
         std::vector<SFragShaderDesc> FRAG_SHADERS = {{
             {SH_FRAG_QUAD, "quad.frag"},
-            {SH_FRAG_RGBA, "rgba.frag"},
             {SH_FRAG_PASSTHRURGBA, "passthru.frag"},
             {SH_FRAG_MATTE, "rgbamatte.frag"},
             {SH_FRAG_GLITCH, "glitch.frag"},
-            {SH_FRAG_RGBX, "rgbx.frag"},
             {SH_FRAG_EXT, "ext.frag"},
             {SH_FRAG_BLUR1, "blur1.frag"},
             {SH_FRAG_BLUR2, "blur2.frag"},
@@ -3101,6 +3098,8 @@ WP<CShader> CHyprOpenGLImpl::getSurfaceShader(uint8_t features) {
             includes["sdr_mod.glsl"]    = "";
             includes["do_sdr_mod.glsl"] = "";
         }
+        if (!(features & SH_FEAT_TONEMAP || features & SH_FEAT_SDR_MOD))
+            includes["primaries_xyz.glsl"] = includes["primaries_xyz_const.glsl"];
 
         Log::logger->log(Log::INFO, "getSurfaceShader: compiling feature set {}", features);
         const auto fragSrc = processShader("surface.frag", includes, MAX_INCLUDE_DEPTH);
@@ -3108,23 +3107,13 @@ WP<CShader> CHyprOpenGLImpl::getSurfaceShader(uint8_t features) {
             m_shaders->fragVariants[features] = shader;
             return shader;
         } else {
-            Log::logger->log(Log::ERR, "getSurfaceShader failed for. Falling back to old branching", features);
+            Log::logger->log(Log::ERR, "getSurfaceShader failed for {}. Falling back to old branching", features);
             m_shaders->fragVariants[features] = nullptr;
         }
     }
 
-    if (m_shaders->fragVariants[features])
-        return m_shaders->fragVariants[features];
-
-    if (features & SH_FEAT_CM) {
-        if (features & SH_FEAT_DISCARD) {
-            return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD] : m_shaders->frag[SH_FRAG_CM_RGBX_DISCARD];
-        } else {
-            return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_CM_RGBA] : m_shaders->frag[SH_FRAG_CM_RGBX];
-        }
-    } else {
-        return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_RGBA] : m_shaders->frag[SH_FRAG_RGBX];
-    }
+    ASSERT(m_shaders->fragVariants[features]);
+    return m_shaders->fragVariants[features];
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

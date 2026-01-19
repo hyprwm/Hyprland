@@ -1,4 +1,4 @@
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat3 targetPrimariesXYZ;
+#include "primaries_xyz.glsl"
 #include "CM.glsl"

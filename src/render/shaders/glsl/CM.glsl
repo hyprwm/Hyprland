@@ -1,13 +1,10 @@
 uniform vec2 srcTFRange;
 uniform vec2 dstTFRange;
 
-uniform float maxLuminance;
 uniform float srcRefLuminance;
-uniform float dstMaxLuminance;
-uniform float dstRefLuminance;
-uniform float sdrSaturation;
-uniform float sdrBrightnessMultiplier;
 uniform mat3 convertMatrix;
+
+#include "sdr_mod.glsl"
 
 //enum eTransferFunction
 #define CM_TRANSFER_FUNCTION_BT1886     1
@@ -67,21 +64,6 @@ uniform mat3 convertMatrix;
 #define HLG_MAX_LUMINANCE 1000.0
 
 #define M_E 2.718281828459045
-
-vec3 xy2xyz(vec2 xy) {
-    if (xy.y == 0.0)
-        return vec3(0.0, 0.0, 0.0);
-
-    return vec3(xy.x / xy.y, 1.0, (1.0 - xy.x - xy.y) / xy.y);
-}
-
-vec4 saturate(vec4 color, mat3 primaries, float saturation) {
-    if (saturation == 1.0)
-        return color;
-    vec3 brightness = vec3(primaries[1][0], primaries[1][1], primaries[1][2]);
-    float Y = dot(color.rgb, brightness);
-    return vec4(mix(vec3(Y), color.rgb, saturation), color[3]);
-}
 
 // The primary source for these transfer functions is https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.1361-0-199802-W!!PDF-E.pdf
 vec3 tfInvPQ(vec3 color) {
@@ -280,126 +262,7 @@ vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
     return color;
 }
 
-mat3 primaries2xyz(mat4x2 primaries) {
-    vec3 r = xy2xyz(primaries[0]);
-    vec3 g = xy2xyz(primaries[1]);
-    vec3 b = xy2xyz(primaries[2]);
-    vec3 w = xy2xyz(primaries[3]);
-
-    mat3 invMat = inverse(
-       mat3(
-            r.x, r.y, r.z,
-            g.x, g.y, g.z,
-            b.x, b.y, b.z
-        )
-    );
-
-    vec3 s = invMat * w;
-
-    return mat3(
-        s.r * r.x, s.r * r.y, s.r * r.z,
-        s.g * g.x, s.g * g.y, s.g * g.z,
-        s.b * b.x, s.b * b.y, s.b * b.z
-    );
-}
-
-
-mat3 adaptWhite(vec2 src, vec2 dst) {
-    if (src == dst)
-        return mat3(
-            1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0
-        );
-
-    // const vec2 D65 = vec2(0.3127, 0.3290);
-    const mat3 Bradford = mat3(
-        0.8951, 0.2664, -0.1614,
-        -0.7502, 1.7135, 0.0367,
-        0.0389, -0.0685, 1.0296
-    );
-    mat3 BradfordInv = inverse(Bradford);
-    vec3 srcXYZ = xy2xyz(src);
-    vec3 dstXYZ = xy2xyz(dst);
-    vec3 factors = (Bradford * dstXYZ) / (Bradford * srcXYZ);
-
-    return BradfordInv * mat3(
-        factors.x, 0.0, 0.0,
-        0.0, factors.y, 0.0,
-        0.0, 0.0, factors.z
-    ) * Bradford;
-}
-
-vec4 convertPrimaries(vec4 color, mat3 src, vec2 srcWhite, mat3 dst, vec2 dstWhite) {
-    mat3 convMat = inverse(dst) * adaptWhite(srcWhite, dstWhite) * src;
-    return vec4(convMat * color.rgb, color[3]);
-}
-
-const mat3 BT2020toLMS = mat3(
-    0.3592, 0.6976, -0.0358,
-    -0.1922, 1.1004, 0.0755,
-    0.0070, 0.0749, 0.8434
-);
-//const mat3 LMStoBT2020 = inverse(BT2020toLMS);
-const mat3 LMStoBT2020 = mat3(
-    2.0701800566956135096, -1.3264568761030210255, 0.20661600684785517081,
-    0.36498825003265747974, 0.68046736285223514102, -0.045421753075853231409,
-    -0.049595542238932107896, -0.049421161186757487412, 1.1879959417328034394
-);
-
-// const mat3 ICtCpPQ = transpose(mat3(
-//     2048.0, 2048.0, 0.0,
-//     6610.0, -13613.0, 7003.0,
-//     17933.0, -17390.0, -543.0
-// ) / 4096.0);
-const mat3 ICtCpPQ = mat3(
-    0.5,  1.61376953125,   4.378173828125,
-    0.5, -3.323486328125, -4.24560546875,
-    0.0,  1.709716796875, -0.132568359375
-);
-//const mat3 ICtCpPQInv = inverse(ICtCpPQ);
-const mat3 ICtCpPQInv = mat3(
-    1.0,                     1.0,                     1.0,
-    0.0086090370379327566,  -0.0086090370379327566,   0.560031335710679118,
-    0.11102962500302595656, -0.11102962500302595656, -0.32062717498731885185
-);
-
-// unused for now
-// const mat3 ICtCpHLG = transpose(mat3(
-//     2048.0, 2048.0, 0.0,
-//     3625.0, -7465.0, 3840.0,
-//     9500.0, -9212.0, -288.0
-// ) / 4096.0);
-// const mat3 ICtCpHLGInv = inverse(ICtCpHLG);
-
-vec4 tonemap(vec4 color, mat3 dstXYZ) {
-    if (maxLuminance < dstMaxLuminance * 1.01)
-        return vec4(clamp(color.rgb, vec3(0.0), vec3(dstMaxLuminance)), color[3]);
-
-    mat3 toLMS = BT2020toLMS * dstXYZ;
-    mat3 fromLMS = inverse(dstXYZ) * LMStoBT2020;
-
-    vec3 lms = fromLinear(vec4((toLMS * color.rgb) / HDR_MAX_LUMINANCE, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
-    vec3 ICtCp = ICtCpPQ * lms;
-
-    float E = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_INV_M2);
-    float luminance = pow(
-        (max(E - PQ_C1, 0.0)) / (PQ_C2 - PQ_C3 * E),
-        PQ_INV_M1
-    ) * HDR_MAX_LUMINANCE;
-
-    float linearPart = min(luminance, dstRefLuminance);
-    float luminanceAboveRef = max(luminance - dstRefLuminance, 0.0);
-    float maxExcessLuminance = max(maxLuminance - dstRefLuminance, 1.0);
-    float shoulder = log((luminanceAboveRef / maxExcessLuminance + 1.0) * (M_E - 1.0));
-    float mappedHigh = shoulder * (dstMaxLuminance - dstRefLuminance);
-    float newLum = clamp(linearPart + mappedHigh, 0.0, dstMaxLuminance);
-
-    // scale src to dst reference
-    float refScale = dstRefLuminance / srcRefLuminance;
-
-    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE * refScale, color[3]); 
-}
+#include "tonemap.glsl"
 
 vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 dstxyz) {
     pixColor.rgb /= max(pixColor.a, 0.001);
@@ -407,11 +270,9 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 dstxyz) {
     pixColor.rgb = convertMatrix * pixColor.rgb;
     pixColor = toNit(pixColor, srcTFRange);
     pixColor.rgb *= pixColor.a;
-    pixColor = tonemap(pixColor, dstxyz);
+    #include "do_tonemap.glsl"
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
-    if ((srcTF == CM_TRANSFER_FUNCTION_SRGB || srcTF == CM_TRANSFER_FUNCTION_GAMMA22) && dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
-        pixColor = saturate(pixColor, dstxyz, sdrSaturation);
-        pixColor.rgb *= sdrBrightnessMultiplier;
-    }
+    #include "do_sdr_mod.glsl"
+
     return pixColor;
 }

@@ -871,21 +871,39 @@ static void processShaderIncludes(std::string& source, const std::map<std::strin
     }
 }
 
-static std::string processShader(const std::string& filename, const std::map<std::string, std::string>& includes) {
+static const uint8_t MAX_INCLUDE_DEPTH = 3;
+
+static std::string   processShader(const std::string& filename, const std::map<std::string, std::string>& includes, const uint8_t includeDepth = 1) {
     auto source = loadShader(filename);
-    processShaderIncludes(source, includes);
+    for (auto i = 0; i < includeDepth; i++) {
+        processShaderIncludes(source, includes);
+    }
     return source;
 }
 
 bool CHyprOpenGLImpl::initShaders() {
-    auto              shaders   = makeShared<SPreparedShaders>();
-    const bool        isDynamic = m_shadersInitialized;
-    static const auto PCM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    auto                               shaders = makeShared<SPreparedShaders>();
+    std::map<std::string, std::string> includes;
+    const bool                         isDynamic = m_shadersInitialized;
+    static const auto                  PCM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
 
     try {
-        std::map<std::string, std::string> includes;
+        loadShaderInclude("get_rgb_pixel.glsl", includes);
+        loadShaderInclude("get_rgba_pixel.glsl", includes);
+        loadShaderInclude("get_rgbx_pixel.glsl", includes);
+        loadShaderInclude("discard.glsl", includes);
+        loadShaderInclude("do_discard.glsl", includes);
+        loadShaderInclude("tint.glsl", includes);
+        loadShaderInclude("do_tint.glsl", includes);
         loadShaderInclude("rounding.glsl", includes);
+        loadShaderInclude("do_rounding.glsl", includes);
+        loadShaderInclude("surface_CM.glsl", includes);
         loadShaderInclude("CM.glsl", includes);
+        loadShaderInclude("do_CM.glsl", includes);
+        loadShaderInclude("tonemap.glsl", includes);
+        loadShaderInclude("do_tonemap.glsl", includes);
+        loadShaderInclude("sdr_mod.glsl", includes);
+        loadShaderInclude("do_sdr_mod.glsl", includes);
         loadShaderInclude("gain.glsl", includes);
         loadShaderInclude("border.glsl", includes);
 
@@ -906,7 +924,7 @@ bool CHyprOpenGLImpl::initShaders() {
 
             bool                         success = false;
             for (const auto& desc : CM_SHADERS) {
-                const auto fragSrc = processShader(desc.file, includes);
+                const auto fragSrc = processShader(desc.file, includes, MAX_INCLUDE_DEPTH);
 
                 if (!(success = shaders->frag[desc.id]->createProgram(shaders->TEXVERTSRC, fragSrc, true, true)))
                     break;
@@ -941,7 +959,7 @@ bool CHyprOpenGLImpl::initShaders() {
         }};
 
         for (const auto& desc : FRAG_SHADERS) {
-            const auto fragSrc = processShader(desc.file, includes);
+            const auto fragSrc = processShader(desc.file, includes, MAX_INCLUDE_DEPTH);
 
             if (!shaders->frag[desc.id]->createProgram(shaders->TEXVERTSRC, fragSrc, isDynamic))
                 return false;
@@ -956,6 +974,7 @@ bool CHyprOpenGLImpl::initShaders() {
     }
 
     m_shaders            = shaders;
+    m_includes           = includes;
     m_shadersInitialized = true;
 
     Log::logger->log(Log::DEBUG, "Shaders initialized successfully.");
@@ -1311,8 +1330,6 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     const bool  CRASHING = m_applyFinalShader && g_pHyprRenderer->m_crashingInProgress;
 
-    auto        texType = tex->m_type;
-
     uint8_t     shaderFeatures = 0;
 
     if (CRASHING) {
@@ -1336,10 +1353,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         }
     }
 
-    if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault()) {
+    if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault())
         shaderFeatures &= ~SH_FEAT_RGBA;
-        texType = TEXTURE_RGBX;
-    }
 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
@@ -1369,10 +1384,37 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
 
-    if (!skipCM && !usingFinalShader) {
-        shaderFeatures |= SH_FEAT_CM;
-        if (data.discardActive)
-            shaderFeatures |= SH_FEAT_DISCARD;
+    if (data.discardActive)
+        shaderFeatures |= SH_FEAT_DISCARD;
+
+    if (!usingFinalShader) {
+        if (data.allowDim && m_renderData.currentWindow && (m_renderData.currentWindow->m_notRespondingTint->value() > 0 || m_renderData.currentWindow->m_dimPercent->value() > 0))
+            shaderFeatures |= SH_FEAT_TINT;
+
+        if (data.round > 0)
+            shaderFeatures |= SH_FEAT_ROUNDING;
+
+        if (!skipCM) {
+            shaderFeatures |= SH_FEAT_CM;
+
+            const bool  needsSDRmod  = isSDR2HDR(imageDescription->value(), m_renderData.pMonitor->m_imageDescription->value());
+            const bool  needsHDRmod  = !needsSDRmod && isHDR2SDR(imageDescription->value(), m_renderData.pMonitor->m_imageDescription->value());
+            const float maxLuminance = needsHDRmod ?
+                imageDescription->value().getTFMaxLuminance(-1) :
+                (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+            const auto  dstMaxLuminance =
+                m_renderData.pMonitor->m_imageDescription->value().luminances.max > 0 ? m_renderData.pMonitor->m_imageDescription->value().luminances.max : 10000;
+
+            if (maxLuminance >= dstMaxLuminance * 1.01)
+                shaderFeatures |= SH_FEAT_TONEMAP;
+
+            if (!data.cmBackToSRGB &&
+                (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+                m_renderData.pMonitor->m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+                ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
+                 (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
+                shaderFeatures |= SH_FEAT_SDR_MOD;
+        }
     }
 
     if (!shader)
@@ -3029,6 +3071,51 @@ bool CHyprOpenGLImpl::explicitSyncSupported() {
 }
 
 WP<CShader> CHyprOpenGLImpl::getSurfaceShader(uint8_t features) {
+    if (!m_shaders->fragVariants.contains(features)) {
+
+        auto shader                    = makeShared<CShader>();
+        auto includes                  = m_includes;
+        includes["get_rgb_pixel.glsl"] = includes[features & SH_FEAT_RGBA ? "get_rgba_pixel.glsl" : "get_rgbx_pixel.glsl"];
+        if (!(features & SH_FEAT_DISCARD)) {
+            includes["discard.glsl"]    = "";
+            includes["do_discard.glsl"] = "";
+        }
+        if (!(features & SH_FEAT_TINT)) {
+            includes["tint.glsl"]    = "";
+            includes["do_tint.glsl"] = "";
+        }
+        if (!(features & SH_FEAT_ROUNDING)) {
+            includes["rounding.glsl"]    = "";
+            includes["do_rounding.glsl"] = "";
+        }
+        if (!(features & SH_FEAT_CM)) {
+            includes["surface_CM.glsl"] = "";
+            includes["CM.glsl"]         = "";
+            includes["do_CM.glsl"]      = "";
+        }
+        if (!(features & SH_FEAT_TONEMAP)) {
+            includes["tonemap.glsl"]    = "";
+            includes["do_tonemap.glsl"] = "";
+        }
+        if (!(features & SH_FEAT_SDR_MOD)) {
+            includes["sdr_mod.glsl"]    = "";
+            includes["do_sdr_mod.glsl"] = "";
+        }
+
+        Log::logger->log(Log::INFO, "getSurfaceShader: compiling feature set {}", features);
+        const auto fragSrc = processShader("surface.frag", includes, MAX_INCLUDE_DEPTH);
+        if (shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true)) {
+            m_shaders->fragVariants[features] = shader;
+            return shader;
+        } else {
+            Log::logger->log(Log::ERR, "getSurfaceShader failed for. Falling back to old branching", features);
+            m_shaders->fragVariants[features] = nullptr;
+        }
+    }
+
+    if (m_shaders->fragVariants[features])
+        return m_shaders->fragVariants[features];
+
     if (features & SH_FEAT_CM) {
         if (features & SH_FEAT_DISCARD) {
             return features & SH_FEAT_RGBA ? m_shaders->frag[SH_FRAG_CM_RGBA_DISCARD] : m_shaders->frag[SH_FRAG_CM_RGBX_DISCARD];

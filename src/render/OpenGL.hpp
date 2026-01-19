@@ -326,6 +326,7 @@ class CHyprOpenGLImpl {
 
     bool                                              m_shadersInitialized = false;
     SP<SPreparedShaders>                              m_shaders;
+    std::map<std::string, std::string>                m_includes;
 
     SCurrentRenderData                                m_renderData;
 

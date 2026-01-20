@@ -326,3 +326,17 @@ std::string NFormatUtils::drmModifierName(uint64_t mod) {
     free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }
+
+DRMFormat NFormatUtils::alphaFormat(DRMFormat prevFormat) {
+    switch (prevFormat) {
+        case DRM_FORMAT_XRGB8888: return DRM_FORMAT_ARGB8888;
+        case DRM_FORMAT_XBGR8888: return DRM_FORMAT_ABGR8888;
+        case DRM_FORMAT_BGRX8888: return DRM_FORMAT_BGRA8888;
+        case DRM_FORMAT_RGBX8888: return DRM_FORMAT_RGBA8888;
+        case DRM_FORMAT_XRGB2101010: return DRM_FORMAT_ARGB2101010;
+        case DRM_FORMAT_XBGR2101010: return DRM_FORMAT_ABGR2101010;
+        case DRM_FORMAT_RGBX1010102: return DRM_FORMAT_RGBA1010102;
+        case DRM_FORMAT_BGRX1010102: return DRM_FORMAT_BGRA1010102;
+        default: return 0;
+    }
+}

@@ -57,4 +57,5 @@ namespace NFormatUtils {
     uint32_t            glFormatToType(uint32_t gl);
     std::string         drmFormatName(DRMFormat drm);
     std::string         drmModifierName(uint64_t mod);
+    DRMFormat           alphaFormat(DRMFormat prevFormat);
 };

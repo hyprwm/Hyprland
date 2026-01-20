@@ -39,6 +39,7 @@
 #include "../managers/input/trackpad/gestures/CloseGesture.hpp"
 #include "../managers/input/trackpad/gestures/FloatGesture.hpp"
 #include "../managers/input/trackpad/gestures/FullscreenGesture.hpp"
+#include "../managers/input/trackpad/gestures/CursorZoomGesture.hpp"
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -2913,7 +2914,10 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     else if (data[startDataIdx] == "fullscreen")
         result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale,
                                                  disableInhibit);
-    else if (data[startDataIdx] == "unset")
+    else if (data[startDataIdx] == "cursorZoom") {
+        result = g_pTrackpadGestures->addGesture(makeUnique<CCursorZoomTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
+                                                 direction, modMask, deltaScale, disableInhibit);
+    } else if (data[startDataIdx] == "unset")
         result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);

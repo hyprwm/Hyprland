@@ -506,13 +506,13 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
         }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        m_stateQueue.unlock(state);
+        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
     } else if (state->buffer && state->buffer->m_syncFd.isValid()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
-        m_stateQueue.unlock(state);
+        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
     }
 }
 

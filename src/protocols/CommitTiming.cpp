@@ -56,6 +56,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
                     m_surface->m_stateQueue.unlockFirst(LOCK_REASON_TIMER);
                 },
                 nullptr);
+            g_pEventLoopManager->addTimer(timer);
         } else
             timer->updateTimeout(m_pendingTimeout);
 
@@ -64,7 +65,8 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
 }
 
 CCommitTimerResource::~CCommitTimerResource() {
-    ;
+    if (m_timerPresent)
+        g_pEventLoopManager->removeTimer(timer);
 }
 
 bool CCommitTimerResource::good() {

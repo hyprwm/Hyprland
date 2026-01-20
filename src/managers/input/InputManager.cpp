@@ -645,7 +645,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     g_pSeatManager->sendPointerMotion(time, surfaceLocal);
 }
 
-void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
+void CInputManager::onMouseButton(IPointer::SButtonEvent e, SP<IPointer> mouse) {
     EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
 
     if (e.mouse)
@@ -662,7 +662,7 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
     }
 
     switch (m_clickBehavior) {
-        case CLICKMODE_DEFAULT: processMouseDownNormal(e); break;
+        case CLICKMODE_DEFAULT: processMouseDownNormal(e, mouse); break;
         case CLICKMODE_KILL: processMouseDownKill(e); break;
         default: break;
     }
@@ -748,11 +748,11 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
     }
 }
 
-void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e) {
+void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer> mouse) {
 
     // notify the keybind manager
     static auto PPASSMOUSE        = CConfigValue<Hyprlang::INT>("binds:pass_mouse_when_bound");
-    const auto  PASS              = g_pKeybindManager->onMouseEvent(e);
+    const auto  PASS              = g_pKeybindManager->onMouseEvent(e, mouse);
     static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PRESIZEONBORDER   = CConfigValue<Hyprlang::INT>("general:resize_on_border");
     static auto PBORDERSIZE       = CConfigValue<Hyprlang::INT>("general:border_size");
@@ -872,7 +872,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    bool passEvent = g_pKeybindManager->onAxisEvent(e);
+    bool passEvent = g_pKeybindManager->onAxisEvent(e, pointer);
 
     if (!passEvent)
         return;

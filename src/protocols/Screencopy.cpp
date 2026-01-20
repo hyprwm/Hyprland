@@ -18,6 +18,9 @@
 
 #include <algorithm>
 #include <functional>
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 
 CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t overlay_cursor, wl_resource* output, CBox box_) : m_resource(resource_) {
     if UNLIKELY (!good())
@@ -53,7 +56,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     if (m_shmFormat == DRM_FORMAT_XRGB2101010 || m_shmFormat == DRM_FORMAT_ARGB2101010)
         m_shmFormat = DRM_FORMAT_XBGR2101010;
 
-    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(m_shmFormat);
+    const auto PSHMINFO = getPixelFormatFromDRM(m_shmFormat);
     if (!PSHMINFO) {
         LOGM(Log::ERR, "No pixel format supported by renderer in capture output");
         m_resource->sendFailed();
@@ -72,7 +75,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
     m_box.x = POS.x;
     m_box.y = POS.y;
 
-    m_shmStride = NFormatUtils::minStride(PSHMINFO, m_box.w);
+    m_shmStride = minStride(PSHMINFO, m_box.w);
 
     m_resource->sendBuffer(NFormatUtils::drmToShm(m_shmFormat), m_box.width, m_box.height, m_shmStride);
 
@@ -377,7 +380,7 @@ bool CScreencopyFrame::copyShm() {
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
         g_pHyprRenderer->endRender();
@@ -393,7 +396,7 @@ bool CScreencopyFrame::copyShm() {
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
+    uint32_t packStride = minStride(PFORMAT, m_box.w);
     int      glFormat   = PFORMAT->glFormat;
 
     if (glFormat == GL_RGBA)
@@ -401,11 +404,9 @@ bool CScreencopyFrame::copyShm() {
 
     if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
         if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
+            if (PFORMAT->swizzle == SWIZZLE_RGBA)
                 glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
+            else if (PFORMAT->swizzle == SWIZZLE_BGRA)
                 glFormat = GL_BGRA_EXT;
             else {
                 LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");

@@ -133,7 +133,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     if (!hasDeps()) {
         std::println(stderr, "\n{}",
-                     failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio, pkg-config, git, g++, gcc"));
+                     failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"));
         return false;
     }
 
@@ -453,7 +453,7 @@ bool CPluginManager::updateHeaders(bool force) {
     const auto HLVER = getHyprlandVersion(false);
 
     if (!hasDeps()) {
-        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, meson, cpio, pkg-config, git, g++, gcc"));
+        std::println("\n{}", failureString("Could not update. Dependencies not satisfied. Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"));
         return false;
     }
 
@@ -988,7 +988,7 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 
 bool CPluginManager::hasDeps() {
     bool                     hasAllDeps = true;
-    std::vector<std::string> deps       = {"meson", "cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
+    std::vector<std::string> deps       = {"cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
 
     for (auto const& d : deps) {
         if (!execAndGet("command -v " + d).contains("/")) {

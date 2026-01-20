@@ -6,6 +6,7 @@
 namespace NSplashes {
     inline const std::vector<std::string> SPLASHES = {
         // clang-format off
+        "This bullshit is on your wallpaper now! :)",
         "Woo, animations!",
         "It's like Hypr, but better.",
         "Release 1.0 when?",

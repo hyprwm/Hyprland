@@ -868,7 +868,8 @@ static bool test() {
     Tests::killAllWindows();
 
     // test expression rules
-    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, min_size monitor_w*0.25 monitor_h*0.25, max_size monitor_w*0.75 monitor_h*0.75, move 20+(monitor_w*0.1) monitor_h*0.5"));
+    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, min_size monitor_w*0.25 monitor_h*0.25, "
+                     "max_size monitor_w*0.75 monitor_h*0.75, move 20+(monitor_w*0.1) monitor_h*0.5"));
 
     if (!spawnKitty("expr_kitty"))
         return false;

@@ -9,7 +9,7 @@
 void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    static auto PSWIPENEW = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
+    static auto PSWIPEBOUND = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_bound");
 
     if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
@@ -20,7 +20,7 @@ void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin
             onMonitor++;
     }
 
-    if (onMonitor < 2 && !*PSWIPENEW)
+    if (onMonitor < 2 && *PSWIPEBOUND != 1)
         return; // disallow swiping when there's 1 workspace on a monitor
 
     g_pUnifiedWorkspaceSwipe->begin();

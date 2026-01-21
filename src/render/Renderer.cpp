@@ -1646,7 +1646,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (*PCT)
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
-    if (FS_WINDOW != pMonitor->m_previousFSWindow) {
+    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM)) {
         if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
             (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
             if (pMonitor->m_noShaderCTM) {

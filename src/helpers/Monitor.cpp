@@ -1812,8 +1812,11 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    const bool surfaceIsHDR = PSURFACE->m_colorManagement.valid() && (PSURFACE->m_colorManagement->isHDR() || PSURFACE->m_colorManagement->isWindowsScRGB());
-    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && ((inHDR() && (*PPASS == 0 || !surfaceIsHDR)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
+    const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();
+    const bool surfaceIsScRGB = surfaceIsHDR && PSURFACE->m_colorManagement->isWindowsScRGB();
+
+    if (needsCM() && (*PNONSHADER != CM_NS_IGNORE || surfaceIsScRGB) && !canNoShaderCM() &&
+        ((inHDR() && (*PPASS == 0 || !surfaceIsHDR)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
         reasons |= DS_BLOCK_CM;
 
     return reasons;
@@ -2131,13 +2134,15 @@ bool CMonitor::canNoShaderCM() {
 
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
     // only primaries differ
-    return ((SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
-             (*PSDREOTF == 2 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
-              m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
-            SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
-            (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances) &&
-            SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL &&
-            SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL);
+    return (
+        (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
+         (*PSDREOTF == 2 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+          m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
+        SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
+        (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)
+        // not used by shaders atm
+        // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL
+    );
 }
 
 bool CMonitor::doesNoShaderCM() {

@@ -868,7 +868,7 @@ static bool test() {
     Tests::killAllWindows();
 
     // test expression rules
-    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, move 20+(monitor_w*0.1) monitor_h*0.5"));
+    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, min_size monitor_w*0.25 monitor_h*0.25, max_size monitor_w*0.75 monitor_h*0.75, move 20+(monitor_w*0.1) monitor_h*0.5"));
 
     if (!spawnKitty("expr_kitty"))
         return false;
@@ -878,6 +878,14 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, "at: 212,540");
         EXPECT_CONTAINS(str, "size: 960,540");
+
+        auto min = getFromSocket("/getprop active min_size");
+        EXPECT_CONTAINS(min, "480");
+        EXPECT_CONTAINS(min, "270");
+
+        auto max = getFromSocket("/getprop active max_size");
+        EXPECT_CONTAINS(max, "1440");
+        EXPECT_CONTAINS(max, "810");
     }
 
     OK(getFromSocket("/reload"));

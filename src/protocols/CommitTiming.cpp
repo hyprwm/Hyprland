@@ -32,9 +32,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
         const auto TIME_NOW = Time::steadyNow();
 
         if (TIME_NOW > TIME) {
-            // TODO: should we err here?
-            // for now just do nothing I guess, thats some lag.
-            m_pendingTimeout = Time::steady_dur::min();
+            m_pendingTimeout.reset();
         } else
             m_pendingTimeout = TIME - TIME_NOW;
     });

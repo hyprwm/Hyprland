@@ -34,34 +34,39 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {
+        static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
+
         if (!m_pending.surfaceLocked)
             return;
 
-        //#TODO:
-        // this feels wrong, but if we have no pending frames, presented might never come because
-        // we are waiting on the barrier to unlock and no damage is around.
-        if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
-            for (auto& m : g_pCompositor->m_monitors) {
-                if (!m || !m->m_enabled)
-                    continue;
+        if (*PPEND) {
+            //#TODO:
+            // this feels wrong, but if we have no pending frames, presented might never come because
+            // we are waiting on the barrier to unlock and no damage is around.
+            // unlock on timeout instead?
+            if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
+                for (auto& m : g_pCompositor->m_monitors) {
+                    if (!m || !m->m_enabled)
+                        continue;
 
-                auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
-                if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                    auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
+                    if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                        if (m->m_tearingState.activelyTearing)
+                            return; // dont fifo lock on tearing.
+
+                        g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                    }
+                }
+            } else {
+                for (auto& m : m_surface->m_enteredOutputs) {
+                    if (!m)
+                        continue;
+
                     if (m->m_tearingState.activelyTearing)
                         return; // dont fifo lock on tearing.
 
-                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                    g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
                 }
-            }
-        } else {
-            for (auto& m : m_surface->m_enteredOutputs) {
-                if (!m)
-                    continue;
-
-                if (m->m_tearingState.activelyTearing)
-                    return; // dont fifo lock on tearing.
-
-                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
             }
         }
 

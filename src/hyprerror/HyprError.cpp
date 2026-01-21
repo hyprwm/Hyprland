@@ -190,6 +190,7 @@ void CHyprError::draw() {
 
                 for (auto& m : g_pCompositor->m_monitors) {
                     g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+                    m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
                 }
 
                 return;

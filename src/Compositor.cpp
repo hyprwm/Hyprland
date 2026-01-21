@@ -483,6 +483,10 @@ void CCompositor::initAllSignals() {
 
                 m_sessionActive = true;
 
+                // Reset animation tick state to avoid stale timer issues after suspend/wake
+                if (g_pAnimationManager)
+                    g_pAnimationManager->resetTickState();
+
                 for (auto const& m : m_monitors) {
                     scheduleFrameForMonitor(m);
                     m->applyMonitorRule(&m->m_activeMonitorRule, true);

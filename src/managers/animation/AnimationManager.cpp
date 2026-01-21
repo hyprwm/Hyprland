@@ -286,6 +286,11 @@ void CHyprAnimationManager::onTicked() {
     m_tickScheduled = false;
 }
 
+void CHyprAnimationManager::resetTickState() {
+    m_lastTickValid = false;
+    m_tickScheduled = false;
+}
+
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
         if (style.starts_with("slide") || style == "gnome" || style == "gnomed")

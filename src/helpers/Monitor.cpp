@@ -1823,7 +1823,10 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    const auto blockedReason = isDSBlocked();
+    static const auto PSAME     = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer");
+    static const auto PSAMEFIFO = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer_fifo");
+
+    const auto        blockedReason = isDSBlocked();
     if (blockedReason)
         return false;
 
@@ -1837,7 +1840,7 @@ bool CMonitor::attemptDirectScanout() {
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
-    if (PBUFFER == m_output->state->state().buffer) {
+    if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
@@ -1856,7 +1859,7 @@ bool CMonitor::attemptDirectScanout() {
         }
 
         //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo)
+        if (PSURFACE->m_fifo && *PSAMEFIFO)
             PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 
         return true;

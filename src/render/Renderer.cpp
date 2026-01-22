@@ -1268,6 +1268,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
+    static auto                                           PSOLDAMAGE          = CConfigValue<Hyprlang::INT>("debug:render_solitary_wo_damage");
     static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
@@ -1398,46 +1399,45 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     bool renderCursor = true;
 
-    if (!finalDamage.empty()) {
-        if (pMonitor->m_solitaryClient.expired()) {
-            if (pMonitor->isMirror()) {
-                g_pHyprOpenGL->blend(false);
-                g_pHyprOpenGL->renderMirrored();
-                g_pHyprOpenGL->blend(true);
-                EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
-                renderCursor = false;
-            } else {
-                CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
-                renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
+    if (pMonitor->m_solitaryClient && (!finalDamage.empty() || *PSOLDAMAGE))
+        renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
+    else if (!finalDamage.empty()) {
+        if (pMonitor->isMirror()) {
+            g_pHyprOpenGL->blend(false);
+            g_pHyprOpenGL->renderMirrored();
+            g_pHyprOpenGL->blend(true);
+            EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
+            renderCursor = false;
+        } else {
+            CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
 
-                renderLockscreen(pMonitor, NOW, renderBox);
+            renderLockscreen(pMonitor, NOW, renderBox);
 
-                if (pMonitor == Desktop::focusState()->monitor()) {
-                    g_pHyprNotificationOverlay->draw(pMonitor);
-                    g_pHyprError->draw();
-                }
-
-                // for drawing the debug overlay
-                if (pMonitor == g_pCompositor->m_monitors.front() && *PDEBUGOVERLAY == 1) {
-                    renderStartOverlay = std::chrono::high_resolution_clock::now();
-                    g_pDebugOverlay->draw();
-                    endRenderOverlay = std::chrono::high_resolution_clock::now();
-                }
-
-                if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
-                    CRectPassElement::SRectData data;
-                    data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-                    data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
-                    m_renderPass.add(makeUnique<CRectPassElement>(data));
-                    damageBlinkCleanup = 1;
-                } else if (*PDAMAGEBLINK) {
-                    damageBlinkCleanup++;
-                    if (damageBlinkCleanup > 3)
-                        damageBlinkCleanup = 0;
-                }
+            if (pMonitor == Desktop::focusState()->monitor()) {
+                g_pHyprNotificationOverlay->draw(pMonitor);
+                g_pHyprError->draw();
             }
-        } else
-            renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
+
+            // for drawing the debug overlay
+            if (pMonitor == g_pCompositor->m_monitors.front() && *PDEBUGOVERLAY == 1) {
+                renderStartOverlay = std::chrono::high_resolution_clock::now();
+                g_pDebugOverlay->draw();
+                endRenderOverlay = std::chrono::high_resolution_clock::now();
+            }
+
+            if (*PDAMAGEBLINK && damageBlinkCleanup == 0) {
+                CRectPassElement::SRectData data;
+                data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+                data.color = CHyprColor(1.0, 0.0, 1.0, 100.0 / 255.0);
+                m_renderPass.add(makeUnique<CRectPassElement>(data));
+                damageBlinkCleanup = 1;
+            } else if (*PDAMAGEBLINK) {
+                damageBlinkCleanup++;
+                if (damageBlinkCleanup > 3)
+                    damageBlinkCleanup = 0;
+            }
+        }
     } else if (!pMonitor->isMirror()) {
         sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
         if (pMonitor->m_activeSpecialWorkspace)

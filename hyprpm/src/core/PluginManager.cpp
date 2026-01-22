@@ -303,7 +303,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(infoString("Building {}", p.name));
 
         for (auto const& bs : p.buildSteps) {
-            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
+            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' '{}'", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 
@@ -389,7 +389,7 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_MISSING;
 
     // find headers commit
-    const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}/share/pkgconfig\" pkgconf --cflags --keep-system-cflags hyprland", DataState::getHeadersPath());
+    const std::string& cmd     = std::format("PKG_CONFIG_PATH='{}' pkgconf --cflags --keep-system-cflags hyprland", getPkgConfigPath());
     auto               headers = execAndGet(cmd);
 
     if (!headers.contains("-I/"))
@@ -741,7 +741,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(infoString("Building {}", p.name));
 
             for (auto const& bs : p.buildSteps) {
-                const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH=\"{}/share/pkgconfig\" {}", m_szWorkingPluginDirectory, DataState::getHeadersPath(), bs);
+                const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
                 out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
             }
 
@@ -998,4 +998,19 @@ bool CPluginManager::hasDeps() {
     }
 
     return hasAllDeps;
+}
+
+const std::string& CPluginManager::getPkgConfigPath() {
+    static bool        once = true;
+    static std::string res;
+    if (once) {
+        once = false;
+
+        if (const auto E = getenv("PKG_CONFIG_PATH"); E && E[0])
+            res = std::format("{}/share/pkgconfig:{}", DataState::getHeadersPath(), E);
+        else
+            res = std::format("{}/share/pkgconfig", DataState::getHeadersPath());
+    }
+
+    return res;
 }

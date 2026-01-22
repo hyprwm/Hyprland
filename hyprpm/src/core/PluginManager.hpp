@@ -65,6 +65,8 @@ class CPluginManager {
 
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 
+    const std::string&     getPkgConfigPath();
+
     bool                   hasDeps();
 
     bool                   m_bVerbose   = false;

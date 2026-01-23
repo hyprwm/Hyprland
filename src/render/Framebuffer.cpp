@@ -38,8 +38,11 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
 
         if (m_stencilTex) {
             m_stencilTex->bind();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX8, w, h, 0, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, nullptr);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
+
+            glDisable(GL_DEPTH_TEST);
+            glDepthMask(GL_FALSE);
         }
 
         auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -63,11 +66,14 @@ void CFramebuffer::addStencil(SP<CTexture> tex) {
 
     m_stencilTex = tex;
     m_stencilTex->bind();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX8, m_size.x, m_size.y, 0, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, m_size.x, m_size.y, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
 
     glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
 
     auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Failed adding a stencil to fbo!", status);

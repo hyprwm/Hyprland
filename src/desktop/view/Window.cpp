@@ -505,10 +505,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
     }
 
-    if (const auto SWALLOWED = m_swallowed.lock()) {
-        if (SWALLOWED->m_currentlySwallowed) {
-            SWALLOWED->moveToWorkspace(pWorkspace);
-            SWALLOWED->m_monitor = m_monitor;
+    if (const auto SWALLOWEE = m_swallowee.lock()) {
+        if (SWALLOWEE->m_currentlySwallowed) {
+            SWALLOWEE->moveToWorkspace(pWorkspace);
+            SWALLOWEE->m_monitor = m_monitor;
         }
     }
 
@@ -1534,7 +1534,7 @@ void CWindow::warpCursor(bool force) {
         g_pCompositor->warpCursorTo(middle(), force);
 }
 
-PHLWINDOW CWindow::getSwallower() {
+PHLWINDOW CWindow::getSwallowee() {
     static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
     static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
     static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
@@ -2215,11 +2215,14 @@ void CWindow::mapWindow() {
 
     updateWindowData();
 
-    // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
-    const auto SWALLOWER = getSwallower();
-    m_swallowed          = SWALLOWER;
-    if (m_swallowed)
-        m_swallowed->m_currentlySwallowed = true;
+    // Verify window swallowing. Get the swallowee before calling onWindowCreated(m_self.lock()) because getSwallowee() wouldn't get it after if m_self.lock() gets auto grouped.
+    const auto SWALLOWEE = getSwallowee();
+    // m_hasSwallower prevents secondary windows to swallow the parent when it's been unswallowed with `toggleswallow`.
+    if (SWALLOWEE && !SWALLOWEE->m_hasSwallower) {
+        SWALLOWEE->m_currentlySwallowed = true;
+        SWALLOWEE->m_hasSwallower       = true;
+        m_swallowee                     = SWALLOWEE;
+    }
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
@@ -2360,10 +2363,10 @@ void CWindow::mapWindow() {
     }
 
     // swallow
-    if (SWALLOWER) {
-        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWER);
-        g_pHyprRenderer->damageWindow(SWALLOWER);
-        SWALLOWER->setHidden(true);
+    if (m_swallowee) {
+        g_pLayoutManager->getCurrentLayout()->onWindowRemoved(SWALLOWEE);
+        g_pHyprRenderer->damageWindow(SWALLOWEE);
+        SWALLOWEE->setHidden(true);
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
     }
 
@@ -2444,19 +2447,20 @@ void CWindow::unmapWindow() {
         g_pHyprRenderer->makeSnapshot(m_self.lock());
 
     // swallowing
-    if (valid(m_swallowed)) {
-        if (m_swallowed->m_currentlySwallowed) {
-            m_swallowed->m_currentlySwallowed = false;
-            m_swallowed->setHidden(false);
+    if (const auto SWALLOWEE = m_swallowee.lock()) {
+        if (SWALLOWEE->m_currentlySwallowed) {
+            SWALLOWEE->m_currentlySwallowed = false;
+            SWALLOWEE->setHidden(false);
 
             if (m_groupData.pNextWindow.lock())
-                m_swallowed->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
+                SWALLOWEE->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
 
-            g_pLayoutManager->getCurrentLayout()->onWindowCreated(m_swallowed.lock());
+            g_pLayoutManager->getCurrentLayout()->onWindowCreated(SWALLOWEE);
         }
 
-        m_swallowed->m_groupSwallowed = false;
-        m_swallowed.reset();
+        SWALLOWEE->m_groupSwallowed = false;
+        SWALLOWEE->m_hasSwallower   = false;
+        m_swallowee.reset();
     }
 
     bool      wasLastWindow = false;

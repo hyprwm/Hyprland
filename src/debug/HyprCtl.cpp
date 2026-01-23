@@ -802,7 +802,7 @@ static std::string devicesRequest(eHyprCtlOutputFormat format, std::string reque
             result += std::format(
                 R"#(    {{
         "address": "0x{:x}",
-        "type": "tabletTool",
+        "type": "tabletTool"
     }},)#",
                 rc<uintptr_t>(d.get()));
         }

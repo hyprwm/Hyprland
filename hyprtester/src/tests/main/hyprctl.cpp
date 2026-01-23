@@ -173,6 +173,75 @@ static bool testGetprop() {
     return true;
 }
 
+static bool testLayoutData() {
+    NLog::log("{}Testing hyprctl clients layout data", Colors::GREEN);
+
+    if (!Tests::spawnKitty()) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    std::string clientsJson = getFromSocket("j/clients");
+    std::string clientsPlain = getFromSocket("/clients");
+
+    // Dwindle
+    // layout field
+    EXPECT_CONTAINS(clientsJson, R"("layout":)");
+
+    // layout name (dwindle by default)
+    EXPECT_CONTAINS(clientsJson, R"("name": "dwindle")");
+
+    // dwindle-specific fields
+    EXPECT_CONTAINS(clientsJson, R"("dwindle":)");
+    EXPECT_CONTAINS(clientsJson, R"("splitRatio":)");
+    EXPECT_CONTAINS(clientsJson, R"("splitDirection":)");
+
+    EXPECT_CONTAINS(clientsPlain, "layout: dwindle");
+    EXPECT_CONTAINS(clientsPlain, "dwindle:splitRatio:");
+    EXPECT_CONTAINS(clientsPlain, "dwindle:splitDirection:");
+
+    // Floating
+    getFromSocket("/dispatch togglefloating");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // floating window should have empty layout object
+    clientsJson = getFromSocket("j/clients");
+    EXPECT_CONTAINS(clientsJson, R"("layout": {})");
+    clientsPlain = getFromSocket("/clients");
+    EXPECT_CONTAINS(clientsPlain, "layout: ");
+
+    // Master
+    getFromSocket("/keyword general:layout master");
+    getFromSocket("/dispatch togglefloating"); // untile it back
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    clientsJson = getFromSocket("j/clients");
+    EXPECT_CONTAINS(clientsJson, R"("name": "Master")");
+    EXPECT_CONTAINS(clientsJson, R"("master":)");
+    EXPECT_CONTAINS(clientsJson, R"("isMaster":)");
+    EXPECT_CONTAINS(clientsJson, R"("percMaster":)");
+    EXPECT_CONTAINS(clientsJson, R"("percSize":)");
+    EXPECT_CONTAINS(clientsJson, R"("orientation":)");
+
+    clientsPlain = getFromSocket("/clients");
+    EXPECT_CONTAINS(clientsPlain, "layout: Master");
+    EXPECT_CONTAINS(clientsPlain, "master:isMaster:");
+    EXPECT_CONTAINS(clientsPlain, "master:percMaster:");
+    EXPECT_CONTAINS(clientsPlain, "master:percSize:");
+    EXPECT_CONTAINS(clientsPlain, "master:orientation:");
+
+    getFromSocket("/keyword general:layout dwindle");
+
+    // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing hyprctl", Colors::GREEN);
 
@@ -186,6 +255,7 @@ static bool test() {
 
     testGetprop();
     testDevicesActiveLayoutIndex();
+    testLayoutData();
     getFromSocket("/reload");
 
     return !ret;

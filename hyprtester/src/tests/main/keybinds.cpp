@@ -513,6 +513,26 @@ static void testSubmapUniversal() {
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 }
 
+static void testPerDeviceKeybind() {
+    NLog::log("{}Testing per-device binds", Colors::GREEN);
+
+    // Inclusive
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindk SUPER,Y,test-keyboard-1,exec,touch " + flagFile), "ok");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+
+    // Exclusive
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindk SUPER,Y,!test-keyboard-1,exec,touch " + flagFile), "ok");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), false);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+}
+
 static bool test() {
     NLog::log("{}Testing keybinds", Colors::GREEN);
 
@@ -537,6 +557,7 @@ static bool test() {
     testSubmap();
     testSubmapUniversal();
     testBindsAfterScroll();
+    testPerDeviceKeybind();
 
     clearFlag();
     return !ret;

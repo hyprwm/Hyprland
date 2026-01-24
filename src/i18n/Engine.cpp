@@ -1174,7 +1174,7 @@ I18n::CI18nEngine::CI18nEngine() {
     });
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru "
-                            "mai multe. Acest lucru <b>va cauza</b> probleme.");
+                            "mai multe informații. Acest lucru <b>va cauza</b> probleme.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciun mod solicitat, revenind la modul {mode}.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scală nevalidă transmisă monitorului {name}: {scale}, se utilizează scala sugerată: {fixed_scale}");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nu s-a putut încărca pluginul {name}: {error}");

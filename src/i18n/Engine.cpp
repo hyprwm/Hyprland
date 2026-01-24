@@ -1149,9 +1149,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ro_RO", TXT_KEY_ANR_PROP_UNKNOWN, "(necunoscut)");
 
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "O aplicație <b>{app}</b> solicită o permisiune necunoscută.");
-    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicație <b>{app}</b> încearcă captureze ecranul.\n\nDorești să îi permiți acest lucru?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicație <b>{app}</b> încearcă să captureze ecranul.\n\nDorești să îi permiți acest lucru?");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "O aplicație <b>{app}</b> încearcă să încarce un plugin: <b>{plugin}</b>.\n\nDorești să îi permiți acest lucru?");
-    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A fost detectată o tastatură nouă: <b>{ keyboard }</b>.\n\nDorești să îi permiți să funcționeze?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A fost detectată o tastatură nouă: <b>{keyboard}</b>.\n\nDorești să îi permiți să funcționeze?");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(necunoscut)");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_TITLE, "Cerere de permisiune");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Indiciu: poți seta reguli persistente pentru acestea în fișierul de configurare Hyprland.");
@@ -1173,7 +1173,7 @@ I18n::CI18nEngine::CI18nEngine() {
         return "Hyprland nu a reușit să încarce {count} element(e) esențial(e). Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
     });
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
-                            "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru"
+                            "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru "
                             "mai multe. Acest lucru <b>va cauza</b> probleme.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciun mod solicitat, revenind la modul {mode}.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scală nevalidă transmisă monitorului {name}: {scale}, se utilizează scala sugerată: {fixed_scale}");
@@ -1185,7 +1185,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_TITLE, "Modul de Siguranță");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_DESCRIPTION,
-                            "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți"
+                            "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți "
                             "depana în acest mediu sau să încarci configurația cu butonul de mai jos.\nSe aplică combinațiile de taste implicite: SUPER+Q pentru kitty, SUPER+R pentru un runner de bază."
                             "SUPER+M pentru ieșire.\nSe repornește "
                             "Hyprland se va lansa din nou în modul normal.");

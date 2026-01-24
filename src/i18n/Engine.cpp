@@ -1169,8 +1169,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
-            return "Hyprland nu a reușit să încarce {count} element(e) esențial(e). Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
-        return "Hyprland nu a reușit să încarce {count} element(e) esențial(e). Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
+            return "Hyprland nu a reușit să încarce {count} element esențial. Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
+        return "Hyprland nu a reușit să încarce {count} elemente esențiale. Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
     });
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
                             "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru "

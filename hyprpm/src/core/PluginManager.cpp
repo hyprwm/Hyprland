@@ -302,7 +302,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(infoString("Building {}", p.name));
 
         for (auto const& bs : p.buildSteps) {
-            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' '{}'", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
+            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
             out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
         }
 

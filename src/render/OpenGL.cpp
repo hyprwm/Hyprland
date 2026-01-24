@@ -1364,7 +1364,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, m_renderData.textureMagFilter);
-        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, m_renderData.textureMagFilter);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, m_renderData.textureMinFilter);
     }
 
     const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;

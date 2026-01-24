@@ -1176,7 +1176,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru "
                             "mai multe informații. Acest lucru <b>va cauza</b> probleme.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciun mod solicitat, revenind la modul {mode}.");
-    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scală nevalidă transmisă monitorului {name}: {scale}, se utilizează scala sugerată: {fixed_scale}");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scară nevalidă transmisă monitorului {name}: {scale}, se utilizează scara sugerată: {fixed_scale}");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nu s-a putut încărca pluginul {name}: {error}");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Reîncărcarea shaderului CM a eșuat, revenind la rgba/rgbx.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: gama largă de culori este activată, dar afișajul nu este în modul pe 10 biți.");

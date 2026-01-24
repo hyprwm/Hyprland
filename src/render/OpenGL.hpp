@@ -173,6 +173,9 @@ struct SCurrentRenderData {
     bool                   blockScreenShader  = false;
     bool                   simplePass         = false;
 
+    GLenum                 textureMagFilter   = GL_LINEAR; // useNearestNeighbor overwrites these 
+    GLenum                 textureMinFilter   = GL_LINEAR; 
+
     Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
 

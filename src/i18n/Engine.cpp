@@ -1190,7 +1190,7 @@ I18n::CI18nEngine::CI18nEngine() {
                             "SUPER+M pentru ieșire.\nLa repornire "
                             "Hyprland se va lansa din nou în modul normal.");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Încarcă configurația");
-    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Deschide locația cu rapoartele de crash-uri");
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Deschide locația rapoartelor de crash-uri");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, închide");
 
     // ru_RU (Russian)

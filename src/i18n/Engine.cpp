@@ -1141,6 +1141,58 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "افتح مجلد تقرير الانهيار");
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "حسنًا، أغلق هذا");
 
+    // ro_RO (Romanian)
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_TITLE, "Aplicația Nu Răspunde");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_CONTENT, "O aplicație {title} - {class} nu răspunde.\nCe vrei să faci cu ea?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_OPTION_TERMINATE, "Închide");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_OPTION_WAIT, "Așteaptă");
+    huEngine->registerEntry("ro_RO", TXT_KEY_ANR_PROP_UNKNOWN, "(necunoscut)");
+
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "O aplicație <b>{app}</b> solicită o permisiune necunoscută.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicație <b>{app}</b> încearcă captureze ecranul.\n\nDorești să îi permiți acest lucru?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "O aplicație <b>{app}</b> încearcă să încarce un plugin: <b>{plugin}</b>.\n\nDorești să îi permiți acest lucru?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A fost detectată o tastatură nouă: <b>{ keyboard }</b>.\n\nDorești să îi permiți să funcționeze?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(necunoscut)");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_TITLE, "Cerere de permisiune");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Indiciu: poți seta reguli persistente pentru acestea în fișierul de configurare Hyprland.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW, "Permite");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Permite și reține");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_ALLOW_ONCE, "Permite o dată");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_DENY, "Respinge");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplicație necunoscută (ID client wayland {wayland_id})");
+
+    huEngine->registerEntry(
+        "ro_RO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Se pare că mediul tău XDG_CURRENT_DESKTOP este gestionat extern, iar valoarea curentă este {value}.\nAcest lucru ar putea cauza probleme, cu excepția cazului în care este intenționat.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Sistemul tău nu are instalat hyprland-guiutils. Aceasta este o dependență de execuție pentru anumite dialoguri. Ia în considerare instalarea acesteia.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland nu a reușit să încarce {count} element(e) esențial(e). Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
+        return "Hyprland nu a reușit să încarce {count} element(e) esențial(e). Dă vina pe packager-ul distro-ului tău că a făcut o treabă proastă la ambalare!";
+    });
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Configurația monitorului este incorectă. Monitorul {name} se suprapune cu alte monitoare.\nConsultați wiki-ul (pagina Monitoare) pentru"
+                            "mai multe. Acest lucru <b>va cauza</b> probleme.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Monitorul {name} nu a reușit să seteze niciun mod solicitat, revenind la modul {mode}.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Scală nevalidă transmisă monitorului {name}: {scale}, se utilizează scala sugerată: {fixed_scale}");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Nu s-a putut încărca pluginul {name}: {error}");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Reîncărcarea shaderului CM a eșuat, revenind la rgba/rgbx.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: gama largă de culori este activată, dar afișajul nu este în modul pe 10 biți.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland a fost pornit fără start-hyprland. Acest lucru nu este recomandat decât dacă te afli într-un mediu de depanare.");
+
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_TITLE, "Modul de Siguranță");
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți"
+                            "depana în acest mediu sau să încarci configurația cu butonul de mai jos.\nSe aplică combinațiile de taste implicite: SUPER+Q pentru kitty, SUPER+R pentru un runner de bază."
+                            "SUPER+M pentru ieșire.\nSe repornește "
+                            "Hyprland se va lansa din nou în modul normal.");
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Încarcă configurația");
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Deschide locația cu rapoartele de crash-uri");
+    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, închide");
+
     // ru_RU (Russian)
     huEngine->registerEntry("ru_RU", TXT_KEY_ANR_TITLE, "Приложение не отвечает");
     huEngine->registerEntry("ru_RU", TXT_KEY_ANR_CONTENT, "Приложение {title} - {class} не отвечает.\nЧто вы хотите сделать?");

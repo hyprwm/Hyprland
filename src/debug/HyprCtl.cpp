@@ -387,7 +387,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "pinned": {},
     "fullscreen": {},
     "fullscreenClient": {},
-    "overFullscreen":{},
+    "overFullscreen": {},
     "grouped": [{}],
     "tags": [{}],
     "swallowing": "0x{:x}",

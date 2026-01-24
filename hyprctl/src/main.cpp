@@ -271,7 +271,7 @@ int requestIPC(std::string_view filename, std::string_view arg) {
     sockaddr_un serverAddress = {0};
     serverAddress.sun_family  = AF_UNIX;
 
-    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + filename;
+    std::string socketPath = getRuntimeDir() + "/" + instanceSignature + "/" + std::string(filename);
 
     strncpy(serverAddress.sun_path, socketPath.c_str(), sizeof(serverAddress.sun_path) - 1);
 

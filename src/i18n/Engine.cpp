@@ -1187,7 +1187,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_DESCRIPTION,
                             "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți "
                             "depana în acest mediu sau să încarci configurația cu butonul de mai jos.\nSe aplică combinațiile de taste implicite: SUPER+Q pentru kitty, SUPER+R pentru un runner de bază."
-                            "SUPER+M pentru ieșire.\nSe repornește "
+                            "SUPER+M pentru ieșire.\nLa repornire "
                             "Hyprland se va lansa din nou în modul normal.");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Încarcă configurația");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Deschide locația cu rapoartele de crash-uri");

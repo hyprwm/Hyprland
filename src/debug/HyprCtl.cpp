@@ -1296,8 +1296,13 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = false;
 
+    if (COMMAND == "source") {
+        g_pConfigManager->m_wantsMonitorReload = true;
+        g_pEventLoopManager->doLater([] { g_pConfigManager->reloadRules(); });
+    }
+
     // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
-    if (COMMAND == "monitor" || COMMAND == "source")
+    if (COMMAND == "monitor")
         g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
     if (COMMAND.contains("monitorv2"))

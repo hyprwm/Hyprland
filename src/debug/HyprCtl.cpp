@@ -1348,8 +1348,9 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
         g_pConfigManager->reloadRules();
         // Damage all monitors to redraw static layers.
-        for (auto const& m : g_pCompositor->m_monitors)
+        for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
+        }
     }
 
     if (COMMAND.contains("workspace"))

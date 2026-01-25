@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ConfigFixRunner.hpp"
+#include "RunnerCommon.hpp"
 
 #include <functional>
 #include <vector>

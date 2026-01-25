@@ -2,6 +2,10 @@
 
 #include "../../helpers/memory/Memory.hpp"
 
+#include <expected>
+#include <string>
+#include <vector>
+
 namespace Config::Supplementary {
     class CConfigFixer {
       public:
@@ -12,8 +16,14 @@ namespace Config::Supplementary {
         CConfigFixer(CConfigFixer&)       = delete;
         CConfigFixer(CConfigFixer&&)      = delete;
 
-        void validate(const std::vector<std::string>& paths);
-        void fix(const std::vector<std::string>& paths);
+        // returns failed checks
+        size_t validate(const std::vector<std::string>& paths);
+
+        // returns zip path or error message
+        std::expected<std::string, std::string> backupConfigs(const std::vector<std::string>& paths);
+
+        // returns success
+        bool fix(const std::vector<std::string>& paths);
     };
 
     const UP<CConfigFixer>& fixer();

@@ -76,8 +76,8 @@ std::string IConfigFixSimpleRewriter::removeAssignmentOfVar(const std::string& c
     builder.reserve(content.size());
     size_t lastCopyHead = 0;
 
-    size_t lastLineBreak = 0;
-    bool commentUntilClear = false;
+    size_t lastLineBreak     = 0;
+    bool   commentUntilClear = false;
 
     while (lastLineBreak != std::string::npos) {
         std::string_view line = std::string_view{content}.substr(lastLineBreak, content.find('\n', lastLineBreak) - lastLineBreak);

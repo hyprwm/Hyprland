@@ -37,14 +37,16 @@ CEventLoopManager::~CEventLoopManager() {
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
+    uint64_t expirations;
+    read(fd, &expirations, sizeof(expirations));
     g_pEventLoopManager->onTimerFire();
-    return 1;
+    return 0;
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
     auto POLLFD = sc<Aquamarine::SPollFD*>(data);
     POLLFD->onSignal();
-    return 1;
+    return 0;
 }
 
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {

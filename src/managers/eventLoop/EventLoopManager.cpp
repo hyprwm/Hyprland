@@ -37,8 +37,13 @@ CEventLoopManager::~CEventLoopManager() {
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
-    uint64_t expirations;
-    read(fd, &expirations, sizeof(expirations));
+    if (!CFileDescriptor::isReadable(fd))
+        Log::logger->log(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
+    else {
+        uint64_t expirations;
+        read(fd, &expirations, sizeof(expirations));
+    }
+
     g_pEventLoopManager->onTimerFire();
     return 0;
 }

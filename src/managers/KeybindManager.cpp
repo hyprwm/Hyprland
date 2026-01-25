@@ -1709,7 +1709,6 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
         return {.success = false, .error = "Nowhere to move active window to"};
 
     const auto PWORKSPACE = PMONITORTOCHANGETO->m_activeWorkspace;
-
     if (silent)
         moveActiveToWorkspaceSilent(PWORKSPACE->getConfigName());
     else

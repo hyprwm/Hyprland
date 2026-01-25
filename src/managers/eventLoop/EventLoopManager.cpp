@@ -26,10 +26,7 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(eventSourceData.eventSource);
     }
 
-    for (auto const& w : m_readableWaiters) {
-        if (w->source != nullptr)
-            wl_event_source_remove(w->source);
-    }
+    m_readableWaiters.clear();
 
     if (m_wayland.eventSource)
         wl_event_source_remove(m_wayland.eventSource);
@@ -56,34 +53,41 @@ static int configWatcherWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int handleWaiterFD(int fd, uint32_t mask, void* data) {
+    auto waiter = sc<CEventLoopManager::SReadableWaiter*>(data);
+
+    if (!waiter) {
+        Log::logger->log(Log::ERR, "handleWaiterFD: failed casting waiter");
+        return 0;
+    }
+
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
         Log::logger->log(Log::ERR, "handleWaiterFD: readable waiter error");
-        g_pEventLoopManager->onFdReadableFail(sc<CEventLoopManager::SReadableWaiter*>(data));
+        g_pEventLoopManager->onFdReadableFail(waiter);
         return 0;
     }
 
     if (mask & WL_EVENT_READABLE)
-        g_pEventLoopManager->onFdReadable(sc<CEventLoopManager::SReadableWaiter*>(data));
+        g_pEventLoopManager->onFdReadable(waiter);
 
     return 0;
 }
 
 void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
-    auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
+    auto it = m_readableWaiters.find(waiter);
 
     // ???
     if (it == m_readableWaiters.end())
         return;
 
-    UP<SReadableWaiter> taken = std::move(*it);
+    auto ptr = std::move(it->second);
     m_readableWaiters.erase(it);
 
-    if (taken->fn)
-        taken->fn();
+    if (ptr->fn)
+        ptr->fn();
 }
 
 void CEventLoopManager::onFdReadableFail(SReadableWaiter* waiter) {
-    auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
+    auto it = m_readableWaiters.find(waiter);
 
     // ???
     if (it == m_readableWaiters.end())
@@ -210,8 +214,10 @@ void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&&
         return;
     }
 
-    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
-    waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
+    auto waiter            = makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn));
+    auto ptr               = waiter.get();
+    m_readableWaiters[ptr] = std::move(waiter);
+    ptr->source            = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, ptr->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, ptr);
 }
 
 void CEventLoopManager::syncPollFDs() {

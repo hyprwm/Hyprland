@@ -81,6 +81,11 @@ void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
     if (it == m_readableWaiters.end())
         return;
 
+    if (waiter->source) { // remove even_source if fn() somehow causes a reentry
+        wl_event_source_remove(waiter->source);
+        waiter->source = nullptr;
+    }
+
     auto ptr = std::move(it->second);
     m_readableWaiters.erase(it);
 

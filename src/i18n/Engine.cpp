@@ -1150,7 +1150,8 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "O aplicație <b>{app}</b> solicită o permisiune necunoscută.");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicație <b>{app}</b> încearcă să captureze ecranul.\n\nDorești să îi permiți acest lucru?");
-    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "O aplicație <b>{app}</b> încearcă să încarce un plugin: <b>{plugin}</b>.\n\nDorești să îi permiți acest lucru?");
+    huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "O aplicație <b>{app}</b> încearcă să încarce un plugin: <b>{plugin}</b>.\n\nDorești să îi permiți acest lucru?");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A fost detectată o tastatură nouă: <b>{keyboard}</b>.\n\nDorești să îi permiți să funcționeze?");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(necunoscut)");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_TITLE, "Cerere de permisiune");
@@ -1161,11 +1162,12 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_DENY, "Respinge");
     huEngine->registerEntry("ro_RO", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplicație necunoscută (ID client wayland {wayland_id})");
 
+    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Se pare că mediul tău XDG_CURRENT_DESKTOP este gestionat extern, iar valoarea curentă este {value}.\nAcest lucru ar putea cauza probleme, cu excepția "
+                            "cazului în care este intenționat.");
     huEngine->registerEntry(
-        "ro_RO", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-        "Se pare că mediul tău XDG_CURRENT_DESKTOP este gestionat extern, iar valoarea curentă este {value}.\nAcest lucru ar putea cauza probleme, cu excepția cazului în care este intenționat.");
-    huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "Sistemul tău nu are instalat hyprland-guiutils. Aceasta este o dependență de execuție pentru anumite dialoguri. Ia în considerare instalarea acesteia.");
+        "ro_RO", TXT_KEY_NOTIF_NO_GUIUTILS,
+        "Sistemul tău nu are instalat hyprland-guiutils. Aceasta este o dependență de execuție pentru anumite dialoguri. Ia în considerare instalarea acesteia.");
     huEngine->registerEntry("ro_RO", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo == 1)
@@ -1184,11 +1186,13 @@ I18n::CI18nEngine::CI18nEngine() {
                             "Hyprland a fost pornit fără start-hyprland. Acest lucru nu este recomandat decât dacă te afli într-un mediu de depanare.");
 
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_TITLE, "Modul de Siguranță");
-    huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_DESCRIPTION,
-                            "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți "
-                            "depana în acest mediu sau să încarci configurația cu butonul de mai jos.\nSe aplică combinațiile de taste implicite: SUPER+Q pentru kitty, SUPER+R pentru un runner de bază."
-                            "SUPER+M pentru ieșire.\nLa repornire "
-                            "Hyprland se va lansa din nou în modul normal.");
+    huEngine->registerEntry(
+        "ro_RO", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland a fost lansat în modul de siguranță, ceea ce înseamnă că ultima sesiune s-a blocat.\nModul de siguranță împiedică încărcarea configurației. Poți "
+        "depana în acest mediu sau să încarci configurația cu butonul de mai jos.\nSe aplică combinațiile de taste implicite: SUPER+Q pentru kitty, SUPER+R pentru un runner de "
+        "bază."
+        "SUPER+M pentru ieșire.\nLa repornire "
+        "Hyprland se va lansa din nou în modul normal.");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Încarcă configurația");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Deschide locația rapoartelor de crash-uri");
     huEngine->registerEntry("ro_RO", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ok, închide");

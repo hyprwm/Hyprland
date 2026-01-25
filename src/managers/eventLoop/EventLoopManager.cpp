@@ -199,12 +199,12 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
         m_wayland.loop,
         [](void* data) {
             auto IDLE = sc<CEventLoopManager::SIdleData*>(data);
-            auto cpy  = IDLE->fns;
+            auto fns  = std::move(IDLE->fns);
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;
-            for (auto const& c : cpy) {
-                if (c)
-                    c();
+            for (auto& f : fns) {
+                if (f)
+                    f();
             }
         },
         &m_idle);

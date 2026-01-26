@@ -2,7 +2,10 @@
 #include "../space/Space.hpp"
 #include "../../debug/log/Logger.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Layout;
+using namespace Hyprutils::Utils;
 
 void ITarget::setPositionGlobal(const CBox& box) {
     m_box = box;
@@ -29,6 +32,8 @@ void ITarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> foc
         Log::logger->log(Log::WARN, "ITarget: assignToSpace with a null space?");
 
     m_ghostSpace = false;
+
+    onUpdateSpace();
 }
 
 void ITarget::setSpaceGhost(const SP<CSpace>& space) {
@@ -91,6 +96,25 @@ Vector2D ITarget::pseudoSize() {
 }
 
 void ITarget::swap(SP<ITarget> b) {
+    const auto IS_FLOATING   = floating();
+    const auto IS_FLOATING_B = b->floating();
+
+    // Keep workspaces alive during a swap: moving one window will unref the ws
+
+    // NOLINTNEXTLINE
+    const auto PWS1 = workspace();
+    // NOLINTNEXTLINE
+    const auto  PWS2 = b->workspace();
+
+    CScopeGuard x([&] {
+        b->setFloating(IS_FLOATING);
+        setFloating(IS_FLOATING_B);
+
+        // update the spaces
+        b->onUpdateSpace();
+        onUpdateSpace();
+    });
+
     if (b->space() == m_space) {
         // simplest
         m_space->swap(m_self.lock(), b);

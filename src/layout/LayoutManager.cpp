@@ -98,7 +98,16 @@ void CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenM
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b) {
+    const auto IS_A_ACTIVE = Desktop::focusState()->window() == a->window();
+    const auto IS_B_ACTIVE = Desktop::focusState()->window() == b->window();
+
     a->swap(b);
+
+    if (IS_A_ACTIVE && b->window())
+        Desktop::focusState()->fullWindowFocus(b->window());
+
+    if (IS_B_ACTIVE && a->window())
+        Desktop::focusState()->fullWindowFocus(a->window());
 }
 
 void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& direction, bool silent) {

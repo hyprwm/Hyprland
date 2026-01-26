@@ -326,3 +326,12 @@ void CWindowTarget::warpPositionSize() {
     m_window->m_realPosition->warp();
     m_window->updateWindowDecos();
 }
+
+void CWindowTarget::onUpdateSpace() {
+    if (!space())
+        return;
+
+    m_window->moveToWorkspace(space()->workspace());
+    m_window->updateToplevel();
+    m_window->updateWindowDecos();
+}

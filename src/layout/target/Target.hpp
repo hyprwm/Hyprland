@@ -60,6 +60,7 @@ namespace Layout {
         virtual std::optional<Vector2D>                             maxSize()                               = 0;
         virtual void                                                damageEntire()                          = 0;
         virtual void                                                warpPositionSize()                      = 0;
+        virtual void                                                onUpdateSpace()                         = 0;
 
       protected:
         ITarget() = default;

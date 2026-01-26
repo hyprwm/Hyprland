@@ -84,3 +84,9 @@ void CWindowGroupTarget::warpPositionSize() {
         w->m_target->warpPositionSize();
     }
 }
+
+void CWindowGroupTarget::onUpdateSpace() {
+    for (const auto& w : m_group->windows()) {
+        w->m_target->onUpdateSpace();
+    }
+}

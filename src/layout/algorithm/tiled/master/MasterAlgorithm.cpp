@@ -542,7 +542,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         // switch to previously saved window
         else if (ARG == "previous") {
             const auto PREVWINDOW = m_workspaceData.focusMasterPrev.lock();
-            const bool VALID      = PREVWINDOW && validMapped(PREVWINDOW->window()) && PWINDOW != PREVWINDOW;
+            const bool VALID      = PREVWINDOW && getNodeFromWindow(PREVWINDOW->window()) && (PWINDOW != PREVWINDOW->window());
             VALID ? switchToWindow(PREVWINDOW) : focusAuto();
         } else
             focusAuto();

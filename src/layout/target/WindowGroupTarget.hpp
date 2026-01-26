@@ -27,6 +27,7 @@ namespace Layout {
         virtual std::optional<Vector2D>                             maxSize();
         virtual void                                                damageEntire();
         virtual void                                                warpPositionSize();
+        virtual void                                                onUpdateSpace();
 
       private:
         CWindowGroupTarget(SP<Desktop::View::CGroup> g);

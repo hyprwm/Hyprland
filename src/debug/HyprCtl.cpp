@@ -679,28 +679,6 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
     return result;
 }
 
-static std::string layoutsRequest(eHyprCtlOutputFormat format, std::string request) {
-    std::string result = "";
-    // if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-    //     result += "[";
-
-    //     for (auto const& m : // g_pLayoutManager->getAllLayoutNames()) {
-    //         result += std::format(
-    //             R"#(
-    // "{}",)#",
-    //             m);
-    //     }
-    //     trimTrailingComma(result);
-
-    //     result += "\n]\n";
-    // } else {
-    //     for (auto const& m : // g_pLayoutManager->getAllLayoutNames()) {
-    //         result += std::format("{}\n", m);
-    //     }
-    // }
-    return result;
-}
-
 static std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
     std::string currErrors = g_pConfigManager->getErrors();
@@ -2081,7 +2059,6 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"systeminfo", true, systemInfoRequest});
     registerCommand(SHyprCtlCommand{"animations", true, animationsRequest});
     registerCommand(SHyprCtlCommand{"rollinglog", true, rollinglogRequest});
-    registerCommand(SHyprCtlCommand{"layouts", true, layoutsRequest});
     registerCommand(SHyprCtlCommand{"configerrors", true, configErrorsRequest});
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
@@ -2194,10 +2171,6 @@ std::string CHyprCtl::getReply(std::string request) {
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
         g_pInputManager->setTabletConfigs();      // update tablets
 
-        static auto PLAYOUT = CConfigValue<std::string>("general:layout");
-
-        // g_pLayoutManager->switchToLayout(*PLAYOUT); // update layout
-
         g_pHyprOpenGL->m_reloadScreenShader = true;
 
         for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
@@ -2213,7 +2186,6 @@ std::string CHyprCtl::getReply(std::string request) {
 
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
-            // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
         }
     }
 

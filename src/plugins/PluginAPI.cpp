@@ -70,6 +70,8 @@ APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyp
     // PLUGIN->m_registeredLayouts.push_back(layout);
 
     // return // g_pLayoutManager->addLayout(name, layout);
+
+    return false;
 }
 
 APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
@@ -81,6 +83,8 @@ APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
     // std::erase(PLUGIN->m_registeredLayouts, layout);
 
     // return // g_pLayoutManager->removeLayout(layout);
+
+    return false;
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {

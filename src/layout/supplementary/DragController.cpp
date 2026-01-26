@@ -198,7 +198,7 @@ void CDragStateController::dragEnd() {
     }
 
     if (m_draggingTiled) {
-        static auto PPRECISEMOUSE = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
+        // static auto PPRECISEMOUSE = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
 
         // FIXME: remove or rethink
         // if (*PPRECISEMOUSE) {

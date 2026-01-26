@@ -598,7 +598,7 @@ void CWindow::onUnmap() {
         m_workspace->updateWindows();
         m_workspace->updateWindowData();
     }
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitorID());
+
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     m_workspace.reset();
@@ -1525,11 +1525,6 @@ void CWindow::updateDecorationValues() {
 
     const bool IS_SHADOWED_BY_MODAL = m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel->anyChildModal();
 
-    // border
-    // const auto RENDERDATA = // g_pLayoutManager->getCurrentLayout()->requestRenderHints(m_self.lock());
-    // if (RENDERDATA.isBorderGradient)
-    //     setBorderColor(*RENDERDATA.borderGradient);
-    // else {
     const bool GROUPLOCKED = m_group ? m_group->locked() : false;
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
@@ -1538,7 +1533,6 @@ void CWindow::updateDecorationValues() {
         const auto* const INACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
         setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
     }
-    //}
 
     // opacity
     const auto PWORKSPACE = m_workspace;
@@ -2256,7 +2250,7 @@ void CWindow::commitWindow() {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);
 
-        Vector2D predSize = Vector2D{}; // g_pLayoutManager->getCurrentLayout()->predictSizeForNewWindow(m_self.lock());
+        Vector2D predSize = g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{});
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 
@@ -2330,7 +2324,7 @@ void CWindow::destroyWindow() {
 
     m_listeners = {};
 
-    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(m_self.lock());
+    g_layoutManager->removeTarget(m_target);
 
     m_readyToDelete = true;
 

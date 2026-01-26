@@ -1805,8 +1805,8 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     pMonitorA->m_activeWorkspace = PWORKSPACEB;
     pMonitorB->m_activeWorkspace = PWORKSPACEA;
 
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorA->m_id);
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitorB->m_id);
+    g_layoutManager->recalculateMonitor(pMonitorA);
+    g_layoutManager->recalculateMonitor(pMonitorB);
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
         PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
@@ -2014,7 +2014,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
         pWorkspace->m_events.activeChanged.emit();
 
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
+        g_layoutManager->recalculateMonitor(pMonitor);
 
         g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         pWorkspace->m_visible = true;
@@ -2027,7 +2027,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // finalize
     if (POLDMON) {
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(POLDMON->m_id);
+        g_layoutManager->recalculateMonitor(POLDMON);
         if (valid(POLDMON->m_activeWorkspace))
             g_pDesktopAnimationManager->setFullscreenFadeAnimation(POLDMON->m_activeWorkspace,
                                                                    POLDMON->m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :

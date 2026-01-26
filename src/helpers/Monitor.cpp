@@ -26,6 +26,7 @@
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../hyprerror/HyprError.hpp"
+#include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
@@ -302,7 +303,7 @@ void CMonitor::onConnect(bool noRule) {
         Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
+    g_layoutManager->recalculateMonitor(m_self.lock());
 
     // ensure VRR (will enable if necessary)
     g_pConfigManager->ensureVRR(m_self.lock());
@@ -1112,7 +1113,7 @@ void CMonitor::setupDefaultWS(const SMonitorRule& monitorRule) {
         // workspace exists, move it to the newly connected monitor
         g_pCompositor->moveWorkspaceToMonitor(PNEWWORKSPACE, m_self.lock());
         m_activeWorkspace = PNEWWORKSPACE;
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
+        g_layoutManager->recalculateMonitor(m_self.lock());
         g_pDesktopAnimationManager->startAnimation(PNEWWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
     } else {
         if (newDefaultWorkspaceName.empty())
@@ -1322,7 +1323,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         if (!noMouseMove)
             g_pInputManager->simulateMouseMovement();
 
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
+        g_layoutManager->recalculateMonitor(m_self.lock());
 
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
@@ -1385,7 +1386,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (POLDSPECIAL)
             POLDSPECIAL->m_events.activeChanged.emit();
 
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
+        g_layoutManager->recalculateMonitor(m_self.lock());
 
         if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
@@ -1414,7 +1415,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     const auto PMONITORWORKSPACEOWNER = pWorkspace->m_monitor.lock();
     if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
         PMWSOWNER->m_activeSpecialWorkspace.reset();
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(PMWSOWNER->m_id);
+        g_layoutManager->recalculateMonitor(PMWSOWNER);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
 
@@ -1479,7 +1480,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
     }
 
-    // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
+    g_layoutManager->recalculateMonitor(m_self.lock());
 
     if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)

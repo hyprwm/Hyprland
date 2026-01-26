@@ -1411,9 +1411,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    // update layout
-    // g_pLayoutManager->switchToLayout(std::any_cast<Hyprlang::STRING>(m_config->getConfigValue("general:layout")));
-
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
         m_manualCrashInitiated = true;
@@ -1477,8 +1474,9 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        //  for (auto const& m : g_pCompositor->m_monitors)
-        // g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        for (auto const& m : g_pCompositor->m_monitors) {
+            g_layoutManager->recalculateMonitor(m);
+        }
     }
 
     // Update window border colors

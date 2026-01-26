@@ -306,3 +306,13 @@ void CGroup::updateWorkspace(PHLWORKSPACE ws) {
         w->m_target->setSpaceGhost(ws->m_space);
     }
 }
+
+void CGroup::swapWithNext() {
+    size_t idx = m_current + 1 >= m_windows.size() ? 0 : m_current + 1;
+    std::iter_swap(m_windows.begin() + m_current, m_windows.begin() + idx);
+}
+
+void CGroup::swapWithLast() {
+    size_t idx = m_current == 0 ? m_windows.size() - 1 : m_current - 1;
+    std::iter_swap(m_windows.begin() + m_current, m_windows.begin() + idx);
+}

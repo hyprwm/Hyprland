@@ -26,6 +26,9 @@ namespace Desktop::View {
         void                             destroy();
         void                             updateWorkspace(PHLWORKSPACE);
 
+        void                             swapWithNext();
+        void                             swapWithLast();
+
         PHLWINDOW                        head() const;
         PHLWINDOW                        tail() const;
         PHLWINDOW                        current() const;

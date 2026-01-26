@@ -2895,14 +2895,10 @@ SDispatchResult CKeybindManager::moveGroupWindow(std::string args) {
 
     const auto GROUP = PLASTWINDOW->m_group;
 
-    // FIXME: what the fuck is this supposed to do?
-    // if ((!BACK && PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head) || (BACK && PLASTWINDOW->m_groupData.head)) {
-    //     std::swap(PLASTWINDOW->m_groupData.head, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.head);
-    //     std::swap(PLASTWINDOW->m_groupData.locked, PLASTWINDOW->m_groupData.pNextWindow->m_groupData.locked);
-    // } else
-    //     PLASTWINDOW->switchWithWindowInGroup(BACK ? PLASTWINDOW->getGroupPrevious() : PLASTWINDOW->m_groupData.pNextWindow.lock());
-
-    // PLASTWINDOW->updateWindowDecos();
+    if (BACK)
+        GROUP->swapWithLast();
+    else
+        GROUP->swapWithNext();
 
     return {};
 }

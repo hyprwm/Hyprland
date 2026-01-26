@@ -4,6 +4,8 @@
 
 #include <map>
 #include <type_traits>
+#include <functional>
+#include <string>
 
 namespace Layout {
     class CAlgorithm;

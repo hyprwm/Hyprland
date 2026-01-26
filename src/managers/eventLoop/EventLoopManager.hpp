@@ -89,9 +89,9 @@ class CEventLoopManager {
         bool                             recalcScheduled = false;
     } m_timers;
 
-    SIdleData                                                 m_idle;
-    std::map<int, SEventSourceData>                           m_aqEventSources;
-    std::unordered_map<SReadableWaiter*, UP<SReadableWaiter>> m_readableWaiters;
+    SIdleData                        m_idle;
+    std::map<int, SEventSourceData>  m_aqEventSources;
+    std::vector<UP<SReadableWaiter>> m_readableWaiters;
 
     struct {
         CHyprSignalListener pollFDsChanged;

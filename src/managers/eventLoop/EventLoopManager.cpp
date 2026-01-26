@@ -80,7 +80,7 @@ static int handleWaiterFD(int fd, uint32_t mask, void* data) {
 }
 
 void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
-    auto it = m_readableWaiters.find(waiter);
+    auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
 
     // ???
     if (it == m_readableWaiters.end())
@@ -91,15 +91,15 @@ void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
         waiter->source = nullptr;
     }
 
-    auto ptr = std::move(it->second);
+    UP<SReadableWaiter> taken = std::move(*it);
     m_readableWaiters.erase(it);
 
-    if (ptr->fn)
-        ptr->fn();
+    if (taken->fn)
+        taken->fn();
 }
 
 void CEventLoopManager::onFdReadableFail(SReadableWaiter* waiter) {
-    auto it = m_readableWaiters.find(waiter);
+    auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
 
     // ???
     if (it == m_readableWaiters.end())
@@ -226,10 +226,8 @@ void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&&
         return;
     }
 
-    auto waiter            = makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn));
-    auto ptr               = waiter.get();
-    m_readableWaiters[ptr] = std::move(waiter);
-    ptr->source            = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, ptr->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, ptr);
+    auto& waiter   = m_readableWaiters.emplace_back(makeUnique<SReadableWaiter>(nullptr, std::move(fd), std::move(fn)));
+    waiter->source = wl_event_loop_add_fd(g_pEventLoopManager->m_wayland.loop, waiter->fd.get(), WL_EVENT_READABLE, ::handleWaiterFD, waiter.get());
 }
 
 void CEventLoopManager::syncPollFDs() {

@@ -43,7 +43,8 @@ void CSpace::remove(SP<ITarget> t) {
     if (m_algorithm)
         m_algorithm->removeTarget(t);
 
-    m_parent->updateWindows();
+    if (m_parent) // can be null if the workspace is gone
+        m_parent->updateWindows();
 }
 
 void CSpace::setAlgorithmProvider(SP<CAlgorithm> algo) {

@@ -308,11 +308,25 @@ void CGroup::updateWorkspace(PHLWORKSPACE ws) {
 }
 
 void CGroup::swapWithNext() {
-    size_t idx = m_current + 1 >= m_windows.size() ? 0 : m_current + 1;
+    const bool HAD_FOCUS = Desktop::focusState()->window() == m_windows.at(m_current);
+
+    size_t     idx = m_current + 1 >= m_windows.size() ? 0 : m_current + 1;
     std::iter_swap(m_windows.begin() + m_current, m_windows.begin() + idx);
+
+    updateWindowVisibility();
+
+    if (HAD_FOCUS)
+        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock());
 }
 
 void CGroup::swapWithLast() {
-    size_t idx = m_current == 0 ? m_windows.size() - 1 : m_current - 1;
+    const bool HAD_FOCUS = Desktop::focusState()->window() == m_windows.at(m_current);
+
+    size_t     idx = m_current == 0 ? m_windows.size() - 1 : m_current - 1;
     std::iter_swap(m_windows.begin() + m_current, m_windows.begin() + idx);
+
+    updateWindowVisibility();
+
+    if (HAD_FOCUS)
+        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock());
 }

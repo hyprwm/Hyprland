@@ -52,7 +52,7 @@ static SDispatchResult snapMove(std::string in) {
     Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
     Vector2D size = PLASTWINDOW->m_realSize->goal();
 
-    g_layoutManager->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
+    g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
     *PLASTWINDOW->m_realPosition = pos.round();
 
     return {};

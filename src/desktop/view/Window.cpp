@@ -2270,10 +2270,23 @@ void CWindow::mapWindow() {
                 Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size);
             else {
                 setPseudo    = true;
-                m_pseudoSize = *COMPUTED;
+                m_pseudoSize = m_lastFloatingSize = *COMPUTED;
                 setHidden(false);
             }
         }
+
+        if (!m_ruleApplicator->static_.position.empty()) {
+            const auto COMPUTED = calculateExpression(m_ruleApplicator->static_.position);
+            if (!COMPUTED)
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.position);
+            else {
+                m_lastFloatingPosition = *COMPUTED;
+            }
+        }
+
+        // if both are set, it's the same as having been floated.
+        if (!m_ruleApplicator->static_.size.empty() && !m_ruleApplicator->static_.position.empty())
+            m_hasBeenFloated = true;
 
         if (!setPseudo)
             m_pseudoSize = m_realSize->goal() - Vector2D(10, 10);

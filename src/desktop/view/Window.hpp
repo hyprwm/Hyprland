@@ -115,6 +115,7 @@ namespace Desktop::View {
         // for restoring floating statuses
         Vector2D m_lastFloatingSize;
         Vector2D m_lastFloatingPosition;
+        bool     m_hasBeenFloated = false;
 
         // for floating window offset in workspace animations
         Vector2D m_floatingOffset = Vector2D(0, 0);

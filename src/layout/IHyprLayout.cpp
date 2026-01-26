@@ -774,7 +774,8 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
         if (!pWindow->m_draggingTiled)
             pWindow->m_pseudoSize = pWindow->m_realSize->goal();
 
-        pWindow->m_lastFloatingSize = PSAVEDSIZE;
+        pWindow->m_lastFloatingSize     = PSAVEDSIZE;
+        pWindow->m_lastFloatingPosition = PSAVEDPOS;
 
         // move to narnia because we don't wanna find our own node. onWindowCreatedTiling should apply the coords back.
         pWindow->m_position = Vector2D(-999999, -999999);
@@ -794,8 +795,13 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
 
         g_pCompositor->changeWindowZOrder(pWindow, true);
 
-        CBox wb = {pWindow->m_realPosition->goal() + (pWindow->m_realSize->goal() - pWindow->m_lastFloatingSize) / 2.f, pWindow->m_lastFloatingSize};
-        wb.round();
+        CBox wb;
+        if (!pWindow->m_hasBeenFloated) {
+            wb = {pWindow->m_realPosition->goal() + (pWindow->m_realSize->goal() - pWindow->m_lastFloatingSize) / 2.f, pWindow->m_lastFloatingSize};
+            wb.round();
+            pWindow->m_hasBeenFloated = true;
+        } else
+            wb = {pWindow->m_lastFloatingPosition, pWindow->m_lastFloatingSize};
 
         if (!(pWindow->m_isFloating && pWindow->m_isPseudotiled) && DELTALESSTHAN(pWindow->m_realSize->goal().x, pWindow->m_lastFloatingSize.x, 10) &&
             DELTALESSTHAN(pWindow->m_realSize->goal().y, pWindow->m_lastFloatingSize.y, 10)) {

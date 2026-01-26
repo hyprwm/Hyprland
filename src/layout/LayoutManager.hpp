@@ -71,8 +71,6 @@ namespace Layout {
 
         std::optional<Vector2D>          predictSizeForNewTiledTarget();
 
-        void                             fitIfFloatingOnMonitor(SP<ITarget> target);
-
         void                             performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
 
         void                             invalidateMonitorGeometries(PHLMONITOR);

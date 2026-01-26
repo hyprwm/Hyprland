@@ -19,5 +19,8 @@ namespace Layout::Floating {
 
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
+
+      private:
+        CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t);
     };
 };

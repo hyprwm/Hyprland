@@ -126,8 +126,25 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
 
     const auto CURRENT_CENTER = target->position().middle();
 
-    // put around the current center
-    target->setPositionGlobal(CBox{CURRENT_CENTER - LAST_SIZE / 2.F, LAST_SIZE});
+    // put around the current center, fit in workArea
+    target->setPositionGlobal(fitBoxInWorkArea(CBox{CURRENT_CENTER - LAST_SIZE / 2.F, LAST_SIZE}, target));
+}
+
+CBox CDefaultFloatingAlgorithm::fitBoxInWorkArea(const CBox& box, SP<ITarget> t) {
+    const auto WORK_AREA = m_parent->space()->workArea(true);
+    const auto EXTENTS   = t->window() ? t->window()->getWindowExtentsUnified(Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS) : SBoxExtents{};
+    CBox       targetBox = box.copy().addExtents(EXTENTS);
+
+    targetBox.x = std::max(targetBox.x, WORK_AREA.x);
+    targetBox.y = std::max(targetBox.y, WORK_AREA.y);
+
+    if (targetBox.x + targetBox.w > WORK_AREA.x + WORK_AREA.w)
+        targetBox.x = WORK_AREA.x + WORK_AREA.w - targetBox.w;
+
+    if (targetBox.y + targetBox.h > WORK_AREA.y + WORK_AREA.h)
+        targetBox.y = WORK_AREA.y + WORK_AREA.h - targetBox.h;
+
+    return targetBox.addExtents(SBoxExtents{.topLeft = -EXTENTS.topLeft, .bottomRight = -EXTENTS.bottomRight});
 }
 
 void CDefaultFloatingAlgorithm::removeTarget(SP<ITarget> target) {

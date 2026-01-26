@@ -141,10 +141,6 @@ std::optional<Vector2D> CLayoutManager::predictSizeForNewTiledTarget() {
     return FOCUSED_MON->m_activeWorkspace->m_space->predictSizeForNewTiledTarget();
 }
 
-void CLayoutManager::fitIfFloatingOnMonitor(SP<ITarget> target) {
-    ;
-}
-
 const UP<Supplementary::CDragStateController>& CLayoutManager::dragController() {
     return m_dragStateController;
 }

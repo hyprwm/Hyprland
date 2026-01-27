@@ -1296,8 +1296,13 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = false;
 
+    if (COMMAND == "source") {
+        g_pConfigManager->m_wantsMonitorReload = true;
+        g_pEventLoopManager->doLater([] { g_pConfigManager->reloadRules(); });
+    }
+
     // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
-    if (COMMAND == "monitor" || COMMAND == "source")
+    if (COMMAND == "monitor")
         g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
     if (COMMAND.contains("monitorv2"))
@@ -1339,6 +1344,14 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     if (COMMAND.contains("windowrule ") || COMMAND.contains("windowrule["))
         g_pConfigManager->reloadRules();
+
+    if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
+        g_pConfigManager->reloadRules();
+        // Damage all monitors to redraw static layers.
+        for (auto const& m : g_pCompositor->m_monitors) {
+            g_pHyprRenderer->damageMonitor(m);
+        }
+    }
 
     if (COMMAND.contains("workspace"))
         g_pConfigManager->ensurePersistentWorkspacesPresent();

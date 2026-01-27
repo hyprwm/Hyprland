@@ -2250,7 +2250,7 @@ void CWindow::commitWindow() {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);
 
-        Vector2D predSize = g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{});
+        const Vector2D predSize = !m_ruleApplicator->static_.floating.value_or(false) ? g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{}) : Vector2D{};
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 

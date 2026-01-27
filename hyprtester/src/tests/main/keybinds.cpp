@@ -531,6 +531,14 @@ static void testPerDeviceKeybind() {
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+
+    // Tags
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindk SUPER,Y,test-tag,exec,touch " + flagFile), "ok");
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 }
 
 static bool test() {

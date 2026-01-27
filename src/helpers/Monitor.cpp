@@ -1721,6 +1721,10 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
+    // TODO: remove this when kernel allows tearing + hw cursor updated
+    if (g_pPointerManager->hasVisibleHWCursor(m_self.lock()))
+        reasons |= TC_HW_CURSOR;
+
     if (m_solitaryClient.expired()) {
         reasons |= TC_CANDIDATE;
         return reasons;
@@ -1760,12 +1764,6 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             if (!full)
                 return reasons;
         }
-    }
-
-    if (m_tearingState.activelyTearing) {
-        reasons |= DS_BLOCK_TEARING;
-        if (!full)
-            return reasons;
     }
 
     if (!m_mirrors.empty() || isMirror()) {

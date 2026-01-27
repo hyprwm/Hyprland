@@ -48,6 +48,7 @@ class CPointerManager {
     void lockSoftwareAll();
     void unlockSoftwareAll();
     bool softwareLockedFor(PHLMONITOR pMonitor);
+    bool hasVisibleHWCursor(PHLMONITOR pMonitor);
 
     void renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */,
                                   bool forceRender = false);

@@ -22,6 +22,8 @@ CSpace::CSpace(PHLWORKSPACE parent) : m_parent(parent) {
 void CSpace::add(SP<ITarget> t) {
     m_targets.emplace_back(t);
 
+    recheckWorkArea();
+
     if (m_algorithm)
         m_algorithm->addTarget(t);
 
@@ -31,6 +33,8 @@ void CSpace::add(SP<ITarget> t) {
 void CSpace::move(SP<ITarget> t, std::optional<Vector2D> focalPoint) {
     m_targets.emplace_back(t);
 
+    recheckWorkArea();
+
     if (m_algorithm)
         m_algorithm->moveTarget(t, focalPoint);
 
@@ -38,7 +42,9 @@ void CSpace::move(SP<ITarget> t, std::optional<Vector2D> focalPoint) {
 }
 
 void CSpace::remove(SP<ITarget> t) {
-    std::erase(m_targets, t);
+    std::erase_if(m_targets, [&t](const auto& e) { return !e || e == t; });
+
+    recheckWorkArea();
 
     if (m_algorithm)
         m_algorithm->removeTarget(t);
@@ -153,4 +159,8 @@ void CSpace::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool sil
 
 SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
     return !m_algorithm ? nullptr : m_algorithm->getNextCandidate(old);
+}
+
+const std::vector<WP<ITarget>>& CSpace::targets() const {
+    return m_targets;
 }

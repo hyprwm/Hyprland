@@ -50,12 +50,14 @@ namespace Layout {
 
         SP<CAlgorithm>                   algorithm() const;
 
+        const std::vector<WP<ITarget>>&  targets() const;
+
       private:
         CSpace(PHLWORKSPACE parent);
 
         WP<CSpace>               m_self;
 
-        std::vector<SP<ITarget>> m_targets;
+        std::vector<WP<ITarget>> m_targets;
         SP<CAlgorithm>           m_algorithm;
         PHLWORKSPACEREF          m_parent;
 

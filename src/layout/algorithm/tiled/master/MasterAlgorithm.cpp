@@ -413,9 +413,13 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
     if (!PWINDOW2 && t->space() && t->space()->workspace()) {
         // try to find a monitor in dir
         const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
-        targetWs             = PMONINDIR->m_activeWorkspace;
+        if (PMONINDIR)
+            targetWs = PMONINDIR->m_activeWorkspace;
     } else
         targetWs = PWINDOW2->m_workspace;
+
+    if (!targetWs)
+        return;
 
     t->window()->setAnimationsToMove();
 
@@ -437,7 +441,7 @@ void CMasterAlgorithm::recalculate() {
 
 std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
     auto switchToWindow = [&](SP<ITarget> target) {
-        if (!validMapped(target->window()))
+        if (!target || !validMapped(target->window()))
             return;
 
         Desktop::focusState()->fullWindowFocus(target->window());

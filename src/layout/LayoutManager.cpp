@@ -97,7 +97,13 @@ void CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenM
     target->space()->setFullscreen(target, effectiveMode);
 }
 
-void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b) {
+void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
+
+    if (preserveFocus) {
+        a->swap(b);
+        return;
+    }
+
     const auto IS_A_ACTIVE = Desktop::focusState()->window() == a->window();
     const auto IS_B_ACTIVE = Desktop::focusState()->window() == b->window();
 

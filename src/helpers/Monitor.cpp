@@ -1474,8 +1474,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 } else
                     pos = pos - PMONFROMMIDDLE->m_position + m_position;
 
-                *w->m_realPosition = pos;
-                w->m_position      = pos;
+                w->layoutTarget()->setPositionGlobal(CBox{pos, w->layoutTarget()->position().size()});
             }
         }
     }

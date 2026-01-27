@@ -59,7 +59,7 @@ namespace Layout {
 
         void                             fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
 
-        void                             switchTargets(SP<ITarget> a, SP<ITarget> b);
+        void                             switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus = true);
 
         void                             moveInDirection(SP<ITarget> target, const std::string& direction, bool silent = false);
 

@@ -1766,7 +1766,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_isFloating)
-                *w->m_realPosition = w->m_realPosition->goal() - pMonitorA->m_position + pMonitorB->m_position;
+                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
             if (w->isFullscreen()) {
                 *w->m_realPosition = pMonitorB->m_position;
@@ -1791,7 +1791,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
             // additionally, move floating and fs windows manually
             if (w->m_isFloating)
-                *w->m_realPosition = w->m_realPosition->goal() - pMonitorB->m_position + pMonitorA->m_position;
+                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
             if (w->isFullscreen()) {
                 *w->m_realPosition = pMonitorA->m_position;
@@ -1976,17 +1976,18 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             if (w->m_isMapped && !w->isHidden()) {
                 if (POLDMON) {
                     if (w->m_isFloating)
-                        *w->m_realPosition = w->m_realPosition->goal() - POLDMON->m_position + pMonitor->m_position;
+                        w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
                     if (w->isFullscreen()) {
                         *w->m_realPosition = pMonitor->m_position;
                         *w->m_realSize     = pMonitor->m_size;
                     }
                 } else
-                    *w->m_realPosition = Vector2D{
-                        (pMonitor->m_size.x != 0) ? sc<int>(w->m_realPosition->goal().x) % sc<int>(pMonitor->m_size.x) : 0,
-                        (pMonitor->m_size.y != 0) ? sc<int>(w->m_realPosition->goal().y) % sc<int>(pMonitor->m_size.y) : 0,
-                    };
+                    w->layoutTarget()->setPositionGlobal(CBox{Vector2D{
+                                                                  (pMonitor->m_size.x != 0) ? sc<int>(w->m_realPosition->goal().x) % sc<int>(pMonitor->m_size.x) : 0,
+                                                                  (pMonitor->m_size.y != 0) ? sc<int>(w->m_realPosition->goal().y) % sc<int>(pMonitor->m_size.y) : 0,
+                                                              },
+                                                              w->layoutTarget()->position().size()});
             }
 
             w->updateToplevel();
@@ -2575,7 +2576,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         pFirstWindowOnWorkspace->m_group->add(pWindow);
     } else {
         if (pWindow->m_isFloating)
-            *pWindow->m_realPosition = POSTOMON + PWORKSPACEMONITOR->m_position;
+            pWindow->layoutTarget()->setPositionGlobal(CBox{POSTOMON + PWORKSPACEMONITOR->m_position, pWindow->layoutTarget()->position().size()});
     }
 
     pWindow->updateToplevel();

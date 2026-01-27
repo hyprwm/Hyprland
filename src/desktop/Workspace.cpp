@@ -412,14 +412,19 @@ bool CWorkspace::isVisibleNotCovered() {
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+
+    if (!m_space)
+        return 0;
+
+    for (auto const& t : m_space->targets()) {
+        if (!t)
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+
+        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && (!t->window() || t->window()->isHidden() == onlyVisible.value()))
             continue;
         no++;
     }

@@ -29,6 +29,9 @@
 #include "../layout/LayoutManager.hpp"
 #include "../layout/target/WindowTarget.hpp"
 #include "../layout/space/Space.hpp"
+#include "../layout/algorithm/Algorithm.hpp"
+#include "../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
+#include "../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 
 #include <optional>
 #include <iterator>
@@ -1150,8 +1153,7 @@ SDispatchResult CKeybindManager::centerWindow(std::string args) {
 
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 
-    *PWINDOW->m_realPosition = PMONITOR->logicalBoxMinusReserved().middle() - PWINDOW->m_realSize->goal() / 2.f;
-    PWINDOW->m_position      = PWINDOW->m_realPosition->goal();
+    PWINDOW->layoutTarget()->setPositionGlobal(CBox{PMONITOR->logicalBoxMinusReserved().middle() - PWINDOW->m_realSize->goal() / 2.F, PWINDOW->layoutTarget()->position().size()});
 
     return {};
 }
@@ -1601,7 +1603,7 @@ SDispatchResult CKeybindManager::swapActive(std::string args) {
     Log::logger->log(Log::DEBUG, "Swapping active window with {}", args);
 
     updateRelativeCursorCoords();
-    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), PWINDOWTOCHANGETO->layoutTarget());
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), PWINDOWTOCHANGETO->layoutTarget(), false);
     PLASTWINDOW->warpCursor();
     return {};
 }
@@ -2103,14 +2105,32 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
 
     CVarList            args{arg, 0, 's', true};
 
+    const auto          PREV = args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l");
+
     std::optional<bool> floatStatus = {};
-    if (args.contains("tile") || args.contains("tiled"))
-        floatStatus = false;
-    else if (args.contains("float") || args.contains("floating"))
+    if (args.contains("tile") || args.contains("tiled")) {
+        // if we want just tiled, and we are on a tiled window, use layoutmsg for layouts that support it
+
+        if (!Desktop::focusState()->window()->m_isFloating) {
+            if (const auto SPACE = Desktop::focusState()->window()->layoutTarget()->space(); SPACE) {
+
+                constexpr const std::array<const std::type_info*, 2> LAYOUTS_WITH_CYCLE_NEXT = {
+                    &typeid(Layout::Tiled::CMonocleAlgorithm),
+                    &typeid(Layout::Tiled::CMasterAlgorithm),
+                };
+
+                if (std::ranges::contains(LAYOUTS_WITH_CYCLE_NEXT, &typeid(SPACE->algorithm()->tiledAlgo().get()))) {
+                    CKeybindManager::layoutmsg(PREV ? "cyclenext, b" : "cyclenext");
+                    return {};
+                }
+            }
+        }
+    }
+
+    if (args.contains("float") || args.contains("floating"))
         floatStatus = true;
 
     const auto  VISIBLE = args.contains("visible") || args.contains("v");
-    const auto  PREV    = args.contains("prev") || args.contains("p") || args.contains("last") || args.contains("l");
     const auto  NEXT    = args.contains("next") || args.contains("n"); // prev is default in classic alt+tab
     const auto  HIST    = args.contains("hist") || args.contains("h");
     const auto& w       = HIST ? g_pCompositor->getWindowCycleHist(Desktop::focusState()->window(), true, floatStatus, VISIBLE, NEXT) :
@@ -2501,7 +2521,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
     if (toSwap == PLASTWINDOW)
         toSwap = g_pCompositor->getWindowCycle(PLASTWINDOW, true, std::nullopt, false, NEED_PREV);
 
-    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), toSwap->layoutTarget());
+    g_layoutManager->switchTargets(PLASTWINDOW->layoutTarget(), toSwap->layoutTarget(), false);
 
     PLASTWINDOW->m_lastCycledWindow = toSwap;
 

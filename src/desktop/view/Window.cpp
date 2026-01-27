@@ -2279,9 +2279,8 @@ void CWindow::mapWindow() {
             const auto COMPUTED = calculateExpression(m_ruleApplicator->static_.position);
             if (!COMPUTED)
                 Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.position);
-            else {
+            else
                 m_lastFloatingPosition = *COMPUTED;
-            }
         }
 
         // if both are set, it's the same as having been floated.

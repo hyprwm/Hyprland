@@ -36,10 +36,10 @@ class CXCursorManager {
     std::vector<SP<SXCursors>> loadStandardCursors(std::string const& name, int size);
     std::vector<SP<SXCursors>> loadAllFromDir(std::string const& path, int size);
 
-    int                        lastLoadSize  = 0;
-    float                      lastLoadScale = 0;
-    std::string                themeName     = "";
-    SP<SXCursors>              defaultCursor;
-    SP<SXCursors>              hyprCursor;
-    std::vector<SP<SXCursors>> cursors;
+    int                        m_lastLoadSize  = 0;
+    float                      m_lastLoadScale = 0;
+    std::string                m_themeName     = "";
+    SP<SXCursors>              m_defaultCursor;
+    SP<SXCursors>              m_hyprCursor;
+    std::vector<SP<SXCursors>> m_cursors;
 };

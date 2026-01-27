@@ -15,11 +15,11 @@ class CMesaDRMBufferResource {
     bool good();
 
   private:
-    SP<CDMABuffer> buffer;
+    SP<CDMABuffer> m_buffer;
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
+    } m_listeners;
 
     friend class CMesaDRMResource;
 };
@@ -31,7 +31,7 @@ class CMesaDRMResource {
     bool good();
 
   private:
-    SP<CWlDrm> resource;
+    SP<CWlDrm> m_resource;
 };
 
 class CMesaDRMProtocol : public IWaylandProtocol {
@@ -45,10 +45,10 @@ class CMesaDRMProtocol : public IWaylandProtocol {
     void destroyResource(CMesaDRMBufferResource* resource);
 
     //
-    std::vector<SP<CMesaDRMResource>>       m_vManagers;
-    std::vector<SP<CMesaDRMBufferResource>> m_vBuffers;
+    std::vector<SP<CMesaDRMResource>>       m_managers;
+    std::vector<SP<CMesaDRMBufferResource>> m_buffers;
 
-    std::string                             nodeName = "";
+    std::string                             m_nodeName = "";
 
     friend class CMesaDRMResource;
     friend class CMesaDRMBufferResource;

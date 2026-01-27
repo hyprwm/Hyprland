@@ -29,14 +29,15 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include <any>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <hyprlang.hpp>
 
-typedef struct {
+using PLUGIN_DESCRIPTION_INFO = struct {
     std::string name;
     std::string description;
     std::string author;
     std::string version;
-} PLUGIN_DESCRIPTION_INFO;
+};
 
 struct SFunctionMatch {
     void*       address = nullptr;
@@ -67,10 +68,8 @@ struct SVersionInfo {
 #endif
 
 class IHyprLayout;
-class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
-class CWindow;
 
 /*
     These methods are for the plugin to implement
@@ -83,7 +82,7 @@ class CWindow;
 
     This function should not be modified, see the example plugin.
 */
-typedef REQUIRED std::string (*PPLUGIN_API_VERSION_FUNC)();
+using PPLUGIN_API_VERSION_FUNC = REQUIRED std::string (*)();
 #define PLUGIN_API_VERSION          pluginAPIVersion
 #define PLUGIN_API_VERSION_FUNC_STR "pluginAPIVersion"
 
@@ -93,7 +92,7 @@ typedef REQUIRED std::string (*PPLUGIN_API_VERSION_FUNC)();
 
     Keep in mind this is executed synchronously, and as such any blocking calls to hyprland might hang. (e.g. system("hyprctl ..."))
 */
-typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
+using PPLUGIN_INIT_FUNC = REQUIRED PLUGIN_DESCRIPTION_INFO (*)(HANDLE);
 #define PLUGIN_INIT          pluginInit
 #define PLUGIN_INIT_FUNC_STR "pluginInit"
 
@@ -103,7 +102,7 @@ typedef REQUIRED PLUGIN_DESCRIPTION_INFO (*PPLUGIN_INIT_FUNC)(HANDLE);
 
     Hooks are unloaded after exit.
 */
-typedef OPTIONAL void (*PPLUGIN_EXIT_FUNC)();
+using PPLUGIN_EXIT_FUNC = OPTIONAL void (*)();
 #define PLUGIN_EXIT          pluginExit
 #define PLUGIN_EXIT_FUNC_STR "pluginExit"
 
@@ -136,7 +135,7 @@ namespace HyprlandAPI {
     /*
         Get a config value.
 
-        Please see the <hyprlang.hpp> header or https://hyprland.org/hyprlang/ for docs regarding Hyprlang types.
+        Please see the <hyprlang.hpp> header or https://hypr.land/hyprlang/ for docs regarding Hyprlang types.
 
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
                 nullptr on error.
@@ -309,7 +308,7 @@ namespace HyprlandAPI {
 
 // NOLINTBEGIN
 /*
-    Get the hash this plugin/server was compiled with.
+    Get the descriptive string this plugin/server was compiled with.
 
     This function will end up in both hyprland and any/all plugins,
     and can be found by a simple dlsym()
@@ -319,7 +318,18 @@ namespace HyprlandAPI {
 */
 APICALL EXPORT const char*        __hyprland_api_get_hash();
 APICALL inline EXPORT const char* __hyprland_api_get_client_hash() {
-    return GIT_COMMIT_HASH;
+    static auto stripPatch = [](const char* ver) -> std::string {
+        std::string_view v = ver;
+        if (!v.contains('.'))
+            return std::string{v};
+
+        return std::string{v.substr(0, v.find_last_of('.'))};
+    };
+
+    static const std::string ver = (std::string{GIT_COMMIT_HASH} + "_aq_" + stripPatch(AQUAMARINE_VERSION) + "_hu_" + stripPatch(HYPRUTILS_VERSION) + "_hg_" +
+                                    stripPatch(HYPRGRAPHICS_VERSION) + "_hc_" + stripPatch(HYPRCURSOR_VERSION) + "_hlg_" + stripPatch(HYPRLANG_VERSION));
+
+    return ver.c_str();
 }
 // NOLINTEND
 

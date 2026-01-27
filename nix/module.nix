@@ -40,7 +40,7 @@ in {
         description = ''
           Hyprland configuration written in Nix. Entries with the same key
           should be written as lists. Variables' and colors' names should be
-          quoted. See <https://wiki.hyprland.org> for more examples.
+          quoted. See <https://wiki.hypr.land> for more examples.
 
           Special categories (e.g `devices`) should be written as
           `"devices[device-name]"`.

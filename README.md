@@ -4,7 +4,7 @@
 
 <br>
 
-![Badge Workflow] 
+[![Badge Workflow]][Workflow]
 [![Badge License]][License] 
 ![Badge Language] 
 [![Badge Pull Requests]][Pull Requests] 
@@ -100,7 +100,7 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------------------------------------------------->
 
-[Configure]: https://wiki.hyprland.org/Configuring/
+[Configure]: https://wiki.hypr.land/Configuring/
 [Stars]: https://starchart.cc/hyprwm/Hyprland
 [Hypr]: https://github.com/hyprwm/Hypr
 
@@ -108,9 +108,10 @@ easy IPC, much more QoL stuff than other compositors and more...
 [Issues]: https://github.com/hyprwm/Hyprland/issues
 [Todo]: https://github.com/hyprwm/Hyprland/projects?type=beta
 
-[Contribute]: https://wiki.hyprland.org/Contributing-and-Debugging/
-[Install]: https://wiki.hyprland.org/Getting-Started/Installation/
-[Quick Start]: https://wiki.hyprland.org/Getting-Started/Master-Tutorial/
+[Contribute]: https://wiki.hypr.land/Contributing-and-Debugging/
+[Install]: https://wiki.hypr.land/Getting-Started/Installation/
+[Quick Start]: https://wiki.hypr.land/Getting-Started/Master-Tutorial/
+[Workflow]: https://github.com/hyprwm/Hyprland/actions/workflows/ci.yaml
 [License]: LICENSE
 
 
@@ -125,9 +126,9 @@ easy IPC, much more QoL stuff than other compositors and more...
 
 <!----------------------------------{ Images }--------------------------------->
 
-[Preview A]: https://i.ibb.co/C1yTb0r/falf.png
-[Preview B]: https://linfindel.github.io/cdn/hyprland-preview-b.png
-[Preview C]: https://i.ibb.co/B3GJg28/20221126-20h53m26s-grim.png
+[Preview A]: https://i.ibb.co/XxFY75Mk/greerggergerhtrytghjnyhjn.png
+[Preview B]: https://i.ibb.co/C1yTb0r/falf.png
+[Preview C]: https://i.ibb.co/2Yc4q835/hyprland-preview-b.png
 
 
 <!----------------------------------{ Badges }--------------------------------->

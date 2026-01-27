@@ -3,11 +3,14 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/TokenManager.hpp"
+#include "../desktop/state/FocusState.hpp"
+#include "../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "Monitor.hpp"
 #include "../config/ConfigManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
 #include <cstring>
+#include <climits>
 #include <cmath>
 #include <filesystem>
 #include <set>
@@ -17,11 +20,14 @@
 #include <fcntl.h>
 #include <iomanip>
 #include <sstream>
+#include <fstream>
 #ifdef HAS_EXECINFO
 #include <execinfo.h>
 #endif
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/os/Process.hpp>
+#include "../version.h"
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 
@@ -86,7 +92,7 @@ std::string escapeJSONStrings(const std::string& str) {
             case '\t': oss << "\\t"; break;
             default:
                 if ('\x00' <= c && c <= '\x1f') {
-                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
+                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << sc<int>(c);
                 } else {
                     oss << c;
                 }
@@ -99,7 +105,7 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
     try {
         return relative + stof(source);
     } catch (...) {
-        Debug::log(ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
+        Log::logger->log(Log::ERR, "Invalid arg \"{}\" in getPlusMinusKeywordResult!", source);
         return {};
     }
 }
@@ -110,6 +116,10 @@ bool isDirection(const std::string& arg) {
 
 bool isDirection(const char& arg) {
     return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+}
+
+static bool isAutoIDdWorkspace(WORKSPACEID id) {
+    return id < WORKSPACE_INVALID;
 }
 
 SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
@@ -139,21 +149,21 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
-        if ((same_mon || next) && !g_pCompositor->m_lastMonitor) {
-            Debug::log(ERR, "Empty monitor workspace on monitor null!");
+        if ((same_mon || next) && !Desktop::focusState()->monitor()) {
+            Log::logger->log(Log::ERR, "Empty monitor workspace on monitor null!");
             return {WORKSPACE_INVALID};
         }
 
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
-                if (PMONITOR && (PMONITOR->ID != g_pCompositor->m_lastMonitor->ID))
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
+                if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
                     invalidWSes.insert(rule.workspaceId);
             }
         }
 
-        WORKSPACEID id = next ? g_pCompositor->m_lastMonitor->activeWorkspaceID() : 0;
+        WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
             if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
@@ -162,15 +172,15 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             }
         }
     } else if (in.starts_with("prev")) {
-        if (!g_pCompositor->m_lastMonitor)
+        if (!Desktop::focusState()->monitor())
             return {WORKSPACE_INVALID};
 
-        const auto PWORKSPACE = g_pCompositor->m_lastMonitor->activeWorkspace;
+        const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};
 
-        const auto PREVWORKSPACEIDNAME = PWORKSPACE->getPrevWorkspaceIDName();
+        const auto PREVWORKSPACEIDNAME = Desktop::History::workspaceTracker()->previousWorkspaceIDName(PWORKSPACE);
 
         if (PREVWORKSPACEIDNAME.id == -1)
             return {WORKSPACE_INVALID};
@@ -178,18 +188,18 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         const auto PLASTWORKSPACE = g_pCompositor->getWorkspaceByID(PREVWORKSPACEIDNAME.id);
 
         if (!PLASTWORKSPACE) {
-            Debug::log(LOG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
+            Log::logger->log(Log::DEBUG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
             return {PREVWORKSPACEIDNAME.id, PREVWORKSPACEIDNAME.name};
         }
 
         return {PLASTWORKSPACE->m_id, PLASTWORKSPACE->m_name};
     } else if (in == "next") {
-        if (!g_pCompositor->m_lastMonitor || !g_pCompositor->m_lastMonitor->activeWorkspace) {
-            Debug::log(ERR, "no active monitor or workspace for 'next'");
+        if (!Desktop::focusState()->monitor() || !Desktop::focusState()->monitor()->m_activeWorkspace) {
+            Log::logger->log(Log::ERR, "no active monitor or workspace for 'next'");
             return {WORKSPACE_INVALID};
         }
 
-        auto        PCURRENTWORKSPACE = g_pCompositor->m_lastMonitor->activeWorkspace;
+        auto        PCURRENTWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
         WORKSPACEID nextId = PCURRENTWORKSPACE->m_id + 1;
 
@@ -202,8 +212,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
     } else {
         if (in[0] == 'r' && (in[1] == '-' || in[1] == '+' || in[1] == '~') && isNumber(in.substr(2))) {
             bool absolute = in[1] == '~';
-            if (!g_pCompositor->m_lastMonitor) {
-                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+            if (!Desktop::focusState()->monitor()) {
+                Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -212,22 +222,22 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             WORKSPACEID           remains = result.id;
 
             std::set<WORKSPACEID> invalidWSes;
 
             // Collect all the workspaces we can't jump to.
-            for (auto const& ws : g_pCompositor->m_workspaces) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor)) {
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor())) {
                     // Can't jump to this workspace
                     invalidWSes.insert(ws->m_id);
                 }
             }
             for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromName(rule.monitor);
-                if (!PMONITOR || PMONITOR->ID == g_pCompositor->m_lastMonitor->ID) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
+                if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
                     // Can't be invalid
                     continue;
                 }
@@ -237,20 +247,20 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
             // Prepare all named workspaces in case when we need them
             std::vector<WORKSPACEID> namedWSes;
-            for (auto const& ws : g_pCompositor->m_workspaces) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor) || ws->m_id >= 0)
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor()) || ws->m_id >= 0)
                     continue;
 
                 namedWSes.push_back(ws->m_id);
             }
-            std::sort(namedWSes.begin(), namedWSes.end());
+            std::ranges::sort(namedWSes);
 
             if (absolute) {
                 // 1-index
                 remains -= 1;
 
                 // traverse valid workspaces until we reach the remains
-                if ((size_t)remains < namedWSes.size()) {
+                if (sc<size_t>(remains) < namedWSes.size()) {
                     result.id = namedWSes[remains];
                 } else {
                     remains -= namedWSes.size();
@@ -265,13 +275,13 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             } else {
 
                 // Just take a blind guess at where we'll probably end up
-                WORKSPACEID activeWSID    = g_pCompositor->m_lastMonitor->activeWorkspace ? g_pCompositor->m_lastMonitor->activeWorkspace->m_id : 1;
+                WORKSPACEID activeWSID    = Desktop::focusState()->monitor()->m_activeWorkspace ? Desktop::focusState()->monitor()->m_activeWorkspace->m_id : 1;
                 WORKSPACEID predictedWSID = activeWSID + remains;
                 int         remainingWSes = 0;
                 char        walkDir       = in[1];
 
                 // sanitize. 0 means invalid oob in -
-                predictedWSID = std::max(predictedWSID, static_cast<int64_t>(0));
+                predictedWSID = std::max(predictedWSID, sc<int64_t>(0));
 
                 // Count how many invalidWSes are in between (how bad the prediction was)
                 WORKSPACEID beginID = in[1] == '+' ? activeWSID + 1 : predictedWSID;
@@ -294,7 +304,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     }
 
                     currentItem += remains;
-                    currentItem = std::max(currentItem, static_cast<size_t>(0));
+                    currentItem = std::max(currentItem, sc<size_t>(0));
                     if (currentItem >= namedWSes.size()) {
                         // At the seam between namedWSes and normal WSes. Behave like r+[diff] at imaginary ws 0
                         size_t diff         = currentItem - (namedWSes.size() - 1);
@@ -326,12 +336,12 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                         finalWSID = curID;
                     }
                     if (finalWSID <= 0 || invalidWSes.contains(finalWSID)) {
-                        if (namedWSes.size()) {
+                        if (!namedWSes.empty()) {
                             // Go to the named workspaces
                             // Need remainingWSes more
                             auto namedWSIdx = namedWSes.size() - remainingWSes;
                             // Sanitze
-                            namedWSIdx = std::clamp(namedWSIdx, static_cast<size_t>(0), namedWSes.size() - static_cast<size_t>(1));
+                            namedWSIdx = std::clamp(namedWSIdx, sc<size_t>(0), namedWSes.size() - sc<size_t>(1));
                             finalWSID  = namedWSes[namedWSIdx];
                         } else {
                             // Couldn't find valid workspace in negative direction, search last first one back up positive direction
@@ -364,8 +374,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             bool onAllMonitors = in[0] == 'e';
             bool absolute      = in[1] == '~';
 
-            if (!g_pCompositor->m_lastMonitor) {
-                Debug::log(ERR, "Relative monitor workspace on monitor null!");
+            if (!Desktop::focusState()->monitor()) {
+                Log::logger->log(Log::ERR, "Relative monitor workspace on monitor null!");
                 return {WORKSPACE_INVALID};
             }
 
@@ -375,20 +385,20 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             if (!PLUSMINUSRESULT.has_value())
                 return {WORKSPACE_INVALID};
 
-            result.id = (int)PLUSMINUSRESULT.value();
+            result.id = sc<int>(PLUSMINUSRESULT.value());
 
             // result now has +/- what we should move on mon
-            int                      remains = (int)result.id;
+            int                      remains = sc<int>(result.id);
 
             std::vector<WORKSPACEID> validWSes;
-            for (auto const& ws : g_pCompositor->m_workspaces) {
-                if (ws->m_isSpecialWorkspace || (ws->m_monitor != g_pCompositor->m_lastMonitor && !onAllMonitors))
+            for (auto const& ws : g_pCompositor->getWorkspaces()) {
+                if (ws->m_isSpecialWorkspace || (ws->m_monitor != Desktop::focusState()->monitor() && !onAllMonitors))
                     continue;
 
                 validWSes.push_back(ws->m_id);
             }
 
-            std::sort(validWSes.begin(), validWSes.end());
+            std::ranges::sort(validWSes);
 
             ssize_t currentItem = -1;
 
@@ -399,7 +409,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 // clamp
                 if (currentItem < 0) {
                     currentItem = 0;
-                } else if (currentItem >= (ssize_t)validWSes.size()) {
+                } else if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = validWSes.size() - 1;
                 }
             } else {
@@ -407,8 +417,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 remains = remains < 0 ? -((-remains) % validWSes.size()) : remains % validWSes.size();
 
                 // get the current item
-                WORKSPACEID activeWSID = g_pCompositor->m_lastMonitor->activeWorkspace ? g_pCompositor->m_lastMonitor->activeWorkspace->m_id : 1;
-                for (ssize_t i = 0; i < (ssize_t)validWSes.size(); i++) {
+                WORKSPACEID activeWSID = Desktop::focusState()->monitor()->m_activeWorkspace ? Desktop::focusState()->monitor()->m_activeWorkspace->m_id : 1;
+                for (ssize_t i = 0; i < sc<ssize_t>(validWSes.size()); i++) {
                     if (validWSes[i] == activeWSID) {
                         currentItem = i;
                         break;
@@ -419,7 +429,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 currentItem += remains;
 
                 // sanitize
-                if (currentItem >= (ssize_t)validWSes.size()) {
+                if (currentItem >= sc<ssize_t>(validWSes.size())) {
                     currentItem = currentItem % validWSes.size();
                 } else if (currentItem < 0) {
                     currentItem = validWSes.size() + currentItem;
@@ -430,14 +440,14 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = g_pCompositor->getWorkspaceByID(validWSes[currentItem])->m_name;
         } else {
             if (in[0] == '+' || in[0] == '-') {
-                if (g_pCompositor->m_lastMonitor) {
-                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, g_pCompositor->m_lastMonitor->activeWorkspaceID());
+                if (Desktop::focusState()->monitor()) {
+                    const auto PLUSMINUSRESULT = getPlusMinusKeywordResult(in, Desktop::focusState()->monitor()->activeWorkspaceID());
                     if (!PLUSMINUSRESULT.has_value())
                         return {WORKSPACE_INVALID};
 
-                    result.id = std::max((int)PLUSMINUSRESULT.value(), 1);
+                    result.id = std::max(sc<int>(PLUSMINUSRESULT.value()), 1);
                 } else {
-                    Debug::log(ERR, "Relative workspace on no mon!");
+                    Log::logger->log(Log::ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
                 }
             } else if (isNumber(in))
@@ -452,6 +462,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.name = std::to_string(result.id);
         }
     }
+
+    result.isAutoIDd = isAutoIDdWorkspace(result.id);
 
     return result;
 }
@@ -514,12 +526,12 @@ void logSystemInfo() {
 
     uname(&unameInfo);
 
-    Debug::log(LOG, "System name: {}", std::string{unameInfo.sysname});
-    Debug::log(LOG, "Node name: {}", std::string{unameInfo.nodename});
-    Debug::log(LOG, "Release: {}", std::string{unameInfo.release});
-    Debug::log(LOG, "Version: {}", std::string{unameInfo.version});
+    Log::logger->log(Log::DEBUG, "System name: {}", std::string{unameInfo.sysname});
+    Log::logger->log(Log::DEBUG, "Node name: {}", std::string{unameInfo.nodename});
+    Log::logger->log(Log::DEBUG, "Release: {}", std::string{unameInfo.release});
+    Log::logger->log(Log::DEBUG, "Version: {}", std::string{unameInfo.version});
 
-    Debug::log(NONE, "\n");
+    Log::logger->log(Log::DEBUG, "\n");
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
     const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
@@ -545,16 +557,16 @@ void logSystemInfo() {
 #else
     const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
 #endif
-    Debug::log(LOG, "GPU information:\n{}\n", GPUINFO);
+    Log::logger->log(Log::DEBUG, "GPU information:\n{}\n", GPUINFO);
 
     if (GPUINFO.contains("NVIDIA")) {
-        Debug::log(WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
+        Log::logger->log(Log::WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
     }
 
     // log etc
-    Debug::log(LOG, "os-release:");
+    Log::logger->log(Log::DEBUG, "os-release:");
 
-    Debug::log(NONE, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
+    Log::logger->log(Log::DEBUG, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
 }
 
 int64_t getPPIDof(int64_t pid) {
@@ -598,7 +610,7 @@ int64_t getPPIDof(int64_t pid) {
 
     fclose(infile);
     if (line)
-        free(line);
+        free(line); // NOLINT(cppcoreguidelines-no-malloc)
 
     try {
         return std::stoll(pidstr);
@@ -623,7 +635,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 3) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 3) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
@@ -641,7 +653,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
             } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * (Hyprlang::INT)0x1000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return a * sc<Hyprlang::INT>(0x1000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
@@ -657,7 +669,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
         const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
 
         // try doing it the comma way first
-        if (std::count(VALUEWITHOUTFUNC.begin(), VALUEWITHOUTFUNC.end(), ',') == 2) {
+        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 2) {
             // cool
             std::string rolling = VALUEWITHOUTFUNC;
             auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
@@ -669,7 +681,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
             if (!r || !g || !b)
                 return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
 
-            return (Hyprlang::INT)0xFF000000 + *r * (Hyprlang::INT)0x10000 + *g * (Hyprlang::INT)0x100 + *b;
+            return sc<Hyprlang::INT>(0xFF000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
             auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
@@ -716,7 +728,7 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
     if (std::getline(iss, token))
         throw std::invalid_argument("Invalid string format");
 
-    return Vector2D((double)x, (double)y);
+    return Vector2D(sc<double>(x), sc<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
@@ -757,15 +769,8 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 }
 
 void throwError(const std::string& err) {
-    Debug::log(CRIT, "Critical error thrown: {}", err);
+    Log::logger->log(Log::CRIT, "Critical error thrown: {}", err);
     throw std::runtime_error(err);
-}
-
-bool envEnabled(const std::string& env) {
-    const auto ENV = getenv(env.c_str());
-    if (!ENV)
-        return false;
-    return std::string(ENV) == "1";
 }
 
 std::pair<CFileDescriptor, std::string> openExclusiveShm() {
@@ -862,7 +867,7 @@ bool isNvidiaDriverVersionAtLeast(int threshold) {
                     if (firstDot != std::string::npos)
                         driverMajor = std::stoi(driverInfo.substr(0, firstDot));
 
-                    Debug::log(LOG, "Parsed NVIDIA major version: {}", driverMajor);
+                    Log::logger->log(Log::DEBUG, "Parsed NVIDIA major version: {}", driverMajor);
 
                 } catch (std::exception& e) {
                     driverMajor = 0; // Default to 0 if parsing fails
@@ -874,4 +879,105 @@ bool isNvidiaDriverVersionAtLeast(int threshold) {
     }
 
     return driverMajor >= threshold;
+}
+
+std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
+    if (!client)
+        return std::unexpected("client unknown");
+
+    pid_t pid = 0;
+    wl_client_get_credentials(client, &pid, nullptr, nullptr);
+
+    return binaryNameForPid(pid);
+}
+
+std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
+    if (pid <= 0)
+        return std::unexpected("No pid for client");
+
+#if defined(KERN_PROC_PATHNAME)
+    int mib[] = {
+        CTL_KERN,
+#if defined(__NetBSD__)
+        KERN_PROC_ARGS,
+        pid,
+        KERN_PROC_PATHNAME,
+#else
+        KERN_PROC,
+        KERN_PROC_PATHNAME,
+        pid,
+#endif
+    };
+    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    char   exe[PATH_MAX] = "/nonexistent";
+    size_t sz            = sizeof(exe);
+    sysctl(mib, miblen, &exe, &sz, NULL, 0);
+    std::string path = exe;
+#else
+    std::string path = std::format("/proc/{}/exe", sc<uint64_t>(pid));
+#endif
+    std::error_code ec;
+
+    std::string     fullPath = std::filesystem::canonical(path, ec);
+
+    if (ec)
+        return std::unexpected("canonical failed");
+
+    return fullPath;
+}
+
+std::string deviceNameToInternalString(std::string in) {
+    std::ranges::replace(in, ' ', '-');
+    std::ranges::replace(in, '\n', '-');
+    std::ranges::replace(in, ',', '-');
+    std::ranges::transform(in, in.begin(), ::tolower);
+    return in;
+}
+
+static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};
+
+//
+std::string getSystemLibraryVersion(const std::string& name) {
+    for (const auto& pkgconf : PKGCONF_PATHS) {
+        std::error_code   ec;
+        const std::string PATH = std::string{pkgconf} + "/" + name + ".pc";
+        if (!std::filesystem::exists(PATH, ec))
+            continue;
+
+        const auto DATA = NFsUtils::readFileAsString(PATH);
+
+        if (!DATA)
+            continue;
+
+        size_t versionAt    = DATA->find("\nVersion: ");
+        size_t versionAtEnd = DATA->find("\n", versionAt + 11);
+
+        if (versionAt == std::string::npos)
+            continue;
+
+        versionAt += 10;
+
+        return DATA->substr(versionAt, versionAtEnd == std::string::npos ? std::string::npos : versionAtEnd - versionAt);
+    }
+    return "unknown";
+}
+
+std::string getBuiltSystemLibraryNames() {
+    std::string result = "Libraries:\n";
+    result += std::format("Hyprgraphics: built against {}, system has {}\n", HYPRGRAPHICS_VERSION, getSystemLibraryVersion("hyprgraphics"));
+    result += std::format("Hyprutils: built against {}, system has {}\n", HYPRUTILS_VERSION, getSystemLibraryVersion("hyprutils"));
+    result += std::format("Hyprcursor: built against {}, system has {}\n", HYPRCURSOR_VERSION, getSystemLibraryVersion("hyprcursor"));
+    result += std::format("Hyprlang: built against {}, system has {}\n", HYPRLANG_VERSION, getSystemLibraryVersion("hyprlang"));
+    result += std::format("Aquamarine: built against {}, system has {}\n", AQUAMARINE_VERSION, getSystemLibraryVersion("aquamarine"));
+    return result;
+}
+
+bool truthy(const std::string& str) {
+    if (str == "1")
+        return true;
+
+    std::string cpy = str;
+    std::ranges::transform(cpy, cpy.begin(), ::tolower);
+
+    return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
 }

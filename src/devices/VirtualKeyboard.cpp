@@ -1,47 +1,54 @@
 #include "VirtualKeyboard.hpp"
 #include "../defines.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
+#include "../config/ConfigManager.hpp"
+#include <wayland-server-protocol.h>
 
 SP<CVirtualKeyboard> CVirtualKeyboard::create(SP<CVirtualKeyboardV1Resource> keeb) {
     SP<CVirtualKeyboard> pKeeb = SP<CVirtualKeyboard>(new CVirtualKeyboard(keeb));
 
-    pKeeb->self = pKeeb;
+    pKeeb->m_self = pKeeb;
 
     return pKeeb;
 }
 
-CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : keyboard(keeb_) {
+CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_keyboard(keeb_) {
     if (!keeb_)
         return;
 
-    listeners.destroy = keeb_->events.destroy.registerListener([this](std::any d) {
-        keyboard.reset();
-        events.destroy.emit();
+    m_listeners.destroy = keeb_->m_events.destroy.listen([this] {
+        m_keyboard.reset();
+        m_events.destroy.emit();
     });
 
-    listeners.key       = keeb_->events.key.registerListener([this](std::any d) { keyboardEvents.key.emit(d); });
-    listeners.modifiers = keeb_->events.modifiers.registerListener([this](std::any d) {
-        auto E = std::any_cast<SModifiersEvent>(d);
-        updateModifiers(E.depressed, E.latched, E.locked, E.group);
-        keyboardEvents.modifiers.emit(SModifiersEvent{
-            .depressed = modifiersState.depressed,
-            .latched   = modifiersState.latched,
-            .locked    = modifiersState.locked,
-            .group     = modifiersState.group,
+    m_listeners.key       = keeb_->m_events.key.listen([this](const auto& event) {
+        updatePressed(event.keycode, event.state == WL_KEYBOARD_KEY_STATE_PRESSED);
+        m_keyboardEvents.key.emit(event);
+    });
+    m_listeners.modifiers = keeb_->m_events.modifiers.listen([this](const SModifiersEvent& event) {
+        updateModifiers(event.depressed, event.latched, event.locked, event.group);
+        m_keyboardEvents.modifiers.emit(SModifiersEvent{
+            .depressed = m_modifiersState.depressed,
+            .latched   = m_modifiersState.latched,
+            .locked    = m_modifiersState.locked,
+            .group     = m_modifiersState.group,
         });
     });
-    listeners.keymap    = keeb_->events.keymap.registerListener([this](std::any d) {
-        auto E = std::any_cast<SKeymapEvent>(d);
-        if (xkbKeymap)
-            xkb_keymap_unref(xkbKeymap);
-        xkbKeymap        = xkb_keymap_ref(E.keymap);
-        keymapOverridden = true;
-        updateXKBTranslationState(xkbKeymap);
+    m_listeners.keymap    = keeb_->m_events.keymap.listen([this](const SKeymapEvent& event) {
+        if (m_xkbKeymap)
+            xkb_keymap_unref(m_xkbKeymap);
+        m_xkbKeymap        = xkb_keymap_ref(event.keymap);
+        m_keymapOverridden = true;
+        updateXKBTranslationState(m_xkbKeymap);
         updateKeymapFD();
-        keyboardEvents.keymap.emit(d);
+        m_keyboardEvents.keymap.emit(event);
     });
 
-    deviceName = keeb_->name;
+    m_deviceName = keeb_->m_name;
+
+    const auto SHARESTATES = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
+    m_shareStates          = SHARESTATES != 0;
+    m_shareStatesAuto      = SHARESTATES == 2;
 }
 
 bool CVirtualKeyboard::isVirtual() {
@@ -53,7 +60,7 @@ SP<Aquamarine::IKeyboard> CVirtualKeyboard::aq() {
 }
 
 wl_client* CVirtualKeyboard::getClient() {
-    if (keyboard.expired())
+    if (m_keyboard.expired())
         return nullptr;
-    return keyboard->client();
+    return m_keyboard->client();
 }

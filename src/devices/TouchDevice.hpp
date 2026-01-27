@@ -12,7 +12,7 @@ class CTouchDevice : public ITouch {
   private:
     CTouchDevice(SP<Aquamarine::ITouch> touch);
 
-    WP<Aquamarine::ITouch> touch;
+    WP<Aquamarine::ITouch> m_touch;
 
     struct {
         CHyprSignalListener destroy;
@@ -21,5 +21,5 @@ class CTouchDevice : public ITouch {
         CHyprSignalListener motion;
         CHyprSignalListener cancel;
         CHyprSignalListener frame;
-    } listeners;
+    } m_listeners;
 };

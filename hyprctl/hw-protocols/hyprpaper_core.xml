@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="hyprpaper_core" version="1">
+  <copyright>
+    BSD 3-Clause License
+
+    Copyright (c) 2025, Hypr Development
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+        list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+        this list of conditions and the following disclaimer in the documentation
+        and/or other materials provided with the distribution.
+
+    3. Neither the name of the copyright holder nor the names of its
+        contributors may be used to endorse or promote products derived from
+        this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  </copyright>
+
+  <object name="hyprpaper_core_manager" version="1">
+    <description summary="manager object">
+      This is the core manager object for hyprpaper operations
+    </description>
+
+    <c2s name="get_wallpaper_object">
+      <description summary="Get a wallpaper object">
+        Creates a wallpaper object
+      </description>
+      <returns iface="hyprpaper_wallpaper"/>
+    </c2s>
+
+    <s2c name="add_monitor">
+      <description summary="New monitor added">
+        Emitted when a new monitor is added.
+      </description>
+      <arg name="monitor_name" type="varchar" summary="the monitor's name"/>
+    </s2c>
+
+    <s2c name="remove_monitor">
+      <description summary="A monitor was removed">
+        Emitted when a monitor is removed.
+      </description>
+      <arg name="monitor_name" type="varchar" summary="the monitor's name"/>
+    </s2c>
+
+    <c2s name="destroy" destructor="true">
+      <description summary="Destroy this object">
+        Destroys this object. Children remain alive until destroyed.
+      </description>
+    </c2s>
+  </object>
+
+  <enum name="wallpaper_fit_mode">
+    <value idx="0" name="stretch"/>
+    <value idx="1" name="cover"/>
+    <value idx="2" name="contain"/>
+    <value idx="3" name="tile"/>
+  </enum>
+
+  <enum name="wallpaper_errors">
+    <value idx="0" name="inert_wallpaper_object" description="attempted to use an inert wallpaper object"/>
+  </enum>
+
+  <enum name="applying_error">
+    <value idx="0" name="invalid_path" description="path provided was invalid"/>
+    <value idx="1" name="invalid_monitor" description="monitor provided was invalid"/>
+    <value idx="2" name="unknown_error" description="unknown error"/>
+  </enum>
+
+  <object name="hyprpaper_wallpaper" version="1">
+    <description summary="wallpaper object">
+      This is an object describing a wallpaper
+    </description>
+
+    <c2s name="path">
+      <description summary="Set a path">
+        Set a file path for the wallpaper. This has to be an absolute path from the fs root.
+        This is required.
+      </description>
+      <arg name="wallpaper" type="varchar" summary="path"/>
+    </c2s>
+
+    <c2s name="fit_mode">
+      <description summary="Set a fit mode">
+        Set a fit mode for the wallpaper. This is set to cover by default.
+      </description>
+      <arg name="fit_mode" type="enum" interface="wallpaper_fit_mode" summary="path"/>
+    </c2s>
+
+    <c2s name="monitor_name">
+      <description summary="Set the monitor name">
+        Set a monitor for the wallpaper. Setting this to empty (or not setting at all) will
+        treat this as a wildcard fallback.
+
+        See hyprpaper_core_manager.add_monitor and hyprpaper_core_manager.remove_monitor
+        for tracking monitor names.
+      </description>
+      <arg name="monitor_name" type="varchar" summary="monitor name"/>
+    </c2s>
+
+    <c2s name="apply">
+      <description summary="Apply this wallpaper">
+        Applies this object's state to the wallpaper state. Will emit .success on success,
+        and .failed on failure.
+
+        This object becomes inert after .succeess or .failed, the only valid operation
+        is to destroy it afterwards.
+      </description>
+    </c2s>
+
+    <s2c name="success">
+      <description summary="Operation succeeded">
+        Wallpaper was applied successfully.
+      </description>
+    </s2c>
+
+    <s2c name="failed">
+      <description summary="Operation failed">
+        Wallpaper was not applied. See the error field for more information.
+      </description>
+      <arg name="error" type="enum" interface="hyprpaper_wallpaper_application_error" summary="path"/>
+    </s2c>
+
+    <c2s name="destroy" destructor="true">
+      <description summary="Destroy this object">
+        Destroys this object.
+      </description>
+    </c2s>
+  </object>
+</protocol>

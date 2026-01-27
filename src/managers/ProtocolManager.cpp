@@ -57,10 +57,14 @@
 #include "../protocols/core/Output.hpp"
 #include "../protocols/core/Shm.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "../protocols/XXColorManagement.hpp"
-#include "../protocols/FrogColorManagement.hpp"
 #include "../protocols/ContentType.hpp"
 #include "../protocols/XDGTag.hpp"
+#include "../protocols/XDGBell.hpp"
+#include "../protocols/ExtWorkspace.hpp"
+#include "../protocols/ExtDataDevice.hpp"
+#include "../protocols/PointerWarp.hpp"
+#include "../protocols/Fifo.hpp"
+#include "../protocols/CommitTiming.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
@@ -68,6 +72,7 @@
 #include "content-type-v1.hpp"
 
 #include <aquamarine/buffer/Buffer.hpp>
+#include <xf86drm.h>
 #include <aquamarine/backend/Backend.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 
@@ -83,26 +88,24 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     // mirrored outputs should have their global removed, as they are not physical parts of the
     // layout.
 
-    if (ISMIRROR && PROTO::outputs.contains(pMonitor->szName))
-        PROTO::outputs.at(pMonitor->szName)->remove();
-    else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->szName) || PROTO::outputs.at(pMonitor->szName)->isDefunct())) {
-        if (PROTO::outputs.contains(pMonitor->szName))
-            PROTO::outputs.erase(pMonitor->szName);
-        PROTO::outputs.emplace(pMonitor->szName, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->szName), pMonitor->self.lock()));
+    if (ISMIRROR && PROTO::outputs.contains(pMonitor->m_name))
+        PROTO::outputs.at(pMonitor->m_name)->remove();
+    else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->m_name) || PROTO::outputs.at(pMonitor->m_name)->isDefunct())) {
+        if (PROTO::outputs.contains(pMonitor->m_name))
+            PROTO::outputs.erase(pMonitor->m_name);
+        PROTO::outputs.emplace(pMonitor->m_name, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
-        Debug::log(ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
+        Log::logger->log(Log::ERR, "FIXME: color management protocol is enabled, need a preferred image description id");
         PROTO::colorManagement->onImagePreferredChanged(0);
     }
 }
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLEEXPLICIT = CConfigValue<Hyprlang::INT>("render:explicit_sync");
-    static const auto PENABLECM       = CConfigValue<Hyprlang::INT>("render:cm_enabled");
-    static const auto PENABLEXXCM     = CConfigValue<Hyprlang::INT>("experimental:xx_color_management_v4");
-    static const auto PDEBUGCM        = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
+    static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
@@ -114,22 +117,22 @@ CProtocolManager::CProtocolManager() {
         if (M->isMirror() || M == g_pCompositor->m_unsafeOutput)
             return;
 
-        if (PROTO::outputs.contains(M->szName))
-            PROTO::outputs.erase(M->szName);
+        if (PROTO::outputs.contains(M->m_name))
+            PROTO::outputs.erase(M->m_name);
 
-        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->szName), M->self.lock());
-        PROTO::outputs.emplace(M->szName, ref);
-        ref->self = ref;
+        auto ref = makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", M->m_name), M->m_self.lock());
+        PROTO::outputs.emplace(M->m_name, ref);
+        ref->m_self = ref;
 
-        m_mModeChangeListeners[M->szName] = M->events.modeChanged.registerListener([M, this](std::any d) { onMonitorModeChange(M); });
+        m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.listen([this, M] { onMonitorModeChange(M); });
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<PHLMONITOR>(param);
-        if (!PROTO::outputs.contains(M->szName))
+        if (!PROTO::outputs.contains(M->m_name))
             return;
-        PROTO::outputs.at(M->szName)->remove();
-        m_mModeChangeListeners.erase(M->szName);
+        PROTO::outputs.at(M->m_name)->remove();
+        m_modeChangeListeners.erase(M->m_name);
     });
 
     // Core
@@ -144,7 +147,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::tearing             = makeUnique<CTearingControlProtocol>(&wp_tearing_control_manager_v1_interface, 1, "TearingControl");
     PROTO::fractional          = makeUnique<CFractionalScaleProtocol>(&wp_fractional_scale_manager_v1_interface, 1, "FractionalScale");
     PROTO::xdgOutput           = makeUnique<CXDGOutputProtocol>(&zxdg_output_manager_v1_interface, 3, "XDGOutput");
-    PROTO::cursorShape         = makeUnique<CCursorShapeProtocol>(&wp_cursor_shape_manager_v1_interface, 1, "CursorShape");
+    PROTO::cursorShape         = makeUnique<CCursorShapeProtocol>(&wp_cursor_shape_manager_v1_interface, 2, "CursorShape");
     PROTO::idleInhibit         = makeUnique<CIdleInhibitProtocol>(&zwp_idle_inhibit_manager_v1_interface, 1, "IdleInhibit");
     PROTO::relativePointer     = makeUnique<CRelativePointerProtocol>(&zwp_relative_pointer_manager_v1_interface, 1, "RelativePointer");
     PROTO::xdgDecoration       = makeUnique<CXDGDecorationProtocol>(&zxdg_decoration_manager_v1_interface, 1, "XDGDecoration");
@@ -170,8 +173,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::focusGrab           = makeUnique<CFocusGrabProtocol>(&hyprland_focus_grab_manager_v1_interface, 1, "FocusGrab");
     PROTO::tablet              = makeUnique<CTabletV2Protocol>(&zwp_tablet_manager_v2_interface, 1, "TabletV2");
     PROTO::layerShell          = makeUnique<CLayerShellProtocol>(&zwlr_layer_shell_v1_interface, 5, "LayerShell");
-    PROTO::presentation        = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 1, "Presentation");
-    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 6, "XDGShell");
+    PROTO::presentation        = makeUnique<CPresentationProtocol>(&wp_presentation_interface, 2, "Presentation");
+    PROTO::xdgShell            = makeUnique<CXDGShellProtocol>(&xdg_wm_base_interface, 7, "XDGShell");
     PROTO::dataWlr             = makeUnique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = makeUnique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = makeUnique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
@@ -186,14 +189,15 @@ CProtocolManager::CProtocolManager() {
     PROTO::hyprlandSurface     = makeUnique<CHyprlandSurfaceProtocol>(&hyprland_surface_manager_v1_interface, 2, "HyprlandSurface");
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
     PROTO::xdgTag              = makeUnique<CXDGToplevelTagProtocol>(&xdg_toplevel_tag_manager_v1_interface, 1, "XDGTag");
+    PROTO::xdgBell             = makeUnique<CXDGSystemBellProtocol>(&xdg_system_bell_v1_interface, 1, "XDGBell");
+    PROTO::extWorkspace        = makeUnique<CExtWorkspaceProtocol>(&ext_workspace_manager_v1_interface, 1, "ExtWorkspace");
+    PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
+    PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
+    PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::commitTiming        = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
-
-    if (*PENABLEXXCM && *PENABLECM) {
-        PROTO::xxColorManagement   = makeUnique<CXXColorManagementProtocol>(&xx_color_manager_v4_interface, 1, "XXColorManagement");
-        PROTO::frogColorManagement = makeUnique<CFrogColorManagementProtocol>(&frog_color_management_factory_v1_interface, 1, "FrogColorManagement");
-    }
 
     // ! please read the top of this file before adding another protocol
 
@@ -201,17 +205,26 @@ CProtocolManager::CProtocolManager() {
         if (b->type() != Aquamarine::AQ_BACKEND_DRM)
             continue;
 
-        PROTO::lease = makeUnique<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease");
-        if (*PENABLEEXPLICIT)
-            PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
-        break;
+        auto lease = makeShared<CDRMLeaseProtocol>(&wp_drm_lease_device_v1_interface, 1, "DRMLease", b);
+        if (lease->good())
+            PROTO::lease.emplace(lease->getDeviceName(), lease);
+        else
+            lease.reset();
+
+        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
+            if (g_pCompositor->supportsDrmSyncobjTimeline()) {
+                PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
+                Log::logger->log(Log::DEBUG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
+            } else
+                Log::logger->log(Log::WARN, "DRM Syncobj Timeline not supported, skipping explicit sync protocol");
+        }
     }
 
-    if (g_pHyprOpenGL->getDRMFormats().size() > 0) {
+    if (!g_pHyprOpenGL->getDRMFormats().empty()) {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
-        Debug::log(WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
+        Log::logger->log(Log::WARN, "ProtocolManager: Not binding linux-dmabuf and MesaDRM: DMABUF not available");
 }
 
 CProtocolManager::~CProtocolManager() {
@@ -274,11 +287,17 @@ CProtocolManager::~CProtocolManager() {
     PROTO::hyprlandSurface.reset();
     PROTO::contentType.reset();
     PROTO::colorManagement.reset();
-    PROTO::xxColorManagement.reset();
-    PROTO::frogColorManagement.reset();
     PROTO::xdgTag.reset();
+    PROTO::xdgBell.reset();
+    PROTO::extWorkspace.reset();
+    PROTO::extDataDevice.reset();
+    PROTO::pointerWarp.reset();
+    PROTO::fifo.reset();
+    PROTO::commitTiming.reset();
 
-    PROTO::lease.reset();
+    for (auto& [_, lease] : PROTO::lease) {
+        lease.reset();
+    }
     PROTO::sync.reset();
     PROTO::mesaDRM.reset();
     PROTO::linuxDma.reset();
@@ -317,9 +336,6 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::constraints->getGlobal(),
         PROTO::activation->getGlobal(),
         PROTO::idle->getGlobal(),
-        PROTO::ime->getGlobal(),
-        PROTO::virtualKeyboard->getGlobal(),
-        PROTO::virtualPointer->getGlobal(),
         PROTO::serverDecorationKDE->getGlobal(),
         PROTO::tablet->getGlobal(),
         PROTO::presentation->getGlobal(),
@@ -329,11 +345,15 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::primarySelection->getGlobal(),
 		PROTO::hyprlandSurface->getGlobal(),
 		PROTO::xdgTag->getGlobal(),
+		PROTO::xdgBell->getGlobal(),
+        PROTO::fifo->getGlobal(),
+        PROTO::commitTiming->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,
+	PROTO::colorManagement ? PROTO::colorManagement->getGlobal() : nullptr,
     };
     // clang-format on
 
-    return std::find(ALLOWED_WHITELIST.begin(), ALLOWED_WHITELIST.end(), global) == ALLOWED_WHITELIST.end();
+    return std::ranges::find(ALLOWED_WHITELIST, global) == ALLOWED_WHITELIST.end();
 }

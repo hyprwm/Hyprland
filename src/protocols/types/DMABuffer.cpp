@@ -1,51 +1,51 @@
 #include "DMABuffer.hpp"
 #include "WLBuffer.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 
 #if defined(__linux__)
 #include <linux/dma-buf.h>
 #include <linux/sync_file.h>
-#include <sys/ioctl.h>
 #endif
+#include <sys/ioctl.h>
 
 using namespace Hyprutils::OS;
 
-CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : attrs(attrs_) {
+CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
     g_pHyprRenderer->makeEGLCurrent();
 
-    listeners.resourceDestroy = events.destroy.registerListener([this](std::any d) {
+    m_listeners.resourceDestroy = events.destroy.listen([this] {
         closeFDs();
-        listeners.resourceDestroy.reset();
+        m_listeners.resourceDestroy.reset();
     });
 
-    size     = attrs.size;
-    resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
-
-    auto eglImage = g_pHyprOpenGL->createEGLImage(attrs);
+    size          = m_attrs.size;
+    m_resource    = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
+    auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
 
     if UNLIKELY (!eglImage) {
-        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
-        attrs.modifier = DRM_FORMAT_MOD_INVALID;
-        eglImage       = g_pHyprOpenGL->createEGLImage(attrs);
+        Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
+        m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
+        eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
+
         if UNLIKELY (!eglImage) {
-            Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
+            Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
     }
 
-    texture = makeShared<CTexture>(attrs, eglImage); // texture takes ownership of the eglImage
-    opaque  = NFormatUtils::isFormatOpaque(attrs.format);
-    success = texture->m_iTexID;
+    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
+    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
+    m_success = m_texture->m_texID;
 
-    if UNLIKELY (!success)
-        Debug::log(ERR, "Failed to create a dmabuf: texture is null");
+    if UNLIKELY (!m_success)
+        Log::logger->log(Log::ERR, "Failed to create a dmabuf: texture is null");
 }
 
 CDMABuffer::~CDMABuffer() {
-    if (resource)
-        resource->sendRelease();
+    if (m_resource)
+        m_resource->sendRelease();
 
     closeFDs();
 }
@@ -67,7 +67,7 @@ bool CDMABuffer::isSynchronous() {
 }
 
 Aquamarine::SDMABUFAttrs CDMABuffer::dmabuf() {
-    return attrs;
+    return m_attrs;
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CDMABuffer::beginDataPtr(uint32_t flags) {
@@ -80,17 +80,17 @@ void CDMABuffer::endDataPtr() {
 }
 
 bool CDMABuffer::good() {
-    return success;
+    return m_success;
 }
 
 void CDMABuffer::closeFDs() {
-    for (int i = 0; i < attrs.planes; ++i) {
-        if (attrs.fds[i] == -1)
+    for (int i = 0; i < m_attrs.planes; ++i) {
+        if (m_attrs.fds[i] == -1)
             continue;
-        close(attrs.fds[i]);
-        attrs.fds[i] = -1;
+        close(m_attrs.fds[i]);
+        m_attrs.fds[i] = -1;
     }
-    attrs.planes = 0;
+    m_attrs.planes = 0;
 }
 
 static int doIoctl(int fd, unsigned long request, void* arg) {
@@ -111,10 +111,19 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
 #if !defined(__linux__)
     return {};
 #else
-    std::vector<CFileDescriptor> syncFds(attrs.fds.size());
-    for (const auto& fd : attrs.fds) {
+    std::vector<CFileDescriptor> syncFds;
+    syncFds.reserve(m_attrs.fds.size());
+
+    for (const auto& fd : m_attrs.fds) {
         if (fd == -1)
             continue;
+
+        // buffer readability checks are rather slow on some Intel laptops
+        // see https://gitlab.freedesktop.org/drm/intel/-/issues/9415
+        if (g_pHyprRenderer && !g_pHyprRenderer->isIntel()) {
+            if (CFileDescriptor::isReadable(fd))
+                continue;
+        }
 
         dma_buf_export_sync_file request{
             .flags = DMA_BUF_SYNC_READ,
@@ -135,11 +144,14 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
             continue;
         }
 
+        const std::string      name = "merged release fence";
         struct sync_merge_data data{
-            .name  = "merged release fence",
+            .name  = {}, // zero-initialize name[]
             .fd2   = fd.get(),
             .fence = -1,
         };
+
+        std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
 
         if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0)
             syncFd = CFileDescriptor(data.fence);

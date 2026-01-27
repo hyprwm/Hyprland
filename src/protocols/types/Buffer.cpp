@@ -1,100 +1,109 @@
 #include "Buffer.hpp"
 
 IHLBuffer::~IHLBuffer() {
-    if (locked() && resource)
+    if (locked() && m_resource)
         sendRelease();
 }
 
 void IHLBuffer::sendRelease() {
-    resource->sendRelease();
+    m_resource->sendRelease();
+    m_syncReleasers.clear();
 }
 
 void IHLBuffer::lock() {
-    nLocks++;
+    m_locks++;
 }
 
 void IHLBuffer::unlock() {
-    nLocks--;
+    m_locks--;
 
-    ASSERT(nLocks >= 0);
+    ASSERT(m_locks >= 0);
 
-    if (nLocks == 0) {
+    if (m_locks == 0)
         sendRelease();
-        syncReleaser.reset();
-    }
 }
 
 bool IHLBuffer::locked() {
-    return nLocks > 0;
+    return m_locks > 0;
 }
 
 void IHLBuffer::onBackendRelease(const std::function<void()>& fn) {
-    if (hlEvents.backendRelease) {
-        hlEvents.backendRelease->emit(nullptr);
-        Debug::log(LOG, "backendRelease emitted early");
+    if (m_hlEvents.backendRelease) {
+        if (m_backendReleaseQueuedFn)
+            m_backendReleaseQueuedFn();
+        Log::logger->log(Log::DEBUG, "backendRelease emitted early");
     }
 
-    hlEvents.backendRelease = events.backendRelease.registerListener([this, fn](std::any) {
-        fn();
-        hlEvents.backendRelease.reset();
+    m_backendReleaseQueuedFn = fn;
+
+    m_hlEvents.backendRelease = events.backendRelease.listen([this] {
+        if (m_backendReleaseQueuedFn)
+            m_backendReleaseQueuedFn();
+        m_backendReleaseQueuedFn = nullptr;
+        m_hlEvents.backendRelease.reset();
     });
 }
 
-CHLBufferReference::CHLBufferReference() : buffer(nullptr) {
+void IHLBuffer::addReleasePoint(CDRMSyncPointState& point) {
+    ASSERT(locked());
+    if (point)
+        m_syncReleasers.emplace_back(point.createSyncRelease());
+}
+
+CHLBufferReference::CHLBufferReference() : m_buffer(nullptr) {
     ;
 }
 
-CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : release(other.release), buffer(other.buffer) {
-    if (buffer)
-        buffer->lock();
+CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : m_buffer(other.m_buffer) {
+    if (m_buffer)
+        m_buffer->lock();
 }
 
-CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_) : buffer(buffer_) {
-    if (buffer)
-        buffer->lock();
+CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_) : m_buffer(buffer_) {
+    if (m_buffer)
+        m_buffer->lock();
 }
 
 CHLBufferReference::~CHLBufferReference() {
-    if (buffer)
-        buffer->unlock();
+    if (m_buffer)
+        m_buffer->unlock();
 }
 
 CHLBufferReference& CHLBufferReference::operator=(const CHLBufferReference& other) {
-    if (other.buffer)
-        other.buffer->lock();
-    if (buffer)
-        buffer->unlock();
-    buffer  = other.buffer;
-    release = other.release;
+    if (other.m_buffer)
+        other.m_buffer->lock();
+    if (m_buffer)
+        m_buffer->unlock();
+    m_buffer = other.m_buffer;
     return *this;
 }
 
 bool CHLBufferReference::operator==(const CHLBufferReference& other) const {
-    return buffer == other.buffer;
+    return m_buffer == other.m_buffer;
 }
 
 bool CHLBufferReference::operator==(const SP<IHLBuffer>& other) const {
-    return buffer == other;
+    return m_buffer == other;
 }
 
 bool CHLBufferReference::operator==(const SP<Aquamarine::IBuffer>& other) const {
-    return buffer == other;
+    return m_buffer == other;
 }
 
 SP<IHLBuffer> CHLBufferReference::operator->() const {
-    return buffer;
+    return m_buffer;
 }
 
 CHLBufferReference::operator bool() const {
-    return buffer;
+    return m_buffer;
 }
 
 void CHLBufferReference::drop() {
-    if (!buffer)
+    if (!m_buffer)
         return;
 
-    buffer->nLocks--;
-    ASSERT(buffer->nLocks >= 0);
+    m_buffer->m_locks--;
+    ASSERT(m_buffer->m_locks >= 0);
 
-    buffer = nullptr;
+    m_buffer = nullptr;
 }

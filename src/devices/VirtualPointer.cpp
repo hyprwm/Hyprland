@@ -5,46 +5,44 @@
 SP<CVirtualPointer> CVirtualPointer::create(SP<CVirtualPointerV1Resource> resource) {
     SP<CVirtualPointer> pPointer = SP<CVirtualPointer>(new CVirtualPointer(resource));
 
-    pPointer->self = pPointer;
+    pPointer->m_self = pPointer;
 
     return pPointer;
 }
 
-CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : pointer(resource) {
+CVirtualPointer::CVirtualPointer(SP<CVirtualPointerV1Resource> resource) : m_pointer(resource) {
     if UNLIKELY (!resource->good())
         return;
 
-    listeners.destroy = pointer->events.destroy.registerListener([this](std::any d) {
-        pointer.reset();
-        events.destroy.emit();
+    m_listeners.destroy = m_pointer->m_events.destroy.listen([this] {
+        m_pointer.reset();
+        m_events.destroy.emit();
     });
 
-    listeners.motion         = pointer->events.move.registerListener([this](std::any d) {
-        auto E   = std::any_cast<SMotionEvent>(d);
-        E.device = self.lock();
-        pointerEvents.motion.emit(E);
+    m_listeners.motion         = m_pointer->m_events.move.listen([this](SMotionEvent event) {
+        event.device = m_self.lock();
+        m_pointerEvents.motion.emit(event);
     });
-    listeners.motionAbsolute = pointer->events.warp.registerListener([this](std::any d) {
+    m_listeners.motionAbsolute = m_pointer->m_events.warp.listen([this](SMotionAbsoluteEvent event) {
         // we need to unpack the event and add our device here because it's required to calculate the position correctly
-        auto E   = std::any_cast<SMotionAbsoluteEvent>(d);
-        E.device = self.lock();
-        pointerEvents.motionAbsolute.emit(E);
+        event.device = m_self.lock();
+        m_pointerEvents.motionAbsolute.emit(event);
     });
-    listeners.button         = pointer->events.button.registerListener([this](std::any d) { pointerEvents.button.emit(d); });
-    listeners.axis           = pointer->events.axis.registerListener([this](std::any d) { pointerEvents.axis.emit(d); });
-    listeners.frame          = pointer->events.frame.registerListener([this](std::any d) { pointerEvents.frame.emit(); });
-    listeners.swipeBegin     = pointer->events.swipeBegin.registerListener([this](std::any d) { pointerEvents.swipeBegin.emit(d); });
-    listeners.swipeEnd       = pointer->events.swipeEnd.registerListener([this](std::any d) { pointerEvents.swipeEnd.emit(d); });
-    listeners.swipeUpdate    = pointer->events.swipeUpdate.registerListener([this](std::any d) { pointerEvents.swipeUpdate.emit(d); });
-    listeners.pinchBegin     = pointer->events.pinchBegin.registerListener([this](std::any d) { pointerEvents.pinchBegin.emit(d); });
-    listeners.pinchEnd       = pointer->events.pinchEnd.registerListener([this](std::any d) { pointerEvents.pinchEnd.emit(d); });
-    listeners.pinchUpdate    = pointer->events.pinchUpdate.registerListener([this](std::any d) { pointerEvents.pinchUpdate.emit(d); });
-    listeners.holdBegin      = pointer->events.holdBegin.registerListener([this](std::any d) { pointerEvents.holdBegin.emit(d); });
-    listeners.holdEnd        = pointer->events.holdEnd.registerListener([this](std::any d) { pointerEvents.holdEnd.emit(d); });
+    m_listeners.button         = m_pointer->m_events.button.forward(m_pointerEvents.button);
+    m_listeners.axis           = m_pointer->m_events.axis.forward(m_pointerEvents.axis);
+    m_listeners.frame          = m_pointer->m_events.frame.forward(m_pointerEvents.frame);
+    m_listeners.swipeBegin     = m_pointer->m_events.swipeBegin.forward(m_pointerEvents.swipeBegin);
+    m_listeners.swipeEnd       = m_pointer->m_events.swipeEnd.forward(m_pointerEvents.swipeEnd);
+    m_listeners.swipeUpdate    = m_pointer->m_events.swipeUpdate.forward(m_pointerEvents.swipeUpdate);
+    m_listeners.pinchBegin     = m_pointer->m_events.pinchBegin.forward(m_pointerEvents.pinchBegin);
+    m_listeners.pinchEnd       = m_pointer->m_events.pinchEnd.forward(m_pointerEvents.pinchEnd);
+    m_listeners.pinchUpdate    = m_pointer->m_events.pinchUpdate.forward(m_pointerEvents.pinchUpdate);
+    m_listeners.holdBegin      = m_pointer->m_events.holdBegin.forward(m_pointerEvents.holdBegin);
+    m_listeners.holdEnd        = m_pointer->m_events.holdEnd.forward(m_pointerEvents.holdEnd);
 
-    boundOutput = resource->boundOutput ? resource->boundOutput->szName : "";
+    m_boundOutput = resource->m_boundOutput ? resource->m_boundOutput->m_name : "";
 
-    deviceName = pointer->name;
+    m_deviceName = m_pointer->m_name;
 }
 
 bool CVirtualPointer::isVirtual() {

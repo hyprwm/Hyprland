@@ -26,7 +26,6 @@ enum eDecorationFlags : uint8_t {
     DECORATION_NON_SOLID           = 1 << 2, /* this decoration is not solid. Other decorations should draw on top of it. Example: shadow */
 };
 
-class CWindow;
 class CMonitor;
 class CDecorationPositioner;
 
@@ -56,7 +55,7 @@ class IHyprWindowDecoration {
     virtual std::string                getDisplayName();
 
   private:
-    PHLWINDOWREF m_pWindow;
+    PHLWINDOWREF m_window;
 
     friend class CDecorationPositioner;
 };

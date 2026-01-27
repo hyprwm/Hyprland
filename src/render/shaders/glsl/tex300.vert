@@ -2,9 +2,11 @@
 
 uniform mat3 proj;
 uniform vec4 color;
+
 in vec2 pos;
 in vec2 texcoord;
 in vec2 texcoordMatte;
+
 out vec4 v_color;
 out vec2 v_texcoord;
 out vec2 v_texcoordMatte;

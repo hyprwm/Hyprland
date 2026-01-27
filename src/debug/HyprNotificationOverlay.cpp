@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
 
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 
@@ -13,7 +13,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
     auto eIconBackendChecks = std::array<eIconBackend, 2>{ICONS_BACKEND_NF, ICONS_BACKEND_FA};
     for (auto iconID : eIconBackendChecks) {
-        auto iconsText = std::accumulate(ICONS_ARRAY[iconID].begin(), ICONS_ARRAY[iconID].end(), std::string());
+        auto iconsText = std::ranges::fold_left(ICONS_ARRAY[iconID], std::string(), std::plus<>());
         pango_layout_set_text(layout, iconsText.c_str(), -1);
         if (pango_layout_get_unknown_glyphs_count(layout) == 0)
             return iconID;
@@ -23,7 +23,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (m_notifications.size() == 0)
+        if (m_notifications.empty())
             return;
 
         g_pHyprRenderer->damageBox(m_lastDamage);
@@ -58,7 +58,7 @@ void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     if (amount == -1)
         m_notifications.clear();
     else {
-        const int AMT = std::min(amount, static_cast<int>(m_notifications.size()));
+        const int AMT = std::min(amount, sc<int>(m_notifications.size()));
 
         for (int i = 0; i < AMT; ++i) {
             m_notifications.erase(m_notifications.begin());
@@ -77,8 +77,8 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     float                 offsetY  = 10;
     float                 maxWidth = 0;
 
-    const auto            SCALE   = pMonitor->scale;
-    const auto            MONSIZE = pMonitor->vecTransformedSize;
+    const auto            SCALE   = pMonitor->m_scale;
+    const auto            MONSIZE = pMonitor->m_transformedSize;
 
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
 
@@ -94,7 +94,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
 
     for (auto const& notif : m_notifications) {
         const auto ICONPADFORNOTIF = notif->icon == ICON_NONE ? 0 : ICON_PAD;
-        const auto FONTSIZE        = std::clamp((int)(notif->fontSize * ((pMonitor->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
+        const auto FONTSIZE        = std::clamp(sc<int>(notif->fontSize * ((pMonitor->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
         // first rect (bg, col)
         const float FIRSTRECTANIMP =
@@ -189,12 +189,12 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     // cleanup notifs
     std::erase_if(m_notifications, [](const auto& notif) { return notif->started.getMillis() > notif->timeMs; });
 
-    return CBox{(int)(pMonitor->vecPosition.x + pMonitor->vecSize.x - maxWidth - 20), (int)pMonitor->vecPosition.y, (int)maxWidth + 20, (int)offsetY + 10};
+    return CBox{sc<int>(pMonitor->m_position.x + pMonitor->m_size.x - maxWidth - 20), sc<int>(pMonitor->m_position.y), sc<int>(maxWidth) + 20, sc<int>(offsetY) + 10};
 }
 
 void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
 
-    const auto MONSIZE = pMonitor->vecTransformedSize;
+    const auto MONSIZE = pMonitor->m_transformedSize;
 
     if (m_lastMonitor != pMonitor || m_lastSize != MONSIZE || !m_cairo || !m_cairoSurface) {
 
@@ -210,7 +210,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     }
 
     // Draw the notifications
-    if (m_notifications.size() == 0)
+    if (m_notifications.empty())
         return;
 
     // Render to the monitor
@@ -235,14 +235,11 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
     m_texture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_texture->m_iTexID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-#ifndef GLES2
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
+    m_texture->bind();
+    m_texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, MONSIZE.x, MONSIZE.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
@@ -251,7 +248,7 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     data.box = {0, 0, MONSIZE.x, MONSIZE.y};
     data.a   = 1.F;
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 bool CHyprNotificationOverlay::hasAny() {

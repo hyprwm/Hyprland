@@ -12,7 +12,7 @@ class CMouse : public IPointer {
   private:
     CMouse(SP<Aquamarine::IPointer> mouse);
 
-    WP<Aquamarine::IPointer> mouse;
+    WP<Aquamarine::IPointer> m_mouse;
 
     struct {
         CHyprSignalListener destroy;
@@ -33,5 +33,5 @@ class CMouse : public IPointer {
 
         CHyprSignalListener holdBegin;
         CHyprSignalListener holdEnd;
-    } listeners;
+    } m_listeners;
 };

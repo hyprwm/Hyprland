@@ -1,5 +1,6 @@
 #pragma once
 
+#include <climits>
 #include "ConfigManager.hpp"
 
 inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
@@ -15,12 +16,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
-        .value       = "general:no_border_on_floating",
-        .description = "disable borders for floating windows",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "general:gaps_in",
         .description = "gaps between windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,
@@ -31,6 +26,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "gaps between windows and monitor edges\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20)",
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{"20"},
+    },
+    SConfigOptionDescription{
+        .value       = "general:float_gaps",
+        .description = "gaps between windows and monitor edges for floating windows\n\nsupports css style gaps (top, right, bottom, left -> 5 10 15 20). \n-1 means default "
+                       "gaps_in/gaps_out\n0 means no gaps",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"0"},
     },
     SConfigOptionDescription{
         .value       = "general:gaps_workspaces",
@@ -128,6 +130,24 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "general:snap:respect_gaps",
+        .description = "if true, snapping will respect gaps between windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "general:modal_parent_blocking",
+        .description = "if true, parent windows of modals will not be interactive.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "general:locale",
+        .description = "overrides the system locale",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{""},
+    },
 
     /*
      * decoration:
@@ -141,7 +161,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "decoration:rounding_power",
-        .description = "rouding power of corners (2 is a circle)",
+        .description = "rounding power of corners (2 is a circle)",
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
     },
@@ -216,6 +236,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "shadow's scale. [0.0 - 1.0]",
         .type        = CONFIG_OPTION_FLOAT,
         .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
+    },
+    SConfigOptionDescription{
+        .value       = "decoration:dim_modal",
+        .description = "enables dimming of parents of modal windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
         .value       = "decoration:dim_inactive",
@@ -367,8 +393,8 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "animations:first_launch_animation",
-        .description = "enable first launch animation",
+        .value       = "animations:workspace_wraparound",
+        .description = "changes the direction of slide animations between the first and last workspaces",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
@@ -409,7 +435,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:kb_file",
-        .description = "Appropriate XKB keymap parameter",
+        .description = "Appropriate XKB keymap file",
         .type        = CONFIG_OPTION_STRING_LONG,
         .data        = SConfigOptionDescription::SStringData{""}, //##TODO UNSET?
     },
@@ -457,6 +483,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
                        "potential cursor desynchronization.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:rotation",
+        .description = "Sets the rotation of a device in degrees clockwise off the logical neutral position. Value is clamped to the range 0 to 359.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 359},
     },
     SConfigOptionDescription{
         .value       = "input:left_handed",
@@ -604,9 +636,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:drag_lock",
-        .description = "When enabled, lifting the finger off for a short time while dragging will not drop the dragged item.",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "When enabled, lifting the finger off while dragging will not drop the dragged item. 0 -> disabled, 1 -> enabled with timeout, 2 -> enabled sticky."
+                       "dragging will not drop the dragged item.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "input:touchpad:tap-and-drag",
@@ -625,6 +658,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Inverts the vertical movement of the touchpad",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:touchpad:drag_3fg",
+        .description = "Three Finger Drag 0 -> disabled, 1 -> 3 finger, 2 -> 4 finger",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
     },
 
     /*
@@ -648,6 +687,23 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Whether input is enabled for touch devices.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
+    },
+
+    /*
+     * input:virtualkeyboard:
+     */
+
+    SConfigOptionDescription{
+        .value       = "input:virtualkeyboard:share_states",
+        .description = "Unify key down states and modifier states with other keyboards. 0 -> no, 1 -> yes, 2 -> yes unless IME client",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
+    },
+    SConfigOptionDescription{
+        .value       = "input:virtualkeyboard:release_pressed_on_close",
+        .description = "Release all pressed keys by virtual keyboard on close.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -720,24 +776,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe",
-        .description = "enable workspace swipe gesture on touchpad",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_fingers",
-        .description = "how many fingers for the touchpad gesture",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{3, 0, 5}, //##TODO RANGE?
-    },
-    SConfigOptionDescription{
-        .value       = "gestures:workspace_swipe_min_fingers",
-        .description = "if enabled, workspace_swipe_fingers is considered the minimum number of fingers to swipe",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "gestures:workspace_swipe_distance",
         .description = "in px, the distance of the touchpad gesture",
         .type        = CONFIG_OPTION_INT,
@@ -802,6 +840,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "gestures:close_max_timeout",
+        .description = "Timeout for closing windows with the close gesture, in ms.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{1000, 10, 2000},
     },
 
     /*
@@ -970,10 +1014,22 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:rounding_power",
+        .description = "rounding power of groupbar corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:gradient_rounding",
         .description = "how much to round the groupbar gradient",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{1, 0, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:gradient_rounding_power",
+        .description = "rounding power of groupbar gradient corners (2 is a circle)",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{2, 2, 10},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:round_only_edges",
@@ -989,9 +1045,27 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:text_color",
-        .description = "controls the group bar text color",
+        .description = "color for window titles in the groupbar",
         .type        = CONFIG_OPTION_COLOR,
         .data        = SConfigOptionDescription::SColorData{0xffffffff},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_color_inactive",
+        .description = "color for inactive windows' titles in the groupbar (if unset, defaults to text_color)",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_color_locked_active",
+        .description = "color for the active window's title in a locked group (if unset, defaults to text_color)",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_color_locked_inactive",
+        .description = "color for inactive windows' titles in locked groups (if unset, defaults to text_color_inactive)",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{}, //TODO: UNSET?
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:col.active",
@@ -1040,6 +1114,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "set an offset for a text",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:text_padding",
+        .description = "set horizontal padding for a text",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 22},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:blur",
+        .description = "enable background blur for groupbars",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -1107,6 +1193,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "misc:name_vk_after_proc",
+        .description = "Name virtual keyboards after the processes that create them. E.g. /usr/bin/fcitx5 will have hl-virtual-keyboard-fcitx5.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "misc:always_follow_on_dnd",
         .description = "Will make mouse focus follow the mouse when drag and dropping. Recommended to leave it enabled, especially for people using focus follows mouse at 0.",
         .type        = CONFIG_OPTION_BOOL,
@@ -1169,20 +1261,14 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "misc:render_ahead_of_time",
-        .description = "[Warning: buggy] starts rendering before your monitor displays a frame in order to lower latency",
+        .value       = "misc:allow_session_lock_restore",
+        .description = "if true, will allow you to restart a lockscreen app in case it crashes (red screen of death)",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:render_ahead_safezone",
-        .description = "how many ms of safezone to add to rendering ahead of time. Recommended 1-2.",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
-    },
-    SConfigOptionDescription{
-        .value       = "misc:allow_session_lock_restore",
-        .description = "if true, will allow you to restart a lockscreen app in case it crashes (red screen of death)",
+        .value       = "misc:session_lock_xray",
+        .description = "keep rendering workspaces below your lockscreen",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1199,11 +1285,11 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "misc:new_window_takes_over_fullscreen",
-        .description = "if there is a fullscreen or maximized window, decide whether a new tiled window opened should replace it, stay behind or disable the fullscreen/maximized "
-                       "state. 0 - behind, 1 - takes over, 2 - unfullscreen/unmaxize [0/1/2]",
+        .value       = "misc:on_focus_under_fullscreen",
+        .description = "if there is a fullscreen or maximized window, decide whether a tiled window requested to focus should replace it, stay behind or disable the "
+                       "fullscreen/maximized state. 0 - ignore focus request (keep focus on fullscreen window), 1 - takes over, 2 - unfullscreen/unmaximize [0/1/2]",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{0, 0, 2},
+        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
     },
     SConfigOptionDescription{
         .value       = "misc:exit_window_retains_fullscreen",
@@ -1236,8 +1322,14 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
-        .value       = "misc:disable_hyprland_qtutils_check",
-        .description = "disable the warning if hyprland-qtutils is missing",
+        .value       = "misc:disable_hyprland_guiutils_check",
+        .description = "disable the warning if hyprland-guiutils is missing",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_watchdog_warning",
+        .description = "whether to disable the warning about not using start-hyprland.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1257,7 +1349,25 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "misc:anr_missed_pings",
         .description = "number of missed pings before showing the ANR dialog",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{1, 1, 10},
+        .data        = SConfigOptionDescription::SRangeData{5, 1, 20},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:screencopy_force_8b",
+        .description = "forces 8 bit screencopy (fixes apps that don't understand 10bit)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:disable_scale_notification",
+        .description = "disables notification popup when a monitor fails to set a suitable scale and falls back to suggested",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "misc:size_limits_tiled",
+        .description = "whether to apply minsize and maxsize rules to tiled windows",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
     },
 
     /*
@@ -1396,18 +1506,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
      */
 
     SConfigOptionDescription{
-        .value       = "render:explicit_sync",
-        .description = "Whether to enable explicit sync support. Requires a hyprland restart. 0 - no, 1 - yes, 2 - auto based on the gpu driver",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
-    },
-    SConfigOptionDescription{
-        .value       = "render:explicit_sync_kms",
-        .description = "Whether to enable explicit sync support for the KMS layer. Requires explicit_sync to be enabled. 0 - no, 1 - yes, 2 - auto based on the gpu driver",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
-    },
-    SConfigOptionDescription{
         .value       = "render:direct_scanout",
         .description = "Enables direct scanout. Direct scanout attempts to reduce lag when there is only one fullscreen application on a screen (e.g. game). It is also "
                        "recommended to set this to false if the fullscreen application shows graphical glitches. 0 - off, 1 - on, 2 - auto (on with content type 'game')",
@@ -1444,14 +1542,51 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:send_content_type",
+        .description = "Report content type to allow monitor profile autoswitch (may result in a black screen during the switch)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_auto_hdr",
+        .description = "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid (cm_fs_passthrough can switch to hdr even when this setting is off)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
+    },
+    SConfigOptionDescription{
+        .value       = "render:new_render_scheduling",
+        .description = "enable new render scheduling, which should improve FPS on underpowered devices. This does not add latency when your PC can keep up.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "render:non_shader_cm",
+        .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - disable and ignore CM issues",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
+    },
+    SConfigOptionDescription{
+        .value       = "render:cm_sdr_eotf",
+        .description = "Default transfer function for displaying SDR apps. 0 - Use default value (Gamma 2.2), 1 - Treat unspecified as Gamma 2.2, 2 - Treat "
+                       "unspecified and sRGB as Gamma 2.2, 3 - Treat unspecified as sRGB",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "default,gamma22,gamma22force,srgb"},
+    },
 
     /*
      * cursor:
      */
 
     SConfigOptionDescription{
+        .value       = "cursor:invisible",
+        .description = "don't render cursors",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:no_hardware_cursors",
-        .description = "disables hardware cursors. Auto = disable when tearing",
+        .description = "disables hardware cursors. Auto = disable when multi-gpu on nvidia",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "Disabled,Enabled,Auto"},
     },
@@ -1524,6 +1659,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "cursor:zoom_disable_aa",
+        .description = "If enabled, when zooming, no antialiasing will be used (zoom will be pixelated)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:zoom_detached_camera",
+        .description = "Detaches the camera from the mouse when zoomed in, only ever moving to keep the mouse in view",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
         .value       = "cursor:enable_hyprcursor",
         .description = "whether to enable hyprcursor support",
         .type        = CONFIG_OPTION_BOOL,
@@ -1538,6 +1685,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "cursor:hide_on_touch",
         .description = "Hides the cursor when the last input was a touch input until a mouse input is done.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "cursor:hide_on_tablet",
+        .description = "Hides the cursor when the last input was a tablet input until a mouse input is done.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
@@ -1573,6 +1726,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "ecosystem:no_donation_nag",
         .description = "disable the popup that shows up twice a year encouraging to donate.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "ecosystem:enforce_permissions",
+        .description = "whether to enable permission control (see https://wiki.hypr.land/Configuring/Permissions/).",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -1671,6 +1830,30 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+    SConfigOptionDescription{
+        .value       = "debug:ds_handle_same_buffer",
+        .description = "Special case for DS with unmodified buffer",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:ds_handle_same_buffer_fifo",
+        .description = "Special case for DS with unmodified buffer unlocks fifo",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:fifo_pending_workaround",
+        .description = "Fifo workaround for empty pending list",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:render_solitary_wo_damage",
+        .description = "Render solitary window with empty damage",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * dwindle:
@@ -1741,9 +1924,27 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "dwindle:split_bias",
-        .description = "specifies which window will receive the larger half of a split. positional - 0, current window - 1, opening window - 2 [0/1/2]",
+        .description = "specifies which window will receive the split ratio. 0 -> directional (the top or left window), 1 -> the current window",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{0, "positional,current,opening"},
+        .data        = SConfigOptionDescription::SChoiceData{0, "directional,current"},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:precise_mouse_move",
+        .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:single_window_aspect_ratio",
+        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
+    },
+    SConfigOptionDescription{
+        .value       = "dwindle:single_window_aspect_ratio_tolerance",
+        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
     },
 
     /*
@@ -1794,23 +1995,15 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SStringData{"left"},
     },
     SConfigOptionDescription{
-        .value       = "master:inherit_fullscreen",
-        .description = "inherit fullscreen status when cycling/swapping to another window (e.g. monocle layout)",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
-    SConfigOptionDescription{
         .value       = "master:slave_count_for_center_master",
         .description = "when using orientation=center, make the master window centered only when at least this many slave windows are open. (Set 0 to always_center_master)",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{2, 0, 10}, //##TODO RANGE?
     },
-    SConfigOptionDescription{
-        .value       = "master:center_master_slaves_on_right",
-        .description = "set if the slaves should appear on right of master when slave_count_for_center_master > 2",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{true},
-    },
+    SConfigOptionDescription{.value       = "master:center_master_fallback",
+                             .description = "Set fallback for center master when slaves are less than slave_count_for_center_master, can be left ,right ,top ,bottom",
+                             .type        = CONFIG_OPTION_STRING_SHORT,
+                             .data        = SConfigOptionDescription::SStringData{"left"}},
     SConfigOptionDescription{
         .value       = "master:center_ignores_reserved",
         .description = "centers the master window on monitor ignoring reserved areas",
@@ -1832,15 +2025,21 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{true},
     },
     SConfigOptionDescription{
-        .value       = "experimental:xx_color_management_v4",
-        .description = "enable color management protocol",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
         .value       = "master:always_keep_position",
         .description = "whether to keep the master window in its configured position when there are no slave windows",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
+
+    /*
+     * Quirks
+    */
+
+    SConfigOptionDescription{
+        .value       = "quirks:prefer_hdr",
+        .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
+
 };

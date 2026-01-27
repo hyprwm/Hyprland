@@ -2,34 +2,36 @@
 #include "helpers/StringUtils.hpp"
 #include "core/PluginManager.hpp"
 #include "core/DataState.hpp"
+#include "helpers/Sys.hpp"
 
-#include <cstdio>
 #include <vector>
 #include <string>
 #include <print>
-#include <chrono>
-#include <thread>
+
+#include <hyprutils/utils/ScopeGuard.hpp>
+using namespace Hyprutils::Utils;
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
-┃                          is optional, when set, commit locks are ignored.
-┣ remove [url/name]      → Remove an installed plugin repository
-┣ enable [name]          → Enable a plugin
-┣ disable [name]         → Disable a plugin
-┣ update                 → Check and update all plugins if needed
-┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
-┣ list                   → List all installed plugins
+┣ add <url> [git rev]           → Install a new plugin repository from git. Git revision
+┃                                 is optional, when set, commit locks are ignored.
+┣ remove <url|name|author/name> → Remove an installed plugin repository.
+┣ enable <name|author/name>     → Enable a plugin.
+┣ disable <name|author/name>    → Disable a plugin.
+┣ update                        → Check and update all plugins if needed.
+┣ reload                        → Reload hyprpm state. Ensure all enabled plugins are loaded.
+┣ list                          → List all installed plugins.
+┣ purge-cache                   → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
 ┣ Flags:
 ┃
-┣ --notify       | -n    → Send a hyprland notification for important events (including both successes and fail events)
-┣ --notify-fail  | -nn   → Send a hyprland notification for fail events only
-┣ --help         | -h    → Show this menu
-┣ --verbose      | -v    → Enable too much logging
-┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f)
-┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources
-┣ --hl-url       |       → Pass a custom hyprland source url
+┣ --notify       | -n           → Send a hyprland notification confirming successful plugin load.
+┃                                 Warnings/Errors trigger notifications regardless of this flag.
+┣ --help         | -h           → Show this menu.
+┣ --verbose      | -v           → Enable too much logging.
+┣ --force        | -f           → Force an operation ignoring checks (e.g. update -f).
+┣ --no-shallow   | -s           → Disable shallow cloning of Hyprland sources.
+┣ --hl-url       |              → Pass a custom hyprland source url.
 ┗
 )#";
 
@@ -45,7 +47,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, notifyFail = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -56,7 +58,9 @@ int                        main(int argc, char** argv, char** envp) {
             } else if (ARGS[i] == "--notify" || ARGS[i] == "-n") {
                 notify = true;
             } else if (ARGS[i] == "--notify-fail" || ARGS[i] == "-nn") {
-                notifyFail = notify = true;
+                // TODO: Deprecated since v.053.0. Remove in version>0.56.0
+                std::println(stderr, "{}", failureString("Deprececated flag."));
+                g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] -n flag is deprecated, see hyprpm --help.");
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
@@ -96,25 +100,44 @@ int                        main(int argc, char** argv, char** envp) {
         }
 
         std::string rev = "";
-        if (command.size() >= 3) {
+        if (command.size() >= 3)
             rev = command[2];
+
+        const auto HLVER       = g_pPluginManager->getHyprlandVersion();
+        auto       GLOBALSTATE = DataState::getGlobalState();
+
+        if (GLOBALSTATE.headersAbiCompiled != HLVER.abiHash) {
+            std::println(stderr, "{}", failureString("Headers outdated, please run hyprpm update."));
+            return 1;
         }
+
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        g_pPluginManager->updateHeaders(false);
 
         return g_pPluginManager->addNewPluginRepo(command[1], rev) ? 0 : 1;
     } else if (command[0] == "remove") {
-        if (ARGS.size() < 2) {
+        if (command.size() < 2) {
             std::println(stderr, "{}", failureString("Not enough args for remove."));
             return 1;
         }
 
-        return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        return g_pPluginManager->removePluginRepo(SPluginRepoIdentifier::fromString(command[1])) ? 0 : 1;
     } else if (command[0] == "update") {
-        bool headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
-        bool headers      = g_pPluginManager->updateHeaders(force);
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        bool        headersValid = g_pPluginManager->headersValid() == HEADERS_OK;
+        bool        headers      = g_pPluginManager->updateHeaders(force);
+
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
-            const auto COMPILEDOUTDATED = HLVER.hash != GLOBALSTATE.headersHashCompiled;
+            const auto COMPILEDOUTDATED = HLVER.abiHash != GLOBALSTATE.headersAbiCompiled;
 
             bool       ret1 = g_pPluginManager->updatePlugins(!headersValid || force || COMPILEDOUTDATED);
 
@@ -128,20 +151,24 @@ int                        main(int argc, char** argv, char** envp) {
 
             if (ret2 != LOADSTATE_OK)
                 return 1;
-        } else if (notify)
+        } else {
             g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Couldn't update headers");
+        }
     } else if (command[0] == "enable") {
-        if (ARGS.size() < 2) {
+        if (command.size() < 2) {
             std::println(stderr, "{}", failureString("Not enough args for enable."));
             return 1;
         }
 
-        if (!g_pPluginManager->enablePlugin(command[1])) {
+        if (!g_pPluginManager->enablePlugin(SPluginRepoIdentifier::fromString(command[1]))) {
             std::println(stderr, "{}", failureString("Couldn't enable plugin (missing?)"));
             return 1;
         }
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
 
         if (ret == LOADSTATE_HYPRLAND_UPDATED)
             g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] Enabled plugin, but Hyprland was updated. Please restart Hyprland.");
@@ -154,33 +181,39 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        if (!g_pPluginManager->disablePlugin(command[1])) {
+        if (!g_pPluginManager->disablePlugin(SPluginRepoIdentifier::fromString(command[1]))) {
             std::println(stderr, "{}", failureString("Couldn't disable plugin (missing?)"));
             return 1;
         }
 
-        auto ret = g_pPluginManager->ensurePluginsLoadState();
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+
+        auto        ret = g_pPluginManager->ensurePluginsLoadState();
+
         if (ret != LOADSTATE_OK)
             return 1;
     } else if (command[0] == "reload") {
         auto ret = g_pPluginManager->ensurePluginsLoadState(force);
 
         if (ret != LOADSTATE_OK) {
-            if (notify) {
-                switch (ret) {
-                    case LOADSTATE_FAIL:
-                    case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
-                    case LOADSTATE_HEADERS_OUTDATED:
-                        g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
-                        break;
-                    default: break;
-                }
+            switch (ret) {
+                case LOADSTATE_FAIL:
+                case LOADSTATE_PARTIAL_FAIL: g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins"); break;
+                case LOADSTATE_HEADERS_OUTDATED:
+                    g_pPluginManager->notify(ICON_ERROR, 0, 10000, "[hyprpm] Failed to load plugins: Outdated headers. Please run hyprpm update manually.");
+                    break;
+                default: break;
             }
 
             return 1;
-        } else if (notify && !notifyFail) {
+        } else if (notify) {
             g_pPluginManager->notify(ICON_OK, 0, 4000, "[hyprpm] Loaded plugins");
         }
+    } else if (command[0] == "purge-cache") {
+        NSys::root::cacheSudo();
+        CScopeGuard x([] { NSys::root::dropSudo(); });
+        DataState::purgeAllCache();
     } else if (command[0] == "list") {
         g_pPluginManager->listAllPlugins();
     } else {

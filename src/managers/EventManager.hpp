@@ -35,10 +35,10 @@ class CEventManager {
     std::vector<SClient>::iterator removeClientByFD(int fd);
 
   private:
-    Hyprutils::OS::CFileDescriptor m_iSocketFD;
-    wl_event_source*               m_pEventSource = nullptr;
+    Hyprutils::OS::CFileDescriptor m_socketFD;
+    wl_event_source*               m_eventSource = nullptr;
 
-    std::vector<SClient>           m_vClients;
+    std::vector<SClient>           m_clients;
 };
 
 inline UP<CEventManager> g_pEventManager;

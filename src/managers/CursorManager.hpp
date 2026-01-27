@@ -3,14 +3,13 @@
 #include <string>
 #include <hyprcursor/hyprcursor.hpp>
 #include "../includes.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "../macros.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/XCursorManager.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
-
-class CWLSurface;
 
 AQUAMARINE_FORWARD(IBuffer);
 
@@ -43,7 +42,7 @@ class CCursorManager {
     SP<Aquamarine::IBuffer> getCursorBuffer();
 
     void                    setCursorFromName(const std::string& name);
-    void                    setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot);
+    void                    setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot);
     void                    setCursorBuffer(SP<CCursorBuffer> buf, const Vector2D& hotspot, const float& scale);
     void                    setAnimationTimer(const int& frame, const int& delay);
 
@@ -55,23 +54,25 @@ class CCursorManager {
 
     void                    tickAnimatedCursor();
 
-  private:
-    bool                               m_bOurBufferConnected = false;
-    std::vector<SP<CCursorBuffer>>     m_vCursorBuffers;
+    float                   getScaledSize() const;
 
-    UP<Hyprcursor::CHyprcursorManager> m_pHyprcursor;
-    UP<CXCursorManager>                m_pXcursor;
+  private:
+    bool                               m_ourBufferConnected = false;
+    std::vector<SP<CCursorBuffer>>     m_cursorBuffers;
+
+    UP<Hyprcursor::CHyprcursorManager> m_hyprcursor;
+    UP<CXCursorManager>                m_xcursor;
     SP<SXCursors>                      m_currentXcursor;
 
-    std::string                        m_szTheme      = "";
-    int                                m_iSize        = 0;
-    float                              m_fCursorScale = 1.0;
+    std::string                        m_theme       = "";
+    int                                m_size        = 0;
+    float                              m_cursorScale = 1.0;
 
-    Hyprcursor::SCursorStyleInfo       m_sCurrentStyleInfo;
+    Hyprcursor::SCursorStyleInfo       m_currentStyleInfo;
 
-    SP<CEventLoopTimer>                m_pAnimationTimer;
-    int                                m_iCurrentAnimationFrame = 0;
-    Hyprcursor::SCursorShapeData       m_sCurrentCursorShapeData;
+    SP<CEventLoopTimer>                m_animationTimer;
+    int                                m_currentAnimationFrame = 0;
+    Hyprcursor::SCursorShapeData       m_currentCursorShapeData;
 };
 
 inline UP<CCursorManager> g_pCursorManager;

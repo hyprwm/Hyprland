@@ -8,8 +8,7 @@ in vec2 v_texcoord;
 uniform int skipCM;
 uniform int sourceTF; // eTransferFunction
 uniform int targetTF; // eTransferFunction
-uniform mat4x2 sourcePrimaries;
-uniform mat4x2 targetPrimaries;
+uniform mat3 targetPrimariesXYZ;
 
 uniform vec2 topLeft;
 uniform vec2 bottomRight;
@@ -94,7 +93,7 @@ void main() {
     pixColor.rgb *= pixColor[3];
 
 	if (skipCM == 0)
-        pixColor = doColorManagement(pixColor, sourceTF, sourcePrimaries, targetTF, targetPrimaries);
+        pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimariesXYZ);
 
 	fragColor = pixColor;
 }

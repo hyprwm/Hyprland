@@ -15,6 +15,8 @@ struct wl_event_source;
 class CAsyncDialogBox {
   public:
     static SP<CAsyncDialogBox> create(const std::string& title, const std::string& description, std::vector<std::string> buttons);
+    static bool                isAsyncDialogBox(pid_t pid);
+    static bool                isPriorityDialogBox(pid_t pid);
 
     CAsyncDialogBox(const CAsyncDialogBox&)                     = delete;
     CAsyncDialogBox(CAsyncDialogBox&&)                          = delete;
@@ -24,8 +26,15 @@ class CAsyncDialogBox {
     SP<CPromise<std::string>> open();
     void                      kill();
     bool                      isRunning() const;
+    pid_t                     getPID() const;
+    void                      setExecRule(std::string&& s);
 
-    void                      onWrite(int fd, uint32_t mask);
+    SP<CAsyncDialogBox>       lockSelf();
+
+    // focus priority, only permission popups
+    bool m_priority = false;
+
+    void onWrite(int fd, uint32_t mask);
 
   private:
     CAsyncDialogBox(const std::string& title, const std::string& description, std::vector<std::string> buttons);
@@ -33,7 +42,8 @@ class CAsyncDialogBox {
     pid_t                             m_dialogPid       = 0;
     wl_event_source*                  m_readEventSource = nullptr;
     Hyprutils::OS::CFileDescriptor    m_pipeReadFd;
-    std::string                       m_stdout = "";
+    std::string                       m_stdout        = "";
+    std::string                       m_execRuleToken = "";
 
     const std::string                 m_title;
     const std::string                 m_description;

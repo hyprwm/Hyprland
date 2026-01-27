@@ -17,7 +17,7 @@ class CXDataSource : public IDataSource {
     virtual eDataSourceType          type();
 
   private:
-    SXSelection&             selection;
-    std::vector<std::string> mimeTypes; // these two have shared idx
-    std::vector<uint32_t>    mimeAtoms; //
+    SXSelection&             m_selection;
+    std::vector<std::string> m_mimeTypes; // these two have shared idx
+    std::vector<uint32_t>    m_mimeAtoms; //
 };

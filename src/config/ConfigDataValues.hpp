@@ -78,7 +78,7 @@ class CGradientValueData : public ICustomConfigValueData {
             result += std::format("{:x} ", c.getAsHex());
         }
 
-        result += std::format("{}deg", (int)(m_angle * 180.0 / M_PI));
+        result += std::format("{}deg", sc<int>(m_angle * 180.0 / M_PI));
         return result;
     }
 };
@@ -97,27 +97,29 @@ class CCssGapData : public ICustomConfigValueData {
     int64_t m_bottom;
     int64_t m_left;
 
-    void    parseGapData(CVarList varlist) {
+    void    parseGapData(CVarList2 varlist) {
+        const auto toInt = [](std::string_view string) -> int { return std::stoi(std::string(string)); };
+
         switch (varlist.size()) {
             case 1: {
-                *this = CCssGapData(std::stoi(varlist[0]));
+                *this = CCssGapData(toInt(varlist[0]));
                 break;
             }
             case 2: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]));
                 break;
             }
             case 3: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]));
                 break;
             }
             case 4: {
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
                 break;
             }
             default: {
-                Debug::log(WARN, "Too many arguments provided for gaps.");
-                *this = CCssGapData(std::stoi(varlist[0]), std::stoi(varlist[1]), std::stoi(varlist[2]), std::stoi(varlist[3]));
+                Log::logger->log(Log::WARN, "Too many arguments provided for gaps.");
+                *this = CCssGapData(toInt(varlist[0]), toInt(varlist[1]), toInt(varlist[2]), toInt(varlist[3]));
                 break;
             }
         }
@@ -158,7 +160,7 @@ class CFontWeightConfigValueData : public ICustomConfigValueData {
 
     void parseWeight(const std::string& strWeight) {
         auto lcWeight{strWeight};
-        transform(strWeight.begin(), strWeight.end(), lcWeight.begin(), ::tolower);
+        std::ranges::transform(strWeight, lcWeight.begin(), ::tolower);
 
         // values taken from Pango weight enums
         const auto WEIGHTS = std::map<std::string, int>{

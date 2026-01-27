@@ -14,13 +14,13 @@ CEventLoopTimer::CEventLoopTimer(std::optional<Time::steady_dur> timeout, std::f
 void CEventLoopTimer::updateTimeout(std::optional<Time::steady_dur> timeout) {
     if (!timeout.has_value()) {
         m_expires.reset();
-        g_pEventLoopManager->nudgeTimers();
+        g_pEventLoopManager->scheduleRecalc();
         return;
     }
 
     m_expires = Time::steadyNow() + *timeout;
 
-    g_pEventLoopManager->nudgeTimers();
+    g_pEventLoopManager->scheduleRecalc();
 }
 
 bool CEventLoopTimer::passed() {

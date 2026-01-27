@@ -8,7 +8,7 @@
     (builtins.substring 4 2 longDate)
     (builtins.substring 6 2 longDate)
   ]);
-  version = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
+  ver = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
 in {
   # Contains what a user is most likely to care about:
   # Hyprland itself, XDPH and the Share Picker.
@@ -24,35 +24,44 @@ in {
     inputs.hyprcursor.overlays.default
     inputs.hyprgraphics.overlays.default
     inputs.hyprland-protocols.overlays.default
-    inputs.hyprland-qtutils.overlays.default
+    inputs.hyprland-guiutils.overlays.default
     inputs.hyprlang.overlays.default
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
+    inputs.hyprwire.overlays.default
     self.overlays.udis86
-    self.overlays.wayland-protocols
+    self.overlays.glaze
 
     # Hyprland packages themselves
     (final: _prev: let
       date = mkDate (self.lastModifiedDate or "19700101");
+      version = "${ver}+date=${date}_${self.shortRev or "dirty"}";
     in {
       hyprland = final.callPackage ./default.nix {
-        stdenv = final.gcc14Stdenv;
-        version = "${version}+date=${date}_${self.shortRev or "dirty"}";
+        stdenv = final.gcc15Stdenv;
         commit = self.rev or "";
         revCount = self.sourceInfo.revCount or "";
-        inherit date;
+        inherit date version;
       };
       hyprland-unwrapped = final.hyprland.override {wrapRuntimeDeps = false;};
 
-      # Build major libs with debug to get as much info as possible in a stacktrace
-      hyprland-debug = final.hyprland.override {
-        aquamarine = final.aquamarine.override {debug = true;};
-        hyprutils = final.hyprutils.override {debug = true;};
-        debug = true;
-      };
-      hyprland-legacy-renderer = final.hyprland.override {legacyRenderer = true;};
+      hyprland-with-tests = final.hyprland.override {withTests = true;};
+
+      hyprland-with-hyprtester =
+        builtins.trace ''
+          hyprland-with-hyprtester was removed. Please use the hyprland package.
+          Hyprtester is always built now.
+        ''
+        final.hyprland;
 
       # deprecated packages
+      hyprland-legacy-renderer =
+        builtins.trace ''
+          hyprland-legacy-renderer was removed. Please use the hyprland package.
+          Legacy renderer is no longer supported.
+        ''
+        final.hyprland;
+
       hyprland-nvidia =
         builtins.trace ''
           hyprland-nvidia was removed. Please use the hyprland package.
@@ -63,9 +72,21 @@ in {
       hyprland-hidpi =
         builtins.trace ''
           hyprland-hidpi was removed. Please use the hyprland package.
-          For more information, refer to https://wiki.hyprland.org/Configuring/XWayland.
+          For more information, refer to https://wiki.hypr.land/Configuring/XWayland.
         ''
         final.hyprland;
+    })
+  ];
+
+  # Debug
+  hyprland-debug = lib.composeManyExtensions [
+    # Dependencies
+    self.overlays.hyprland-packages
+
+    (final: prev: {
+      aquamarine = prev.aquamarine.override {debug = true;};
+      hyprutils = prev.hyprutils.override {debug = true;};
+      hyprland-debug = prev.hyprland.override {debug = true;};
     })
   ];
 
@@ -91,15 +112,12 @@ in {
     });
   };
 
-  # TODO: remove when https://github.com/NixOS/nixpkgs/pull/397497 lands in master
-  wayland-protocols = final: prev: {
-    wayland-protocols = prev.wayland-protocols.overrideAttrs (self: super: {
-      version = "1.43";
-
-      src = final.fetchurl {
-        url = "https://gitlab.freedesktop.org/wayland/${self.pname}/-/releases/${self.version}/downloads/${self.pname}-${self.version}.tar.xz";
-        hash = "sha256-ujw0Jd0nxXtSkek9upe+EkeWAeALyrJNJkcZSMtkNlM=";
-      };
-    });
+  # Even though glaze itself disables it by default, nixpkgs sets ENABLE_SSL set to true.
+  # Since we don't include openssl, the build failes without the `enableSSL = false;` override
+  glaze = final: prev: {
+    glaze-hyprland = prev.glaze.override {
+      enableSSL = false;
+      enableInterop = false;
+    };
   };
 }

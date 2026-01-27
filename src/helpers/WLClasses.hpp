@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../desktop/Subsurface.hpp"
-#include "../desktop/Popup.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/Subsurface.hpp"
+#include "../desktop/view/Popup.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../macros.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "memory/Memory.hpp"
@@ -15,19 +15,6 @@ class IKeyboard;
 class CWLSurfaceResource;
 
 AQUAMARINE_FORWARD(ISwitch);
-
-struct SSwipeGesture {
-    PHLWORKSPACE  pWorkspaceBegin = nullptr;
-
-    double        delta = 0;
-
-    int           initialDirection = 0;
-    float         avgSpeed         = 0;
-    int           speedPoints      = 0;
-    int           touch_id         = 0;
-
-    PHLMONITORREF pMonitor;
-};
 
 struct SSwitchDevice {
     WP<Aquamarine::ISwitch> pDevice;

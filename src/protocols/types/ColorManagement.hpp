@@ -1,8 +1,25 @@
 #pragma once
 
 #include "color-management-v1.hpp"
+#include <hyprgraphics/color/Color.hpp>
+#include "../../helpers/memory/Memory.hpp"
+
+#define SDR_MIN_LUMINANCE 0.2
+#define SDR_MAX_LUMINANCE 80.0
+#define SDR_REF_LUMINANCE 80.0
+#define HDR_MIN_LUMINANCE 0.005
+#define HDR_MAX_LUMINANCE 10000.0
+#define HDR_REF_LUMINANCE 203.0
+#define HLG_MAX_LUMINANCE 1000.0
 
 namespace NColorManagement {
+    enum eNoShader : uint8_t {
+        CM_NS_DISABLE  = 0,
+        CM_NS_ALWAYS   = 1,
+        CM_NS_ONDEMAND = 2,
+        CM_NS_IGNORE   = 3,
+    };
+
     enum ePrimaries : uint8_t {
         CM_PRIMARIES_SRGB         = 1,
         CM_PRIMARIES_PAL_M        = 2,
@@ -35,31 +52,19 @@ namespace NColorManagement {
     // NOTE should be ok this way. unsupported primaries/tfs must be rejected earlier. supported enum values should be in sync with proto.
     // might need a proper switch-case and additional INVALID enum value.
     inline wpColorManagerV1Primaries convertPrimaries(ePrimaries primaries) {
-        return (wpColorManagerV1Primaries)primaries;
+        return sc<wpColorManagerV1Primaries>(primaries);
     }
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
-        return (ePrimaries)primaries;
+        return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return (wpColorManagerV1TransferFunction)tf;
+        return sc<wpColorManagerV1TransferFunction>(tf);
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
-        return (eTransferFunction)tf;
+        return sc<eTransferFunction>(tf);
     }
 
-    struct SPCPRimaries {
-        struct xy { //NOLINT(readability-identifier-naming)
-            float x = 0;
-            float y = 0;
-
-            bool  operator==(const xy& p2) const {
-                return x == p2.x && y == p2.y;
-            }
-        } red, green, blue, white;
-        bool operator==(const SPCPRimaries& p2) const {
-            return red == p2.red && green == p2.green && blue == p2.blue && white == p2.white;
-        }
-    };
+    using SPCPRimaries = Hyprgraphics::SPCPRimaries;
 
     namespace NColorPrimaries {
         static const auto DEFAULT_PRIMARIES = SPCPRimaries{};
@@ -70,30 +75,35 @@ namespace NColorManagement {
             .blue  = {.x = 0.15, .y = 0.06},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto PAL_M = SPCPRimaries{
             .red   = {.x = 0.67, .y = 0.33},
             .green = {.x = 0.21, .y = 0.71},
             .blue  = {.x = 0.14, .y = 0.08},
             .white = {.x = 0.310, .y = 0.316},
         };
+
         static const auto PAL = SPCPRimaries{
             .red   = {.x = 0.640, .y = 0.330},
             .green = {.x = 0.290, .y = 0.600},
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto NTSC = SPCPRimaries{
             .red   = {.x = 0.630, .y = 0.340},
             .green = {.x = 0.310, .y = 0.595},
             .blue  = {.x = 0.155, .y = 0.070},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto GENERIC_FILM = SPCPRimaries{
             .red   = {.x = 0.243, .y = 0.692},
             .green = {.x = 0.145, .y = 0.049},
             .blue  = {.x = 0.681, .y = 0.319}, // NOLINT(modernize-use-std-numbers)
             .white = {.x = 0.310, .y = 0.316},
         };
+
         static const auto BT2020 = SPCPRimaries{
             .red   = {.x = 0.708, .y = 0.292},
             .green = {.x = 0.170, .y = 0.797},
@@ -101,7 +111,12 @@ namespace NColorManagement {
             .white = {.x = 0.3127, .y = 0.3290},
         };
 
-        // FIXME CIE1931_XYZ
+        static const auto CIE1931_XYZ = SPCPRimaries{
+            .red   = {.x = 1.0, .y = 0.0},
+            .green = {.x = 0.0, .y = 1.0},
+            .blue  = {.x = 0.0, .y = 0.0},
+            .white = {.x = 1.0 / 3.0, .y = 1.0 / 3.0},
+        };
 
         static const auto DCI_P3 = SPCPRimaries{
             .red   = {.x = 0.680, .y = 0.320},
@@ -116,6 +131,7 @@ namespace NColorManagement {
             .blue  = {.x = 0.150, .y = 0.060},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
         static const auto ADOBE_RGB = SPCPRimaries{
             .red   = {.x = 0.6400, .y = 0.3300},
             .green = {.x = 0.2100, .y = 0.7100},
@@ -126,9 +142,27 @@ namespace NColorManagement {
 
     const SPCPRimaries& getPrimaries(ePrimaries name);
 
-    struct SImageDescription {
-        uint32_t id = 0; // FIXME needs id setting
+    class CPrimaries {
+      public:
+        static WP<const CPrimaries>   from(const SPCPRimaries& primaries);
+        static WP<const CPrimaries>   from(const ePrimaries name);
+        static WP<const CPrimaries>   from(const uint primariesId);
 
+        const SPCPRimaries&           value() const;
+        uint                          id() const;
+
+        const Hyprgraphics::CMatrix3& toXYZ() const;                                       // toXYZ() * rgb -> xyz
+        const Hyprgraphics::CMatrix3& convertMatrix(const WP<const CPrimaries> dst) const; // convertMatrix(dst) * rgb with "this" primaries -> rgb with dst primaries
+
+      private:
+        CPrimaries(const SPCPRimaries& primaries, const uint primariesId);
+        uint                   m_id;
+        SPCPRimaries           m_primaries;
+
+        Hyprgraphics::CMatrix3 m_primaries2XYZ;
+    };
+
+    struct SImageDescription {
         struct SIccFile {
             int      fd     = -1;
             uint32_t length = 0;
@@ -140,16 +174,14 @@ namespace NColorManagement {
 
         bool              windowsScRGB = false;
 
-        eTransferFunction transferFunction      = CM_TRANSFER_FUNCTION_SRGB;
+        eTransferFunction transferFunction      = CM_TRANSFER_FUNCTION_GAMMA22;
         float             transferFunctionPower = 1.0f;
 
         bool              primariesNameSet = false;
         ePrimaries        primariesNamed   = CM_PRIMARIES_SRGB;
         // primaries are stored as FP values with the same scale as standard defines (0.0 - 1.0)
         // wayland protocol expects int32_t values multiplied by 1000000
-        // xx protocol expects int32_t values multiplied by 10000
         // drm expects uint16_t values multiplied by 50000
-        // frog protocol expects drm values
         SPCPRimaries primaries, masteringPrimaries;
 
         // luminances in cd/m²
@@ -174,10 +206,10 @@ namespace NColorManagement {
         uint32_t maxFALL = 0;
 
         bool     operator==(const SImageDescription& d2) const {
-            return (id != 0 && id == d2.id) ||
-                (icc == d2.icc && windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
-                 ((primariesNameSet && primariesNamed == d2.primariesNameSet) || (primaries == d2.primaries)) && masteringPrimaries == d2.masteringPrimaries &&
-                 luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL && maxFALL == d2.maxFALL);
+            return icc == d2.icc && windowsScRGB == d2.windowsScRGB && transferFunction == d2.transferFunction && transferFunctionPower == d2.transferFunctionPower &&
+                (primariesNameSet == d2.primariesNameSet && (primariesNameSet ? primariesNamed == d2.primariesNamed : primaries == d2.primaries)) &&
+                masteringPrimaries == d2.masteringPrimaries && luminances == d2.luminances && masteringLuminances == d2.masteringLuminances && maxCLL == d2.maxCLL &&
+                maxFALL == d2.maxFALL;
         }
 
         const SPCPRimaries& getPrimaries() const {
@@ -185,5 +217,102 @@ namespace NColorManagement {
                 return NColorManagement::getPrimaries(primariesNamed);
             return primaries;
         }
+
+        float getTFMinLuminance(float sdrMinLuminance = -1.0f) const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR: return 0;
+                case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                case CM_TRANSFER_FUNCTION_HLG: return HDR_MIN_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 0.01;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return sdrMinLuminance >= 0 ? sdrMinLuminance : SDR_MIN_LUMINANCE;
+            }
+        };
+
+        float getTFMaxLuminance(int sdrMaxLuminance = -1) const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                    return SDR_MAX_LUMINANCE; // assume Windows scRGB. white color range 1.0 - 125.0 maps to SDR_MAX_LUMINANCE (80) - HDR_MAX_LUMINANCE (10000)
+                case CM_TRANSFER_FUNCTION_ST2084_PQ: return HDR_MAX_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_HLG: return HLG_MAX_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 100;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return sdrMaxLuminance >= 0 ? sdrMaxLuminance : SDR_MAX_LUMINANCE;
+            }
+        };
+
+        float getTFRefLuminance(int sdrRefLuminance = -1) const {
+            switch (transferFunction) {
+                case CM_TRANSFER_FUNCTION_EXT_LINEAR:
+                case CM_TRANSFER_FUNCTION_ST2084_PQ:
+                case CM_TRANSFER_FUNCTION_HLG: return HDR_REF_LUMINANCE;
+                case CM_TRANSFER_FUNCTION_BT1886: return 100;
+                case CM_TRANSFER_FUNCTION_GAMMA22:
+                case CM_TRANSFER_FUNCTION_GAMMA28:
+                case CM_TRANSFER_FUNCTION_ST240:
+                case CM_TRANSFER_FUNCTION_LOG_100:
+                case CM_TRANSFER_FUNCTION_LOG_316:
+                case CM_TRANSFER_FUNCTION_XVYCC:
+                case CM_TRANSFER_FUNCTION_EXT_SRGB:
+                case CM_TRANSFER_FUNCTION_ST428:
+                case CM_TRANSFER_FUNCTION_SRGB:
+                default: return sdrRefLuminance >= 0 ? sdrRefLuminance : SDR_REF_LUMINANCE;
+            }
+        };
     };
+
+    class CImageDescription {
+      public:
+        static WP<const CImageDescription> from(const SImageDescription& imageDescription);
+        static WP<const CImageDescription> from(const uint imageDescriptionId);
+
+        WP<const CImageDescription>        with(const SImageDescription::SPCLuminances& luminances) const;
+
+        const SImageDescription&           value() const;
+        uint                               id() const;
+
+        WP<const CPrimaries>               getPrimaries() const;
+
+      private:
+        CImageDescription(const SImageDescription& imageDescription, const uint imageDescriptionId);
+        uint              m_id;
+        uint              m_primariesId;
+        SImageDescription m_imageDescription;
+    };
+
+    using PImageDescription = WP<const CImageDescription>;
+
+    static const auto DEFAULT_IMAGE_DESCRIPTION     = CImageDescription::from(SImageDescription{});
+    static const auto DEFAULT_HDR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                                                                                .primariesNameSet = true,
+                                                                                                .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                                                                                                .primaries  = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                                                                                .luminances = {.min = 0, .max = 10000, .reference = 203}});
+    ;
+    static const auto SCRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .windowsScRGB     = true,
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
+        .luminances       = {.reference = 203},
+    });
+    ;
+
 }

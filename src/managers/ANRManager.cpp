@@ -1,6 +1,7 @@
 #include "ANRManager.hpp"
+
 #include "../helpers/fs/FsUtils.hpp"
-#include "../debug/Log.hpp"
+#include "../debug/log/Logger.hpp"
 #include "../macros.hpp"
 #include "HookSystemManager.hpp"
 #include "../Compositor.hpp"
@@ -8,6 +9,7 @@
 #include "./eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../xwayland/XSurface.hpp"
+#include "../i18n/Engine.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -15,7 +17,7 @@ static constexpr auto TIMER_TIMEOUT = std::chrono::milliseconds(1500);
 
 CANRManager::CANRManager() {
     if (!NFsUtils::executableExistsInPath("hyprland-dialog")) {
-        Debug::log(ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
+        Log::logger->log(Log::ERR, "hyprland-dialog missing from PATH, cannot start ANRManager");
         return;
     }
 
@@ -28,11 +30,32 @@ CANRManager::CANRManager() {
         auto window = std::any_cast<PHLWINDOW>(data);
 
         for (const auto& d : m_data) {
+            // Window is ANR dialog
+            if (d->isRunning() && d->dialogBox->getPID() == window->getPID())
+                return;
+
             if (d->fitsWindow(window))
                 return;
         }
 
         m_data.emplace_back(makeShared<SANRData>(window));
+    });
+
+    static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
+        auto window = std::any_cast<PHLWINDOW>(data);
+
+        for (const auto& d : m_data) {
+            if (!d->fitsWindow(window))
+                continue;
+
+            // kill the dialog, act as if we got a "ping" in case there's more than one
+            // window from this client, in which case the dialog will re-appear.
+            d->killDialog();
+            d->missedResponses = 0;
+            d->dialogSaidWait  = false;
+        }
+
+        std::erase_if(m_data, [&window](auto& w) { return w == window; });
     });
 
     m_timer->updateTimeout(TIMER_TIMEOUT);
@@ -51,7 +74,7 @@ void CANRManager::onTick() {
         PHLWINDOW firstWindow;
         int       count = 0;
         for (const auto& w : g_pCompositor->m_windows) {
-            if (!w->m_bIsMapped)
+            if (!w->m_isMapped)
                 continue;
 
             if (!data->fitsWindow(w))
@@ -67,10 +90,10 @@ void CANRManager::onTick() {
 
         if (data->missedResponses >= *PANRTHRESHOLD) {
             if (!data->isRunning() && !data->dialogSaidWait) {
-                data->runDialog("Application Not Responding", firstWindow->m_szTitle, firstWindow->m_szClass, data->getPid());
+                data->runDialog(firstWindow->m_title, firstWindow->m_class, data->getPID());
 
                 for (const auto& w : g_pCompositor->m_windows) {
-                    if (!w->m_bIsMapped)
+                    if (!w->m_isMapped)
                         continue;
 
                     if (!data->fitsWindow(w))
@@ -133,10 +156,10 @@ bool CANRManager::isNotResponding(SP<CANRManager::SANRData> data) {
 
 SP<CANRManager::SANRData> CANRManager::dataFor(PHLWINDOW pWindow) {
     auto it = m_data.end();
-    if (pWindow->m_pXWaylandSurface)
-        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xwaylandSurface && data->xwaylandSurface == pWindow->m_pXWaylandSurface; });
-    else if (pWindow->m_pXDGSurface)
-        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xdgBase && data->xdgBase == pWindow->m_pXDGSurface->owner; });
+    if (pWindow->m_xwaylandSurface)
+        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xwaylandSurface && data->xwaylandSurface == pWindow->m_xwaylandSurface; });
+    else if (pWindow->m_xdgSurface)
+        it = std::ranges::find_if(m_data, [&pWindow](const auto& data) { return data->xdgBase && data->xdgBase == pWindow->m_xdgSurface->m_owner; });
     return it == m_data.end() ? nullptr : *it;
 }
 
@@ -151,7 +174,7 @@ SP<CANRManager::SANRData> CANRManager::dataFor(SP<CXWaylandSurface> pXwaylandSur
 }
 
 CANRManager::SANRData::SANRData(PHLWINDOW pWindow) :
-    xwaylandSurface(pWindow->m_pXWaylandSurface), xdgBase(pWindow->m_pXDGSurface ? pWindow->m_pXDGSurface->owner : WP<CXDGWMBase>{}) {
+    xwaylandSurface(pWindow->m_xwaylandSurface), xdgBase(pWindow->m_xdgSurface ? pWindow->m_xdgSurface->m_owner : WP<CXDGWMBase>{}) {
     ;
 }
 
@@ -160,29 +183,46 @@ CANRManager::SANRData::~SANRData() {
         killDialog();
 }
 
-void CANRManager::SANRData::runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
+void CANRManager::SANRData::runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID) {
     if (dialogBox && dialogBox->isRunning())
         killDialog();
 
-    dialogBox = CAsyncDialogBox::create(title,
-                                        std::format("Application {} with class of {} is not responding.\nWhat do you want to do with it?", appName.empty() ? "unknown" : appName,
-                                                    appClass.empty() ? "unknown" : appClass),
-                                        std::vector<std::string>{"Terminate", "Wait"});
+    const auto OPTION_TERMINATE_STR = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_TERMINATE, {});
+    const auto OPTION_WAIT_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_OPTION_WAIT, {});
+    const auto OPTIONS              = std::vector{OPTION_TERMINATE_STR, OPTION_WAIT_STR};
+    const auto CLASS_STR            = appClass.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appClass;
+    const auto TITLE_STR            = appName.empty() ? I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_PROP_UNKNOWN, {}) : appName;
+    const auto DESCRIPTION_STR      = I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_CONTENT, {{"title", TITLE_STR}, {"class", CLASS_STR}});
 
-    dialogBox->open()->then([dialogWmPID, this](SP<CPromiseResult<std::string>> r) {
+    dialogBox = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_ANR_TITLE, {}), DESCRIPTION_STR, OPTIONS);
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!w->m_isMapped)
+            continue;
+
+        if (!fitsWindow(w))
+            continue;
+
+        if (w->m_workspace)
+            dialogBox->setExecRule(std::format("workspace {} silent", w->m_workspace->getConfigName()));
+
+        break;
+    }
+
+    dialogBox->open()->then([dialogWmPID, this, OPTION_TERMINATE_STR, OPTION_WAIT_STR](SP<CPromiseResult<std::string>> r) {
         if (r->hasError()) {
-            Debug::log(ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
+            Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: error spawning dialog");
             return;
         }
 
         const auto& result = r->result();
 
-        if (result.starts_with("Terminate"))
+        if (result.starts_with(OPTION_TERMINATE_STR))
             ::kill(dialogWmPID, SIGKILL);
-        else if (result.starts_with("Wait"))
+        else if (result.starts_with(OPTION_WAIT_STR))
             dialogSaidWait = true;
         else
-            Debug::log(ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);
+            Log::logger->log(Log::ERR, "CANRManager::SANRData::runDialog: lambda: unrecognized result: {}", result);
     });
 }
 
@@ -199,10 +239,10 @@ void CANRManager::SANRData::killDialog() {
 }
 
 bool CANRManager::SANRData::fitsWindow(PHLWINDOW pWindow) const {
-    if (pWindow->m_pXWaylandSurface)
-        return pWindow->m_pXWaylandSurface == xwaylandSurface;
-    else if (pWindow->m_pXDGSurface)
-        return pWindow->m_pXDGSurface->owner == xdgBase && xdgBase;
+    if (pWindow->m_xwaylandSurface)
+        return pWindow->m_xwaylandSurface == xwaylandSurface;
+    else if (pWindow->m_xdgSurface)
+        return pWindow->m_xdgSurface->m_owner == xdgBase && xdgBase;
     return false;
 }
 
@@ -210,7 +250,7 @@ bool CANRManager::SANRData::isDefunct() const {
     return xdgBase.expired() && xwaylandSurface.expired();
 }
 
-pid_t CANRManager::SANRData::getPid() const {
+pid_t CANRManager::SANRData::getPID() const {
     if (xdgBase) {
         pid_t pid = 0;
         wl_client_get_credentials(xdgBase->client(), &pid, nullptr, nullptr);
@@ -218,7 +258,7 @@ pid_t CANRManager::SANRData::getPid() const {
     }
 
     if (xwaylandSurface)
-        return xwaylandSurface->pid;
+        return xwaylandSurface->m_pid;
 
     return 0;
 }

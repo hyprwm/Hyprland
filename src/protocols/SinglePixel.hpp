@@ -20,14 +20,10 @@ class CSinglePixelBuffer : public IHLBuffer {
     virtual void                                   endDataPtr();
     //
     bool good();
-    bool success = false;
+    bool m_success = false;
 
   private:
-    uint32_t color = 0x00000000;
-
-    struct {
-        CHyprSignalListener resourceDestroy;
-    } listeners;
+    uint32_t m_color = 0x00000000;
 };
 
 class CSinglePixelBufferResource {
@@ -38,21 +34,21 @@ class CSinglePixelBufferResource {
     bool good();
 
   private:
-    SP<CSinglePixelBuffer> buffer;
+    SP<CSinglePixelBuffer> m_buffer;
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
+    } m_listeners;
 };
 
 class CSinglePixelBufferManagerResource {
   public:
-    CSinglePixelBufferManagerResource(SP<CWpSinglePixelBufferManagerV1> resource_);
+    CSinglePixelBufferManagerResource(UP<CWpSinglePixelBufferManagerV1>&& resource_);
 
     bool good();
 
   private:
-    SP<CWpSinglePixelBufferManagerV1> resource;
+    UP<CWpSinglePixelBufferManagerV1> m_resource;
 };
 
 class CSinglePixelProtocol : public IWaylandProtocol {
@@ -66,8 +62,8 @@ class CSinglePixelProtocol : public IWaylandProtocol {
     void destroyResource(CSinglePixelBufferResource* resource);
 
     //
-    std::vector<SP<CSinglePixelBufferManagerResource>> m_vManagers;
-    std::vector<SP<CSinglePixelBufferResource>>        m_vBuffers;
+    std::vector<UP<CSinglePixelBufferManagerResource>> m_managers;
+    std::vector<UP<CSinglePixelBufferResource>>        m_buffers;
 
     friend class CSinglePixelBufferManagerResource;
     friend class CSinglePixelBufferResource;

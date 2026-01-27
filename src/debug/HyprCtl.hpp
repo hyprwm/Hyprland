@@ -2,8 +2,10 @@
 
 #include <fstream>
 #include "../helpers/MiscFunctions.hpp"
-#include "../desktop/Window.hpp"
+#include "../helpers/defer/Promise.hpp"
+#include "../desktop/view/Window.hpp"
 #include <functional>
+#include <sys/types.h>
 #include <hyprutils/os/FileDescriptor.hpp>
 
 // exposed for main.cpp
@@ -23,12 +25,18 @@ class CHyprCtl {
     Hyprutils::OS::CFileDescriptor m_socketFD;
 
     struct {
-        bool all           = false;
-        bool sysInfoConfig = false;
+        bool                      all              = false;
+        bool                      sysInfoConfig    = false;
+        bool                      isDynamicKeyword = false;
+        pid_t                     pid              = 0;
+        SP<CPromise<std::string>> pendingPromise;
     } m_currentRequestParams;
 
     static std::string getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format);
     static std::string getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat format);
+    static std::string getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+    static std::string getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
+    static std::string getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
     static std::string getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format);
 
   private:

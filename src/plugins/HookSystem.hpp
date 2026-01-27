@@ -2,10 +2,12 @@
 
 #include <string>
 #include <vector>
+#include <cstddef>
+#include <unordered_set>
 #include "../helpers/memory/Memory.hpp"
 
 #define HANDLE                   void*
-#define HOOK_TRAMPOLINE_MAX_SIZE 64
+#define HOOK_TRAMPOLINE_MAX_SIZE 32
 
 class CFunctionHook {
   public:
@@ -20,19 +22,18 @@ class CFunctionHook {
     CFunctionHook& operator=(const CFunctionHook&) = delete;
     CFunctionHook& operator=(CFunctionHook&&)      = delete;
 
-    void*          m_pOriginal = nullptr;
+    void*          m_original = nullptr;
 
   private:
-    void*  m_pSource         = nullptr;
-    void*  m_pFunctionAddr   = nullptr;
-    void*  m_pTrampolineAddr = nullptr;
-    void*  m_pDestination    = nullptr;
-    size_t m_iHookLen        = 0;
-    size_t m_iTrampoLen      = 0;
-    HANDLE m_pOwner          = nullptr;
-    bool   m_bActive         = false;
+    void*                      m_source               = nullptr;
+    void*                      m_launchTrampolineAddr = nullptr;
+    void*                      m_landTrampolineAddr   = nullptr;
+    void*                      m_destination          = nullptr;
+    size_t                     m_hookLen              = 0;
+    HANDLE                     m_owner                = nullptr;
+    bool                       m_active               = false;
 
-    void*  m_pOriginalBytes = nullptr;
+    std::vector<unsigned char> m_originalBytes;
 
     struct SInstructionProbe {
         size_t              len      = 0;
@@ -60,7 +61,7 @@ class CHookSystem {
     void           removeAllHooksFrom(HANDLE handle);
 
   private:
-    std::vector<UP<CFunctionHook>> m_vHooks;
+    std::vector<UP<CFunctionHook>> m_hooks;
 
     uint64_t                       getAddressForTrampo();
 
@@ -70,7 +71,8 @@ class CHookSystem {
         uint64_t used = 0;
     };
 
-    std::vector<SAllocatedPage> pages;
+    std::vector<SAllocatedPage>  m_pages;
+    std::unordered_set<uint64_t> m_activeHooks;
 
     friend class CFunctionHook;
 };

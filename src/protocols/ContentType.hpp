@@ -22,15 +22,15 @@ class CContentType {
 
     bool                       good();
     wl_client*                 client();
-    NContentType::eContentType value = NContentType::CONTENT_TYPE_NONE;
+    NContentType::eContentType m_value = NContentType::CONTENT_TYPE_NONE;
 
-    WP<CContentType>           self;
+    WP<CContentType>           m_self;
 
   private:
     SP<CWpContentTypeV1> m_resource;
-    wl_client*           m_pClient = nullptr;
+    wl_client*           m_client = nullptr;
 
-    CHyprSignalListener  destroy;
+    CHyprSignalListener  m_destroy;
 
     friend class CContentTypeProtocol;
 };
@@ -47,8 +47,8 @@ class CContentTypeProtocol : public IWaylandProtocol {
     void                                 destroyResource(CContentTypeManager* resource);
     void                                 destroyResource(CContentType* resource);
 
-    std::vector<SP<CContentTypeManager>> m_vManagers;
-    std::vector<SP<CContentType>>        m_vContentTypes;
+    std::vector<SP<CContentTypeManager>> m_managers;
+    std::vector<SP<CContentType>>        m_contentTypes;
 
     friend class CContentTypeManager;
     friend class CContentType;

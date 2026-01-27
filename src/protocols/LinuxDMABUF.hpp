@@ -22,11 +22,11 @@ class CLinuxDMABuffer {
     bool good();
 
   private:
-    SP<CDMABuffer> buffer;
+    SP<CDMABuffer> m_buffer;
 
     struct {
         CHyprSignalListener bufferResourceDestroy;
-    } listeners;
+    } m_listeners;
 
     friend class CLinuxDMABUFParamsResource;
 };
@@ -43,7 +43,7 @@ struct SDMABUFTranche {
     dev_t                   device = 0;
     uint32_t                flags  = 0;
     std::vector<SDRMFormat> formats;
-    std::vector<uint16_t>   indicies;
+    std::vector<uint16_t>   indices;
 };
 
 class CDMABUFFormatTable {
@@ -51,26 +51,26 @@ class CDMABUFFormatTable {
     CDMABUFFormatTable(SDMABUFTranche rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches);
     ~CDMABUFFormatTable() = default;
 
-    Hyprutils::OS::CFileDescriptor                        tableFD;
-    size_t                                                tableSize = 0;
-    SDMABUFTranche                                        rendererTranche;
-    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> monitorTranches;
+    Hyprutils::OS::CFileDescriptor                        m_tableFD;
+    size_t                                                m_tableSize = 0;
+    SDMABUFTranche                                        m_rendererTranche;
+    std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> m_monitorTranches;
 };
 
 class CLinuxDMABUFParamsResource {
   public:
-    CLinuxDMABUFParamsResource(SP<CZwpLinuxBufferParamsV1> resource_);
+    CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV1>&& resource_);
     ~CLinuxDMABUFParamsResource() = default;
 
     bool                         good();
     void                         create(uint32_t id); // 0 means not immed
 
-    SP<Aquamarine::SDMABUFAttrs> attrs;
-    WP<CLinuxDMABuffer>          createdBuffer;
-    bool                         used = false;
+    SP<Aquamarine::SDMABUFAttrs> m_attrs;
+    WP<CLinuxDMABuffer>          m_createdBuffer;
+    bool                         m_used = false;
 
   private:
-    SP<CZwpLinuxBufferParamsV1> resource;
+    UP<CZwpLinuxBufferParamsV1> m_resource;
 
     bool                        verify();
     bool                        commence();
@@ -78,32 +78,32 @@ class CLinuxDMABUFParamsResource {
 
 class CLinuxDMABUFFeedbackResource {
   public:
-    CLinuxDMABUFFeedbackResource(SP<CZwpLinuxDmabufFeedbackV1> resource_, SP<CWLSurfaceResource> surface_);
+    CLinuxDMABUFFeedbackResource(UP<CZwpLinuxDmabufFeedbackV1>&& resource_, SP<CWLSurfaceResource> surface_);
     ~CLinuxDMABUFFeedbackResource() = default;
 
     bool                   good();
     void                   sendDefaultFeedback();
     void                   sendTranche(SDMABUFTranche& tranche);
 
-    SP<CWLSurfaceResource> surface; // optional, for surface feedbacks
+    SP<CWLSurfaceResource> m_surface; // optional, for surface feedbacks
 
   private:
-    SP<CZwpLinuxDmabufFeedbackV1> resource;
-    bool                          lastFeedbackWasScanout = false;
+    UP<CZwpLinuxDmabufFeedbackV1> m_resource;
+    bool                          m_lastFeedbackWasScanout = false;
 
     friend class CLinuxDMABufV1Protocol;
 };
 
 class CLinuxDMABUFResource {
   public:
-    CLinuxDMABUFResource(SP<CZwpLinuxDmabufV1> resource_);
+    CLinuxDMABUFResource(UP<CZwpLinuxDmabufV1>&& resource_);
     ~CLinuxDMABUFResource() = default;
 
     bool good();
     void sendMods();
 
   private:
-    SP<CZwpLinuxDmabufV1> resource;
+    UP<CZwpLinuxDmabufV1> m_resource;
 };
 
 class CLinuxDMABufV1Protocol : public IWaylandProtocol {
@@ -123,14 +123,14 @@ class CLinuxDMABufV1Protocol : public IWaylandProtocol {
     void resetFormatTable();
 
     //
-    std::vector<SP<CLinuxDMABUFResource>>         m_vManagers;
-    std::vector<SP<CLinuxDMABUFFeedbackResource>> m_vFeedbacks;
-    std::vector<SP<CLinuxDMABUFParamsResource>>   m_vParams;
-    std::vector<SP<CLinuxDMABuffer>>              m_vBuffers;
+    std::vector<UP<CLinuxDMABUFResource>>         m_managers;
+    std::vector<UP<CLinuxDMABUFFeedbackResource>> m_feedbacks;
+    std::vector<UP<CLinuxDMABUFParamsResource>>   m_params;
+    std::vector<UP<CLinuxDMABuffer>>              m_buffers;
 
-    UP<CDMABUFFormatTable>                        formatTable;
-    dev_t                                         mainDevice;
-    Hyprutils::OS::CFileDescriptor                mainDeviceFD;
+    UP<CDMABUFFormatTable>                        m_formatTable;
+    dev_t                                         m_mainDevice;
+    Hyprutils::OS::CFileDescriptor                m_mainDeviceFD;
 
     friend class CLinuxDMABUFResource;
     friend class CLinuxDMABUFFeedbackResource;

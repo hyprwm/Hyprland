@@ -41,11 +41,11 @@ class IDataSource {
     virtual void                     sendDndAction(wl_data_device_manager_dnd_action a);
 
     struct {
-        CSignal destroy;
-    } events;
+        CSignalT<> destroy;
+    } m_events;
 
   private:
-    bool wasUsed = false;
+    bool m_wasUsed = false;
 };
 
 class IDataOffer {

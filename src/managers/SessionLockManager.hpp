@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/signal/Signal.hpp"
+#include "./eventLoop/EventLoopTimer.hpp"
 #include <cstdint>
 #include <unordered_map>
 #include <unordered_set>
@@ -29,10 +30,10 @@ struct SSessionLockSurface {
 
 struct SSessionLock {
     WP<CSessionLock>                     lock;
-    CTimer                               mLockTimer;
+    CTimer                               lockTimer;
+    SP<CEventLoopTimer>                  sendDeniedTimer;
 
-    std::vector<UP<SSessionLockSurface>> vSessionLockSurfaces;
-    std::unordered_map<uint64_t, CTimer> mMonitorsWithoutMappedSurfaceTimers;
+    std::vector<SP<SSessionLockSurface>> vSessionLockSurfaces;
 
     struct {
         CHyprSignalListener newSurface;
@@ -40,8 +41,9 @@ struct SSessionLock {
         CHyprSignalListener destroy;
     } listeners;
 
-    bool                         m_hasSentLocked = false;
-    std::unordered_set<uint64_t> m_lockedMonitors;
+    bool                         hasSentLocked = false;
+    bool                         hasSentDenied = false;
+    std::unordered_set<uint64_t> lockedMonitors;
 };
 
 class CSessionLockManager {
@@ -51,10 +53,9 @@ class CSessionLockManager {
 
     WP<SSessionLockSurface> getSessionLockSurfaceForMonitor(uint64_t);
 
-    float                   getRedScreenAlphaForMonitor(uint64_t);
-
     bool                    isSessionLocked();
-    bool                    isSessionLockPresent();
+    bool                    clientLocked();
+    bool                    clientDenied();
     bool                    isSurfaceSessionLock(SP<CWLSurfaceResource>);
     bool                    anySessionLockSurfacesPresent();
 
@@ -65,13 +66,14 @@ class CSessionLockManager {
     bool                    shallConsiderLockMissing();
 
   private:
-    UP<SSessionLock> m_pSessionLock;
+    UP<SSessionLock> m_sessionLock;
 
     struct {
         CHyprSignalListener newLock;
-    } listeners;
+    } m_listeners;
 
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
+    void removeSendDeniedTimer();
 };
 
 inline UP<CSessionLockManager> g_pSessionLockManager;

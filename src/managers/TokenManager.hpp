@@ -31,7 +31,7 @@ class CTokenManager {
     void           removeToken(SP<CUUIDToken> token);
 
   private:
-    std::unordered_map<std::string, SP<CUUIDToken>> m_mTokens;
+    std::unordered_map<std::string, SP<CUUIDToken>> m_tokens;
 };
 
 inline UP<CTokenManager> g_pTokenManager;

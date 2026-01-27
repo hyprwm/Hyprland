@@ -1,9 +1,11 @@
+#version 300 es
+
 #extension GL_ARB_shading_language_include : enable
-#extension GL_OES_EGL_image_external : require
+#extension GL_OES_EGL_image_external_essl3 : require
 
 precision highp float;
-varying vec2 v_texcoord;
-uniform samplerExternalOES texture0;
+in vec2 v_texcoord;
+uniform samplerExternalOES tex;
 uniform float alpha;
 
 #include "rounding.glsl"
@@ -15,9 +17,10 @@ uniform int discardAlphaValue;
 uniform int applyTint;
 uniform vec3 tint;
 
+layout(location = 0) out vec4 fragColor;
 void main() {
 
-    vec4 pixColor = texture2D(texture0, v_texcoord);
+    vec4 pixColor = texture(tex, v_texcoord);
 
     if (discardOpaque == 1 && pixColor[3] * alpha == 1.0)
 	discard;
@@ -31,5 +34,5 @@ void main() {
     if (radius > 0.0)
 		pixColor = rounding(pixColor);
 
-    gl_FragColor = pixColor * alpha;
+    fragColor = pixColor * alpha;
 }

@@ -1,6 +1,9 @@
 #include "ConfigWatcher.hpp"
+#if defined(__linux__)
+#include <linux/limits.h>
+#endif
 #include <sys/inotify.h>
-#include "../debug/Log.hpp"
+#include "../debug/log/Logger.hpp"
 #include <ranges>
 #include <fcntl.h>
 #include <unistd.h>
@@ -10,14 +13,14 @@ using namespace Hyprutils::OS;
 
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
     if (!m_inotifyFd.isValid()) {
-        Debug::log(ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
+        Log::logger->log(Log::ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
         return;
     }
 
     // TODO: make CFileDescriptor take F_GETFL, F_SETFL
     const int FLAGS = fcntl(m_inotifyFd.get(), F_GETFL, 0);
     if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK) < 0) {
-        Debug::log(ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
+        Log::logger->log(Log::ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
         m_inotifyFd.reset();
         return;
     }
@@ -65,17 +68,34 @@ void CConfigWatcher::setOnChange(const std::function<void(const SConfigWatchEven
 }
 
 void CConfigWatcher::onInotifyEvent() {
-    inotify_event ev;
-    while (read(m_inotifyFd.get(), &ev, sizeof(ev)) > 0) {
-        const auto WD = std::ranges::find_if(m_watches.begin(), m_watches.end(), [wd = ev.wd](const auto& e) { return e.wd == wd; });
+    constexpr size_t                                     BUFFER_SIZE = sizeof(inotify_event) + NAME_MAX + 1;
+    alignas(inotify_event) std::array<char, BUFFER_SIZE> buffer      = {};
+    const ssize_t                                        bytesRead   = read(m_inotifyFd.get(), buffer.data(), buffer.size());
+    if (bytesRead <= 0)
+        return;
 
-        if (WD == m_watches.end()) {
-            Debug::log(ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev.wd);
-            return;
+    for (size_t offset = 0; offset < sc<size_t>(bytesRead);) {
+        const auto* ev = rc<const inotify_event*>(buffer.data() + offset);
+
+        if (offset + sizeof(inotify_event) > sc<size_t>(bytesRead)) {
+            Log::logger->log(Log::ERR, "CConfigWatcher: malformed inotify event, truncated header");
+            break;
         }
 
-        m_watchCallback(SConfigWatchEvent{
-            .file = WD->file,
-        });
+        if (offset + sizeof(inotify_event) + ev->len > sc<size_t>(bytesRead)) {
+            Log::logger->log(Log::ERR, "CConfigWatcher: malformed inotify event, truncated name field");
+            break;
+        }
+
+        const auto WD = std::ranges::find_if(m_watches, [wd = ev->wd](const auto& e) { return e.wd == wd; });
+
+        if (WD == m_watches.end())
+            Log::logger->log(Log::ERR, "CConfigWatcher: got an event for wd {} which we don't have?!", ev->wd);
+        else
+            m_watchCallback(SConfigWatchEvent{
+                .file = WD->file,
+            });
+
+        offset += sizeof(inotify_event) + ev->len;
     }
 }

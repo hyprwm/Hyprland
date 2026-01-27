@@ -18,8 +18,8 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     };
 
     struct {
-        CSignal setShape;
-    } events;
+        CSignalT<SSetShapeEvent> setShape;
+    } m_events;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);
@@ -32,8 +32,8 @@ class CCursorShapeProtocol : public IWaylandProtocol {
     void createCursorShapeDevice(CWpCursorShapeManagerV1* pMgr, uint32_t id, wl_resource* resource);
 
     //
-    std::vector<SP<CWpCursorShapeDeviceV1>>  m_vDevices;
-    std::vector<UP<CWpCursorShapeManagerV1>> m_vManagers;
+    std::vector<UP<CWpCursorShapeDeviceV1>>  m_devices;
+    std::vector<UP<CWpCursorShapeManagerV1>> m_managers;
 };
 
 namespace PROTO {

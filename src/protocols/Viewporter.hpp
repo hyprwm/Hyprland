@@ -14,14 +14,14 @@ class CViewportResource {
     ~CViewportResource();
 
     bool                   good();
-    WP<CWLSurfaceResource> surface;
+    WP<CWLSurfaceResource> m_surface;
 
   private:
-    SP<CWpViewport> resource;
+    SP<CWpViewport> m_resource;
 
     struct {
         CHyprSignalListener surfacePrecommit;
-    } listeners;
+    } m_listeners;
 };
 
 class CViewporterResource {
@@ -31,7 +31,7 @@ class CViewporterResource {
     bool good();
 
   private:
-    SP<CWpViewporter> resource;
+    SP<CWpViewporter> m_resource;
 };
 
 class CViewporterProtocol : public IWaylandProtocol {
@@ -45,8 +45,8 @@ class CViewporterProtocol : public IWaylandProtocol {
     void destroyResource(CViewportResource* resource);
 
     //
-    std::vector<SP<CViewporterResource>> m_vManagers;
-    std::vector<SP<CViewportResource>>   m_vViewports;
+    std::vector<SP<CViewporterResource>> m_managers;
+    std::vector<SP<CViewportResource>>   m_viewports;
 
     friend class CViewporterResource;
     friend class CViewportResource;

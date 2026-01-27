@@ -1,43 +1,43 @@
 #include "DamageRing.hpp"
 
 void CDamageRing::setSize(const Vector2D& size_) {
-    if (size_ == size)
+    if (size_ == m_size)
         return;
 
-    size = size_;
+    m_size = size_;
 
     damageEntire();
 }
 
 bool CDamageRing::damage(const CRegion& rg) {
-    CRegion clipped = rg.copy().intersect(CBox{{}, size});
+    CRegion clipped = rg.copy().intersect(CBox{{}, m_size});
     if (clipped.empty())
         return false;
 
-    current.add(clipped);
+    m_current.add(clipped);
     return true;
 }
 
 void CDamageRing::damageEntire() {
-    damage(CBox{{}, size});
+    damage(CBox{{}, m_size});
 }
 
 void CDamageRing::rotate() {
-    previousIdx = (previousIdx + DAMAGE_RING_PREVIOUS_LEN - 1) % DAMAGE_RING_PREVIOUS_LEN;
+    m_previousIdx = (m_previousIdx + DAMAGE_RING_PREVIOUS_LEN - 1) % DAMAGE_RING_PREVIOUS_LEN;
 
-    previous[previousIdx] = current;
-    current.clear();
+    m_previous[m_previousIdx] = m_current;
+    m_current.clear();
 }
 
 CRegion CDamageRing::getBufferDamage(int age) {
     if (age <= 0 || age > DAMAGE_RING_PREVIOUS_LEN + 1)
-        return CBox{{}, size};
+        return CBox{{}, m_size};
 
-    CRegion damage = current;
+    CRegion damage = m_current;
 
     for (int i = 0; i < age - 1; ++i) {
-        int j = (previousIdx + i) % DAMAGE_RING_PREVIOUS_LEN;
-        damage.add(previous.at(j));
+        int j = (m_previousIdx + i) % DAMAGE_RING_PREVIOUS_LEN;
+        damage.add(m_previous.at(j));
     }
 
     // don't return a ludicrous amount of rects
@@ -48,5 +48,5 @@ CRegion CDamageRing::getBufferDamage(int age) {
 }
 
 bool CDamageRing::hasChanged() {
-    return !current.empty();
+    return !m_current.empty();
 }

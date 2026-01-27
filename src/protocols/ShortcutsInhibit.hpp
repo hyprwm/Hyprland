@@ -16,8 +16,8 @@ class CKeyboardShortcutsInhibitor {
     bool                   good();
 
   private:
-    SP<CZwpKeyboardShortcutsInhibitorV1> resource;
-    WP<CWLSurfaceResource>               pSurface;
+    SP<CZwpKeyboardShortcutsInhibitorV1> m_resource;
+    WP<CWLSurfaceResource>               m_surface;
 };
 
 class CKeyboardShortcutsInhibitProtocol : public IWaylandProtocol {
@@ -34,8 +34,8 @@ class CKeyboardShortcutsInhibitProtocol : public IWaylandProtocol {
     void onInhibit(CZwpKeyboardShortcutsInhibitManagerV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* seat);
 
     //
-    std::vector<UP<CZwpKeyboardShortcutsInhibitManagerV1>> m_vManagers;
-    std::vector<UP<CKeyboardShortcutsInhibitor>>           m_vInhibitors;
+    std::vector<UP<CZwpKeyboardShortcutsInhibitManagerV1>> m_managers;
+    std::vector<UP<CKeyboardShortcutsInhibitor>>           m_inhibitors;
 
     friend class CKeyboardShortcutsInhibitor;
 };

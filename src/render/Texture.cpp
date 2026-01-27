@@ -15,7 +15,7 @@ CTexture::~CTexture() {
     destroyTexture();
 }
 
-CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_iDrmFormat(drmFormat), m_bKeepDataCopy(keepDataCopy) {
+CTexture::CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy) : m_drmFormat(drmFormat), m_keepDataCopy(keepDataCopy) {
     createFromShm(drmFormat, pixels, stride, size_);
 }
 
@@ -23,11 +23,11 @@ CTexture::CTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
     createFromDma(attrs, image);
 }
 
-CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_bKeepDataCopy(keepDataCopy) {
+CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_keepDataCopy(keepDataCopy) {
     if (!buffer)
         return;
 
-    m_bOpaque = buffer->opaque;
+    m_opaque = buffer->opaque;
 
     auto attrs = buffer->dmabuf();
 
@@ -36,13 +36,13 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
         auto shm = buffer->shm();
 
         if (!shm.success) {
-            Debug::log(ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            Log::logger->log(Log::ERR, "Cannot create a texture: buffer has no dmabuf or shm");
             return;
         }
 
         auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
 
-        m_iDrmFormat = fmt;
+        m_drmFormat = fmt;
 
         createFromShm(fmt, pixelData, bufLen, shm.size);
         return;
@@ -51,7 +51,7 @@ CTexture::CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) : m_
     auto image = g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
 
     if (!image) {
-        Debug::log(ERR, "Cannot create a texture: failed to create an EGLImage");
+        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an EGLImage");
         return;
     }
 
@@ -64,107 +64,176 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    m_iType         = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
-    m_vSize         = size_;
+    m_type          = format->withAlpha ? TEXTURE_RGBA : TEXTURE_RGBX;
+    m_size          = size_;
     m_isSynchronous = true;
+    m_target        = GL_TEXTURE_2D;
     allocate();
+    bind();
+    setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_iTexID));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-#ifndef GLES2
-    if (format->flipRB) {
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
+
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
     }
-#endif
+
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
-    GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
 
-    if (m_bKeepDataCopy) {
-        m_vDataCopy.resize(stride * size_.y);
-        memcpy(m_vDataCopy.data(), pixels, stride * size_.y);
+    unbind();
+
+    if (m_keepDataCopy) {
+        m_dataCopy.resize(stride * size_.y);
+        memcpy(m_dataCopy.data(), pixels, stride * size_.y);
     }
 }
 
 void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image) {
-    if (!g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES) {
-        Debug::log(ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
+    if (!g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES) {
+        Log::logger->log(Log::ERR, "Cannot create a dmabuf texture: no glEGLImageTargetTexture2DOES");
         return;
     }
 
-    m_bOpaque = NFormatUtils::isFormatOpaque(attrs.format);
-    m_iTarget = GL_TEXTURE_2D;
-    m_iType   = TEXTURE_RGBA;
-    m_vSize   = attrs.size;
-    m_iType   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
-    allocate();
-    m_pEglImage = image;
+    m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
 
-    GLCALL(glBindTexture(GL_TEXTURE_2D, m_iTexID));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-    GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-    GLCALL(g_pHyprOpenGL->m_sProc.glEGLImageTargetTexture2DOES(m_iTarget, image));
-    GLCALL(glBindTexture(GL_TEXTURE_2D, 0));
+    // #TODO external only formats should be external aswell.
+    // also needs a seperate color shader.
+    /*if (NFormatUtils::isFormatYUV(attrs.format)) {
+        m_target = GL_TEXTURE_EXTERNAL_OES;
+        m_type   = TEXTURE_EXTERNAL;
+    } else {*/
+    m_target = GL_TEXTURE_2D;
+    m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    //}
+
+    m_size = attrs.size;
+    allocate();
+    m_eglImage = image;
+
+    bind();
+    setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GLCALL(g_pHyprOpenGL->m_proc.glEGLImageTargetTexture2DOES(m_target, image));
+    unbind();
 }
 
 void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
+    if (damage.empty())
+        return;
+
     g_pHyprRenderer->makeEGLCurrent();
 
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
 
-    glBindTexture(GL_TEXTURE_2D, m_iTexID);
+    bind();
 
-    auto rects = damage.copy().intersect(CBox{{}, m_vSize}).getRects();
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
 
-#ifndef GLES2
-    if (format->flipRB) {
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED));
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
     }
-#endif
 
-    for (auto const& rect : rects) {
-        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+
+    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
 
         int width  = rect.x2 - rect.x1;
         int height = rect.y2 - rect.y1;
         GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
-    }
+    });
+
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, 0));
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    unbind();
 
-    if (m_bKeepDataCopy) {
-        m_vDataCopy.resize(stride * m_vSize.y);
-        memcpy(m_vDataCopy.data(), pixels, stride * m_vSize.y);
+    if (m_keepDataCopy) {
+        m_dataCopy.resize(stride * m_size.y);
+        memcpy(m_dataCopy.data(), pixels, stride * m_size.y);
     }
 }
 
 void CTexture::destroyTexture() {
-    if (m_iTexID) {
-        GLCALL(glDeleteTextures(1, &m_iTexID));
-        m_iTexID = 0;
+    if (m_texID) {
+        GLCALL(glDeleteTextures(1, &m_texID));
+        m_texID = 0;
     }
 
-    if (m_pEglImage)
-        g_pHyprOpenGL->m_sProc.eglDestroyImageKHR(g_pHyprOpenGL->m_pEglDisplay, m_pEglImage);
-    m_pEglImage = nullptr;
+    if (m_eglImage)
+        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_eglImage);
+    m_eglImage = nullptr;
+    m_cachedStates.fill(std::nullopt);
 }
 
 void CTexture::allocate() {
-    if (!m_iTexID)
-        GLCALL(glGenTextures(1, &m_iTexID));
+    if (!m_texID)
+        GLCALL(glGenTextures(1, &m_texID));
 }
 
 const std::vector<uint8_t>& CTexture::dataCopy() {
-    return m_vDataCopy;
+    return m_dataCopy;
+}
+
+void CTexture::bind() {
+    GLCALL(glBindTexture(m_target, m_texID));
+}
+
+void CTexture::unbind() {
+    GLCALL(glBindTexture(m_target, 0));
+}
+
+constexpr std::optional<size_t> CTexture::getCacheStateIndex(GLenum pname) {
+    switch (pname) {
+        case GL_TEXTURE_WRAP_S: return TEXTURE_PAR_WRAP_S;
+        case GL_TEXTURE_WRAP_T: return TEXTURE_PAR_WRAP_T;
+        case GL_TEXTURE_MAG_FILTER: return TEXTURE_PAR_MAG_FILTER;
+        case GL_TEXTURE_MIN_FILTER: return TEXTURE_PAR_MIN_FILTER;
+        case GL_TEXTURE_SWIZZLE_R: return TEXTURE_PAR_SWIZZLE_R;
+        case GL_TEXTURE_SWIZZLE_B: return TEXTURE_PAR_SWIZZLE_B;
+        default: return std::nullopt;
+    }
+}
+
+void CTexture::setTexParameter(GLenum pname, GLint param) {
+    const auto cacheIndex = getCacheStateIndex(pname);
+
+    if (!cacheIndex) {
+        GLCALL(glTexParameteri(m_target, pname, param));
+        return;
+    }
+
+    const auto idx = cacheIndex.value();
+
+    if (m_cachedStates[idx] == param)
+        return;
+
+    m_cachedStates[idx] = param;
+    GLCALL(glTexParameteri(m_target, pname, param));
+}
+
+void CTexture::swizzle(const std::array<GLint, 4>& colors) {
+    setTexParameter(GL_TEXTURE_SWIZZLE_R, colors.at(0));
+    setTexParameter(GL_TEXTURE_SWIZZLE_G, colors.at(1));
+    setTexParameter(GL_TEXTURE_SWIZZLE_B, colors.at(2));
+    setTexParameter(GL_TEXTURE_SWIZZLE_A, colors.at(3));
 }

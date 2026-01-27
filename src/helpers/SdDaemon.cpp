@@ -38,16 +38,16 @@ int NSystemd::sdNotify(int unsetEnvironment, const char* state) {
     if (!addr)
         return 0;
 
-    // address length must be at most this; see man 7 unix
-    size_t             addrLen = strnlen(addr, 107);
+    struct sockaddr_un unixAddr = {0};
 
-    struct sockaddr_un unixAddr;
+    size_t             addrLen = strnlen(addr, sizeof(unixAddr.sun_path) - 1);
+
     unixAddr.sun_family = AF_UNIX;
     strncpy(unixAddr.sun_path, addr, addrLen);
     if (unixAddr.sun_path[0] == '@')
         unixAddr.sun_path[0] = '\0';
 
-    if (connect(fd, (const sockaddr*)&unixAddr, sizeof(struct sockaddr_un)) < 0)
+    if (connect(fd, rc<const sockaddr*>(&unixAddr), sizeof(struct sockaddr_un)) < 0)
         return -errno;
 
     // arbitrary value which seems to be enough for s-d messages

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../managers/input/InputManager.hpp"
 #include <any>
 
-class CWindow;
 class CGradientValueData;
 
 struct SWindowRenderLayoutHints {
@@ -24,6 +24,14 @@ enum eRectCorner : uint8_t {
     CORNER_BOTTOMRIGHT = (1 << 2),
     CORNER_BOTTOMLEFT  = (1 << 3),
 };
+
+inline eRectCorner cornerFromBox(const CBox& box, const Vector2D& pos) {
+    const auto CENTER = box.middle();
+
+    if (pos.x < CENTER.x)
+        return pos.y < CENTER.y ? CORNER_TOPLEFT : CORNER_BOTTOMLEFT;
+    return pos.y < CENTER.y ? CORNER_TOPRIGHT : CORNER_BOTTOMRIGHT;
+}
 
 enum eSnapEdge : uint8_t {
     SNAP_INVALID = 0,
@@ -211,14 +219,30 @@ class IHyprLayout {
     */
     virtual bool updateDragWindow();
 
-  private:
-    int          m_iMouseMoveEventCount;
-    Vector2D     m_vBeginDragXY;
-    Vector2D     m_vLastDragXY;
-    Vector2D     m_vBeginDragPositionXY;
-    Vector2D     m_vBeginDragSizeXY;
-    Vector2D     m_vDraggingWindowOriginalFloatSize;
-    eRectCorner  m_eGrabbedCorner = CORNER_TOPLEFT;
+    /*
+        Triggers a window snap event
+    */
+    virtual void performSnap(Vector2D& sourcePos, Vector2D& sourceSize, PHLWINDOW DRAGGINGWINDOW, const eMouseBindMode MODE, const int CORNER, const Vector2D& BEGINSIZE);
 
-    PHLWINDOWREF m_pLastTiledWindow;
+    /*
+        Fits a floating window on its monitor
+    */
+    virtual void fitFloatingWindowOnMonitor(PHLWINDOW w, std::optional<CBox> targetBox = std::nullopt);
+
+    /*
+        Returns a logical box describing the work area on a workspace
+        (monitor size - reserved - gapsOut)
+    */
+    virtual CBox workAreaOnWorkspace(const PHLWORKSPACE& pWorkspace);
+
+  private:
+    int          m_mouseMoveEventCount;
+    Vector2D     m_beginDragXY;
+    Vector2D     m_lastDragXY;
+    Vector2D     m_beginDragPositionXY;
+    Vector2D     m_beginDragSizeXY;
+    Vector2D     m_draggingWindowOriginalFloatSize;
+    eRectCorner  m_grabbedCorner = CORNER_TOPLEFT;
+
+    PHLWINDOWREF m_lastTiledWindow;
 };

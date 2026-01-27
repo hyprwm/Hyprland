@@ -2,10 +2,13 @@
 #include "DynamicPermissionManager.hpp"
 #include <algorithm>
 #include <wayland-server-core.h>
-#include <expected>
-#include <filesystem>
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
+#include "../../helpers/MiscFunctions.hpp"
+#include "../../i18n/Engine.hpp"
+
+#include <hyprutils/string/String.hpp>
+using namespace Hyprutils::String;
 
 #if defined(__DragonFly__) || defined(__FreeBSD__) || defined(__NetBSD__)
 #include <sys/sysctl.h>
@@ -49,57 +52,17 @@ static const char* permissionToString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_UNKNOWN: return "PERMISSION_TYPE_UNKNOWN";
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
         case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
+        case PERMISSION_TYPE_KEYBOARD: return "PERMISSION_TYPE_KEYBOARD";
     }
 
     return "error";
 }
 
-static const char* permissionToHumanString(eDynamicPermissionType type) {
+static const char* specialPidToString(eSpecialPidTypes type) {
     switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "requesting an unknown permission";
-        case PERMISSION_TYPE_SCREENCOPY: return "trying to capture your screen";
-        case PERMISSION_TYPE_PLUGIN: return "trying to load a plugin";
+        case SPECIAL_PID_TYPE_CONFIG: return "config";
+        default: return "";
     }
-
-    return "error";
-}
-
-static std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client) {
-    pid_t pid = 0;
-    wl_client_get_credentials(client, &pid, nullptr, nullptr);
-
-    if (pid <= 0)
-        return std::unexpected("No pid for client");
-
-#if defined(KERN_PROC_PATHNAME)
-    int mib[] = {
-        CTL_KERN,
-#if defined(__NetBSD__)
-        KERN_PROC_ARGS,
-        pid,
-        KERN_PROC_PATHNAME,
-#else
-        KERN_PROC,
-        KERN_PROC_PATHNAME,
-        pid,
-#endif
-    };
-    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
-    char   exe[PATH_MAX] = "/nonexistent";
-    size_t sz            = sizeof(exe);
-    sysctl(mib, miblen, &exe, &sz, NULL, 0);
-    std::string path = exe;
-#else
-    std::string path = std::format("/proc/{}/exe", (uint64_t)pid);
-#endif
-    std::error_code ec;
-
-    std::string     fullPath = std::filesystem::canonical(path, ec);
-
-    if (ec)
-        return std::unexpected("canonical failed");
-
-    return fullPath;
 }
 
 void CDynamicPermissionManager::clearConfigPermissions() {
@@ -119,19 +82,19 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
 
     const auto LOOKUP = binaryNameForWlClient(client);
 
-    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission), (uintptr_t)client,
-               LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
+    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for client {:x} (binary {})", permissionToString(permission),
+                     rc<uintptr_t>(client), LOOKUP.has_value() ? LOOKUP.value() : "lookup failed: " + LOOKUP.error());
 
     // first, check if we have the client + perm combo in our cache.
     auto it = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
     if (it == m_rules.end()) {
-        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking binary name");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking binary name");
 
         if (!LOOKUP.has_value())
-            Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary name check failed");
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: binary name check failed");
         else {
             const auto BINNAME = LOOKUP.value().contains("/") ? LOOKUP.value().substr(LOOKUP.value().find_last_of('/') + 1) : LOOKUP.value();
-            Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: binary path {}, name {}", LOOKUP.value(), BINNAME);
 
             it = std::ranges::find_if(m_rules, [clientBinaryPath = LOOKUP.value(), permission](const auto& e) {
                 if (e->m_type != permission)
@@ -151,75 +114,177 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
             });
 
             if (it == m_rules.end())
-                Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for binary");
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for binary");
             else {
                 if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_ALLOW;
                 } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-                    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_DENY;
                 } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-                    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
                     return PERMISSION_RULE_ALLOW_MODE_PENDING;
                 } else
-                    Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                    Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
             }
         }
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
         return PERMISSION_RULE_ALLOW_MODE_ALLOW;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
         return PERMISSION_RULE_ALLOW_MODE_DENY;
     } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        Debug::log(TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    // if we are here, we need to ask.
+    // if we are here, we need to ask, that's the fallback for all these (keyboards won't come here)
     askForPermission(client, LOOKUP.value_or(""), permission);
 
     return PERMISSION_RULE_ALLOW_MODE_PENDING;
 }
 
-void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type) {
-    auto        rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
+eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithString(pid_t pid, const std::string& str, eDynamicPermissionType permission) {
+    static auto PPERM = CConfigValue<Hyprlang::INT>("ecosystem:enforce_permissions");
 
-    std::string description = "";
-    if (binaryPath.empty())
-        description = std::format("An unknown application (wayland client ID 0x{:x}) is {}.", (uintptr_t)client, permissionToHumanString(type));
-    else {
-        std::string binaryName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
-        description            = std::format("An application <b>{}</b> ({}) is {}.", binaryName, binaryPath, permissionToHumanString(type));
+    if (*PPERM == 0)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
+    std::optional<std::string>              binaryName;
+    std::expected<std::string, std::string> lookup;
+
+    if (pid > 0) {
+        lookup = binaryNameForPid(pid);
+
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: checking permission {} for key {} (binary {})", permissionToString(permission), str,
+                         lookup.has_value() ? lookup.value() : "lookup failed: " + lookup.error());
+
+        if (lookup.has_value())
+            binaryName = *lookup;
+    } else
+        binaryName = specialPidToString(sc<eSpecialPidTypes>(pid));
+
+    // first, check if we have the client + perm combo in our cache.
+    auto it = std::ranges::find_if(m_rules, [str, permission, pid](const auto& e) { return e->m_keyString == str && pid && pid == e->m_pid && e->m_type == permission; });
+    if (it == m_rules.end()) {
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission not cached, checking key");
+
+        it = std::ranges::find_if(m_rules, [key = str, permission, &lookup](const auto& e) {
+            if (e->m_type != permission)
+                return false; // wrong perm
+
+            if (!e->m_binaryRegex)
+                return false; // no regex
+
+            // regex match
+            if (RE2::FullMatch(key, *e->m_binaryRegex) || (lookup.has_value() && RE2::FullMatch(lookup.value(), *e->m_binaryRegex)))
+                return true;
+
+            return false;
+        });
+
+        if (it == m_rules.end())
+            Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: no rule for key");
+        else {
+            if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_DENY;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending by config rule");
+                return PERMISSION_RULE_ALLOW_MODE_PENDING;
+            } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ASK) {
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+                askForPermission(nullptr, str, permission, pid);
+                return PERMISSION_RULE_ALLOW_MODE_PENDING;
+            } else
+                Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission ask by config rule");
+        }
+
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission allowed before by user");
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_DENY) {
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission denied before by user");
+        return PERMISSION_RULE_ALLOW_MODE_DENY;
+    } else if ((*it)->m_allowMode == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        Log::logger->log(Log::TRACE, "CDynamicPermissionManager::clientHasPermission: permission pending before by user");
+        return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    description += "<br/><br/>Do you want to allow this?";
+    // keyboards are allow default
+    if (permission == PERMISSION_TYPE_KEYBOARD)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
+    // if we are here, we need to ask.
+    askForPermission(nullptr, str, permission, pid);
+
+    return PERMISSION_RULE_ALLOW_MODE_PENDING;
+}
+
+void CDynamicPermissionManager::askForPermission(wl_client* client, const std::string& binaryPath, eDynamicPermissionType type, pid_t pid) {
+    auto rule = m_rules.emplace_back(SP<CDynamicPermissionRule>(new CDynamicPermissionRule(client, type, PERMISSION_RULE_ALLOW_MODE_PENDING)));
+
+    if (!client)
+        rule->m_keyString = binaryPath;
+
+    rule->m_pid = pid;
+
+    std::string appName = "";
+    if (binaryPath.empty())
+        appName = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, {{"wayland_id", std::format("{:x}", rc<uintptr_t>(client))}});
+    else if (client) {
+        appName = binaryPath.contains("/") ? binaryPath.substr(binaryPath.find_last_of('/') + 1) : binaryPath;
+    } else {
+        if (pid < 0)
+            appName = specialPidToString(sc<eSpecialPidTypes>(pid));
+        else {
+            const auto LOOKUP = binaryNameForPid(pid);
+            appName           = LOOKUP.value_or(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_UNKNOWN_NAME));
+        }
+    }
+
+    std::string description = "";
+    switch (rule->m_type) {
+        case PERMISSION_TYPE_SCREENCOPY: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}}); break;
+        case PERMISSION_TYPE_PLUGIN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}, {"plugin", binaryPath}}); break;
+        case PERMISSION_TYPE_KEYBOARD: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_KEYBOARD, {{"keyboard", binaryPath}}); break;
+        case PERMISSION_TYPE_UNKNOWN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_UNKNOWN, {{"app", appName}}); break;
+    }
 
     std::vector<std::string> options;
+    const auto               ALLOW              = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW);
+    const auto               ALLOW_AND_REMEMBER = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER);
+    const auto               ALLOW_ONCE         = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_ALLOW_ONCE);
+    const auto               DENY               = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_DENY);
 
-    if (!binaryPath.empty()) {
-        description += "<br/><br/><i>Hint: you can set persistent rules for these in the Hyprland config file.</i>";
-        options = {"Deny", "Allow and remember app", "Allow once"};
+    if (!binaryPath.empty() && client) {
+        description += std::format("<br/><br/><i>{}</i>", I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_PERSISTENCE_HINT));
+        options = {DENY, ALLOW_AND_REMEMBER, ALLOW_ONCE};
     } else
-        options = {"Deny", "Allow"};
+        options = {DENY, ALLOW};
 
-    rule->m_dialogBox = CAsyncDialogBox::create("Permission request", description, options);
+    rule->m_dialogBox             = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_TITLE), description, options);
+    rule->m_dialogBox->m_priority = true;
 
     if (!rule->m_dialogBox) {
-        Debug::log(ERR, "CDynamicPermissionManager::askForPermission: hyprland-qtutils likely missing, cannot ask! Disabling permission control...");
+        Log::logger->log(Log::ERR, "CDynamicPermissionManager::askForPermission: hyprland-guiutils likely missing, cannot ask! Disabling permission control...");
         rule->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
         return;
     }
 
     rule->m_promise = rule->m_dialogBox->open();
-    rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath](SP<CPromiseResult<std::string>> pr) {
+    rule->m_promise->then([r = WP<CDynamicPermissionRule>(rule), binaryPath, ALLOW, ALLOW_AND_REMEMBER, ALLOW_ONCE, DENY](SP<CPromiseResult<std::string>> pr) {
         if (!r)
             return;
 
         if (pr->hasError()) {
             // not reachable for now
-            Debug::log(TRACE, "CDynamicPermissionRule: error spawning dialog box");
+            Log::logger->log(Log::TRACE, "CDynamicPermissionRule: error spawning dialog box");
             if (r->m_promiseResolverForExternal)
                 r->m_promiseResolverForExternal->reject("error spawning dialog box");
             r->m_promiseResolverForExternal.reset();
@@ -228,17 +293,17 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 
         const std::string& result = pr->result();
 
-        Debug::log(TRACE, "CDynamicPermissionRule: user returned {}", result);
+        Log::logger->log(Log::TRACE, "CDynamicPermissionRule: user returned {}", result);
 
-        if (result.starts_with("Allow once"))
+        if (result.starts_with(ALLOW_ONCE))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
-        else if (result.starts_with("Deny")) {
+        else if (result.starts_with(DENY)) {
             r->m_allowMode  = PERMISSION_RULE_ALLOW_MODE_DENY;
             r->m_binaryPath = binaryPath;
-        } else if (result.starts_with("Allow and remember")) {
+        } else if (result.starts_with(ALLOW_AND_REMEMBER)) {
             r->m_allowMode  = PERMISSION_RULE_ALLOW_MODE_ALLOW;
             r->m_binaryPath = binaryPath;
-        } else if (result.starts_with("Allow"))
+        } else if (result.starts_with(ALLOW))
             r->m_allowMode = PERMISSION_RULE_ALLOW_MODE_ALLOW;
 
         if (r->m_promiseResolverForExternal)
@@ -250,7 +315,35 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
 }
 
 SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(wl_client* client, eDynamicPermissionType permission) {
-    auto rule = std::ranges::find_if(m_rules, [client, permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
+    auto rule = std::ranges::find_if(m_rules, [&client, &permission](const auto& e) { return e->m_client == client && e->m_type == permission; });
+    if (rule == m_rules.end())
+        return nullptr;
+
+    if (!(*rule)->m_promise)
+        return nullptr;
+
+    if ((*rule)->m_promiseResolverForExternal)
+        return nullptr;
+
+    return CPromise<eDynamicPermissionAllowMode>::make([rule](SP<CPromiseResolver<eDynamicPermissionAllowMode>> r) { (*rule)->m_promiseResolverForExternal = r; });
+}
+
+SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(const std::string& key, eDynamicPermissionType permission) {
+    auto rule = std::ranges::find_if(m_rules, [&key, &permission](const auto& e) { return e->m_keyString == key && e->m_type == permission; });
+    if (rule == m_rules.end())
+        return nullptr;
+
+    if (!(*rule)->m_promise)
+        return nullptr;
+
+    if ((*rule)->m_promiseResolverForExternal)
+        return nullptr;
+
+    return CPromise<eDynamicPermissionAllowMode>::make([rule](SP<CPromiseResolver<eDynamicPermissionAllowMode>> r) { (*rule)->m_promiseResolverForExternal = r; });
+}
+
+SP<CPromise<eDynamicPermissionAllowMode>> CDynamicPermissionManager::promiseFor(pid_t pid, const std::string& key, eDynamicPermissionType permission) {
+    auto rule = std::ranges::find_if(m_rules, [&pid, &permission, &key](const auto& e) { return e->m_pid == pid && e->m_keyString == key && e->m_type == permission; });
     if (rule == m_rules.end())
         return nullptr;
 

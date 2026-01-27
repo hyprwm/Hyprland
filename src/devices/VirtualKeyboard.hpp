@@ -11,17 +11,17 @@ class CVirtualKeyboard : public IKeyboard {
     virtual bool                      isVirtual();
     virtual SP<Aquamarine::IKeyboard> aq();
 
-    wl_client*                        getClient();
+    virtual wl_client*                getClient();
 
   private:
     CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb);
 
-    WP<CVirtualKeyboardV1Resource> keyboard;
+    WP<CVirtualKeyboardV1Resource> m_keyboard;
 
     struct {
         CHyprSignalListener destroy;
         CHyprSignalListener key;
         CHyprSignalListener modifiers;
         CHyprSignalListener keymap;
-    } listeners;
+    } m_listeners;
 };

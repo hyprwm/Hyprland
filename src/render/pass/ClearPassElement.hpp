@@ -21,5 +21,5 @@ class CClearPassElement : public IPassElement {
     }
 
   private:
-    SClearData data;
+    SClearData m_data;
 };

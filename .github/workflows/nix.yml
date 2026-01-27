@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        required: true
+        type: string
+        description: Command to run
+    secrets:
+      CACHIX_AUTH_TOKEN:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          # restore and save a cache using this key (per job)
+          primary-key: nix-${{ runner.os }}-${{ github.job }}
+          # if there's no cache hit, restore a cache by this prefix
+          restore-prefixes-first-match: nix-${{ runner.os }}
+          # collect garbage until the Nix store size (in bytes) is at most this number
+          # before trying to save a new cache
+          gc-max-store-size-linux: 5G
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: hyprland
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - run: ${{ inputs.command }}

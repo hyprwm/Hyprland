@@ -1,0 +1,47 @@
+name: Nix (Test)
+
+on:
+  workflow_call:
+    secrets:
+      CACHIX_AUTH_TOKEN:
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v31
+        with:
+          nix_conf: |
+            keep-env-derivations = true
+            keep-outputs = true
+
+      - name: Restore and save Nix store
+        uses: nix-community/cache-nix-action@v6
+        with:
+          # restore and save a cache using this key (per job)
+          primary-key: nix-${{ runner.os }}-${{ github.job }}
+          # if there's no cache hit, restore a cache by this prefix
+          restore-prefixes-first-match: nix-${{ runner.os }}
+          # collect garbage until the Nix store size (in bytes) is at most this number
+          # before trying to save a new cache
+          gc-max-store-size-linux: 5G
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: hyprland
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Run test VM
+        run: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"
+
+      - name: Check exit status
+        run: grep 0 result/exit_status
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: result

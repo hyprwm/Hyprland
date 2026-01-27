@@ -11,16 +11,21 @@ class CTexPassElement : public IPassElement {
     struct SRenderData {
         SP<CTexture>          tex;
         CBox                  box;
-        float                 a = 1.F;
+        float                 a     = 1.F;
+        float                 blurA = 1.F;
         CRegion               damage;
         int                   round         = 0;
         float                 roundingPower = 2.0f;
         bool                  flipEndFrame  = false;
         std::optional<Mat3x3> replaceProjection;
         CBox                  clipBox;
+        bool                  blur = false;
+        std::optional<float>  ignoreAlpha;
+        std::optional<bool>   blockBlurOptimization;
     };
 
     CTexPassElement(const SRenderData& data);
+    CTexPassElement(SRenderData&& data);
     virtual ~CTexPassElement() = default;
 
     virtual void                draw(const CRegion& damage);
@@ -35,5 +40,5 @@ class CTexPassElement : public IPassElement {
     }
 
   private:
-    SRenderData data;
+    SRenderData m_data;
 };

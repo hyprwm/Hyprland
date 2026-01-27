@@ -21,11 +21,11 @@ class CLayoutManager {
         LAYOUT_MASTER
     };
 
-    int                                               m_iCurrentLayoutID = LAYOUT_DWINDLE;
+    int                                               m_currentLayoutID = LAYOUT_DWINDLE;
 
-    CHyprDwindleLayout                                m_cDwindleLayout;
-    CHyprMasterLayout                                 m_cMasterLayout;
-    std::vector<std::pair<std::string, IHyprLayout*>> m_vLayouts;
+    CHyprDwindleLayout                                m_dwindleLayout;
+    CHyprMasterLayout                                 m_masterLayout;
+    std::vector<std::pair<std::string, IHyprLayout*>> m_layouts;
 };
 
 inline UP<CLayoutManager> g_pLayoutManager;

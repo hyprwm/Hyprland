@@ -65,7 +65,7 @@ class CSurfacePassElement : public IPassElement {
     }
 
   private:
-    SRenderData data;
+    SRenderData m_data;
 
     CBox        getTexBox();
 };

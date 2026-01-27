@@ -2,15 +2,15 @@
 
 First of all, please remember to:
 - Check that your issue is not a duplicate
-- Read the [FAQ](https://wiki.hyprland.org/FAQ/)
-- Read the [Configuring Page](https://wiki.hyprland.org/Configuring/)
+- Read the [FAQ](https://wiki.hypr.land/FAQ/)
+- Read the [Configuring Page](https://wiki.hypr.land/Configuring/)
 
 <br/>
 
 # Reporting suggestions
 Suggestions are welcome.
 
-Many features can be implemented using bash scripts and Hyprland sockets, read up on those [Here](https://wiki.hyprland.org/IPC). Please do not suggest features that can be implemented as such.
+Many features can be implemented using bash scripts and Hyprland sockets, read up on those [Here](https://wiki.hypr.land/IPC). Please do not suggest features that can be implemented as such.
 
 <br/>
 
@@ -70,7 +70,7 @@ A debug coredump provides more information for debugging and may speed up the pr
 
 Make sure you're on latest git. Run `git pull --recurse-submodules` to sync everything.
 
-1. [Compile Hyprland with debug mode](http://wiki.hyprland.org/Contributing-and-Debugging/#build-in-debug-mode)
+1. [Compile Hyprland with debug mode](http://wiki.hypr.land/Contributing-and-Debugging/#build-in-debug-mode)
 > Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
 
 2. `cd ~`

@@ -1,26 +1,30 @@
 #pragma once
 #include "../helpers/memory/Memory.hpp"
+
 class CWorkspace;
-class CWindow;
-class CLayerSurface;
 class CMonitor;
 
+namespace Desktop::View {
+    class CWindow;
+    class CLayerSurface;
+}
+
 /* Shared pointer to a workspace */
-typedef SP<CWorkspace> PHLWORKSPACE;
+using PHLWORKSPACE = SP<CWorkspace>;
 /* Weak pointer to a workspace */
-typedef WP<CWorkspace> PHLWORKSPACEREF;
+using PHLWORKSPACEREF = WP<CWorkspace>;
 
 /* Shared pointer to a window */
-typedef SP<CWindow> PHLWINDOW;
+using PHLWINDOW = SP<Desktop::View::CWindow>;
 /* Weak pointer to a window */
-typedef WP<CWindow> PHLWINDOWREF;
+using PHLWINDOWREF = WP<Desktop::View::CWindow>;
 
 /* Shared pointer to a layer surface */
-typedef SP<CLayerSurface> PHLLS;
+using PHLLS = SP<Desktop::View::CLayerSurface>;
 /* Weak pointer to a layer surface */
-typedef WP<CLayerSurface> PHLLSREF;
+using PHLLSREF = WP<Desktop::View::CLayerSurface>;
 
 /* Shared pointer to a monitor */
-typedef SP<CMonitor> PHLMONITOR;
+using PHLMONITOR = SP<CMonitor>;
 /* Weak pointer to a monitor */
-typedef WP<CMonitor> PHLMONITORREF;
+using PHLMONITORREF = WP<CMonitor>;

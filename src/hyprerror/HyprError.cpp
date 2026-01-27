@@ -4,56 +4,57 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
-#include "../managers/AnimationManager.hpp"
+#include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Animation;
 
 CHyprError::CHyprError() {
-    g_pAnimationManager->createAnimation(0.f, m_fFadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
     static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (!m_bIsCreated)
+        if (!m_isCreated)
             return;
 
-        g_pHyprRenderer->damageMonitor(g_pCompositor->m_lastMonitor.lock());
-        m_bMonitorChanged = true;
+        g_pHyprRenderer->damageMonitor(Desktop::focusState()->monitor());
+        m_monitorChanged = true;
     });
 
     static auto P2 = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any param) {
-        if (!m_bIsCreated)
+        if (!m_isCreated)
             return;
 
-        if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
-            g_pHyprRenderer->damageBox(m_bDamageBox);
+        if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
+            g_pHyprRenderer->damageBox(m_damageBox);
     });
 
-    m_pTexture = makeShared<CTexture>();
+    m_texture = makeShared<CTexture>();
 }
 
 void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
-    m_szQueued = message;
-    m_cQueued  = color;
+    m_queued      = message;
+    m_queuedColor = color;
 }
 
 void CHyprError::createQueued() {
-    if (m_bIsCreated)
-        m_pTexture->destroyTexture();
+    if (m_isCreated)
+        m_texture->destroyTexture();
 
-    m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+    m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
-    m_fFadeOpacity->setValueAndWarp(0.f);
-    *m_fFadeOpacity = 1.f;
+    m_fadeOpacity->setValueAndWarp(0.f);
+    *m_fadeOpacity = 1.f;
 
     const auto PMONITOR = g_pCompositor->m_monitors.front();
 
-    const auto SCALE = PMONITOR->scale;
+    const auto SCALE = PMONITOR->m_scale;
 
-    const auto FONTSIZE = std::clamp((int)(10.f * ((PMONITOR->vecPixelSize.x * SCALE) / 1920.f)), 8, 40);
+    const auto FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y);
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
 
     const auto CAIRO = cairo_create(CAIROSURFACE);
 
@@ -63,7 +64,7 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto   LINECOUNT    = Hyprlang::INT{1} + std::count(m_szQueued.begin(), m_szQueued.end(), '\n');
+    const auto   LINECOUNT    = Hyprlang::INT{1} + std::ranges::count(m_queued, '\n');
     static auto  LINELIMIT    = CConfigValue<Hyprlang::INT>("debug:error_limit");
     static auto  BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
 
@@ -76,13 +77,14 @@ void CHyprError::createQueued() {
 
     const double PAD = 10 * SCALE;
 
-    const double WIDTH  = PMONITOR->vecPixelSize.x - PAD * 2;
+    const double WIDTH  = PMONITOR->m_pixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * (VISLINECOUNT + EXTRALINES) + 3;
     const double RADIUS = PAD > HEIGHT / 2 ? HEIGHT / 2 - 1 : PAD;
     const double X      = PAD;
-    const double Y      = TOPBAR ? PAD : PMONITOR->vecPixelSize.y - HEIGHT - PAD;
+    const double Y      = TOPBAR ? PAD : PMONITOR->m_pixelSize.y - HEIGHT - PAD;
 
-    m_bDamageBox = {0, 0, (int)PMONITOR->vecPixelSize.x, (int)HEIGHT + (int)PAD * 2};
+    m_damageBox = {sc<int>(PMONITOR->m_position.x), sc<int>(PMONITOR->m_position.y + (TOPBAR ? 0 : PMONITOR->m_pixelSize.y - (HEIGHT + PAD * 2))), sc<int>(PMONITOR->m_pixelSize.x),
+                   sc<int>(HEIGHT + PAD * 2)};
 
     cairo_new_sub_path(CAIRO);
     cairo_arc(CAIRO, X + WIDTH - RADIUS, Y + RADIUS, RADIUS, -90 * DEGREES, 0 * DEGREES);
@@ -93,7 +95,7 @@ void CHyprError::createQueued() {
 
     cairo_set_source_rgba(CAIRO, 0.06, 0.06, 0.06, 1.0);
     cairo_fill_preserve(CAIRO);
-    cairo_set_source_rgba(CAIRO, m_cQueued.r, m_cQueued.g, m_cQueued.b, m_cQueued.a);
+    cairo_set_source_rgba(CAIRO, m_queuedColor.r, m_queuedColor.g, m_queuedColor.b, m_queuedColor.a);
     cairo_set_line_width(CAIRO, 2);
     cairo_stroke(CAIRO);
 
@@ -110,15 +112,17 @@ void CHyprError::createQueued() {
     pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
     pango_layout_set_font_description(layoutText, pangoFD);
+    pango_layout_set_width(layoutText, (WIDTH - 2 * (1 + RADIUS)) * PANGO_SCALE);
+    pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
 
     float yoffset     = TOPBAR ? 0 : Y - PAD;
     int   renderedcnt = 0;
-    while (!m_szQueued.empty() && renderedcnt < VISLINECOUNT) {
-        std::string current = m_szQueued.substr(0, m_szQueued.find('\n'));
-        if (const auto NEWLPOS = m_szQueued.find('\n'); NEWLPOS != std::string::npos)
-            m_szQueued = m_szQueued.substr(NEWLPOS + 1);
+    while (!m_queued.empty() && renderedcnt < VISLINECOUNT) {
+        std::string current = m_queued.substr(0, m_queued.find('\n'));
+        if (const auto NEWLPOS = m_queued.find('\n'); NEWLPOS != std::string::npos)
+            m_queued = m_queued.substr(NEWLPOS + 1);
         else
-            m_szQueued = "";
+            m_queued = "";
         cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
         pango_layout_set_text(layoutText, current.c_str(), -1);
         pango_cairo_show_layout(CAIRO, layoutText);
@@ -131,9 +135,8 @@ void CHyprError::createQueued() {
         pango_layout_set_text(layoutText, moreString.c_str(), -1);
         pango_cairo_show_layout(CAIRO, layoutText);
     }
-    m_szQueued = "";
 
-    m_fLastHeight = yoffset + PAD + 1 - (TOPBAR ? 0 : Y - PAD);
+    m_lastHeight = HEIGHT;
 
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
@@ -142,89 +145,96 @@ void CHyprError::createQueued() {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    m_pTexture->allocate();
-    glBindTexture(GL_TEXTURE_2D, m_pTexture->m_iTexID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_texture->allocate();
+    m_texture->bind();
+    m_texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
-#ifndef GLES2
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-#endif
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
     // delete cairo
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
 
-    m_bIsCreated = true;
-    m_szQueued   = "";
-    m_cQueued    = CHyprColor();
+    m_isCreated   = true;
+    m_queued      = "";
+    m_queuedColor = CHyprColor();
 
     g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->ID);
+    for (const auto& m : g_pCompositor->m_monitors) {
+        m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
+    }
+
+    PMONITOR->m_reservedArea.addType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR, Vector2D{0.0, *BAR_POSITION == 0 ? HEIGHT : 0.0}, Vector2D{0.0, *BAR_POSITION != 0 ? HEIGHT : 0.0});
+
+    for (const auto& m : g_pCompositor->m_monitors) {
+        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+    }
 }
 
 void CHyprError::draw() {
-    if (!m_bIsCreated || m_szQueued != "") {
-        if (m_szQueued != "")
+    if (!m_isCreated || !m_queued.empty()) {
+        if (!m_queued.empty())
             createQueued();
         return;
     }
 
-    if (m_bQueuedDestroy) {
-        if (!m_fFadeOpacity->isBeingAnimated()) {
-            if (m_fFadeOpacity->value() == 0.f) {
-                m_bQueuedDestroy = false;
-                m_pTexture->destroyTexture();
-                m_bIsCreated = false;
-                m_szQueued   = "";
+    if (m_queuedDestroy) {
+        if (!m_fadeOpacity->isBeingAnimated()) {
+            if (m_fadeOpacity->value() == 0.f) {
+                m_queuedDestroy = false;
+                m_texture->destroyTexture();
+                m_isCreated = false;
+                m_queued    = "";
 
                 for (auto& m : g_pCompositor->m_monitors) {
-                    g_pHyprRenderer->arrangeLayersForMonitor(m->ID);
+                    g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+                    m->m_reservedArea.resetType(Desktop::RESERVED_DYNAMIC_TYPE_ERROR_BAR);
                 }
 
                 return;
             } else {
-                m_fFadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
-                *m_fFadeOpacity = 0.f;
+                m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+                *m_fadeOpacity = 0.f;
             }
         }
     }
 
-    const auto PMONITOR = g_pHyprOpenGL->m_RenderData.pMonitor;
+    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
 
-    CBox       monbox = {0, 0, PMONITOR->vecPixelSize.x, PMONITOR->vecPixelSize.y};
+    CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
-    m_bDamageBox.x = (int)PMONITOR->vecPosition.x;
-    m_bDamageBox.y = (int)PMONITOR->vecPosition.y;
+    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    m_damageBox.x            = sc<int>(PMONITOR->m_position.x);
+    m_damageBox.y            = sc<int>(PMONITOR->m_position.y + (*BAR_POSITION == 0 ? 0 : PMONITOR->m_pixelSize.y - m_damageBox.height));
 
-    if (m_fFadeOpacity->isBeingAnimated() || m_bMonitorChanged)
-        g_pHyprRenderer->damageBox(m_bDamageBox);
+    if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
+        g_pHyprRenderer->damageBox(m_damageBox);
 
-    m_bMonitorChanged = false;
+    m_monitorChanged = false;
 
     CTexPassElement::SRenderData data;
-    data.tex = m_pTexture;
+    data.tex = m_texture;
     data.box = monbox;
-    data.a   = m_fFadeOpacity->value();
+    data.a   = m_fadeOpacity->value();
 
-    g_pHyprRenderer->m_sRenderPass.add(makeShared<CTexPassElement>(data));
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void CHyprError::destroy() {
-    if (m_bIsCreated)
-        m_bQueuedDestroy = true;
+    if (m_isCreated)
+        m_queuedDestroy = true;
     else
-        m_szQueued = "";
+        m_queued = "";
 }
 
 bool CHyprError::active() {
-    return m_bIsCreated;
+    return m_isCreated;
 }
 
 float CHyprError::height() {
-    return m_fLastHeight;
+    return m_lastHeight;
 }

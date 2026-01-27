@@ -3,7 +3,7 @@ hyprpm [<FLAGS>]... <ARGUMENT>
 
 <FLAGS> ::= (--notify | -n)             "Send a hyprland notification for important events (e.g. load fail)"
         |   (--help | -h)               "Show help menu"
-        |   (--verbose | -v)            "Enable too much loggin"
+        |   (--verbose | -v)            "Enable too much logging"
         |   (--force | -f)              "Force an operation ignoring checks (e.g. update -f)"
         |   (--no-shallow | -s)         "Disable shallow cloning of Hyprland sources"
         ;

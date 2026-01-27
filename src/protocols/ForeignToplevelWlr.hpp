@@ -4,7 +4,6 @@
 #include "WaylandProtocol.hpp"
 #include "wlr-foreign-toplevel-management-unstable-v1.hpp"
 
-class CWindow;
 class CMonitor;
 
 class CForeignToplevelHandleWlr {
@@ -16,10 +15,10 @@ class CForeignToplevelHandleWlr {
     wl_resource* res();
 
   private:
-    SP<CZwlrForeignToplevelHandleV1> resource;
-    PHLWINDOWREF                     pWindow;
-    bool                             closed        = false;
-    MONITORID                        lastMonitorID = MONITOR_INVALID;
+    SP<CZwlrForeignToplevelHandleV1> m_resource;
+    PHLWINDOWREF                     m_window;
+    bool                             m_closed        = false;
+    MONITORID                        m_lastMonitorID = MONITOR_INVALID;
 
     void                             sendMonitor(PHLMONITOR pMonitor);
     void                             sendState();
@@ -34,7 +33,7 @@ class CForeignToplevelWlrManager {
     void onMap(PHLWINDOW pWindow);
     void onTitle(PHLWINDOW pWindow);
     void onClass(PHLWINDOW pWindow);
-    void onMoveMonitor(PHLWINDOW pWindow);
+    void onMoveMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor);
     void onFullscreen(PHLWINDOW pWindow);
     void onNewFocus(PHLWINDOW pWindow);
     void onUnmap(PHLWINDOW pWindow);
@@ -42,13 +41,13 @@ class CForeignToplevelWlrManager {
     bool good();
 
   private:
-    SP<CZwlrForeignToplevelManagerV1>          resource;
-    bool                                       finished = false;
-    PHLWINDOWREF                               lastFocus; // READ-ONLY
+    SP<CZwlrForeignToplevelManagerV1>          m_resource;
+    bool                                       m_finished = false;
+    PHLWINDOWREF                               m_lastFocus; // READ-ONLY
 
     SP<CForeignToplevelHandleWlr>              handleForWindow(PHLWINDOW pWindow);
 
-    std::vector<WP<CForeignToplevelHandleWlr>> handles;
+    std::vector<WP<CForeignToplevelHandleWlr>> m_handles;
 };
 
 class CForeignToplevelWlrProtocol : public IWaylandProtocol {
@@ -65,8 +64,8 @@ class CForeignToplevelWlrProtocol : public IWaylandProtocol {
     bool windowValidForForeign(PHLWINDOW pWindow);
 
     //
-    std::vector<UP<CForeignToplevelWlrManager>> m_vManagers;
-    std::vector<SP<CForeignToplevelHandleWlr>>  m_vHandles;
+    std::vector<UP<CForeignToplevelWlrManager>> m_managers;
+    std::vector<SP<CForeignToplevelHandleWlr>>  m_handles;
 
     friend class CForeignToplevelWlrManager;
     friend class CForeignToplevelHandleWlr;

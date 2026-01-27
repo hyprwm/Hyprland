@@ -1,5 +1,5 @@
 #include "VersionKeeperManager.hpp"
-#include "../debug/Log.hpp"
+#include "../debug/log/Logger.hpp"
 #include "../macros.hpp"
 #include "../version.h"
 #include "../helpers/MiscFunctions.hpp"
@@ -31,26 +31,27 @@ CVersionKeeperManager::CVersionKeeperManager() {
     if (!LASTVER) {
         NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, "0.0.0");
         LASTVER = "0.0.0";
+        return;
     }
 
     if (!isVersionOlderThanRunning(*LASTVER)) {
-        Debug::log(LOG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);
+        Log::logger->log(Log::DEBUG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);
         return;
     }
 
     NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, HYPRLAND_VERSION);
 
     if (*PNONOTIFY) {
-        Debug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
+        Log::logger->log(Log::DEBUG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
         return;
     }
 
     if (!NFsUtils::executableExistsInPath("hyprland-update-screen")) {
-        Debug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
+        Log::logger->log(Log::ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
         return;
     }
 
-    m_bFired = true;
+    m_fired = true;
 
     g_pEventLoopManager->doLater([]() {
         CProcess proc("hyprland-update-screen", {"--new-version", HYPRLAND_VERSION});
@@ -81,5 +82,5 @@ bool CVersionKeeperManager::isVersionOlderThanRunning(const std::string& ver) {
 }
 
 bool CVersionKeeperManager::fired() {
-    return m_bFired;
+    return m_fired;
 }

@@ -18,15 +18,16 @@ enum eIcons : uint8_t {
 };
 
 enum eRenderStage : uint8_t {
-    RENDER_PRE = 0,      /* Before binding the gl context */
-    RENDER_BEGIN,        /* Just when the rendering begins, nothing has been rendered yet. Damage, current render data in opengl valid. */
-    RENDER_PRE_WINDOWS,  /* Pre windows, post bottom and overlay layers */
-    RENDER_POST_WINDOWS, /* Post windows, pre top/overlay layers, etc */
-    RENDER_LAST_MOMENT,  /* Last moment to render with the gl context */
-    RENDER_POST,         /* After rendering is finished, gl context not available anymore */
-    RENDER_POST_MIRROR,  /* After rendering a mirror */
-    RENDER_PRE_WINDOW,   /* Before rendering a window (any pass) Note some windows (e.g. tiled) may have 2 passes (main & popup) */
-    RENDER_POST_WINDOW,  /* After rendering a window (any pass) */
+    RENDER_PRE = 0,        /* Before binding the gl context */
+    RENDER_BEGIN,          /* Just when the rendering begins, nothing has been rendered yet. Damage, current render data in opengl valid. */
+    RENDER_POST_WALLPAPER, /* After background layer, but before bottom and overlay layers */
+    RENDER_PRE_WINDOWS,    /* Pre windows, post bottom and overlay layers */
+    RENDER_POST_WINDOWS,   /* Post windows, pre top/overlay layers, etc */
+    RENDER_LAST_MOMENT,    /* Last moment to render with the gl context */
+    RENDER_POST,           /* After rendering is finished, gl context not available anymore */
+    RENDER_POST_MIRROR,    /* After rendering a mirror */
+    RENDER_PRE_WINDOW,     /* Before rendering a window (any pass) Note some windows (e.g. tiled) may have 2 passes (main & popup) */
+    RENDER_POST_WINDOW,    /* After rendering a window (any pass) */
 };
 
 enum eInputType : uint8_t {
@@ -58,8 +59,8 @@ struct SDispatchResult {
     std::string error;
 };
 
-typedef int64_t                                              WINDOWID;
-typedef int64_t                                              MONITORID;
-typedef int64_t                                              WORKSPACEID;
+using WINDOWID    = int64_t;
+using MONITORID   = int64_t;
+using WORKSPACEID = int64_t;
 
-typedef std::function<void(void*, SCallbackInfo&, std::any)> HOOK_CALLBACK_FN;
+using HOOK_CALLBACK_FN = std::function<void(void*, SCallbackInfo&, std::any)>;

@@ -2,9 +2,9 @@
 
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
-#include "../defines.hpp"
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../helpers/signal/Signal.hpp"
 
 enum eFullscreenMode : int8_t {
     FSMODE_NONE       = 0,
@@ -13,14 +13,14 @@ enum eFullscreenMode : int8_t {
     FSMODE_MAX        = (1 << 2) - 1
 };
 
-class CWindow;
-
 class CWorkspace {
   public:
     static PHLWORKSPACE create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     // use create() don't use this
     CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
+
+    WP<CWorkspace> m_self;
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
@@ -56,43 +56,44 @@ class CWorkspace {
 
     bool        m_wasCreatedEmpty = true;
 
-    bool        m_persistent = false;
-
     // Inert: destroyed and invalid. If this is true, release the ptr you have.
-    bool             inert();
-    void             startAnim(bool in, bool left, bool instant = false);
-    void             setActive(bool on);
-    void             moveToMonitor(const MONITORID&);
-    MONITORID        monitorID();
-    PHLWINDOW        getLastFocusedWindow();
-    void             rememberPrevWorkspace(const PHLWORKSPACE& prevWorkspace);
-    std::string      getConfigName();
-    bool             matchesStaticSelector(const std::string& selector);
-    void             markInert();
-    SWorkspaceIDName getPrevWorkspaceIDName() const;
-    void             updateWindowDecos();
-    void             updateWindowData();
-    int              getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    int              getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
-    bool             hasUrgentWindow();
-    PHLWINDOW        getFirstWindow();
-    PHLWINDOW        getTopLeftWindow();
-    PHLWINDOW        getFullscreenWindow();
-    bool             isVisible();
-    bool             isVisibleNotCovered();
-    void             rename(const std::string& name = "");
-    void             forceReportSizesToWindows();
-    void             updateWindows();
+    bool        inert();
+    MONITORID   monitorID();
+    PHLWINDOW   getLastFocusedWindow();
+    std::string getConfigName();
+    bool        matchesStaticSelector(const std::string& selector);
+    void        markInert();
+    void        updateWindowDecos();
+    void        updateWindowData();
+    int         getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    bool        hasUrgentWindow();
+    PHLWINDOW   getFirstWindow();
+    PHLWINDOW   getTopLeftWindow();
+    PHLWINDOW   getFullscreenWindow();
+    bool        isVisible();
+    bool        isVisibleNotCovered();
+    void        rename(const std::string& name = "");
+    void        forceReportSizesToWindows();
+    void        updateWindows();
+    void        setPersistent(bool persistent);
+    bool        isPersistent();
+
+    struct {
+        CSignalT<> destroy;
+        CSignalT<> renamed;
+        CSignalT<> monitorChanged;
+        CSignalT<> activeChanged;
+    } m_events;
 
   private:
-    void init(PHLWORKSPACE self);
-    // Previous workspace ID and name is stored during a workspace change, allowing travel
-    // to the previous workspace.
-    SWorkspaceIDName     m_prevWorkspace;
+    void                 init(PHLWORKSPACE self);
 
     SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
     bool                 m_inert = true;
-    WP<CWorkspace>       m_self;
+
+    SP<CWorkspace>       m_selfPersistent; // for persistent workspaces.
+    bool                 m_persistent = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

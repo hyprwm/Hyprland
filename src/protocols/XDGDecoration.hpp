@@ -9,12 +9,19 @@ class CXDGDecoration {
   public:
     CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resource* toplevel);
 
+    uint32_t     mostRecentlySent      = 0;
+    uint32_t     mostRecentlyRequested = 0;
+
     bool         good();
     wl_resource* toplevelResource();
 
   private:
-    SP<CZxdgToplevelDecorationV1> resource;
-    wl_resource*                  pToplevelResource = nullptr; // READ-ONLY.
+    zxdgToplevelDecorationV1Mode  xdgDefaultModeCSD();
+    zxdgToplevelDecorationV1Mode  xdgModeOnRequestCSD(uint32_t modeRequestedByClient);
+    zxdgToplevelDecorationV1Mode  xdgModeOnReleaseCSD();
+
+    SP<CZxdgToplevelDecorationV1> m_resource;
+    wl_resource*                  m_toplevelResource = nullptr; // READ-ONLY.
 };
 
 class CXDGDecorationProtocol : public IWaylandProtocol {
@@ -29,8 +36,8 @@ class CXDGDecorationProtocol : public IWaylandProtocol {
     void onGetDecoration(CZxdgDecorationManagerV1* pMgr, uint32_t id, wl_resource* xdgToplevel);
 
     //
-    std::vector<UP<CZxdgDecorationManagerV1>>            m_vManagers;
-    std::unordered_map<wl_resource*, UP<CXDGDecoration>> m_mDecorations; // xdg_toplevel -> deco
+    std::vector<UP<CZxdgDecorationManagerV1>>            m_managers;
+    std::unordered_map<wl_resource*, UP<CXDGDecoration>> m_decorations; // xdg_toplevel -> deco
 
     friend class CXDGDecoration;
 };

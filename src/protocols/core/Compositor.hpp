@@ -13,34 +13,45 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
+#include "../types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
+#include "../types/ColorManagement.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
 
 class CWLOutputResource;
 class CMonitor;
-class CWLSurface;
 class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
 class CDRMSyncobjSurfaceResource;
+class CFifoResource;
+class CCommitTimerResource;
 class CColorManagementSurface;
-class CFrogColorManagementSurface;
 class CContentType;
 
 class CWLCallbackResource {
   public:
-    CWLCallbackResource(SP<CWlCallback> resource_);
+    CWLCallbackResource(SP<CWlCallback>&& resource_);
+    ~CWLCallbackResource() noexcept = default;
+    // disable copy
+    CWLCallbackResource(const CWLCallbackResource&)            = delete;
+    CWLCallbackResource& operator=(const CWLCallbackResource&) = delete;
 
-    bool good();
-    void send(const Time::steady_tp& now);
+    // allow move
+    CWLCallbackResource(CWLCallbackResource&&) noexcept            = default;
+    CWLCallbackResource& operator=(CWLCallbackResource&&) noexcept = default;
+
+    bool                 good();
+    void                 send(const Time::steady_tp& now);
 
   private:
-    SP<CWlCallback> resource;
+    SP<CWlCallback> m_resource;
 };
 
 class CWLRegionResource {
@@ -50,11 +61,11 @@ class CWLRegionResource {
 
     bool                         good();
 
-    CRegion                      region;
-    WP<CWLRegionResource>        self;
+    CRegion                      m_region;
+    WP<CWLRegionResource>        m_self;
 
   private:
-    SP<CWlRegion> resource;
+    SP<CWlRegion> m_resource;
 };
 
 class CWLSurfaceResource {
@@ -80,41 +91,51 @@ class CWLSurfaceResource {
     void                          resetRole();
 
     struct {
-        CSignal precommit; // before commit
-        CSignal commit;    // after commit
-        CSignal map;
-        CSignal unmap;
-        CSignal newSubsurface;
-        CSignal destroy;
-    } events;
+        CSignalT<>                          precommit;    // before commit
+        CSignalT<WP<SSurfaceState>>         stateCommit;  // when placing state in queue
+        CSignalT<WP<SSurfaceState>>         stateCommit2; // when placing state in queue used for commit timing so we apply fifo/fences first.
+        CSignalT<>                          commit;       // after commit
+        CSignalT<>                          map;
+        CSignalT<>                          unmap;
+        CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
+        CSignalT<>                          destroy;
+        CSignalT<SP<CMonitor>>              enter;
+        CSignalT<SP<CMonitor>>              leave;
+    } m_events;
 
-    SSurfaceState                          current, pending;
-    std::queue<UP<SSurfaceState>>          pendingStates;
+    SSurfaceState                          m_current;
+    SSurfaceState                          m_pending;
+    CSurfaceStateQueue                     m_stateQueue;
 
-    std::vector<SP<CWLCallbackResource>>   callbacks;
-    WP<CWLSurfaceResource>                 self;
-    WP<CWLSurface>                         hlSurface;
-    std::vector<PHLMONITORREF>             enteredOutputs;
-    bool                                   mapped = false;
-    std::vector<WP<CWLSubsurfaceResource>> subsurfaces;
-    SP<ISurfaceRole>                       role;
-    WP<CViewportResource>                  viewportResource;
-    WP<CDRMSyncobjSurfaceResource>         syncobj; // may not be present
-    WP<CColorManagementSurface>            colorManagement;
-    WP<CContentType>                       contentType;
+    WP<CWLSurfaceResource>                 m_self;
+    WP<Desktop::View::CWLSurface>          m_hlSurface;
+    std::vector<PHLMONITORREF>             m_enteredOutputs;
+    bool                                   m_mapped = false;
+    std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
+    SP<ISurfaceRole>                       m_role;
+    WP<CDRMSyncobjSurfaceResource>         m_syncobj;     // may not be present
+    WP<CFifoResource>                      m_fifo;        // may not be present
+    WP<CCommitTimerResource>               m_commitTimer; // may not be present
+    WP<CColorManagementSurface>            m_colorManagement;
+    WP<CContentType>                       m_contentType;
 
     void                                   breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data);
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
+    SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
+    void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
+    NColorManagement::PImageDescription    getPreferredImageDescription();
+    void                                   sortSubsurfaces();
+    bool                                   hasVisibleSubsurface();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface
     std::pair<SP<CWLSurfaceResource>, Vector2D> at(const Vector2D& localCoords, bool allowsInput = false);
 
   private:
-    SP<CWlSurface>         resource;
-    wl_client*             pClient = nullptr;
+    SP<CWlSurface>         m_resource;
+    wl_client*             m_client = nullptr;
 
     void                   destroy();
     void                   releaseBuffers(bool onlyCurrent = true);
@@ -134,7 +155,7 @@ class CWLCompositorResource {
     bool good();
 
   private:
-    SP<CWlCompositor> resource;
+    SP<CWlCompositor> m_resource;
 };
 
 class CWLCompositorProtocol : public IWaylandProtocol {
@@ -146,8 +167,8 @@ class CWLCompositorProtocol : public IWaylandProtocol {
     void         forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn);
 
     struct {
-        CSignal newSurface; // SP<CWLSurfaceResource>
-    } events;
+        CSignalT<SP<CWLSurfaceResource>> newSurface;
+    } m_events;
 
   private:
     void destroyResource(CWLCompositorResource* resource);
@@ -155,9 +176,9 @@ class CWLCompositorProtocol : public IWaylandProtocol {
     void destroyResource(CWLRegionResource* resource);
 
     //
-    std::vector<SP<CWLCompositorResource>> m_vManagers;
-    std::vector<SP<CWLSurfaceResource>>    m_vSurfaces;
-    std::vector<SP<CWLRegionResource>>     m_vRegions;
+    std::vector<SP<CWLCompositorResource>> m_managers;
+    std::vector<SP<CWLSurfaceResource>>    m_surfaces;
+    std::vector<SP<CWLRegionResource>>     m_regions;
 
     friend class CWLSurfaceResource;
     friend class CWLCompositorResource;

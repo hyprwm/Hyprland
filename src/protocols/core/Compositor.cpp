@@ -517,6 +517,15 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {
+    // TODO might be incorrect. needed for VRR with FIFO to avoid same buffer extra frames for second commit when it's used in this way:
+    // wp_fifo_v1#43.set_barrier()
+    // wp_fifo_v1#43.wait_barrier()
+    // wl_surface#3.commit()
+    // wp_fifo_v1#43.wait_barrier()
+    // wl_surface#3.commit()
+    if (!state.updated.all && m_mapped)
+        return;
+
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
 

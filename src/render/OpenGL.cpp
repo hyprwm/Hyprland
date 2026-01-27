@@ -1363,8 +1363,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
-        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, tex->magFilter);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
     }
 
     const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
@@ -1616,8 +1616,8 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
-        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, tex->magFilter);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
     }
 
     auto shader = useShader(m_shaders->frag[SH_FRAG_PASSTHRURGBA]);

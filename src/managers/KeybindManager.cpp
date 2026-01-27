@@ -2119,7 +2119,7 @@ SDispatchResult CKeybindManager::circleNext(std::string arg) {
                     &typeid(Layout::Tiled::CMasterAlgorithm),
                 };
 
-                if (std::ranges::contains(LAYOUTS_WITH_CYCLE_NEXT, &typeid(SPACE->algorithm()->tiledAlgo().get()))) {
+                if (std::ranges::contains(LAYOUTS_WITH_CYCLE_NEXT, &typeid(*SPACE->algorithm()->tiledAlgo().get()))) {
                     CKeybindManager::layoutmsg(PREV ? "cyclenext, b" : "cyclenext");
                     return {};
                 }

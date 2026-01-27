@@ -99,6 +99,8 @@ PHLWORKSPACE CSpace::workspace() const {
 
 void CSpace::toggleTargetFloating(SP<ITarget> t) {
     m_algorithm->setFloating(t, !t->floating());
+
+    recalculate();
 }
 
 CBox CSpace::targetPositionLocal(SP<ITarget> t) const {
@@ -124,6 +126,8 @@ SP<CAlgorithm> CSpace::algorithm() const {
 }
 
 void CSpace::recalculate() {
+    recheckWorkArea();
+
     if (m_algorithm)
         m_algorithm->recalculate();
 }

@@ -160,6 +160,7 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
     m_exts.EXT_create_context_robustness      = EGLEXTENSIONS.contains("EXT_create_context_robustness");
     m_exts.EXT_image_dma_buf_import           = EGLEXTENSIONS.contains("EXT_image_dma_buf_import");
     m_exts.EXT_image_dma_buf_import_modifiers = EGLEXTENSIONS.contains("EXT_image_dma_buf_import_modifiers");
+    m_exts.KHR_context_flush_control          = EGLEXTENSIONS.contains("EGL_KHR_context_flush_control");
 
     if (m_exts.IMG_context_priority) {
         Log::logger->log(Log::DEBUG, "EGL: IMG_context_priority supported, requesting high");
@@ -171,6 +172,12 @@ void CHyprOpenGLImpl::initEGL(bool gbm) {
         Log::logger->log(Log::DEBUG, "EGL: EXT_create_context_robustness supported, requesting lose on reset");
         attrs.push_back(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT);
         attrs.push_back(EGL_LOSE_CONTEXT_ON_RESET_EXT);
+    }
+
+    if (m_exts.KHR_context_flush_control) {
+        Log::logger->log(Log::DEBUG, "EGL: Using KHR_context_flush_control");
+        attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_KHR);
+        attrs.push_back(EGL_CONTEXT_RELEASE_BEHAVIOR_NONE_KHR); // or _FLUSH_KHR
     }
 
     auto attrsNoVer = attrs;

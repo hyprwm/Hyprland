@@ -172,6 +172,8 @@ struct SCurrentRenderData {
     bool                   useNearestNeighbor = false;
     bool                   blockScreenShader  = false;
     bool                   simplePass         = false;
+    bool                   transformDamage    = true;
+    bool                   noSimplify         = false;
 
     Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
@@ -305,8 +307,9 @@ class CHyprOpenGLImpl {
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
+    DRMFormat    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                           getDRMFormats();
+    std::vector<uint64_t>                             getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
     bool                                              initShaders();

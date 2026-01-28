@@ -6,16 +6,19 @@
 #include <filesystem>
 
 #include <hyprpaper_core-client.hpp>
+#include <hp_hyprtavern_core_v1-client.hpp>
 
 #include <hyprutils/string/VarList2.hpp>
 using namespace Hyprutils::String;
 
 using namespace std::string_literals;
 
-constexpr const char*          SOCKET_NAME = ".hyprpaper.sock";
-static SP<CCHyprpaperCoreImpl> g_coreImpl;
+constexpr const char*               SOCKET_NAME = ".hyprpaper.sock";
+static SP<CCHyprpaperCoreImpl>      g_coreImpl;
+static SP<CCHpHyprtavernCoreV1Impl> g_tavernImpl;
 
-constexpr const uint32_t       PROTOCOL_VERSION_SUPPORTED = 1;
+constexpr const uint32_t            HYPRPAPER_PROTOCOL_VERSION_SUPPORTED  = 1;
+constexpr const uint32_t            HYPRTAVERN_PROTOCOL_VERSION_SUPPORTED = 1;
 
 //
 static hyprpaperCoreWallpaperFitMode fitFromString(const std::string_view& sv) {
@@ -51,6 +54,128 @@ static std::expected<std::string, std::string> getFullPath(const std::string_vie
     }
 
     return resolvePath(sv);
+}
+
+static std::expected<void, std::string> makeRequestToSocket(SP<Hyprwire::IClientSocket> socket, const std::string& PATH, const std::string& MONITOR, const std::string_view& FIT) {
+    g_coreImpl = makeShared<CCHyprpaperCoreImpl>(HYPRPAPER_PROTOCOL_VERSION_SUPPORTED);
+
+    socket->addImplementation(g_coreImpl);
+
+    if (!socket->waitForHandshake())
+        return std::unexpected("can't send: wire handshake failed");
+
+    auto spec = socket->getSpec(g_coreImpl->protocol()->specName());
+
+    if (!spec)
+        return std::unexpected("can't send: hyprpaper doesn't have the spec?!");
+
+    auto manager = makeShared<CCHyprpaperCoreManagerObject>(socket->bindProtocol(g_coreImpl->protocol(), HYPRPAPER_PROTOCOL_VERSION_SUPPORTED));
+
+    if (!manager)
+        return std::unexpected("wire error: couldn't create manager");
+
+    auto wallpaper = makeShared<CCHyprpaperWallpaperObject>(manager->sendGetWallpaperObject());
+
+    if (!wallpaper)
+        return std::unexpected("wire error: couldn't create wallpaper object");
+
+    std::optional<std::string> err;
+
+    wallpaper->setFailed([&err](uint32_t code) { err = std::format("failed to set wallpaper, code {}", code); });
+
+    wallpaper->sendPath(PATH.c_str());
+    wallpaper->sendMonitorName(MONITOR.c_str());
+    if (!FIT.empty())
+        wallpaper->sendFitMode(fitFromString(FIT));
+
+    wallpaper->sendApply();
+
+    socket->roundtrip();
+
+    if (err)
+        return std::unexpected(*err);
+
+    return {};
+}
+
+static bool attemptHyprtavern(const std::string& PATH, const std::string& MONITOR, const std::string_view& FIT) {
+    // try to connect to hyprtavern
+    g_tavernImpl = makeShared<CCHpHyprtavernCoreV1Impl>(HYPRTAVERN_PROTOCOL_VERSION_SUPPORTED);
+
+    const auto RTDIR = getenv("XDG_RUNTIME_DIR");
+
+    auto       socketPath = RTDIR + "/hyprtavern/ht.sock"s;
+
+    auto       socket = Hyprwire::IClientSocket::open(socketPath);
+
+    if (!socket)
+        return false;
+
+    socket->addImplementation(g_tavernImpl);
+
+    if (!socket->waitForHandshake())
+        return false;
+
+    auto spec = socket->getSpec(g_tavernImpl->protocol()->specName());
+
+    if (!spec)
+        return false;
+
+    auto manager = makeShared<CCHpHyprtavernCoreManagerV1Object>(socket->bindProtocol(g_tavernImpl->protocol(), HYPRTAVERN_PROTOCOL_VERSION_SUPPORTED));
+
+    if (!manager)
+        return false;
+
+    // run a query, find all possible candidates
+    const auto WAYLAND_DISPLAY = getenv("WAYLAND_DISPLAY");
+
+    if (!WAYLAND_DISPLAY)
+        return false;
+
+    std::string              propStr = std::format("GLOBAL:WAYLAND_DISPLAY={}", WAYLAND_DISPLAY);
+
+    std::vector<const char*> props  = {propStr.c_str()};
+    std::vector<const char*> protos = {"hyprpaper_core"};
+
+    auto                     query = makeShared<CCHpHyprtavernBusQueryV1Object>(
+        manager->sendGetQueryObject(protos, HP_HYPRTAVERN_CORE_V1_BUS_QUERY_FILTER_MODE_ALL, props, HP_HYPRTAVERN_CORE_V1_BUS_QUERY_FILTER_MODE_ALL));
+
+    uint32_t candidateId = 0;
+
+    query->setResults([&candidateId](const std::vector<uint32_t>& vec) {
+        if (vec.empty())
+            return;
+
+        candidateId = vec.at(0);
+    });
+
+    socket->roundtrip();
+
+    if (candidateId == 0)
+        return false; // no hyprpaper-compatible thing in the tavern
+
+    auto handle = makeShared<CCHpHyprtavernBusObjectHandleV1Object>(manager->sendGetObjectHandle(candidateId));
+
+    if (!handle)
+        return false;
+
+    int newSocketFd = -1;
+
+    handle->setSocket([&newSocketFd](int fd) { newSocketFd = fd; });
+
+    handle->sendConnect();
+
+    socket->roundtrip();
+
+    if (newSocketFd < 0)
+        return false;
+
+    auto newSocket = Hyprwire::IClientSocket::open(newSocketFd);
+
+    if (!newSocket)
+        return false;
+
+    return !!makeRequestToSocket(newSocket, PATH, MONITOR, FIT);
 }
 
 std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::string_view& rq) {
@@ -92,6 +217,9 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
     if (!PATH)
         return std::unexpected(std::format("bad path: {}", PATH_RAW));
 
+    if (attemptHyprtavern(*PATH, MONITOR, FIT))
+        return {};
+
     auto socketPath = RTDIR + "/hypr/"s + HIS + "/"s + SOCKET_NAME;
 
     auto socket = Hyprwire::IClientSocket::open(socketPath);
@@ -99,50 +227,5 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
     if (!socket)
         return std::unexpected("can't send: failed to connect to hyprpaper (is it running?)");
 
-    g_coreImpl = makeShared<CCHyprpaperCoreImpl>(1);
-
-    socket->addImplementation(g_coreImpl);
-
-    if (!socket->waitForHandshake())
-        return std::unexpected("can't send: wire handshake failed");
-
-    auto spec = socket->getSpec(g_coreImpl->protocol()->specName());
-
-    if (!spec)
-        return std::unexpected("can't send: hyprpaper doesn't have the spec?!");
-
-    auto manager = makeShared<CCHyprpaperCoreManagerObject>(socket->bindProtocol(g_coreImpl->protocol(), PROTOCOL_VERSION_SUPPORTED));
-
-    if (!manager)
-        return std::unexpected("wire error: couldn't create manager");
-
-    auto wallpaper = makeShared<CCHyprpaperWallpaperObject>(manager->sendGetWallpaperObject());
-
-    if (!wallpaper)
-        return std::unexpected("wire error: couldn't create wallpaper object");
-
-    bool                       canExit = false;
-    std::optional<std::string> err;
-
-    wallpaper->setFailed([&canExit, &err](uint32_t code) {
-        canExit = true;
-        err     = std::format("failed to set wallpaper, code {}", code);
-    });
-    wallpaper->setSuccess([&canExit]() { canExit = true; });
-
-    wallpaper->sendPath(PATH->c_str());
-    wallpaper->sendMonitorName(MONITOR.c_str());
-    if (!FIT.empty())
-        wallpaper->sendFitMode(fitFromString(FIT));
-
-    wallpaper->sendApply();
-
-    while (!canExit) {
-        socket->dispatchEvents(true);
-    }
-
-    if (err)
-        return std::unexpected(*err);
-
-    return {};
+    return makeRequestToSocket(socket, *PATH, MONITOR, FIT);
 }

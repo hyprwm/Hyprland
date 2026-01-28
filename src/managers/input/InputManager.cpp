@@ -37,11 +37,12 @@
 #include "../../render/Renderer.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include "../../helpers/time/Time.hpp"
 #include "../../helpers/MiscFunctions.hpp"
+
+#include "../../layout/LayoutManager.hpp"
 
 #include "trackpad/TrackpadGestures.hpp"
 #include "../cursor/CursorShapeOverrideController.hpp"
@@ -369,7 +370,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         }
     }
 
-    g_pLayoutManager->getCurrentLayout()->onMouseMove(getMouseCoordsInternal());
+    g_layoutManager->moveMouse(getMouseCoordsInternal());
 
     // forced above all
     if (!g_pInputManager->m_exclusiveLSes.empty()) {
@@ -554,7 +555,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         m_foundSurfaceToFocus = foundSurface;
     }
 
-    if (m_currentlyDraggedWindow.lock() && pFoundWindow != m_currentlyDraggedWindow) {
+    if (g_layoutManager->dragController()->target() && pFoundWindow != g_layoutManager->dragController()->target()) {
         g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
         return;
     }
@@ -1936,7 +1937,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 
     if (w->hasPopupAt(mouseCoords))
         direction = BORDERICON_NONE;
-    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_currentlyHeldButtons.empty() && m_currentlyDraggedWindow.expired()))
+    else if (!boxFullGrabInput.containsPoint(mouseCoords) || (!m_currentlyHeldButtons.empty() && !g_layoutManager->dragController()->target()))
         direction = BORDERICON_NONE;
     else {
 

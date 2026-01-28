@@ -4,7 +4,6 @@
 #include "../utils/SetUtils.hpp"
 #include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
-#include "../../../managers/LayoutManager.hpp"
 #include "../../../managers/HookSystemManager.hpp"
 
 #include <hyprutils/string/String.hpp>

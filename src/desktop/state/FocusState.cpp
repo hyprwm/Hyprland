@@ -3,12 +3,14 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/LayoutManager.hpp"
 
 using namespace Desktop;
 
@@ -105,7 +107,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
         return;
 
-    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
+    // m_target on purpose, this avoids the group
+    if (pWindow)
+        g_layoutManager->bringTargetToTop(pWindow->m_target);
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -128,8 +132,6 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
         EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
-
-        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
 
         m_focusSurface.reset();
 
@@ -198,14 +200,12 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
 
     EMIT_HOOK_EVENT("activeWindow", pWindow);
 
-    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
-
     g_pInputManager->recheckIdleInhibitorStatus();
 
     if (*PFOLLOWMOUSE == 0)
         g_pInputManager->sendMotionEventsToFocused();
 
-    if (pWindow->m_groupData.pNextWindow)
+    if (pWindow->m_group)
         pWindow->deactivateGroupMembers();
 }
 

@@ -840,6 +840,9 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
                 break;
             }
 
+            g_pEventManager->postEvent(SHyprIPCEvent({.event = "kill", .data = std::format("{:x}", rc<uintptr_t>(PWINDOW.m_data))}));
+            EMIT_HOOK_EVENT("kill", PWINDOW);
+
             // kill the mf
             kill(PWINDOW->getPID(), SIGKILL);
             break;

@@ -914,8 +914,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             CKeybindManager::dpms("on");
     });
 
-    listener->button = pointer->m_pointerEvents.button.listen([](const IPointer::SButtonEvent& event) {
-        g_pInputManager->onMouseButton(event);
+    listener->button = pointer->m_pointerEvents.button.listen([weak = WP<IPointer>(pointer)](const IPointer::SButtonEvent& event) {
+        g_pInputManager->onMouseButton(event, weak.lock());
         PROTO::idle->onActivity();
     });
 

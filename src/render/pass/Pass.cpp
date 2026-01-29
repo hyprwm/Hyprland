@@ -56,7 +56,10 @@ void CRenderPass::simplify() {
 
         if (!opaque.empty()) {
             // scale and rounding is very particular so we have to use CBoxes scale and round functions
-            opaque = opaque.getExtents().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
+            if (opaque.getRects().size() == 1)
+                opaque = opaque.getExtents().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
+            else
+                opaque.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
 
             // if this intersects the liveBlur region, allow live blur to operate correctly.
             // do not occlude a border near it.

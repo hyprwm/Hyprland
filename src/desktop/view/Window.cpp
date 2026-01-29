@@ -2595,20 +2595,7 @@ void CWindow::commitWindow() {
 
     const auto PMONITOR = m_monitor.lock();
 
-    if (PMONITOR)
-        PMONITOR->debugLastPresentation(g_pSeatManager->m_isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
-
-    if (g_pSeatManager->m_isPointerFrameCommit) {
-        g_pSeatManager->m_isPointerFrameSkipped = false;
-        g_pSeatManager->m_isPointerFrameCommit  = false;
-    } else
-        g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, m_isX11 ? 1.0 / m_X11SurfaceScaledBy : 1.0);
-
-    if (g_pSeatManager->m_isPointerFrameSkipped) {
-        g_pPointerManager->sendStoredMovement();
-        g_pSeatManager->sendPointerFrame();
-        g_pSeatManager->m_isPointerFrameCommit = true;
-    }
+    g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, m_isX11 ? 1.0 / m_X11SurfaceScaledBy : 1.0);
 
     if (!m_isX11) {
         m_subsurfaceHead->recheckDamageForSubsurfaces();

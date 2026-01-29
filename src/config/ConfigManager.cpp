@@ -3021,7 +3021,7 @@ bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
-        case 2: return g_pHyprRenderer->isNvidia() && g_pHyprRenderer->isMgpu();
+        case 2: return g_pHyprRenderer->isNvidia() && (g_pHyprRenderer->isMgpu() || g_pCompositor->isVRRActiveOnAnyMonitor());
         default: break;
     }
 

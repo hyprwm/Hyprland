@@ -198,7 +198,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     }
 
     // manually schedule a frame
-    if (PMONITOR)
+    if (PMONITOR && !PMONITOR->inFullscreenMode())
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 

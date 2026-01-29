@@ -60,7 +60,7 @@ void CRenderPass::simplify() {
                 opaque = opaque.getExtents().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
             else {
                 CRegion scaledRegion;
-                opaque.forEachRect([&scaledRegion] (const auto& RECT) {
+                opaque.forEachRect([&scaledRegion](const auto& RECT) {
                     scaledRegion.add(CBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1).scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round());
                 });
                 opaque = scaledRegion;

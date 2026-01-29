@@ -275,6 +275,9 @@ SP<SColumnData> SScrollingData::atCenter() {
 }
 
 void SScrollingData::recalculate(bool forceInstant) {
+    if (algorithm->m_parent->space()->workspace()->m_hasFullscreenWindow)
+        return;
+
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
 
     const auto        MAX_WIDTH = maxWidth();

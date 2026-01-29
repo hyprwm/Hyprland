@@ -115,6 +115,10 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
     auto       LAST_SIZE    = target->lastFloatingSize();
     const auto CURRENT_SIZE = target->position().size();
 
+    // ignore positioning a dragged target
+    if (g_layoutManager->dragController()->target() == target)
+        return;
+
     if (LAST_SIZE.x < 5 || LAST_SIZE.y < 5) {
         const auto DESIRED = target->desiredGeometry();
         LAST_SIZE          = DESIRED ? DESIRED->size : DEFAULT_SIZE;

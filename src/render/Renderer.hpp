@@ -10,6 +10,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "../helpers/Fence.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -120,6 +121,11 @@ class CHyprRenderer {
     CRenderPass m_renderPass = {};
 
   private:
+    struct SBuffer {
+        SP<Aquamarine::IBuffer> buffer = nullptr;
+        CFence                  fence;
+    };
+
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
@@ -141,16 +147,16 @@ class CHyprRenderer {
     bool shouldBlur(PHLWINDOW w);
     bool shouldBlur(WP<Desktop::View::CPopup> p);
 
-    bool m_cursorHidden                           = false;
-    bool m_cursorHiddenByCondition                = false;
-    bool m_cursorHasSurface                       = false;
-    SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
-    eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
-    bool                    m_nvidia              = false;
-    bool                    m_intel               = false;
-    bool                    m_software            = false;
-    bool                    m_mgpu                = false;
+    bool m_cursorHidden                     = false;
+    bool m_cursorHiddenByCondition          = false;
+    bool m_cursorHasSurface                 = false;
+    SP<CRenderbuffer> m_currentRenderbuffer = nullptr;
+    SBuffer           m_currentBuffer       = {};
+    eRenderMode       m_renderMode          = RENDER_MODE_NORMAL;
+    bool              m_nvidia              = false;
+    bool              m_intel               = false;
+    bool              m_software            = false;
+    bool              m_mgpu                = false;
 
     struct {
         bool hiddenOnTouch    = false;

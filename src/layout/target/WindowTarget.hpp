@@ -31,6 +31,8 @@ namespace Layout {
       private:
         CWindowTarget(PHLWINDOW w);
 
+        Vector2D     clampSizeForDesired(const Vector2D& size) const;
+
         void         updatePos();
 
         PHLWINDOWREF m_window;

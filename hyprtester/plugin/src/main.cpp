@@ -54,6 +54,8 @@ static SDispatchResult snapMove(std::string in) {
 
     g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
 
+    PLASTWINDOW->layoutTarget()->setPositionGlobal(CBox{pos, size});
+
     return {};
 }
 

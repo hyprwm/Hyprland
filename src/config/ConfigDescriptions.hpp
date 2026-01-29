@@ -2030,6 +2030,47 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
+     * scrolling:
+     */
+
+    SConfigOptionDescription{
+        .value       = "scrolling:fullscreen_on_one_column",
+        .description = "when enabled, a single column on a workspace will always span the entire screen.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:column_width",
+        .description = "the default width of a column, [0.1 - 1.0].",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{.value = 0.5, .min = 0.1, .max = 1.0},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:focus_fit_method",
+        .description = "When a column is focused, what method should be used to bring it into view",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = {"center", "fit"}},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:follow_focus",
+        .description = "when a window is focused, should the layout move to bring it into view automatically",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:follow_debounce_ms",
+        .description = "time to debounce focus events for",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 1000},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:explicit_column_widths",
+        .description = "A comma-separated list of preconfigured widths for colresize +conf/-conf",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"0.333, 0.5, 0.667, 1.0"},
+    },
+
+    /*
      * Quirks
     */
 

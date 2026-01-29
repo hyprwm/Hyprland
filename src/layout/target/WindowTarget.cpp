@@ -216,6 +216,15 @@ void CWindowTarget::setFloating(bool x) {
     m_window->m_pinned     = false;
 }
 
+Vector2D CWindowTarget::clampSizeForDesired(const Vector2D& size) const {
+    Vector2D newSize = size;
+    if (const auto m = m_window->minSize(); m)
+        newSize = newSize.clamp(*m);
+    if (const auto m = m_window->maxSize(); m)
+        newSize = newSize.clamp(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}, *m);
+    return newSize;
+}
+
 std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeometry() {
 
     SGeometryRequested requested;
@@ -223,7 +232,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     CBox               DESIRED_GEOM = g_pXWaylandManager->getGeometryForWindow(m_window.lock());
     const auto         PMONITOR     = m_window->m_monitor.lock();
 
-    requested.size = DESIRED_GEOM.size();
+    requested.size = clampSizeForDesired(DESIRED_GEOM.size());
 
     if (m_window->m_isX11) {
         Vector2D xy   = {DESIRED_GEOM.x, DESIRED_GEOM.y};
@@ -234,7 +243,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     const auto STOREDSIZE = m_window->m_ruleApplicator->persistentSize().valueOrDefault() ? g_pConfigManager->getStoredFloatingSize(m_window.lock()) : std::nullopt;
 
     if (STOREDSIZE)
-        requested.size = *STOREDSIZE;
+        requested.size = clampSizeForDesired(*STOREDSIZE);
 
     if (!PMONITOR) {
         Log::logger->log(Log::ERR, "{:m} has an invalid monitor in desiredGeometry!", m_window.lock());
@@ -245,18 +254,17 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         const auto SURFACE = m_window->wlSurface()->resource();
 
         if (SURFACE->m_current.size.x > 5 && SURFACE->m_current.size.y > 5) {
-            const auto DESIRED_SIZE = SURFACE->m_current.size;
-
             // center on mon and call it a day
             requested.pos.reset();
-            requested.size = DESIRED_SIZE;
+            requested.size = clampSizeForDesired(SURFACE->m_current.size);
             return requested;
         }
 
         if (m_window->m_isX11 && m_window->isX11OverrideRedirect()) {
             // check OR windows, they like their shit
-            const auto SIZE = m_window->m_xwaylandSurface->m_geometry.w > 0 && m_window->m_xwaylandSurface->m_geometry.h > 0 ? m_window->m_xwaylandSurface->m_geometry.size() :
-                                                                                                                               Vector2D{600, 400};
+            const auto SIZE = clampSizeForDesired(m_window->m_xwaylandSurface->m_geometry.w > 0 && m_window->m_xwaylandSurface->m_geometry.h > 0 ?
+                                                      m_window->m_xwaylandSurface->m_geometry.size() :
+                                                      Vector2D{600, 400});
 
             if (m_window->m_xwaylandSurface->m_geometry.x != 0 && m_window->m_xwaylandSurface->m_geometry.y != 0) {
                 requested.size = SIZE;

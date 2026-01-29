@@ -55,7 +55,8 @@ void CRenderPass::simplify() {
         auto opaque = el->element->opaqueRegion();
 
         if (!opaque.empty()) {
-            opaque.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+            // scale and rounding is very particular so we have to use CBoxes scale and round functions
+            opaque = opaque.getExtents().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
 
             // if this intersects the liveBlur region, allow live blur to operate correctly.
             // do not occlude a border near it.

@@ -39,7 +39,8 @@ enum eMouseBindMode : int8_t {
     MBIND_MOVE               = 0,
     MBIND_RESIZE             = 1,
     MBIND_RESIZE_BLOCK_RATIO = 2,
-    MBIND_RESIZE_FORCE_RATIO = 3
+    MBIND_RESIZE_FORCE_RATIO = 3,
+    MBIND_SWAP               = 4
 };
 
 enum eBorderIconDirection : uint8_t {

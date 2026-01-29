@@ -644,6 +644,27 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
 
         DRAGGINGWINDOW->m_position = newPos;
 
+    } else if (g_pInputManager->m_dragMode == MBIND_SWAP) {
+        // Check if we're hovering over a different window
+        const auto PWINDOWUNDERCURSOR =
+            g_pCompositor->vectorToWindowUnified(mousePos, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+
+        if (PWINDOWUNDERCURSOR && PWINDOWUNDERCURSOR != DRAGGINGWINDOW && !PWINDOWUNDERCURSOR->isFullscreen()) {
+            // Perform atomic swap every time we detect a different window under cursor
+            switchWindows(DRAGGINGWINDOW, PWINDOWUNDERCURSOR);
+            Log::logger->log(Log::DEBUG, "Swapped windows during drag");
+        } else if (!PWINDOWUNDERCURSOR) {
+            // No window under cursor - check if we're hovering over an empty workspace on a different monitor
+            const auto PMONITOR   = g_pCompositor->getMonitorFromCursor();
+            const auto PWORKSPACE = PMONITOR->m_activeWorkspace;
+
+            if (PWORKSPACE && PWORKSPACE->m_id != DRAGGINGWINDOW->workspaceID() && PWORKSPACE->getWindows() == 0) {
+                // Move window to empty workspace
+                g_pCompositor->moveWindowToWorkspaceSafe(DRAGGINGWINDOW, PWORKSPACE);
+                Log::logger->log(Log::DEBUG, "Moved window to empty workspace during swap drag");
+            }
+        }
+
     } else if (g_pInputManager->m_dragMode == MBIND_RESIZE || g_pInputManager->m_dragMode == MBIND_RESIZE_FORCE_RATIO || g_pInputManager->m_dragMode == MBIND_RESIZE_BLOCK_RATIO) {
         if (DRAGGINGWINDOW->m_isFloating) {
 
@@ -723,14 +744,17 @@ void IHyprLayout::onMouseMove(const Vector2D& mousePos) {
     Vector2D middle = DRAGGINGWINDOW->m_realPosition->value() + DRAGGINGWINDOW->m_realSize->value() / 2.f;
 
     // and check its monitor
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
+    // Skip this for MBIND_SWAP - the swap/move logic handles workspace changes explicitly
+    if (g_pInputManager->m_dragMode != MBIND_SWAP) {
+        const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
 
-    if (PMONITOR && !SPECIAL) {
-        DRAGGINGWINDOW->m_monitor = PMONITOR;
-        DRAGGINGWINDOW->moveToWorkspace(PMONITOR->m_activeWorkspace);
-        DRAGGINGWINDOW->updateGroupOutputs();
+        if (PMONITOR && !SPECIAL) {
+            DRAGGINGWINDOW->m_monitor = PMONITOR;
+            DRAGGINGWINDOW->moveToWorkspace(PMONITOR->m_activeWorkspace);
+            DRAGGINGWINDOW->updateGroupOutputs();
 
-        DRAGGINGWINDOW->updateToplevel();
+            DRAGGINGWINDOW->updateToplevel();
+        }
     }
 
     DRAGGINGWINDOW->updateWindowDecos();
@@ -1032,6 +1056,9 @@ bool IHyprLayout::updateDragWindow() {
             DRAGGINGWINDOW->m_isFloating    = true;
             DRAGGINGWINDOW->m_draggingTiled = true;
         }
+    } else if (!DRAGGINGWINDOW->m_isFloating && g_pInputManager->m_dragMode == MBIND_SWAP) {
+        // For swap mode, don't float the window - keep it tiled
+        // Just initialize the drag positions
     }
 
     m_beginDragXY         = g_pInputManager->getMouseCoordsInternal();

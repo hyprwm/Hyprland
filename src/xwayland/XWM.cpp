@@ -33,6 +33,8 @@ static int       onX11Event(int fd, uint32_t mask, void* data) {
     return g_pXWayland->m_wm->onEvent(fd, mask);
 }
 
+static int writeDataSource(int fd, uint32_t mask, void* data);
+
 struct SFreeDeleter {
     void operator()(void* ptr) const {
         std::free(ptr); // NOLINT(cppcoreguidelines-no-malloc)
@@ -648,19 +650,33 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
 }
 
 bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
-    if (e->state != XCB_PROPERTY_DELETE)
-        return false;
-
     for (auto* sel : {&m_clipboard, &m_primarySelection, &m_dndSelection}) {
         auto it = std::ranges::find_if(sel->transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
-        if (it != sel->transfers.end()) {
-            if (!(*it)->getIncomingSelectionProp(true)) {
-                sel->transfers.erase(it);
-                return false;
+        if (it == sel->transfers.end())
+            continue;
+
+        auto& transfer = *it;
+
+        if (e->state == XCB_PROPERTY_NEW_VALUE) {
+            if (!transfer->incremental) {
+                getTransferData(*sel);
+                return true;
             }
+
+            if (!transfer->getIncomingSelectionProp(true) || xcb_get_property_value_length(transfer->propertyReply) == 0) {
+                sel->transfers.erase(it);
+                return true;
+            }
+
+            int result = sel->onWrite();
+
+            if (result == 1 && !transfer->eventSource) {
+                transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, transfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, sel);
+            }
+        } else if (e->state == XCB_PROPERTY_DELETE) {
             getTransferData(*sel);
-            return true;
         }
+        return true;
     }
 
     return false;
@@ -1620,6 +1636,11 @@ int SXSelection::onWrite() {
             free(transfer->propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
             transfer->propertyReply = nullptr;
             transfer->propertyStart = 0;
+            if (transfer->eventSource) {
+                wl_event_source_remove(transfer->eventSource);
+                transfer->eventSource = nullptr;
+            }
+            return 0;
         }
     }
 

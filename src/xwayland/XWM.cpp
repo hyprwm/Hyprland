@@ -1074,8 +1074,8 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     if (surf->m_fullscreen)
         props.push_back(HYPRATOMS["_NET_WM_STATE_FULLSCREEN"]);
     if (surf->m_maximized) {
-        props.push_back(HYPRATOMS["NET_WM_STATE_MAXIMIZED_VERT"]);
-        props.push_back(HYPRATOMS["NET_WM_STATE_MAXIMIZED_HORZ"]);
+        props.push_back(HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"]);
+        props.push_back(HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"]);
     }
     if (surf->m_minimized)
         props.push_back(HYPRATOMS["_NET_WM_STATE_HIDDEN"]);

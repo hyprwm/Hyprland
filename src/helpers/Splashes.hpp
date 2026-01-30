@@ -101,6 +101,7 @@ namespace NSplashes {
         "Demons come at night and they bring the end",
         "All I wanna say is that they don't really care about us",
         "Has he lost his mind? Can he see or is he blind?",
+        "\"Have a lot of fun!\" - openSUSE",
         // clang-format on
     };
 

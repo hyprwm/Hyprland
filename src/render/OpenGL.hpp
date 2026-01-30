@@ -361,6 +361,7 @@ class CHyprOpenGLImpl {
         bool EXT_read_format_bgra               = false;
         bool EXT_image_dma_buf_import           = false;
         bool EXT_image_dma_buf_import_modifiers = false;
+        bool KHR_context_flush_control          = false;
         bool KHR_display_reference              = false;
         bool IMG_context_priority               = false;
         bool EXT_create_context_robustness      = false;

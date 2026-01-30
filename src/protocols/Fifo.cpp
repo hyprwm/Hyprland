@@ -31,8 +31,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (!m_surface->m_current.barrierSet) {
             // that might mean an empty commit with a barrier_set alone
             static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
-            if (*PPEND && !m_surface->m_pending.fifoScheduled)
-                m_surface->m_pending.fifoScheduled = scheduleFrame();
+            if (!m_surface->m_pending.fifoScheduled)
+                m_surface->m_pending.fifoScheduled = checkMonitors(*PPEND);
 
             return;
         }
@@ -50,8 +50,11 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         // this feels wrong, but if we have no pending frames, presented might never come because
         // we are waiting on the barrier to unlock and no damage is around.
         // unlock on timeout instead?
-        if (*PPEND && !state->fifoScheduled)
-            state->fifoScheduled = scheduleFrame();
+        if (!state->fifoScheduled)
+            state->fifoScheduled = checkMonitors(*PPEND);
+
+        if (!state->fifoScheduled)
+            return;
 
         // only lock once its mapped.
         if (m_surface->m_mapped)
@@ -72,7 +75,7 @@ void CFifoResource::presented() {
     m_surface->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 }
 
-bool CFifoResource::scheduleFrame() {
+bool CFifoResource::checkMonitors(bool needsSchedule) {
     if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
         for (auto& m : g_pCompositor->m_monitors) {
             if (!m || !m->m_enabled)
@@ -83,8 +86,8 @@ bool CFifoResource::scheduleFrame() {
                 if (m->m_tearingState.activelyTearing)
                     return false; // dont fifo lock on tearing.
 
-                g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-                return true;
+                if (needsSchedule)
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
             }
         }
     } else {
@@ -95,12 +98,12 @@ bool CFifoResource::scheduleFrame() {
             if (m->m_tearingState.activelyTearing)
                 return false; // dont fifo lock on tearing.
 
-            g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-            return true;
+            if (needsSchedule)
+                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
         }
     }
 
-    return false;
+    return true;
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {

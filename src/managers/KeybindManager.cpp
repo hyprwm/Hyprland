@@ -1538,7 +1538,12 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     } else if (STICKS(PLASTWINDOW->m_position.y, PMONITOR->m_position.y) && STICKS(PLASTWINDOW->m_size.y, PMONITOR->m_size.y))
         return {.success = false, .error = "move does not make sense, would return back"};
 
-    CBox box = PMONITOR->logicalBox();
+    const auto PWORKSPACE = PLASTWINDOW->m_pWorkspace.lock();
+
+    CBox       box = g_pLayoutManager->getCurrentLayout()->workAreaOnWorkspace(PWORKSPACE);
+
+    if (box.width <= 0 || box.height <= 0)
+        box = PMONITOR->logicalBox();
     switch (arg) {
         case 'l':
             box.x += box.w;

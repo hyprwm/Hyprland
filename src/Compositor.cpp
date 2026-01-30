@@ -19,6 +19,7 @@
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
+#include "managers/screenshare/ScreenshareManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -719,6 +720,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Starting XWayland");
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_wantsXwayland);
+
+            Log::logger->log(Log::DEBUG, "Starting ScreenshareManager");
+            g_pScreenshareManager = makeUnique<CScreenshareManager>();
         } break;
         default: UNREACHABLE();
     }

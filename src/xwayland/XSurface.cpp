@@ -42,6 +42,33 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_x
         free(reply); // NOLINT(cppcoreguidelines-no-malloc)
     }
 
+    auto  listCookie = xcb_list_properties(g_pXWayland->m_wm->getConnection(), m_xID);
+    auto* listReply  = xcb_list_properties_reply(g_pXWayland->m_wm->getConnection(), listCookie, nullptr);
+    auto  getCookie  = xcb_get_property(g_pXWayland->m_wm->getConnection(), 0, m_xID, HYPRATOMS["WM_PROTOCOLS"], XCB_ATOM_ATOM, 0, 32);
+    auto* getReply   = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), getCookie, nullptr);
+
+    if (listReply) {
+        const auto* atoms = xcb_list_properties_atoms(listReply);
+        auto        len   = xcb_list_properties_atoms_length(listReply);
+
+        for (auto i = 0; i < len; ++i) {
+            m_supportedProps[atoms[i]] = true;
+        }
+
+        free(listReply);
+    }
+
+    if (getReply) {
+        const auto* protocols = sc<xcb_atom_t*>(xcb_get_property_value(getReply));
+        const auto  len       = xcb_get_property_value_length(getReply) / sizeof(xcb_atom_t);
+
+        for (auto i = 0u; i < len; ++i) {
+            m_supportedProps[protocols[i]] = true;
+        }
+
+        free(getReply);
+    }
+
     m_events.resourceChange.listenStatic([this] { ensureListeners(); });
 }
 
@@ -226,10 +253,15 @@ void CXWaylandSurface::restackToTop() {
 }
 
 void CXWaylandSurface::close() {
-    xcb_client_message_data_t msg = {};
-    msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
-    msg.data32[1]                 = XCB_CURRENT_TIME;
-    g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
+    if (m_supportedProps[HYPRATOMS["WM_DELETE_WINDOW"]]) {
+        xcb_client_message_data_t msg = {};
+        msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
+        msg.data32[1]                 = XCB_CURRENT_TIME;
+        g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
+    } else {
+        xcb_kill_client(g_pXWayland->m_wm->getConnection(), m_self->m_xID);
+        xcb_flush(g_pXWayland->m_wm->getConnection());
+    }
 }
 
 void CXWaylandSurface::setWithdrawn(bool withdrawn_) {

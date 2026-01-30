@@ -45,6 +45,10 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
 
     if (target->window()) {
         const auto WINDOW = target->window();
+
+        // set this here so that expressions can use it. This could be wrong of course.
+        WINDOW->m_realPosition->setValueAndWarp(DESIRED_GEOM ? DESIRED_GEOM->size : Vector2D{});
+
         if (!WINDOW->m_ruleApplicator->static_.size.empty()) {
             const auto COMPUTED = WINDOW->calculateExpression(WINDOW->m_ruleApplicator->static_.size);
             if (!COMPUTED)
@@ -52,6 +56,9 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             else {
                 windowGeometry.w = COMPUTED->x;
                 windowGeometry.h = COMPUTED->y;
+
+                // update for pos to work with size.
+                WINDOW->m_realPosition->setValueAndWarp(*COMPUTED);
             }
         }
 
@@ -128,10 +135,14 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
     if (std::abs(LAST_SIZE.x - CURRENT_SIZE.x) < 5 && std::abs(LAST_SIZE.y - CURRENT_SIZE.y) < 5)
         LAST_SIZE += Vector2D{10, 10};
 
-    const auto CURRENT_CENTER = target->position().middle();
+    // calculate new position
+    const auto THIS_MON_POS = m_parent->space()->workspace()->m_monitor->m_position;
+    const auto OLD_POS      = target->position().pos();
+    const auto MON_FROM_OLD = g_pCompositor->getMonitorFromVector(OLD_POS);
+    const auto NEW_POS      = MON_FROM_OLD ? OLD_POS - MON_FROM_OLD->m_position + THIS_MON_POS : OLD_POS;
 
     // put around the current center, fit in workArea
-    target->setPositionGlobal(fitBoxInWorkArea(CBox{CURRENT_CENTER - LAST_SIZE / 2.F, LAST_SIZE}, target));
+    target->setPositionGlobal(fitBoxInWorkArea(CBox{NEW_POS, LAST_SIZE}, target));
 }
 
 CBox CDefaultFloatingAlgorithm::fitBoxInWorkArea(const CBox& box, SP<ITarget> t) {

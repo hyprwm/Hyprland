@@ -2250,7 +2250,13 @@ void CWindow::commitWindow() {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);
 
-        const Vector2D predSize = !m_ruleApplicator->static_.floating.value_or(false) ? g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{}) : Vector2D{};
+        const Vector2D predSize = !m_ruleApplicator->static_.floating.value_or(false) // no float rule
+                && !m_isFloating                                                      // not floating
+                && !parent()                                                          // no parents
+                && !g_pXWaylandManager->shouldBeFloated(m_self.lock(), true)          // should not be floated
+            ?
+            g_layoutManager->predictSizeForNewTiledTarget().value_or(Vector2D{}) :
+            Vector2D{};
 
         Log::logger->log(Log::DEBUG, "Layout predicts size {} for {}", predSize, m_self.lock());
 

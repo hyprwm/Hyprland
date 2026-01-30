@@ -1491,22 +1491,30 @@ Vector2D CHyprMasterLayout::predictSizeForNewWindowTiled() {
     if (!Desktop::focusState()->monitor())
         return {};
 
-    const int NODES = getNodesOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
+    const auto WORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
+    const auto WORKAREA  = workAreaOnWorkspace(WORKSPACE);
+    const int  NODES     = getNodesOnWorkspace(WORKSPACE->m_id);
 
     if (NODES <= 0)
-        return Desktop::focusState()->monitor()->m_size;
+        return WORKAREA.size();
 
-    const auto MASTER = getMasterNodeOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
+    const auto MASTER = getMasterNodeOnWorkspace(WORKSPACE->m_id);
     if (!MASTER) // wtf
         return {};
 
     if (*PNEWSTATUS == "master") {
         return MASTER->size;
     } else {
-        const auto SLAVES = NODES - getMastersOnWorkspace(Desktop::focusState()->monitor()->m_activeWorkspace->m_id);
+        const auto SLAVES = NODES - getMastersOnWorkspace(WORKSPACE->m_id);
+        double     width  = WORKAREA.size().x;
+        if (SLAVES > 0)
+            width -= MASTER->size.x;
+        else
+            width -= (MASTER->size.x * MASTER->percMaster);
 
-        // TODO: make this better
-        return {Desktop::focusState()->monitor()->m_size.x - MASTER->size.x, Desktop::focusState()->monitor()->m_size.y / (SLAVES + 1)};
+        const double HEIGHT = WORKAREA.size().y / (SLAVES + 1);
+
+        return {width, HEIGHT};
     }
 
     return {};

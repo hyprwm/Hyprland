@@ -49,10 +49,13 @@ class CHLBufferReference {
   public:
     CHLBufferReference();
     CHLBufferReference(const CHLBufferReference& other);
+    CHLBufferReference(CHLBufferReference&& other) noexcept;
     CHLBufferReference(SP<IHLBuffer> buffer);
     ~CHLBufferReference();
 
     CHLBufferReference& operator=(const CHLBufferReference& other);
+    CHLBufferReference& operator=(CHLBufferReference&& other);
+
     bool                operator==(const CHLBufferReference& other) const;
     bool                operator==(const SP<IHLBuffer>& other) const;
     bool                operator==(const SP<Aquamarine::IBuffer>& other) const;

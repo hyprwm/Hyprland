@@ -89,7 +89,7 @@ class CInputManager {
 
     void               onMouseMoved(IPointer::SMotionEvent);
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
-    void               onMouseButton(IPointer::SButtonEvent);
+    void               onMouseButton(IPointer::SButtonEvent, SP<IPointer>);
     void               onMouseWheel(IPointer::SAxisEvent, SP<IPointer> pointer = nullptr);
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
@@ -238,7 +238,7 @@ class CInputManager {
     void               setupKeyboard(SP<IKeyboard> keeb);
     void               setupMouse(SP<IPointer> mauz);
 
-    void               processMouseDownNormal(const IPointer::SButtonEvent& e);
+    void               processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer>);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
 
     bool               cursorImageUnlocked();

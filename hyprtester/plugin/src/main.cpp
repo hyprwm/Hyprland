@@ -6,8 +6,6 @@
 #define private public
 #include <src/config/ConfigManager.hpp>
 #include <src/config/ConfigDescriptions.hpp>
-#include <src/layout/IHyprLayout.hpp>
-#include <src/managers/LayoutManager.hpp>
 #include <src/managers/input/InputManager.hpp>
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
@@ -15,6 +13,7 @@
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
+#include <src/layout/LayoutManager.hpp>
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -53,8 +52,9 @@ static SDispatchResult snapMove(std::string in) {
     Vector2D pos  = PLASTWINDOW->m_realPosition->goal();
     Vector2D size = PLASTWINDOW->m_realSize->goal();
 
-    g_pLayoutManager->getCurrentLayout()->performSnap(pos, size, PLASTWINDOW, MBIND_MOVE, -1, size);
-    *PLASTWINDOW->m_realPosition = pos.round();
+    g_layoutManager->performSnap(pos, size, PLASTWINDOW->layoutTarget(), MBIND_MOVE, -1, size);
+
+    PLASTWINDOW->layoutTarget()->setPositionGlobal(CBox{pos, size});
 
     return {};
 }

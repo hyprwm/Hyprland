@@ -277,8 +277,11 @@ void CLayerSurface::onUnmap() {
     //                                vvvvvvvvvvvvv if there is a last focus and the last focus is not keyboard focusable, fallback to window
     if (WASLASTFOCUS ||
         (Desktop::focusState()->surface() && Desktop::focusState()->surface()->m_hlSurface && !Desktop::focusState()->surface()->m_hlSurface->keyboardFocusable())) {
-        if (!g_pInputManager->refocusLastWindow(PMONITOR))
-            g_pInputManager->refocus();
+        if (!g_pInputManager->refocusLastWindow(PMONITOR)) {
+            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            if (*PFOLLOWMOUSE == 1)
+                g_pInputManager->refocus();
+        }
     } else if (Desktop::focusState()->surface() && Desktop::focusState()->surface() != m_wlSurface->resource())
         g_pSeatManager->setKeyboardFocus(Desktop::focusState()->surface());
 

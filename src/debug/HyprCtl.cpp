@@ -144,13 +144,13 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
 }
 
 const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
-    "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"",  "\"RECORD\"", "\"SW\"",
-    "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"TEARING\"", "\"FAILED\"", "\"CM\"",
+    "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"", "\"RECORD\"", "\"SW\"",
+    "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"FAILED\"", "\"CM\"",
 };
 
 const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
-    "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors", "screen record/screenshot", "software renders/cursors",
-    "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "tearing",         "activation failed",        "color management",
+    "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors",   "screen record/screenshot", "software renders/cursors",
+    "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "activation failed", "color management",
 };
 
 std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
@@ -173,14 +173,13 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
 }
 
 const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
-    "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"",
+    "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"", "\"HW_CURSOR\"",
 };
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {
-    "unknown reason", "next frame is not torn", "user settings", "zoom", "not supported by monitor", "missing candidate", "window settings",
-};
+const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
+                                                                                 "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
 
-std::string CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string                                              CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
     if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";

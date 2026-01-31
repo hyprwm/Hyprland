@@ -6,6 +6,7 @@
 #include <functional>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include "../memory/Memory.hpp"
+#include "../Fence.hpp"
 
 /*
     A helper (inspired by KDE's KWin) that will release the timeline point in the dtor
@@ -25,7 +26,7 @@ class CSyncReleaser {
     void addSyncFileFd(const Hyprutils::OS::CFileDescriptor& syncFd);
 
   private:
-    SP<CSyncTimeline>              m_timeline;
-    uint64_t                       m_point = 0;
-    Hyprutils::OS::CFileDescriptor m_fd;
+    SP<CSyncTimeline> m_timeline;
+    uint64_t          m_point = 0;
+    CFence            m_fence;
 };

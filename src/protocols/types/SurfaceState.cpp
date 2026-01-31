@@ -63,6 +63,10 @@ void SSurfaceState::reset() {
 
     callbacks.clear();
     lockMask = LOCK_REASON_NONE;
+
+    barrierSet    = false;
+    surfaceLocked = false;
+    fifoScheduled = false;
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
@@ -112,4 +116,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
         ref.callbacks.clear();
     }
+
+    if (ref.barrierSet)
+        barrierSet = ref.barrierSet;
 }

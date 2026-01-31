@@ -48,6 +48,7 @@ struct SSurfaceState {
             bool acquire : 1;
             bool acked : 1;
             bool frame : 1;
+            bool fifo : 1;
         } bits;
     } updated;
 
@@ -87,6 +88,11 @@ struct SSurfaceState {
     // texture of surface content, used for rendering
     SP<CTexture> texture;
     void         updateSynchronousTexture(SP<CTexture> lastTexture);
+
+    // fifo
+    bool barrierSet    = false;
+    bool surfaceLocked = false;
+    bool fifoScheduled = false;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

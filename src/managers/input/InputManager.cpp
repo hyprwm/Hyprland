@@ -130,16 +130,10 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     const auto DELTA = *PNOACCEL == 1 ? unaccel : delta;
 
-    if (g_pSeatManager->m_isPointerFrameSkipped)
-        g_pPointerManager->storeMovement(e.timeMs, DELTA, unaccel);
-    else
-        g_pPointerManager->setStoredMovement(e.timeMs, DELTA, unaccel);
-
-    PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, DELTA, unaccel);
-
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
+    PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);
@@ -151,6 +145,8 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
 
     if (e.mouse)
         m_lastMousePos = getMouseCoordsInternal();
+
+    g_pSeatManager->sendPointerFrame();
 }
 
 void CInputManager::onMouseWarp(IPointer::SMotionAbsoluteEvent e) {
@@ -676,6 +672,8 @@ void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
         m_focusHeldByButtons   = false;
         m_refocusHeldByButtons = false;
     }
+
+    g_pSeatManager->sendPointerFrame();
 }
 
 void CInputManager::processMouseRequest(const CSeatManager::SSetCursorEvent& event) {
@@ -954,6 +952,7 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+    g_pSeatManager->sendPointerFrame();
 }
 
 Vector2D CInputManager::getMouseCoordsInternal() {

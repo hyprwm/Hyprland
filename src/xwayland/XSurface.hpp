@@ -118,5 +118,7 @@ class CXWaylandSurface {
         CHyprSignalListener commitSurface;
     } m_listeners;
 
+    std::unordered_map<xcb_atom_t, bool> m_supportedProps;
+
     friend class CXWM;
 };

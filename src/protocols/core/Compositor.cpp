@@ -523,7 +523,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     // wl_surface#3.commit()
     // wp_fifo_v1#43.wait_barrier()
     // wl_surface#3.commit()
-    if (!state.updated.all && m_mapped)
+    if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
 
     auto lastTexture = m_current.texture;

@@ -5,7 +5,6 @@
 
 using s_ns = std::pair<uint64_t, uint64_t>;
 
-// HAS to be a > b
 static s_ns timediff(const s_ns& a, const s_ns& b) {
     s_ns d;
 
@@ -13,7 +12,7 @@ static s_ns timediff(const s_ns& a, const s_ns& b) {
     if (a.second >= b.second)
         d.second = a.second - b.second;
     else {
-        d.second = b.second - a.second;
+        d.second = (TIMESPEC_NSEC_PER_SEC + a.second) - b.second;
         d.first -= 1;
     }
 
@@ -46,9 +45,9 @@ uint64_t Time::millis(const steady_tp& tp) {
 }
 
 s_ns Time::secNsec(const steady_tp& tp) {
-    const uint64_t                    sec     = chr::duration_cast<chr::seconds>(tp.time_since_epoch()).count();
-    const chr::steady_clock::duration nsecdur = tp - chr::steady_clock::time_point(chr::seconds(sec));
-    return std::make_pair<>(sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count());
+    const uint64_t sec     = chr::duration_cast<chr::seconds>(tp.time_since_epoch()).count();
+    const auto     nsecdur = tp - chr::steady_clock::time_point(chr::seconds(sec));
+    return {sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count()};
 }
 
 uint64_t Time::millis(const system_tp& tp) {
@@ -56,9 +55,9 @@ uint64_t Time::millis(const system_tp& tp) {
 }
 
 s_ns Time::secNsec(const system_tp& tp) {
-    const uint64_t                    sec     = chr::duration_cast<chr::seconds>(tp.time_since_epoch()).count();
-    const chr::steady_clock::duration nsecdur = tp - chr::system_clock::time_point(chr::seconds(sec));
-    return std::make_pair<>(sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count());
+    const uint64_t sec     = chr::duration_cast<chr::seconds>(tp.time_since_epoch()).count();
+    const auto     nsecdur = tp - chr::system_clock::time_point(chr::seconds(sec));
+    return {sec, chr::duration_cast<chr::nanoseconds>(nsecdur).count()};
 }
 
 // TODO: this is a mess, but C++ doesn't define what steady_clock is.
@@ -69,12 +68,12 @@ s_ns Time::secNsec(const system_tp& tp) {
 // In general, this may shift the time around by a couple hundred ns. Doesn't matter, realistically.
 
 Time::steady_tp Time::fromTimespec(const timespec* ts) {
-    struct timespec mono, real;
+    timespec mono{}, real{};
     clock_gettime(CLOCK_MONOTONIC, &mono);
     clock_gettime(CLOCK_REALTIME, &real);
-    Time::steady_tp now    = Time::steadyNow();
-    Time::system_tp nowSys = Time::systemNow();
-    s_ns            stdSteady, stdReal;
+    auto now    = Time::steadyNow();
+    auto nowSys = Time::systemNow();
+    s_ns stdSteady, stdReal;
     stdSteady = Time::secNsec(now);
     stdReal   = Time::secNsec(nowSys);
 
@@ -84,7 +83,7 @@ Time::steady_tp Time::fromTimespec(const timespec* ts) {
     if (real.tv_nsec >= mono.tv_nsec)
         diff.second = real.tv_nsec - mono.tv_nsec;
     else {
-        diff.second = mono.tv_nsec - real.tv_nsec;
+        diff.second = TIMESPEC_NSEC_PER_SEC + real.tv_nsec - mono.tv_nsec;
         diff.first -= 1;
     }
 
@@ -119,7 +118,7 @@ struct timespec Time::toTimespec(const steady_tp& tp) {
     if (real.tv_nsec >= mono.tv_nsec)
         diff.second = real.tv_nsec - mono.tv_nsec;
     else {
-        diff.second = mono.tv_nsec - real.tv_nsec;
+        diff.second = TIMESPEC_NSEC_PER_SEC + real.tv_nsec - mono.tv_nsec;
         diff.first -= 1;
     }
 

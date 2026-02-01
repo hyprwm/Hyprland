@@ -75,11 +75,29 @@ CXDGPopupResource::~CXDGPopupResource() {
 }
 
 void CXDGPopupResource::applyPositioning(const CBox& box, const Vector2D& t1coord) {
-    CBox constraint = box.copy().translate(m_surface->m_pending.geometry.pos());
+    // Per xdg-shell, xdg_positioner coordinates are specified in the coordinate
+    // space of the parent's *window geometry*.
+    //
+    // However, xdg_popup.configure expects coordinates for the popup *surface*
+    // origin, and clients are allowed to set a non-zero (even negative)
+    // xdg_surface.set_window_geometry() for popups (e.g. for drop shadows).
+    //
+    // Hyprland stores popup placement in `m_geometry` (used as the surface
+    // position), so we must translate the computed window-geometry position back
+    // to surface-origin coordinates.
+    const Vector2D popup_window_geometry_pos = m_surface->m_pending.geometry.pos();
+
+    // Constrain against the output bounds in global compositor coordinates.
+    // Constraint adjustments should apply to the popup window geometry, not its
+    // buffer extents (shadows).
+    CBox           constraint = box.copy();
 
     m_geometry = m_positionerRules.getPosition(constraint, accumulateParentOffset() + t1coord);
 
-    LOGM(Log::DEBUG, "Popup {:x} gets unconstrained to {} {}", (uintptr_t)this, m_geometry.pos(), m_geometry.size());
+    // Convert from window-geometry position to surface-origin position.
+    m_geometry.translate(Vector2D{-popup_window_geometry_pos.x, -popup_window_geometry_pos.y});
+
+    LOGM(Log::DEBUG, "Popup {:x} positioned at {} {} (window geometry offset {})", (uintptr_t)this, m_geometry.pos(), m_geometry.size(), popup_window_geometry_pos);
 
     configure(m_geometry);
 

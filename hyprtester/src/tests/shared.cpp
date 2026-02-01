@@ -105,3 +105,13 @@ std::string Tests::execAndGet(const std::string& cmd) {
 
     return proc.stdOut();
 }
+
+std::string Tests::getWindowAttribute(const std::string& winInfo, const std::string& attr) {
+    auto pos = winInfo.find(attr);
+    if (pos == std::string::npos) {
+        NLog::log("{}Window attribute not found: '{}'", Colors::RED, attr);
+        return "Wrong window attribute";
+    }
+    auto pos2 = winInfo.find('\n', pos);
+    return winInfo.substr(pos, pos2 - pos);
+}

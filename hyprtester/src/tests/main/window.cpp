@@ -47,17 +47,6 @@ static std::string spawnKittyActivating(const std::string& class_ = "kitty_activ
     return tmpFilename;
 }
 
-static std::string getWindowAttribute(const std::string& winInfo, const std::string& attr) {
-    auto pos = winInfo.find(attr);
-    if (pos == std::string::npos) {
-        NLog::log("{}Wrong window attribute", Colors::RED);
-        ret = 1;
-        return "Wrong window attribute";
-    }
-    auto pos2 = winInfo.find('\n', pos);
-    return winInfo.substr(pos, pos2 - pos);
-}
-
 static std::string getWindowAddress(const std::string& winInfo) {
     auto pos  = winInfo.find("Window ");
     auto pos2 = winInfo.find(" -> ");
@@ -92,7 +81,7 @@ static void testSwapWindow() {
     // Test swapwindow by direction
     {
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
         NLog::log("{}Testing kitty_A {}, swapwindow with direction 'l'", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch swapwindow l"));
@@ -104,7 +93,7 @@ static void testSwapWindow() {
     // Test swapwindow by class
     {
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
         NLog::log("{}Testing kitty_A {}, swapwindow with class:kitty_B", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch swapwindow class:kitty_B"));
@@ -118,7 +107,7 @@ static void testSwapWindow() {
         getFromSocket("/dispatch focuswindow class:kitty_B");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
         NLog::log("{}Testing kitty_A {}, swapwindow with address:0x{}(kitty_B)", Colors::YELLOW, pos, addr);
 
         OK(getFromSocket(std::format("/dispatch swapwindow address:0x{}", addr)));
@@ -141,7 +130,7 @@ static void testSwapWindow() {
     {
         getFromSocket("/dispatch focuswindow class:kitty_B");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
-        auto ws   = getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
+        auto ws   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
         NLog::log("{}Sending address:0x{}(kitty_B) to workspace \"swapwindow2\"", Colors::YELLOW, addr);
 
         OK(getFromSocket("/dispatch movetoworkspacesilent name:swapwindow2"));
@@ -222,8 +211,8 @@ static void testGroupRules() {
 
 static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
-    auto        winClass      = getWindowAttribute(activeWin, "class:");
-    auto        winFullscreen = getWindowAttribute(activeWin, "fullscreen:").back();
+    auto        winClass      = Tests::getWindowAttribute(activeWin, "class:");
+    auto        winFullscreen = Tests::getWindowAttribute(activeWin, "fullscreen:").back();
     if (winClass.substr(strlen("class: ")) == class_ && winFullscreen == fullscreen)
         return true;
     else {

@@ -67,6 +67,9 @@ void SSurfaceState::reset() {
     barrierSet    = false;
     surfaceLocked = false;
     fifoScheduled = false;
+
+    pendingTimeout.reset();
+    timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {

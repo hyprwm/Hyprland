@@ -1473,6 +1473,52 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не вдалося перезавантажити шейдер CM, повернення до rgba/rgbx.");
     huEngine->registerEntry("uk_UA", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монітор {name}: широка кольорова гама увімкнена, але дисплей не працює в 10-бітному режимі.");
 
+    // vi_VN (Vietnamese)
+    huEngine->registerEntry("vi_VN", TXT_KEY_ANR_TITLE, "Ứng dụng không phản hồi");
+    huEngine->registerEntry("vi_VN", TXT_KEY_ANR_CONTENT, "Ứng dụng {title} - {class} đang bị treo.\nBạn muốn xử lý thế nào?");
+    huEngine->registerEntry("vi_VN", TXT_KEY_ANR_OPTION_TERMINATE, "Buộc dừng");
+    huEngine->registerEntry("vi_VN", TXT_KEY_ANR_OPTION_WAIT, "Chờ");
+    huEngine->registerEntry("vi_VN", TXT_KEY_ANR_PROP_UNKNOWN, "(không xác định)");
+
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Ứng dụng <b>{app}</b> đang yêu cầu một quyền không xác định.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Ứng dụng <b>{app}</b> đang cố gắng ghi hình màn hình của bạn.\n\nBạn muốn cho phép không?");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Ứng dụng <b>{app}</b> đang cố gắng tải plugin: <b>{plugin}</b>.\n\nBạn muốn cho phép không?");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Phát hiện bàn phím mới: <b>{keyboard}</b>.\n\nBạn muốn cho phép bàn phím này hoạt động không?");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(không xác định)");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_TITLE, "Yêu cầu cấp quyền");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Gợi ý: bạn có thể thiết lập các quyền này trong tệp cấu hình Hyprland.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_ALLOW, "Cho phép");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Cho phép và ghi nhớ");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_ALLOW_ONCE, "Chỉ một lần");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_DENY, "Từ chối");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Ứng dụng không xác định (wayland client ID {wayland_id})");
+
+    huEngine->registerEntry(
+        "vi_VN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Biến môi trường XDG_CURRENT_DESKTOP dường như đang được thiết lập từ bên ngoài với giá trị là {value}.\nViệc này có thể gây ra lỗi trừ khi đó là chủ ý của bạn.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_NO_GUIUTILS, "Hệ thống chưa cài hyprland-guiutils. Một số hộp thoại sẽ không hiển thị nếu thiếu nó.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_FAILED_ASSETS,
+                            "Hyprland không thể tải {count} tài nguyên quan trọng. Vui lòng báo lỗi cho người đóng gói (packager) của bản phân phối (distro) mà bạn dùng!");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Bố cục màn hình không hợp lệ. Màn hình {name} đang bị đè lên các màn hình khác.\nVui lòng xem trang Monitors trên wiki để "
+                            "khắc phục, nếu không <b>chắc chắn</b> sẽ có lỗi xảy ra.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Màn hình {name} không thể áp dụng chế độ nào được yêu cầu, đang dùng tạm chế độ {mode}.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Tỉ lệ {scale} cho màn hình {name} không hợp lệ, chuyển sang tỷ lệ gợi ý: {fixed_scale}");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Lỗi tải plugin {name}: {error}");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Tải lại CM shader thất bại, đang dùng tạm rgba/rgbx.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Màn hình {name}: dải màu rộng (wide color gamut) khả dụng nhưng màn hình không ở chế độ 10-bit.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland đã được khởi động mà không thông qua start-hyprland. Việc này không được khuyến khích trừ khi dùng cho mục đích gỡ lỗi.");
+
+    huEngine->registerEntry("vi_VN", TXT_KEY_SAFE_MODE_TITLE, "Chế độ An toàn (Safe Mode)");
+    huEngine->registerEntry("vi_VN", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Phiên hoạt động trước đó đã bị sập (crash).\nHyprland hiện đang chạy ở chế độ an toàn và không tải tệp cấu hình của bạn. Bạn có thể "
+                            "khắc phục sự cố trong môi trường này, hoặc bấm nút bên dưới để thử tải lại cấu hình.\nCác phím tắt mặc định: SUPER+Q (kitty), SUPER+R (runner), "
+                            "SUPER+M (exit).\nHyprland sẽ về chế độ bình thường sau khi khởi động lại.");
+    huEngine->registerEntry("vi_VN", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Tải cấu hình");
+    huEngine->registerEntry("vi_VN", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Mở thư mục báo cáo lỗi (crash report)");
+    huEngine->registerEntry("vi_VN", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "OK, đã hiểu");
+
     // cs_CZ (Czech)
     huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_TITLE, "Aplikace Neodpovídá");
     huEngine->registerEntry("cs_CZ", TXT_KEY_ANR_CONTENT, "Aplikace {title} - {class} neodpovídá.\nCo s ní chcete udělat?");

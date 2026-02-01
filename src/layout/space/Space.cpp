@@ -100,6 +100,8 @@ PHLWORKSPACE CSpace::workspace() const {
 void CSpace::toggleTargetFloating(SP<ITarget> t) {
     m_algorithm->setFloating(t, !t->floating());
 
+    m_parent->updateWindows();
+
     recalculate();
 }
 

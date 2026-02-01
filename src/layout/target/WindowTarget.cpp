@@ -192,14 +192,17 @@ void CWindowTarget::updatePos() {
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
-    ITarget::assignToSpace(space, focalPoint);
-
-    if (!space)
+    if (!space) {
+        ITarget::assignToSpace(space, focalPoint);
         return;
+    }
 
     m_window->m_monitor = space->workspace()->m_monitor;
-
     m_window->moveToWorkspace(space->workspace());
+
+    // layout and various update fns want the target to already have m_workspace set
+    ITarget::assignToSpace(space, focalPoint);
+
     m_window->updateToplevel();
     m_window->updateWindowDecos();
 }

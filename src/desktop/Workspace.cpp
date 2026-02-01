@@ -525,13 +525,11 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_isMapped && w->m_workspace == m_self && w->isFullscreen(); });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t->fullscreenMode() != FSMODE_NONE; });
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || w->m_workspace != m_self)
-            continue;
-
-        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    for (auto const& t : m_space->targets()) {
+        if (t->window())
+            t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 

@@ -657,7 +657,7 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
 }
 
 std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
-    static auto centerOrFit = [this](const SP<SColumnData> COL) -> void {
+    auto centerOrFit = [this](const SP<SColumnData> COL) -> void {
         static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
         if (*PFITMETHOD == 1)
             m_scrollingData->fitCol(COL);

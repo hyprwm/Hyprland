@@ -670,8 +670,14 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();
-    else
+    else {
         FEEDBACK->presented();
+        if (!pMonitor->m_lastScanout.expired()) {
+            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+            if (WINDOW == pMonitor->m_lastScanout)
+                FEEDBACK->setPresentationType(true);
+        }
+    }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }
 

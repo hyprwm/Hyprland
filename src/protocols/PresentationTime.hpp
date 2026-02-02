@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
@@ -37,7 +38,7 @@ class CPresentationFeedback {
 
     bool good();
 
-    void sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void sendQueued(WP<CQueuedPresentationData> data, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
 
   private:
     UP<CWpPresentationFeedback> m_resource;

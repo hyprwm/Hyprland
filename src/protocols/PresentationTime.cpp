@@ -40,7 +40,7 @@ bool CPresentationFeedback::good() {
     return m_resource->resource();
 }
 
-void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = m_resource->client();
 
     if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name) && data->m_wasPresented) {
@@ -58,16 +58,14 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const T
     if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
         flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    const auto TIMESPEC = Time::toTimespec(when);
-
-    time_t     tv_sec = 0;
+    time_t tv_sec = 0;
     if (sizeof(time_t) > 4)
-        tv_sec = TIMESPEC.tv_sec >> 32;
+        tv_sec = when.tv_sec >> 32;
 
     uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
 
     if (data->m_wasPresented)
-        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), sc<uint32_t>(TIMESPEC.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
+        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(when.tv_sec & 0xFFFFFFFF), sc<uint32_t>(when.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
                                   sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
     else
         m_resource->sendDiscarded();
@@ -119,7 +117,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
             if (!data->m_surface || data->m_surface != feedback->m_surface || (data->m_monitor && data->m_monitor != pMonitor))
                 continue;
 
-            feedback->sendQueued(data, when, untilRefreshNs, seq, reportedFlags);
+            feedback->sendQueued(data, Time::toTimespec(when), untilRefreshNs, seq, reportedFlags);
             feedback->m_done = true;
             break;
         }

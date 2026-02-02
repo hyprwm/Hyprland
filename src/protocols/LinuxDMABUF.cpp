@@ -23,21 +23,6 @@ static std::optional<dev_t> devIDFromFD(int fd) {
     return stat.st_rdev;
 }
 
-// from AQ utils
-static std::string fourccToName(uint32_t drmFormat) {
-    auto        fmt  = drmGetFormatName(drmFormat);
-    std::string name = fmt ? fmt : "unknown";
-    free(fmt); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
-    return name;
-}
-
-static std::string drmModifierToName(uint64_t drmModifier) {
-    auto        n    = drmGetFormatModifierName(drmModifier);
-    std::string name = n;
-    free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
-    return name;
-}
-
 CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches_) :
     m_rendererTranche(_rendererTranche), m_monitorTranches(tranches_) {
 
@@ -52,7 +37,7 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
     m_rendererTranche.indices.clear();
     for (auto const& fmt : m_rendererTranche.formats) {
         for (auto const& mod : fmt.modifiers) {
-            LOGM(Log::TRACE, "Render format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, fourccToName(fmt.drmFormat), mod, drmModifierToName(mod));
+            LOGM(Log::TRACE, "Render format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, NFormatUtils::drmFormatName(fmt.drmFormat), mod, NFormatUtils::drmModifierName(mod));
             if (*PSKIP_NON_KMS && !m_monitorTranches.empty()) {
                 if (std::ranges::none_of(m_monitorTranches, [fmt, mod](const std::pair<PHLMONITORREF, SDMABUFTranche>& pair) {
                         return std::ranges::any_of(pair.second.formats, [fmt, mod](const SDRMFormat& format) {
@@ -84,7 +69,8 @@ CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vec
         tranche.indices.clear();
         for (auto const& fmt : tranche.formats) {
             for (auto const& mod : fmt.modifiers) {
-                LOGM(Log::TRACE, "[DMA] Monitor format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, fourccToName(fmt.drmFormat), mod, drmModifierToName(mod));
+                LOGM(Log::TRACE, "[DMA] Monitor format 0x{:x} ({}) with mod 0x{:x} ({})", fmt.drmFormat, NFormatUtils::drmFormatName(fmt.drmFormat), mod,
+                     NFormatUtils::drmModifierName(mod));
                 // FIXME: recheck this. DRM_FORMAT_MOD_INVALID is allowed by the proto "For legacy support". DRM_FORMAT_MOD_LINEAR should be the most compatible mod
                 // apparently these can implode on planes, so don't use them
                 if (mod == DRM_FORMAT_MOD_INVALID || mod == DRM_FORMAT_MOD_LINEAR)

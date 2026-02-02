@@ -17,6 +17,7 @@ constexpr const Vector2D DEFAULT_SIZE = {640, 400};
 void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
     const auto WORK_AREA    = m_parent->space()->workArea(true);
     const auto DESIRED_GEOM = target->desiredGeometry();
+    const auto MONITOR_POS  = m_parent->space()->workspace()->m_monitor->logicalBox().pos();
 
     CBox       windowGeometry;
 
@@ -67,8 +68,8 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             if (!COMPUTED)
                 Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.position);
             else {
-                windowGeometry.x = COMPUTED->x;
-                windowGeometry.y = COMPUTED->y;
+                windowGeometry.x = COMPUTED->x + MONITOR_POS.x;
+                windowGeometry.y = COMPUTED->y + MONITOR_POS.y;
                 posOverridden    = true;
             }
         }
@@ -84,7 +85,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
     if (!posOverridden && (!DESIRED_GEOM || !DESIRED_GEOM->pos))
         windowGeometry = CBox{WORK_AREA.middle() - windowGeometry.size() / 2.F, windowGeometry.size()};
 
-    if (WORK_AREA.containsPoint(windowGeometry.middle()))
+    if (posOverridden || WORK_AREA.containsPoint(windowGeometry.middle()))
         target->setPositionGlobal(windowGeometry);
     else {
         const auto POS   = WORK_AREA.middle() - windowGeometry.size() / 2.f;

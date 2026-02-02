@@ -895,7 +895,7 @@ int CMasterAlgorithm::getNodesNo() {
 }
 
 SP<SMasterNodeData> CMasterAlgorithm::getNodeFromWindow(PHLWINDOW x) {
-    return getNodeFromTarget(x->layoutTarget());
+    return x ? getNodeFromTarget(x->layoutTarget()) : nullptr;
 }
 
 SP<SMasterNodeData> CMasterAlgorithm::getNodeFromTarget(SP<ITarget> x) {

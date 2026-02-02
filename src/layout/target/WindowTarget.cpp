@@ -217,6 +217,8 @@ void CWindowTarget::setFloating(bool x) {
 
     m_window->m_isFloating = x;
     m_window->m_pinned     = false;
+
+    m_window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FLOATING);
 }
 
 Vector2D CWindowTarget::clampSizeForDesired(const Vector2D& size) const {
@@ -342,6 +344,7 @@ void CWindowTarget::onUpdateSpace() {
     if (!space())
         return;
 
+    m_window->m_monitor = space()->workspace()->m_monitor;
     m_window->moveToWorkspace(space()->workspace());
     m_window->updateToplevel();
     m_window->updateWindowDecos();

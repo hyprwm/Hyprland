@@ -103,7 +103,7 @@ Time::steady_tp Time::fromTimespec(const timespec* ts) {
 }
 
 struct timespec Time::toTimespec(const steady_tp& tp) {
-    struct timespec mono, real;
+    timespec mono{}, real{};
     clock_gettime(CLOCK_MONOTONIC, &mono);
     clock_gettime(CLOCK_REALTIME, &real);
     Time::steady_tp now    = Time::steadyNow();

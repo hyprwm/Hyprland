@@ -86,6 +86,7 @@ void CPresentationProtocol::bindManager(wl_client* client, void* data, uint32_t 
 
     RESOURCE->setDestroy([this](CWpPresentation* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setFeedback([this](CWpPresentation* pMgr, wl_resource* surf, uint32_t id) { this->onGetFeedback(pMgr, surf, id); });
+    RESOURCE->sendClockId(CLOCK_MONOTONIC);
 }
 
 void CPresentationProtocol::onManagerResourceDestroy(wl_resource* res) {

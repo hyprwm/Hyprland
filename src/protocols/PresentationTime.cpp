@@ -108,7 +108,7 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
     }
 }
 
-void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     for (auto const& feedback : m_feedbacks) {
         if (!feedback->m_surface)
             continue;
@@ -117,7 +117,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
             if (!data->m_surface || data->m_surface != feedback->m_surface || (data->m_monitor && data->m_monitor != pMonitor))
                 continue;
 
-            feedback->sendQueued(data, Time::toTimespec(when), untilRefreshNs, seq, reportedFlags);
+            feedback->sendQueued(data, when, untilRefreshNs, seq, reportedFlags);
             feedback->m_done = true;
             break;
         }

@@ -1857,7 +1857,7 @@ bool CMonitor::attemptDirectScanout() {
         }
 
         //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && *PSAMEFIFO)
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
             PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 
         return true;

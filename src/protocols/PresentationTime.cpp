@@ -48,26 +48,26 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
             m_resource->sendSyncOutput(outputResource->getResource()->resource());
     }
 
-    uint32_t flags = 0;
-    if (!data->m_monitor->m_tearingState.activelyTearing)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
-    if (data->m_zeroCopy)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
-    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
-    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
+    if (data->m_wasPresented) {
+        uint32_t flags = 0;
+        if (!data->m_monitor->m_tearingState.activelyTearing)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
+        if (data->m_zeroCopy)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
+        if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
+        if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    time_t tv_sec = 0;
-    if (sizeof(time_t) > 4)
-        tv_sec = when.tv_sec >> 32;
+        time_t tv_sec = 0;
+        if (sizeof(time_t) > 4)
+            tv_sec = when.tv_sec >> 32;
 
-    uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
+        uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
 
-    if (data->m_wasPresented)
         m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(when.tv_sec & 0xFFFFFFFF), sc<uint32_t>(when.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
                                   sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
-    else
+    } else
         m_resource->sendDiscarded();
 
     m_done = true;

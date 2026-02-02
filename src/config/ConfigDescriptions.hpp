@@ -1753,6 +1753,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "debug:gl_debugging",
+        .description = "enable OpenGL debugging and error checking, they hurt performance.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "debug:disable_logs",
         .description = "disable logging to a file",
         .type        = CONFIG_OPTION_BOOL,

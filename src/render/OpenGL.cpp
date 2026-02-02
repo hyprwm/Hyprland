@@ -304,7 +304,8 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         loadGLProc(&m_proc.eglQueryDisplayAttribEXT, "eglQueryDisplayAttribEXT");
     }
 
-    if (EGLEXTENSIONS.contains("EGL_KHR_debug")) {
+    static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
+    if (EGLEXTENSIONS.contains("EGL_KHR_debug") && *GLDEBUG) {
         loadGLProc(&m_proc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
         static const EGLAttrib debugAttrs[] = {
             EGL_DEBUG_MSG_CRITICAL_KHR, EGL_TRUE, EGL_DEBUG_MSG_ERROR_KHR, EGL_TRUE, EGL_DEBUG_MSG_WARN_KHR, EGL_TRUE, EGL_DEBUG_MSG_INFO_KHR, EGL_TRUE, EGL_NONE,
@@ -838,11 +839,15 @@ void CHyprOpenGLImpl::end() {
     if UNLIKELY (m_renderData.pCurrentMonData->offMainFB.isAllocated())
         m_renderData.pCurrentMonData->offMainFB.release();
 
-    // check for gl errors
-    const GLenum ERR = glGetError();
+    static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
 
-    if UNLIKELY (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
-        RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
+    if (*GLDEBUG) {
+        // check for gl errors
+        const GLenum ERR = glGetError();
+
+        if UNLIKELY (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
+            RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
+    }
 }
 
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {

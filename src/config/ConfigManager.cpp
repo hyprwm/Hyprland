@@ -561,6 +561,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:overlay", Hyprlang::INT{0});
     registerConfigVar("debug:damage_blink", Hyprlang::INT{0});
     registerConfigVar("debug:pass", Hyprlang::INT{0});
+    registerConfigVar("debug:gl_debugging", Hyprlang::INT{0});
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});
     registerConfigVar("debug:disable_time", Hyprlang::INT{1});
     registerConfigVar("debug:enable_stdout_logs", Hyprlang::INT{0});

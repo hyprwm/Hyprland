@@ -411,7 +411,6 @@ void CMonitor::onDisconnect(bool destroy) {
         m_layerSurfaceLayers[i].clear();
     }
 
-    std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
     Log::logger->log(Log::DEBUG, "Removed monitor {}!", m_name);
 
     if (!BACKUPMON) {
@@ -463,7 +462,7 @@ void CMonitor::onDisconnect(bool destroy) {
         PHLMONITOR pMonitorMostHz = nullptr;
 
         for (auto const& m : g_pCompositor->m_monitors) {
-            if (m->m_refreshRate > mostHz) {
+            if (m->m_refreshRate > mostHz && m != m_self) {
                 pMonitorMostHz = m;
                 mostHz         = m->m_refreshRate;
             }
@@ -471,6 +470,8 @@ void CMonitor::onDisconnect(bool destroy) {
 
         g_pHyprRenderer->m_mostHzMonitor = pMonitorMostHz;
     }
+
+    std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
 void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {

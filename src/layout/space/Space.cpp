@@ -98,7 +98,9 @@ PHLWORKSPACE CSpace::workspace() const {
 }
 
 void CSpace::toggleTargetFloating(SP<ITarget> t) {
+    t->setWasTiling(true);
     m_algorithm->setFloating(t, !t->floating());
+    t->setWasTiling(false);
 
     m_parent->updateWindows();
 
@@ -136,6 +138,10 @@ void CSpace::recalculate() {
 
 void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
     t->setFullscreenMode(mode);
+
+    if (mode == FSMODE_NONE && m_algorithm && t->floating())
+        m_algorithm->recenter(t);
+
     recalculate();
 }
 

@@ -2130,11 +2130,12 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         return;
     }
 
-    PWINDOW->m_fullscreenState.internal = state.internal;
-    PWORKSPACE->m_fullscreenMode        = EFFECTIVE_MODE;
-    PWORKSPACE->m_hasFullscreenWindow   = EFFECTIVE_MODE != FSMODE_NONE;
+    PWORKSPACE->m_fullscreenMode      = EFFECTIVE_MODE;
+    PWORKSPACE->m_hasFullscreenWindow = EFFECTIVE_MODE != FSMODE_NONE;
 
     g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
+
+    PWINDOW->m_fullscreenState.internal = state.internal;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
     EMIT_HOOK_EVENT("fullscreen", PWINDOW);

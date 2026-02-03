@@ -44,7 +44,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
 
     bool posOverridden = false;
 
-    if (target->window()) {
+    if (target->window() && target->window()->m_firstMap) {
         const auto WINDOW = target->window();
 
         // set this here so that expressions can use it. This could be wrong of course.
@@ -80,6 +80,9 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             windowGeometry.y = POS.y;
             posOverridden    = true;
         }
+    } else if (target->lastFloatingSize().x > 5 && target->lastFloatingSize().y > 5) {
+        windowGeometry.w = target->lastFloatingSize().x;
+        windowGeometry.h = target->lastFloatingSize().y;
     }
 
     if (!posOverridden && (!DESIRED_GEOM || !DESIRED_GEOM->pos))
@@ -132,18 +135,27 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         LAST_SIZE          = DESIRED ? DESIRED->size : DEFAULT_SIZE;
     }
 
-    // Avoid floating toggles that don't change size, they aren't easily visible to the user
-    if (std::abs(LAST_SIZE.x - CURRENT_SIZE.x) < 5 && std::abs(LAST_SIZE.y - CURRENT_SIZE.y) < 5)
-        LAST_SIZE += Vector2D{10, 10};
+    if (target->wasTiling()) {
+        // Avoid floating toggles that don't change size, they aren't easily visible to the user
+        if (std::abs(LAST_SIZE.x - CURRENT_SIZE.x) < 5 && std::abs(LAST_SIZE.y - CURRENT_SIZE.y) < 5)
+            LAST_SIZE += Vector2D{10, 10};
 
-    // calculate new position
-    const auto THIS_MON_POS = m_parent->space()->workspace()->m_monitor->m_position;
-    const auto OLD_POS      = target->position().pos();
-    const auto MON_FROM_OLD = g_pCompositor->getMonitorFromVector(OLD_POS);
-    const auto NEW_POS      = MON_FROM_OLD ? OLD_POS - MON_FROM_OLD->m_position + THIS_MON_POS : OLD_POS;
+        // calculate new position
+        const auto OLD_CENTER = target->position().middle();
 
-    // put around the current center, fit in workArea
-    target->setPositionGlobal(fitBoxInWorkArea(CBox{NEW_POS, LAST_SIZE}, target));
+        // put around the current center, fit in workArea
+        target->setPositionGlobal(fitBoxInWorkArea(CBox{OLD_CENTER - LAST_SIZE / 2.F, LAST_SIZE}, target));
+
+    } else {
+        // calculate new position
+        const auto THIS_MON_POS = m_parent->space()->workspace()->m_monitor->m_position;
+        const auto OLD_POS      = target->position().pos();
+        const auto MON_FROM_OLD = g_pCompositor->getMonitorFromVector(OLD_POS);
+        const auto NEW_POS      = MON_FROM_OLD ? OLD_POS - MON_FROM_OLD->m_position + THIS_MON_POS : OLD_POS;
+
+        // put around the current center, fit in workArea
+        target->setPositionGlobal(fitBoxInWorkArea(CBox{NEW_POS, LAST_SIZE}, target));
+    }
 }
 
 CBox CDefaultFloatingAlgorithm::fitBoxInWorkArea(const CBox& box, SP<ITarget> t) {

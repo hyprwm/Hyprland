@@ -40,6 +40,8 @@ namespace Layout {
         virtual PHLWORKSPACE workspace() const;
         virtual PHLWINDOW    window() const = 0;
         virtual void         recalc();
+        virtual bool         wasTiling() const;
+        virtual void         setWasTiling(bool x);
 
         virtual void         rememberFloatingSize(const Vector2D& size);
         virtual Vector2D     lastFloatingSize() const;
@@ -72,5 +74,6 @@ namespace Layout {
         bool        m_pseudo     = false;
         bool        m_ghostSpace = false; // ghost space means a target belongs to a space, but isn't sent to the layout
         Vector2D    m_pseudoSize = {1280, 720};
+        bool        m_wasTiling  = false;
     };
 };

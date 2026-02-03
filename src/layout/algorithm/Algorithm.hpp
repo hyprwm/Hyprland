@@ -35,6 +35,7 @@ namespace Layout {
         std::optional<Vector2D>          predictSizeForNewTiledTarget();
 
         void                             recalculate();
+        void                             recenter(SP<ITarget> t);
 
         void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);

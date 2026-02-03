@@ -136,3 +136,11 @@ void ITarget::swap(SP<ITarget> b) {
     if (b->space())
         b->space()->recalculate();
 }
+
+bool ITarget::wasTiling() const {
+    return m_wasTiling;
+}
+
+void ITarget::setWasTiling(bool x) {
+    m_wasTiling = x;
+}

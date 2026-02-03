@@ -806,7 +806,10 @@ std::optional<Vector2D> CMasterAlgorithm::predictSizeForNewTarget() {
         const auto SLAVES = NODES - getMastersNo();
 
         // TODO: make this better
-        return Vector2D{MONITOR->m_size.x - MASTER->size.x, MONITOR->m_size.y / (SLAVES + 1)};
+        if (SLAVES == 0)
+            return Vector2D{MONITOR->m_size.x / 2.F, MONITOR->m_size.y};
+        else
+            return Vector2D{MONITOR->m_size.x - MASTER->size.x, MONITOR->m_size.y / (SLAVES + 1)};
     }
 
     return std::nullopt;

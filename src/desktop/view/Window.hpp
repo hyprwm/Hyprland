@@ -122,10 +122,6 @@ namespace Desktop::View {
         std::optional<std::pair<uint32_t, Vector2D>> m_pendingSizeAck;
         std::vector<std::pair<uint32_t, Vector2D>>   m_pendingSizeAcks;
 
-        // for restoring floating statuses
-        Vector2D m_lastFloatingSize;
-        Vector2D m_lastFloatingPosition;
-
         // for floating window offset in workspace animations
         Vector2D m_floatingOffset = Vector2D(0, 0);
 

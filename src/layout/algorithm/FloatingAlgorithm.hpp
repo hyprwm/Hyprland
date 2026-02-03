@@ -17,6 +17,8 @@ namespace Layout {
         // a target is being moved by a delta
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target) = 0;
 
+        virtual void recenter(SP<ITarget> t);
+
         virtual void recalculate();
 
       protected:

@@ -319,6 +319,9 @@ eFullscreenMode CWindowTarget::fullscreenMode() {
 }
 
 void CWindowTarget::setFullscreenMode(eFullscreenMode mode) {
+    if (floating() && m_window->m_fullscreenState.internal == FSMODE_NONE)
+        rememberFloatingSize(m_box.size());
+
     m_window->m_fullscreenState.internal = mode;
 }
 

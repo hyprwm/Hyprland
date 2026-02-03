@@ -24,17 +24,12 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
             return;
         }
 
-        timespec ts;
-        ts.tv_sec  = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo;
-        ts.tv_nsec = tvNsec;
+        const auto delay = Time::till({.tv_sec = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo, .tv_nsec = tvNsec});
 
-        const auto TIME     = Time::fromTimespec(&ts);
-        const auto TIME_NOW = Time::steadyNow();
-
-        if (TIME_NOW > TIME) {
+        if (delay.count() <= 0) {
             m_surface->m_pending.pendingTimeout.reset();
         } else
-            m_surface->m_pending.pendingTimeout = TIME - TIME_NOW;
+            m_surface->m_pending.pendingTimeout = delay;
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {

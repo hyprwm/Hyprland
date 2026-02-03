@@ -114,10 +114,11 @@ void CMonitor::onConnect(bool noRule) {
             ts = nullptr;
         }
 
-        if (!ts)
-            PROTO::presentation->onPresented(m_self.lock(), Time::toTimespec(Time::steadyNow()), event.refresh, event.seq,
-                                             event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
-        else
+        if (!ts) {
+            timespec mono{};
+            clock_gettime(CLOCK_MONOTONIC, &mono);
+            PROTO::presentation->onPresented(m_self.lock(), mono, event.refresh, event.seq, event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
+        } else
             PROTO::presentation->onPresented(m_self.lock(), *ts, event.refresh, event.seq, event.flags);
 
         if (m_zoomAnimFrameCounter < 5) {

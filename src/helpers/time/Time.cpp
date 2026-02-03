@@ -136,3 +136,10 @@ struct timespec Time::toTimespec(const steady_tp& tp) {
     auto sum = timeadd(tpTime, diffFinal);
     return timespec{.tv_sec = sum.first, .tv_nsec = sum.second};
 }
+
+Time::steady_dur Time::till(const timespec& ts) {
+    timespec mono{};
+    clock_gettime(CLOCK_MONOTONIC, &mono);
+    const auto delay = (ts.tv_sec - mono.tv_sec) * 1000000000 + (ts.tv_nsec - mono.tv_nsec);
+    return std::chrono::nanoseconds(delay);
+}

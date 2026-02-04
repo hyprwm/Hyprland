@@ -4,7 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
+#include <expected>
 #include "Plugin.hpp"
 
 enum eHeadersErrors {
@@ -41,6 +41,7 @@ struct SHyprlandVersion {
     std::string date;
     std::string abiHash;
     int         commits = 0;
+    bool        isNix   = false;
 };
 
 class CPluginManager {
@@ -71,16 +72,19 @@ class CPluginManager {
 
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
+    bool                   m_bNoNix     = false;
     std::string            m_szCustomHlUrl, m_szUsername;
 
     // will delete recursively if exists!!
     bool createSafeDirectory(const std::string& path);
 
   private:
-    std::string headerError(const eHeadersErrors err);
-    std::string headerErrorShort(const eHeadersErrors err);
+    std::string                             headerError(const eHeadersErrors err);
+    std::string                             headerErrorShort(const eHeadersErrors err);
 
-    std::string m_szWorkingPluginDirectory;
+    std::expected<std::string, std::string> nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver);
+
+    std::string                             m_szWorkingPluginDirectory;
 };
 
 inline std::unique_ptr<CPluginManager> g_pPluginManager;

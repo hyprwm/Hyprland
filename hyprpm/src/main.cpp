@@ -25,6 +25,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ Flags:
 ┃
+┣ --no-nix       |              → Disable `nix shell` for build commands, even if Hyprland is nix.
 ┣ --notify       | -n           → Send a hyprland notification confirming successful plugin load.
 ┃                                 Warnings/Errors trigger notifications regardless of this flag.
 ┣ --help         | -h           → Show this menu.
@@ -47,7 +48,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false, noNix = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -63,6 +64,8 @@ int                        main(int argc, char** argv, char** envp) {
                 g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] -n flag is deprecated, see hyprpm --help.");
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
+            } else if (ARGS[i] == "--no-nix") {
+                noNix = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
                 noShallow = true;
             } else if (ARGS[i] == "--hl-url") {
@@ -91,6 +94,7 @@ int                        main(int argc, char** argv, char** envp) {
     g_pPluginManager                  = std::make_unique<CPluginManager>();
     g_pPluginManager->m_bVerbose      = verbose;
     g_pPluginManager->m_bNoShallow    = noShallow;
+    g_pPluginManager->m_bNoNix        = noNix;
     g_pPluginManager->m_szCustomHlUrl = customHlUrl;
 
     if (command[0] == "add") {

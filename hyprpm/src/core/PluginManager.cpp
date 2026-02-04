@@ -1049,14 +1049,14 @@ static std::expected<std::string, std::string> getNixDevelopFromPath(const std::
     if (fullStorePath.empty() || !fullStorePath.ends_with("/bin/hyprpm"))
         return std::unexpected("couldn't get a real path for hyprpm (1)");
 
-    fullStorePath = fullStorePath.substr(0, fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
-
     // canonicalize to get the real nix-store path
     std::error_code ec;
     fullStorePath = std::filesystem::canonical(fullStorePath, ec);
 
     if (ec || fullStorePath.empty() || !fullStorePath.starts_with("/nix"))
         return std::unexpected("couldn't get a real path for hyprpm");
+
+    fullStorePath = fullStorePath.substr(0, fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
 
     auto deriver = execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath));
 

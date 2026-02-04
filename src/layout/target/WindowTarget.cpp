@@ -65,6 +65,10 @@ void CWindowTarget::updatePos() {
     const bool DISPLAYTOP       = STICKS(m_box.y, MONITOR_WORKAREA.y);
     const bool DISPLAYBOTTOM    = STICKS(m_box.y + m_box.h, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
 
+    // this is used for scrolling, so that the gaps are correct when a window is the full width and has neighbors
+    const bool DISPLAYINVERSELEFT  = STICKS(m_box.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+    const bool DISPLAYINVERSERIGHT = STICKS(m_box.x + m_box.w, MONITOR_WORKAREA.x);
+
     // get specific gaps and rules for this workspace,
     // if user specified them in config
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
@@ -119,9 +123,10 @@ void CWindowTarget::updatePos() {
         }
     }
 
-    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? 0 : gapsIn.m_left), sc<double>(DISPLAYTOP ? 0 : gapsIn.m_top));
+    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? 0 : (DISPLAYINVERSELEFT ? 2 * gapsIn.m_left : gapsIn.m_left)), sc<double>(DISPLAYTOP ? 0 : gapsIn.m_top));
 
-    const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(DISPLAYRIGHT ? 0 : gapsIn.m_right), sc<double>(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
+    const auto GAPOFFSETBOTTOMRIGHT =
+        Vector2D(sc<double>(DISPLAYRIGHT ? 0 : (DISPLAYINVERSERIGHT ? 2 * gapsIn.m_right : gapsIn.m_right)), sc<double>(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
 
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;

@@ -270,23 +270,24 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
         return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};
     }
 
-    // get work area
-    const auto WORKAREA = m_workspace->m_space->workArea();
-    const auto RESERVED = CReservedArea{PMONITOR->logicalBox(), WORKAREA};
+    // fucker fucking fuck
+    const auto  WORKAREA = m_workspace->m_space->workArea();
+    const auto& RESERVED = PMONITOR->m_reservedArea;
 
-    if (DELTALESSTHAN(POS.y - PMONITOR->m_position.y, RESERVED.top(), 1)) {
-        POS.y = PMONITOR->m_position.y;
-        SIZE.y += RESERVED.top();
-    }
-    if (DELTALESSTHAN(POS.x - PMONITOR->m_position.x, RESERVED.left(), 1)) {
-        POS.x = PMONITOR->m_position.x;
+    if (DELTALESSTHAN(POS.x, WORKAREA.x, 1)) {
+        POS.x -= RESERVED.left();
         SIZE.x += RESERVED.left();
     }
 
-    if (DELTALESSTHAN(POS.x + SIZE.x - PMONITOR->m_position.x, PMONITOR->m_size.x - RESERVED.right(), 1))
+    if (DELTALESSTHAN(POS.y, WORKAREA.y, 1)) {
+        POS.y -= RESERVED.top();
+        SIZE.y += RESERVED.top();
+    }
+
+    if (DELTALESSTHAN(POS.x + SIZE.x, WORKAREA.x + WORKAREA.width, 1))
         SIZE.x += RESERVED.right();
 
-    if (DELTALESSTHAN(POS.y + SIZE.y - PMONITOR->m_position.y, PMONITOR->m_size.y - RESERVED.bottom(), 1))
+    if (DELTALESSTHAN(POS.y + SIZE.y, WORKAREA.y + WORKAREA.height, 1))
         SIZE.y += RESERVED.bottom();
 
     return CBox{sc<int>(POS.x), sc<int>(POS.y), sc<int>(SIZE.x), sc<int>(SIZE.y)};

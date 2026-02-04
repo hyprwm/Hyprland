@@ -152,7 +152,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode) {
     g_pKeybindManager->shadowKeybinds();
 
     if (DRAGGINGTARGET->window()) {
-        Desktop::focusState()->rawWindowFocus(DRAGGINGTARGET->window());
+        Desktop::focusState()->rawWindowFocus(DRAGGINGTARGET->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
         g_pCompositor->changeWindowZOrder(DRAGGINGTARGET->window(), true);
     }
 }
@@ -233,7 +233,7 @@ void CDragStateController::dragEnd() {
 
     draggingTarget->damageEntire();
 
-    Desktop::focusState()->fullWindowFocus(draggingTarget->window());
+    Desktop::focusState()->fullWindowFocus(draggingTarget->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_wasDraggingWindow = false;
     m_dragMode          = MBIND_INVALID;

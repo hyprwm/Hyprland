@@ -598,7 +598,7 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
     if (silent) {
         const auto PNODETOFOCUS = getClosestNode(originalPos);
         if (PNODETOFOCUS && PNODETOFOCUS->pTarget)
-            Desktop::focusState()->fullWindowFocus(PNODETOFOCUS->pTarget->window());
+            Desktop::focusState()->fullWindowFocus(PNODETOFOCUS->pTarget->window(), Desktop::FOCUS_REASON_KEYBIND);
     }
 }
 

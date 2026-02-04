@@ -361,34 +361,32 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
             m_config.configuredWidths = {0.333, 0.5, 0.667, 1.0};
     });
 
+    m_mouseButtonCallback = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any e) {
+        auto E = std::any_cast<IPointer::SButtonEvent>(e);
+        if (E.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+            focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
+    });
+
     m_focusCallback = g_pHookSystem->hookDynamic("activeWindow", [this](void* hk, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
+        const auto E       = std::any_cast<Desktop::View::SWindowActiveEvent>(param);
+        const auto PWINDOW = E.window;
 
         if (!PWINDOW)
             return;
 
         static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
-        if (!*PFOLLOW_FOCUS)
+        if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(E.reason))
             return;
 
-        if (!PWINDOW->m_workspace->isVisible())
+        if (PWINDOW->m_workspace != m_parent->space()->workspace())
             return;
 
         const auto TARGET = PWINDOW->layoutTarget();
-        if (!TARGET)
+        if (!TARGET || TARGET->floating())
             return;
 
-        const auto TARGETDATA = dataFor(TARGET);
-        if (!TARGETDATA)
-            return;
-
-        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
-        if (*PFITMETHOD == 1)
-            m_scrollingData->fitCol(TARGETDATA->column.lock());
-        else
-            m_scrollingData->centerCol(TARGETDATA->column.lock());
-        m_scrollingData->recalculate();
+        focusOnInput(TARGET, Desktop::isHardInputFocusReason(E.reason));
     });
 
     // Initialize default widths
@@ -398,6 +396,36 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
 CScrollingAlgorithm::~CScrollingAlgorithm() {
     m_configCallback.reset();
     m_focusCallback.reset();
+}
+
+void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, bool hardInput) {
+    static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Hyprlang::FLOAT>("scrolling:follow_min_visible");
+
+    if (!target || target->space() != m_parent->space())
+        return;
+
+    const auto TARGETDATA = dataFor(target);
+    if (!TARGETDATA)
+        return;
+
+    if (*PFOLLOW_FOCUS_MIN_PERC > 0.F && !hardInput) {
+        // check how much of the window is visible, unless hard input focus
+
+        const auto   MON_BOX    = m_parent->space()->workspace()->m_monitor->logicalBox();
+        const auto   TARGET_POS = target->position();
+        const double VISIBLE_X  = std::abs(std::min(MON_BOX.x + MON_BOX.w, TARGET_POS.x + TARGET_POS.w) - (std::max(MON_BOX.x, TARGET_POS.x)));
+
+        // if the amount of visible X is below minimum, reject
+        if (VISIBLE_X < MON_BOX.x * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F))
+            return;
+    }
+
+    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+    if (*PFITMETHOD == 1)
+        m_scrollingData->fitCol(TARGETDATA->column.lock());
+    else
+        m_scrollingData->centerCol(TARGETDATA->column.lock());
+    m_scrollingData->recalculate();
 }
 
 void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
@@ -953,10 +981,10 @@ std::optional<Vector2D> CScrollingAlgorithm::predictSizeForNewTarget() {
 
 void CScrollingAlgorithm::focusTargetUpdate(SP<ITarget> target) {
     if (!target || !validMapped(target->window())) {
-        Desktop::focusState()->fullWindowFocus(nullptr);
+        Desktop::focusState()->fullWindowFocus(nullptr, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
         return;
     }
-    Desktop::focusState()->fullWindowFocus(target->window());
+    Desktop::focusState()->fullWindowFocus(target->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
     const auto TARGETDATA = dataFor(target);
     if (TARGETDATA) {
         if (auto col = TARGETDATA->column.lock())

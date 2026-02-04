@@ -110,6 +110,7 @@ namespace Layout::Tiled {
 
         SP<HOOK_CALLBACK_FN> m_configCallback;
         SP<HOOK_CALLBACK_FN> m_focusCallback;
+        SP<HOOK_CALLBACK_FN> m_mouseButtonCallback;
 
         struct {
             std::vector<float> configuredWidths;
@@ -120,6 +121,7 @@ namespace Layout::Tiled {
 
         void                     focusTargetUpdate(SP<ITarget> target);
         void                     moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
+        void                     focusOnInput(SP<ITarget> target, bool hardInput);
 
         friend struct SScrollingData;
     };

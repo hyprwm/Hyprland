@@ -14,6 +14,8 @@
 
 using namespace Desktop;
 
+#define COMMA ,
+
 SP<CFocusState> Desktop::focusState() {
     static SP<CFocusState> state = makeShared<CFocusState>();
     return state;
@@ -65,7 +67,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     return {};
 }
 
-void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
+void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
     if (pWindow) {
         if (!pWindow->m_workspace)
             return;
@@ -85,10 +87,10 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surf
         return;
     }
 
-    rawWindowFocus(pWindow, surface);
+    rawWindowFocus(pWindow, reason, surface);
 }
 
-void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface) {
+void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface) {
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
 
@@ -131,7 +133,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-        EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
+        EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{nullptr COMMA reason});
 
         m_focusSurface.reset();
 
@@ -198,7 +200,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
-    EMIT_HOOK_EVENT("activeWindow", pWindow);
+    EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{pWindow COMMA reason});
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
@@ -295,4 +297,8 @@ PHLMONITOR CFocusState::monitor() {
 void CFocusState::resetWindowFocus() {
     m_focusWindow.reset();
     m_focusSurface.reset();
+}
+
+bool Desktop::isHardInputFocusReason(eFocusReason r) {
+    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK || r == FOCUS_REASON_DESKTOP_STATE_CHANGE;
 }

@@ -429,7 +429,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
         // if same monitor, switch windows
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());
         if (silent)
-            Desktop::focusState()->fullWindowFocus(PWINDOW2);
+            Desktop::focusState()->fullWindowFocus(PWINDOW2, Desktop::FOCUS_REASON_KEYBIND);
 
         recalculate();
     }
@@ -444,7 +444,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         if (!target || !validMapped(target->window()))
             return;
 
-        Desktop::focusState()->fullWindowFocus(target->window());
+        Desktop::focusState()->fullWindowFocus(target->window(), Desktop::FOCUS_REASON_KEYBIND);
         g_pCompositor->warpCursorTo(target->position().middle());
 
         g_pInputManager->m_forcedFocus = target->window();

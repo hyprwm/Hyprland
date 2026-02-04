@@ -374,7 +374,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
     const auto PNEWWINDOW = PNEWWORKSPACE->getLastFocusedWindow();
     if (PNEWWINDOW) {
         updateRelativeCursorCoords();
-        Desktop::focusState()->fullWindowFocus(PNEWWINDOW);
+        Desktop::focusState()->fullWindowFocus(PNEWWINDOW, Desktop::FOCUS_REASON_KEYBIND);
         PNEWWINDOW->warpCursor();
 
         if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
@@ -383,7 +383,7 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
             g_pInputManager->m_forcedFocus.reset();
         }
     } else {
-        Desktop::focusState()->rawWindowFocus(nullptr);
+        Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_KEYBIND);
         g_pCompositor->warpCursorTo(monitor->middle());
     }
     Desktop::focusState()->rawMonitorFocus(monitor);
@@ -404,10 +404,10 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCy
     g_pInputManager->unconstrainMouse();
 
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, nullptr, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes
@@ -1262,7 +1262,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
         Vector2D middle = PMONITORWORKSPACEOWNER->middle();
         if (const auto PLAST = pWorkspaceToChangeTo->getLastFocusedWindow(); PLAST) {
-            Desktop::focusState()->fullWindowFocus(PLAST);
+            Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
             if (*PWORKSPACECENTERON == 1)
                 middle = PLAST->middle();
         }
@@ -1407,7 +1407,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspace(std::string args) {
 
     pMonitor->changeWorkspace(pWorkspace);
 
-    Desktop::focusState()->fullWindowFocus(PWINDOW);
+    Desktop::focusState()->fullWindowFocus(PWINDOW, Desktop::FOCUS_REASON_KEYBIND);
     PWINDOW->warpCursor();
 
     return {};
@@ -1451,7 +1451,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
         if (const auto PATCOORDS =
                 g_pCompositor->vectorToWindowUnified(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, PWINDOW);
             PATCOORDS)
-            Desktop::focusState()->fullWindowFocus(PATCOORDS);
+            Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_KEYBIND);
         else
             g_pInputManager->refocus();
     }
@@ -2163,7 +2163,7 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
         changeworkspace(PWORKSPACE->getConfigName());
     }
 
-    Desktop::focusState()->fullWindowFocus(PWINDOW, nullptr, false);
+    Desktop::focusState()->fullWindowFocus(PWINDOW, Desktop::FOCUS_REASON_KEYBIND, nullptr, false);
 
     PWINDOW->warpCursor();
 
@@ -2525,7 +2525,7 @@ SDispatchResult CKeybindManager::swapnext(std::string arg) {
 
     PLASTWINDOW->m_lastCycledWindow = toSwap;
 
-    Desktop::focusState()->fullWindowFocus(PLASTWINDOW);
+    Desktop::focusState()->fullWindowFocus(PLASTWINDOW, Desktop::FOCUS_REASON_KEYBIND);
 
     return {};
 }
@@ -2721,7 +2721,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 
     pWindowInDirection->m_group->setCurrent(pWindow);
     pWindow->updateWindowDecos();
-    Desktop::focusState()->fullWindowFocus(pWindow);
+    Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
     pWindow->warpCursor();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"moveintogroup", std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
@@ -2738,10 +2738,10 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
     pWindow->m_group->remove(pWindow);
 
     if (*BFOCUSREMOVEDWINDOW || !group) {
-        Desktop::focusState()->fullWindowFocus(pWindow);
+        Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
         pWindow->warpCursor();
     } else {
-        Desktop::focusState()->fullWindowFocus(group->current());
+        Desktop::focusState()->fullWindowFocus(group->current(), Desktop::FOCUS_REASON_KEYBIND);
         group->current()->warpCursor();
     }
 
@@ -3117,9 +3117,9 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
 
     if (PWINDOW->m_ruleApplicator->noFocus().valueOrDefault() != noFocus) {
         // FIXME: what the fuck is going on here? -vax
-        Desktop::focusState()->rawWindowFocus(nullptr);
-        Desktop::focusState()->fullWindowFocus(PWINDOW);
-        Desktop::focusState()->fullWindowFocus(PLASTWINDOW);
+        Desktop::focusState()->rawWindowFocus(nullptr, Desktop::FOCUS_REASON_KEYBIND);
+        Desktop::focusState()->fullWindowFocus(PWINDOW, Desktop::FOCUS_REASON_KEYBIND);
+        Desktop::focusState()->fullWindowFocus(PLASTWINDOW, Desktop::FOCUS_REASON_KEYBIND);
     }
 
     if (PROP == "no_vrr")

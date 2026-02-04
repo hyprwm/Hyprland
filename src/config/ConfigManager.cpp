@@ -649,7 +649,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("scrolling:column_width", Hyprlang::FLOAT{0.5F});
     registerConfigVar("scrolling:focus_fit_method", Hyprlang::INT{1});
     registerConfigVar("scrolling:follow_focus", Hyprlang::INT{1});
-    registerConfigVar("scrolling:follow_debounce_ms", Hyprlang::INT{0});
+    registerConfigVar("scrolling:follow_min_visible", Hyprlang::FLOAT{0.4});
     registerConfigVar("scrolling:explicit_column_widths", Hyprlang::STRING{"0.333, 0.5, 0.667, 1.0"});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});

@@ -22,7 +22,7 @@ using namespace Layout::Tiled;
 CMonocleAlgorithm::CMonocleAlgorithm() {
     // hook into focus changes to bring focused window to front
     m_focusCallback = g_pHookSystem->hookDynamic("activeWindow", [this](void* hk, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
+        const auto PWINDOW = std::any_cast<Desktop::View::SWindowActiveEvent>(param).window;
 
         if (!PWINDOW)
             return;
@@ -245,7 +245,7 @@ void CMonocleAlgorithm::updateVisible() {
     if (!WINDOW)
         return;
 
-    Desktop::focusState()->fullWindowFocus(WINDOW);
+    Desktop::focusState()->fullWindowFocus(WINDOW, Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 }
 
 SP<ITarget> CMonocleAlgorithm::getVisibleTarget() {

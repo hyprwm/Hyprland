@@ -2058,10 +2058,10 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{.value = true},
     },
     SConfigOptionDescription{
-        .value       = "scrolling:follow_debounce_ms",
-        .description = "time to debounce focus events for",
-        .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 1000},
+        .value       = "scrolling:follow_min_visible",
+        .description = "when a window is focused, require that at least a given fraction of it is visible for focus to follow",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{.value = 0.4, .min = 0.0, .max = 1.0},
     },
     SConfigOptionDescription{
         .value       = "scrolling:explicit_column_widths",

@@ -195,7 +195,7 @@ void CGroup::setCurrent(size_t idx) {
     }
 
     if (WASFOCUS)
-        Desktop::focusState()->rawWindowFocus(current());
+        Desktop::focusState()->rawWindowFocus(current(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
 }
 
 void CGroup::setCurrent(PHLWINDOW w) {
@@ -316,7 +316,7 @@ void CGroup::swapWithNext() {
     updateWindowVisibility();
 
     if (HAD_FOCUS)
-        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock());
+        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
 }
 
 void CGroup::swapWithLast() {
@@ -328,5 +328,5 @@ void CGroup::swapWithLast() {
     updateWindowVisibility();
 
     if (HAD_FOCUS)
-        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock());
+        Desktop::focusState()->fullWindowFocus(m_windows.at(m_current).lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
 }

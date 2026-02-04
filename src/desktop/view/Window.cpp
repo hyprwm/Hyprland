@@ -58,6 +58,8 @@ using enum NContentType::eContentType;
 using namespace Desktop;
 using namespace Desktop::View;
 
+#define COMMA ,
+
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
@@ -1028,7 +1030,7 @@ void CWindow::activate(bool force) {
     if (m_isFloating)
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    Desktop::focusState()->fullWindowFocus(m_self.lock());
+    Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
     warpCursor();
 }
 
@@ -1080,7 +1082,8 @@ void CWindow::onUpdateMeta() {
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
-            EMIT_HOOK_EVENT("activeWindow", m_self.lock());
+
+            // no need for a hook event
         }
 
         Log::logger->log(Log::DEBUG, "Window {:x} set title to {}", rc<uintptr_t>(this), m_title);
@@ -1094,7 +1097,8 @@ void CWindow::onUpdateMeta() {
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(this))});
-            EMIT_HOOK_EVENT("activeWindow", m_self.lock());
+
+            // no need for a hook event
         }
 
         Log::logger->log(Log::DEBUG, "Window {:x} set class to {}", rc<uintptr_t>(this), m_class);
@@ -1987,10 +1991,10 @@ void CWindow::mapWindow() {
         const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
 
         if (IS_LAST_IN_FS && SAME_GROUP) {
-            Desktop::focusState()->rawWindowFocus(m_self.lock());
+            Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
             g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE);
         } else
-            Desktop::focusState()->fullWindowFocus(m_self.lock());
+            Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
 
         m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
         m_dimPercent->setValueAndWarp(m_ruleApplicator->noDim().valueOrDefault() ? 0.f : *PDIMSTRENGTH);
@@ -2031,10 +2035,10 @@ void CWindow::mapWindow() {
 
     if (workspaceSilent) {
         if (validMapped(PFOCUSEDWINDOWPREV)) {
-            Desktop::focusState()->rawWindowFocus(PFOCUSEDWINDOWPREV);
+            Desktop::focusState()->rawWindowFocus(PFOCUSEDWINDOWPREV, FOCUS_REASON_NEW_WINDOW);
             PFOCUSEDWINDOWPREV->updateWindowDecos(); // need to for some reason i cba to find out why
         } else if (!PFOCUSEDWINDOWPREV)
-            Desktop::focusState()->rawWindowFocus(nullptr);
+            Desktop::focusState()->rawWindowFocus(nullptr, FOCUS_REASON_NEW_WINDOW);
     }
 
     // swallow
@@ -2201,9 +2205,9 @@ void CWindow::unmapWindow() {
 
         if (candidate != Desktop::focusState()->window() && candidate) {
             if (candidate == nextInGroup)
-                Desktop::focusState()->rawWindowFocus(candidate);
+                Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
             else
-                Desktop::focusState()->fullWindowFocus(candidate);
+                Desktop::focusState()->fullWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
             if ((*PEXITRETAINSFS || candidate == nextInGroup) && CURRENTWINDOWFSSTATE)
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
@@ -2218,7 +2222,8 @@ void CWindow::unmapWindow() {
         if (m_self.lock() == Desktop::focusState()->window() || !Desktop::focusState()->window()) {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
-            EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
+
+            EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{nullptr COMMA FOCUS_REASON_OTHER});
         }
     } else {
         Log::logger->log(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");
@@ -2360,7 +2365,7 @@ void CWindow::activateX11() {
         if (!m_xwaylandSurface->wantsFocus())
             return;
 
-        Desktop::focusState()->fullWindowFocus(m_self.lock());
+        Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
         return;
     }
 

@@ -110,10 +110,10 @@ void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFo
     a->swap(b);
 
     if (IS_A_ACTIVE && b->window())
-        Desktop::focusState()->fullWindowFocus(b->window());
+        Desktop::focusState()->fullWindowFocus(b->window(), Desktop::FOCUS_REASON_KEYBIND);
 
     if (IS_B_ACTIVE && a->window())
-        Desktop::focusState()->fullWindowFocus(a->window());
+        Desktop::focusState()->fullWindowFocus(a->window(), Desktop::FOCUS_REASON_KEYBIND);
 }
 
 void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& direction, bool silent) {

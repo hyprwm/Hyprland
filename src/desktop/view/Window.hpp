@@ -31,6 +31,10 @@ namespace Layout {
     class CWindowTarget;
 }
 
+namespace Desktop {
+    enum eFocusReason : uint8_t;
+}
+
 namespace Desktop::View {
 
     class CGroup;
@@ -67,6 +71,11 @@ namespace Desktop::View {
         SUPPRESS_ACTIVATE           = 1 << 2,
         SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
         SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+    };
+
+    struct SWindowActiveEvent {
+        PHLWINDOW    window = nullptr;
+        eFocusReason reason = sc<eFocusReason>(0) /* unknown */;
     };
 
     struct SInitialWorkspaceToken {

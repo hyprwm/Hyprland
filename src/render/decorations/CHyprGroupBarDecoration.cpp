@@ -417,7 +417,7 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     // g_pInputManager->m_currentlyDraggedWindow = pWindow;
 
     if (!g_pCompositor->isWindowActive(pWindow))
-        Desktop::focusState()->rawWindowFocus(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);
 
     return true;
 }
@@ -472,7 +472,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
     const auto STACKPAD = *PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP);
     if (TABPAD || STACKPAD) {
         if (!g_pCompositor->isWindowActive(m_window.lock()))
-            Desktop::focusState()->rawWindowFocus(m_window.lock());
+            Desktop::focusState()->rawWindowFocus(m_window.lock(), Desktop::FOCUS_REASON_CLICK);
         return true;
     }
 
@@ -482,7 +482,7 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
         pWindow->m_group->setCurrent(pWindow);
 
     if (!g_pCompositor->isWindowActive(pWindow) && *PFOLLOWMOUSE != 3)
-        Desktop::focusState()->rawWindowFocus(pWindow);
+        Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);
 
     if (pWindow->m_isFloating)
         g_pCompositor->changeWindowZOrder(pWindow, true);

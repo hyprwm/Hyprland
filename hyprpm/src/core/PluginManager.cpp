@@ -550,8 +550,17 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("setting PREFIX for cmake to {}", DataState::getHeadersPath()));
 
-    ret = execAndGet(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build", WORKINGDIR,
-                                 DataState::getHeadersPath()));
+    const auto CONFIGURE_CMD =
+        nixDevelopIfNeeded(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build", WORKINGDIR,
+                                       DataState::getHeadersPath()),
+                           HLVER);
+
+    if (!CONFIGURE_CMD) {
+        std::println(stderr, "\n{}", failureString("Could not configure hyprland: {}", CONFIGURE_CMD.error()));
+        return false;
+    }
+
+    ret = execAndGet(*CONFIGURE_CMD);
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("cmake returned: {}", ret));
 

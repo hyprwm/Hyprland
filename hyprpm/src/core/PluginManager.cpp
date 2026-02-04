@@ -1023,7 +1023,24 @@ std::expected<std::string, std::string> CPluginManager::nixDevelopIfNeeded(const
     if (m_bNoNix || !ver.isNix)
         return cmd;
 
-    // get nix source from nix profile list --json
+    // Escape single quotes
+    std::string newCmd = cmd;
+    replaceInString(newCmd, "'", "\\'");
+
+    if (m_szArgv0.starts_with("/")) {
+        // we have a full path in argv[0], we can use that.
+
+        auto            storePath = m_szArgv0.substr(0, m_szArgv0.length() - std::string_view{"/bin/hyprpm"}.length());
+        std::error_code ec;
+        auto            fullStorePath = std::filesystem::canonical(storePath, ec);
+
+        if (ec)
+            return std::unexpected("hyprpm needs to use nix, but argv0 path is bad");
+
+        return std::format("nix develop \"$(nix-store --query --deriver '{}')\" --command bash -c $'{}'", fullStorePath.string(), newCmd);
+    }
+
+    // get nix source from nix profile list --json otherwise
     const auto NIX_PROFILE_STR = execAndGet("nix profile list --json");
 
     auto       rawJson = glz::read_json<glz::generic>(NIX_PROFILE_STR);
@@ -1045,10 +1062,6 @@ std::expected<std::string, std::string> CPluginManager::nixDevelopIfNeeded(const
         return std::unexpected("hyprpm needs to use nix, but nix profile list --json's hyprland doesn't contain originalUrl?");
 
     const std::string ORIGINAL_URL = hyprlandJson["originalUrl"].get_string();
-
-    // Escape single quotes
-    std::string newCmd = cmd;
-    replaceInString(newCmd, "'", "\\'");
 
     return std::format("nix develop '{}' --command bash -c $'{}'", ORIGINAL_URL, newCmd);
 }

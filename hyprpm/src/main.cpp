@@ -96,6 +96,7 @@ int                        main(int argc, char** argv, char** envp) {
     g_pPluginManager->m_bNoShallow    = noShallow;
     g_pPluginManager->m_bNoNix        = noNix;
     g_pPluginManager->m_szCustomHlUrl = customHlUrl;
+    g_pPluginManager->m_szArgv0       = argv[0];
 
     if (command[0] == "add") {
         if (command.size() < 2) {

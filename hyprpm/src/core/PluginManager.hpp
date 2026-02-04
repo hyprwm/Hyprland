@@ -73,7 +73,7 @@ class CPluginManager {
     bool                   m_bVerbose   = false;
     bool                   m_bNoShallow = false;
     bool                   m_bNoNix     = false;
-    std::string            m_szCustomHlUrl, m_szUsername;
+    std::string            m_szCustomHlUrl, m_szUsername, m_szArgv0;
 
     // will delete recursively if exists!!
     bool createSafeDirectory(const std::string& path);

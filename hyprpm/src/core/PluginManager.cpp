@@ -1019,6 +1019,52 @@ const std::string& CPluginManager::getPkgConfigPath() {
     return str;
 }
 
+static std::expected<std::string, std::string> getNixDevelopFromPath(const std::string& argv0) {
+    if (argv0.length() <= std::string_view{"/bin/hyprpm"}.length())
+        return std::unexpected("bad path");
+
+    if (!argv0.starts_with("/"))
+        return std::unexpected("bad path 2");
+
+    auto            storePath = argv0.substr(0, argv0.length() - std::string_view{"/bin/hyprpm"}.length());
+    std::error_code ec;
+    auto            fullStorePath = std::filesystem::canonical(storePath, ec);
+
+    if (ec)
+        return std::unexpected("but argv0 path unresolvable");
+
+    auto deriver = execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath.string()));
+
+    if (deriver.starts_with("unknown"))
+        return std::unexpected("couldn't nix deriver");
+
+    return deriver;
+}
+
+static std::expected<std::string, std::string> getNixDevelopFromProfile() {
+    const auto NIX_PROFILE_STR = execAndGet("nix profile list --json");
+
+    auto       rawJson = glz::read_json<glz::generic>(NIX_PROFILE_STR);
+
+    if (!rawJson)
+        return std::unexpected("failed to parse nix profile list --json");
+
+    auto& json = *rawJson;
+
+    if (!json.contains("elements") || !json["elements"].is_object())
+        return std::unexpected("nix profile list --json returned a wonky json");
+
+    if (!json["elements"].contains("hyprland") && !json["elements"].contains("Hyprland"))
+        return std::unexpected("nix profile list --json doesn't contain Hyprland (did you uninstall?)");
+
+    auto& hyprlandJson = json["elements"].contains("hyprland") ? json["elements"]["hyprland"] : json["elements"]["Hyprland"];
+
+    if (!hyprlandJson.contains("originalUrl"))
+        return std::unexpected("nix profile list --json's hyprland doesn't contain originalUrl?");
+
+    return hyprlandJson["originalUrl"].get_string();
+}
+
 std::expected<std::string, std::string> CPluginManager::nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver) {
     if (m_bNoNix || !ver.isNix)
         return cmd;
@@ -1027,41 +1073,19 @@ std::expected<std::string, std::string> CPluginManager::nixDevelopIfNeeded(const
     std::string newCmd = cmd;
     replaceInString(newCmd, "'", "\\'");
 
-    if (m_szArgv0.starts_with("/")) {
-        // we have a full path in argv[0], we can use that.
+    auto NIX_DEVELOP = getNixDevelopFromPath(m_szArgv0);
 
-        auto            storePath = m_szArgv0.substr(0, m_szArgv0.length() - std::string_view{"/bin/hyprpm"}.length());
-        std::error_code ec;
-        auto            fullStorePath = std::filesystem::canonical(storePath, ec);
+    if (NIX_DEVELOP)
+        return std::format("nix develop '{}' --command bash -c $'{}'", *NIX_DEVELOP, newCmd);
+    else if (m_bVerbose)
+        std::println("{}", verboseString("Failed nix from path: {}", NIX_DEVELOP.error()));
 
-        if (ec)
-            return std::unexpected("hyprpm needs to use nix, but argv0 path is bad");
+    NIX_DEVELOP = getNixDevelopFromProfile();
 
-        return std::format("nix develop \"$(nix-store --query --deriver '{}')\" --command bash -c $'{}'", fullStorePath.string(), newCmd);
-    }
+    if (NIX_DEVELOP)
+        return std::format("nix develop '{}' --command bash -c $'{}'", *NIX_DEVELOP, newCmd);
+    else if (m_bVerbose)
+        std::println("{}", verboseString("Failed nix from profile: {}", NIX_DEVELOP.error()));
 
-    // get nix source from nix profile list --json otherwise
-    const auto NIX_PROFILE_STR = execAndGet("nix profile list --json");
-
-    auto       rawJson = glz::read_json<glz::generic>(NIX_PROFILE_STR);
-
-    if (!rawJson)
-        return std::unexpected("hyprpm needs to use nix, but failed to parse nix profile list --json");
-
-    auto& json = *rawJson;
-
-    if (!json.contains("elements") || !json["elements"].is_object())
-        return std::unexpected("hyprpm needs to use nix, but nix profile list --json returned a wonky json");
-
-    if (!json["elements"].contains("hyprland") && !json["elements"].contains("Hyprland"))
-        return std::unexpected("hyprpm needs to use nix, but nix profile list --json doesn't contain Hyprland (did you uninstall?)");
-
-    auto& hyprlandJson = json["elements"].contains("hyprland") ? json["elements"]["hyprland"] : json["elements"]["Hyprland"];
-
-    if (!hyprlandJson.contains("originalUrl"))
-        return std::unexpected("hyprpm needs to use nix, but nix profile list --json's hyprland doesn't contain originalUrl?");
-
-    const std::string ORIGINAL_URL = hyprlandJson["originalUrl"].get_string();
-
-    return std::format("nix develop '{}' --command bash -c $'{}'", ORIGINAL_URL, newCmd);
+    return std::unexpected("hyprland is nix, but hyprpm failed to obtain a nix develop shell for build cmd");
 }

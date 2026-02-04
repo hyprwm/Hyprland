@@ -68,6 +68,9 @@ auto CSurfaceStateQueue::find(const WP<SSurfaceState>& state) -> std::deque<UP<S
 void CSurfaceStateQueue::tryProcess() {
     while (!m_queue.empty()) {
         auto& front = m_queue.front();
+        if (front->lockMask & LOCK_REASON_FIFO && !m_surface->m_current.barrierSet)
+            front->lockMask &= ~LOCK_REASON_FIFO;
+
         if (front->lockMask != LOCK_REASON_NONE)
             return;
 

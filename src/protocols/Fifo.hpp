@@ -21,18 +21,12 @@ class CFifoResource {
 
     WP<CWLSurfaceResource> m_surface;
 
-    struct SState {
-        bool barrierSet    = false;
-        bool surfaceLocked = false;
-    };
-
-    SState m_pending;
-
     struct {
         CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 
     void presented();
+    bool checkMonitors(bool needsSchedule = false);
 
     friend class CFifoProtocol;
     friend class CFifoManagerResource;

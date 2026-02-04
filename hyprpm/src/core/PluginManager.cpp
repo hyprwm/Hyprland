@@ -1032,20 +1032,31 @@ const std::string& CPluginManager::getPkgConfigPath() {
 }
 
 static std::expected<std::string, std::string> getNixDevelopFromPath(const std::string& argv0) {
-    if (argv0.length() <= std::string_view{"/bin/hyprpm"}.length())
-        return std::unexpected("bad path");
+    std::string fullStorePath;
 
-    if (!argv0.starts_with("/"))
-        return std::unexpected("bad path 2");
+    if (argv0.starts_with("/")) {
+        // we can use this directly
+        fullStorePath = argv0;
+    } else {
+        // use hyprpm, find in path
+        auto exe = NSys::findInPath("hyprpm");
+        if (!exe)
+            return std::unexpected("hyprpm not found in PATH");
 
-    auto            storePath = argv0.substr(0, argv0.length() - std::string_view{"/bin/hyprpm"}.length());
+        fullStorePath = *exe;
+    }
+
+    if (fullStorePath.empty())
+        return std::unexpected("couldn't get a real path for hyprpm (1)");
+
+    // canonicalize to get the real nix-store path
     std::error_code ec;
-    auto            fullStorePath = std::filesystem::canonical(storePath, ec);
+    fullStorePath = std::filesystem::canonical(fullStorePath, ec);
 
-    if (ec)
-        return std::unexpected("but argv0 path unresolvable");
+    if (ec || fullStorePath.empty() || !fullStorePath.starts_with("/nix"))
+        return std::unexpected("couldn't get a real path for hyprpm");
 
-    auto deriver = execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath.string()));
+    auto deriver = execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath));
 
     if (deriver.starts_with("unknown"))
         return std::unexpected("couldn't nix deriver");

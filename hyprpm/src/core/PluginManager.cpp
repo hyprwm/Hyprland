@@ -1058,7 +1058,7 @@ static std::expected<std::string, std::string> getNixDevelopFromPath(const std::
 
     fullStorePath = fullStorePath.substr(0, fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
 
-    auto deriver = execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath));
+    auto deriver = trim(execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath)));
 
     if (deriver.starts_with("unknown"))
         return std::unexpected("couldn't nix deriver");

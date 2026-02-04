@@ -1001,6 +1001,9 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 }
 
 bool CPluginManager::hasDeps() {
+    if (!m_bNoNix && getHyprlandVersion().isNix)
+        return true; // dep check not needed if we are on nix
+
     bool                     hasAllDeps = true;
     std::vector<std::string> deps       = {"cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
 

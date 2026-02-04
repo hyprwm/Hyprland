@@ -177,6 +177,7 @@ class CMonitor {
 
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
+    bool         m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
     bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur

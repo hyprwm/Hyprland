@@ -1315,10 +1315,12 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     bool shouldTear = pMonitor->updateTearing();
 
     if (pMonitor->attemptDirectScanout()) {
+        pMonitor->m_directScanoutIsActive = true;
         return;
-    } else if (!pMonitor->m_lastScanout.expired()) {
+    } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
         Log::logger->log(Log::DEBUG, "Left a direct scanout.");
         pMonitor->m_lastScanout.reset();
+        pMonitor->m_directScanoutIsActive = false;
 
         // reset DRM format, but only if needed since it might modeset
         if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)

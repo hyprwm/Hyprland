@@ -25,7 +25,7 @@ constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
 ┣ Flags:
 ┃
-┣ --no-nix       |              → Disable `nix shell` for build commands, even if Hyprland is nix.
+┣ --no-nix       |              → Disable `nix develop` for build commands, even if Hyprland is nix.
 ┣ --notify       | -n           → Send a hyprland notification confirming successful plugin load.
 ┃                                 Warnings/Errors trigger notifications regardless of this flag.
 ┣ --help         | -h           → Show this menu.

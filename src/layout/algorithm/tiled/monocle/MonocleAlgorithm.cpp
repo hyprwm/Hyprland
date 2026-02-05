@@ -7,6 +7,7 @@
 
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
+#include "../../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 
@@ -91,6 +92,23 @@ void CMonocleAlgorithm::removeTarget(SP<ITarget> target) {
         m_currentVisibleIndex = 0;
         return;
     }
+
+    // try to use the last window in history if we can
+    for (const auto& historyWindow : Desktop::History::windowTracker()->historyForWorkspace(m_parent->space()->workspace()) | std::views::reverse) {
+        auto it = std::ranges::find_if(m_targetDatas, [&historyWindow](const auto& d) { return d->target == historyWindow->layoutTarget(); });
+
+        if (it == m_targetDatas.end())
+            continue;
+
+        // we found a historical target, use that first
+        m_currentVisibleIndex = std::distance(m_targetDatas.begin(), it);
+
+        recalculate();
+
+        return;
+    }
+
+    // if we didn't find history, fall back to last
 
     if (m_currentVisibleIndex >= (int)m_targetDatas.size())
         m_currentVisibleIndex = m_targetDatas.size() - 1;

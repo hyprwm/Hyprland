@@ -115,7 +115,7 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window) || m_window->isFullscreen())
+    if (!validMapped(m_window) || m_window->m_fullscreenState.internal == FSMODE_FULLSCREEN)
         return;
 
     auto       surfaceBox   = m_window->getWindowMainSurfaceBox();

@@ -626,6 +626,30 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
     return false;
 }
 
+bool CWLSurfaceResource::isTearing() {
+    if (m_enteredOutputs.empty() && m_hlSurface) {
+        for (auto& m : g_pCompositor->m_monitors) {
+            if (!m || !m->m_enabled)
+                continue;
+
+            auto box = m_hlSurface->getSurfaceBoxGlobal();
+            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                if (m->m_tearingState.activelyTearing)
+                    return true;
+            }
+        }
+    } else {
+        for (auto& m : m_enteredOutputs) {
+            if (!m)
+                continue;
+
+            if (m->m_tearingState.activelyTearing)
+                return true;
+        }
+    }
+    return false;
+}
+
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;

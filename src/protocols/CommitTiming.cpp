@@ -31,7 +31,7 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {
-        if (!state || !state->pendingTimeout.has_value())
+        if (!state || !state->pendingTimeout.has_value() || !m_surface || m_surface->isTearing())
             return;
 
         m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);

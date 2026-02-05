@@ -1068,6 +1068,14 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
         const auto DESCRIPTIONSELECTOR = trim(selector.substr(5));
 
         return m_description.starts_with(DESCRIPTIONSELECTOR) || m_shortDescription.starts_with(DESCRIPTIONSELECTOR);
+    } else if (selector.starts_with("mode:")) {
+        // match by available mode
+        const auto MODESELECTOR = trim(selector.substr(5));
+
+        return std::ranges::any_of(m_output->modes, [&MODESELECTOR](const auto& mode) {
+            const auto MODESTR = std::format("{}x{}@{:.2f}Hz", mode->pixelSize.x, mode->pixelSize.y, mode->refreshRate / 1000.0);
+            return MODESTR.starts_with(MODESELECTOR);
+        });
     } else {
         // match by selector
         return m_name == selector;

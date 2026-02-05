@@ -69,7 +69,8 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "একটি অ্যাপ্লিকেশন <b>{app}</b> একটি অজানা অনুমতির অনুরোধ করছে।");
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "একটি অ্যাপ্লিকেশন <b>{app}</b> আপনার স্ক্রিন রেকর্ড করার চেষ্টা করছে।\n\nআপনি কি এটি অনুমতি দিতে চান?");
-    huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "একটি অ্যাপ্লিকেশন <b>{app}</b> একটি প্লাগইন লোড করার চেষ্টা করছে: <b>{plugin}</b>।\n\nআপনি কি এটি অনুমতি দিতে চান?");
+    huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "একটি অ্যাপ্লিকেশন <b>{app}</b> একটি প্লাগইন লোড করার চেষ্টা করছে: <b>{plugin}</b>।\n\nআপনি কি এটি অনুমতি দিতে চান?");
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "একটি নতুন কীবোর্ড সনাক্ত করা হয়েছে: <b>{keyboard}</b>।\n\nআপনি কি এটি কাজ করতে অনুমতি দিতে চান?");
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(অজানা)");
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_TITLE, "অনুমতির অনুরোধ");
@@ -80,10 +81,10 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_DENY, "প্রত্যাখ্যান করুন");
     huEngine->registerEntry("bn_BD", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "অজানা অ্যাপ্লিকেশন (wayland ক্লায়েন্ট ID {wayland_id})");
 
-    huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-                            "আপনার XDG_CURRENT_DESKTOP পরিবেশ পরিবর্তনশীল বাহ্যিকভাবে পরিচালিত হচ্ছে বলে মনে হচ্ছে, বর্তমান মান: {value}।\nএটি সমস্যা সৃষ্টি করতে পারে যদি না এটি ইচ্ছাকৃত হয়।");
-    huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_NO_GUIUTILS,
-                            "আপনার সিস্টেমে hyprland-guiutils ইনস্টল নেই যা কিছু ডায়ালগের জন্য ব্যবহৃত হয়। এটি ইনস্টল করার কথা বিবেচনা করুন।");
+    huEngine->registerEntry(
+        "bn_BD", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "আপনার XDG_CURRENT_DESKTOP পরিবেশ পরিবর্তনশীল বাহ্যিকভাবে পরিচালিত হচ্ছে বলে মনে হচ্ছে, বর্তমান মান: {value}।\nএটি সমস্যা সৃষ্টি করতে পারে যদি না এটি ইচ্ছাকৃত হয়।");
+    huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_NO_GUIUTILS, "আপনার সিস্টেমে hyprland-guiutils ইনস্টল নেই যা কিছু ডায়ালগের জন্য ব্যবহৃত হয়। এটি ইনস্টল করার কথা বিবেচনা করুন।");
     huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
         int assetsNo = std::stoi(vars.at("count"));
         if (assetsNo <= 1)
@@ -98,14 +99,14 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "প্লাগইন {name} লোড করতে ব্যর্থ: {error}");
     huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM শেডার পুনরায় লোড করতে ব্যর্থ, rgba/rgbx এ ফিরে যাচ্ছে।");
     huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "মনিটর {name}: ওয়াইড কালার গ্যামুট সক্রিয় কিন্তু স্ক্রিন 10-বিট মোডে নেই।");
-    huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_NO_WATCHDOG,
-                            "Hyprland start-hyprland ছাড়া চালু করা হয়েছে। এটি অত্যন্ত সুপারিশকৃত নয় যদি না আপনি ডিবাগিং পরিবেশে থাকেন।");
+    huEngine->registerEntry("bn_BD", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland start-hyprland ছাড়া চালু করা হয়েছে। এটি অত্যন্ত সুপারিশকৃত নয় যদি না আপনি ডিবাগিং পরিবেশে থাকেন।");
 
     huEngine->registerEntry("bn_BD", TXT_KEY_SAFE_MODE_TITLE, "নিরাপদ মোড");
-    huEngine->registerEntry("bn_BD", TXT_KEY_SAFE_MODE_DESCRIPTION,
-                            "Hyprland নিরাপদ মোডে চালু করা হয়েছে, যার মানে আপনার শেষ সেশন ক্র্যাশ হয়েছিল।\nনিরাপদ মোড আপনার কনফিগ লোড হওয়া থেকে প্রতিরোধ করে। আপনি "
-                            "এই পরিবেশে সমস্যা সমাধান করতে পারেন, অথবা নিচের বাটন দিয়ে আপনার কনফিগ লোড করতে পারেন।\nডিফল্ট কীবাইন্ড প্রযোজ্য: kitty এর জন্য SUPER+Q, মৌলিক রানারের জন্য SUPER+R, "
-                            "প্রস্থান করতে SUPER+M।\nHyprland পুনরায় চালু করলে আবার স্বাভাবিক মোডে চালু হবে।");
+    huEngine->registerEntry(
+        "bn_BD", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland নিরাপদ মোডে চালু করা হয়েছে, যার মানে আপনার শেষ সেশন ক্র্যাশ হয়েছিল।\nনিরাপদ মোড আপনার কনফিগ লোড হওয়া থেকে প্রতিরোধ করে। আপনি "
+        "এই পরিবেশে সমস্যা সমাধান করতে পারেন, অথবা নিচের বাটন দিয়ে আপনার কনফিগ লোড করতে পারেন।\nডিফল্ট কীবাইন্ড প্রযোজ্য: kitty এর জন্য SUPER+Q, মৌলিক রানারের জন্য SUPER+R, "
+        "প্রস্থান করতে SUPER+M।\nHyprland পুনরায় চালু করলে আবার স্বাভাবিক মোডে চালু হবে।");
     huEngine->registerEntry("bn_BD", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "কনফিগ লোড করুন");
     huEngine->registerEntry("bn_BD", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "ক্র্যাশ রিপোর্ট ডিরেক্টরি খুলুন");
     huEngine->registerEntry("bn_BD", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "ঠিক আছে, এটি বন্ধ করুন");

@@ -1573,6 +1573,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "default,gamma22,gamma22force,srgb"},
     },
+    SConfigOptionDescription{
+        .value       = "render:commit_timing_enabled",
+        .description = "Enable commit timing proto. Requires restart",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * cursor:

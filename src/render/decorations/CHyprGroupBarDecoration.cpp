@@ -402,19 +402,15 @@ bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {
     if (*PSTACKED && (BARRELATIVEY - (m_barHeight + *POUTERGAP) * WINDOWINDEX < *POUTERGAP))
         return false;
 
-    PHLWINDOW pWindow = m_window->m_group->fromIndex(WINDOWINDEX);
+    PHLWINDOW   pWindow = m_window->m_group->fromIndex(WINDOWINDEX);
 
-    // hack
-    // g_pLayoutManager->getCurrentLayout()->onWindowRemoved(pWindow);
-    if (!pWindow->m_isFloating) {
-        const bool GROUPSLOCKEDPREV       = g_pKeybindManager->m_groupsLocked;
-        g_pKeybindManager->m_groupsLocked = true;
-        // g_pLayoutManager->getCurrentLayout()->onWindowCreated(pWindow);
-        g_pKeybindManager->m_groupsLocked = GROUPSLOCKEDPREV;
-    }
+    const auto& GROUP = m_window->m_group;
 
-    // FIXME:
-    // g_pInputManager->m_currentlyDraggedWindow = pWindow;
+    // remove the window from the group
+    GROUP->remove(pWindow);
+
+    // start a move drag on it
+    g_layoutManager->dragController()->dragBegin(pWindow->layoutTarget(), MBIND_MOVE);
 
     if (!g_pCompositor->isWindowActive(pWindow))
         Desktop::focusState()->rawWindowFocus(pWindow, Desktop::FOCUS_REASON_CLICK);

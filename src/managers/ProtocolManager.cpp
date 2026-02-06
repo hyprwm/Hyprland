@@ -140,7 +140,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::data          = makeUnique<CWLDataDeviceProtocol>(&wl_data_device_manager_interface, 3, "WLDataDevice");
     PROTO::compositor    = makeUnique<CWLCompositorProtocol>(&wl_compositor_interface, 6, "WLCompositor");
     PROTO::subcompositor = makeUnique<CWLSubcompositorProtocol>(&wl_subcompositor_interface, 1, "WLSubcompositor");
-    PROTO::shm           = makeUnique<CWLSHMProtocol>(&wl_shm_interface, 1, "WLSHM");
+    PROTO::shm           = makeUnique<CWLSHMProtocol>(&wl_shm_interface, 2, "WLSHM");
 
     // Extensions
     PROTO::viewport            = makeUnique<CViewporterProtocol>(&wp_viewporter_interface, 1, "Viewporter");

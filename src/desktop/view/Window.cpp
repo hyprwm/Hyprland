@@ -1335,6 +1335,8 @@ void CWindow::onUpdateState() {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
+                if (!monitor)
+                    return;
                 g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
                 Desktop::focusState()->rawMonitorFocus(monitor);
             }

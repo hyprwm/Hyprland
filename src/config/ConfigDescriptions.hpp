@@ -2069,6 +2069,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_STRING_SHORT,
         .data        = SConfigOptionDescription::SStringData{"0.333, 0.5, 0.667, 1.0"},
     },
+    SConfigOptionDescription{
+        .value       = "scrolling:direction",
+        .description = "Direction in which new windows appear and the layout scrolls",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{0, "right,left,down,up"},
+    },
 
     /*
      * Quirks

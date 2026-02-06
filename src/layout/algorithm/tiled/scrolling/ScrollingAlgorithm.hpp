@@ -3,6 +3,7 @@
 #include "../../TiledAlgorithm.hpp"
 #include "../../../../managers/HookSystemManager.hpp"
 #include "../../../../helpers/math/Direction.hpp"
+#include "ScrollTapeController.hpp"
 
 #include <vector>
 
@@ -12,13 +13,12 @@ namespace Layout::Tiled {
     struct SScrollingData;
 
     struct SScrollingTargetData {
-        SScrollingTargetData(SP<ITarget> t, SP<SColumnData> col, float ws = 1.F) : target(t), column(col), windowSize(ws) {
+        SScrollingTargetData(SP<ITarget> t, SP<SColumnData> col) : target(t), column(col) {
             ;
         }
 
         WP<ITarget>     target;
         WP<SColumnData> column;
-        float           windowSize             = 1.F;
         bool            ignoreFullscreenChecks = false;
 
         CBox            layoutBox;
@@ -47,21 +47,26 @@ namespace Layout::Tiled {
         SP<SScrollingTargetData>              prev(SP<SScrollingTargetData> w);
 
         std::vector<SP<SScrollingTargetData>> targetDatas;
-        float                                 columnSize  = 1.F;
-        float                                 columnWidth = 1.F;
         WP<SScrollingData>                    scrollingData;
         WP<SScrollingTargetData>              lastFocusedTarget;
 
         WP<SColumnData>                       self;
+
+        // Helper methods to access controller-managed data
+        float getColumnWidth() const;
+        void  setColumnWidth(float width);
+        float getTargetSize(size_t idx) const;
+        void  setTargetSize(size_t idx, float size);
+        float getTargetSize(SP<SScrollingTargetData> target) const;
+        void  setTargetSize(SP<SScrollingTargetData> target, float size);
     };
 
     struct SScrollingData {
-        SScrollingData(CScrollingAlgorithm* algo) : algorithm(algo) {
-            ;
-        }
+        SScrollingData(CScrollingAlgorithm* algo);
 
         std::vector<SP<SColumnData>> columns;
-        float                        leftOffset = 0;
+
+        UP<CScrollTapeController>    controller;
 
         SP<SColumnData>              add();
         SP<SColumnData>              add(int after);
@@ -115,6 +120,8 @@ namespace Layout::Tiled {
         struct {
             std::vector<float> configuredWidths;
         } m_config;
+
+        eScrollDirection         getDynamicDirection();
 
         SP<SScrollingTargetData> findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData> dataFor(SP<ITarget> t);

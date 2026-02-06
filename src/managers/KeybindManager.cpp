@@ -117,6 +117,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["togglespecialworkspace"]         = toggleSpecialWorkspace;
     m_dispatchers["forcerendererreload"]            = forceRendererReload;
     m_dispatchers["resizeactive"]                   = resizeActive;
+    m_dispatchers["resizeactiveedge"]               = resizeActiveEdge;
     m_dispatchers["moveactive"]                     = moveActive;
     m_dispatchers["cyclenext"]                      = circleNext;
     m_dispatchers["focuswindowbyclass"]             = focusWindow;
@@ -2184,6 +2185,86 @@ SDispatchResult CKeybindManager::resizeActive(std::string args) {
         return {.success = false, .error = "Invalid size provided"};
 
     g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(SIZ - PLASTWINDOW->m_realSize->goal());
+
+    if (PLASTWINDOW->m_realSize->goal().x > 1 && PLASTWINDOW->m_realSize->goal().y > 1)
+        PLASTWINDOW->setHidden(false);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::resizeActiveEdge(std::string args) {
+    const auto PLASTWINDOW = Desktop::focusState()->window();
+
+    if (!PLASTWINDOW)
+        return {.success = false, .error = "No window found"};
+
+    if (PLASTWINDOW->isFullscreen())
+        return {.success = false, .error = "Window is fullscreen"};
+
+    if (!isDirection(args[0]))
+        return {.success = false, .error = "Invalid direction. Usage: resizeactiveedge <direction> <value>"};
+
+    const auto SPACEPOS = args.find_first_of(" \t");
+    if (SPACEPOS == std::string::npos)
+        return {.success = false, .error = "Invalid format. Usage: resizeactiveedge <direction> <value>"};
+
+    const auto DIRECTION = args[0];
+    const auto VALUESTR  = args.substr(SPACEPOS + 1);
+
+    int        VALUE;
+    try {
+        VALUE = std::stoi(VALUESTR);
+    } catch (...) { return {.success = false, .error = "Invalid value provided"}; }
+
+    Vector2D    sizeDelta;
+    Vector2D    posDelta;
+    eRectCorner corner = CORNER_NONE;
+
+    // Map direction to size/position deltas and corner for edge-specific resizing
+    switch (DIRECTION) {
+        case 'l':
+            sizeDelta = Vector2D(VALUE, 0);
+            posDelta  = Vector2D(-VALUE, 0); // Move left when expanding left edge
+            corner    = CORNER_TOPLEFT;      // Affects left edge
+            break;
+        case 'r':
+            sizeDelta = Vector2D(VALUE, 0);
+            posDelta  = Vector2D(0, 0);  // Position stays same when expanding right edge
+            corner    = CORNER_TOPRIGHT; // Affects right edge
+            break;
+        case 'u':
+        case 't':
+            sizeDelta = Vector2D(0, VALUE);
+            posDelta  = Vector2D(0, -VALUE); // Move up when expanding top edge
+            corner    = CORNER_TOPLEFT;      // Affects top edge
+            break;
+        case 'd':
+        case 'b':
+            sizeDelta = Vector2D(0, VALUE);
+            posDelta  = Vector2D(0, 0);    // Position stays same when expanding bottom edge
+            corner    = CORNER_BOTTOMLEFT; // Affects bottom edge
+            break;
+        default: return {.success = false, .error = std::format("Invalid direction: {}", DIRECTION)};
+    }
+
+    const auto NEWSIZE = PLASTWINDOW->m_realSize->goal() + sizeDelta;
+    if (NEWSIZE.x < 1 || NEWSIZE.y < 1)
+        return {.success = false, .error = "Invalid size provided"};
+
+    // For floating windows, manually adjust position and size
+    // For tiled windows, use the corner parameter
+    if (PLASTWINDOW->m_isFloating) {
+        *PLASTWINDOW->m_realPosition = PLASTWINDOW->m_realPosition->goal() + posDelta;
+        *PLASTWINDOW->m_realSize     = NEWSIZE;
+        PLASTWINDOW->updateWindowDecos();
+    } else {
+        // For tiled windows, left/up directions need negated sizeDelta
+        // because the layout interprets negative values as growing those edges
+        Vector2D tiledSizeDelta = sizeDelta;
+        if (DIRECTION == 'l' || DIRECTION == 'u' || DIRECTION == 't')
+            tiledSizeDelta = -tiledSizeDelta;
+        g_pLayoutManager->getCurrentLayout()->resizeActiveWindow(tiledSizeDelta, corner, PLASTWINDOW);
+    }
 
     if (PLASTWINDOW->m_realSize->goal().x > 1 && PLASTWINDOW->m_realSize->goal().y > 1)
         PLASTWINDOW->setHidden(false);

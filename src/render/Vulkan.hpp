@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <vulkan/vulkan.h>
 
 #include "../helpers/memory/Memory.hpp"
@@ -15,6 +14,8 @@ class CHyprVulkanImpl {
         PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT  = nullptr;
         PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = nullptr;
     } m_proc;
+
+    VkPhysicalDevice getDevice(int drmFd);
 
   private:
     inline void              loadVulkanProc(void* pProc, const char* name);

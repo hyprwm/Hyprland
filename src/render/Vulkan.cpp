@@ -2,8 +2,11 @@
 
 #include "../debug/log/Logger.hpp"
 #include "macros.hpp"
+#include <sys/stat.h>
 #include <cstdint>
 #include <string>
+#include <sys/sysmacros.h>
+#include <vector>
 
 #define CRIT(...)                                                                                                                                                                  \
     Log::logger->log(Log::CRIT, __VA_ARGS__);                                                                                                                                      \
@@ -18,6 +21,14 @@ static bool isIgnoredDebugMessage(const std::string& idName) {
     // };
     return false;
 }
+
+static std::string resultToStr(VkResult res) {
+    return std::to_string(res);
+}
+
+static bool hasExtension(const std::vector<VkExtensionProperties>& extensions, const std::string& name) {
+    return std::ranges::any_of(extensions, [name](const auto& ext) { return ext.extensionName == name; });
+};
 
 static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type,
                                          const VkDebugUtilsMessengerCallbackDataEXT* debugData, void* data) {
@@ -46,6 +57,22 @@ static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
     }
 
     return false;
+}
+
+static void logDeviceInfo(const VkPhysicalDeviceProperties& props) {
+    std::string type = "unknown";
+    switch (props.deviceType) {
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: type = "integrated"; break;
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: type = "discrete"; break;
+        case VK_PHYSICAL_DEVICE_TYPE_CPU: type = "cpu"; break;
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: type = "vgpu"; break;
+        default: break;
+    }
+
+    Log::logger->log(Log::INFO, "Vulkan device: '{}'", props.deviceName);
+    Log::logger->log(Log::INFO, "  Device type: '{}'", type);
+    Log::logger->log(Log::INFO, "  Supported API version: {}.{}.{}", VK_VERSION_MAJOR(props.apiVersion), VK_VERSION_MINOR(props.apiVersion), VK_VERSION_PATCH(props.apiVersion));
+    Log::logger->log(Log::INFO, "  Driver version: {}.{}.{}", VK_VERSION_MAJOR(props.driverVersion), VK_VERSION_MINOR(props.driverVersion), VK_VERSION_PATCH(props.driverVersion));
 }
 
 inline void CHyprVulkanImpl::loadVulkanProc(void* pProc, const char* name) {
@@ -83,8 +110,7 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
 
     std::vector<char*> enabledExtensions;
 
-    static auto hasExtension = [extensions](const std::string& name) { return std::ranges::any_of(extensions, [name](const auto& ext) { return ext.extensionName == name; }); };
-    const bool  hasDebug     = ISDEBUG && hasExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    const bool         hasDebug = ISDEBUG && hasExtension(extensions, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     if (hasDebug)
         enabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
@@ -134,4 +160,95 @@ CHyprVulkanImpl::~CHyprVulkanImpl() {
 
     if (m_instance != VK_NULL_HANDLE)
         vkDestroyInstance(m_instance, nullptr);
+}
+
+VkPhysicalDevice CHyprVulkanImpl::getDevice(int drmFd) {
+    VkResult res;
+    uint32_t deviceCount;
+
+    res = vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
+    if (res != VK_SUCCESS) {
+        Log::logger->log(Log::ERR, "Could not get physical device count: {}", resultToStr(res));
+        return VK_NULL_HANDLE;
+    }
+
+    std::vector<VkPhysicalDevice> devices(deviceCount);
+    res = vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
+    if (res != VK_SUCCESS) {
+        Log::logger->log(Log::ERR, "Could not retrieve physical devices: {}", resultToStr(res));
+        return VK_NULL_HANDLE;
+    }
+
+    struct stat drmStat = {.st_dev = 0};
+    if (drmFd >= 0 && fstat(drmFd, &drmStat) != 0) {
+        Log::logger->log(Log::ERR, "fstat failed");
+        return VK_NULL_HANDLE;
+    }
+
+    for (const auto& device : devices) {
+        VkPhysicalDeviceProperties devProps;
+        vkGetPhysicalDeviceProperties(device, &devProps);
+
+        logDeviceInfo(devProps);
+
+        if (devProps.apiVersion < VK_API_VERSION_1_1)
+            continue;
+
+        uint32_t extCount = 0;
+        res               = vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, nullptr);
+        if (res != VK_SUCCESS || !extCount) {
+            Log::logger->log(Log::ERR, "  Could not enumerate device extensions: {}", resultToStr(res));
+            continue;
+        }
+
+        std::vector<VkExtensionProperties> extensions(extCount);
+        res = vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, extensions.data());
+        if (res != VK_SUCCESS) {
+            Log::logger->log(Log::ERR, "  Could not enumerate device extensions", resultToStr(res));
+            continue;
+        }
+
+        const bool                       hasDrmProps    = hasExtension(extensions, VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME);
+        const bool                       hasDriverProps = hasExtension(extensions, VK_KHR_DRIVER_PROPERTIES_EXTENSION_NAME);
+
+        VkPhysicalDeviceProperties2      props    = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        VkPhysicalDeviceDrmPropertiesEXT drmProps = {.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT};
+        if (hasDrmProps) {
+            drmProps.pNext = props.pNext;
+            props.pNext    = &drmProps;
+        }
+
+        VkPhysicalDeviceDriverPropertiesKHR driverProps = {
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+        };
+        if (hasDriverProps) {
+            driverProps.pNext = props.pNext;
+            props.pNext       = &driverProps;
+        }
+
+        vkGetPhysicalDeviceProperties2(device, &props);
+
+        if (hasDriverProps)
+            Log::logger->log(Log::INFO, "  Driver name: {} ({})", driverProps.driverName, driverProps.driverInfo);
+
+        bool found;
+        if (drmFd >= 0) {
+            if (!hasDrmProps) {
+                Log::logger->log(Log::DEBUG, "  Ignoring physical device \"{}\": VK_EXT_physical_device_drm not supported", devProps.deviceName);
+                continue;
+            }
+
+            const auto primaryId = makedev(drmProps.primaryMajor, drmProps.primaryMinor);
+            const auto renderId  = makedev(drmProps.renderMajor, drmProps.renderMinor);
+            found                = primaryId == drmStat.st_rdev || renderId == drmStat.st_rdev;
+        } else
+            found = devProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
+
+        if (found) {
+            Log::logger->log(Log::INFO, "Found matching Vulkan physical device: {}", devProps.deviceName);
+            return device;
+        }
+    }
+
+    return VK_NULL_HANDLE;
 }

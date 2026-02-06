@@ -31,6 +31,7 @@
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
+#include "render/Vulkan.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
@@ -663,6 +664,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
         case STAGE_BASICINIT: {
             Log::logger->log(Log::DEBUG, "Creating the CHyprOpenGLImpl!");
             g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
+
+            Log::logger->log(Log::DEBUG, "Creating the CHyprVulkanImpl!");
+            g_pHyprVulkan = makeUnique<CHyprVulkanImpl>();
 
             Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();

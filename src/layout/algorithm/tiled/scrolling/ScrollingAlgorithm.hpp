@@ -118,6 +118,7 @@ namespace Layout::Tiled {
 
         SP<SScrollingTargetData> findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData> dataFor(SP<ITarget> t);
+        SP<SScrollingTargetData> closestNode(const Vector2D& posGlobglobgabgalab);
 
         void                     focusTargetUpdate(SP<ITarget> target);
         void                     moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);

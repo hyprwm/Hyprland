@@ -591,30 +591,32 @@ void CScrollingAlgorithm::recalculate() {
     m_scrollingData->recalculate();
 }
 
+SP<SScrollingTargetData> CScrollingAlgorithm::closestNode(const Vector2D& posGlobglobgabgalab) {
+    SP<SScrollingTargetData> res         = nullptr;
+    double                   distClosest = -1;
+    for (auto& c : m_scrollingData->columns) {
+        for (auto& n : c->targetDatas) {
+            if (n->target && Desktop::View::validMapped(n->target->window())) {
+                auto distAnother = vecToRectDistanceSquared(posGlobglobgabgalab, n->layoutBox.pos(), n->layoutBox.pos() + n->layoutBox.size());
+                if (!res || distAnother < distClosest) {
+                    res         = n;
+                    distClosest = distAnother;
+                }
+            }
+        }
+    }
+    return res;
+}
+
 SP<ITarget> CScrollingAlgorithm::getNextCandidate(SP<ITarget> old) {
-    const auto DATA = dataFor(old);
-    if (!DATA)
+    const auto CENTER = old->position().middle();
+
+    const auto NODE = closestNode(CENTER);
+
+    if (!NODE)
         return nullptr;
 
-    // Try same column first
-    auto next = DATA->column->next(DATA);
-    if (next)
-        return next->target.lock();
-
-    auto prev = DATA->column->prev(DATA);
-    if (prev)
-        return prev->target.lock();
-
-    // Try adjacent columns
-    auto nextCol = m_scrollingData->next(DATA->column.lock());
-    if (nextCol && !nextCol->targetDatas.empty())
-        return nextCol->targetDatas.front()->target.lock();
-
-    auto prevCol = m_scrollingData->prev(DATA->column.lock());
-    if (prevCol && !prevCol->targetDatas.empty())
-        return prevCol->targetDatas.back()->target.lock();
-
-    return nullptr;
+    return NODE->target.lock();
 }
 
 void CScrollingAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {

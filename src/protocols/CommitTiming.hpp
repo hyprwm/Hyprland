@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <unordered_map>
 #include "WaylandProtocol.hpp"
 #include "commit-timing-v1.hpp"
 
@@ -14,16 +13,12 @@ class CEventLoopTimer;
 class CCommitTimerResource {
   public:
     CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<CWLSurfaceResource> surface);
-    ~CCommitTimerResource();
 
     bool good();
 
   private:
-    UP<CWpCommitTimerV1>            m_resource;
-    WP<CWLSurfaceResource>          m_surface;
-    bool                            m_timerPresent = false;
-    std::optional<Time::steady_dur> m_pendingTimeout;
-    SP<CEventLoopTimer>             timer;
+    UP<CWpCommitTimerV1>   m_resource;
+    WP<CWLSurfaceResource> m_surface;
 
     struct {
         CHyprSignalListener surfaceStateCommit;

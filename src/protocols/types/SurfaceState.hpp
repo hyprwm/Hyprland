@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
+#include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
 
@@ -93,6 +95,10 @@ struct SSurfaceState {
     bool barrierSet    = false;
     bool surfaceLocked = false;
     bool fifoScheduled = false;
+
+    // commit timing
+    std::optional<Time::steady_dur> pendingTimeout;
+    SP<CEventLoopTimer>             timer;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

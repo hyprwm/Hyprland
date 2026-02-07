@@ -107,6 +107,8 @@ CProtocolManager::CProtocolManager() {
     static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
 
+    static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
+
     // Outputs are a bit dumb, we have to agree.
     static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
         auto M = std::any_cast<PHLMONITOR>(param);
@@ -194,7 +196,9 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
-    PROTO::commitTiming        = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
+
+    if (*PENABLECT)
+        PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
     if (*PENABLECM)
         PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);

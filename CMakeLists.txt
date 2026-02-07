@@ -551,6 +551,7 @@ protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fifo" "fifo-v1" false)
 protocolnew("staging/commit-timing" "commit-timing-v1" false)
+protocolnew("protocols" "ext-background-effect-v1" true)
 
 protocolwayland()
 

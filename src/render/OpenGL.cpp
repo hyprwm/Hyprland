@@ -2157,6 +2157,20 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
 
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
+
+    // handle ext-background-effect-v1 blur region if specified
+    CRegion savedClipRegion = m_renderData.clipRegion;
+    auto    PSURFACE        = Desktop::View::CWLSurface::fromResource(data.surface);
+    if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
+        CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
+        protocolBlur.scale(m_renderData.pMonitor->m_scale);
+        protocolBlur.translate(box.pos());
+        if (m_renderData.clipRegion.empty())
+            m_renderData.clipRegion = protocolBlur;
+        else
+            m_renderData.clipRegion.intersect(protocolBlur);
+    }
+
     pushMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(false);
@@ -2175,6 +2189,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox
     if (!USENEWOPTIMIZE)
         setRenderModifEnabled(true);
     popMonitorTransformEnabled();
+
+    // restore clipRegion so the surface texture renders with the original clip
+    m_renderData.clipRegion = savedClipRegion;
 
     m_renderData.primarySurfaceUVTopLeft     = LASTTL;
     m_renderData.primarySurfaceUVBottomRight = LASTBR;

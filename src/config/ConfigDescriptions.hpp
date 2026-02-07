@@ -1577,7 +1577,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "render:commit_timing_enabled",
         .description = "Enable commit timing proto. Requires restart",
         .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
     /*

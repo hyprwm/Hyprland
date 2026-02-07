@@ -2047,5 +2047,11 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
     },
+    SConfigOptionDescription{
+        .value       = "quirks:skip_non_kms_dmabuf_formats",
+        .description = "Do not report dmabuf formats which cannot be imported into KMS",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
 };

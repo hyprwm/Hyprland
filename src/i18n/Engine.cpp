@@ -1143,6 +1143,54 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "无法重新加载CM着色器，将使用rgba/rgbx兜底。");
     huEngine->registerEntry("zh_CN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "显示器 {name}：宽色域被启用了，但是显示器并不在10-bit模式。");
 
+    // zh_TW (Traditional Chinese)
+    huEngine->registerEntry("zh_TW", TXT_KEY_ANR_TITLE, "應用程式沒有回應");
+    huEngine->registerEntry("zh_TW", TXT_KEY_ANR_CONTENT, "應用程式 {title} - {class} 沒有回應。\n您想要怎麼做？");
+    huEngine->registerEntry("zh_TW", TXT_KEY_ANR_OPTION_TERMINATE, "強制結束");
+    huEngine->registerEntry("zh_TW", TXT_KEY_ANR_OPTION_WAIT, "等待");
+    huEngine->registerEntry("zh_TW", TXT_KEY_ANR_PROP_UNKNOWN, "（未知）");
+
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "應用程式 <b>{app}</b> 正在請求未知的權限。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "應用程式 <b>{app}</b> 試圖擷取您的螢幕畫面。\n\n您是否允許？");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "應用程式 <b>{app}</b> 試圖載入外掛：<b>{plugin}</b>。\n\n您是否允許？");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "偵測到新鍵盤：<b>{keyboard}</b>。\n\n您是否允許它進行操作？");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_UNKNOWN_NAME, "（未知）");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_TITLE, "權限請求");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "提示：您可以在 Hyprland 設定檔中為此建立永久規則。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_ALLOW, "允許");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "總是允許");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_ALLOW_ONCE, "僅允許一次");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_DENY, "拒絕");
+    huEngine->registerEntry("zh_TW", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "未知的應用程式 （Wayland 用戶端 ID {wayland_id}）");
+
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "您的 XDG_CURRENT_DESKTOP 環境變數似乎由外部管理，目前的值為 {value}。\n除非您有意為之，否則這可能會導致問題。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_NO_GUIUTILS, "您的系統未安裝 hyprland-guiutils。這是部分對話視窗的執行期依賴元件。建議您安裝它。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland 無法載入 {count} 個必要資源，去怪那個把發行版打包成這副德性的維護者！";
+        return "Hyprland 無法載入 {count} 個必要資源，去怪那個把發行版打包成這副德性的維護者！";
+    });
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "您的螢幕配置設定不正確。螢幕 {name} 與配置中的其他螢幕重疊了。\n請參閱 Wiki（螢幕頁面）以了解詳情。這<b>絕對會</b>導致問題。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "螢幕 {name} 無法設定為任何請求的模式，將改用模式 {mode}。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "傳遞給螢幕 {name} 的縮放比例無效：{scale}，將使用建議的比例：{fixed_scale}");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "無法載入外掛 {name}：{error}");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM 著色器重新載入失敗，將退回使用 rgba/rgbx。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "螢幕 {name}：已啟用廣色域，但顯示器並非處於 10-bit 模式。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland 啟動時未使用 start-hyprland wrapper。除非您處於除錯環境，否則極度不建議這麼做。");
+
+    huEngine->registerEntry("zh_TW", TXT_KEY_SAFE_MODE_TITLE, "安全模式");
+    huEngine->registerEntry("zh_TW", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland "
+                            "已在安全模式下啟動，這代表您的上個工作階段當機。\n安全模式會阻止載入您的設定檔。您可以在此環境中進行故障排除，或使用下方按鈕載入您的設定。\n預設快"
+                            "捷鍵適用：SUPER+Q 開啟 Kitty，SUPER+R 開啟簡易啟動器，SUPER+M 退出。\n重新啟動 "
+                            "Hyprland 將再次進入正常模式。");
+    huEngine->registerEntry("zh_TW", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "載入設定檔");
+    huEngine->registerEntry("zh_TW", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "開啟當機報告目錄");
+    huEngine->registerEntry("zh_TW", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "好，關閉視窗");
+
     // ar (Arabic - Modern Standard)
     huEngine->registerEntry("ar", TXT_KEY_ANR_TITLE, "التطبيق لا يستجيب");
     huEngine->registerEntry("ar", TXT_KEY_ANR_CONTENT, "التطبيق {title} - {class} لا يستجيب.\nما الذي تريد فعله؟");

@@ -7,6 +7,7 @@
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -62,29 +63,44 @@ APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, c
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
-    // auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    // if (!PLUGIN)
-    //     return false;
-
-    // PLUGIN->m_registeredLayouts.push_back(layout);
-
-    // return // g_pLayoutManager->addLayout(name, layout);
-
     return false;
 }
 
 APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
-    // auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    // if (!PLUGIN)
-    //     return false;
-
-    // std::erase(PLUGIN->m_registeredLayouts, layout);
-
-    // return // g_pLayoutManager->removeLayout(layout);
-
     return false;
+}
+
+APICALL bool HyprlandAPI::addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredAlgos.emplace_back(name);
+
+    return Layout::Supplementary::algoMatcher()->registerTiledAlgo(name, typeInfo, std::move(factory));
+}
+
+APICALL bool HyprlandAPI::addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredAlgos.emplace_back(name);
+
+    return Layout::Supplementary::algoMatcher()->registerFloatingAlgo(name, typeInfo, std::move(factory));
+}
+
+APICALL bool HyprlandAPI::removeAlgo(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    std::erase(PLUGIN->m_registeredAlgos, name);
+
+    return Layout::Supplementary::algoMatcher()->unregisterAlgo(name);
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {

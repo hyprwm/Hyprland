@@ -23,11 +23,11 @@ class CPlugin {
 
     HANDLE                                                    m_handle = nullptr;
 
-    std::vector<IHyprLayout*>                                 m_registeredLayouts;
     std::vector<IHyprWindowDecoration*>                       m_registeredDecorations;
     std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> m_registeredCallbacks;
     std::vector<std::string>                                  m_registeredDispatchers;
     std::vector<WP<SHyprCtlCommand>>                          m_registeredHyprctlCommands;
+    std::vector<std::string>                                  m_registeredAlgos;
 };
 
 class CPluginSystem {

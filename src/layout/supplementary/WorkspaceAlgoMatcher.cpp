@@ -46,6 +46,48 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
     };
 }
 
+bool CWorkspaceAlgoMatcher::registerTiledAlgo(const std::string& name, const std::type_info* typeInfo, std::function<UP<ITiledAlgorithm>()>&& factory) {
+    if (algoForNameTiled(name) || algoForNameFloat(name))
+        return false;
+
+    m_tiledAlgos.emplace(name, std::move(factory));
+    m_algoNames.emplace(typeInfo, name);
+
+    updateWorkspaceLayouts();
+
+    return true;
+}
+
+bool CWorkspaceAlgoMatcher::registerFloatingAlgo(const std::string& name, const std::type_info* typeInfo, std::function<UP<IFloatingAlgorithm>()>&& factory) {
+    if (algoForNameTiled(name) || algoForNameFloat(name))
+        return false;
+
+    m_floatingAlgos.emplace(name, std::move(factory));
+    m_algoNames.emplace(typeInfo, name);
+
+    updateWorkspaceLayouts();
+
+    return true;
+}
+
+bool CWorkspaceAlgoMatcher::unregisterAlgo(const std::string& name) {
+    if (!algoForNameTiled(name) && !algoForNameFloat(name))
+        return false;
+
+    std::erase_if(m_algoNames, [&name](const auto& e) { return e.second == name; });
+
+    if (m_floatingAlgos.contains(name))
+        m_floatingAlgos.erase(name);
+    else
+        m_tiledAlgos.erase(name);
+
+    // this is needed here to avoid situations where a plugin unloads and we still have a UP
+    // to a plugin layout
+    updateWorkspaceLayouts();
+
+    return true;
+}
+
 UP<ITiledAlgorithm> CWorkspaceAlgoMatcher::algoForNameTiled(const std::string& s) {
     if (m_tiledAlgos.contains(s))
         return m_tiledAlgos.at(s)();

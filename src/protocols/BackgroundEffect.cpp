@@ -62,17 +62,14 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
             g_pHyprRenderer->damageBox(*box);
     });
 
-    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] {
-        PROTO::backgroundEffect->destroyEffect(this);
-    });
+    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] { PROTO::backgroundEffect->destroyEffect(this); });
 }
 
 void CBackgroundEffect::destroy() {
     m_resource.reset();
     m_blurRegion.clear();
-    // Per spec, effect removal is double-buffered: state clears on next wl_surface.commit.
-    // The commit listener checks !m_resource and handles cleanup.
-    // If the surface is already gone, clean up immediately.
+    // The spec requires effect removal to be double-buffered: state is cleared on next wl_surface commit.
+    // If the surface is already destroyed, clean up immediately.
     if (!m_surface)
         PROTO::backgroundEffect->destroyEffect(this);
 }
@@ -114,8 +111,8 @@ void CBackgroundEffectProtocol::getBackgroundEffect(CExtBackgroundEffectManagerV
             effect = iter->second.get();
         }
     } else {
-        effect =
-            m_effects.emplace(surface, makeUnique<CBackgroundEffect>(makeShared<CExtBackgroundEffectSurfaceV1>(manager->client(), manager->version(), id), surface)).first->second.get();
+        effect = m_effects.emplace(surface, makeUnique<CBackgroundEffect>(makeShared<CExtBackgroundEffectSurfaceV1>(manager->client(), manager->version(), id), surface))
+                     .first->second.get();
     }
 
     if UNLIKELY (!effect->good()) {

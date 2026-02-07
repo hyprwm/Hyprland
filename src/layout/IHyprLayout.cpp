@@ -1020,14 +1020,14 @@ bool IHyprLayout::updateDragWindow() {
     DRAGGINGWINDOW->m_draggingTiled   = false;
     m_draggingWindowOriginalFloatSize = DRAGGINGWINDOW->m_lastFloatingSize;
 
-    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_isFloating) {
+    if (WAS_FULLSCREEN && DRAGGINGWINDOW->m_isFloating && g_pInputManager->m_dragThresholdReached) {
         const auto MOUSECOORDS          = g_pInputManager->getMouseCoordsInternal();
         *DRAGGINGWINDOW->m_realPosition = MOUSECOORDS - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
     } else if (!DRAGGINGWINDOW->m_isFloating && g_pInputManager->m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE                   = DRAGGINGWINDOW->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
         DRAGGINGWINDOW->m_lastFloatingSize = (DRAGGINGWINDOW->m_realSize->goal() * 0.8489).clamp(MINSIZE, Vector2D{}).floor();
-        *DRAGGINGWINDOW->m_realPosition    = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
         if (g_pInputManager->m_dragThresholdReached) {
+            *DRAGGINGWINDOW->m_realPosition = g_pInputManager->getMouseCoordsInternal() - DRAGGINGWINDOW->m_realSize->goal() / 2.f;
             changeWindowFloatingMode(DRAGGINGWINDOW);
             DRAGGINGWINDOW->m_isFloating    = true;
             DRAGGINGWINDOW->m_draggingTiled = true;

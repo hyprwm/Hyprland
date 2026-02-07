@@ -19,7 +19,7 @@ class CBackgroundEffect {
 
   private:
     SP<CExtBackgroundEffectSurfaceV1> m_resource;
-    WP<CWLSurfaceResource>           m_surface;
+    WP<CWLSurfaceResource>            m_surface;
     CRegion                           m_blurRegion;
 
     void                              destroy();
@@ -39,12 +39,12 @@ class CBackgroundEffectProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
   private:
-    void destroyManager(CExtBackgroundEffectManagerV1* res);
-    void destroyEffect(CBackgroundEffect* effect);
-    void getBackgroundEffect(CExtBackgroundEffectManagerV1* manager, uint32_t id, SP<CWLSurfaceResource> surface);
+    void                                                              destroyManager(CExtBackgroundEffectManagerV1* res);
+    void                                                              destroyEffect(CBackgroundEffect* effect);
+    void                                                              getBackgroundEffect(CExtBackgroundEffectManagerV1* manager, uint32_t id, SP<CWLSurfaceResource> surface);
 
-    std::vector<UP<CExtBackgroundEffectManagerV1>>                       m_managers;
-    std::unordered_map<WP<CWLSurfaceResource>, UP<CBackgroundEffect>>   m_effects;
+    std::vector<UP<CExtBackgroundEffectManagerV1>>                    m_managers;
+    std::unordered_map<WP<CWLSurfaceResource>, UP<CBackgroundEffect>> m_effects;
 
     friend class CBackgroundEffect;
 };

@@ -20,7 +20,7 @@ CWindowHistoryTracker::CWindowHistoryTracker() {
     });
 
     static auto P1 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
+        auto window = std::any_cast<Desktop::View::SWindowActiveEvent>(data).window;
 
         track(window);
     });

@@ -18,13 +18,14 @@
 #include "../desktop/rule/layerRule/LayerRule.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../layout/space/Space.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "defaultConfig.hpp"
 
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -616,6 +617,9 @@ CConfigManager::CConfigManager() {
     registerConfigVar("decoration:screen_shader", {STRVAL_EMPTY});
     registerConfigVar("decoration:border_part_of_window", Hyprlang::INT{1});
 
+    registerConfigVar("layout:single_window_aspect_ratio", Hyprlang::VEC2{0, 0});
+    registerConfigVar("layout:single_window_aspect_ratio_tolerance", {0.1f});
+
     registerConfigVar("dwindle:pseudotile", Hyprlang::INT{0});
     registerConfigVar("dwindle:force_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:permanent_direction_override", Hyprlang::INT{0});
@@ -628,8 +632,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("dwindle:smart_split", Hyprlang::INT{0});
     registerConfigVar("dwindle:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("dwindle:precise_mouse_move", Hyprlang::INT{0});
-    registerConfigVar("dwindle:single_window_aspect_ratio", Hyprlang::VEC2{0, 0});
-    registerConfigVar("dwindle:single_window_aspect_ratio_tolerance", {0.1f});
 
     registerConfigVar("master:special_scale_factor", {1.f});
     registerConfigVar("master:mfact", {0.55f});
@@ -644,6 +646,14 @@ CConfigManager::CConfigManager() {
     registerConfigVar("master:smart_resizing", Hyprlang::INT{1});
     registerConfigVar("master:drop_at_cursor", Hyprlang::INT{1});
     registerConfigVar("master:always_keep_position", Hyprlang::INT{0});
+
+    registerConfigVar("scrolling:fullscreen_on_one_column", Hyprlang::INT{1});
+    registerConfigVar("scrolling:column_width", Hyprlang::FLOAT{0.5F});
+    registerConfigVar("scrolling:focus_fit_method", Hyprlang::INT{1});
+    registerConfigVar("scrolling:follow_focus", Hyprlang::INT{1});
+    registerConfigVar("scrolling:follow_min_visible", Hyprlang::FLOAT{0.4});
+    registerConfigVar("scrolling:explicit_column_widths", Hyprlang::STRING{"0.333, 0.5, 0.667, 1.0"});
+    registerConfigVar("scrolling:direction", Hyprlang::STRING{"right"});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});
@@ -715,7 +725,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("binds:movefocus_cycles_fullscreen", Hyprlang::INT{0});
     registerConfigVar("binds:movefocus_cycles_groupfirst", Hyprlang::INT{0});
     registerConfigVar("binds:disable_keybind_grabbing", Hyprlang::INT{0});
-    registerConfigVar("binds:window_direction_monitor_fallback", Hyprlang::INT{1});
     registerConfigVar("binds:allow_pin_fullscreen", Hyprlang::INT{0});
     registerConfigVar("binds:drag_threshold", Hyprlang::INT{0});
 
@@ -1337,7 +1346,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
     for (auto const& m : g_pCompositor->m_monitors) {
         *(m->m_cursorZoom) = *PZOOMFACTOR;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        if (m->m_activeWorkspace)
+            m->m_activeWorkspace->m_space->recalculate();
     }
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
@@ -1405,9 +1415,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // Update window border colors
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
-    // update layout
-    g_pLayoutManager->switchToLayout(std::any_cast<Hyprlang::STRING>(m_config->getConfigValue("general:layout")));
-
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
         m_manualCrashInitiated = true;
@@ -1446,6 +1453,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (!m_isFirstLaunch)
         ensurePersistentWorkspacesPresent();
 
+    // update layouts
+    Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
+
     EMIT_HOOK_EVENT("configReloaded", nullptr);
     if (g_pEventManager)
         g_pEventManager->postEvent(SHyprIPCEvent{"configreloaded", ""});
@@ -1468,8 +1478,9 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto const& m : g_pCompositor->m_monitors)
-            g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m->m_id);
+        for (auto const& m : g_pCompositor->m_monitors) {
+            g_layoutManager->recalculateMonitor(m);
+        }
     }
 
     // Update window border colors
@@ -1641,6 +1652,8 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.onCreatedEmptyRunCmd = rule2.onCreatedEmptyRunCmd;
     if (rule2.defaultName.has_value())
         mergedRule.defaultName = rule2.defaultName;
+    if (rule2.layout.has_value())
+        mergedRule.layout = rule2.layout;
     if (!rule2.layoutopts.empty()) {
         for (const auto& layoutopt : rule2.layoutopts) {
             mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
@@ -2692,6 +2705,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
             opt             = opt.substr(0, opt.find(':'));
 
             wsRule.layoutopts[opt] = val;
+        } else if ((delim = rule.find("layout:")) != std::string::npos) {
+            std::string layout = rule.substr(delim + 7);
+            wsRule.layout      = std::move(layout);
         }
 
         return {};

@@ -6,7 +6,7 @@
 #include <xf86drm.h>
 #include <drm_fourcc.h>
 
-inline const std::vector<SPixelFormat> KNOWN_FORMATS = {
+const std::vector<SPixelFormat> KNOWN_FORMATS = {
     {
         .drmFormat        = DRM_FORMAT_ARGB8888,
         .glInternalFormat = GL_RGBA8,

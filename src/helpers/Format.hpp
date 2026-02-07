@@ -63,3 +63,5 @@ namespace NFormatUtils {
     std::string         drmModifierName(uint64_t mod);
     DRMFormat           alphaFormat(DRMFormat prevFormat);
 };
+
+extern const std::vector<SPixelFormat> KNOWN_FORMATS;

@@ -1,62 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <hyprutils/math/Vector2D.hpp>
 #include <set>
-#include <vector>
 #include <vulkan/vulkan.h>
-
-#include "../helpers/memory/Memory.hpp"
-#include "../helpers/Format.hpp"
-
-class CHyprVulkanImpl;
-class CHyprVulkanDevice;
-
-struct SVkFormatModifier {
-    VkDrmFormatModifierPropertiesEXT props;
-    VkExtent2D                       maxExtent;
-    bool                             canSrgb = false;
-};
-
-struct SVkFormatProps {
-    SPixelFormat format;
-
-    struct {
-        VkExtent2D           maxExtent;
-        VkFormatFeatureFlags features;
-        bool                 canSrgb = false;
-    } shm;
-
-    struct {
-        std::vector<SVkFormatModifier> renderModifiers;
-        std::vector<SVkFormatModifier> textureModifiers;
-    } dmabuf;
-
-    bool hasSrgb() const {
-        return format.vkSrgbFormat != VK_FORMAT_UNDEFINED;
-    }
-};
-
-class CHyprVulkanImpl {
-  public:
-    CHyprVulkanImpl();
-    ~CHyprVulkanImpl();
-
-    struct {
-        PFN_vkEnumerateInstanceVersion      pfEnumInstanceVersion           = nullptr;
-        PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT  = nullptr;
-        PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = nullptr;
-    } m_proc;
-
-    UP<CHyprVulkanDevice> getDevice(int drmFd);
-
-  private:
-    inline void              loadVulkanProc(void* pProc, const char* name);
-
-    VkInstance               m_instance = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT m_debug    = VK_NULL_HANDLE;
-    UP<CHyprVulkanDevice>    m_device;
-};
+#include "types.hpp"
 
 class CHyprVulkanDevice {
   public:
@@ -72,12 +19,15 @@ class CHyprVulkanDevice {
         PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
     } m_proc;
 
-    bool good();
-    void loadFormats();
+    bool     good();
+    void     loadFormats();
+    VkDevice vkDevice();
+
+    uint32_t queueFamilyIndex();
 
   private:
     inline void                            loadVulkanProc(void* pProc, const char* name);
-    bool                                   getFormat(const SPixelFormat& format);
+    std::optional<SVkFormatProps>          getFormat(const SPixelFormat& format);
     std::optional<VkImageFormatProperties> getSupportedSHMProperties(VkFormat vkFormat, VkFormat vkSrgbFormat);
     std::optional<SVkFormatModifier>   getSupportedDRMProperties(VkFormat vkFormat, VkFormat vkSrgbFormat, VkImageUsageFlags usage, const VkDrmFormatModifierPropertiesEXT& mod);
     bool                               getModifiers(SVkFormatProps& props, const size_t modifierCount);
@@ -98,5 +48,3 @@ class CHyprVulkanDevice {
     std::set<DRMFormat>                m_dmaTextureFormats;
     std::vector<SVkFormatProps>        m_formats;
 };
-
-inline UP<CHyprVulkanImpl> g_pHyprVulkan;

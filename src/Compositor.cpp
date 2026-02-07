@@ -31,7 +31,7 @@
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
-#include "render/Vulkan.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif

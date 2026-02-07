@@ -69,7 +69,7 @@ namespace NColorManagement {
         return primariesConversion[cacheKey];
     }
 
-    CImageDescription::CImageDescription(const SImageDescription& imageDescription, const uint imageDescriptionId) :
+    CImageDescription::CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId) :
         m_id(imageDescriptionId), m_imageDescription(imageDescription) {
         m_primariesId = CPrimaries::from(m_imageDescription.getPrimaries())->id();
     }
@@ -84,7 +84,7 @@ namespace NColorManagement {
         return knownDescriptions.back();
     }
 
-    PImageDescription CImageDescription::from(const uint imageDescriptionId) {
+    PImageDescription CImageDescription::from(const uint64_t imageDescriptionId) {
         ASSERT(imageDescriptionId <= knownDescriptions.size());
         return knownDescriptions[imageDescriptionId - 1];
     }
@@ -99,7 +99,7 @@ namespace NColorManagement {
         return m_imageDescription;
     }
 
-    uint CImageDescription::id() const {
+    uint64_t CImageDescription::id() const {
         return m_id;
     }
 

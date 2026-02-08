@@ -57,18 +57,18 @@ CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer() {}
 
 void CHyprGLRenderer::initRender() {
     makeEGLCurrent();
+    g_pHyprOpenGL->m_renderData.pMonitor = renderData().pMonitor;
 }
 
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
+        g_pHyprOpenGL->m_renderData.m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", NFormatUtils::drmFormatName(fmt));
         return false;
     }
 
-    if (!m_currentRenderbuffer)
-        return false;
+    return g_pHyprOpenGL->m_renderData.m_currentRenderbuffer;
 }
 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
@@ -85,9 +85,9 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
 
-    m_currentRenderbuffer->bind();
+    g_pHyprOpenGL->m_renderData.m_currentRenderbuffer->bind();
     if (simple)
-        g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);
+        g_pHyprOpenGL->beginSimple(pMonitor, damage, g_pHyprOpenGL->m_renderData.m_currentRenderbuffer);
     else
         g_pHyprOpenGL->begin(pMonitor, damage);
 
@@ -101,10 +101,10 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     g_pHyprOpenGL->m_renderData.damage = m_renderPass.render(g_pHyprOpenGL->m_renderData.damage);
 
     auto cleanup = CScopeGuard([this]() {
-        if (m_currentRenderbuffer)
-            m_currentRenderbuffer->unbind();
-        m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
+        if (g_pHyprOpenGL->m_renderData.m_currentRenderbuffer)
+            g_pHyprOpenGL->m_renderData.m_currentRenderbuffer->unbind();
+        g_pHyprOpenGL->m_renderData.m_currentRenderbuffer = nullptr;
+        m_currentBuffer                                   = nullptr;
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)

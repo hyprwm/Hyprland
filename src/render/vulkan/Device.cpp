@@ -3,6 +3,7 @@
 
 #include "../../debug/log/Logger.hpp"
 #include "../../macros.hpp"
+#include <algorithm>
 #include <optional>
 
 inline void CHyprVulkanDevice::loadVulkanProc(void* pProc, const char* name) {
@@ -174,6 +175,14 @@ VkQueue CHyprVulkanDevice::queue() {
 
 VkSemaphore CHyprVulkanDevice::timelineSemaphore() {
     return m_timelineSemaphore;
+}
+
+std::optional<const SVkFormatProps> CHyprVulkanDevice::getFormat(const DRMFormat format) {
+    const auto found = std::ranges::find_if(m_formats, [format](const auto fmt) { return fmt.format.drmFormat == format; });
+    if (found != m_formats.end())
+        return *found;
+
+    return {};
 }
 
 void CHyprVulkanDevice::loadFormats() {

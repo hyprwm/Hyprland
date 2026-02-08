@@ -768,7 +768,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     m_offloadedFramebuffer = true;
 
     m_renderData.mainFB = m_renderData.currentFB;
-    m_renderData.outFB  = fb ? fb : g_pHyprRenderer->getCurrentRBO()->getFB();
+    m_renderData.outFB  = fb ? fb : m_renderData.m_currentRenderbuffer->getFB();
 
     pushMonitorTransformEnabled(false);
 }

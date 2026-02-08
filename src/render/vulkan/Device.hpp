@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <set>
 #include <vulkan/vulkan.h>
+#include "helpers/Format.hpp"
 #include "types.hpp"
 
 class CHyprVulkanDevice {
@@ -19,14 +20,16 @@ class CHyprVulkanDevice {
         PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
     } m_proc;
 
-    bool        good();
-    void        loadFormats();
-    VkDevice    vkDevice();
+    bool                                good();
+    void                                loadFormats();
+    VkDevice                            vkDevice();
 
-    uint32_t    queueFamilyIndex();
-    VkQueue     queue();
-    VkSemaphore timelineSemaphore();
-    uint64_t    m_timelinePoint = 0;
+    uint32_t                            queueFamilyIndex();
+    VkQueue                             queue();
+    VkSemaphore                         timelineSemaphore();
+    uint64_t                            m_timelinePoint = 0;
+
+    std::optional<const SVkFormatProps> getFormat(const DRMFormat format);
 
   private:
     inline void                            loadVulkanProc(void* pProc, const char* name);

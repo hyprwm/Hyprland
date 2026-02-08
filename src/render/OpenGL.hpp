@@ -163,6 +163,8 @@ struct SCurrentRenderData {
     CFramebuffer*          mainFB          = nullptr; // main to render to
     CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
+    SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
+
     CRegion                damage;
     CRegion                finalDamage; // damage used for funal off -> main
 

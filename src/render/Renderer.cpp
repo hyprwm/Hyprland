@@ -1264,7 +1264,8 @@ void IHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
     m_renderPass.clear();
-    m_renderMode = mode;
+    m_renderMode          = mode;
+    m_renderData.pMonitor = pMonitor;
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
@@ -2276,6 +2277,10 @@ void IHyprRenderer::initiateManualCrash() {
     **PDT = 0;
 }
 
+const SRenderData& IHyprRenderer::renderData() {
+    return m_renderData;
+}
+
 SP<CRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
@@ -2316,10 +2321,6 @@ bool IHyprRenderer::beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP
 
 void IHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
-}
-
-SP<CRenderbuffer> IHyprRenderer::getCurrentRBO() {
-    return m_currentRenderbuffer;
 }
 
 bool IHyprRenderer::isNvidia() {

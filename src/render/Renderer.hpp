@@ -46,6 +46,42 @@ struct SRenderWorkspaceUntilData {
     PHLWINDOW w;
 };
 
+struct SRenderData {
+    PHLMONITORREF pMonitor;
+    // Mat3x3        projection;
+    // Mat3x3        savedProjection;
+    // Mat3x3        monitorProjection;
+
+    // // FIXME: raw pointer galore!
+    // SMonitorRenderData*    pCurrentMonData = nullptr;
+    // CFramebuffer*          currentFB       = nullptr; // current rendering to
+    // CFramebuffer*          mainFB          = nullptr; // main to render to
+    // CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
+
+    // CRegion                damage;
+    // CRegion                finalDamage; // damage used for funal off -> main
+
+    // SRenderModifData       renderModif;
+    // float                  mouseZoomFactor    = 1.f;
+    // bool                   mouseZoomUseMouse  = true; // true by default
+    // bool                   useNearestNeighbor = false;
+    // bool                   blockScreenShader  = false;
+    // bool                   simplePass         = false;
+
+    // Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    // Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+    // CBox                   clipBox = {}; // scaled coordinates
+    // CRegion                clipRegion;
+
+    // uint32_t               discardMode    = DISCARD_OPAQUE;
+    // float                  discardOpacity = 0.f;
+
+    // PHLLSREF               currentLS;
+    // PHLWINDOWREF           currentWindow;
+    // WP<CWLSurfaceResource> surface;
+};
+
 class IHyprRenderer {
   public:
     IHyprRenderer();
@@ -72,7 +108,6 @@ class IHyprRenderer {
     void                            setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
-    SP<CRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
     bool                            isIntel();
     bool                            isSoftware();
@@ -89,7 +124,7 @@ class IHyprRenderer {
 
     bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false);
     bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
-    virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {});
+    virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {}) {};
 
     bool                            m_bBlockSurfaceFeedback = false;
     bool                            m_bRenderingSnapshot    = false;
@@ -98,6 +133,7 @@ class IHyprRenderer {
 
     void                            setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
     void                            initiateManualCrash();
+    const SRenderData&              renderData();
 
     bool                            m_crashingInProgress = false;
     float                           m_crashingDistort    = 0.5f;
@@ -180,6 +216,9 @@ class IHyprRenderer {
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
     friend class CHyprOpenGLImpl; // TODO fix renderer - impl api
+
+  private:
+    SRenderData m_renderData;
 };
 
 inline UP<IHyprRenderer> g_pHyprRenderer;

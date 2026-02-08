@@ -5,6 +5,10 @@
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../managers/HookSystemManager.hpp"
+#include "../../protocols/Screencopy.hpp"
+#include "../../protocols/ToplevelExport.hpp"
+#include "../../helpers/Color.hpp"
+#include "../../config/ConfigDataValues.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -59,6 +63,27 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 
     auto       grad     = m_window->m_realBorderColor;
     const bool ANIMATED = m_window->m_borderFadeAnimationProgress->isBeingAnimated();
+
+    static auto PENABLED = CConfigValue<Hyprlang::INT>("general:screencast_border.enabled");
+    static auto PCOLOR   = CConfigValue<Hyprlang::CUSTOMTYPE>("general:screencast_border.color");
+
+    if (*PENABLED) {
+        // Check if window is being shared through toplevel export
+        bool isWindowShared = false;
+        if (PROTO::toplevelExport) {
+            for (const auto& frame : PROTO::toplevelExport->m_frames) {
+                if (frame && frame->m_window && frame->m_window == m_window) {
+                    isWindowShared = frame->m_client->m_sentScreencast;
+                    break;
+                }
+            }
+        }
+
+        if (isWindowShared) {
+            const auto* const PGRAD = sc<CGradientValueData*>((PCOLOR.ptr())->getData());
+            grad                    = PGRAD ? *PGRAD : CGradientValueData(Colors::RED); // fallback to red if config not loaded
+        }
+    }
 
     if (m_window->m_borderAngleAnimationProgress->enabled()) {
         grad.m_angle += m_window->m_borderAngleAnimationProgress->value() * M_PI * 2;

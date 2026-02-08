@@ -456,6 +456,8 @@ CConfigManager::CConfigManager() {
     m_config = makeUnique<Hyprlang::CConfig>(m_configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
 
     registerConfigVar("general:border_size", Hyprlang::INT{1});
+    registerConfigVar("general:screencast_border.enabled", Hyprlang::INT{1});
+    registerConfigVar("general:screencast_border.color", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffff0000"});
     registerConfigVar("general:gaps_in", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "5"});
     registerConfigVar("general:gaps_out", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "20"});
     registerConfigVar("general:float_gaps", Hyprlang::CConfigCustomValueType{configHandleGapSet, configHandleGapDestroy, "0"});

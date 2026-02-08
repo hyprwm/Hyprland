@@ -46,10 +46,10 @@ struct SRenderWorkspaceUntilData {
     PHLWINDOW w;
 };
 
-class CHyprRenderer {
+class IHyprRenderer {
   public:
-    CHyprRenderer();
-    ~CHyprRenderer();
+    IHyprRenderer();
+    virtual ~IHyprRenderer();
 
     void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
     void arrangeLayersForMonitor(const MONITORID&);
@@ -87,13 +87,12 @@ class CHyprRenderer {
     void                            renderSnapshot(PHLLS);
     void                            renderSnapshot(WP<Desktop::View::CPopup>);
 
-    // if RENDER_MODE_NORMAL, provided damage will be written to.
-    // otherwise, it will be the one used.
-    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
-    void endRender(const std::function<void()>& renderingDoneCallback = {});
+    bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false);
+    bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
+    virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {});
 
-    bool m_bBlockSurfaceFeedback = false;
-    bool m_bRenderingSnapshot    = false;
+    bool                            m_bBlockSurfaceFeedback = false;
+    bool                            m_bRenderingSnapshot    = false;
     PHLMONITORREF                   m_mostHzMonitor;
     bool                            m_directScanoutBlocked = false;
 
@@ -117,15 +116,34 @@ class CHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass m_renderPass = {};
+    CRenderPass       m_renderPass = {};
 
-  private:
+    bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+    SP<CRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+    void              renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
+                                   bool standalone = false); // // TODO? move to protected and fix CToplevelExportFrame
+
+  protected:
+    // if RENDER_MODE_NORMAL, provided damage will be written to.
+    // otherwise, it will be the one used.
+    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
+
+    virtual bool beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false) {
+        return false;
+    };
+    virtual bool beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false) {
+        return false;
+    };
+    virtual void initRender() {};
+    virtual bool initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+        return false;
+    };
+
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
-    void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
     void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
     void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
     void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
@@ -135,22 +153,20 @@ class CHyprRenderer {
     void renderSessionLockMissing(PHLMONITOR pMonitor);
     void renderBackground(PHLMONITOR pMonitor);
 
-    bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
-
     bool shouldBlur(PHLLS ls);
     bool shouldBlur(PHLWINDOW w);
     bool shouldBlur(WP<Desktop::View::CPopup> p);
 
-    bool m_cursorHidden                           = false;
-    bool m_cursorHiddenByCondition                = false;
-    bool m_cursorHasSurface                       = false;
-    SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
-    eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
-    bool                    m_nvidia              = false;
-    bool                    m_intel               = false;
-    bool                    m_software            = false;
-    bool                    m_mgpu                = false;
+    bool m_cursorHidden            = false;
+    bool m_cursorHiddenByCondition = false;
+    bool m_cursorHasSurface        = false;
+
+    SP<Aquamarine::IBuffer> m_currentBuffer = nullptr;
+    eRenderMode             m_renderMode    = RENDER_MODE_NORMAL;
+    bool                    m_nvidia        = false;
+    bool                    m_intel         = false;
+    bool                    m_software      = false;
+    bool                    m_mgpu          = false;
 
     struct {
         bool hiddenOnTouch    = false;
@@ -159,17 +175,11 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_cursorHiddenConditions;
 
-    SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
     std::vector<SP<CRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
-    friend class CHyprOpenGLImpl;
-    friend class CToplevelExportFrame;
-    friend class CInputManager;
-    friend class CPointerManager;
-    friend class CMonitor;
-    friend class CMonitorFrameScheduler;
+    friend class CHyprOpenGLImpl; // TODO fix renderer - impl api
 };
 
-inline UP<CHyprRenderer> g_pHyprRenderer;
+inline UP<IHyprRenderer> g_pHyprRenderer;

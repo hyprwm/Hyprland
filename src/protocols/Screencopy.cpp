@@ -298,7 +298,7 @@ void CScreencopyFrame::storeTempFB() {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &m_tempFb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, &m_tempFb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }
@@ -313,7 +313,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer, nullptr, true)) {
+    if (!g_pHyprRenderer->beginRenderToBuffer(m_monitor.lock(), fakeDamage, m_buffer.m_buffer, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         callback(false);
         return;
@@ -355,7 +355,7 @@ bool CScreencopyFrame::copyShm() {
     CFramebuffer fb;
     fb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
 
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, &fb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }

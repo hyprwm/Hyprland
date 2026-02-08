@@ -31,6 +31,8 @@
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
+#include "render/GLRenderer.hpp"
+#include "render/VKRenderer.hpp"
 #include "render/vulkan/Vulkan.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
@@ -687,7 +689,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pInputManager = makeUnique<CInputManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = makeUnique<CHyprRenderer>();
+            g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();

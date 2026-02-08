@@ -252,7 +252,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
+    if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, fakeDamage, &outFB))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
@@ -355,7 +355,7 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer))
+    if (!g_pHyprRenderer->beginRenderToBuffer(PMONITOR, fakeDamage, m_buffer.m_buffer))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));

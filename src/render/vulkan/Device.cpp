@@ -137,6 +137,22 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
         loadVulkanProc(&m_proc.vkImportSemaphoreFdKHR, "vkImportSemaphoreFdKHR");
     }
 
+    VkSemaphoreTypeCreateInfo timelineCreateInfo = {
+        .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+        .pNext         = nullptr,
+        .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+        .initialValue  = m_timelinePoint,
+    };
+
+    const VkSemaphoreCreateInfo semaphoreCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        .pNext = &timelineCreateInfo,
+    };
+
+    if (vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_timelineSemaphore) != VK_SUCCESS) {
+        CRIT("vkCreateSemaphore failed");
+    }
+
     m_good = true;
 }
 
@@ -150,6 +166,14 @@ VkDevice CHyprVulkanDevice::vkDevice() {
 
 uint32_t CHyprVulkanDevice::queueFamilyIndex() {
     return m_queueFamilyIndex;
+}
+
+VkQueue CHyprVulkanDevice::queue() {
+    return m_queue;
+}
+
+VkSemaphore CHyprVulkanDevice::timelineSemaphore() {
+    return m_timelineSemaphore;
 }
 
 void CHyprVulkanDevice::loadFormats() {
@@ -369,8 +393,12 @@ std::optional<SVkFormatModifier> CHyprVulkanDevice::getSupportedDRMProperties(Vk
 }
 
 CHyprVulkanDevice::~CHyprVulkanDevice() {
-    if (m_device)
+    if (m_device) {
+        if (m_timelineSemaphore != VK_NULL_HANDLE)
+            vkDestroySemaphore(m_device, m_timelineSemaphore, nullptr);
+
         vkDestroyDevice(m_device, nullptr);
+    }
 
     if (m_drmFd >= 0)
         close(m_drmFd);

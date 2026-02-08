@@ -1,4 +1,5 @@
 #include "Vulkan.hpp"
+#include "render/vulkan/CommandBuffer.hpp"
 #include "utils.hpp"
 
 #include "../../macros.hpp"
@@ -138,6 +139,8 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
     // DEBUG
     m_device = getDevice(g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd);
     Log::logger->log(Log::DEBUG, "[VULKAN] Init {}", m_device && m_device->good());
+    if (m_device->good())
+        m_device->loadFormats();
 }
 
 CHyprVulkanImpl::~CHyprVulkanImpl() {
@@ -239,4 +242,17 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
     }
 
     return nullptr;
+}
+
+SP<CHyprVkCommandBuffer> CHyprVulkanImpl::begin() {
+    if (!m_commandBuffer)
+        m_commandBuffer = makeShared<CHyprVkCommandBuffer>(m_device);
+
+    m_device->m_timelinePoint++;
+    m_commandBuffer->begin();
+    return m_commandBuffer;
+}
+
+void CHyprVulkanImpl::end() {
+    m_commandBuffer->end(m_device->m_timelinePoint);
 }

@@ -33,7 +33,7 @@
 #include "../protocols/core/Compositor.hpp"
 
 struct gbm_device;
-class CHyprRenderer;
+class IHyprRenderer;
 
 struct SVertex {
     float x, y; // position
@@ -453,7 +453,7 @@ class CHyprOpenGLImpl {
 
     void          preBlurForCurrentMonitor();
 
-    friend class CHyprRenderer;
+    friend class IHyprRenderer;
     friend class CTexPassElement;
     friend class CPreBlurElement;
     friend class CSurfacePassElement;

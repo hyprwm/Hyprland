@@ -19,11 +19,14 @@ class CHyprVulkanDevice {
         PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
     } m_proc;
 
-    bool     good();
-    void     loadFormats();
-    VkDevice vkDevice();
+    bool        good();
+    void        loadFormats();
+    VkDevice    vkDevice();
 
-    uint32_t queueFamilyIndex();
+    uint32_t    queueFamilyIndex();
+    VkQueue     queue();
+    VkSemaphore timelineSemaphore();
+    uint64_t    m_timelinePoint = 0;
 
   private:
     inline void                            loadVulkanProc(void* pProc, const char* name);
@@ -32,11 +35,13 @@ class CHyprVulkanDevice {
     std::optional<SVkFormatModifier>   getSupportedDRMProperties(VkFormat vkFormat, VkFormat vkSrgbFormat, VkImageUsageFlags usage, const VkDrmFormatModifierPropertiesEXT& mod);
     bool                               getModifiers(SVkFormatProps& props, const size_t modifierCount);
 
-    VkPhysicalDevice                   m_physicalDevice;
-    VkDevice                           m_device;
-    VkQueue                            m_queue;
-    std::vector<VkExtensionProperties> m_extensions;
+    VkPhysicalDevice                   m_physicalDevice    = VK_NULL_HANDLE;
+    VkDevice                           m_device            = VK_NULL_HANDLE;
+    VkQueue                            m_queue             = VK_NULL_HANDLE;
+    VkSemaphore                        m_timelineSemaphore = VK_NULL_HANDLE;
+
     int                                m_drmFd = -1;
+    std::vector<VkExtensionProperties> m_extensions;
 
     bool                               m_good = false;
 

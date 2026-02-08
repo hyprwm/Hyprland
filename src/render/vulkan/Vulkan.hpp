@@ -6,6 +6,7 @@
 
 #include "../../helpers/memory/Memory.hpp"
 #include "Device.hpp"
+#include "CommandBuffer.hpp"
 
 class CHyprVulkanImpl {
   public:
@@ -18,15 +19,18 @@ class CHyprVulkanImpl {
         PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = nullptr;
     } m_proc;
 
-    SP<CHyprVulkanDevice> getDevice(int drmFd);
-    VkCommandBuffer       begin();
+    SP<CHyprVulkanDevice>    getDevice(int drmFd);
+    SP<CHyprVkCommandBuffer> begin();
+    void                     end();
 
   private:
     inline void              loadVulkanProc(void* pProc, const char* name);
 
     VkInstance               m_instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT m_debug    = VK_NULL_HANDLE;
+
     SP<CHyprVulkanDevice>    m_device;
+    SP<CHyprVkCommandBuffer> m_commandBuffer;
 };
 
 inline UP<CHyprVulkanImpl> g_pHyprVulkan;

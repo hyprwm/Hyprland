@@ -27,7 +27,7 @@ class CSyncTimeline {
 
     bool                           addWaiter(std::function<void()>&& waiter, uint64_t point, uint32_t flags);
     Hyprutils::OS::CFileDescriptor exportAsSyncFileFD(uint64_t src);
-    bool                           importFromSyncFileFD(uint64_t dst, Hyprutils::OS::CFileDescriptor& fd);
+    bool                           importFromSyncFileFD(uint64_t dst, const Hyprutils::OS::CFileDescriptor& fd);
     bool                           transfer(SP<CSyncTimeline> from, uint64_t fromPoint, uint64_t toPoint);
     void                           signal(uint64_t point);
 

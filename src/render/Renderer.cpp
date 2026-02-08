@@ -1680,6 +1680,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
 
+    auto deadline =
+        pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    if (deadline) {
+        m_currentBuffer.fence.setDeadline(deadline.value());
+        pMonitor->m_estimatedNextVblank = std::nullopt;
+    }
+
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
         if (pMonitor->m_inFence.isValid()) {
@@ -2294,16 +2301,16 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer) {
+        m_currentBuffer.buffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_currentBuffer.buffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
-        m_currentBuffer = buffer;
+        m_currentBuffer.buffer = buffer;
 
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat);
+        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer.buffer, pMonitor->m_output->state->state().drmFormat);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->m_name);
         return false;
@@ -2313,6 +2320,8 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
+
+    m_currentBuffer.fence = CFence{m_currentBuffer.buffer->dmabuf().fds[0]};
 
     if (mode == RENDER_MODE_NORMAL) {
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);
@@ -2338,7 +2347,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         if (m_currentRenderbuffer)
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
+        m_currentBuffer       = {};
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
@@ -2353,7 +2362,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         return;
 
     if (m_renderMode == RENDER_MODE_NORMAL)
-        PMONITOR->m_output->state->setBuffer(m_currentBuffer);
+        PMONITOR->m_output->state->setBuffer(m_currentBuffer.buffer);
 
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");

@@ -5,6 +5,7 @@
 #include "../protocols/ExtDataDevice.hpp"
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "../protocols/LayerShell.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
@@ -618,8 +619,9 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
     if (m_seatGrab) {
         auto oldGrab = m_seatGrab;
 
-        // Try to find the parent window from the grab
+        // Try to find the parent window or layer surface from the grab
         PHLWINDOW parentWindow;
+        PHLLS     parentLayer;
         if (oldGrab && oldGrab->m_surfs.size()) {
             // Try to find the surface that had focus when the grab ended
             SP<CWLSurfaceResource> focusedSurf;
@@ -645,8 +647,11 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
                     auto popup = Desktop::View::CPopup::fromView(hlSurface->view());
                     if (popup) {
                         auto t1Owner = popup->getT1Owner();
-                        if (t1Owner)
+                        if (t1Owner) {
                             parentWindow = Desktop::View::CWindow::fromView(t1Owner->view());
+                            if (!parentWindow)
+                                parentLayer = Desktop::View::CLayerSurface::fromView(t1Owner->view());
+                        }
                     }
                 }
             }
@@ -654,18 +659,22 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
         m_seatGrab.reset();
 
-        static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-        if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
-            const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+        if (parentLayer && parentLayer->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+            Desktop::focusState()->rawSurfaceFocus(parentLayer->wlSurface()->resource());
+        } else {
+            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 
-            // If this was a popup grab, focus its parent window to maintain context
-            if (validMapped(parentWindow)) {
-                Desktop::focusState()->rawWindowFocus(parentWindow);
-                Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
+                // If this was a popup grab, focus its parent window to maintain context
+                if (validMapped(parentWindow)) {
+                    Desktop::focusState()->rawWindowFocus(parentWindow);
+                    Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
+                } else
+                    g_pInputManager->refocusLastWindow(PMONITOR);
             } else
-                g_pInputManager->refocusLastWindow(PMONITOR);
-        } else
-            g_pInputManager->refocus();
+                g_pInputManager->refocus();
+        }
 
         auto                          currentFocus = m_state.keyboardFocus.lock();
         auto                          refocus      = !currentFocus;

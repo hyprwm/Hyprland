@@ -1,4 +1,5 @@
 #include "Vulkan.hpp"
+#include "debug/log/Logger.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
 #include "utils.hpp"
 
@@ -106,7 +107,7 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
         .apiVersion    = VK_API_VERSION_1_3,
     };
 
-    VkDebugUtilsMessengerCreateInfoEXT debug_info = {
+    VkDebugUtilsMessengerCreateInfoEXT debugInfo = {
         .sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
         .messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
@@ -114,24 +115,25 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
         .pUserData       = this,
     };
 
-    VkInstanceCreateInfo instance_info = {.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                                          .pNext                   = hasDebug ? &debug_info : nullptr,
-                                          .pApplicationInfo        = &application_info,
-                                          .enabledLayerCount       = 0,
-                                          .ppEnabledLayerNames     = nullptr,
-                                          .enabledExtensionCount   = enabledExtensions.size(),
-                                          .ppEnabledExtensionNames = enabledExtensions.data()};
+    VkInstanceCreateInfo instanceInfo = {.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                                         .pNext                   = hasDebug ? &debugInfo : nullptr,
+                                         .pApplicationInfo        = &application_info,
+                                         .enabledLayerCount       = 0,
+                                         .ppEnabledLayerNames     = nullptr,
+                                         .enabledExtensionCount   = enabledExtensions.size(),
+                                         .ppEnabledExtensionNames = enabledExtensions.data()};
 
-    if (vkCreateInstance(&instance_info, nullptr, &m_instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&instanceInfo, nullptr, &m_instance) != VK_SUCCESS) {
         CRIT("Could not create instance");
     }
 
     if (hasDebug) {
+        Log::logger->log(Log::DEBUG, "activating vulkan debug");
         loadVulkanProc(&m_proc.vkCreateDebugUtilsMessengerEXT, "vkCreateDebugUtilsMessengerEXT");
         loadVulkanProc(&m_proc.vkDestroyDebugUtilsMessengerEXT, "vkDestroyDebugUtilsMessengerEXT");
 
         if (m_proc.vkCreateDebugUtilsMessengerEXT)
-            m_proc.vkCreateDebugUtilsMessengerEXT(m_instance, &debug_info, nullptr, &m_debug);
+            m_proc.vkCreateDebugUtilsMessengerEXT(m_instance, &debugInfo, nullptr, &m_debug);
         else
             Log::logger->log(Log::ERR, "vkCreateDebugUtilsMessengerEXT not found");
     }

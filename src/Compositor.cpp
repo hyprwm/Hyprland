@@ -689,7 +689,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pInputManager = makeUnique<CInputManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+            g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();

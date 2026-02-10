@@ -5,8 +5,9 @@
 
 #define CRIT(...)                                                                                                                                                                  \
     Log::logger->log(Log::CRIT, __VA_ARGS__);                                                                                                                                      \
-    return; // abort();
+    abort();
 
 bool        isIgnoredDebugMessage(const std::string& idName);
 bool        hasExtension(const std::vector<VkExtensionProperties>& extensions, const std::string& name);
 std::string resultToStr(VkResult res);
+int         findVkMemType(VkPhysicalDevice dev, VkMemoryPropertyFlags flags, uint32_t req_bits);

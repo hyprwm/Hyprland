@@ -37,3 +37,15 @@ static const VkImageUsageFlags    VULKAN_SHM_TEX_USAGE = VK_IMAGE_USAGE_SAMPLED_
 static const VkImageUsageFlags    VULKAN_DMA_TEX_USAGE = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 static const VkFormatFeatureFlags RENDER_FEATURES = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+
+struct SVkVertShaderData {
+    float mat4[4][4];
+    float uvOffset[2];
+    float uvSize[2];
+};
+
+struct SVkFragShaderData {
+    float matrix[4][4];
+    float alpha;
+    float luminance_multiplier;
+};

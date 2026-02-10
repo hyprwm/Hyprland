@@ -1293,7 +1293,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         pMonitor->m_damage.rotate();
     }
 
-    return beginRenderInternal(pMonitor, damage, buffer, fb, simple);
+    return beginRenderInternal(pMonitor, damage, simple);
 }
 
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {

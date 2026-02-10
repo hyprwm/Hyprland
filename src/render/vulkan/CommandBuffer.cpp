@@ -1,9 +1,10 @@
 #include "CommandBuffer.hpp"
 #include "../../macros.hpp"
+#include "render/vulkan/DeviceUser.hpp"
 #include "utils.hpp"
 #include <vulkan/vulkan_core.h>
 
-CHyprVkCommandBuffer::CHyprVkCommandBuffer(WP<CHyprVulkanDevice> device) : m_device(device) {
+CHyprVkCommandBuffer::CHyprVkCommandBuffer(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
     const VkCommandPoolCreateInfo cmdPoolCreateInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         // .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -30,7 +31,14 @@ CHyprVkCommandBuffer::CHyprVkCommandBuffer(WP<CHyprVulkanDevice> device) : m_dev
         CRIT("vkCreateSemaphore failed");
     }
 
-    if (vkCreateSemaphore(vkDevice(), &semaphoreCreateInfo, nullptr, &m_signalSemaphore) != VK_SUCCESS) {
+    const VkSemaphoreTypeCreateInfoKHR semaphoreTypeInfo = {
+        .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO_KHR,
+        .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE_KHR,
+        .initialValue  = 0,
+    };
+    const VkSemaphoreCreateInfo timelineCreateInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = &semaphoreTypeInfo};
+
+    if (vkCreateSemaphore(vkDevice(), &timelineCreateInfo, nullptr, &m_signalSemaphore) != VK_SUCCESS) {
         CRIT("vkCreateSemaphore failed");
     }
 }
@@ -50,10 +58,6 @@ CHyprVkCommandBuffer::~CHyprVkCommandBuffer() {
 
     if (m_cmdPool)
         vkDestroyCommandPool(vkDevice(), m_cmdPool, nullptr);
-}
-
-VkDevice CHyprVkCommandBuffer::vkDevice() {
-    return m_device->vkDevice();
 }
 
 void CHyprVkCommandBuffer::begin() {
@@ -105,23 +109,55 @@ void CHyprVkCommandBuffer::end(uint64_t signalPoint) {
     });
 
     const std::array<VkCommandBufferSubmitInfo, 1> cmdBufferInfo{{{
-        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO_KHR,
         .commandBuffer = m_cmdBuffer,
     }}};
 
     const std::array<VkSubmitInfo2, 1>             submitInfo{{{
-                    .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-                    .waitSemaphoreInfoCount   = waitSemaphores.size(),
-                    .pWaitSemaphoreInfos      = waitSemaphores.data(),
+                    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2_KHR,
+        // .waitSemaphoreInfoCount   = waitSemaphores.size(),
+        // .pWaitSemaphoreInfos      = waitSemaphores.data(),
                     .commandBufferInfoCount   = cmdBufferInfo.size(),
                     .pCommandBufferInfos      = cmdBufferInfo.data(),
                     .signalSemaphoreInfoCount = signalSemaphores.size(),
                     .pSignalSemaphoreInfos    = signalSemaphores.data(),
     }}};
 
-    if (vkQueueSubmit2(m_device->queue(), uint32_t(submitInfo.size()), submitInfo.data(), VK_NULL_HANDLE) != VK_SUCCESS) {
+    VkSemaphoreWaitInfoKHR                         waitInfo = {
+                                .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR,
+                                .semaphoreCount = 1,
+                                .pSemaphores    = &m_signalSemaphore,
+                                .pValues        = &signalPoint,
+    };
+
+    VkSemaphoreSignalInfo signalInfo = {
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .semaphore = m_signalSemaphore,
+        .value     = signalPoint,
+    };
+
+    VkSemaphoreSignalInfo timelineInfo = {
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .semaphore = m_device->timelineSemaphore(),
+        .value     = signalPoint,
+    };
+
+    VkSemaphoreSignalInfo waitSemInfo = {
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+        .semaphore = m_waitSemaphore,
+        .value     = signalPoint,
+    };
+
+    vkSignalSemaphore(vkDevice(), &signalInfo);
+    // vkSignalSemaphore(vkDevice(), &timelineInfo);
+    // vkSignalSemaphore(vkDevice(), &waitSemInfo);
+    if (m_device->m_proc.vkQueueSubmit2KHR(m_device->queue(), uint32_t(submitInfo.size()), submitInfo.data(), VK_NULL_HANDLE) != VK_SUCCESS) {
         CRIT("vkQueueSubmit2 failed");
     }
+
+    // if (m_device->m_proc.vkWaitSemaphoresKHR(vkDevice(), &waitInfo, 5000000000) != VK_SUCCESS) {
+    //     CRIT("vkWaitSemaphoresKHR");
+    // }
 
     m_recording = false;
 };

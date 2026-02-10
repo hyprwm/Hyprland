@@ -83,7 +83,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
     return true;
 }
 
-bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
+bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
 
     g_pHyprOpenGL->m_renderData.m_currentRenderbuffer->bind();
     if (simple)

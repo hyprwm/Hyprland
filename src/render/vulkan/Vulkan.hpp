@@ -33,7 +33,6 @@ class CHyprVulkanImpl {
     SP<CHyprVkCommandBuffer> m_commandBuffer;
 
     friend class CHyprVKRenderer;
-    friend class CHyprVkFramebuffer;
 };
 
 inline UP<CHyprVulkanImpl> g_pHyprVulkan;

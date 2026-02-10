@@ -40,4 +40,6 @@ class CRenderPass {
     } m_debugData;
 
     friend class CHyprOpenGLImpl;
+    friend class CHyprVulkanImpl;
+    friend class CHyprVKRenderer;
 };

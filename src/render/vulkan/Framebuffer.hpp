@@ -2,22 +2,27 @@
 
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/Format.hpp"
+#include "DeviceUser.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
+#include <array>
 #include <vulkan/vulkan.h>
+#include <drm/drm_fourcc.h>
 
-class CHyprVkFramebuffer {
+class CHyprVkFramebuffer : public IDeviceUser {
   public:
-    CHyprVkFramebuffer(SP<Aquamarine::IBuffer> buffer, DRMFormat fmt);
+    CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass);
     ~CHyprVkFramebuffer();
 
     WP<Aquamarine::IBuffer> m_hlBuffer;
 
   private:
-    VkImage       m_image;
-    VkImageView   m_imageView;
-    VkFramebuffer m_framebuffer;
+    void                          initImage(SVkFormatProps props, Aquamarine::SDMABUFAttrs attrs);
+    void                          initImageView(VkFormat format);
 
-    DRMFormat     m_drmFormat;
+    std::array<VkDeviceMemory, 4> m_memory      = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
+    VkImage                       m_image       = VK_NULL_HANDLE;
+    VkImageView                   m_imageView   = VK_NULL_HANDLE;
+    VkFramebuffer                 m_framebuffer = VK_NULL_HANDLE;
 
     friend class CHyprVKRenderer;
 };

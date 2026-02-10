@@ -165,6 +165,10 @@ VkDevice CHyprVulkanDevice::vkDevice() {
     return m_device;
 }
 
+VkPhysicalDevice CHyprVulkanDevice::physicalDevice() {
+    return m_physicalDevice;
+}
+
 uint32_t CHyprVulkanDevice::queueFamilyIndex() {
     return m_queueFamilyIndex;
 }
@@ -179,8 +183,10 @@ VkSemaphore CHyprVulkanDevice::timelineSemaphore() {
 
 std::optional<const SVkFormatProps> CHyprVulkanDevice::getFormat(const DRMFormat format) {
     const auto found = std::ranges::find_if(m_formats, [format](const auto fmt) { return fmt.format.drmFormat == format; });
-    if (found != m_formats.end())
+    if (found != m_formats.end()) {
+        Log::logger->log(Log::DEBUG, "Found format {}", NFormatUtils::drmFormatName(format));
         return *found;
+    }
 
     return {};
 }

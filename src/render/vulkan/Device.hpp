@@ -23,6 +23,7 @@ class CHyprVulkanDevice {
     bool                                good();
     void                                loadFormats();
     VkDevice                            vkDevice();
+    VkPhysicalDevice                    physicalDevice();
 
     uint32_t                            queueFamilyIndex();
     VkQueue                             queue();

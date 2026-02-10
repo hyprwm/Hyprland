@@ -64,6 +64,10 @@ class CSurfacePassElement : public IPassElement {
         return "CSurfacePassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_SURFACE;
+    };
+
   private:
     SRenderData m_data;
 

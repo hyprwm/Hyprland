@@ -21,6 +21,10 @@ class CShadowPassElement : public IPassElement {
         return "CShadowPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_SHADOW;
+    };
+
   private:
     SShadowData m_data;
 };

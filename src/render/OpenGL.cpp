@@ -2023,18 +2023,13 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     m_monitorRenderResources[m_renderData.pMonitor].blurFBShouldRender = false;
 }
 
-void CHyprOpenGLImpl::preWindowPass() {
-    if (!preBlurQueued())
-        return;
-
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CPreBlurElement>());
-}
-
-bool CHyprOpenGLImpl::preBlurQueued() {
+bool CHyprOpenGLImpl::preBlurQueued(PHLMONITORREF pMonitor) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    return m_renderData.pCurrentMonData->blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pCurrentMonData->blurFBShouldRender;
+    const auto& DATA = m_monitorRenderResources[m_renderData.pMonitor];
+
+    return DATA.blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && DATA.blurFBShouldRender;
 }
 
 bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
@@ -2923,26 +2918,13 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     *pMonitor->m_backgroundOpacity = 1.F;
 }
 
-void CHyprOpenGLImpl::clearWithTex() {
-    RASSERT(m_renderData.pMonitor, "Tried to render BGtex without begin()!");
-
-    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
-
-    auto        TEXIT = m_monitorBGFBs.find(m_renderData.pMonitor);
-
+SP<CTexture> CHyprOpenGLImpl::getBGTextureForMonitor(PHLMONITORREF pMonitor) {
+    auto TEXIT = m_monitorBGFBs.find(pMonitor);
     if (TEXIT == m_monitorBGFBs.end()) {
-        createBGTextureForMonitor(m_renderData.pMonitor.lock());
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        createBGTextureForMonitor(pMonitor.lock());
+        return nullptr;
     }
-
-    if (TEXIT != m_monitorBGFBs.end()) {
-        CTexPassElement::SRenderData data;
-        data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
-        data.a            = m_renderData.pMonitor->m_backgroundOpacity->value();
-        data.flipEndFrame = true;
-        data.tex          = TEXIT->second.getTexture();
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
-    }
+    return TEXIT->second.getTexture();
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {

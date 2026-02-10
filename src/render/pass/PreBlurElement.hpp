@@ -15,4 +15,8 @@ class CPreBlurElement : public IPassElement {
     virtual const char* passName() {
         return "CPreBlurElement";
     }
+
+    virtual ePassElementKind kind() {
+        return EK_PRE_BLUR;
+    };
 };

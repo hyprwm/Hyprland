@@ -26,6 +26,10 @@ class CBorderPassElement : public IPassElement {
         return "CBorderPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_BORDER;
+    };
+
   private:
     SBorderData m_data;
 };

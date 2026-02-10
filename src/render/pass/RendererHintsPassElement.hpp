@@ -21,6 +21,10 @@ class CRendererHintsPassElement : public IPassElement {
         return "CRendererHintsPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_HINTS;
+    };
+
   private:
     SData m_data;
 };

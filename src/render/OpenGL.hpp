@@ -20,6 +20,7 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 #include "Renderbuffer.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "pass/Pass.hpp"
 
 #include <EGL/egl.h>
@@ -278,7 +279,7 @@ class CHyprOpenGLImpl {
     bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
     void         clear(const CHyprColor&);
-    void         clearWithTex();
+    SP<CTexture> getBGTextureForMonitor(PHLMONITORREF pMonitor);
     void         scissor(const CBox&, bool transform = true);
     void         scissor(const pixman_box32*, bool transform = true);
     void         scissor(const int x, const int y, const int w, const int h, bool transform = true);
@@ -287,8 +288,7 @@ class CHyprOpenGLImpl {
 
     void         markBlurDirtyForMonitor(PHLMONITOR);
 
-    void         preWindowPass();
-    bool         preBlurQueued();
+    bool         preBlurQueued(PHLMONITORREF);
     void         preRender(PHLMONITOR);
 
     void         saveBufferForMirror(const CBox&);

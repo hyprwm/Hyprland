@@ -4,18 +4,21 @@
 #include <list>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
+#include "./pass/Pass.hpp"
 #include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "render/Texture.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
+class CRenderPass;
 
 enum eDamageTrackingModes : int8_t {
     DAMAGE_TRACKING_INVALID = -1,
@@ -152,12 +155,14 @@ class IHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass       m_renderPass = {};
+    CRenderPass       m_renderPass;
 
     bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
     SP<CRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
     void              renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
                                    bool standalone = false); // // TODO? move to protected and fix CToplevelExportFrame
+
+    virtual void      draw(WP<IPassElement> element, const CRegion& damage);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.
@@ -174,9 +179,10 @@ class IHyprRenderer {
     virtual bool initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
         return false;
     };
+    virtual SP<CTexture> getBackground(PHLMONITOR pMonitor);
 
-    void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-    void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+    void                 arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
+    void                 renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
     void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);

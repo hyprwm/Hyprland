@@ -24,6 +24,10 @@ class CTextureMatteElement : public IPassElement {
         return "CTextureMatteElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_TEXTURE_MATTE;
+    };
+
   private:
     STextureMatteData m_data;
 };

@@ -20,6 +20,10 @@ class CFramebufferElement : public IPassElement {
         return "CFramebufferElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_FRAMEBUFFER;
+    };
+
   private:
     SFramebufferElementData m_data;
 };

@@ -20,6 +20,10 @@ class CClearPassElement : public IPassElement {
         return "CClearPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_CLEAR;
+    };
+
   private:
     SClearData m_data;
 };

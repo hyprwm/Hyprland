@@ -26,6 +26,10 @@ class CRectPassElement : public IPassElement {
         return "CRectPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_RECT;
+    };
+
   private:
     SRectData m_data;
 };

@@ -39,6 +39,10 @@ class CTexPassElement : public IPassElement {
         return "CTexPassElement";
     }
 
+    virtual ePassElementKind kind() {
+        return EK_TEXTURE;
+    };
+
   private:
     SRenderData m_data;
 };

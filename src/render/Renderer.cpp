@@ -42,6 +42,7 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
+#include "render/pass/PreBlurElement.hpp"
 #include "render/vulkan/Vulkan.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -735,6 +736,10 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     g_pHyprOpenGL->m_renderData.currentWindow.reset();
 }
 
+void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+}
+
 void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
     if (!pLayer)
         return;
@@ -974,7 +979,8 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pre window pass
-    g_pHyprOpenGL->preWindowPass();
+    if (g_pHyprOpenGL->preBlurQueued(pMonitor))
+        m_renderPass.add(makeUnique<CPreBlurElement>());
 
     if UNLIKELY /* subjective? */ (pWorkspace->m_hasFullscreenWindow)
         renderWorkspaceWindowsFullscreen(pMonitor, pWorkspace, time);
@@ -1058,6 +1064,11 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     //g_pHyprOpenGL->restoreMatrix();
 }
 
+SP<CTexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
+    Log::logger->log(Log::TRACE, "fixme: getBackground not implemented");
+    return nullptr;
+}
+
 void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
     static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
@@ -1065,8 +1076,22 @@ void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
     if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
         m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
 
-    if (!*PRENDERTEX)
-        g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
+    if (!*PRENDERTEX) {
+        static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+
+        const auto  TEX = getBackground(pMonitor);
+
+        if (!TEX)
+            g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
+        else {
+            CTexPassElement::SRenderData data;
+            data.box          = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+            data.a            = m_renderData.pMonitor->m_backgroundOpacity->value();
+            data.flipEndFrame = true;
+            data.tex          = TEX;
+            g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+        }
+    }
 }
 
 void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {

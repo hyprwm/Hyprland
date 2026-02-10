@@ -71,6 +71,10 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     return g_pHyprOpenGL->m_renderData.m_currentRenderbuffer;
 }
 
+SP<CTexture> CHyprGLRenderer::getBackground(PHLMONITOR pMonitor) {
+    return g_pHyprOpenGL->getBGTextureForMonitor(pMonitor);
+}
+
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
     initRender();
 

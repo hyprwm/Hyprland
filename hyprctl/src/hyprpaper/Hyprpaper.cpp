@@ -126,7 +126,11 @@ std::expected<void, std::string> Hyprpaper::makeHyprpaperRequest(const std::stri
 
     wallpaper->setFailed([&canExit, &err](uint32_t code) {
         canExit = true;
-        err     = std::format("failed to set wallpaper, code {}", code);
+        switch (code) {
+            case 1: err = std::format("failed to set wallpaper: Invalid path", code); break;
+            case 2: err = std::format("failed to set wallpaper: Invalid monitor", code); break;
+            default: err = std::format("failed to set wallpaper: unknown error, code {}", code); break;
+        }
     });
     wallpaper->setSuccess([&canExit]() { canExit = true; });
 

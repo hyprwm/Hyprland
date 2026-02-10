@@ -102,10 +102,6 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     static int frameNumber = 0;
     frameNumber++;
 
-    for (const auto& el : m_renderPass.m_passElements) {
-        Log::logger->log(Log::DEBUG, "m_passElements {}", el->element->passName());
-    }
-
     vkCmdEndRenderPass(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer);
     transitionImage(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer, m_currentRenderbuffer->m_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 

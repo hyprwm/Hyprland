@@ -1,0 +1,29 @@
+{
+  "TXT_KEY_ANR_TITLE": "برنامه پاسخ نمی‌دهد",
+  "TXT_KEY_ANR_CONTENT": "برنامه {title} - {class} پاسخی نمی‌دهد.\\nمی‌خواهید چه کاری انجام شود؟",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "بستن برنامه",
+  "TXT_KEY_ANR_OPTION_WAIT": "صبر کنید",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(نامشخص)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "برنامه <b>{app}</b> در حال درخواست یک مجوز ناشناخته است.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "برنامه <b>{app}</b> می‌خواهد صفحه‌نمایش شما را ضبط کند.\\n\\nآیا اجازه می‌دهید؟",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "یک کیبورد جدید شناسایی شد: <b>{keyboard}</b>.\\n\\nآیا اجازه استفاده از آن را صادر می‌کنید؟",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(نامشخص)",
+  "TXT_KEY_PERMISSION_TITLE": "درخواست مجوز",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "نکته: می‌توانید قوانین دائمی مرتبط را در فایل تنظیمات هایپرلند تعریف کنید.",
+  "TXT_KEY_PERMISSION_ALLOW": "اجازه",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "اجازه و ذخیره",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "اجازه یک‌بار",
+  "TXT_KEY_PERMISSION_DENY": "عدم اجازه",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "برنامه ناشناخته (شناسه Wayland: {wayland_id})",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "مانیتور {name} نتوانست هیچ‌کدام از حالت‌های درخواستی را اعمال کند؛ بازگشت به حالت {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "مقیاس واردشده برای مانیتور {name} نامعتبر است: {scale}. مقیاس پیشنهادی اعمال شد: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "بارگذاری پلاگین {name} با خطا روبه‌رو شد: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "بارگذاری دوبارهٔ شیدر CM ناموفق بود؛ از حالت rgba/rgbx استفاده شد.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "مانیتور {name}: گسترهٔ رنگ وسیع فعال است اما نمایشگر در حالت ۱۰ بیتی نیست.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "",
+      "many": ""
+    }
+  }
+}

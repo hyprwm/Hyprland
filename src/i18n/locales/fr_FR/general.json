@@ -1,0 +1,31 @@
+{
+  "TXT_KEY_ANR_TITLE": "L'application ne répond plus",
+  "TXT_KEY_ANR_CONTENT": "L'application {title} - {class} ne répond plus.\\nQue voulez-vous faire?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Forcer l'arrêt",
+  "TXT_KEY_ANR_OPTION_WAIT": "Attendre",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(inconnu)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Une application <b>{app}</b> demande une autorisation inconnue.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Une application <b>{app}</b> tente de capturer votre écran.\\n\\nVoulez-vous l'autoriser?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Une application <b>{app}</b> tente de charger un module : <b>{plugin}</b>.\\n\\nVoulez-vous l'autoriser?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Un nouveau clavier a été détecté : <b>{keyboard}</b>.\\n\\nVoulez-vous l'autoriser à fonctionner?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(inconnu)",
+  "TXT_KEY_PERMISSION_TITLE": "Demande d'autorisation",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Astuce: vous pouvez définir des règles persistantes dans le fichier de configuration de Hyprland.",
+  "TXT_KEY_PERMISSION_ALLOW": "Autoriser",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Autoriser et mémoriser",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Autoriser une fois",
+  "TXT_KEY_PERMISSION_DENY": "Refuser",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Application inconnue (ID client wayland {wayland_id})",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Votre système n'a pas hyprland-guiutils installé. C'est une dépendance d'éxécution pour certains dialogues. Envisagez de l'installer.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Le moniteur {name} n'a pu appliquer les modes demandés, retour au mode {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Échelle invalide pour le moniteur {name}: {scale}. Utilisation de l'échelle suggérée: {fixed_scale}.",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Échec du chargement du module {name} : {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Le rechargement du shader CM a échoué, retour aux formats rgba/rgbx",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Moniteur {name} : l'espace colorimétrique étendu est activé, mais l'écran n'est pas en mode 10-bits.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "Hyprland n'a pas pu charger {count} ressource essentielle, cela indique très probablement un problème dans le paquet de votre distribution.",
+      "many": "Hyprland n'a pas pu charger {count} ressources essentielles, cela indique très probablement un problème dans le paquet de votre distribution."
+    }
+  }
+}

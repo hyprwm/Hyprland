@@ -1,0 +1,31 @@
+{
+  "TXT_KEY_ANR_TITLE": "Праграма не адказвае",
+  "TXT_KEY_ANR_CONTENT": "Праграма {title} - {class} не адказвае.\\nШто хочаце з ёй зрабіць?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Прымусова спыніць",
+  "TXT_KEY_ANR_OPTION_WAIT": "Пачакаць",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(невядома)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Праграма <b>{app}</b> запытвае невядомы дазвол.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Праграма <b>{app}</b> спрабуе здымаць экран.\\n\\nЦі хочаце дазволіць?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Праграма <b>{app}</b> спрабуе загрузіць плагін: <b>{plugin}</b>.\\n\\nХочаце дазволіць?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Выяўленая новая клавіятура: <b>{keyboard}</b>.\\n\\nХочаце дазволіць яе выкарыстанне?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(невядома)",
+  "TXT_KEY_PERMISSION_TITLE": "Запыт дазволу",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Падказка: вы можаце задаць пастаянныя правілы для гэтага ў файле канфігурацыі Hyprland.",
+  "TXT_KEY_PERMISSION_ALLOW": "Дазволіць",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Дазволіць і запомніць",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Дазволіць аднойчы",
+  "TXT_KEY_PERMISSION_DENY": "Забараніць",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Невядомая праграма (Ідэнтыфікатар кліента wayland {wayland_id})",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "У вашай сістэме не ўсталяваны hyprland-guiutils, што выкарыстоўваецца для некаторых дыялогавых вокнаў. Разгледзьце ўсталёўку пакета.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Манітор {name} не змог наладзіць ніводны з запатрабаваных рэжымаў, аварыйна ўжыты рэжым {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Няверна зададзены маштаб для манітора {name}: {scale}, ужываецца прапанаваны маштаб: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Не атрымалася загрузіць плагін {name}: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Не атрымалася перазагрузіць шэйдар CM, аварыйна ўжываецца rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Манітор {name}: пашыраны каляровы дыяпазон уключаны, але экран не ў рэжыме 10-біт.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "Hyprland не змог загрузіць {count} важны рэсурс, вінавацьце ў гэтым адказнага за зборку пакетаў для свайго дыстрыбутыва!",
+      "many": "Hyprland не змог загрузіць {count} важных рэсурсаў, вінавацьце ў гэтым адказнага за зборку пакетаў для свайго дыстрыбутыва!"
+    }
+  }
+}

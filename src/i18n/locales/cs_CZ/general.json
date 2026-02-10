@@ -1,0 +1,32 @@
+{
+  "TXT_KEY_ANR_TITLE": "Aplikace Neodpovídá",
+  "TXT_KEY_ANR_CONTENT": "Aplikace {title} - {class} neodpovídá.\\nCo s ní chcete udělat?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Ukončit",
+  "TXT_KEY_ANR_OPTION_WAIT": "Počkat",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(neznámé)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Aplikace <b>{app}</b> vyžaduje neznámé oprávnění.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Aplikace <b>{app}</b> se pokouší zaznamenávat vaši obrazovku.\\n\\nChcete jí to povolit?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Aplikace <b>{app}</b> se pokouší načíst plugin: <b>{plugin}</b>.\\n\\nChcete jí to povolit?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Byla detekována nová klávesnice: <b>{keyboard}</b>.\\n\\nChcete jí povolit?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(neznámé)",
+  "TXT_KEY_PERMISSION_TITLE": "Žádost o oprávnění",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Tip: pro tyto případy můžete nastavit trvalá pravidla v konfiguračním souboru Hyprland.",
+  "TXT_KEY_PERMISSION_ALLOW": "Povolit",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Povolit a zapamatovat",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Povolit jednou",
+  "TXT_KEY_PERMISSION_DENY": "Zamítnout",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Neznámá aplikace (ID klienta Wayland {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Proměnná prostředí XDG_CURRENT_DESKTOP se zdá být spravována externě a její aktuální hodnota je {value}.\\nPokud to není záměr, může to způsobit problémy.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "V systému není nainstalován balíček hyprland-guiutils. Jedná se o závislost pro běh některých dialogových oken. Zvažte jeho instalaci.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Monitoru {name} se nepodařilo nastavit žádný z požadovaných režimů, vrací se k režimu {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Monitoru {name} bylo předáno neplatné měřítko: {scale}, použije se navrhované měřítko: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Nepodařilo se načíst plugin {name}: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Nepodařilo se znovu načíst CM shader, vrací se k rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: široký barevný gamut je povolen, ale displej není v 10bitovém režimu.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "Hyprlandu se nepodařilo načíst {count} nezbytnou součást. Za špatně odvedenou práci viňte tvůrce balíčku vaší distribuce!",
+      "many": "Hyprlandu se nepodařilo načíst {count} nezbytné součásti. Za špatně odvedenou práci viňte tvůrce balíčku vaší distribuce!"
+    }
+  }
+}

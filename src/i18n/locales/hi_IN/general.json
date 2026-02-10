@@ -1,0 +1,24 @@
+{
+  "TXT_KEY_ANR_TITLE": "एप्लिकेशन प्रतिक्रिया नहीं दे रहा है",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "समाप्त करें",
+  "TXT_KEY_ANR_OPTION_WAIT": "इंतजार करें",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(अज्ञात)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "एक एप्लिकेशन <b>{app}</b> एक अज्ञात अनुमति का अनुरोध कर रहा है।",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(अज्ञात)",
+  "TXT_KEY_PERMISSION_TITLE": "अनुमति अनुरोध",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "संकेत: आप Hyprland कॉन्फ़िग फ़ाइल में इनके लिए स्थायी नियम सेट कर सकते हैं।",
+  "TXT_KEY_PERMISSION_ALLOW": "अनुमति दें",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "अनुमति दें और याद रखें",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "एक बार अनुमति दें",
+  "TXT_KEY_PERMISSION_DENY": "अस्वीकार करें",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "अज्ञात एप्लिकेशन (wayland क्लाइंट ID {wayland_id})",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "प्लगइन {name} लोड करने में विफल: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "CM शेडर रीलोड विफल हुआ, rgba/rgbx पर वापस जा रहा है।",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "मॉनिटर {name}: वाइड कलर गैम सक्षम है लेकिन डिस्प्ले 10-बिट मोड में नहीं है।",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "",
+      "many": ""
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "TXT_KEY_ANR_TITLE": "Applikationen Svarer Ikke",
+  "TXT_KEY_ANR_CONTENT": "En applikation {title} - {class} svarer ikke.\\nHvad vil du gøre ved det?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Luk",
+  "TXT_KEY_ANR_OPTION_WAIT": "Vent",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(ukendt)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "En applikation <b>{app}</b> forespørger en ukendt rettighed.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "En applikation <b>{app}</b> forsøger at optage din skærm.\\n\\nVil du tillade dette?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "En applikation <b>{app}</b> forsøger at indlæse et plugin: <b>{plugin}</b>.\\n\\nVil du tillade dette?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Et nyt tastatur er fundet: <b>{keyboard}</b>.\\n\\nVil du tillade den at fungere?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(ukendt)",
+  "TXT_KEY_PERMISSION_TITLE": "Anmodning om tilladelse",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Tip: Du kan indstille vedvarende regler for disse i Hyprland-konfigurationsfilen.",
+  "TXT_KEY_PERMISSION_ALLOW": "Tillad",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Tillad og husk",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Tillad én gang",
+  "TXT_KEY_PERMISSION_DENY": "Nægt",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Ukendt applikation (wayland client ID {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Dit XDG_CURRENT_DESKTOP miljø ser ud til at være administreret externt, og den nuværende værdi er {value}.\\nDette kan forårsage problemer, medmindre det er bevidst.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Dit system har ikke hyprland-guiutils installeret. Dette er en runtime-afhængighed for nogle dialoger. Overvej at installere den.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Skærm {name} kunne ikke indlæse nogen af de ønskede tilstande, vender tilbage til tilstand {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Ugyldig skalering sendt til skærm {name}: {scale}, bruger foreslået skalering: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Kunne ikke indlæse plugin {name}: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Genindlæsning af CM-shader mislykkedes, går tilbage til rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Skærm {name}: wide color gamut er aktiveret men skærmen er ikke i 10-bit tilstand.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "Hyprland kunne ikke indlæse {count} essentiale aktiver, skyd skylden på din distributions pakker for et dårligt stykke arbejde af pakningen!",
+      "many": "Hyprland kunne ikke indlæse {count} essentiale aktiver, skyd skylden på din distributions pakker for et dårligt stykke arbejde af pakningen!"
+    }
+  }
+}

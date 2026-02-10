@@ -1,0 +1,32 @@
+{
+  "TXT_KEY_ANR_TITLE": "O aplicativo não está respondendo",
+  "TXT_KEY_ANR_CONTENT": "O aplicativo {title} - {class} não está respondendo.\\nO que você deseja fazer?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Encerrar",
+  "TXT_KEY_ANR_OPTION_WAIT": "Esperar",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(Desconhecido)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "O aplicativo <b>{app}</b> está pedindo uma permissão desconhecida.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "O aplicativo <b>{app}</b> está tentando capturar sua tela.\\n\\nVocê deseja permitir?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "O aplicativo <b>{app}</b> está tentando carregar um plugin: <b>{plugin}</b>.\\n\\nVocê deseja permitir?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Um novo teclado foi detectado: <b>{keyboard}</b>.\\n\\nVocê deseja permitir seu uso?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(Desconhecido)",
+  "TXT_KEY_PERMISSION_TITLE": "Solicitação de permissão",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Dica: você pode definir regras persistentes para essas permissões no arquivo de configuração do Hyprland",
+  "TXT_KEY_PERMISSION_ALLOW": "Permitir",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Permitir e lembrar",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Permitir uma vez",
+  "TXT_KEY_PERMISSION_DENY": "Negar",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Aplicativo desconhecido (wayland client ID {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Seu XDG_CURRENT_DESKTOP parece estar sendo gerenciado externamente, e atualmente é {value}.\\nIsso pode causar problemas caso não seja intencional.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Seu sistema não possui hyprland-guiutils instalado. Essa é uma dependência de execução para alguns diálogos. Considere instalá-lo.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "O monitor {name} falhou em definir qualquer um dos modos solicitados, voltando ao modo {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Um fator de escala inválido foi passado para o monitor {name}: {scale}, usando o fator sugerido: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Falha ao carregar o plugin {name}: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Falha ao carregar o shader CM, voltando para rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: o modo de gama de cores amplo está ativado, mas a tela não está configurada para 10 bits.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "O Hyprland falhou ao carregar {count} recurso essencial, culpe o empacotador da sua distro por fazer um péssimo trabalho!",
+      "many": "O Hyprland falhou ao carregar {count} recursos essenciais, culpe o empacotador da sua distro por fazer um péssimo trabalho!"
+    }
+  }
+}

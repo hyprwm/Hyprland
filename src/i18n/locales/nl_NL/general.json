@@ -1,0 +1,32 @@
+{
+  "TXT_KEY_ANR_TITLE": "Applicatie Reageert Niet",
+  "TXT_KEY_ANR_CONTENT": "Een applicatie {title} - {class} reageert niet.\\nWat wilt u doen?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Beëindigen",
+  "TXT_KEY_ANR_OPTION_WAIT": "Wachten",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(onbekend)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Een applicatie <b>{app}</b> vraagt om een onbekende machtiging.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Een applicatie <b>{app}</b> probeert uw scherm op te nemen.\\n\\nWilt u dit toestaan?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Een applicatie <b>{app}</b> probeert een plugin te laden: <b>{plugin}</b>.\\n\\nWilt u dit toestaan?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Een nieuw toetsenbord is gedetecteerd: <b>{keyboard}</b>.\\n\\nWilt u toestemming geven dat het wordt gebruikt?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(onbekend)",
+  "TXT_KEY_PERMISSION_TITLE": "Toestemmingsverzoek",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Tip: U kunt hiervoor vaste regels instellen in het Hyprland-configuratiebestand.",
+  "TXT_KEY_PERMISSION_ALLOW": "Toestaan",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Toestaan en onthouden",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Één keer toestaan",
+  "TXT_KEY_PERMISSION_DENY": "Weigeren",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Onbekende applicatie (wayland client ID {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "De XDG_CURRENT_DESKTOP omgevingsvariabele lijkt extern beheerd te worden en de huidige waarde is {value}.\\nDit kan problemen veroorzaken, tenzij dit opzettelijk is.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Hyprland-guiutils is niet op uw systeem geïnstalleerd. Dit is een runtime-afhankelijkheid voor sommige dialogen. Overweeg het te installeren.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Monitor {name} is er niet in geslaagd om een van de aangevraagde modi toe te passen en gebruikt nu de modus {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Ongeldige schaal opgegeven voor monitor {name}: {scale}, de voorgestelde schaal {fixed_scale} wordt gebruikt.",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Plugin {name} kon niet worden geladen: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: breed kleurbereik is ingeschakeld maar het scherm staat niet in 10-bitmodus.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "@plural": {
+      "one": "Hyprland kon {count} essentieel bestand niet laden, geef de pakketbeheerder van uw distro de schuld voor slecht verpakkingswerk!",
+      "many": "Hyprland kon {count} essentiële bestanden niet laden, geef de pakketbeheerder van uw distro de schuld voor slecht verpakkingswerk!"
+    }
+  }
+}

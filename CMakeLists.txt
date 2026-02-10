@@ -561,40 +561,35 @@ add_subdirectory(start)
 
 
 # Generate locales
-set(I18N_INPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/i18n/locales")
-set(I18N_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated/i18n")
-set(GEN_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/scripts/GenerateLocales.cmake")
+set(I18N_INPUT_DIR ${CMAKE_SOURCE_DIR}/src/i18n/locales)
+set(I18N_OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated/i18n)
 
-file(GLOB LOCALES RELATIVE "${I18N_INPUT_DIR}" "${I18N_INPUT_DIR}/*")
+file(GLOB LOCALES RELATIVE ${I18N_INPUT_DIR} ${I18N_INPUT_DIR}/*)
 
 set(GENERATED_I18N_SOURCES "")
 foreach(LOCALE ${LOCALES})
   list(APPEND GENERATED_I18N_SOURCES "${I18N_OUTPUT_DIR}/${LOCALE}.cpp")
 endforeach()
 list(APPEND GENERATED_I18N_SOURCES "${I18N_OUTPUT_DIR}/i18n_registry.cpp")
+set_source_files_properties(${GENERATED_I18N_SOURCES} PROPERTIES GENERATED TRUE)
 
 file(GLOB_RECURSE I18N_JSON_FILES "${I18N_INPUT_DIR}/*.json")
-
-file(MAKE_DIRECTORY "${I18N_OUTPUT_DIR}")
-
-# nix giving me a stroke..
 add_custom_command(
     OUTPUT ${GENERATED_I18N_SOURCES}
     COMMAND ${CMAKE_COMMAND}
-        -DINPUT_DIR="${I18N_INPUT_DIR}"
-        -DOUTPUT_DIR="${I18N_OUTPUT_DIR}"
+        -DINPUT_DIR=${I18N_INPUT_DIR}
+        -DOUTPUT_DIR=${I18N_OUTPUT_DIR}
         -DLOCALES="${LOCALES}"
-        -P "${GEN_SCRIPT}"
-    DEPENDS ${I18N_JSON_FILES} "${GEN_SCRIPT}"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        -P ${CMAKE_SOURCE_DIR}/scripts/GenerateLocales.cmake
+    DEPENDS ${I18N_JSON_FILES} "${CMAKE_SOURCE_DIR}/scripts/GenerateLocales.cmake"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Generating locales..."
-    VERBATIM
 )
 
 add_custom_target(GenerateLocales DEPENDS ${GENERATED_I18N_SOURCES})
-target_sources(hyprland_lib PRIVATE ${GENERATED_I18N_SOURCES})
 add_dependencies(hyprland_lib GenerateLocales)
-target_include_directories(hyprland_lib PRIVATE "${I18N_OUTPUT_DIR}")
+target_sources(hyprland_lib PRIVATE ${GENERATED_I18N_SOURCES})
+target_include_directories(hyprland_lib PRIVATE ${I18N_OUTPUT_DIR})
 
 
 if(NO_HYPRPM)

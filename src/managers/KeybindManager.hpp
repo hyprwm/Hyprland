@@ -198,6 +198,7 @@ class CKeybindManager {
     static SDispatchResult focusMonitor(std::string);
     static SDispatchResult toggleSplit(std::string);
     static SDispatchResult swapSplit(std::string);
+    static SDispatchResult rotateSplit(std::string);
     static SDispatchResult moveCursorToCorner(std::string);
     static SDispatchResult moveCursor(std::string);
     static SDispatchResult workspaceOpt(std::string);

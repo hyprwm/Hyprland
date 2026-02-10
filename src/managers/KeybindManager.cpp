@@ -105,6 +105,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["movegroupwindow"]                = moveGroupWindow;
     m_dispatchers["togglesplit"]                    = toggleSplit;
     m_dispatchers["swapsplit"]                      = swapSplit;
+    m_dispatchers["rotatesplit"]                    = rotateSplit;
     m_dispatchers["splitratio"]                     = alterSplitRatio;
     m_dispatchers["focusmonitor"]                   = focusMonitor;
     m_dispatchers["movecursortocorner"]             = moveCursorToCorner;
@@ -1794,6 +1795,28 @@ SDispatchResult CKeybindManager::swapSplit(std::string args) {
         return {.success = false, .error = "Can't split windows that already split"};
 
     g_pLayoutManager->getCurrentLayout()->layoutMessage(header, "swapsplit");
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::rotateSplit(std::string args) {
+    SLayoutMessageHeader header;
+    header.pWindow = Desktop::focusState()->window();
+
+    if (!header.pWindow)
+        return {.success = false, .error = "Window not found"};
+
+    const auto PWORKSPACE = header.pWindow->m_workspace;
+
+    if (PWORKSPACE->m_hasFullscreenWindow)
+        return {.success = false, .error = "Can't rotate split of a fullscreen window"};
+
+    std::string message = "rotatesplit";
+    if (!args.empty()) {
+        message += " " + args;
+    }
+
+    g_pLayoutManager->getCurrentLayout()->layoutMessage(header, message);
 
     return {};
 }

@@ -1007,6 +1007,17 @@ std::any CHyprDwindleLayout::layoutMessage(SLayoutMessageHeader header, std::str
         toggleSplit(header.pWindow);
     } else if (ARGS[0] == "swapsplit") {
         swapSplit(header.pWindow);
+    } else if (ARGS[0] == "rotatesplit") {
+        int angle = 90;
+        if (!ARGS[1].empty()) {
+            try {
+                angle = std::stoi(ARGS[1]);
+            } catch (const std::exception& e) {
+                Log::logger->log(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
+                return 0;
+            }
+        }
+        rotateSplit(header.pWindow, angle);
     } else if (ARGS[0] == "movetoroot") {
         const auto WINDOW = ARGS[1].empty() ? header.pWindow : g_pCompositor->getWindowByRegex(ARGS[1]);
         const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
@@ -1076,6 +1087,49 @@ void CHyprDwindleLayout::swapSplit(PHLWINDOW pWindow) {
     std::swap(PNODE->pParent->children[0], PNODE->pParent->children[1]);
 
     PNODE->pParent->recalcSizePosRecursive();
+}
+
+void CHyprDwindleLayout::rotateSplit(PHLWINDOW pWindow, int angle) {
+    const auto PNODE = getNodeFromWindow(pWindow);
+
+    if (!PNODE || !PNODE->pParent)
+        return;
+
+    if (pWindow->isFullscreen())
+        return;
+
+    // normalize the angle to multiples of 90 degrees
+    int  normalizedAngle = ((static_cast<int>(angle / 90) % 4) + 4) % 4; // ensures positive modulo
+
+    auto pParent = PNODE->pParent;
+
+    bool shouldSwap = false;
+
+    switch (normalizedAngle) {
+        case 0: // 0 degrees - no change
+            break;
+        case 1:
+            if (pParent->splitTop) {
+                shouldSwap = true;
+            }
+            pParent->splitTop = !pParent->splitTop;
+            break;
+        case 2: 
+            shouldSwap = true;
+            break;
+        case 3:
+            if (!pParent->splitTop) {
+                shouldSwap = true;
+            }
+            pParent->splitTop = !pParent->splitTop;
+            break;
+    }
+
+    if (shouldSwap) {
+        std::swap(pParent->children[0], pParent->children[1]);
+    }
+
+    pParent->recalcSizePosRecursive();
 }
 
 // goal: maximize the chosen window within current dwindle layout

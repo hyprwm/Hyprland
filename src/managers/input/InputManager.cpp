@@ -952,6 +952,22 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     int32_t deltaDiscrete = std::abs(discrete) != 0 && std::abs(discrete) < 1 ? std::copysign(1, discrete) : std::round(discrete);
 
     g_pSeatManager->sendPointerAxis(e.timeMs, e.axis, delta, deltaDiscrete, value120, e.source, WL_POINTER_AXIS_RELATIVE_DIRECTION_IDENTICAL);
+
+    const bool deferPointerFrame = e.source == WL_POINTER_AXIS_SOURCE_FINGER || e.source == WL_POINTER_AXIS_SOURCE_CONTINUOUS;
+    if (deferPointerFrame) {
+        m_pointerAxisFramePending = true;
+        return;
+    }
+
+    m_pointerAxisFramePending = false;
+    g_pSeatManager->sendPointerFrame();
+}
+
+void CInputManager::onPointerFrame() {
+    if (!m_pointerAxisFramePending)
+        return;
+
+    m_pointerAxisFramePending = false;
     g_pSeatManager->sendPointerFrame();
 }
 

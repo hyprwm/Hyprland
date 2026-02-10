@@ -935,10 +935,11 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
+    listener->axis  = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
         g_pInputManager->onMouseWheel(event, weak.lock());
         PROTO::idle->onActivity();
     });
+    listener->frame = pointer->m_pointerEvents.frame.listen([] { g_pInputManager->onPointerFrame(); });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.listen([](const IPointer::SSwipeBeginEvent& event) {
         g_pInputManager->onSwipeBegin(event);

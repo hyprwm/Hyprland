@@ -93,6 +93,7 @@ class CPointerManager {
         CHyprSignalListener motionAbsolute;
         CHyprSignalListener button;
         CHyprSignalListener axis;
+        CHyprSignalListener frame;
 
         CHyprSignalListener swipeBegin;
         CHyprSignalListener swipeEnd;

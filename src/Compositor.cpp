@@ -688,8 +688,12 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();
 
+            static auto PVKRENDERER = CConfigValue<Hyprlang::INT>("render:use_vulkan");
             Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
+            if (*PVKRENDERER)
+                g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
+            else
+                g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();

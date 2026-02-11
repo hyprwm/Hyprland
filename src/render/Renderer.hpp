@@ -5,13 +5,23 @@
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "./pass/Pass.hpp"
-#include "OpenGL.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "render/Framebuffer.hpp"
 #include "render/Texture.hpp"
+#include "render/pass/BorderPassElement.hpp"
+#include "render/pass/ClearPassElement.hpp"
+#include "render/pass/FramebufferElement.hpp"
+#include "render/pass/PreBlurElement.hpp"
+#include "render/pass/RectPassElement.hpp"
+#include "render/pass/RendererHintsPassElement.hpp"
+#include "render/pass/ShadowPassElement.hpp"
+#include "render/pass/SurfacePassElement.hpp"
+#include "render/pass/TexPassElement.hpp"
+#include "render/pass/TextureMatteElement.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -90,24 +100,37 @@ class IHyprRenderer {
     IHyprRenderer();
     virtual ~IHyprRenderer();
 
+    // TODO: refactor
     void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
-    void arrangeLayersForMonitor(const MONITORID&);
-    void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
-    void damageWindow(PHLWINDOW, bool forceFull = false);
-    void damageBox(const CBox&, bool skipFrameSchedule = false);
-    void damageBox(const int& x, const int& y, const int& w, const int& h);
-    void damageRegion(const CRegion&);
-    void damageMonitor(PHLMONITOR);
-    void damageMirrorsWith(PHLMONITOR, const CRegion&);
-    bool shouldRenderWindow(PHLWINDOW, PHLMONITOR);
-    bool shouldRenderWindow(PHLWINDOW);
-    void ensureCursorRenderingMode();
-    bool shouldRenderCursor();
-    void setCursorHidden(bool hide);
+    void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
+                      bool standalone = false); // // TODO? move to protected and fix CToplevelExportFrame
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
+    void initiateManualCrash();
+    void makeEGLCurrent();
+    void unsetEGL();
+    void makeSnapshot(PHLWINDOW);
+    void makeSnapshot(PHLLS);
+    void makeSnapshot(WP<Desktop::View::CPopup>);
+    void renderSnapshot(PHLWINDOW);
+    void renderSnapshot(PHLLS);
+    void renderSnapshot(WP<Desktop::View::CPopup>);
+
+    // common
+    void                            arrangeLayersForMonitor(const MONITORID&);
+    void                            damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
+    void                            damageWindow(PHLWINDOW, bool forceFull = false);
+    void                            damageBox(const CBox&, bool skipFrameSchedule = false);
+    void                            damageBox(const int& x, const int& y, const int& w, const int& h);
+    void                            damageRegion(const CRegion&);
+    void                            damageMonitor(PHLMONITOR);
+    void                            damageMirrorsWith(PHLMONITOR, const CRegion&);
+    bool                            shouldRenderWindow(PHLWINDOW, PHLMONITOR);
+    bool                            shouldRenderWindow(PHLWINDOW);
+    void                            ensureCursorRenderingMode();
+    bool                            shouldRenderCursor();
+    void                            setCursorHidden(bool hide);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
-    void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
     void                            setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
     void                            onRenderbufferDestroy(CRenderbuffer* rb);
@@ -115,15 +138,7 @@ class IHyprRenderer {
     bool                            isIntel();
     bool                            isSoftware();
     bool                            isMgpu();
-    void                            makeEGLCurrent();
-    void                            unsetEGL();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
-    void                            makeSnapshot(PHLWINDOW);
-    void                            makeSnapshot(PHLLS);
-    void                            makeSnapshot(WP<Desktop::View::CPopup>);
-    void                            renderSnapshot(PHLWINDOW);
-    void                            renderSnapshot(PHLLS);
-    void                            renderSnapshot(WP<Desktop::View::CPopup>);
 
     bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false);
     bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
@@ -135,7 +150,7 @@ class IHyprRenderer {
     bool                            m_directScanoutBlocked = false;
 
     void                            setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
-    void                            initiateManualCrash();
+
     const SRenderData&              renderData();
 
     bool                            m_crashingInProgress = false;
@@ -159,10 +174,8 @@ class IHyprRenderer {
 
     bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
     SP<CRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
-    void              renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false,
-                                   bool standalone = false); // // TODO? move to protected and fix CToplevelExportFrame
 
-    virtual void      draw(WP<IPassElement> element, const CRegion& damage);
+    void              draw(WP<IPassElement> element, const CRegion& damage);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.
@@ -180,19 +193,34 @@ class IHyprRenderer {
         return false;
     };
     virtual SP<CTexture> getBackground(PHLMONITOR pMonitor);
+    virtual void         draw(CBorderPassElement* element, const CRegion& damage)        = 0;
+    virtual void         draw(CClearPassElement* element, const CRegion& damage)         = 0;
+    virtual void         draw(CFramebufferElement* element, const CRegion& damage)       = 0;
+    virtual void         draw(CPreBlurElement* element, const CRegion& damage)           = 0;
+    virtual void         draw(CRectPassElement* element, const CRegion& damage)          = 0;
+    virtual void         draw(CRendererHintsPassElement* element, const CRegion& damage) = 0;
+    virtual void         draw(CShadowPassElement* element, const CRegion& damage)        = 0;
+    virtual void         draw(CSurfacePassElement* element, const CRegion& damage)       = 0;
+    virtual void         draw(CTexPassElement* element, const CRegion& damage)           = 0;
+    virtual void         draw(CTextureMatteElement* element, const CRegion& damage)      = 0;
 
-    void                 arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-    void                 renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+    // refactor
+    void renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
+    void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+    void renderSessionLockMissing(PHLMONITOR pMonitor);
+
+    // common
+    void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+    void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
+    void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
     void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
     void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&);           // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-    void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
-    void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
+
     void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
     void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
     void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
     void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
     void renderSessionLockPrimer(PHLMONITOR pMonitor);
-    void renderSessionLockMissing(PHLMONITOR pMonitor);
     void renderBackground(PHLMONITOR pMonitor);
 
     bool shouldBlur(PHLLS ls);
@@ -220,8 +248,6 @@ class IHyprRenderer {
     std::vector<SP<CRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
-
-    friend class CHyprOpenGLImpl; // TODO fix renderer - impl api
 
   private:
     SRenderData m_renderData;

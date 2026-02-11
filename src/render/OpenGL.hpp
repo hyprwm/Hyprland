@@ -456,6 +456,7 @@ class CHyprOpenGLImpl {
     void          preBlurForCurrentMonitor();
 
     friend class IHyprRenderer;
+    friend class CHyprGLRenderer;
     friend class CTexPassElement;
     friend class CPreBlurElement;
     friend class CSurfacePassElement;

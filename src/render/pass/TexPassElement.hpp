@@ -28,7 +28,6 @@ class CTexPassElement : public IPassElement {
     CTexPassElement(SRenderData&& data);
     virtual ~CTexPassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -43,6 +42,5 @@ class CTexPassElement : public IPassElement {
         return EK_TEXTURE;
     };
 
-  private:
     SRenderData m_data;
 };

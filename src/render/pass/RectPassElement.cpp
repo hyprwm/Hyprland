@@ -5,22 +5,6 @@ CRectPassElement::CRectPassElement(const CRectPassElement::SRectData& data_) : m
     ;
 }
 
-void CRectPassElement::draw(const CRegion& damage) {
-    if (m_data.box.w <= 0 || m_data.box.h <= 0)
-        return;
-
-    if (!m_data.clipBox.empty())
-        g_pHyprOpenGL->m_renderData.clipBox = m_data.clipBox;
-
-    if (m_data.color.a == 1.F || !m_data.blur)
-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
-    else
-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
-                                  {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
-
-    g_pHyprOpenGL->m_renderData.clipBox = {};
-}
-
 bool CRectPassElement::needsLiveBlur() {
     return m_data.color.a < 1.F && !m_data.xray && m_data.blur;
 }

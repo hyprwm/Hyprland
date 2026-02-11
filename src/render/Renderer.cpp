@@ -41,9 +41,8 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "render/OpenGL.hpp"
+#include "render/pass/BorderPassElement.hpp"
 #include "render/pass/PreBlurElement.hpp"
-#include "render/vulkan/Vulkan.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -737,7 +736,19 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 }
 
 void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    switch (element->kind()) {
+        case EK_BORDER: draw(dc<CBorderPassElement*>(element.get()), damage); break;
+        case EK_CLEAR: draw(dc<CClearPassElement*>(element.get()), damage); break;
+        case EK_FRAMEBUFFER: draw(dc<CFramebufferElement*>(element.get()), damage); break;
+        case EK_PRE_BLUR: draw(dc<CPreBlurElement*>(element.get()), damage); break;
+        case EK_RECT: draw(dc<CRectPassElement*>(element.get()), damage); break;
+        case EK_HINTS: draw(dc<CRendererHintsPassElement*>(element.get()), damage); break;
+        case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
+        case EK_SURFACE: draw(dc<CSurfacePassElement*>(element.get()), damage); break;
+        case EK_TEXTURE: draw(dc<CTexPassElement*>(element.get()), damage); break;
+        case EK_TEXTURE_MATTE: draw(dc<CTextureMatteElement*>(element.get()), damage); break;
+        default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    }
 }
 
 void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -753,7 +764,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
-        data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
+        data.box   = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }

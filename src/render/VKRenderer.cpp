@@ -38,6 +38,10 @@ bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     return true;
 };
 
+void CHyprVKRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
+    Log::logger->log(Log::WARN, "CHyprVKRenderer::renderLayer");
+}
+
 bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
     const auto            cb    = g_pHyprVulkan->begin();
     const auto            attrs = m_currentBuffer->dmabuf();
@@ -99,27 +103,9 @@ static void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout cu
 }
 
 void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    static int frameNumber = 0;
-    frameNumber++;
 
     vkCmdEndRenderPass(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer);
     transitionImage(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer, m_currentRenderbuffer->m_image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
-
-    //make a clear-color from frame number. This will flash with a 120 frame period.
-    VkClearColorValue clearValue;
-    float             flash = std::abs(std::sin(frameNumber / 120.f));
-    clearValue              = {{0.0f, 0.0f, flash, 1.0f}};
-
-    VkImageSubresourceRange clearRange = {
-        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-        .baseMipLevel   = 0,
-        .levelCount     = VK_REMAINING_MIP_LEVELS,
-        .baseArrayLayer = 0,
-        .layerCount     = VK_REMAINING_ARRAY_LAYERS,
-    };
-
-    //clear image
-    vkCmdClearColorImage(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer, m_currentRenderbuffer->m_image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 
     //make the swapchain image into presentable mode
     transitionImage(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer, m_currentRenderbuffer->m_image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -291,3 +277,61 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     m_currentBuffer = nullptr;
 }
+
+void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
+    static int frameNumber = 0;
+    frameNumber++;
+
+    //make a clear-color from frame number. This will flash with a 120 frame period.
+    VkClearColorValue clearValue;
+    float             flash = std::abs(std::sin(frameNumber / 120.f));
+    clearValue              = {{0.0f, 0.0f, flash, 1.0f}};
+    // clearValue              = {{element->m_data.color.r, element->m_data.color.g, element->m_data.color.b, element->m_data.color.a}};
+
+    VkImageSubresourceRange clearRange = {
+        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel   = 0,
+        .levelCount     = VK_REMAINING_MIP_LEVELS,
+        .baseArrayLayer = 0,
+        .layerCount     = VK_REMAINING_ARRAY_LAYERS,
+    };
+
+    //clear image
+    vkCmdClearColorImage(g_pHyprVulkan->m_commandBuffer->m_cmdBuffer, m_currentRenderbuffer->m_image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+};
+
+void CHyprVKRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};
+
+void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+};

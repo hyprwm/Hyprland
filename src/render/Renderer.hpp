@@ -170,12 +170,19 @@ class IHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass       m_renderPass;
+    CRenderPass          m_renderPass;
 
-    bool              commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-    SP<CRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+    bool                 commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+    SP<CRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+    eRenderMode          m_renderMode              = RENDER_MODE_NORMAL;                        // TODO? move to protected and fix CHyprOpenGLImpl::end
+    bool                 m_cursorHiddenByCondition = false;                                     // TODO? move to protected and fix CHyprOpenGLImpl::renderTextureInternal
 
-    void              draw(WP<IPassElement> element, const CRegion& damage);
+    void                 draw(WP<IPassElement> element, const CRegion& damage);
+    virtual SP<ITexture> createTexture(bool opaque = false)                                                                                                        = 0;
+    virtual SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) = 0;
+    virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false)                                                          = 0;
+    virtual void*        createImage(const SP<Aquamarine::IBuffer> buffer)                                                                                         = 0;
+    virtual SP<ITexture> createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.
@@ -192,7 +199,7 @@ class IHyprRenderer {
     virtual bool initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
         return false;
     };
-    virtual SP<CTexture> getBackground(PHLMONITOR pMonitor);
+    virtual SP<ITexture> getBackground(PHLMONITOR pMonitor);
     virtual void         draw(CBorderPassElement* element, const CRegion& damage)        = 0;
     virtual void         draw(CClearPassElement* element, const CRegion& damage)         = 0;
     virtual void         draw(CFramebufferElement* element, const CRegion& damage)       = 0;
@@ -227,12 +234,10 @@ class IHyprRenderer {
     bool shouldBlur(PHLWINDOW w);
     bool shouldBlur(WP<Desktop::View::CPopup> p);
 
-    bool m_cursorHidden            = false;
-    bool m_cursorHiddenByCondition = false;
-    bool m_cursorHasSurface        = false;
+    bool m_cursorHidden     = false;
+    bool m_cursorHasSurface = false;
 
     SP<Aquamarine::IBuffer> m_currentBuffer = nullptr;
-    eRenderMode             m_renderMode    = RENDER_MODE_NORMAL;
     bool                    m_nvidia        = false;
     bool                    m_intel         = false;
     bool                    m_software      = false;

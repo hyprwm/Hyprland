@@ -1,5 +1,6 @@
 #include "Framebuffer.hpp"
 #include "OpenGL.hpp"
+#include "Renderer.hpp"
 
 CFramebuffer::CFramebuffer() {
     ;
@@ -13,7 +14,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     const bool formatChanged = (drmFormat != m_drmFormat);
 
     if (!m_tex) {
-        m_tex = makeShared<CTexture>();
+        m_tex = g_pHyprRenderer->createTexture();
         m_tex->allocate();
         m_tex->bind();
         m_tex->setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -36,7 +37,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
 
-        if (m_stencilTex) {
+        if (m_stencilTex && m_stencilTex->ok()) {
             m_stencilTex->bind();
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
@@ -60,7 +61,7 @@ bool CFramebuffer::alloc(int w, int h, uint32_t drmFormat) {
     return true;
 }
 
-void CFramebuffer::addStencil(SP<CTexture> tex) {
+void CFramebuffer::addStencil(SP<ITexture> tex) {
     if (m_stencilTex == tex)
         return;
 
@@ -120,7 +121,7 @@ bool CFramebuffer::isAllocated() {
     return m_fbAllocated && m_tex;
 }
 
-SP<CTexture> CFramebuffer::getTexture() {
+SP<ITexture> CFramebuffer::getTexture() {
     return m_tex;
 }
 
@@ -128,7 +129,7 @@ GLuint CFramebuffer::getFBID() {
     return m_fbAllocated ? m_fb : 0;
 }
 
-SP<CTexture> CFramebuffer::getStencilTex() {
+SP<ITexture> CFramebuffer::getStencilTex() {
     return m_stencilTex;
 }
 

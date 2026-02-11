@@ -751,6 +751,36 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     }
 }
 
+SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
+    if (!buffer)
+        return createTexture();
+
+    auto attrs = buffer->dmabuf();
+
+    if (!attrs.success) {
+        // attempt shm
+        auto shm = buffer->shm();
+
+        if (!shm.success) {
+            Log::logger->log(Log::ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            return createTexture(buffer->opaque);
+        }
+
+        auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
+
+        return createTexture(fmt, pixelData, bufLen, shm.size, keepDataCopy, buffer->opaque);
+    }
+
+    auto image = createImage(buffer);
+
+    if (!image) {
+        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an EGLImage");
+        return createTexture(buffer->opaque);
+    }
+
+    return createTexture(attrs, image, buffer->opaque);
+}
+
 void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
     if (!pLayer)
         return;
@@ -1075,7 +1105,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     //g_pHyprOpenGL->restoreMatrix();
 }
 
-SP<CTexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
+SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
     Log::logger->log(Log::TRACE, "fixme: getBackground not implemented");
     return nullptr;
 }

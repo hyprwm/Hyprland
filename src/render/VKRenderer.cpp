@@ -6,6 +6,7 @@
 #include "./vulkan/PipelineLayout.hpp"
 #include "./vulkan/Shaders.hpp"
 #include "debug/log/Logger.hpp"
+#include "render/vulkan/VKTexture.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vector>
 
@@ -37,10 +38,6 @@ bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
 
     return true;
 };
-
-void CHyprVKRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
-    Log::logger->log(Log::WARN, "CHyprVKRenderer::renderLayer");
-}
 
 bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
     const auto            cb    = g_pHyprVulkan->begin();
@@ -276,6 +273,28 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
         renderingDoneCallback();
 
     m_currentBuffer = nullptr;
+}
+
+SP<ITexture> CHyprVKRenderer::createTexture(bool opaque) {
+    // return makeShared<CVKTexture>(opaque);
+    Log::logger->log(Log::WARN, "CHyprVKRenderer::createTexture");
+    return nullptr;
+}
+
+SP<ITexture> CHyprVKRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+    return makeShared<CVKTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
+    return nullptr;
+}
+
+SP<ITexture> CHyprVKRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
+    // return makeShared<CVKTexture>(attrs, image, opaque);
+    Log::logger->log(Log::WARN, "CHyprVKRenderer::createTexture dma");
+    return nullptr;
+}
+
+void* CHyprVKRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
+    Log::logger->log(Log::WARN, "Unimplimented CHyprVKRenderer::createImage");
+    return nullptr;
 }
 
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {

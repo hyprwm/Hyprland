@@ -192,7 +192,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE    = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto       TEXTURE    = g_pHyprRenderer->createTexture(m_monitor->m_output->state->state().buffer);
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());

@@ -146,7 +146,7 @@ struct SMonitorRenderData {
     CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
     CFramebuffer blurFB;
 
-    SP<CTexture> stencilTex = makeShared<CTexture>();
+    SP<ITexture> stencilTex;
 
     bool         blurFBDirty        = true;
     bool         blurFBShouldRender = false;
@@ -257,11 +257,11 @@ class CHyprOpenGLImpl {
     void         end();
 
     void         renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-    void         renderTexture(SP<CTexture>, const CBox&, STextureRenderData data);
+    void         renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
     void         renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
     void         renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
     void         renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
-    void         renderTextureMatte(SP<CTexture> tex, const CBox& pBox, CFramebuffer& matte);
+    void         renderTextureMatte(SP<ITexture> tex, const CBox& pBox, CFramebuffer& matte);
 
     void         pushMonitorTransformEnabled(bool enabled);
     void         popMonitorTransformEnabled();
@@ -279,7 +279,7 @@ class CHyprOpenGLImpl {
     bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
     void         clear(const CHyprColor&);
-    SP<CTexture> getBGTextureForMonitor(PHLMONITORREF pMonitor);
+    SP<ITexture> getBGTextureForMonitor(PHLMONITORREF pMonitor);
     void         scissor(const CBox&, bool transform = true);
     void         scissor(const pixman_box32*, bool transform = true);
     void         scissor(const int x, const int y, const int w, const int h, bool transform = true);
@@ -301,9 +301,9 @@ class CHyprOpenGLImpl {
     void         bindBackOnMain();
 
     std::string  resolveAssetPath(const std::string& file);
-    SP<CTexture> loadAsset(const std::string& file);
-    SP<CTexture> texFromCairo(cairo_surface_t* cairo);
-    SP<CTexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    SP<ITexture> loadAsset(const std::string& file);
+    SP<ITexture> texFromCairo(cairo_surface_t* cairo);
+    SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
 
     void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
@@ -370,7 +370,7 @@ class CHyprOpenGLImpl {
         bool EGL_ANDROID_native_fence_sync_ext  = false;
     } m_exts;
 
-    SP<CTexture> m_screencopyDeniedTexture;
+    SP<ITexture> m_screencopyDeniedTexture;
 
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,
@@ -411,10 +411,10 @@ class CHyprOpenGLImpl {
 
     bool                              m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                  m_monitorTransformStack;
-    SP<CTexture>                      m_missingAssetTexture;
-    SP<CTexture>                      m_lockDeadTexture;
-    SP<CTexture>                      m_lockDead2Texture;
-    SP<CTexture>                      m_lockTtyTextTexture;
+    SP<ITexture>                      m_missingAssetTexture;
+    SP<ITexture>                      m_lockDeadTexture;
+    SP<ITexture>                      m_lockDead2Texture;
+    SP<ITexture>                      m_lockTtyTextTexture;
     SP<CShader>                       m_finalScreenShader;
     CTimer                            m_globalTimer;
     GLuint                            m_currentProgram;
@@ -445,13 +445,13 @@ class CHyprOpenGLImpl {
     void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
     void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-    void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
+    void          renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-    void          renderTextureInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
-    void          renderTextureWithBlurInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
+    void          renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
+    void          renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 
     void          preBlurForCurrentMonitor();
 

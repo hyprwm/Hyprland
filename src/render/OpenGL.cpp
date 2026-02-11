@@ -1,5 +1,6 @@
 #include <GLES3/gl32.h>
 #include <hyprgraphics/color/Color.hpp>
+#include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <numbers>
@@ -45,6 +46,7 @@
 #include <filesystem>
 #include <cstring>
 #include "./shaders/Shaders.hpp"
+#include "render/gl/GLTexture.hpp"
 
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
@@ -738,6 +740,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     // ensure a framebuffer for the monitor exists
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {
+        if (!m_renderData.pCurrentMonData->stencilTex)
+            m_renderData.pCurrentMonData->stencilTex = makeShared<CGLTexture>();
+
         m_renderData.pCurrentMonData->stencilTex->allocate();
 
         m_renderData.pCurrentMonData->offloadFB.alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
@@ -1209,7 +1214,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     scissor(nullptr);
 }
 
-void CHyprOpenGLImpl::renderTexture(SP<CTexture> tex, const CBox& box, STextureRenderData data) {
+void CHyprOpenGLImpl::renderTexture(SP<ITexture> tex, const CBox& box, STextureRenderData data) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
 
     if (!data.damage) {
@@ -1304,9 +1309,9 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription
     passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
-void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, const STextureRenderData& data) {
+void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_texID > 0), "Attempted to draw nullptr texture!");
+    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 
@@ -1604,9 +1609,9 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     tex->unbind();
 }
 
-void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) {
+void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_texID > 0), "Attempted to draw nullptr texture!");
+    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTexturePrimitive");
 
@@ -1649,9 +1654,9 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<CTexture> tex, const CBox& box) 
     tex->unbind();
 }
 
-void CHyprOpenGLImpl::renderTextureMatte(SP<CTexture> tex, const CBox& box, CFramebuffer& matte) {
+void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, CFramebuffer& matte) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->m_texID > 0), "Attempted to draw nullptr texture!");
+    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureMatte");
 
@@ -2054,7 +2059,7 @@ bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWin
     return false;
 }
 
-void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<CTexture> tex, const CBox& box, const STextureRenderData& data) {
+void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture with blur without begin()!");
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
@@ -2547,7 +2552,7 @@ std::string CHyprOpenGLImpl::resolveAssetPath(const std::string& filename) {
     return fullPath;
 }
 
-SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
+SP<ITexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
 
     const std::string fullPath = resolveAssetPath(filename);
 
@@ -2569,9 +2574,9 @@ SP<CTexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
+SP<ITexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
     const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
-    auto       tex         = makeShared<CTexture>();
+    auto       tex         = makeShared<CGLTexture>();
 
     tex->allocate();
     tex->m_size = {cairo_image_surface_get_width(cairo), cairo_image_surface_get_height(cairo)};
@@ -2595,8 +2600,8 @@ SP<CTexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
     return tex;
 }
 
-SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
-    SP<CTexture>          tex = makeShared<CTexture>();
+SP<ITexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
+    SP<ITexture>          tex = makeShared<CGLTexture>();
 
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
 
@@ -2676,7 +2681,7 @@ SP<CTexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col
 }
 
 void CHyprOpenGLImpl::initMissingAssetTexture() {
-    SP<CTexture> tex = makeShared<CTexture>();
+    auto tex = makeShared<CGLTexture>();
     tex->allocate();
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
@@ -2836,7 +2841,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     PFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
 
     // create a new one with cairo
-    SP<CTexture> tex = makeShared<CTexture>();
+    SP<ITexture> tex = makeShared<CGLTexture>();
 
     tex->allocate();
 
@@ -2880,7 +2885,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     blend(true);
     clear(CHyprColor{0, 0, 0, 1});
 
-    SP<CTexture> backgroundTexture = texFromCairo(m_backgroundResource->m_asset.cairoSurface->cairo());
+    SP<ITexture> backgroundTexture = texFromCairo(m_backgroundResource->m_asset.cairoSurface->cairo());
 
     // first render the background
     if (backgroundTexture) {
@@ -2918,7 +2923,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     *pMonitor->m_backgroundOpacity = 1.F;
 }
 
-SP<CTexture> CHyprOpenGLImpl::getBGTextureForMonitor(PHLMONITORREF pMonitor) {
+SP<ITexture> CHyprOpenGLImpl::getBGTextureForMonitor(PHLMONITORREF pMonitor) {
     auto TEXIT = m_monitorBGFBs.find(pMonitor);
     if (TEXIT == m_monitorBGFBs.end()) {
         createBGTextureForMonitor(pMonitor.lock());
@@ -2941,7 +2946,8 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
         RESIT->second.monitorMirrorFB.release();
         RESIT->second.blurFB.release();
         RESIT->second.offMainFB.release();
-        RESIT->second.stencilTex->destroyTexture();
+        if (RESIT->second.stencilTex)
+            RESIT->second.stencilTex->destroyTexture();
         g_pHyprOpenGL->m_monitorRenderResources.erase(RESIT);
     }
 
@@ -2971,6 +2977,9 @@ void CHyprOpenGLImpl::bindOffMain() {
     if (!m_renderData.pCurrentMonData->offMainFB.isAllocated()) {
         m_renderData.pCurrentMonData->offMainFB.alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
                                                       m_renderData.pMonitor->m_output->state->state().drmFormat);
+
+        if (!m_renderData.pCurrentMonData->stencilTex)
+            m_renderData.pCurrentMonData->stencilTex = g_pHyprRenderer->createTexture();
 
         m_renderData.pCurrentMonData->offMainFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
     }

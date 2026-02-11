@@ -1,6 +1,7 @@
 #include "SurfaceState.hpp"
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
+#include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
 Vector2D SSurfaceState::sourceSize() {
@@ -34,7 +35,7 @@ CRegion SSurfaceState::accumulateBufferDamage() {
     return bufferDamage;
 }
 
-void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
+void SSurfaceState::updateSynchronousTexture(SP<ITexture> lastTexture) {
     auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);
@@ -43,7 +44,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
             texture = lastTexture;
             texture->update(drmFmt, dataPtr, stride, accumulateBufferDamage());
         } else
-            texture = makeShared<CTexture>(drmFmt, dataPtr, stride, bufferSize);
+            texture = g_pHyprRenderer->createTexture(drmFmt, dataPtr, stride, bufferSize);
     }
     buffer->endDataPtr();
 }

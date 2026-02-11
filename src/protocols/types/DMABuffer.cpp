@@ -35,9 +35,9 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
         }
     }
 
-    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
+    m_texture = g_pHyprRenderer->createTexture(m_attrs, eglImage); // texture takes ownership of the eglImage
     m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
-    m_success = m_texture->m_texID;
+    m_success = m_texture->ok();
 
     if UNLIKELY (!m_success)
         Log::logger->log(Log::ERR, "Failed to create a dmabuf: texture is null");

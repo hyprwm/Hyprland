@@ -42,7 +42,7 @@ class CHyprDebugOverlay {
     cairo_surface_t*                                  m_cairoSurface = nullptr;
     cairo_t*                                          m_cairo        = nullptr;
 
-    SP<CTexture>                                      m_texture;
+    SP<ITexture>                                      m_texture;
 
     friend class CHyprMonitorDebugOverlay;
     friend class IHyprRenderer;

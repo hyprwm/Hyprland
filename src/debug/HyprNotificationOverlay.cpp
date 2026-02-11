@@ -29,7 +29,7 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
         g_pHyprRenderer->damageBox(m_lastDamage);
     });
 
-    m_texture = makeShared<CTexture>();
+    m_texture = g_pHyprRenderer->createTexture();
 }
 
 CHyprNotificationOverlay::~CHyprNotificationOverlay() {

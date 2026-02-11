@@ -11,14 +11,14 @@ class CFramebuffer {
     ~CFramebuffer();
 
     bool         alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
-    void         addStencil(SP<CTexture> tex);
+    void         addStencil(SP<ITexture> tex);
     void         bind();
     void         unbind();
     void         release();
     void         reset();
     bool         isAllocated();
-    SP<CTexture> getTexture();
-    SP<CTexture> getStencilTex();
+    SP<ITexture> getTexture();
+    SP<ITexture> getStencilTex();
     GLuint       getFBID();
     void         invalidate(const std::vector<GLenum>& attachments);
 
@@ -26,11 +26,11 @@ class CFramebuffer {
     DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;
 
   private:
-    SP<CTexture> m_tex;
+    SP<ITexture> m_tex;
     GLuint       m_fb          = -1;
     bool         m_fbAllocated = false;
 
-    SP<CTexture> m_stencilTex;
+    SP<ITexture> m_stencilTex;
 
     friend class CRenderbuffer;
 };

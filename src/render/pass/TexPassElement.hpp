@@ -3,13 +3,13 @@
 #include <optional>
 
 class CWLSurfaceResource;
-class CTexture;
+class ITexture;
 class CSyncTimeline;
 
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<CTexture>          tex;
+        SP<ITexture>          tex;
         CBox                  box;
         float                 a     = 1.F;
         float                 blurA = 1.F;

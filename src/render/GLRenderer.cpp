@@ -41,9 +41,11 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
+#include "render/gl/GLTexture.hpp"
 #include "render/vulkan/Vulkan.hpp"
 #include "decorations/CHyprDropShadowDecoration.hpp"
 
+#include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
@@ -72,7 +74,7 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     return g_pHyprOpenGL->m_renderData.m_currentRenderbuffer;
 }
 
-SP<CTexture> CHyprGLRenderer::getBackground(PHLMONITOR pMonitor) {
+SP<ITexture> CHyprGLRenderer::getBackground(PHLMONITOR pMonitor) {
     return g_pHyprOpenGL->getBGTextureForMonitor(pMonitor);
 }
 
@@ -172,6 +174,22 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         if (renderingDoneCallback)
             renderingDoneCallback();
     }
+}
+
+SP<ITexture> CHyprGLRenderer::createTexture(bool opaque) {
+    return makeShared<CGLTexture>(opaque);
+}
+
+SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+    return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
+}
+
+SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
+    return makeShared<CGLTexture>(attrs, image, opaque);
+}
+
+void* CHyprGLRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
+    return g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
 }
 
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
@@ -293,7 +311,7 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
 
     // this is bad, probably has been logged elsewhere. Means the texture failed
     // uploading to the GPU.
-    if (!TEXTURE->m_texID)
+    if (!TEXTURE->ok())
         return;
 
     const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;

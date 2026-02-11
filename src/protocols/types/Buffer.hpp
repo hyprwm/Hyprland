@@ -26,7 +26,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     void                                  onBackendRelease(const std::function<void()>& fn);
     void                                  addReleasePoint(CDRMSyncPointState& point);
 
-    SP<CTexture>                          m_texture;
+    SP<ITexture>                          m_texture;
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;

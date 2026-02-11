@@ -2,13 +2,13 @@
 #include "PassElement.hpp"
 #include "../Framebuffer.hpp"
 
-class CTexture;
+class ITexture;
 
 class CTextureMatteElement : public IPassElement {
   public:
     struct STextureMatteData {
         CBox             box;
-        SP<CTexture>     tex;
+        SP<ITexture>     tex;
         SP<CFramebuffer> fb;
         bool             disableTransformAndModify = false;
     };

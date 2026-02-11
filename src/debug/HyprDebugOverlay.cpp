@@ -8,7 +8,7 @@
 #include "../desktop/state/FocusState.hpp"
 
 CHyprDebugOverlay::CHyprDebugOverlay() {
-    m_texture = makeShared<CTexture>();
+    m_texture = g_pHyprRenderer->createTexture();
 }
 
 void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {

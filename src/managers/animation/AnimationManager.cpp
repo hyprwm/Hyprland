@@ -17,43 +17,46 @@
 #include <hyprutils/animation/AnimationManager.hpp>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <exception>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace {
+    constexpr float SPRING_SETTLE_EPSILON  = 0.001F; // 0.1%
+    constexpr float SPRING_MAX_RUNTIME_SEC = 10.F;
+    constexpr float SPRING_MAX_DELTA_SEC   = 0.1F;
+    constexpr float SPRING_MODE_SWITCH_EPS = 0.0001F;
+    constexpr float SPRING_DEFAULT_ZETA    = 0.82F;
+    constexpr float SPRING_DEFAULT_OMEGA   = 14.F;
+    constexpr float SPRING_SNAPPY_ZETA     = 0.95F;
+    constexpr float SPRING_SNAPPY_OMEGA    = 18.F;
+    constexpr float SPRING_BOUNCY_ZETA     = 0.55F;
+    constexpr float SPRING_BOUNCY_OMEGA    = 12.F;
+
+    enum class eSpringTimeMode : uint8_t {
+        NORMALIZED,
+        PHYSICS,
+    };
+
     struct SSpringParams {
         float dampingRatio     = 0.82F;
         float angularFrequency = 14.F;
     };
 
-    bool parseSpringBezierName(const std::string& name, SSpringParams& out) {
-        if (name == "spring") {
-            out = SSpringParams{.dampingRatio = 0.82F, .angularFrequency = 14.F};
-            return true;
-        }
+    struct SSpringCurveConfig {
+        eSpringTimeMode mode = eSpringTimeMode::NORMALIZED;
+        SSpringParams   params;
+    };
 
-        if (name == "spring-snappy") {
-            out = SSpringParams{.dampingRatio = 0.95F, .angularFrequency = 18.F};
-            return true;
-        }
-
-        if (name == "spring-bouncy") {
-            out = SSpringParams{.dampingRatio = 0.55F, .angularFrequency = 12.F};
-            return true;
-        }
-
-        if (!name.starts_with("spring:"))
+    bool parseSpringCurveParams(const std::string& payload, SSpringParams& out) {
+        const auto colon = payload.find(':');
+        if (colon == std::string::npos || colon == 0 || colon == payload.length() - 1 || payload.find(':', colon + 1) != std::string::npos)
             return false;
 
-        const auto firstColon  = name.find(':');
-        const auto secondColon = name.find(':', firstColon + 1);
-        if (secondColon == std::string::npos || secondColon == name.length() - 1 || name.find(':', secondColon + 1) != std::string::npos)
-            return false;
-
-        const auto dampingStr = name.substr(firstColon + 1, secondColon - firstColon - 1);
-        const auto omegaStr   = name.substr(secondColon + 1);
-
-        if (dampingStr.empty() || omegaStr.empty())
-            return false;
+        const auto dampingStr = payload.substr(0, colon);
+        const auto omegaStr   = payload.substr(colon + 1);
 
         try {
             const auto damping = std::stof(dampingStr);
@@ -67,15 +70,86 @@ namespace {
         } catch (const std::exception&) { return false; }
     }
 
-    float solveSpringStepResponse(float t, const SSpringParams& params) {
-        t = std::clamp(t, 0.F, 1.F);
+    std::optional<SSpringCurveConfig> parseSpringCurveNameUncached(const std::string& name) {
+        if (name == "spring")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::NORMALIZED, .params = {.dampingRatio = SPRING_DEFAULT_ZETA, .angularFrequency = SPRING_DEFAULT_OMEGA}};
+
+        if (name == "spring-snappy")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::NORMALIZED, .params = {.dampingRatio = SPRING_SNAPPY_ZETA, .angularFrequency = SPRING_SNAPPY_OMEGA}};
+
+        if (name == "spring-bouncy")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::NORMALIZED, .params = {.dampingRatio = SPRING_BOUNCY_ZETA, .angularFrequency = SPRING_BOUNCY_OMEGA}};
+
+        if (name == "spring-physics")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::PHYSICS, .params = {.dampingRatio = SPRING_DEFAULT_ZETA, .angularFrequency = SPRING_DEFAULT_OMEGA}};
+
+        if (name == "spring-physics-snappy")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::PHYSICS, .params = {.dampingRatio = SPRING_SNAPPY_ZETA, .angularFrequency = SPRING_SNAPPY_OMEGA}};
+
+        if (name == "spring-physics-bouncy")
+            return SSpringCurveConfig{.mode = eSpringTimeMode::PHYSICS, .params = {.dampingRatio = SPRING_BOUNCY_ZETA, .angularFrequency = SPRING_BOUNCY_OMEGA}};
+
+        if (name.starts_with("spring:")) {
+            SSpringParams params;
+            if (!parseSpringCurveParams(name.substr(std::string("spring:").length()), params))
+                return std::nullopt;
+            return SSpringCurveConfig{.mode = eSpringTimeMode::NORMALIZED, .params = params};
+        }
+
+        if (name.starts_with("spring-physics:")) {
+            SSpringParams params;
+            if (!parseSpringCurveParams(name.substr(std::string("spring-physics:").length()), params))
+                return std::nullopt;
+            return SSpringCurveConfig{.mode = eSpringTimeMode::PHYSICS, .params = params};
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<SSpringCurveConfig> getSpringCurveConfig(const std::string& name) {
+        static std::unordered_map<std::string, std::optional<SSpringCurveConfig>> CACHE;
+
+        const auto                                                                it = CACHE.find(name);
+        if (it != CACHE.end())
+            return it->second;
+
+        auto parsed = parseSpringCurveNameUncached(name);
+        CACHE.emplace(name, parsed);
+        return parsed;
+    }
+
+    bool isSpringPhysicsCurve(const Hyprutils::Animation::CBaseAnimatedVariable& av) {
+        const auto cfg = getSpringCurveConfig(av.getBezierName());
+        return cfg.has_value() && cfg->mode == eSpringTimeMode::PHYSICS;
+    }
+
+    float estimateSpringSettleTime(const SSpringParams& params) {
+        const float zeta = std::max(0.F, params.dampingRatio);
+        const float wn   = std::max(0.001F, params.angularFrequency);
+
+        float       sigma = wn;
+        if (zeta < 1.F)
+            sigma = std::max(zeta * wn, 0.F);
+        else if (zeta > 1.F)
+            sigma = std::max(wn * (zeta - std::sqrt(zeta * zeta - 1.F)), 0.F);
+
+        if (sigma < 0.001F)
+            return SPRING_MAX_RUNTIME_SEC;
+
+        const float settle = std::log(1.F / SPRING_SETTLE_EPSILON) / sigma;
+        return std::clamp(settle, 0.05F, SPRING_MAX_RUNTIME_SEC);
+    }
+
+    float solveSpringStepResponse(float t, const SSpringParams& params, bool clampToUnitTime) {
+        t = clampToUnitTime ? std::clamp(t, 0.F, 1.F) : std::max(0.F, t);
 
         const float zeta = std::max(0.F, params.dampingRatio);
         const float wn   = std::max(0.001F, params.angularFrequency);
 
         if (zeta < 0.9999F) {
-            const float wd    = wn * std::sqrt(1.F - zeta * zeta);
-            const float alpha = zeta / std::sqrt(1.F - zeta * zeta);
+            const float disc  = std::sqrt(1.F - zeta * zeta);
+            const float wd    = wn * disc;
+            const float alpha = zeta / disc;
             const float expT  = std::exp(-zeta * wn * t);
             return 1.F - expT * (std::cos(wd * t) + alpha * std::sin(wd * t));
         }
@@ -89,6 +163,7 @@ namespace {
         const float r1       = -wn * (zeta - sqrtTerm);
         const float r2       = -wn * (zeta + sqrtTerm);
 
+        // L'Hôpital limit as r1 -> r2 becomes the critically damped closed form.
         if (std::abs(r2 - r1) < 0.000001F)
             return 1.F - std::exp(r1 * t) * (1.F - r1 * t);
 
@@ -115,24 +190,56 @@ float CHyprAnimationManager::getCurveValueFor(const Hyprutils::Animation::CBaseA
     if (!av.isBeingAnimated())
         return 1.F;
 
-    const auto SPENT = av.getPercent();
-    if (SPENT >= 1.F)
-        return 1.F;
+    const auto springCfg = getSpringCurveConfig(av.getBezierName());
+    if (springCfg.has_value()) {
+        if (springCfg->mode == eSpringTimeMode::NORMALIZED) {
+            const auto spent = av.getPercent();
+            if (spent >= 1.F)
+                return 1.F;
 
-    SSpringParams springParams;
-    if (parseSpringBezierName(av.getBezierName(), springParams))
-        return solveSpringStepResponse(SPENT, springParams);
+            return solveSpringStepResponse(spent, springCfg->params, true);
+        }
+
+        const auto it      = m_springPhysicsElapsedSec.find(&av);
+        const auto elapsed = it == m_springPhysicsElapsedSec.end() ? 0.F : it->second;
+        return solveSpringStepResponse(elapsed, springCfg->params, false);
+    }
+
+    const auto spent = av.getPercent();
+    if (spent >= 1.F)
+        return 1.F;
 
     const auto PBEZIER = getBezier(av.getBezierName());
     if (!PBEZIER)
         return 1.F;
 
-    return PBEZIER->getYForPoint(SPENT);
+    return PBEZIER->getYForPoint(spent);
+}
+
+bool CHyprAnimationManager::shouldWarpAnimation(const Hyprutils::Animation::CBaseAnimatedVariable& av, bool animationsDisabled) {
+    if (animationsDisabled || !av.isBeingAnimated())
+        return true;
+
+    const auto springCfg = getSpringCurveConfig(av.getBezierName());
+    if (!springCfg.has_value() || springCfg->mode != eSpringTimeMode::PHYSICS)
+        return av.getPercent() >= 1.F;
+
+    const auto  elapsedIt = m_springPhysicsElapsedSec.find(&av);
+    const float elapsed   = elapsedIt == m_springPhysicsElapsedSec.end() ? 0.F : elapsedIt->second;
+
+    if (elapsed >= SPRING_MAX_RUNTIME_SEC)
+        return true;
+
+    const float settleAt = estimateSpringSettleTime(springCfg->params);
+    if (elapsed < settleAt)
+        return false;
+
+    const float distance = std::abs(1.F - solveSpringStepResponse(elapsed, springCfg->params, false));
+    return distance <= SPRING_SETTLE_EPSILON;
 }
 
 bool CHyprAnimationManager::isBezierNameValid(const std::string& name) {
-    SSpringParams springParams;
-    return bezierExists(name) || parseSpringBezierName(name, springParams);
+    return bezierExists(name) || getSpringCurveConfig(name).has_value();
 }
 
 template <Animable VarType>
@@ -240,9 +347,8 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         animationsDisabled = animationsDisabled || PLAYER->m_ruleApplicator->noanim().valueOrDefault();
     }
 
-    const auto SPENT  = av.getPercent();
     const auto POINTY = g_pAnimationManager->getCurveValueFor(av);
-    const bool WARP   = animationsDisabled || SPENT >= 1.f;
+    const bool WARP   = g_pAnimationManager->shouldWarpAnimation(av, animationsDisabled);
 
     if constexpr (std::same_as<VarType, CHyprColor>)
         updateColorVariable(av, POINTY, WARP);
@@ -313,7 +419,9 @@ void CHyprAnimationManager::tick() {
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
     if (!m_vActiveAnimatedVariables.empty()) {
-        const auto CPY = m_vActiveAnimatedVariables;
+        const auto                                                             CPY      = m_vActiveAnimatedVariables;
+        const auto                                                             DELTASEC = std::clamp(m_lastTickTimeMs / 1000.F, 0.F, SPRING_MAX_DELTA_SEC);
+        std::unordered_set<const Hyprutils::Animation::CBaseAnimatedVariable*> activeThisTick;
 
         for (const auto& PAV : CPY) {
             if (!PAV)
@@ -321,29 +429,52 @@ void CHyprAnimationManager::tick() {
 
             // lock this value while we are doing handleUpdate to avoid a UAF if an update callback destroys it
             const auto LOCK = PAV.lock();
+            if (!LOCK)
+                continue;
+
+            auto* AVPTR = LOCK.get();
+            activeThisTick.insert(AVPTR);
+
+            if (isSpringPhysicsCurve(*LOCK)) {
+                auto& elapsed = m_springPhysicsElapsedSec[AVPTR];
+                if (LOCK->getPercent() <= SPRING_MODE_SWITCH_EPS)
+                    elapsed = 0.F;
+            } else {
+                m_springPhysicsElapsedSec.erase(AVPTR);
+            }
 
             // for disabled anims just warp
-            bool warp = !*PANIMENABLED || !PAV->enabled();
+            bool warp = !*PANIMENABLED || !LOCK->enabled();
 
-            switch (PAV->m_Type) {
+            switch (LOCK->m_Type) {
                 case AVARTYPE_FLOAT: {
-                    auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
+                    auto pTypedAV = dc<CAnimatedVariable<float>*>(LOCK.get());
                     RASSERT(pTypedAV, "Failed to upcast animated float");
                     handleUpdate(*pTypedAV, warp);
                 } break;
                 case AVARTYPE_VECTOR: {
-                    auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+                    auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(LOCK.get());
                     RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
                     handleUpdate(*pTypedAV, warp);
                 } break;
                 case AVARTYPE_COLOR: {
-                    auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                    auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(LOCK.get());
                     RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
                     handleUpdate(*pTypedAV, warp);
                 } break;
                 default: UNREACHABLE();
             }
+
+            const auto ELAPSEDIT = m_springPhysicsElapsedSec.find(AVPTR);
+            if (ELAPSEDIT != m_springPhysicsElapsedSec.end()) {
+                if (LOCK->isBeingAnimated())
+                    ELAPSEDIT->second += DELTASEC;
+                else
+                    m_springPhysicsElapsedSec.erase(ELAPSEDIT);
+            }
         }
+
+        std::erase_if(m_springPhysicsElapsedSec, [&activeThisTick](const auto& pair) { return !activeThisTick.contains(pair.first); });
     }
 
     tickDone();
@@ -392,6 +523,7 @@ void CHyprAnimationManager::onTicked() {
 void CHyprAnimationManager::resetTickState() {
     m_lastTickValid = false;
     m_tickScheduled = false;
+    m_springPhysicsElapsedSec.clear();
 }
 
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {

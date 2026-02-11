@@ -2433,7 +2433,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
     std::string bezierName = ARGS[3];
     m_animationTree.setConfigForNode(ANIMNAME, enabledInt, speed, ARGS[3], ARGS[4]);
 
-    if (!g_pAnimationManager->bezierExists(bezierName)) {
+    if (!g_pAnimationManager->isBezierNameValid(bezierName)) {
         const auto PANIMNODE      = m_animationTree.getConfig(ANIMNAME);
         PANIMNODE->internalBezier = "default";
         return "no such bezier";

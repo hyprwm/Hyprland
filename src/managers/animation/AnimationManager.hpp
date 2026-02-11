@@ -17,6 +17,8 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     void         frameTick();
     virtual void scheduleTick();
     virtual void onTicked();
+    float        getCurveValueFor(const Hyprutils::Animation::CBaseAnimatedVariable& av);
+    bool         isBezierNameValid(const std::string& name);
 
     // Reset tick state after session changes (suspend/wake, lock/unlock)
     void resetTickState();

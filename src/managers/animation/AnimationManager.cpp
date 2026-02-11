@@ -15,6 +15,86 @@
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
+#include <algorithm>
+#include <cmath>
+#include <exception>
+
+namespace {
+    struct SSpringParams {
+        float dampingRatio     = 0.82F;
+        float angularFrequency = 14.F;
+    };
+
+    bool parseSpringBezierName(const std::string& name, SSpringParams& out) {
+        if (name == "spring") {
+            out = SSpringParams{.dampingRatio = 0.82F, .angularFrequency = 14.F};
+            return true;
+        }
+
+        if (name == "spring-snappy") {
+            out = SSpringParams{.dampingRatio = 0.95F, .angularFrequency = 18.F};
+            return true;
+        }
+
+        if (name == "spring-bouncy") {
+            out = SSpringParams{.dampingRatio = 0.55F, .angularFrequency = 12.F};
+            return true;
+        }
+
+        if (!name.starts_with("spring:"))
+            return false;
+
+        const auto firstColon  = name.find(':');
+        const auto secondColon = name.find(':', firstColon + 1);
+        if (secondColon == std::string::npos || secondColon == name.length() - 1 || name.find(':', secondColon + 1) != std::string::npos)
+            return false;
+
+        const auto dampingStr = name.substr(firstColon + 1, secondColon - firstColon - 1);
+        const auto omegaStr   = name.substr(secondColon + 1);
+
+        if (dampingStr.empty() || omegaStr.empty())
+            return false;
+
+        try {
+            const auto damping = std::stof(dampingStr);
+            const auto omega   = std::stof(omegaStr);
+
+            if (!std::isfinite(damping) || !std::isfinite(omega) || damping < 0.F || omega <= 0.F)
+                return false;
+
+            out = SSpringParams{.dampingRatio = damping, .angularFrequency = omega};
+            return true;
+        } catch (const std::exception&) { return false; }
+    }
+
+    float solveSpringStepResponse(float t, const SSpringParams& params) {
+        t = std::clamp(t, 0.F, 1.F);
+
+        const float zeta = std::max(0.F, params.dampingRatio);
+        const float wn   = std::max(0.001F, params.angularFrequency);
+
+        if (zeta < 0.9999F) {
+            const float wd    = wn * std::sqrt(1.F - zeta * zeta);
+            const float alpha = zeta / std::sqrt(1.F - zeta * zeta);
+            const float expT  = std::exp(-zeta * wn * t);
+            return 1.F - expT * (std::cos(wd * t) + alpha * std::sin(wd * t));
+        }
+
+        if (zeta <= 1.0001F) {
+            const float expT = std::exp(-wn * t);
+            return 1.F - expT * (1.F + wn * t);
+        }
+
+        const float sqrtTerm = std::sqrt(zeta * zeta - 1.F);
+        const float r1       = -wn * (zeta - sqrtTerm);
+        const float r2       = -wn * (zeta + sqrtTerm);
+
+        if (std::abs(r2 - r1) < 0.000001F)
+            return 1.F - std::exp(r1 * t) * (1.F - r1 * t);
+
+        return 1.F - ((r2 * std::exp(r1 * t) - r1 * std::exp(r2 * t)) / (r2 - r1));
+    }
+}
 
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
@@ -29,6 +109,30 @@ CHyprAnimationManager::CHyprAnimationManager() {
         g_pEventLoopManager->addTimer(m_animationTimer);
 
     addBezierWithName("linear", Vector2D(0.0, 0.0), Vector2D(1.0, 1.0));
+}
+
+float CHyprAnimationManager::getCurveValueFor(const Hyprutils::Animation::CBaseAnimatedVariable& av) {
+    if (!av.isBeingAnimated())
+        return 1.F;
+
+    const auto SPENT = av.getPercent();
+    if (SPENT >= 1.F)
+        return 1.F;
+
+    SSpringParams springParams;
+    if (parseSpringBezierName(av.getBezierName(), springParams))
+        return solveSpringStepResponse(SPENT, springParams);
+
+    const auto PBEZIER = getBezier(av.getBezierName());
+    if (!PBEZIER)
+        return 1.F;
+
+    return PBEZIER->getYForPoint(SPENT);
+}
+
+bool CHyprAnimationManager::isBezierNameValid(const std::string& name) {
+    SSpringParams springParams;
+    return bezierExists(name) || parseSpringBezierName(name, springParams);
 }
 
 template <Animable VarType>
@@ -136,10 +240,9 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         animationsDisabled = animationsDisabled || PLAYER->m_ruleApplicator->noanim().valueOrDefault();
     }
 
-    const auto SPENT   = av.getPercent();
-    const auto PBEZIER = g_pAnimationManager->getBezier(av.getBezierName());
-    const auto POINTY  = PBEZIER->getYForPoint(SPENT);
-    const bool WARP    = animationsDisabled || SPENT >= 1.f;
+    const auto SPENT  = av.getPercent();
+    const auto POINTY = g_pAnimationManager->getCurveValueFor(av);
+    const bool WARP   = animationsDisabled || SPENT >= 1.f;
 
     if constexpr (std::same_as<VarType, CHyprColor>)
         updateColorVariable(av, POINTY, WARP);

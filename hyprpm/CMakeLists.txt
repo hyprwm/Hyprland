@@ -21,6 +21,7 @@ if (NOT glaze_FOUND)
         GIT_REPOSITORY https://github.com/stephenberry/glaze.git
         GIT_TAG ${GLAZE_VERSION}
         GIT_SHALLOW TRUE
+        EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(glaze)
 endif()

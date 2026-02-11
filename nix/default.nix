@@ -105,13 +105,6 @@ in
           ]));
       };
 
-      patches = [
-        # Bump hyprpm's glaze dependency to 7.0.0, the version already present
-        # in Nixpkgs.
-        # TODO: apply patch globally when Arch repos get glaze 7.0.0.
-        ./glaze.patch
-      ];
-
       postPatch = ''
         # Fix hardcoded paths to /usr installation
         sed -i "s#/usr#$out#" src/render/OpenGL.cpp

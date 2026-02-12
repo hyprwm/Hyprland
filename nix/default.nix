@@ -99,7 +99,7 @@ in
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)
             (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in") ../example)
-            (fs.fileFilter (file: file.hasExt "sh") ../scripts)
+            (fs.fileFilter (file: file.hasExt "sh" || file.hasExt "cmake") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
             (optional withTests [../tests ../hyprtester])
           ]));

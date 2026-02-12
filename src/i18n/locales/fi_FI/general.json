@@ -1,0 +1,31 @@
+{
+  "TXT_KEY_ANR_TITLE": "Sovellus ei vastaa",
+  "TXT_KEY_ANR_CONTENT": "Sovellus {title} - {class} ei vastaa.\nMitä haluat tehdä sille?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Lopeta",
+  "TXT_KEY_ANR_OPTION_WAIT": "Odota",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(tuntematon)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Sovellus <b>{app}</b> pyytää tuntematonta käyttöoikeutta.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Sovellus <b>{app}</b> yrittää nauhoittaa näyttöäsi.\n\nHaluatko sallia nauhoituksen?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Sovellus <b>{app}</b> yrittää ladata laajennusta: <b>{plugin}</b>.\n\nHaluatko sallia latauksen?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Uusi näppäimistö havaittu: <b>{keyboard}</b>.\n\nHaluatko sallia sen toiminnan?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(tuntematon)",
+  "TXT_KEY_PERMISSION_TITLE": "Käyttöoikeuspyyntö",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Vihje: voit asettaa nämä säännöt pysyvästi Hyprland konfiguraatio tiedostossa.",
+  "TXT_KEY_PERMISSION_ALLOW": "Salli",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Salli ja muista",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Salli kerran",
+  "TXT_KEY_PERMISSION_DENY": "Kiellä",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Tuntematon sovellus (wayland client ID {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "XDG_CURRENT_DESKTOP ympäristösi näyttäisi olevan ulkoisesti hallittu, ja sen nykyinen arvo on {value}.\nTämä voi aiheuttaa ongelmia, jos sitä ei ole tehty tarkoituksella.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Paketti hyprland-guiutils ei ole asennettuna järjestelmääsi. Jotkin dialogit tarvitsevat sitä. Harkitse sen asentamista.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Näyttöjesi asettelu on virheellinen. Näyttö {name} on muiden näyttöjen päällä.\nLisätietoja löydät wikistä (Monitors sivu). Tämä <b>tulee aiheuttamaan</b> ongelmia.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Näyttö {name} epäonnistui pyydetyn tilan asettamisessa, palataan tilaan {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Näytölle {name} asetettu skaalaus: {scale} on virheellinen, asetetaan suositeltu skaalaus: {fixed_scale}.",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Laajennuksen {name} lataus epäonnistui: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "CM varjostimen uudelleenlataus epäonnistui, palataan takaisin rgba/rgbx tilaan.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Näyttö {name}: laaja väriskaala on otettu käyttöön, mutta näyttö ei ole 10-bit tilassa.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "count <= 1": "Hyprland epäonnistui olennaisen resurssin ({count}) latauksessa. Tämä johtuu todennäköisesti jakelusi virheellisestä pakkauksesta.",
+    "*": "Hyprland epäonnistui olennaisten resurssien ({count}) latauksessa. Tämä johtuu todennäköisesti jakelusi virheellisestä pakkauksesta."
+  }
+}

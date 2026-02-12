@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../helpers/memory/Memory.hpp"
+#include <hyprutils/i18n/I18nEngine.hpp>
 #include <unordered_map>
 #include <cstdint>
 #include <string>
+#include <functional>
 
 namespace I18n {
 
@@ -45,12 +47,17 @@ namespace I18n {
         TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD,
     };
 
+    using TranslationFn = std::function<std::string(const Hyprutils::I18n::translationVarMap&)>;
+
     class CI18nEngine {
       public:
         CI18nEngine();
         ~CI18nEngine() = default;
+        void        registerEntry(const std::string& locale, const std::string& key, TranslationFn fn);
+        std::string localize(eI18nKeys key, const Hyprutils::I18n::translationVarMap& vars = {}) const;
 
-        std::string localize(eI18nKeys key, const std::unordered_map<std::string, std::string>& vars = {});
+      private:
+        std::unordered_map<std::string, std::unordered_map<std::string, TranslationFn> > m_entries;
     };
 
     SP<CI18nEngine> i18nEngine();

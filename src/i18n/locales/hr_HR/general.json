@@ -1,0 +1,32 @@
+{
+  "TXT_KEY_ANR_TITLE": "Aplikacija ne reagira",
+  "TXT_KEY_ANR_CONTENT": "Aplikacija {title} - {class} ne reagira.\nŠto želiš napraviti s njom?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Zaustavi",
+  "TXT_KEY_ANR_OPTION_WAIT": "Pričekaj",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(nepoznato)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Aplikacija <b>{app}</b> zahtijeva nepoznatu dozvolu.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Aplikacija <b>{app}</b> pokušava snimati vaš zaslon.\n\nŽeliš li dopustiti?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Aplikacija <b>{app}</b> pokušava učitati dodatak: <b>{plugin}</b>.\n\nŽeliš li dopustiti?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Otkrivena je nova tipkovnica: <b>{keyboard}</b>.\n\nŽeliš li omogućiti njen rad?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(nepoznato)",
+  "TXT_KEY_PERMISSION_TITLE": "Zahtjev za dozvolu",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Savjet: za ovo možeš postaviti trajna pravila u Hyprland konfiguracijskoj datoteci.",
+  "TXT_KEY_PERMISSION_ALLOW": "Dozvoli",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Dozvoli i zapamti",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Dozvoli samo ovaj put",
+  "TXT_KEY_PERMISSION_DENY": "Uskrati",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Nepoznata aplikacija (ID wayland klijenta {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Izgleda da je tvoja XDG_CURRENT_DESKTOP okolina vanjski upravljana te je trenutna vrijednost {value}.\nOvo može izazvati problem, osim ako je namjerno.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "Na tvojem sustavu nije instaliran hyprland-guiutils. Ovo je ovisnost tijekom pokretanja nekih dijaloga. Preporučeno je da je instaliraš.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Raspored tvojih monitora je krivo postavljen. Monitor {name} preklapa se s ostalim monitorom/ima u rasporedu.\nProvjeri wiki (Monitors stranicu) za više informacija. Ovo <b>hoće</b> izazvati probleme.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Monitor {name} nije uspio odrediti zatražene načine rada, povratak na zadani način rada: {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Nevažeći razmjer proslijeđen monitoru {name}: {scale}, koristi se predloženi razmjer: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Učitavanje dodatka {name} nije uspjelo: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Ponovno učitavanje CM shadera nije uspjelo, povratak na zadano: rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: široki raspon boja je omogućen, ali ekran nije u 10-bitnom načinu rada.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "count % 10 <= 1 && count % 100 != 11": "Hyprland nije uspio učitati {count} neophodnu komponentu, krivi pakera svoje distribucije za loš posao pakiranja!",
+    "count % 10 <= 4 && count % 100 > 14": "Hyprland nije uspio učitati {count} neophodne komponente, krivi pakera svoje distribucije za loš posao pakiranja!",
+    "*": "Hyprland nije uspio učitati {count} neophodnih komponenata, krivi pakera svoje distribucije za loš posao pakiranja!"
+  }
+}

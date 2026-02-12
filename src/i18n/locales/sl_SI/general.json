@@ -1,0 +1,30 @@
+{
+  "TXT_KEY_ANR_TITLE": "Program se ne odziva",
+  "TXT_KEY_ANR_CONTENT": "Program {title} - {class} se ne odziva.\nKaj želite storiti?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Prekini",
+  "TXT_KEY_ANR_OPTION_WAIT": "Počakaj",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(neznano)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Program <b>{app}</b> zahteva neznano dovoljenje.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Program <b>{app}</b> poskuša zajeti vaš zaslon.\n\nAli mu želite to dovoliti?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Program <b>{app}</b> skuša naložiti vtičnik: <b>{plugin}</b>.\n\nAli mu želite to dovoliti?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Nova tipkovnica je bila zaznana: <b>{keyboard}</b>.\n\nAli ji želite dovoliti delovanje?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(neznano)",
+  "TXT_KEY_PERMISSION_TITLE": "Zahteva za dovoljenje",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Namig: v Hyprlandovi konfiguracijski datoteki lahko nastavite stalna pravila za dovoljenja.",
+  "TXT_KEY_PERMISSION_ALLOW": "Dovoli",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Dovoli in si zapomni",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Dovoli enkrat",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Neznan program (ID stranke Wayland: {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Zdi se, da je Vaše okolje XDG_CURRENT_DESKTOP upravljano od zunaj, trenutna vrednost je {value}.\nTo lahko povzroči težave, če ni namerno.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "hyprland-guiutils ni nameščen na vaši napravi. To je odvisnost od izvajalnega okolja za nekatera pogovorna okna. Razmislite o namestitvi.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Vaša zaslonska razporeditev je napačno nastavljena. Zaslon {monitor} se prekriva z drugimi zasloni v razporeditvi.\nProsimo poglejte wiki (stran Monitors) za več. To <b>bo</b> povzročilo težave.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Zaslon {name} ni uspel nastaviti nobenega zahtevanega načina, vrnitev k načinu {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Neveljavna skala je bila posredovana zaslonu {name}: {scale}, uporabljena je predlagana skala: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Vtičnika {name} ni bilo mogoče naložiti: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Ponovno nalaganje senčnika CM ni uspelo, vrnitev k rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Zaslon {name}: širok barvni razpon je omogočen, vendar zaslon ni v 10-bitnem načinu.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "count <= 1": "Hyprlandu ni uspelo naložiti {count} bistvenega sredstva, krivite upravitelja paketov vaše distribucije za slabo opravljeno pakiranje!",
+    "*": "Hyprlandu ni uspelo naložiti {count} bistvenih sredstev, krivite upravitelja paketov vaše distribucije za slabo opravljeno pakiranje!"
+  }
+}

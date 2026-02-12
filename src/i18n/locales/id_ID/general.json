@@ -1,0 +1,31 @@
+{
+  "TXT_KEY_ANR_TITLE": "Aplikasi Tidak Merespon",
+  "TXT_KEY_ANR_CONTENT": "Aplikasi {title} - {class} tidak merespon.\nApa yang ingin Anda lakukan?",
+  "TXT_KEY_ANR_OPTION_TERMINATE": "Hentikan",
+  "TXT_KEY_ANR_OPTION_WAIT": "Tunggu",
+  "TXT_KEY_ANR_PROP_UNKNOWN": "(tidak diketahui)",
+  "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Aplikasi <b>{app}</b> meminta izin yang tidak dikenali.",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Aplikasi <b>{app}</b> mencoba merekam layar Anda.\n\nApakah Anda mengizinkannya?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Aplikasi <b>{app}</b> mencoba memuat <i>plugin</i>: <b>{plugin}</b>.\n\nApakah Anda mengizinkannya?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Keyboard baru terdeteksi: <b>{keyboard}</b>.\n\nApakah Anda mengizinkannya beroperasi?",
+  "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(tidak diketahui)",
+  "TXT_KEY_PERMISSION_TITLE": "Permintaan Izin",
+  "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Petunjuk: Anda dapat mengatur <i>rule</i> ini secara permanen di <i>file</i> konfigurasi Hyprland.",
+  "TXT_KEY_PERMISSION_ALLOW": "Izinkan",
+  "TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER": "Izinkan dan Ingat",
+  "TXT_KEY_PERMISSION_ALLOW_ONCE": "Izinkan Sekali",
+  "TXT_KEY_PERMISSION_DENY": "Tolak",
+  "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Aplikasi tidak dikenal (ID klien wayland {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Variabel <i>environment</i> XDG_CURRENT_DESKTOP Anda tampaknya dikelola secara eksternal, nilainya saat ini: {value}.\nHal ini dapat menyebabkan masalah, kecuali jika disengaja.",
+  "TXT_KEY_NOTIF_NO_GUIUTILS": "hyprland-guiutils belum terpasang di Sistem Anda. Paket tersebut merupakan dependensi <i>runtime</i> untuk beberapa dialog. Mohon untuk menginstalnya.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Susunan monitor Anda tidak benar. Monitor {name} tertumpuk dengan monitor lain.\nSilakan lihat wiki (halaman <i>Monitors</i>) untuk detailnya. Hal ini <b>pasti</b> akan menimbulkan masalah.",
+  "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Monitor {name} gagal menerapkan mode yang diminta, kembali ke mode {mode}.",
+  "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Skala tidak valid diberikan ke monitor {name}: {scale}, skala yang disarankan: {fixed_scale}",
+  "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Gagal memuat plugin {name}: {error}",
+  "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "Gagal memuat ulang shader CM, kembali ke rgba/rgbx.",
+  "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: <i>wide color gamut</i> aktif tetapi layar tidak dalam mode 10-bit.",
+  "TXT_KEY_NOTIF_FAILED_ASSETS": {
+    "count <= 1": "Hyprland gagal memuat {count} aset penting. Salahkan pengelola paket distro Anda karena pengemasannya buruk!",
+    "*": "Hyprland gagal memuat {count} aset penting. Salahkan pengelola paket distro Anda karena pengemasannya buruk!"
+  }
+}

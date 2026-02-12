@@ -1,13 +1,13 @@
 {
   "TXT_KEY_ANR_TITLE": "Application Not Responding",
-  "TXT_KEY_ANR_CONTENT": "An application {title} - {class} is not responding.\\nWhat do you want to do with it?",
+  "TXT_KEY_ANR_CONTENT": "An application {title} - {class} is not responding.\nWhat do you want to do with it?",
   "TXT_KEY_ANR_OPTION_TERMINATE": "Terminate",
   "TXT_KEY_ANR_OPTION_WAIT": "Wait",
   "TXT_KEY_ANR_PROP_UNKNOWN": "(unknown)",
   "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "An application <b>{app}</b> is requesting an unknown permission.",
-  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "An application <b>{app}</b> is trying to capture your screen.\\n\\nDo you want to allow it to?",
-  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "An application <b>{app}</b> is trying to load a plugin: <b>{plugin}</b>.\\n\\nDo you want to allow it to?",
-  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "A new keyboard has been detected: <b>{keyboard}</b>.\\n\\nDo you want to allow it to operate?",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "An application <b>{app}</b> is trying to capture your screen.\n\nDo you want to allow it to?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "An application <b>{app}</b> is trying to load a plugin: <b>{plugin}</b>.\n\nDo you want to allow it to?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "A new keyboard has been detected: <b>{keyboard}</b>.\n\nDo you want to allow it to operate?",
   "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(unknown)",
   "TXT_KEY_PERMISSION_TITLE": "Permission request",
   "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Hint: you can set persistent rules for these in the Hyprland config file.",
@@ -16,8 +16,9 @@
   "TXT_KEY_PERMISSION_ALLOW_ONCE": "Allow once",
   "TXT_KEY_PERMISSION_DENY": "Deny",
   "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Unknown application (wayland client ID {wayland_id})",
-  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {value}.\\nThis might cause issues unless it's intentional.",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Your XDG_CURRENT_DESKTOP environment seems to be managed externally, and the current value is {value}.\nThis might cause issues unless it's intentional.",
   "TXT_KEY_NOTIF_NO_GUIUTILS": "Your system does not have hyprland-guiutils installed. This is a runtime dependency for some dialogs. Consider installing it.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Your monitor layout is set up incorrectly. Monitor {name} overlaps with other monitor(s) in the layout.\nPlease see the wiki (Monitors page) for more. This <b>will</b> cause issues.",
   "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Monitor {name} failed to set any requested modes, falling back to mode {mode}.",
   "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Invalid scale passed to monitor {name}: {scale}, using suggested scale: {fixed_scale}",
   "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Failed to load plugin {name}: {error}",
@@ -25,13 +26,13 @@
   "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Monitor {name}: wide color gamut is enabled but the display is not in 10-bit mode.",
   "TXT_KEY_NOTIF_NO_WATCHDOG": "Hyprland was started without start-hyprland. This is highly not recommended unless you are in a debugging environment.",
   "TXT_KEY_SAFE_MODE_TITLE": "Safe Mode",
+  "TXT_KEY_SAFE_MODE_DESCRIPTION": "Hyprland has been launched in safe mode, which means your last session crashed.\nSafe mode prevents your config from being loaded. You can troubleshoot in this environment, or load your config with the button below.\nDefault keybinds apply: SUPER+Q for kitty, SUPER+R for a basic runner, SUPER+M to exit.\nRestarting Hyprland will launch in normal mode again.",
   "TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG": "Load config",
   "TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR": "Open crash report directory",
   "TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD": "Ok, close this",
   "TXT_KEY_NOTIF_FAILED_ASSETS": {
-    "@plural": {
-      "one": "Hyprland failed to load {count} essential asset, blame your distro's packager for doing a bad job at packaging!",
-      "many": "Hyprland failed to load {count} essential assets, blame your distro's packager for doing a bad job at packaging!"
-    }
+    "count <= 1": "Hyprland failed to load {count} essential asset, blame your distro's packager for doing a bad job at packaging!",
+    "*": "Hyprland failed to load {count} essential assets, blame your distro's packager for doing a bad job at packaging!"
   }
 }
+

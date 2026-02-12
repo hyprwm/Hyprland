@@ -1,13 +1,13 @@
 {
   "TXT_KEY_ANR_TITLE": "Anwendung Reagiert Nicht",
-  "TXT_KEY_ANR_CONTENT": "Eine Anwendung {title} - {class} reagiert nicht.\\nWas möchten Sie damit tun?",
+  "TXT_KEY_ANR_CONTENT": "Eine Anwendung {title} - {class} reagiert nicht.\nWas möchten Sie damit tun?",
   "TXT_KEY_ANR_OPTION_TERMINATE": "Beenden",
   "TXT_KEY_ANR_OPTION_WAIT": "Warten",
   "TXT_KEY_ANR_PROP_UNKNOWN": "(unbekannt)",
   "TXT_KEY_PERMISSION_REQUEST_UNKNOWN": "Eine Anwendung <b>{app}</b> fordert eine unbekannte Berechtigung an.",
-  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Eine Anwendung <b>{app}</b> versucht Ihren Bildschrim aufzunehmen.\\n\\nMöchten Sie dies erlauben?",
-  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Eine Anwendung <b>{app}</b> versucht ein Plugin zu laden: <b>{plugin}</b>.\\n\\nMöchten Sie dies erlauben?",
-  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Eine neue Tastatur wurde erkannt: <b>{keyboard}</b>.\\n\\nMöchten Sie diese in Betrieb nehmen?",
+  "TXT_KEY_PERMISSION_REQUEST_SCREENCOPY": "Eine Anwendung <b>{app}</b> versucht Ihren Bildschrim aufzunehmen.\n\nMöchten Sie dies erlauben?",
+  "TXT_KEY_PERMISSION_REQUEST_PLUGIN": "Eine Anwendung <b>{app}</b> versucht ein Plugin zu laden: <b>{plugin}</b>.\n\nMöchten Sie dies erlauben?",
+  "TXT_KEY_PERMISSION_REQUEST_KEYBOARD": "Eine neue Tastatur wurde erkannt: <b>{keyboard}</b>.\n\nMöchten Sie diese in Betrieb nehmen?",
   "TXT_KEY_PERMISSION_UNKNOWN_NAME": "(unbekannt)",
   "TXT_KEY_PERMISSION_TITLE": "Berechtigungsanfrage",
   "TXT_KEY_PERMISSION_PERSISTENCE_HINT": "Tip: Sie können dafür permanente Regeln in der Hyprland-Konfigurationsdatei festlegen.",
@@ -16,16 +16,16 @@
   "TXT_KEY_PERMISSION_ALLOW_ONCE": "Einmal erlauben",
   "TXT_KEY_PERMISSION_DENY": "Verweigern",
   "TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP": "Unbekannte Anwendung (wayland client ID {wayland_id})",
+  "TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP": "Ihre XDG_CURRENT_DESKTOP umgebung scheint extern gemanagt zu werden, und der aktuelle Wert ist {value}.\nDies könnte zu Problemen führen sofern es nicht absichtlich so ist.",
   "TXT_KEY_NOTIF_NO_GUIUTILS": "Ihr System hat hyprland-guiutils nicht installiert. Dies ist eine Laufzeitabhängigkeit für einige Dialoge. Es ist empfohlen diese zu installieren.",
+  "TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT": "Ihr Bildschirmlayout ist fehlerhaft aufgesetzt. Der Bildschirm {name} überlappt mit anderen Bildschirm(en) im Layout.\nBitte siehe im Wiki (Monitors Seite) für mehr Informationen. Dies <b>wird</b> zu Problemen führen.",
   "TXT_KEY_NOTIF_MONITOR_MODE_FAIL": "Bildschirm {name} konnte keinen der angeforderten Modi setzen fällt auf den Modus {mode} zurück.",
   "TXT_KEY_NOTIF_MONITOR_AUTO_SCALE": "Ungültiger Skalierungsfaktor {scale} für Bildschirm {name}, es wird der empfohlene Faktor {fixed_scale} verwendet.",
   "TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN": "Plugin {name} konnte nicht geladen werden: {error}",
   "TXT_KEY_NOTIF_CM_RELOAD_FAILED": "CM shader konnte nicht neu geladen werden und es wird auf rgba/rgbx zurückgefallen.",
   "TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B": "Bildschirm {name}: wide color gamut ist aktiviert aber der Bildschirm ist nicht im 10-bit Modus.",
   "TXT_KEY_NOTIF_FAILED_ASSETS": {
-    "@plural": {
-      "one": "Hyprland konnte {count} essentielle Ressource nicht laden, geben Sie dem Packager ihrer Distribution die Schuld für ein schlechtes Package!",
-      "many": "Hyprland konnte {count} essentielle Ressroucen nicht laden, geben Sie dem Packager ihrer Distribution die Schuld für ein schlechtes Package!"
-    }
+    "count <= 1": "Hyprland konnte {count} essentielle Ressource nicht laden, geben Sie dem Packager ihrer Distribution die Schuld für ein schlechtes Package!",
+    "*": "Hyprland konnte {count} essentielle Ressroucen nicht laden, geben Sie dem Packager ihrer Distribution die Schuld für ein schlechtes Package!"
   }
 }

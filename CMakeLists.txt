@@ -559,37 +559,50 @@ add_subdirectory(hyprctl)
 add_subdirectory(start)
 
 
-
 # Generate locales
 set(I18N_INPUT_DIR ${CMAKE_SOURCE_DIR}/src/i18n/locales)
 set(I18N_OUTPUT_DIR ${CMAKE_BINARY_DIR}/generated/i18n)
+set(GENERATED_I18N_SOURCES "")
+file(MAKE_DIRECTORY ${I18N_OUTPUT_DIR})
 
 file(GLOB LOCALES RELATIVE ${I18N_INPUT_DIR} ${I18N_INPUT_DIR}/*)
-
-set(GENERATED_I18N_SOURCES "")
+set(LOCALE_GEN_FILE ${CMAKE_SOURCE_DIR}/scripts/GenerateLocales.cmake)
 foreach(LOCALE ${LOCALES})
-  list(APPEND GENERATED_I18N_SOURCES "${I18N_OUTPUT_DIR}/${LOCALE}.cpp")
-endforeach()
-list(APPEND GENERATED_I18N_SOURCES "${I18N_OUTPUT_DIR}/i18n_registry.cpp")
-set_source_files_properties(${GENERATED_I18N_SOURCES} PROPERTIES GENERATED TRUE)
+  set(OUT_CPP "${I18N_OUTPUT_DIR}/${LOCALE}.cpp")
 
-file(GLOB_RECURSE I18N_JSON_FILES "${I18N_INPUT_DIR}/*.json")
+  file(GLOB LOCALE_JSON_FILES "${I18N_INPUT_DIR}/${LOCALE}/*.json")
+
+  add_custom_command(
+        OUTPUT ${OUT_CPP}
+        COMMAND ${CMAKE_COMMAND}
+            -DLOCALE=${LOCALE}
+            -DINPUT_DIR=${I18N_INPUT_DIR}
+            -DOUTPUT_DIR=${I18N_OUTPUT_DIR}
+            -P ${LOCALE_GEN_FILE}
+        DEPENDS ${LOCALE_JSON_FILES} ${LOCALE_GEN_FILE}
+        COMMENT "Generating locale: ${LOCALE}"
+    )
+  list(APPEND GENERATED_I18N_SOURCES ${OUT_CPP})
+endforeach()
+
+# Locale registry generation
+set(LOCALE_REGISTRY "${CMAKE_SOURCE_DIR}/scripts/GenerateLocaleRegistry.cmake")
 add_custom_command(
-    OUTPUT ${GENERATED_I18N_SOURCES}
+    OUTPUT "${I18N_OUTPUT_DIR}/i18n_registry.cpp"
     COMMAND ${CMAKE_COMMAND}
-        -DINPUT_DIR=${I18N_INPUT_DIR}
-        -DOUTPUT_DIR=${I18N_OUTPUT_DIR}
         -DLOCALES="${LOCALES}"
-        -P ${CMAKE_SOURCE_DIR}/scripts/GenerateLocales.cmake
-    DEPENDS ${I18N_JSON_FILES} "${CMAKE_SOURCE_DIR}/scripts/GenerateLocales.cmake"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Generating locales..."
+        -DOUTPUT_DIR=${I18N_OUTPUT_DIR}
+        -P ${LOCALE_REGISTRY}
+    DEPENDS ${GENERATED_I18N_SOURCES} ${LOCALE_REGISTRY}
+    COMMENT "Generating i18n registry"
 )
+list(APPEND GENERATED_I18N_SOURCES "${I18N_OUTPUT_DIR}/i18n_registry.cpp")
 
 add_custom_target(GenerateLocales DEPENDS ${GENERATED_I18N_SOURCES})
 add_dependencies(hyprland_lib GenerateLocales)
 target_sources(hyprland_lib PRIVATE ${GENERATED_I18N_SOURCES})
 target_include_directories(hyprland_lib PRIVATE ${I18N_OUTPUT_DIR})
+
 
 
 if(NO_HYPRPM)

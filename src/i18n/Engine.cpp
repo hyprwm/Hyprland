@@ -1345,6 +1345,17 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Не удалось загрузить плагин {name}: {error}");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Не удалось перезагрузить CM shader, используется rgba/rgbx.");
     huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: расширенный цветовой охват включён, но дисплей не в 10-bit режиме.");
+    huEngine->registerEntry("ru_RU", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland был запущен без start-hyprland. Это крайне не рекомендуется, если только вы не в отладочной среде.");
+
+    huEngine->registerEntry("ru_RU", TXT_KEY_SAFE_MODE_TITLE, "Безопасный режим");
+    huEngine->registerEntry(
+        "ru_RU", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland запущен в безопасном режиме, это значит, что ваш прошлый сеанс завершился сбоем.\nБезопасный режим не загружает ваш конфиг. Вы можете "
+        "исправить проблему в этом окружении или загрузить конфиг кнопкой ниже.\nДействуют стандартные бинды: SUPER+Q запускает kitty, SUPER+R открывает лаунчер, "
+        "SUPER+M для выхода.\nПосле перезапуска Hyprland снова запустится в обычном режиме.");
+    huEngine->registerEntry("ru_RU", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Загрузить конфиг");
+    huEngine->registerEntry("ru_RU", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Открыть каталог отчётов о сбоях");
+    huEngine->registerEntry("ru_RU", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Ок, закрыть");
 
     // sl_SI (Slovenian)
     huEngine->registerEntry("sl_SI", TXT_KEY_ANR_TITLE, "Program se ne odziva");

@@ -94,15 +94,18 @@ SHyprlandVersion CPluginManager::getHyprlandVersion(bool running) {
     auto   hldate    = (*jsonQuery)["commit_date"].get_string();
     auto   hlcommits = (*jsonQuery)["commits"].get_string();
 
+    auto   flags = (*jsonQuery)["flags"].get_array();
+    bool   isNix = std::ranges::any_of(flags, [](const auto& f) { return f.is_string() && f.get_string() == std::string_view{"nix"}; });
+
     size_t commits = 0;
     try {
         commits = std::stoull(hlcommits);
     } catch (...) { ; }
 
     if (m_bVerbose)
-        std::println("{}", verboseString("parsed commit {} at branch {} on {}, commits {}", hlcommit, hlbranch, hldate, commits));
+        std::println("{}", verboseString("parsed commit {} at branch {} on {}, commits {}, nix: {}", hlcommit, hlbranch, hldate, commits, isNix));
 
-    auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, abiHash, commits};
+    auto ver = SHyprlandVersion{hlbranch, hlcommit, hldate, abiHash, commits, isNix};
 
     if (running)
         verRunning = ver;
@@ -302,8 +305,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
         progress.printMessageAbove(infoString("Building {}", p.name));
 
         for (auto const& bs : p.buildSteps) {
-            const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
-            out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
+            const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && PKG_CONFIG_PATH=\"{}\" {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs), HLVER);
+
+            if (!CMD_RAW) {
+                progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
+                break;
+            }
+
+            out += " -> " + *CMD_RAW + "\n" + execAndGet(*CMD_RAW) + "\n";
         }
 
         if (m_bVerbose)
@@ -388,7 +397,7 @@ eHeadersErrors CPluginManager::headersValid() {
         return HEADERS_MISSING;
 
     // find headers commit
-    const std::string& cmd     = std::format("PKG_CONFIG_PATH='{}' pkgconf --cflags --keep-system-cflags hyprland", getPkgConfigPath());
+    const std::string& cmd     = std::format("PKG_CONFIG_PATH=\"{}\" pkgconf --cflags --keep-system-cflags hyprland", getPkgConfigPath());
     auto               headers = execAndGet(cmd);
 
     if (!headers.contains("-I/"))
@@ -541,8 +550,17 @@ bool CPluginManager::updateHeaders(bool force) {
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("setting PREFIX for cmake to {}", DataState::getHeadersPath()));
 
-    ret = execAndGet(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build", WORKINGDIR,
-                                 DataState::getHeadersPath()));
+    const auto CONFIGURE_CMD =
+        nixDevelopIfNeeded(std::format("cd {} && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_PREFIX:STRING=\"{}\" -S . -B ./build", WORKINGDIR,
+                                       DataState::getHeadersPath()),
+                           HLVER);
+
+    if (!CONFIGURE_CMD) {
+        std::println(stderr, "\n{}", failureString("Could not configure hyprland: {}", CONFIGURE_CMD.error()));
+        return false;
+    }
+
+    ret = execAndGet(*CONFIGURE_CMD);
     if (m_bVerbose)
         progress.printMessageAbove(verboseString("cmake returned: {}", ret));
 
@@ -740,8 +758,14 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             progress.printMessageAbove(infoString("Building {}", p.name));
 
             for (auto const& bs : p.buildSteps) {
-                const std::string& cmd = std::format("cd {} && PKG_CONFIG_PATH='{}' {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs);
-                out += " -> " + cmd + "\n" + execAndGet(cmd) + "\n";
+                const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && PKG_CONFIG_PATH=\"{}\" {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs), HLVER);
+
+                if (!CMD_RAW) {
+                    progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
+                    break;
+                }
+
+                out += " -> " + *CMD_RAW + "\n" + execAndGet(*CMD_RAW) + "\n";
             }
 
             if (m_bVerbose)
@@ -771,8 +795,8 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
             repohash.pop_back();
         newrepo.hash = repohash;
         for (auto const& p : pManifest->m_plugins) {
-            const auto OLDPLUGINIT = std::find_if(repo.plugins.begin(), repo.plugins.end(), [&](const auto& other) { return other.name == p.name; });
-            newrepo.plugins.push_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
+            const auto OLDPLUGINIT = std::ranges::find_if(repo.plugins, [&](const auto& other) { return other.name == p.name; });
+            newrepo.plugins.emplace_back(SPlugin{p.name, m_szWorkingPluginDirectory + "/" + p.output, OLDPLUGINIT != repo.plugins.end() ? OLDPLUGINIT->enabled : false});
         }
         DataState::removePluginRepo(SPluginRepoIdentifier::fromName(newrepo.name));
         DataState::addNewPluginRepo(newrepo);
@@ -898,7 +922,7 @@ ePluginLoadStateReturn CPluginManager::ensurePluginsLoadState(bool forceReload) 
             if (!p.enabled)
                 continue;
 
-            if (!forceReload && std::find_if(loadedPlugins.begin(), loadedPlugins.end(), [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
+            if (!forceReload && std::ranges::find_if(loadedPlugins, [&](const auto& other) { return other == p.name; }) != loadedPlugins.end())
                 continue;
 
             if (!loadUnloadPlugin(HYPRPMPATH / repoForName(p.name) / p.filename, true)) {
@@ -986,6 +1010,9 @@ std::string CPluginManager::headerErrorShort(const eHeadersErrors err) {
 }
 
 bool CPluginManager::hasDeps() {
+    if (!m_bNoNix && getHyprlandVersion().isNix)
+        return true; // dep check not needed if we are on nix
+
     bool                     hasAllDeps = true;
     std::vector<std::string> deps       = {"cpio", "cmake", "pkg-config", "g++", "gcc", "git"};
 
@@ -1000,16 +1027,90 @@ bool CPluginManager::hasDeps() {
 }
 
 const std::string& CPluginManager::getPkgConfigPath() {
-    static bool        once = true;
-    static std::string res;
-    if (once) {
-        once = false;
+    static const auto str = std::format("{}/share/pkgconfig:$PKG_CONFIG_PATH", DataState::getHeadersPath());
+    return str;
+}
 
-        if (const auto E = getenv("PKG_CONFIG_PATH"); E && E[0])
-            res = std::format("{}/share/pkgconfig:{}", DataState::getHeadersPath(), E);
-        else
-            res = std::format("{}/share/pkgconfig", DataState::getHeadersPath());
+static std::expected<std::string, std::string> getNixDevelopFromPath(const std::string& argv0) {
+    std::string fullStorePath;
+
+    if (argv0.starts_with("/")) {
+        // we can use this directly
+        fullStorePath = argv0;
+    } else {
+        // use hyprpm, find in path
+        auto exe = NSys::findInPath("hyprpm");
+        if (!exe)
+            return std::unexpected("hyprpm not found in PATH");
+
+        fullStorePath = *exe;
     }
 
-    return res;
+    if (fullStorePath.empty() || !fullStorePath.ends_with("/bin/hyprpm"))
+        return std::unexpected("couldn't get a real path for hyprpm (1)");
+
+    // canonicalize to get the real nix-store path
+    std::error_code ec;
+    fullStorePath = std::filesystem::canonical(fullStorePath, ec);
+
+    if (ec || fullStorePath.empty() || !fullStorePath.starts_with("/nix"))
+        return std::unexpected("couldn't get a real path for hyprpm");
+
+    fullStorePath = fullStorePath.substr(0, fullStorePath.length() - std::string_view{"/bin/hyprpm"}.length());
+
+    auto deriver = trim(execAndGet(std::format("echo \"$(nix-store --query --deriver '{}')\"", fullStorePath)));
+
+    if (deriver.starts_with("unknown"))
+        return std::unexpected("couldn't nix deriver");
+
+    return deriver;
+}
+
+static std::expected<std::string, std::string> getNixDevelopFromProfile() {
+    const auto NIX_PROFILE_STR = execAndGet("nix profile list --json");
+
+    auto       rawJson = glz::read_json<glz::generic>(NIX_PROFILE_STR);
+
+    if (!rawJson)
+        return std::unexpected("failed to parse nix profile list --json");
+
+    auto& json = *rawJson;
+
+    if (!json.contains("elements") || !json["elements"].is_object())
+        return std::unexpected("nix profile list --json returned a wonky json");
+
+    if (!json["elements"].contains("hyprland") && !json["elements"].contains("Hyprland"))
+        return std::unexpected("nix profile list --json doesn't contain Hyprland (did you uninstall?)");
+
+    auto& hyprlandJson = json["elements"].contains("hyprland") ? json["elements"]["hyprland"] : json["elements"]["Hyprland"];
+
+    if (!hyprlandJson.contains("originalUrl"))
+        return std::unexpected("nix profile list --json's hyprland doesn't contain originalUrl?");
+
+    return hyprlandJson["originalUrl"].get_string();
+}
+
+std::expected<std::string, std::string> CPluginManager::nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver) {
+    if (m_bNoNix || !ver.isNix)
+        return cmd;
+
+    // Escape single quotes
+    std::string newCmd = cmd;
+    replaceInString(newCmd, "'", "\\'");
+
+    auto NIX_DEVELOP = getNixDevelopFromPath(m_szArgv0);
+
+    if (NIX_DEVELOP)
+        return std::format("nix develop '{}' --command bash -c $'{}'", *NIX_DEVELOP, newCmd);
+    else if (m_bVerbose)
+        std::println("{}", verboseString("Failed nix from path: {}", NIX_DEVELOP.error()));
+
+    NIX_DEVELOP = getNixDevelopFromProfile();
+
+    if (NIX_DEVELOP)
+        return std::format("nix develop '{}' --command bash -c $'{}'", *NIX_DEVELOP, newCmd);
+    else if (m_bVerbose)
+        std::println("{}", verboseString("Failed nix from profile: {}", NIX_DEVELOP.error()));
+
+    return std::unexpected("hyprland is nix, but hyprpm failed to obtain a nix develop shell for build cmd");
 }

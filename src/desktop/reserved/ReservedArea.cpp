@@ -16,7 +16,8 @@ CReservedArea::CReservedArea(double top, double right, double bottom, double lef
 }
 
 CReservedArea::CReservedArea(const CBox& parent, const CBox& child) {
-    ASSERT(!parent.empty() && !child.empty());
+    if (parent.empty() || child.empty())
+        return; // empty reserved area
 
     ASSERT(parent.containsPoint(child.pos() + Vector2D{0.0001, 0.0001}));
     ASSERT(parent.containsPoint(child.pos() + child.size() - Vector2D{0.0001, 0.0001}));

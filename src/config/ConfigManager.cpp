@@ -785,12 +785,14 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
+    registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});
 
     // devices
     m_config->addSpecialCategory("device", {"name"});

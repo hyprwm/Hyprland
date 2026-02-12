@@ -72,8 +72,10 @@ void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
 void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
     auto const state = stateFor(mon);
     state->softwareLocks--;
-    if (state->softwareLocks < 0)
+    if (state->softwareLocks < 0) {
         state->softwareLocks = 0;
+        Log::logger->log(Log::WARN, "Unlocking SW for monitor while it's not locked");
+    }
 
     if (state->softwareLocks == 0)
         updateCursorBackend();
@@ -81,7 +83,12 @@ void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
 
 bool CPointerManager::softwareLockedFor(PHLMONITOR mon) {
     auto const state = stateFor(mon);
-    return state->softwareLocks > 0 || state->hardwareFailed;
+    return state->softwareLocks > 0 || (state->hardwareFailed && hasCursor() && g_pHyprRenderer->shouldRenderCursor());
+}
+
+bool CPointerManager::hasVisibleHWCursor(PHLMONITOR pMonitor) {
+    auto const state = stateFor(pMonitor);
+    return state->softwareLocks == 0 && !state->hardwareFailed && hasCursor() && g_pHyprRenderer->shouldRenderCursor();
 }
 
 Vector2D CPointerManager::position() {
@@ -928,10 +935,11 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
+    listener->axis  = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
         g_pInputManager->onMouseWheel(event, weak.lock());
         PROTO::idle->onActivity();
     });
+    listener->frame = pointer->m_pointerEvents.frame.listen([] { g_pInputManager->onPointerFrame(); });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.listen([](const IPointer::SSwipeBeginEvent& event) {
         g_pInputManager->onSwipeBegin(event);

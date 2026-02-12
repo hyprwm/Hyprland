@@ -35,9 +35,13 @@ static std::string validSubinsAsStr() {
 }
 
 static bool executableExistsInPath(const std::string& exe) {
+    return NSys::findInPath(exe).has_value();
+}
+
+std::optional<std::string> NSys::findInPath(const std::string& exe) {
     const char* PATHENV = std::getenv("PATH");
     if (!PATHENV)
-        return false;
+        return std::nullopt;
 
     CVarList        paths(PATHENV, 0, ':', true);
     std::error_code ec;
@@ -52,10 +56,10 @@ static bool executableExistsInPath(const std::string& exe) {
         if (ec)
             continue;
         if ((perms & std::filesystem::perms::others_exec) != std::filesystem::perms::none)
-            return true;
+            return candidate.string();
     }
 
-    return false;
+    return std::nullopt;
 }
 
 static std::string subin() {

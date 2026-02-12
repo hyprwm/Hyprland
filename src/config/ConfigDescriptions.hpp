@@ -1573,6 +1573,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "default,gamma22,gamma22force,srgb"},
     },
+    SConfigOptionDescription{
+        .value       = "render:commit_timing_enabled",
+        .description = "Enable commit timing proto. Requires restart",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * cursor:
@@ -2046,6 +2052,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
+    SConfigOptionDescription{
+        .value       = "quirks:skip_non_kms_dmabuf_formats",
+        .description = "Do not report dmabuf formats which cannot be imported into KMS",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
 };

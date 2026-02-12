@@ -626,6 +626,30 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
     return false;
 }
 
+bool CWLSurfaceResource::isTearing() {
+    if (m_enteredOutputs.empty() && m_hlSurface) {
+        for (auto& m : g_pCompositor->m_monitors) {
+            if (!m || !m->m_enabled)
+                continue;
+
+            auto box = m_hlSurface->getSurfaceBoxGlobal();
+            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                if (m->m_tearingState.activelyTearing)
+                    return true;
+            }
+        }
+    } else {
+        for (auto& m : m_enteredOutputs) {
+            if (!m)
+                continue;
+
+            if (m->m_tearingState.activelyTearing)
+                return true;
+        }
+    }
+    return false;
+}
+
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;
@@ -670,8 +694,14 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();
-    else
+    else {
         FEEDBACK->presented();
+        if (!pMonitor->m_lastScanout.expired()) {
+            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+            if (WINDOW == pMonitor->m_lastScanout)
+                FEEDBACK->setPresentationType(true);
+        }
+    }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }
 

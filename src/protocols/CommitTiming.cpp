@@ -12,59 +12,46 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
     m_resource->setOnDestroy([this](CWpCommitTimerV1* r) { PROTO::commitTiming->destroyResource(this); });
 
     m_resource->setSetTimestamp([this](CWpCommitTimerV1* r, uint32_t tvHi, uint32_t tvLo, uint32_t tvNsec) {
-        return;
-
         if (!m_surface) {
             r->error(WP_COMMIT_TIMER_V1_ERROR_SURFACE_DESTROYED, "Surface was gone");
             return;
         }
 
-        if (m_pendingTimeout.has_value()) {
+        if (m_surface->m_pending.pendingTimeout.has_value()) {
             r->error(WP_COMMIT_TIMER_V1_ERROR_TIMESTAMP_EXISTS, "Timestamp is already set");
             return;
         }
 
-        timespec ts;
-        ts.tv_sec  = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo;
-        ts.tv_nsec = tvNsec;
+        const auto delay = Time::till({.tv_sec = (((uint64_t)tvHi) << 32) | (uint64_t)tvLo, .tv_nsec = tvNsec});
 
-        const auto TIME     = Time::fromTimespec(&ts);
-        const auto TIME_NOW = Time::steadyNow();
-
-        if (TIME_NOW > TIME) {
-            m_pendingTimeout.reset();
+        if (delay.count() <= 0) {
+            m_surface->m_pending.pendingTimeout.reset();
         } else
-            m_pendingTimeout = TIME - TIME_NOW;
+            m_surface->m_pending.pendingTimeout = delay;
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit2.listen([this](auto state) {
-        if (!m_pendingTimeout.has_value())
+        if (!state || !state->pendingTimeout.has_value() || !m_surface || m_surface->isTearing())
             return;
 
         m_surface->m_stateQueue.lock(state, LOCK_REASON_TIMER);
 
-        if (!m_timerPresent) {
-            m_timerPresent = true;
-            timer          = makeShared<CEventLoopTimer>(
-                m_pendingTimeout,
-                [this](SP<CEventLoopTimer> self, void* data) {
-                    if (!m_surface)
+        if (!state->timer) {
+            state->timer = makeShared<CEventLoopTimer>(
+                state->pendingTimeout,
+                [this, state](SP<CEventLoopTimer> self, void* data) {
+                    if (!m_surface || !state)
                         return;
 
-                    m_surface->m_stateQueue.unlockFirst(LOCK_REASON_TIMER);
+                    m_surface->m_stateQueue.unlock(state, LOCK_REASON_TIMER);
                 },
                 nullptr);
-            g_pEventLoopManager->addTimer(timer);
+            g_pEventLoopManager->addTimer(state->timer);
         } else
-            timer->updateTimeout(m_pendingTimeout);
+            state->timer->updateTimeout(state->pendingTimeout);
 
-        m_pendingTimeout.reset();
+        state->pendingTimeout.reset();
     });
-}
-
-CCommitTimerResource::~CCommitTimerResource() {
-    if (m_timerPresent)
-        g_pEventLoopManager->removeTimer(timer);
 }
 
 bool CCommitTimerResource::good() {

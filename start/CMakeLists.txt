@@ -13,6 +13,12 @@ pkg_check_modules(starthyprland_deps REQUIRED IMPORTED_TARGET hyprutils>=0.10.3)
 
 file(GLOB_RECURSE SRCFILES CONFIGURE_DEPENDS "src/*.cpp")
 
+if(NOT BUILT_WITH_NIX)
+    list(REMOVE_ITEM SRCFILES
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/helpers/Nix.cpp"
+    )
+endif()
+
 add_executable(start-hyprland ${SRCFILES})
 
 target_link_libraries(start-hyprland PUBLIC PkgConfig::starthyprland_deps)

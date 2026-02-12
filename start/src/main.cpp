@@ -3,7 +3,13 @@
 #include <print>
 
 #include "helpers/Logger.hpp"
+
+#ifdef BUILT_WITH_NIX
+
 #include "helpers/Nix.hpp"
+
+#endif
+
 #include "core/State.hpp"
 #include "core/Instance.hpp"
 
@@ -75,10 +81,12 @@ int main(int argc, const char** argv, const char** envp) {
             g_state->customPath = argv[++i];
             continue;
         }
+#ifdef BUILT_WITH_NIX
         if (arg == "--no-nixgl") {
             g_state->noNixGl = true;
             continue;
         }
+#endif
     }
 
     if (startArgv != -1)
@@ -87,6 +95,7 @@ int main(int argc, const char** argv, const char** envp) {
     if (!g_state->rawArgvNoBinPath.empty())
         g_logger->log(Hyprutils::CLI::LOG_WARN, "Arguments after -- are passed to Hyprland");
 
+#ifdef BUILT_WITH_NIX
     // check if our environment is OK
     if (const auto RET = Nix::nixEnvironmentOk(); !RET) {
         g_logger->log(Hyprutils::CLI::LOG_ERR, "Nix environment check failed:\n{}", RET.error());
@@ -95,6 +104,7 @@ int main(int argc, const char** argv, const char** envp) {
 
     if (Nix::shouldUseNixGL())
         g_logger->log(Hyprutils::CLI::LOG_DEBUG, "Hyprland was compiled with Nix - will use nixGL");
+#endif
 
     bool safeMode = false;
     while (true) {

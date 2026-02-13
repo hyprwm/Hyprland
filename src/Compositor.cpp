@@ -1185,7 +1185,7 @@ PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
 
     const auto VIEW = pSurface->m_hlSurface->view();
 
-    if (VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
+    if (!VIEW || VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
         return nullptr;
 
     return dynamicPointerCast<Desktop::View::CWindow>(VIEW);

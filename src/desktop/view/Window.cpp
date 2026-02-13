@@ -1607,7 +1607,8 @@ Vector2D CWindow::realToReportSize() {
     const auto  PMONITOR   = m_monitor.lock();
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
-        return REPORTSIZE * PMONITOR->m_scale;
+        // Keep X11 configure sizes integral to avoid truncation (e.g. 2879.999 -> 2879) later in xcb.
+        return (REPORTSIZE * PMONITOR->m_scale).round();
 
     return REPORTSIZE;
 }

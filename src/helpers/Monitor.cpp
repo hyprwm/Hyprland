@@ -1893,7 +1893,18 @@ bool CMonitor::attemptDirectScanout() {
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
-    m_output->state->resetExplicitFences();
+
+    // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
+    if (m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd && g_pHyprOpenGL->explicitSyncSupported()) {
+        auto sync = CEGLSync::create();
+
+        if (sync->fd().isValid()) {
+            m_inFence = sync->takeFd();
+            m_output->state->setExplicitInFence(m_inFence.get());
+        } else
+            m_output->state->resetExplicitFences(); // good luck.
+    } else
+        m_output->state->resetExplicitFences();
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 

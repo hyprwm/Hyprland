@@ -476,7 +476,11 @@ function(protocolWayland)
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
 
-target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+if(TARGET OpenGL::GL)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+else()
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
+endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
 if(hyprland_protocols_dep_FOUND)

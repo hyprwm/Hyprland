@@ -203,6 +203,10 @@ VkCommandPool CHyprVulkanDevice::commandPool() {
     return m_commandPool;
 }
 
+const std::vector<SVkFormatProps>& CHyprVulkanDevice::formats() {
+    return m_formats;
+}
+
 std::optional<const SVkFormatProps> CHyprVulkanDevice::getFormat(const DRMFormat format) {
     const auto found = std::ranges::find_if(m_formats, [format](const auto fmt) { return fmt.format.drmFormat == format; });
     if (found != m_formats.end())

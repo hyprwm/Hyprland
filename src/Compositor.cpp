@@ -571,8 +571,10 @@ void CCompositor::cleanup() {
     m_workspaces.clear();
     m_windows.clear();
 
-    for (auto const& m : m_monitors) {
-        g_pHyprOpenGL->destroyMonitorResources(m);
+    if (g_pHyprOpenGL) {
+        for (auto const& m : m_monitors) {
+            g_pHyprOpenGL->destroyMonitorResources(m);
+        }
     }
 
     g_pXWayland.reset();
@@ -671,6 +673,13 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the CHyprVulkanImpl!");
             g_pHyprVulkan = makeUnique<CHyprVulkanImpl>();
 
+            static auto PVKRENDERER = CConfigValue<Hyprlang::INT>("render:use_vulkan");
+            Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
+            if (*PVKRENDERER)
+                g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
+            else
+                g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+
             Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();
 
@@ -688,13 +697,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();
-
-            static auto PVKRENDERER = CConfigValue<Hyprlang::INT>("render:use_vulkan");
-            Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            if (*PVKRENDERER)
-                g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
-            else
-                g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();
@@ -1341,8 +1343,11 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
             continue;
 
         // mark blur for recalc
-        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-            g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
+        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
+            auto mon = getMonitorFromID(monid);
+            if (mon)
+                mon->m_blurFBDirty = true;
+        }
 
         if (ls->m_fadingOut && ls->m_readyToDelete && ls->isFadedOut()) {
             for (auto const& m : m_monitors) {

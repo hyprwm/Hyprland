@@ -1304,11 +1304,12 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
     if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
-            rd.blurFBDirty = true;
+        for (auto const& m : g_pCompositor->m_monitors) {
+            if (m)
+                m->m_blurFBDirty = true;
         }
     }
 
@@ -2049,7 +2050,7 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
-    if (g_pHyprOpenGL->initShaders())
+    if (g_pHyprOpenGL && g_pHyprOpenGL->initShaders())
         return format == FORMAT_JSON ? "{\"ok\": true}" : "ok";
     else
         return format == FORMAT_JSON ? "{\"ok\": false}" : "error";
@@ -2184,10 +2185,11 @@ std::string CHyprCtl::getReply(std::string request) {
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
         g_pInputManager->setTabletConfigs();      // update tablets
 
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
 
-        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
-            rd.blurFBDirty = true;
+        for (auto const& m : g_pCompositor->m_monitors) {
+            if (m)
+                m->m_blurFBDirty = true;
         }
 
         for (auto const& w : g_pCompositor->m_windows) {

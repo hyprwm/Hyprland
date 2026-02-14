@@ -40,7 +40,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         this->copy(pFrame, res);
     });
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
     if (m_shmFormat == DRM_FORMAT_INVALID) {
@@ -292,7 +292,7 @@ void CScreencopyFrame::renderMon() {
 }
 
 void CScreencopyFrame::storeTempFB() {
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     m_tempFb.alloc(m_box.w, m_box.h);
 
@@ -351,7 +351,7 @@ bool CScreencopyFrame::copyShm() {
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     CFramebuffer fb;
     fb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
@@ -389,7 +389,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = m_monitor;
     fb.bind();
 
@@ -538,7 +538,7 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
 
 void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_framesAwaitingWrite.empty()) {
-        for (auto client : m_clients) {
+        for (const auto& client : m_clients) {
             if (client->m_framesInLastHalfSecond > 0)
                 return;
         }

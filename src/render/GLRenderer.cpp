@@ -41,6 +41,7 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
+#include "render/Renderer.hpp"
 #include "render/gl/GLTexture.hpp"
 #include "render/vulkan/Vulkan.hpp"
 #include "decorations/CHyprDropShadowDecoration.hpp"
@@ -59,7 +60,7 @@ extern "C" {
 CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer() {}
 
 void CHyprGLRenderer::initRender() {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;
 }
 
@@ -114,7 +115,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         g_pHyprOpenGL->end();
     else {
         g_pHyprRenderer->m_renderData.pMonitor.reset();
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor   = 1.f;
+        g_pHyprRenderer->m_renderData.mouseZoomFactor = 1.f;
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse = true;
     }
 
@@ -124,7 +125,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     if (m_renderMode == RENDER_MODE_NORMAL)
         PMONITOR->m_output->state->setBuffer(m_currentBuffer);
 
-    if (!g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");
 
         // nvidia doesn't have implicit sync, so we have to explicitly wait here, llvmpipe and other software renderer seems to bug out aswell.
@@ -173,18 +174,22 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(bool opaque) {
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(opaque);
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(attrs, image, opaque);
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(const int width, const int height, unsigned char* const data) {
+    g_pHyprOpenGL->makeEGLCurrent();
     SP<ITexture> tex = makeShared<CGLTexture>();
 
     tex->allocate();
@@ -207,6 +212,7 @@ SP<ITexture> CHyprGLRenderer::createTexture(const int width, const int height, u
 }
 
 SP<ITexture> CHyprGLRenderer::createTexture(cairo_surface_t* cairo) {
+    g_pHyprOpenGL->makeEGLCurrent();
     const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
     auto       tex         = makeShared<CGLTexture>();
 
@@ -233,7 +239,34 @@ SP<ITexture> CHyprGLRenderer::createTexture(cairo_surface_t* cairo) {
 }
 
 void* CHyprGLRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
+    g_pHyprOpenGL->makeEGLCurrent();
     return g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
+}
+
+bool CHyprGLRenderer::explicitSyncSupported() {
+    return g_pHyprOpenGL->explicitSyncSupported();
+}
+
+std::vector<SDRMFormat> CHyprGLRenderer::getDRMFormats() {
+    return g_pHyprOpenGL->getDRMFormats();
+}
+
+void CHyprGLRenderer::cleanWindowResources(Desktop::View::CWindow* window) {
+    if (!g_pHyprOpenGL)
+        return;
+
+    g_pHyprOpenGL->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_windowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == window; });
+}
+
+void CHyprGLRenderer::cleanPopupResources(Desktop::View::CPopup* popup) {
+    g_pHyprOpenGL->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == popup; });
+}
+
+void CHyprGLRenderer::cleanLsResources(Desktop::View::CLayerSurface* ls) {
+    g_pHyprOpenGL->makeEGLCurrent();
+    std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == ls; });
 }
 
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
@@ -334,14 +367,14 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
     g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[]() {
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->m_renderData.clipBox                     = {};
-        g_pHyprOpenGL->m_renderData.clipRegion                  = {};
-        g_pHyprOpenGL->m_renderData.discardMode                 = 0;
-        g_pHyprOpenGL->m_renderData.discardOpacity              = 0;
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
+        g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        g_pHyprOpenGL->m_renderData.useNearestNeighbor            = false;
+        g_pHyprOpenGL->m_renderData.clipBox                       = {};
+        g_pHyprOpenGL->m_renderData.clipRegion                    = {};
+        g_pHyprOpenGL->m_renderData.discardMode                   = 0;
+        g_pHyprOpenGL->m_renderData.discardOpacity                = 0;
+        g_pHyprOpenGL->m_renderData.useNearestNeighbor            = false;
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();

@@ -11,7 +11,7 @@ CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
 bool CMonitorFrameScheduler::newSchedulingEnabled() {
     static auto PENABLENEW = CConfigValue<Hyprlang::INT>("render:new_render_scheduling");
 
-    return *PENABLENEW && g_pHyprOpenGL->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive;
+    return *PENABLENEW && g_pHyprRenderer->explicitSyncSupported() && m_monitor && !m_monitor->m_directScanoutIsActive;
 }
 
 void CMonitorFrameScheduler::onSyncFired() {

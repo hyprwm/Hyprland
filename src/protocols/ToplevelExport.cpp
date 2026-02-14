@@ -98,7 +98,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     const auto PMONITOR = m_window->m_monitor.lock();
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     m_shmFormat = NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
     LOGM(Log::DEBUG, "Format {:x}", m_shmFormat);
@@ -240,7 +240,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     const auto PMONITOR = m_window->m_monitor.lock();
     CRegion    fakeDamage{0, 0, PMONITOR->m_pixelSize.x * 10, PMONITOR->m_pixelSize.y * 10};
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     CFramebuffer outFB;
     outFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
@@ -281,7 +281,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
     outFB.bind();
 

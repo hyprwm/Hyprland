@@ -357,6 +357,9 @@ class CMonitor {
     NColorManagement::PImageDescription m_imageDescription;
     bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
 
+    bool                                m_blurFBDirty        = true;
+    bool                                m_blurFBShouldRender = false;
+
     // For the list lookup
 
     bool operator==(const CMonitor& rhs) {

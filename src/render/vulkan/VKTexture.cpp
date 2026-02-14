@@ -163,7 +163,6 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque
 };
 
 CVKTexture::~CVKTexture() {
-    Log::logger->log(Log::DEBUG, "CVKTexture::~CVKTexture {}x{}", m_size.x, m_size.y);
     m_views.clear();
 
     if (m_image)

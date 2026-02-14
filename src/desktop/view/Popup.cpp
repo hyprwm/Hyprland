@@ -166,8 +166,7 @@ void CPopup::onDestroy() {
 void CPopup::fullyDestroy() {
     Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
-    g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first == m_self; });
+    g_pHyprRenderer->cleanPopupResources(this);
 
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });
 }
@@ -196,8 +195,11 @@ void CPopup::onMap() {
     sendScale();
     m_resource->m_surface->m_surface->enter(PMONITOR->m_self.lock());
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        auto mon = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
+        if (mon)
+            mon->m_blurFBDirty = true;
+    }
 
     m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
     m_alpha->setValueAndWarp(0.F);
@@ -248,8 +250,10 @@ void CPopup::onUnmap() {
 
     m_subsurfaceHead.reset();
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
+        mon->m_blurFBDirty = true;
+    }
 
     // damage all children
     breadthfirst(
@@ -313,8 +317,10 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     m_requestedReposition = false;
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
+        mon->m_blurFBDirty = true;
+    }
 }
 
 void CPopup::onReposition() {

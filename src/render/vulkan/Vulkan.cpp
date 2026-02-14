@@ -432,18 +432,22 @@ WP<CVKMemorySpan> CHyprVulkanImpl::getMemorySpan(VkDeviceSize size, VkDeviceSize
 
 SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds) {
     for (const auto& pool : m_dsPools) {
-        switch (pool->allocateSet(layout, ds)) {
+        const auto res = pool->allocateSet(layout, ds);
+        switch (res) {
             case VK_ERROR_FRAGMENTED_POOL:
             case VK_ERROR_OUT_OF_POOL_MEMORY: continue;
             case VK_SUCCESS: return pool;
-            default: return nullptr;
+            default: Log::logger->log(Log::ERR, "failed to allocate descriptor set on existing pool: {}", (unsigned)res); return nullptr;
         }
     }
 
     const auto size = m_lastDsPoolSize ? m_lastDsPoolSize * 2 : INITIAL_DESCRIPTOR_POOL_SIZE;
     auto       pool = m_dsPools.emplace_back(makeShared<CVKDescriptorPool>(m_device, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, size));
-    if (pool->allocateSet(layout, ds) == VK_SUCCESS)
+    const auto res  = pool->allocateSet(layout, ds);
+
+    if (res == VK_SUCCESS)
         return pool;
 
+    Log::logger->log(Log::ERR, "failed to allocate descriptor set on a new pool: {}", (unsigned)res);
     return nullptr;
 }

@@ -147,9 +147,6 @@ struct SMonitorRenderData {
     CFramebuffer blurFB;
 
     SP<ITexture> stencilTex;
-
-    bool         blurFBDirty        = true;
-    bool         blurFBShouldRender = false;
 };
 
 struct SCurrentRenderData {
@@ -159,25 +156,22 @@ struct SCurrentRenderData {
     Mat3x3        monitorProjection;
 
     // FIXME: raw pointer galore!
-    SMonitorRenderData*    pCurrentMonData = nullptr;
-    CFramebuffer*          currentFB       = nullptr; // current rendering to
-    CFramebuffer*          mainFB          = nullptr; // main to render to
-    CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData* pCurrentMonData = nullptr;
+    CFramebuffer*       currentFB       = nullptr; // current rendering to
+    CFramebuffer*       mainFB          = nullptr; // main to render to
+    CFramebuffer*       outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
+    SP<CRenderbuffer>   m_currentRenderbuffer = nullptr;
 
-    CRegion                damage;
-    CRegion                finalDamage; // damage used for funal off -> main
+    CRegion             damage;
+    CRegion             finalDamage; // damage used for funal off -> main
 
-    SRenderModifData       renderModif;
-    float                  mouseZoomFactor    = 1.f;
+    SRenderModifData    renderModif;
+    // float                  mouseZoomFactor    = 1.f;
     bool                   mouseZoomUseMouse  = true; // true by default
     bool                   useNearestNeighbor = false;
     bool                   blockScreenShader  = false;
     bool                   simplePass         = false;
-
-    Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
     CBox                   clipBox = {}; // scaled coordinates
     CRegion                clipRegion;
@@ -252,6 +246,7 @@ class CHyprOpenGLImpl {
         int   outerRound    = -1; /* use round */
     };
 
+    void                                              makeEGLCurrent();
     void                                              begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
     void                                              beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
     void                                              end();
@@ -285,7 +280,6 @@ class CHyprOpenGLImpl {
 
     void                                              markBlurDirtyForMonitor(PHLMONITOR);
 
-    bool                                              preBlurQueued(PHLMONITORREF);
     void                                              preRender(PHLMONITOR);
 
     void                                              saveBufferForMirror(const CBox&);
@@ -323,8 +317,6 @@ class CHyprOpenGLImpl {
     EGLContext                                        m_eglContext = nullptr;
     EGLDisplay                                        m_eglDisplay = nullptr;
     EGLDeviceEXT                                      m_eglDevice  = nullptr;
-
-    bool                                              m_reloadScreenShader = true; // at launch it can be set
 
     std::map<PHLWINDOWREF, CFramebuffer>              m_windowFramebuffers;
     std::map<PHLLSREF, CFramebuffer>                  m_layerFramebuffers;

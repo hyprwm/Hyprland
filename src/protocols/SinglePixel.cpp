@@ -8,8 +8,6 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_color = col_.getAsHex();
 
-    g_pHyprRenderer->makeEGLCurrent();
-
     m_opaque = col_.a >= 1.F;
 
     m_texture = g_pHyprRenderer->createTexture(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});

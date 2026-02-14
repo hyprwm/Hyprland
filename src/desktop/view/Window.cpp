@@ -160,11 +160,7 @@ CWindow::~CWindow() {
 
     m_events.destroy.emit();
 
-    if (!g_pHyprOpenGL)
-        return;
-
-    g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_windowFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == this; });
+    g_pHyprRenderer->cleanWindowResources(this);
 }
 
 eViewType CWindow::type() const {

@@ -695,6 +695,14 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     pushMonitorTransformEnabled(false);
 }
 
+void CHyprOpenGLImpl::makeEGLCurrent() {
+    if (!g_pCompositor || !g_pHyprOpenGL)
+        return;
+
+    if (eglGetCurrentContext() != g_pHyprOpenGL->m_eglContext)
+        eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
+}
+
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_renderData.pMonitor = pMonitor;
 
@@ -753,9 +761,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
 
     m_fakeFrame = fb;
 
-    if (m_reloadScreenShader) {
-        m_reloadScreenShader = false;
-        static auto PSHADER  = CConfigValue<std::string>("decoration:screen_shader");
+    if (g_pHyprRenderer->m_reloadScreenShader) {
+        g_pHyprRenderer->m_reloadScreenShader = false;
+        static auto PSHADER                   = CConfigValue<std::string>("decoration:screen_shader");
         applyScreenShader(*PSHADER);
     }
 
@@ -781,12 +789,12 @@ void CHyprOpenGLImpl::end() {
 
         CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
-        if LIKELY (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && m_renderData.mouseZoomFactor == 1.0f)
+        if LIKELY (g_pHyprRenderer->m_renderMode == RENDER_MODE_NORMAL && g_pHyprRenderer->m_renderData.mouseZoomFactor == 1.0f)
             m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
         m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
         m_applyFinalShader = !m_renderData.blockScreenShader;
-        if UNLIKELY (m_renderData.mouseZoomFactor != 1.F && m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
+        if UNLIKELY (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.F && m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
             m_renderData.useNearestNeighbor = true;
 
         // copy the damaged areas into the mirror buffer
@@ -821,12 +829,12 @@ void CHyprOpenGLImpl::end() {
 
     // reset our data
     m_renderData.pMonitor.reset();
-    m_renderData.mouseZoomFactor   = 1.f;
-    m_renderData.mouseZoomUseMouse = true;
-    m_renderData.blockScreenShader = false;
-    m_renderData.currentFB         = nullptr;
-    m_renderData.mainFB            = nullptr;
-    m_renderData.outFB             = nullptr;
+    g_pHyprRenderer->m_renderData.mouseZoomFactor = 1.f;
+    m_renderData.mouseZoomUseMouse                = true;
+    m_renderData.blockScreenShader                = false;
+    m_renderData.currentFB                        = nullptr;
+    m_renderData.mainFB                           = nullptr;
+    m_renderData.outFB                            = nullptr;
     popMonitorTransformEnabled();
 
     // if we dropped to offMain, release it now.
@@ -1554,11 +1562,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     auto verts = fullVerts;
 
-    if (data.allowCustomUV && m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        const float u0 = m_renderData.primarySurfaceUVTopLeft.x;
-        const float v0 = m_renderData.primarySurfaceUVTopLeft.y;
-        const float u1 = m_renderData.primarySurfaceUVBottomRight.x;
-        const float v1 = m_renderData.primarySurfaceUVBottomRight.y;
+    if (data.allowCustomUV && g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+        const float u0 = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft.x;
+        const float v0 = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft.y;
+        const float u1 = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight.x;
+        const float v1 = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight.y;
 
         verts[0].u = u0;
         verts[0].v = v0;
@@ -1901,7 +1909,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
 }
 
 void CHyprOpenGLImpl::markBlurDirtyForMonitor(PHLMONITOR pMonitor) {
-    m_monitorRenderResources[pMonitor].blurFBDirty = true;
+    pMonitor->m_blurFBDirty = true;
 }
 
 void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
@@ -1909,7 +1917,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    if (!*PBLURNEWOPTIMIZE || !m_monitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
+    if (!*PBLURNEWOPTIMIZE || !pMonitor->m_blurFBDirty || !*PBLUR)
         return;
 
     // ignore if solitary present, nothing to blur
@@ -1984,7 +1992,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         return;
 
     g_pHyprRenderer->damageMonitor(pMonitor);
-    m_monitorRenderResources[pMonitor].blurFBShouldRender = true;
+    pMonitor->m_blurFBShouldRender = true;
 }
 
 void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
@@ -2012,20 +2020,10 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     m_renderData.currentFB->bind();
 
-    m_renderData.pCurrentMonData->blurFBDirty = false;
+    m_renderData.pMonitor->m_blurFBDirty        = false;
+    m_renderData.pMonitor->m_blurFBShouldRender = false;
 
     m_renderData.renderModif = SAVEDRENDERMODIF;
-
-    m_monitorRenderResources[m_renderData.pMonitor].blurFBShouldRender = false;
-}
-
-bool CHyprOpenGLImpl::preBlurQueued(PHLMONITORREF pMonitor) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-
-    const auto& DATA = m_monitorRenderResources[m_renderData.pMonitor];
-
-    return DATA.blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && DATA.blurFBShouldRender;
 }
 
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
@@ -2110,8 +2108,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     }
 
     // stencil done. Render everything.
-    const auto LASTTL = m_renderData.primarySurfaceUVTopLeft;
-    const auto LASTBR = m_renderData.primarySurfaceUVBottomRight;
+    const auto LASTTL = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft;
+    const auto LASTBR = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight;
 
     CBox       transformedBox = box;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
@@ -2122,8 +2120,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                             transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
                             transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
 
-    m_renderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize;
-    m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
+    g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize;
+    g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
 
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
     pushMonitorTransformEnabled(true);
@@ -2145,8 +2143,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         setRenderModifEnabled(true);
     popMonitorTransformEnabled();
 
-    m_renderData.primarySurfaceUVTopLeft     = LASTTL;
-    m_renderData.primarySurfaceUVBottomRight = LASTBR;
+    g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = LASTTL;
+    g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = LASTBR;
 
     // draw window
     setCapStatus(GL_STENCIL_TEST, false);
@@ -2500,7 +2498,7 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
-    g_pHyprRenderer->makeEGLCurrent();
+    makeEGLCurrent();
 
     if (!g_pHyprOpenGL)
         return;

@@ -32,6 +32,7 @@ class CHyprVulkanDevice {
 
     std::optional<const SVkFormatProps> getFormat(const DRMFormat format);
     VkCommandPool                       commandPool();
+    const std::vector<SVkFormatProps>&  formats();
 
   private:
     inline void                            loadVulkanProc(void* pProc, const char* name);

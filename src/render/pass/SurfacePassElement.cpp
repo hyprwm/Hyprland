@@ -149,8 +149,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     // deal with any rounding errors that might come from scaling
     visibleRegion.expand(1);
 
-    auto uvTL = g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft;
-    auto uvBR = g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight;
+    auto uvTL = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft;
+    auto uvBR = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight;
 
     if (uvTL == Vector2D(-1, -1))
         uvTL = Vector2D(0, 0);

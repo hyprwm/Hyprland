@@ -12,7 +12,7 @@ CRenderbuffer::~CRenderbuffer() {
     if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     unbind();
     m_framebuffer.release();

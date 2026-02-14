@@ -24,7 +24,7 @@ CVKDescriptorPool::CVKDescriptorPool(WP<CHyprVulkanDevice> device, VkDescriptorT
 
 VkResult CVKDescriptorPool::allocateSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds) {
     if (!m_available)
-        return VK_NOT_READY;
+        return VK_ERROR_OUT_OF_POOL_MEMORY;
 
     VkDescriptorSetAllocateInfo dsInfo = {
         .sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,

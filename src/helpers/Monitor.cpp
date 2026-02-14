@@ -1710,7 +1710,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
-    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+    if (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
             Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
@@ -1895,7 +1895,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
         auto sync = CEGLSync::create();
 
         if (sync->fd().isValid()) {

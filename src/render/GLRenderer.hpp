@@ -6,13 +6,18 @@ class CHyprGLRenderer : public IHyprRenderer {
   public:
     CHyprGLRenderer();
 
-    void         endRender(const std::function<void()>& renderingDoneCallback = {}) override;
-    SP<ITexture> createTexture(bool opaque = false) override;
-    SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
-    SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false) override;
-    SP<ITexture> createTexture(const int width, const int height, unsigned char* const data) override;
-    SP<ITexture> createTexture(cairo_surface_t* cairo) override;
-    void*        createImage(const SP<Aquamarine::IBuffer> buffer) override;
+    void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
+    SP<ITexture>            createTexture(bool opaque = false) override;
+    SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
+    SP<ITexture>            createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false) override;
+    SP<ITexture>            createTexture(const int width, const int height, unsigned char* const data) override;
+    SP<ITexture>            createTexture(cairo_surface_t* cairo) override;
+    void*                   createImage(const SP<Aquamarine::IBuffer> buffer) override;
+    bool                    explicitSyncSupported() override;
+    std::vector<SDRMFormat> getDRMFormats() override;
+    void                    cleanWindowResources(Desktop::View::CWindow* window) override;
+    void                    cleanPopupResources(Desktop::View::CPopup* popup) override;
+    void                    cleanLsResources(Desktop::View::CLayerSurface* ls) override;
 
   private:
     bool         beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;

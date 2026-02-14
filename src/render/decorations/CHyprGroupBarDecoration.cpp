@@ -348,15 +348,7 @@ static void renderGradientTo(SP<ITexture> tex, CGradientValueData* grad) {
     cairo_surface_flush(CAIROSURFACE);
 
     // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->allocate();
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bufferSize.x, bufferSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    tex = g_pHyprRenderer->createTexture(CAIROSURFACE);
 
     // delete cairo
     cairo_destroy(CAIRO);
@@ -375,8 +367,6 @@ void refreshGroupBarGradients() {
     auto* const GROUPCOLINACTIVE        = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
     auto* const GROUPCOLACTIVELOCKED    = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
     auto* const GROUPCOLINACTIVELOCKED  = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
-
-    g_pHyprRenderer->makeEGLCurrent();
 
     if (m_tGradientActive->ok()) {
         m_tGradientActive.reset();

@@ -10,6 +10,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "desktop/view/Popup.hpp"
 #include "render/Framebuffer.hpp"
 #include "render/Texture.hpp"
 #include "render/pass/BorderPassElement.hpp"
@@ -83,14 +84,14 @@ struct SRenderData {
     // CRegion                finalDamage; // damage used for funal off -> main
 
     // SRenderModifData       renderModif;
-    // float                  mouseZoomFactor    = 1.f;
+    float mouseZoomFactor = 1.f;
     // bool                   mouseZoomUseMouse  = true; // true by default
     // bool                   useNearestNeighbor = false;
     // bool                   blockScreenShader  = false;
     // bool                   simplePass         = false;
 
-    // Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    // Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
     // CBox                   clipBox = {}; // scaled coordinates
     // CRegion                clipRegion;
@@ -115,7 +116,6 @@ class IHyprRenderer {
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
     void initiateManualCrash();
-    void makeEGLCurrent();
     void unsetEGL();
     void makeSnapshot(PHLWINDOW);
     void makeSnapshot(PHLLS);
@@ -189,7 +189,8 @@ class IHyprRenderer {
     bool                 m_cursorHiddenByCondition = false;                                     // TODO? move to protected and fix CHyprOpenGLImpl::renderTextureInternal
     SRenderData          m_renderData;                                                          // TODO? move to protected and fix CRenderPass
     SP<ITexture>         m_screencopyDeniedTexture;                                             // TODO? make readonly
-    uint                 m_failedAssetsNo = 0;                                                  // TODO? make readonly
+    uint                 m_failedAssetsNo     = 0;                                              // TODO? make readonly
+    bool                 m_reloadScreenShader = true;                                           // at launch it can be set
 
     void                 draw(WP<IPassElement> element, const CRegion& damage);
     virtual SP<ITexture> createTexture(bool opaque = false)                                                                                                        = 0;
@@ -202,6 +203,13 @@ class IHyprRenderer {
     virtual SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
     SP<ITexture>         loadAsset(const std::string& filename);
     virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    virtual bool         explicitSyncSupported()    = 0;
+    virtual std::vector<SDRMFormat> getDRMFormats() = 0;
+    virtual void                    cleanWindowResources(Desktop::View::CWindow* window) {};
+    virtual void                    cleanPopupResources(Desktop::View::CPopup* popup) {};
+    virtual void                    cleanLsResources(Desktop::View::CLayerSurface* ls) {};
+
+    bool                            preBlurQueued(PHLMONITORREF pMonitor);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.

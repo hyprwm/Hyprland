@@ -13,7 +13,7 @@ CGLTexture::~CGLTexture() {
     if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     if (m_texID) {
         GLCALL(glDeleteTextures(1, &m_texID));
         m_texID = 0;
@@ -28,7 +28,7 @@ CGLTexture::~CGLTexture() {
 CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy, bool opaque) :
     ITexture(drmFormat, pixels, stride, size_, keepDataCopy, opaque) {
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);
@@ -95,7 +95,7 @@ void CGLTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, co
     if (damage.empty())
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
     ASSERT(format);

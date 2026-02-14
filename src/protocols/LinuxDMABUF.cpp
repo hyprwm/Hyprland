@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "core/Compositor.hpp"
+#include "render/Renderer.hpp"
 #include "types/DMABuffer.hpp"
 #include "types/WLBuffer.hpp"
 #include "../managers/HookSystemManager.hpp"
@@ -449,7 +450,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         SDMABUFTranche eglTranche = {
             .device  = m_mainDevice,
             .flags   = 0, // renderer isn't for ds so don't set flag.
-            .formats = g_pHyprOpenGL->getDRMFormats(),
+            .formats = g_pHyprRenderer->getDRMFormats(),
         };
 
         std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tches;

@@ -1360,7 +1360,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
 
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
     }
 
     // parseError will be displayed next frame
@@ -1434,7 +1434,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty
-        g_pHyprOpenGL->markBlurDirtyForMonitor(m);
+        m->m_blurFBDirty = true;
 
         g_pCompositor->scheduleFrameForMonitor(m);
 

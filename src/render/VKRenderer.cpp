@@ -201,6 +201,32 @@ void* CHyprVKRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
     return nullptr;
 }
 
+bool CHyprVKRenderer::explicitSyncSupported() {
+    return true; // FIXME actual check
+}
+
+std::vector<SDRMFormat> CHyprVKRenderer::getDRMFormats() {
+    // TODO cache
+    const auto              source = g_pHyprVulkan->m_device->formats();
+    std::vector<SDRMFormat> formats(source.size());
+    std::ranges::transform(source, formats.begin(), [](const auto fmt) {
+        std::set<uint64_t> modSet;
+        for (const auto& info : fmt.dmabuf.renderModifiers) {
+            modSet.insert(info.props.drmFormatModifier);
+        }
+        for (const auto& info : fmt.dmabuf.textureModifiers) {
+            modSet.insert(info.props.drmFormatModifier);
+        }
+        std::vector<uint64_t> mods(modSet.begin(), modSet.end());
+
+        return SDRMFormat{
+            .drmFormat = fmt.format.drmFormat,
+            .modifiers = mods,
+        };
+    });
+    return formats;
+}
+
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     // TODO
     // if (m_renderData.damage.empty())
@@ -328,7 +354,11 @@ void CHyprVKRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 };
 
 void CHyprVKRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    }
 };
 
 void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {

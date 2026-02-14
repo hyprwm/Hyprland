@@ -45,6 +45,7 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/AsyncResourceGatherer.hpp"
+#include "render/OpenGL.hpp"
 #include "render/Texture.hpp"
 #include "render/pass/BorderPassElement.hpp"
 #include "render/pass/PreBlurElement.hpp"
@@ -771,6 +772,15 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     }
 }
 
+bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
+    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+
+    if (!pMonitor)
+        return false;
+    return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
+}
+
 SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
         return createTexture();
@@ -1040,7 +1050,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // pre window pass
-    if (g_pHyprOpenGL->preBlurQueued(pMonitor))
+    if (preBlurQueued(pMonitor))
         m_renderPass.add(makeUnique<CPreBlurElement>());
 
     if UNLIKELY /* subjective? */ (pWorkspace->m_hasFullscreenWindow)
@@ -1590,13 +1600,13 @@ void IHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             }
         }
 
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;
+        m_renderData.primarySurfaceUVTopLeft     = uvTL;
+        m_renderData.primarySurfaceUVBottomRight = uvBR;
 
-        if (g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+        if (m_renderData.primarySurfaceUVTopLeft == Vector2D() && m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
 
         if (!main || !pWindow)
@@ -1618,17 +1628,17 @@ void IHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         //     uvTL               = uvTL + TOADDTL;
         // }
 
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;
+        m_renderData.primarySurfaceUVTopLeft     = uvTL;
+        m_renderData.primarySurfaceUVBottomRight = uvBR;
 
-        if (g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+        if (m_renderData.primarySurfaceUVTopLeft == Vector2D() && m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
     } else {
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
 }
 
@@ -1779,12 +1789,12 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     }
 
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
+        m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
     else
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
+        m_renderData.mouseZoomFactor = 1.f;
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
+        m_renderData.mouseZoomFactor                   = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;
     }
@@ -2671,14 +2681,6 @@ SP<CRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer>
     return buf;
 }
 
-void IHyprRenderer::makeEGLCurrent() {
-    if (!g_pCompositor || !g_pHyprOpenGL)
-        return;
-
-    if (eglGetCurrentContext() != g_pHyprOpenGL->m_eglContext)
-        eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
-}
-
 void IHyprRenderer::unsetEGL() {
     if (!g_pHyprOpenGL)
         return;
@@ -2745,7 +2747,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_windowFramebuffers[ref];
 
@@ -2778,7 +2780,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_layerFramebuffers[pLayer];
 
@@ -2812,7 +2814,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_popupFramebuffers[popup];
 

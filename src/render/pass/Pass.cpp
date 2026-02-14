@@ -181,7 +181,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
         simplify();
 
     if (g_pHyprOpenGL->m_renderData.pCurrentMonData)
-        g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
+        g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
 
     if (m_passElements.empty())
         return {};

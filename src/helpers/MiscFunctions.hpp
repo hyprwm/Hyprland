@@ -46,6 +46,7 @@ std::string                             deviceNameToInternalString(std::string i
 std::string                             getSystemLibraryVersion(const std::string& name);
 std::string                             getBuiltSystemLibraryNames();
 bool                                    truthy(const std::string& str);
+bool                                    sameGpu(int fd1, int fd2);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

@@ -1895,7 +1895,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd && g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprOpenGL->explicitSyncSupported()) {
         auto sync = CEGLSync::create();
 
         if (sync->fd().isValid()) {

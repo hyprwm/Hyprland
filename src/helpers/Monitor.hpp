@@ -13,7 +13,7 @@
 #include <xf86drmMode.h>
 #include "MonitorZoomController.hpp"
 #include "../render/Texture.hpp"
-#include "render/Framebuffer.hpp"
+#include "../render/Framebuffer.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"

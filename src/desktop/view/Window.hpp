@@ -19,7 +19,7 @@
 #include "../Workspace.hpp"
 #include "../rule/windowRule/WindowRuleApplicator.hpp"
 #include "../../protocols/types/ContentType.hpp"
-#include "render/Framebuffer.hpp"
+#include "../../render/Framebuffer.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;

@@ -5,32 +5,28 @@
 #include "Texture.hpp"
 #include <drm_fourcc.h>
 
-class CFramebuffer {
+class IFramebuffer {
   public:
-    CFramebuffer();
-    ~CFramebuffer();
+    IFramebuffer() = default;
+    virtual ~IFramebuffer();
 
-    bool         alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
-    void         addStencil(SP<ITexture> tex);
-    void         bind();
-    void         unbind();
-    void         release();
-    void         reset();
+    virtual bool alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
+    virtual void release() = 0;
+
     bool         isAllocated();
     SP<ITexture> getTexture();
     SP<ITexture> getStencilTex();
-    GLuint       getFBID();
-    void         invalidate(const std::vector<GLenum>& attachments);
+
+    virtual void addStencil(SP<ITexture> tex) = 0;
 
     Vector2D     m_size;
-    DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;
+    DRMFormat    m_drmFormat = DRM_FORMAT_INVALID;
 
-  private:
+  protected:
+    virtual bool internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) = 0;
+
     SP<ITexture> m_tex;
-    GLuint       m_fb          = -1;
     bool         m_fbAllocated = false;
 
     SP<ITexture> m_stencilTex;
-
-    friend class CRenderbuffer;
 };

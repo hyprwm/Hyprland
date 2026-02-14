@@ -39,11 +39,11 @@ CCommitTimerResource::CCommitTimerResource(UP<CWpCommitTimerV1>&& resource_, SP<
         if (!state->timer) {
             state->timer = makeShared<CEventLoopTimer>(
                 state->pendingTimeout,
-                [this, state](SP<CEventLoopTimer> self, void* data) {
-                    if (!m_surface || !state)
+                [surface = m_surface, state](SP<CEventLoopTimer> self, void* data) {
+                    if (!surface || !state)
                         return;
 
-                    m_surface->m_stateQueue.unlock(state, LOCK_REASON_TIMER);
+                    surface->m_stateQueue.unlock(state, LOCK_REASON_TIMER);
                 },
                 nullptr);
             g_pEventLoopManager->addTimer(state->timer);

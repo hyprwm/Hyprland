@@ -574,7 +574,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     }
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = state->monitor;
+    g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
@@ -594,7 +594,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     g_pHyprOpenGL->renderTexture(texture, xbox, {});
 
     g_pHyprOpenGL->end();
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     return buf;
 }

@@ -1,8 +1,5 @@
 #include "TexPassElement.hpp"
-#include "../OpenGL.hpp"
-
-#include <hyprutils/utils/ScopeGuard.hpp>
-using namespace Hyprutils::Utils;
+#include "../Renderer.hpp"
 
 CTexPassElement::CTexPassElement(const SRenderData& data) : m_data(data) {
     ;
@@ -21,7 +18,7 @@ bool CTexPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CTexPassElement::boundingBox() {
-    return m_data.box.copy().scale(1.F / g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
+    return m_data.box.copy().scale(1.F / g_pHyprRenderer->m_renderData.pMonitor->m_scale).round();
 }
 
 CRegion CTexPassElement::opaqueRegion() {

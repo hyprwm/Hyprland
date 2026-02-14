@@ -7,6 +7,9 @@
 #include "./vulkan/Pipeline.hpp"
 #include "./vulkan/PipelineLayout.hpp"
 #include "./vulkan/Shaders.hpp"
+#include "render/Texture.hpp"
+#include "render/vulkan/CommandBuffer.hpp"
+#include <vector>
 
 class CHyprVKRenderer : public IHyprRenderer {
   public:
@@ -16,7 +19,13 @@ class CHyprVKRenderer : public IHyprRenderer {
     SP<ITexture> createTexture(bool opaque = false) override;
     SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
     SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false) override;
+    SP<ITexture> createTexture(const int width, const int height, unsigned char* const data) override;
+    SP<ITexture> createTexture(cairo_surface_t* cairo) override;
     void*        createImage(const SP<Aquamarine::IBuffer> buffer) override;
+
+    // TODO fix api
+    SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
+    SP<CVkPipelineLayout> ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize);
 
   private:
     bool                                beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
@@ -35,14 +44,19 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                                draw(CTexPassElement* element, const CRegion& damage) override;
     void                                draw(CTextureMatteElement* element, const CRegion& damage) override;
 
+    void                                bindPipeline(WP<CVkPipeline> pipeline);
+
     std::vector<SP<CHyprVkFramebuffer>> m_renderBuffers;
     SP<CHyprVkFramebuffer>              m_currentRenderbuffer;
 
     std::vector<SP<CVkRenderPass>>      m_renderPassList;
     SP<CVkRenderPass>                   m_currentRenderPass;
     SP<CVkShaders>                      m_shaders;
-    SP<CVkPipelineLayout>               m_pipelineLayout;
-    SP<CVkPipeline>                     m_texturePipeline;
+
+    std::vector<SP<CVkPipelineLayout>>  m_pipelineLayouts;
+
+    WP<CVkPipeline>                     m_currentPipeline;
+    WP<CHyprVkCommandBuffer>            m_currentCommandBuffer;
 
     friend class CHyprVulkanImpl;
 };

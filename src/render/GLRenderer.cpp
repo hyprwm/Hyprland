@@ -60,7 +60,7 @@ CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer() {}
 
 void CHyprGLRenderer::initRender() {
     makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = renderData().pMonitor;
+    g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;
 }
 
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
@@ -72,10 +72,6 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     }
 
     return g_pHyprOpenGL->m_renderData.m_currentRenderbuffer;
-}
-
-SP<ITexture> CHyprGLRenderer::getBackground(PHLMONITOR pMonitor) {
-    return g_pHyprOpenGL->getBGTextureForMonitor(pMonitor);
 }
 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
@@ -102,7 +98,7 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 }
 
 void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    const auto  PMONITOR           = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
     g_pHyprOpenGL->m_renderData.damage = m_renderPass.render(g_pHyprOpenGL->m_renderData.damage);
@@ -117,7 +113,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
     else {
-        g_pHyprOpenGL->m_renderData.pMonitor.reset();
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
         g_pHyprOpenGL->m_renderData.mouseZoomFactor   = 1.f;
         g_pHyprOpenGL->m_renderData.mouseZoomUseMouse = true;
     }
@@ -186,6 +182,54 @@ SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels,
 
 SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
     return makeShared<CGLTexture>(attrs, image, opaque);
+}
+
+SP<ITexture> CHyprGLRenderer::createTexture(const int width, const int height, unsigned char* const data) {
+    SP<ITexture> tex = makeShared<CGLTexture>();
+
+    tex->allocate();
+
+    tex->m_size = {width, height};
+    // copy the data to an OpenGL texture we have
+    const GLint glFormat = GL_RGBA;
+    const GLint glType   = GL_UNSIGNED_BYTE;
+
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, data);
+    tex->unbind();
+
+    return tex;
+}
+
+SP<ITexture> CHyprGLRenderer::createTexture(cairo_surface_t* cairo) {
+    const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
+    auto       tex         = makeShared<CGLTexture>();
+
+    tex->allocate();
+    tex->m_size = {cairo_image_surface_get_width(cairo), cairo_image_surface_get_height(cairo)};
+
+    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
+    const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
+    const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(cairo);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
+
+    return tex;
 }
 
 void* CHyprGLRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
@@ -275,7 +319,7 @@ void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& da
 
 void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
-    m_data.deco->render(g_pHyprOpenGL->m_renderData.pMonitor.lock(), m_data.a);
+    m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
@@ -412,14 +456,6 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
                                          {.a = ALPHA * OVERALL_ALPHA, .round = rounding, .roundingPower = roundingPower, .discardActive = false, .allowCustomUV = true});
     }
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
-        m_data.surface->presentFeedback(m_data.when, m_data.pMonitor->m_self.lock());
-
-    // add async (dmabuf) buffers to usedBuffers so we can handle release later
-    // sync (shm) buffers will be released in commitState, so no need to track them here
-    if (m_data.surface->m_current.buffer && !m_data.surface->m_current.buffer->isSynchronous())
-        g_pHyprRenderer->m_usedAsyncBuffers.emplace_back(m_data.surface->m_current.buffer);
-
     g_pHyprOpenGL->blend(true);
 };
 
@@ -432,7 +468,7 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
         g_pHyprOpenGL->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)
-            g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprOpenGL->m_renderData.pMonitor->m_projMatrix;
+            g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix;
         if (m_data.ignoreAlpha.has_value())
             g_pHyprOpenGL->m_renderData.discardMode = 0;
     }};
@@ -476,3 +512,7 @@ void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
     } else
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, *m_data.fb);
 };
+
+SP<ITexture> CHyprGLRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
+    return g_pHyprOpenGL->m_monitorRenderResources[pMonitor].blurFB.getTexture();
+}

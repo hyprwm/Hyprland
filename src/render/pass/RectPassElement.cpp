@@ -1,5 +1,5 @@
 #include "RectPassElement.hpp"
-#include "../OpenGL.hpp"
+#include "../Renderer.hpp"
 
 CRectPassElement::CRectPassElement(const CRectPassElement::SRectData& data_) : m_data(data_) {
     ;
@@ -14,7 +14,7 @@ bool CRectPassElement::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> CRectPassElement::boundingBox() {
-    return m_data.box.copy().scale(1.F / g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
+    return m_data.box.copy().scale(1.F / g_pHyprRenderer->m_renderData.pMonitor->m_scale).round();
 }
 
 CRegion CRectPassElement::opaqueRegion() {

@@ -1,6 +1,8 @@
 #include "Vulkan.hpp"
 #include "debug/log/Logger.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
+#include "render/vulkan/DescriptorPool.hpp"
+#include "render/vulkan/MemoryBuffer.hpp"
 #include "utils.hpp"
 
 #include "../../macros.hpp"
@@ -15,6 +17,12 @@
 
 // DEBUG
 #include "Compositor.hpp"
+
+static const VkDeviceSize  MIN_SHARED_BUFFER_SIZE            = (VkDeviceSize)1024 * 1024;
+static const VkDeviceSize  MAX_SHARED_BUFFER_SIZE            = MIN_SHARED_BUFFER_SIZE * 256;
+static const int           MAX_SHARED_BUFFER_UNUSED_DURATION = 10000;
+static const size_t        INITIAL_DESCRIPTOR_POOL_SIZE      = 250;
+static const int           MAX_COMMAND_BUFFERS               = 64;
 
 static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity, VkDebugUtilsMessageTypeFlagsEXT type,
                                          const VkDebugUtilsMessengerCallbackDataEXT* debugData, void* data) {
@@ -246,15 +254,196 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
     return nullptr;
 }
 
-SP<CHyprVkCommandBuffer> CHyprVulkanImpl::begin() {
-    if (!m_commandBuffer)
-        m_commandBuffer = makeShared<CHyprVkCommandBuffer>(m_device);
+bool CHyprVulkanImpl::waitCommandBuffer(WP<CHyprVkCommandBuffer> cb) {
 
-    m_device->m_timelinePoint++;
-    m_commandBuffer->begin();
-    return m_commandBuffer;
+    ASSERT(cb && (cb->vk() != VK_NULL_HANDLE) && !cb->busy());
+
+    const auto             semaphore = m_device->timelineSemaphore();
+    VkSemaphoreWaitInfoKHR waitInfo  = {
+         .sType          = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO_KHR,
+         .semaphoreCount = 1,
+         .pSemaphores    = &semaphore,
+         .pValues        = &cb->m_timelinePoint,
+    };
+    if (vkWaitSemaphores(m_device->vkDevice(), &waitInfo, UINT64_MAX) != VK_SUCCESS) {
+        Log::logger->log(Log::ERR, "vkWaitSemaphores failed");
+        return false;
+    }
+
+    return true;
+}
+
+SP<CHyprVkCommandBuffer> CHyprVulkanImpl::acquireCB() {
+    SP<CHyprVkCommandBuffer> commandBuffer;
+    SP<CHyprVkCommandBuffer> wait;
+    for (const auto& cb : m_commandBuffers) {
+        if (cb->busy())
+            continue;
+
+        if (cb->m_timelinePoint <= m_device->timelinePoint()) {
+            commandBuffer = cb;
+            break;
+        }
+
+        if (!wait || cb->m_timelinePoint < wait->m_timelinePoint)
+            wait = cb;
+    }
+
+    if (!commandBuffer && m_commandBuffers.size() < MAX_COMMAND_BUFFERS) {
+        commandBuffer = m_commandBuffers.emplace_back(makeShared<CHyprVkCommandBuffer>(m_device));
+    } else if (wait && waitCommandBuffer(wait))
+        commandBuffer = wait;
+
+    commandBuffer->begin();
+    return commandBuffer;
+}
+
+SP<CHyprVkCommandBuffer> CHyprVulkanImpl::begin() {
+    std::erase_if(m_sharedBuffers, [](const auto buf) { return buf->m_lastUsed.getMillis() > MAX_SHARED_BUFFER_UNUSED_DURATION; });
+
+    // TODO cleanup command buffers
+
+    m_currentRenderCB = acquireCB();
+    return m_currentRenderCB;
 }
 
 void CHyprVulkanImpl::end() {
-    m_commandBuffer->end(m_device->m_timelinePoint);
+    const auto stage = stageCB();
+    m_currentStageCB.reset();
+
+    m_device->m_timelinePoint++;
+    stage->end(m_device->m_timelinePoint);
+
+    VkCommandBufferSubmitInfo stageInfo = {
+        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = stage->vk(),
+    };
+    VkSemaphoreSubmitInfo stageSignal = {
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = m_device->timelineSemaphore(),
+        .value     = stage->m_timelinePoint,
+    };
+    VkSubmitInfo2 stageSubmit = {
+        .sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        .commandBufferInfoCount   = 1,
+        .pCommandBufferInfos      = &stageInfo,
+        .signalSemaphoreInfoCount = 1,
+        .pSignalSemaphoreInfos    = &stageSignal,
+    };
+
+    VkSemaphoreSubmitInfo stageWait;
+    if (m_lastStagePoint > 0) {
+        stageWait = {
+            .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .semaphore = m_device->timelineSemaphore(),
+            .value     = m_lastStagePoint,
+            .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        };
+
+        stageSubmit.waitSemaphoreInfoCount = 1;
+        stageSubmit.pWaitSemaphoreInfos    = &stageWait;
+    }
+
+    m_lastStagePoint = stage->m_timelinePoint;
+
+    m_device->m_timelinePoint++;
+    m_currentRenderCB->end(m_device->m_timelinePoint);
+
+    std::vector<VkSemaphoreSubmitInfo> waitSemaphores;
+    std::vector<VkSemaphoreSubmitInfo> signalSemaphores;
+
+    // TODO sync
+    // waitSemaphores.push_back({
+    //     .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+    //     .semaphore = m_waitSemaphore,
+    //     .stageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    // });
+
+    // signalSemaphores.push_back({
+    //     .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+    //     .semaphore = m_signalSemaphore,
+    //     .stageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    // });
+
+    signalSemaphores.push_back({
+        .sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+        .semaphore = m_device->timelineSemaphore(),
+        .value     = m_device->m_timelinePoint,
+        // .stageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    });
+
+    const std::array<VkCommandBufferSubmitInfo, 1> cmdBufferInfo{{{
+        .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+        .commandBuffer = m_currentRenderCB->vk(),
+    }}};
+
+    const VkSubmitInfo2                            renderSubmit = {
+                                   .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+        // .waitSemaphoreInfoCount   = waitSemaphores.size(),
+        // .pWaitSemaphoreInfos      = waitSemaphores.data(),
+                                   .commandBufferInfoCount   = cmdBufferInfo.size(),
+                                   .pCommandBufferInfos      = cmdBufferInfo.data(),
+                                   .signalSemaphoreInfoCount = signalSemaphores.size(),
+                                   .pSignalSemaphoreInfos    = signalSemaphores.data(),
+    };
+    const std::array<VkSubmitInfo2, 2> submitInfo = {stageSubmit, renderSubmit};
+
+    if (vkQueueSubmit2(m_device->queue(), uint32_t(submitInfo.size()), submitInfo.data(), VK_NULL_HANDLE) != VK_SUCCESS) {
+        CRIT("vkQueueSubmit2 failed");
+    }
+}
+
+SP<CHyprVulkanDevice> CHyprVulkanImpl::device() {
+    return m_device;
+}
+
+VkDevice CHyprVulkanImpl::vkDevice() {
+    return m_device->vkDevice();
+}
+
+WP<CHyprVkCommandBuffer> CHyprVulkanImpl::renderCB() {
+    return m_currentRenderCB;
+}
+
+WP<CHyprVkCommandBuffer> CHyprVulkanImpl::stageCB() {
+    if (!m_currentStageCB)
+        m_currentStageCB = acquireCB();
+
+    return m_currentStageCB;
+};
+
+WP<CVKMemorySpan> CHyprVulkanImpl::getMemorySpan(VkDeviceSize size, VkDeviceSize alignment) {
+    for (const auto& buf : m_sharedBuffers) {
+        auto offset = buf->offset();
+        offset += alignment - 1 - ((offset + alignment - 1) % alignment);
+        if (buf->available() >= offset + size)
+            return buf->allocate(size, offset);
+    }
+
+    const auto bufSize = std::max(size * 2, MIN_SHARED_BUFFER_SIZE);
+    if (bufSize > MAX_SHARED_BUFFER_SIZE) {
+        Log::logger->log(Log::ERR, "Requested buffer size it too big {}({}) > {}", bufSize, size, MAX_SHARED_BUFFER_SIZE);
+        return SP<CVKMemorySpan>(nullptr);
+    }
+
+    const auto buffer = m_sharedBuffers.emplace_back(CVKMemoryBuffer::create(m_device, bufSize));
+    return buffer->allocate(size);
+}
+
+SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds) {
+    for (const auto& pool : m_dsPools) {
+        switch (pool->allocateSet(layout, ds)) {
+            case VK_ERROR_FRAGMENTED_POOL:
+            case VK_ERROR_OUT_OF_POOL_MEMORY: continue;
+            case VK_SUCCESS: return pool;
+            default: return nullptr;
+        }
+    }
+
+    const auto size = m_lastDsPoolSize ? m_lastDsPoolSize * 2 : INITIAL_DESCRIPTOR_POOL_SIZE;
+    auto       pool = m_dsPools.emplace_back(makeShared<CVKDescriptorPool>(m_device, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, size));
+    if (pool->allocateSet(layout, ds) == VK_SUCCESS)
+        return pool;
+
+    return nullptr;
 }

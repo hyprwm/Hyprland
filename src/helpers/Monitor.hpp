@@ -12,6 +12,7 @@
 
 #include <xf86drmMode.h>
 #include "MonitorZoomController.hpp"
+#include "../render/Texture.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -156,6 +157,9 @@ class CMonitor {
     bool                        m_isBeingLeased = false;
 
     SMonitorRule                m_activeMonitorRule;
+
+    SP<ITexture>                m_splash;
+    SP<ITexture>                m_background;
 
     // explicit sync
     Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor

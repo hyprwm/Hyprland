@@ -23,7 +23,6 @@ class ITexture {
 
     virtual ~ITexture() = default;
 
-    virtual void                destroyTexture()                                                                    = 0;
     virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
     virtual void                allocate()                                                                          = 0;
     virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;

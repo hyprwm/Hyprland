@@ -330,8 +330,9 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;
@@ -371,8 +372,9 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->clear(Colors::BLACK);
     else {
         g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
@@ -388,7 +390,7 @@ bool CScreencopyFrame::copyShm() {
     g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = m_monitor;
+    g_pHyprRenderer->m_renderData.pMonitor = m_monitor;
     fb.bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -426,7 +428,7 @@ bool CScreencopyFrame::copyShm() {
     }
 
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

@@ -593,6 +593,7 @@ void CCompositor::cleanup() {
     g_pSessionLockManager.reset();
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
+    g_pHyprVulkan.reset();
     g_pHyprOpenGL.reset();
     g_pConfigManager.reset();
     g_layoutManager.reset();
@@ -2509,8 +2510,8 @@ void CCompositor::performUserChecks() {
             g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_GUIUTILS), CHyprColor{}, 15000, ICON_WARNING);
     }
 
-    if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
-        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprOpenGL->m_failedAssetsNo)}}),
+    if (g_pHyprRenderer->m_failedAssetsNo > 0) {
+        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprRenderer->m_failedAssetsNo)}}),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 

@@ -15,7 +15,6 @@ class CHyprVulkanDevice {
         PFN_vkGetMemoryFdPropertiesKHR    vkGetMemoryFdPropertiesKHR    = nullptr;
         PFN_vkWaitSemaphoresKHR           vkWaitSemaphoresKHR           = nullptr;
         PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR = nullptr;
-        PFN_vkQueueSubmit2KHR             vkQueueSubmit2KHR             = nullptr;
         PFN_vkGetSemaphoreFdKHR           vkGetSemaphoreFdKHR           = nullptr;
         PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
     } m_proc;
@@ -28,9 +27,11 @@ class CHyprVulkanDevice {
     uint32_t                            queueFamilyIndex();
     VkQueue                             queue();
     VkSemaphore                         timelineSemaphore();
+    uint64_t                            timelinePoint();
     uint64_t                            m_timelinePoint = 0;
 
     std::optional<const SVkFormatProps> getFormat(const DRMFormat format);
+    VkCommandPool                       commandPool();
 
   private:
     inline void                            loadVulkanProc(void* pProc, const char* name);
@@ -43,6 +44,7 @@ class CHyprVulkanDevice {
     VkDevice                           m_device            = VK_NULL_HANDLE;
     VkQueue                            m_queue             = VK_NULL_HANDLE;
     VkSemaphore                        m_timelineSemaphore = VK_NULL_HANDLE;
+    VkCommandPool                      m_commandPool       = VK_NULL_HANDLE;
 
     int                                m_drmFd = -1;
     std::vector<VkExtensionProperties> m_extensions;

@@ -1,15 +1,12 @@
 #include "PipelineLayout.hpp"
 #include "utils.hpp"
-#include "types.hpp"
 #include <vulkan/vulkan_core.h>
 
-CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
-    VkFilter            filter = VK_FILTER_LINEAR; // TODO make configurable
-
+CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : IDeviceUser(device), m_key({key}) {
     VkSamplerCreateInfo samplerCreateInfo = {
         .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter    = filter,
-        .minFilter    = filter,
+        .magFilter    = std::get<2>(key),
+        .minFilter    = std::get<2>(key),
         .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -65,12 +62,12 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device) : IDeviceUser
     VkPushConstantRange pcRanges[] = {
         {
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .size       = sizeof(SVkVertShaderData),
+            .size       = std::get<0>(key),
         },
         {
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .offset     = sizeof(SVkVertShaderData),
-            .size       = sizeof(SVkFragShaderData),
+            .offset     = std::get<0>(key),
+            .size       = std::get<1>(key),
         },
     };
 
@@ -85,6 +82,18 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device) : IDeviceUser
     if (vkCreatePipelineLayout(vkDevice(), &plInfo, nullptr, &m_layout) != VK_SUCCESS) {
         CRIT("vkCreatePipelineLayout");
     }
+}
+
+CVkPipelineLayout::KEY CVkPipelineLayout::key() {
+    return m_key;
+}
+
+VkPipelineLayout CVkPipelineLayout::vk() {
+    return m_layout;
+}
+
+VkDescriptorSetLayout CVkPipelineLayout::descriptorSet() {
+    return m_descriptorSet;
 }
 
 CVkPipelineLayout::~CVkPipelineLayout() {

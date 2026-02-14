@@ -23,5 +23,9 @@ class CClearPassElement : public IPassElement {
         return EK_CLEAR;
     };
 
+    virtual ePassStage stage() {
+        return PS_INIT;
+    };
+
     SClearData m_data;
 };

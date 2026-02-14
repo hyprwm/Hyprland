@@ -1,4 +1,5 @@
 #include <GLES3/gl32.h>
+#include <cstdint>
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/string/String.hpp>
@@ -50,14 +51,6 @@
 
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
-
-const std::vector<const char*> ASSET_PATHS = {
-#ifdef DATAROOTDIR
-    DATAROOTDIR,
-#endif
-    "/usr/share",
-    "/usr/local/share",
-};
 
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));
@@ -390,8 +383,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     TRACY_GPU_CONTEXT;
 
     initDRMFormats();
-
-    initAssets();
 
     static auto P = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any data) { preRender(std::any_cast<PHLMONITOR>(data)); });
 
@@ -2037,28 +2028,6 @@ bool CHyprOpenGLImpl::preBlurQueued(PHLMONITORREF pMonitor) {
     return DATA.blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && DATA.blurFBShouldRender;
 }
 
-bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
-
-    if (!m_renderData.pCurrentMonData->blurFB.getTexture())
-        return false;
-
-    if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
-        return false;
-
-    if (pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 0)
-        return false;
-
-    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_isFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
-        return true;
-
-    if ((pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 1) || (pWindow && pWindow->m_ruleApplicator->xray().valueOrDefault()))
-        return true;
-
-    return false;
-}
-
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture with blur without begin()!");
 
@@ -2097,7 +2066,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     inverseOpaque.scale(m_renderData.pMonitor->m_scale);
 
     //   vvv TODO: layered blur fbs?
-    const bool    USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
+    const bool    USENEWOPTIMIZE = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
 
     CFramebuffer* POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
@@ -2496,231 +2465,6 @@ void CHyprOpenGLImpl::renderMirrored() {
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
-void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const CAIROSURFACE, double offsetY, const Vector2D& size) {
-    static auto           PSPLASHCOLOR = CConfigValue<Hyprlang::INT>("misc:col.splash");
-    static auto           PSPLASHFONT  = CConfigValue<std::string>("misc:splash_font_family");
-    static auto           FALLBACKFONT = CConfigValue<std::string>("misc:font_family");
-
-    const auto            FONTFAMILY = *PSPLASHFONT != STRVAL_EMPTY ? *PSPLASHFONT : *FALLBACKFONT;
-    const auto            FONTSIZE   = sc<int>(size.y / 76);
-    const auto            COLOR      = CHyprColor(*PSPLASHCOLOR);
-
-    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, PANGO_WEIGHT_NORMAL);
-    pango_layout_set_font_description(layoutText, pangoFD);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int textW = 0, textH = 0;
-    pango_layout_set_text(layoutText, g_pCompositor->m_currentSplash.c_str(), -1);
-    pango_layout_get_size(layoutText, &textW, &textH);
-    textW /= PANGO_SCALE;
-    textH /= PANGO_SCALE;
-
-    cairo_move_to(CAIRO, (size.x - textW) / 2.0, size.y - textH - offsetY);
-    pango_cairo_show_layout(CAIRO, layoutText);
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-
-    cairo_surface_flush(CAIROSURFACE);
-}
-
-std::string CHyprOpenGLImpl::resolveAssetPath(const std::string& filename) {
-    std::string fullPath;
-    for (auto& e : ASSET_PATHS) {
-        std::string     p = std::string{e} + "/hypr/" + filename;
-        std::error_code ec;
-        if (std::filesystem::exists(p, ec)) {
-            fullPath = p;
-            break;
-        } else
-            Log::logger->log(Log::DEBUG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
-    }
-
-    if (fullPath.empty()) {
-        m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
-        return "";
-    }
-
-    return fullPath;
-}
-
-SP<ITexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
-
-    const std::string fullPath = resolveAssetPath(filename);
-
-    if (fullPath.empty())
-        return m_missingAssetTexture;
-
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
-
-    if (!CAIROSURFACE) {
-        m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
-        return m_missingAssetTexture;
-    }
-
-    auto tex = texFromCairo(CAIROSURFACE);
-
-    cairo_surface_destroy(CAIROSURFACE);
-
-    return tex;
-}
-
-SP<ITexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
-    const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
-    auto       tex         = makeShared<CGLTexture>();
-
-    tex->allocate();
-    tex->m_size = {cairo_image_surface_get_width(cairo), cairo_image_surface_get_height(cairo)};
-
-    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
-    const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
-    const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
-
-    const auto  DATA = cairo_image_surface_get_data(cairo);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
-        tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    }
-
-    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
-
-    return tex;
-}
-
-SP<ITexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
-    SP<ITexture>          tex = makeShared<CGLTexture>();
-
-    static auto           FONT = CConfigValue<std::string>("misc:font_family");
-
-    const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
-    const auto            FONTSIZE   = pt;
-    const auto            COLOR      = col;
-
-    auto                  CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920, 1080 /* arbitrary, just for size */);
-    auto                  CAIRO        = cairo_create(CAIROSURFACE);
-
-    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
-    pango_layout_set_font_description(layoutText, pangoFD);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int textW = 0, textH = 0;
-    pango_layout_set_text(layoutText, text.c_str(), -1);
-
-    if (maxWidth > 0) {
-        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
-        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
-    }
-
-    pango_layout_get_size(layoutText, &textW, &textH);
-    textW /= PANGO_SCALE;
-    textH /= PANGO_SCALE;
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
-
-    CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
-    CAIRO        = cairo_create(CAIROSURFACE);
-
-    layoutText = pango_cairo_create_layout(CAIRO);
-    pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
-    pango_layout_set_font_description(layoutText, pangoFD);
-    pango_layout_set_text(layoutText, text.c_str(), -1);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    cairo_move_to(CAIRO, 0, 0);
-    pango_cairo_show_layout(CAIRO, layoutText);
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    tex->allocate();
-    tex->m_size = {cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)};
-
-    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->m_size.x, tex->m_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
-
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
-
-    return tex;
-}
-
-void CHyprOpenGLImpl::initMissingAssetTexture() {
-    auto tex = makeShared<CGLTexture>();
-    tex->allocate();
-
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
-
-    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_NONE);
-    cairo_save(CAIRO);
-    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(CAIRO);
-    cairo_set_source_rgba(CAIRO, 1, 0, 1, 1);
-    cairo_rectangle(CAIRO, 256, 0, 256, 256);
-    cairo_fill(CAIRO);
-    cairo_rectangle(CAIRO, 0, 256, 256, 256);
-    cairo_fill(CAIRO);
-    cairo_restore(CAIRO);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    tex->m_size = {512, 512};
-
-    // copy the data to an OpenGL texture we have
-    const GLint glFormat = GL_RGBA;
-    const GLint glType   = GL_UNSIGNED_BYTE;
-
-    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
-
-    cairo_surface_destroy(CAIROSURFACE);
-    cairo_destroy(CAIRO);
-
-    m_missingAssetTexture = tex;
-}
-
 WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
     if (m_currentProgram == prog->program())
         return prog;
@@ -2729,12 +2473,6 @@ WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
     m_currentProgram = prog->program();
 
     return prog;
-}
-
-void CHyprOpenGLImpl::initAssets() {
-    initMissingAssetTexture();
-
-    m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 }
 
 void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
@@ -2747,189 +2485,18 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
 
     if (load) {
         // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
-        m_lockDeadTexture  = loadAsset("lockdead.png");
-        m_lockDead2Texture = loadAsset("lockdead2.png");
+        m_lockDeadTexture  = g_pHyprRenderer->loadAsset("lockdead.png");
+        m_lockDead2Texture = g_pHyprRenderer->loadAsset("lockdead2.png");
 
         const auto VT = g_pCompositor->getVTNr();
 
-        m_lockTtyTextTexture = renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+        m_lockTtyTextTexture =
+            g_pHyprRenderer->renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
     } else {
         m_lockDeadTexture.reset();
         m_lockDead2Texture.reset();
         m_lockTtyTextTexture.reset();
     }
-}
-
-void CHyprOpenGLImpl::requestBackgroundResource() {
-    if (m_backgroundResource)
-        return;
-
-    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
-
-    if (*PNOWALLPAPER)
-        return;
-
-    static bool        once    = true;
-    static std::string texPath = "wall";
-
-    if (once) {
-        // get the adequate tex
-        if (FORCEWALLPAPER == -1) {
-            std::mt19937_64                 engine(time(nullptr));
-            std::uniform_int_distribution<> distribution(0, 2);
-
-            texPath += std::to_string(distribution(engine));
-        } else
-            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, sc<int64_t>(0), sc<int64_t>(2)));
-
-        texPath += ".png";
-
-        texPath = resolveAssetPath(texPath);
-
-        once = false;
-    }
-
-    if (texPath.empty()) {
-        m_backgroundResourceFailed = true;
-        return;
-    }
-
-    m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
-
-    // doesn't have to be ASP as it's passed
-    SP<CMainLoopExecutor> executor = makeShared<CMainLoopExecutor>([] {
-        for (const auto& m : g_pCompositor->m_monitors) {
-            g_pHyprRenderer->damageMonitor(m);
-        }
-    });
-
-    m_backgroundResource->m_events.finished.listenStatic([executor] {
-        // this is in the worker thread.
-        executor->signal();
-    });
-
-    g_pAsyncResourceGatherer->enqueue(m_backgroundResource);
-}
-
-void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
-    RASSERT(m_renderData.pMonitor, "Tried to createBGTex without begin()!");
-
-    Log::logger->log(Log::DEBUG, "Creating a texture for BGTex");
-
-    static auto PRENDERTEX = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PNOSPLASH  = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
-
-    if (*PRENDERTEX || m_backgroundResourceFailed)
-        return;
-
-    if (!m_backgroundResource) {
-        // queue the asset to be created
-        requestBackgroundResource();
-        return;
-    }
-
-    if (!m_backgroundResource->m_ready)
-        return;
-
-    // release the last tex if exists
-    const auto PFB = &m_monitorBGFBs[pMonitor];
-    PFB->release();
-
-    PFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, pMonitor->m_output->state->state().drmFormat);
-
-    // create a new one with cairo
-    SP<ITexture> tex = makeShared<CGLTexture>();
-
-    tex->allocate();
-
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
-
-    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_GOOD);
-    cairo_save(CAIRO);
-    cairo_set_source_rgba(CAIRO, 0, 0, 0, 0);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(CAIRO);
-    cairo_restore(CAIRO);
-
-    if (!*PNOSPLASH)
-        renderSplash(CAIRO, CAIROSURFACE, 0.02 * pMonitor->m_pixelSize.y, pMonitor->m_pixelSize);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    tex->m_size = pMonitor->m_pixelSize;
-
-    // copy the data to an OpenGL texture we have
-    const GLint glFormat = GL_RGBA;
-    const GLint glType   = GL_UNSIGNED_BYTE;
-
-    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
-
-    cairo_surface_destroy(CAIROSURFACE);
-    cairo_destroy(CAIRO);
-
-    // render the texture to our fb
-    PFB->bind();
-    CRegion fakeDamage{0, 0, INT16_MAX, INT16_MAX};
-
-    blend(true);
-    clear(CHyprColor{0, 0, 0, 1});
-
-    SP<ITexture> backgroundTexture = texFromCairo(m_backgroundResource->m_asset.cairoSurface->cairo());
-
-    // first render the background
-    if (backgroundTexture) {
-        const double MONRATIO = m_renderData.pMonitor->m_transformedSize.x / m_renderData.pMonitor->m_transformedSize.y;
-        const double WPRATIO  = backgroundTexture->m_size.x / backgroundTexture->m_size.y;
-        Vector2D     origin;
-        double       scale = 1.0;
-
-        if (MONRATIO > WPRATIO) {
-            scale    = m_renderData.pMonitor->m_transformedSize.x / backgroundTexture->m_size.x;
-            origin.y = (m_renderData.pMonitor->m_transformedSize.y - backgroundTexture->m_size.y * scale) / 2.0;
-        } else {
-            scale    = m_renderData.pMonitor->m_transformedSize.y / backgroundTexture->m_size.y;
-            origin.x = (m_renderData.pMonitor->m_transformedSize.x - backgroundTexture->m_size.x * scale) / 2.0;
-        }
-
-        CBox texbox = CBox{origin, backgroundTexture->m_size * scale};
-        renderTextureInternal(backgroundTexture, texbox, {.damage = &fakeDamage, .a = 1.0});
-    }
-
-    CBox monbox = {{}, pMonitor->m_pixelSize};
-    renderTextureInternal(tex, monbox, {.damage = &fakeDamage, .a = 1.0});
-
-    // bind back
-    if (m_renderData.currentFB)
-        m_renderData.currentFB->bind();
-
-    Log::logger->log(Log::DEBUG, "Background created for monitor {}", pMonitor->m_name);
-
-    // clear the resource after we're done using it
-    g_pEventLoopManager->doLater([this] { m_backgroundResource.reset(); });
-
-    // set the animation to start for fading this background in nicely
-    pMonitor->m_backgroundOpacity->setValueAndWarp(0.F);
-    *pMonitor->m_backgroundOpacity = 1.F;
-}
-
-SP<ITexture> CHyprOpenGLImpl::getBGTextureForMonitor(PHLMONITORREF pMonitor) {
-    auto TEXIT = m_monitorBGFBs.find(pMonitor);
-    if (TEXIT == m_monitorBGFBs.end()) {
-        createBGTextureForMonitor(pMonitor.lock());
-        return nullptr;
-    }
-    return TEXIT->second.getTexture();
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
@@ -2947,7 +2514,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
         RESIT->second.blurFB.release();
         RESIT->second.offMainFB.release();
         if (RESIT->second.stencilTex)
-            RESIT->second.stencilTex->destroyTexture();
+            RESIT->second.stencilTex.reset();
         g_pHyprOpenGL->m_monitorRenderResources.erase(RESIT);
     }
 

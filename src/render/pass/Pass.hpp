@@ -15,7 +15,7 @@ class CRenderPass {
     void    clear();
     void    removeAllOfType(const std::string& type);
 
-    CRegion render(const CRegion& damage_);
+    CRegion render(const CRegion& damage_, int stage = PS_ANY);
 
   private:
     CRegion              m_damage;

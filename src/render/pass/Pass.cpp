@@ -24,6 +24,7 @@ void CRenderPass::add(UP<IPassElement>&& el) {
 }
 
 void CRenderPass::simplify() {
+    const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
     // TODO: use precompute blur for instances where there is nothing in between
@@ -31,7 +32,7 @@ void CRenderPass::simplify() {
     // if there is live blur, we need to NOT occlude any area where it will be influenced
     const auto WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
 
-    CRegion    newDamage = m_damage.copy().intersect(CBox{{}, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize});
+    CRegion    newDamage = m_damage.copy().intersect(CBox{{}, pMonitor->m_transformedSize});
     for (auto& el : m_passElements | std::views::reverse) {
 
         if (newDamage.empty() && !el->element->undiscardable()) {
@@ -44,7 +45,7 @@ void CRenderPass::simplify() {
         if (!bb1 || newDamage.empty())
             continue;
 
-        auto bb = bb1->scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+        auto bb = bb1->scale(pMonitor->m_scale);
 
         // drop if empty
         if (CRegion copy = newDamage.copy(); copy.intersect(bb).empty()) {
@@ -57,11 +58,11 @@ void CRenderPass::simplify() {
         if (!opaque.empty()) {
             // scale and rounding is very particular so we have to use CBoxes scale and round functions
             if (opaque.getRects().size() == 1)
-                opaque = opaque.getExtents().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round();
+                opaque = opaque.getExtents().scale(pMonitor->m_scale).round();
             else {
                 CRegion scaledRegion;
-                opaque.forEachRect([&scaledRegion](const auto& RECT) {
-                    scaledRegion.add(CBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1).scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).round());
+                opaque.forEachRect([&scaledRegion, pMonitor](const auto& RECT) {
+                    scaledRegion.add(CBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1).scale(pMonitor->m_scale).round());
                 });
                 opaque = scaledRegion;
             }
@@ -86,7 +87,7 @@ void CRenderPass::simplify() {
                 }
 
                 // expand the region: this area needs to be proper to blur it right.
-                liveBlurRegion.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale).expand(oneBlurRadius() * 2.F);
+                liveBlurRegion.scale(pMonitor->m_scale).expand(oneBlurRadius() * 2.F);
 
                 if (auto infringement = opaque.copy().intersect(liveBlurRegion); !infringement.empty()) {
                     // eh, this is not the correct solution, but it will do...
@@ -108,7 +109,7 @@ void CRenderPass::simplify() {
             const auto BB = el2->element->boundingBox();
             RASSERT(BB, "No bounding box for an element with live blur is illegal");
 
-            m_totalLiveBlurRegion.add(BB->copy().scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale));
+            m_totalLiveBlurRegion.add(BB->copy().scale(pMonitor->m_scale));
         }
     }
 }
@@ -117,7 +118,8 @@ void CRenderPass::clear() {
     m_passElements.clear();
 }
 
-CRegion CRenderPass::render(const CRegion& damage_) {
+CRegion CRenderPass::render(const CRegion& damage_, int stage) {
+    const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
     const auto  WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
@@ -138,9 +140,9 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         m_debugData = {false};
     else if (*PDEBUGPASS && !m_debugData.present) {
         m_debugData.present           = true;
-        m_debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", Colors::WHITE, 12);
-        m_debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", Colors::WHITE, 12);
-        m_debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", Colors::WHITE, 12);
+        m_debugData.keyboardFocusText = g_pHyprRenderer->renderText("keyboard", Colors::WHITE, 12);
+        m_debugData.pointerFocusText  = g_pHyprRenderer->renderText("pointer", Colors::WHITE, 12);
+        m_debugData.lastWindowText    = g_pHyprRenderer->renderText("lastWindow", Colors::WHITE, 12);
     }
 
     if (WILLBLUR && !*PDEBUGPASS) {
@@ -156,7 +158,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
             blurRegion.add(*BB);
         }
 
-        blurRegion.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+        blurRegion.scale(pMonitor->m_scale);
 
         blurRegion.intersect(m_damage).expand(oneBlurRadius());
 
@@ -178,12 +180,16 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     } else
         simplify();
 
-    g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
+    if (g_pHyprOpenGL->m_renderData.pCurrentMonData)
+        g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
 
     if (m_passElements.empty())
         return {};
 
     for (auto& el : m_passElements) {
+        if (!(el->element->stage() & stage))
+            continue;
+
         if (el->discard) {
             el->element->discard();
             continue;
@@ -207,7 +213,8 @@ CRegion CRenderPass::render(const CRegion& damage_) {
 }
 
 void CRenderPass::renderDebugData() {
-    CBox box = {{}, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize};
+    const auto pMonitor = g_pHyprRenderer->m_renderData.pMonitor;
+    CBox       box      = {{}, pMonitor->m_transformedSize};
     for (const auto& rg : m_occludedRegions) {
         g_pHyprOpenGL->renderRect(box, Colors::RED.modifyA(0.1F), {.damage = &rg});
     }
@@ -216,7 +223,7 @@ void CRenderPass::renderDebugData() {
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
     // render focus stuff
-    auto renderHLSurface = [&offsets](SP<ITexture> texture, SP<CWLSurfaceResource> surface, const CHyprColor& color) {
+    auto renderHLSurface = [&offsets, pMonitor](SP<ITexture> texture, SP<CWLSurfaceResource> surface, const CHyprColor& color) {
         if (!surface || !texture)
             return;
 
@@ -229,9 +236,9 @@ void CRenderPass::renderDebugData() {
         if (!bb.has_value())
             return;
 
-        CBox box = bb->copy().translate(-g_pHyprOpenGL->m_renderData.pMonitor->m_position).scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+        CBox box = bb->copy().translate(-pMonitor->m_position).scale(pMonitor->m_scale);
 
-        if (box.intersection(CBox{{}, g_pHyprOpenGL->m_renderData.pMonitor->m_size}).empty())
+        if (box.intersection(CBox{{}, pMonitor->m_size}).empty())
             return;
 
         static const auto FULL_REGION = CRegion{0, 0, INT32_MAX, INT32_MAX};
@@ -262,9 +269,7 @@ void CRenderPass::renderDebugData() {
             if (hlSurface) {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
                 if (BOX) {
-                    auto region = g_pSeatManager->m_state.pointerFocus->m_current.input.copy()
-                                      .scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale)
-                                      .translate(BOX->pos() - g_pHyprOpenGL->m_renderData.pMonitor->m_position);
+                    auto region = g_pSeatManager->m_state.pointerFocus->m_current.input.copy().scale(pMonitor->m_scale).translate(BOX->pos() - pMonitor->m_position);
                     g_pHyprOpenGL->renderRect(box, CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}, {.damage = &region});
                 }
             }
@@ -272,12 +277,12 @@ void CRenderPass::renderDebugData() {
     }
 
     const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e->discard; });
-    auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
-                                                     DISCARDED_ELEMENTS, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize),
-                                         Colors::WHITE, 12);
+    auto tex = g_pHyprRenderer->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
+                                                       DISCARDED_ELEMENTS, pMonitor->m_pixelSize),
+                                           Colors::WHITE, 12);
 
     if (tex) {
-        box = CBox{{0.F, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+        box = CBox{{0.F, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale);
         g_pHyprOpenGL->renderTexture(tex, box, {});
     }
 
@@ -292,10 +297,9 @@ void CRenderPass::renderDebugData() {
     if (!passStructure.empty())
         passStructure.pop_back();
 
-    tex = g_pHyprOpenGL->renderText(passStructure, Colors::WHITE, 12);
+    tex = g_pHyprRenderer->renderText(passStructure, Colors::WHITE, 12);
     if (tex) {
-        box = CBox{{g_pHyprOpenGL->m_renderData.pMonitor->m_size.x - tex->m_size.x, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(
-            g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
+        box = CBox{{pMonitor->m_size.x - tex->m_size.x, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale);
         g_pHyprOpenGL->renderTexture(tex, box, {});
     }
 }

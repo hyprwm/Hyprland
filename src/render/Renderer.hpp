@@ -30,6 +30,14 @@ class IHLBuffer;
 class CEventLoopTimer;
 class CRenderPass;
 
+const std::vector<const char*> ASSET_PATHS = {
+#ifdef DATAROOTDIR
+    DATAROOTDIR,
+#endif
+    "/usr/share",
+    "/usr/local/share",
+};
+
 enum eDamageTrackingModes : int8_t {
     DAMAGE_TRACKING_INVALID = -1,
     DAMAGE_TRACKING_NONE    = 0,
@@ -172,17 +180,28 @@ class IHyprRenderer {
 
     CRenderPass          m_renderPass;
 
+    SP<ITexture>         renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth = 1024,
+                                      const int maxHeight = 1024);
+
     bool                 commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
     SP<CRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
     eRenderMode          m_renderMode              = RENDER_MODE_NORMAL;                        // TODO? move to protected and fix CHyprOpenGLImpl::end
     bool                 m_cursorHiddenByCondition = false;                                     // TODO? move to protected and fix CHyprOpenGLImpl::renderTextureInternal
+    SRenderData          m_renderData;                                                          // TODO? move to protected and fix CRenderPass
+    SP<ITexture>         m_screencopyDeniedTexture;                                             // TODO? make readonly
+    uint                 m_failedAssetsNo = 0;                                                  // TODO? make readonly
 
     void                 draw(WP<IPassElement> element, const CRegion& damage);
     virtual SP<ITexture> createTexture(bool opaque = false)                                                                                                        = 0;
     virtual SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) = 0;
     virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false)                                                          = 0;
+    virtual SP<ITexture> createTexture(const int width, const int height, unsigned char* const)                                                                    = 0;
+    virtual SP<ITexture> createTexture(cairo_surface_t* cairo)                                                                                                     = 0;
     virtual void*        createImage(const SP<Aquamarine::IBuffer> buffer)                                                                                         = 0;
     virtual SP<ITexture> createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    virtual SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    SP<ITexture>         loadAsset(const std::string& filename);
+    virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.
@@ -199,7 +218,7 @@ class IHyprRenderer {
     virtual bool initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
         return false;
     };
-    virtual SP<ITexture> getBackground(PHLMONITOR pMonitor);
+    SP<ITexture>         getBackground(PHLMONITOR pMonitor);
     virtual void         draw(CBorderPassElement* element, const CRegion& damage)        = 0;
     virtual void         draw(CClearPassElement* element, const CRegion& damage)         = 0;
     virtual void         draw(CFramebufferElement* element, const CRegion& damage)       = 0;
@@ -210,6 +229,7 @@ class IHyprRenderer {
     virtual void         draw(CSurfacePassElement* element, const CRegion& damage)       = 0;
     virtual void         draw(CTexPassElement* element, const CRegion& damage)           = 0;
     virtual void         draw(CTextureMatteElement* element, const CRegion& damage)      = 0;
+    virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
 
     // refactor
     void renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
@@ -229,19 +249,26 @@ class IHyprRenderer {
     void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
     void renderSessionLockPrimer(PHLMONITOR pMonitor);
     void renderBackground(PHLMONITOR pMonitor);
+    void requestBackgroundResource();
+    std::string                       resolveAssetPath(const std::string& file);
+    void                              initMissingAssetTexture();
+    void                              initAssets();
+    SP<ITexture>                      m_missingAssetTexture;
+    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
+    bool                              m_backgroundResourceFailed = false;
 
-    bool shouldBlur(PHLLS ls);
-    bool shouldBlur(PHLWINDOW w);
-    bool shouldBlur(WP<Desktop::View::CPopup> p);
+    bool                              shouldBlur(PHLLS ls);
+    bool                              shouldBlur(PHLWINDOW w);
+    bool                              shouldBlur(WP<Desktop::View::CPopup> p);
 
-    bool m_cursorHidden     = false;
-    bool m_cursorHasSurface = false;
+    bool                              m_cursorHidden     = false;
+    bool                              m_cursorHasSurface = false;
 
-    SP<Aquamarine::IBuffer> m_currentBuffer = nullptr;
-    bool                    m_nvidia        = false;
-    bool                    m_intel         = false;
-    bool                    m_software      = false;
-    bool                    m_mgpu          = false;
+    SP<Aquamarine::IBuffer>           m_currentBuffer = nullptr;
+    bool                              m_nvidia        = false;
+    bool                              m_intel         = false;
+    bool                              m_software      = false;
+    bool                              m_mgpu          = false;
 
     struct {
         bool hiddenOnTouch    = false;
@@ -254,8 +281,10 @@ class IHyprRenderer {
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
+    friend class CRenderPass;
+
   private:
-    SRenderData m_renderData;
+    void drawSurface(CSurfacePassElement* element, const CRegion& damage);
 };
 
 inline UP<IHyprRenderer> g_pHyprRenderer;

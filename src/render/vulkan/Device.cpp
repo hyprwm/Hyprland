@@ -131,7 +131,6 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
     loadVulkanProc(&m_proc.vkGetMemoryFdPropertiesKHR, "vkGetMemoryFdPropertiesKHR");
     loadVulkanProc(&m_proc.vkWaitSemaphoresKHR, "vkWaitSemaphoresKHR");
     loadVulkanProc(&m_proc.vkGetSemaphoreCounterValueKHR, "vkGetSemaphoreCounterValueKHR");
-    loadVulkanProc(&m_proc.vkQueueSubmit2KHR, "vkQueueSubmit2KHR");
 
     if (m_canExplicitSync) {
         loadVulkanProc(&m_proc.vkGetSemaphoreFdKHR, "vkGetSemaphoreFdKHR");
@@ -152,6 +151,16 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
 
     if (vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_timelineSemaphore) != VK_SUCCESS) {
         CRIT("vkCreateSemaphore failed");
+    }
+
+    const VkCommandPoolCreateInfo cmdPoolCreateInfo{
+        .sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = queueFamilyIndex(),
+    };
+
+    if (vkCreateCommandPool(vkDevice(), &cmdPoolCreateInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        CRIT("vkCreateCommandPool failed");
     }
 
     m_good = true;
@@ -181,12 +190,23 @@ VkSemaphore CHyprVulkanDevice::timelineSemaphore() {
     return m_timelineSemaphore;
 }
 
+uint64_t CHyprVulkanDevice::timelinePoint() {
+    uint64_t point;
+    if (vkGetSemaphoreCounterValue(vkDevice(), m_timelineSemaphore, &point) != VK_SUCCESS) {
+        Log::logger->log(Log::ERR, "vkGetSemaphoreCounterValueKHR failed");
+        return 0;
+    }
+    return point;
+}
+
+VkCommandPool CHyprVulkanDevice::commandPool() {
+    return m_commandPool;
+}
+
 std::optional<const SVkFormatProps> CHyprVulkanDevice::getFormat(const DRMFormat format) {
     const auto found = std::ranges::find_if(m_formats, [format](const auto fmt) { return fmt.format.drmFormat == format; });
-    if (found != m_formats.end()) {
-        Log::logger->log(Log::DEBUG, "Found format {}", NFormatUtils::drmFormatName(format));
+    if (found != m_formats.end())
         return *found;
-    }
 
     return {};
 }
@@ -319,7 +339,7 @@ bool CHyprVulkanDevice::getModifiers(SVkFormatProps& props, const size_t modifie
                 found = true;
             }
         } else
-            Log::logger->log(Log::ERR, "{} missing required render features", NFormatUtils::drmFormatName(props.format.drmFormat));
+            Log::logger->log(Log::DEBUG, "{} missing required render features", NFormatUtils::drmFormatName(props.format.drmFormat));
 
         VkFormatFeatureFlags features = DMA_TEX_FEATURES;
         if (props.format.isYCC)
@@ -409,6 +429,9 @@ std::optional<SVkFormatModifier> CHyprVulkanDevice::getSupportedDRMProperties(Vk
 
 CHyprVulkanDevice::~CHyprVulkanDevice() {
     if (m_device) {
+        if (m_commandPool)
+            vkDestroyCommandPool(vkDevice(), m_commandPool, nullptr);
+
         if (m_timelineSemaphore != VK_NULL_HANDLE)
             vkDestroySemaphore(m_device, m_timelineSemaphore, nullptr);
 

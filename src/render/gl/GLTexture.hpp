@@ -19,7 +19,6 @@ class CGLTexture : public ITexture {
     ~CGLTexture();
 
     void allocate() override;
-    void destroyTexture() override;
     void update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) override;
     void bind() override;
     void unbind() override;

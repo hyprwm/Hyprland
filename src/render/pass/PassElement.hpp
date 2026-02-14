@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../defines.hpp"
+#include <cstdint>
 #include <optional>
 
 enum ePassElementKind : uint8_t {
@@ -17,6 +18,14 @@ enum ePassElementKind : uint8_t {
     EK_TEXTURE_MATTE
 };
 
+enum ePassStage : uint8_t {
+    PS_INIT = 1 << 0,
+    PS_MAIN = 1 << 1,
+    PS_POST = 1 << 2,
+};
+
+const auto PS_ANY = PS_INIT | PS_MAIN | PS_POST;
+
 class IPassElement {
   public:
     virtual ~IPassElement() = default;
@@ -25,6 +34,7 @@ class IPassElement {
     virtual bool                needsPrecomputeBlur() = 0;
     virtual const char*         passName()            = 0;
     virtual ePassElementKind    kind()                = 0;
+    virtual ePassStage          stage();
     virtual void                discard();
     virtual bool                undiscardable();
     virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates

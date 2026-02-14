@@ -14,7 +14,15 @@ CGLTexture::~CGLTexture() {
         return;
 
     g_pHyprRenderer->makeEGLCurrent();
-    destroyTexture();
+    if (m_texID) {
+        GLCALL(glDeleteTextures(1, &m_texID));
+        m_texID = 0;
+    }
+
+    if (m_eglImage)
+        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_eglImage);
+    m_eglImage = nullptr;
+    m_cachedStates.fill(std::nullopt);
 }
 
 CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size_, bool keepDataCopy, bool opaque) :
@@ -128,18 +136,6 @@ void CGLTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, co
         m_dataCopy.resize(stride * m_size.y);
         memcpy(m_dataCopy.data(), pixels, stride * m_size.y);
     }
-}
-
-void CGLTexture::destroyTexture() {
-    if (m_texID) {
-        GLCALL(glDeleteTextures(1, &m_texID));
-        m_texID = 0;
-    }
-
-    if (m_eglImage)
-        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_eglImage);
-    m_eglImage = nullptr;
-    m_cachedStates.fill(std::nullopt);
 }
 
 void CGLTexture::allocate() {

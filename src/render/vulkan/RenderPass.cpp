@@ -1,8 +1,10 @@
 #include "RenderPass.hpp"
 #include "DeviceUser.hpp"
+#include "render/vulkan/types.hpp"
 #include "utils.hpp"
+#include <hyprutils/memory/Casts.hpp>
 
-CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format) : IDeviceUser(device), m_drmFormat(format) {
+CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format, SP<CVkShaders> shaders) : IDeviceUser(device), m_drmFormat(format), m_shaders(shaders) {
     const auto              info = m_device->getFormat(m_drmFormat).value();
 
     VkAttachmentDescription attachment = {
@@ -59,6 +61,20 @@ CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format) : I
     if (vkCreateRenderPass(vkDevice(), &rpInfo, nullptr, &m_vkRenderPass) != VK_SUCCESS) {
         CRIT("Failed to create render pass");
     }
+}
+
+WP<CVkPipeline> CVkRenderPass::texturePipeline() {
+    if (!m_texturePipeline)
+        m_texturePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_frag);
+
+    return m_texturePipeline;
+}
+
+WP<CVkPipeline> CVkRenderPass::borderPipeline() {
+    if (!m_borderPipeline)
+        m_borderPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_border);
+
+    return m_borderPipeline;
 }
 
 CVkRenderPass::~CVkRenderPass() {

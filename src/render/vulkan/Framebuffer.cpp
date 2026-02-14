@@ -75,13 +75,12 @@ void CHyprVkFramebuffer::initImage(SVkFormatProps props, Aquamarine::SDMABUFAttr
         .arrayLayers = 1,
         .samples     = VK_SAMPLE_COUNT_1_BIT,
         .tiling      = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT,
-        //.usage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        // .usage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .usage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         .sharingMode   = VK_SHARING_MODE_EXCLUSIVE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
-    // TODO
     if (mod->canSrgb) {
         imgInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 

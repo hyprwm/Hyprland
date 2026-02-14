@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <vulkan/vulkan.h>
 #include "../../helpers/Format.hpp"
 
@@ -26,6 +27,24 @@ struct SVkFormatProps {
     bool hasSrgb() const {
         return format.vkSrgbFormat != VK_FORMAT_UNDEFINED;
     }
+
+    uint32_t bytesPerBlock() const {
+        return format.bytesPerBlock > 0 ? format.bytesPerBlock : 4;
+    }
+
+    uint32_t pixelsPerBlock() const {
+        const int32_t pixels = format.blockSize.size();
+        return std::max(pixels, 1);
+    }
+
+    int32_t minStride(int32_t width) const {
+        const int32_t pixels = pixelsPerBlock();
+        const int32_t bytes  = bytesPerBlock();
+        if (width > INT32_MAX / bytes)
+            return 0;
+
+        return std::ceil(width * bytes / pixels);
+    }
 };
 
 static const VkFormatFeatureFlags SHM_TEX_FEATURES =
@@ -47,5 +66,26 @@ struct SVkVertShaderData {
 struct SVkFragShaderData {
     float matrix[4][4];
     float alpha;
+    float luminanceMultiplier;
+};
+
+struct SVkBorderShaderData {
+    float fullSizeUntransformed[2];
+    float radiusOuter;
+    float thick;
+    // float gradient[10][4];
+    // float gradient2[10][4];
+    float gradient[1][4];
+    float gradient2[1][4];
+    int   gradientLength;
+    int   gradient2Length;
+    float angle;
+    float angle2;
+    float gradientLerp;
+    float alpha;
+    float radius;
+    float power;
     float luminance_multiplier;
+    float topLeft[2];
+    float fullSize[2];
 };

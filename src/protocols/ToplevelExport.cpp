@@ -267,8 +267,9 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        CBox texbox = CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
@@ -281,7 +282,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     g_pHyprRenderer->endRender();
 
     g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
+    g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
     outFB.bind();
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
@@ -369,8 +370,9 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        CBox texbox = CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
     g_pHyprOpenGL->m_renderData.blockScreenShader = true;

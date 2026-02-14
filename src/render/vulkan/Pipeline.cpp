@@ -1,9 +1,16 @@
 #include "Pipeline.hpp"
+#include "../VKRenderer.hpp"
 #include "utils.hpp"
 #include <vulkan/vulkan_core.h>
 
-CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, WP<CVkRenderPass> renderPass, WP<CVkPipelineLayout> layout, WP<CVkShaders> shaders) :
-    IDeviceUser(device), m_renderPass(renderPass), m_layout(layout) {
+// TODO change api
+static CHyprVKRenderer* getRenderer() {
+    return dc<CHyprVKRenderer*>(g_pHyprRenderer.get());
+}
+
+CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag) :
+    IDeviceUser(device), m_key({vert->module(), frag->module()}) {
+    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize());
 
     VkSpecializationMapEntry specEntry = {
         .constantID = 0,
@@ -23,13 +30,13 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, WP<CVkRenderPass> renderP
     VkPipelineShaderStageCreateInfo        stages[2]{{
                                                          .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                          .stage  = VK_SHADER_STAGE_VERTEX_BIT,
-                                                         .module = shaders->m_vert->module(),
+                                                         .module = vert->module(),
                                                          .pName  = "main",
                                               },
                                                      {
                                                          .sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                          .stage               = VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                         .module              = shaders->m_frag->module(),
+                                                         .module              = frag->module(),
                                                          .pName               = "main",
                                                          .pSpecializationInfo = &specialization,
                                               }};
@@ -100,8 +107,8 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, WP<CVkRenderPass> renderP
         .pMultisampleState   = &multisample,
         .pColorBlendState    = &blend,
         .pDynamicState       = &dynamic,
-        .layout              = m_layout->m_layout,
-        .renderPass          = renderPass->m_vkRenderPass,
+        .layout              = m_layout->vk(),
+        .renderPass          = renderPass,
         .subpass             = 0,
     };
 
@@ -115,3 +122,15 @@ CVkPipeline::~CVkPipeline() {
     if (m_vkPipeline)
         vkDestroyPipeline(vkDevice(), m_vkPipeline, nullptr);
 }
+
+VkPipeline CVkPipeline::vk() {
+    return m_vkPipeline;
+}
+
+WP<CVkPipelineLayout> CVkPipeline::layout() {
+    return m_layout;
+}
+
+CVkPipeline::KEY CVkPipeline::key() {
+    return m_key;
+};

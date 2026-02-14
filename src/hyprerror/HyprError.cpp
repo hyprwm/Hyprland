@@ -39,7 +39,7 @@ void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
 
 void CHyprError::createQueued() {
     if (m_isCreated && m_texture)
-        m_texture->destroyTexture();
+        m_texture.reset();
 
     m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
 
@@ -177,8 +177,8 @@ void CHyprError::createQueued() {
 
 void CHyprError::draw() {
     if (!m_isCreated || !m_queued.empty()) {
-        if (!m_queued.empty())
-            createQueued();
+        // if (!m_queued.empty())
+        //     createQueued();
         return;
     }
 
@@ -187,7 +187,7 @@ void CHyprError::draw() {
             if (m_fadeOpacity->value() == 0.f) {
                 m_queuedDestroy = false;
                 if (m_texture)
-                    m_texture->destroyTexture();
+                    m_texture.reset();
                 m_isCreated = false;
                 m_queued    = "";
 
@@ -204,7 +204,7 @@ void CHyprError::draw() {
         }
     }
 
-    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR = g_pHyprRenderer->m_renderData.pMonitor;
 
     CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 

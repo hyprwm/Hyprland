@@ -14,6 +14,7 @@ class CHyprVkFramebuffer : public IDeviceUser {
     ~CHyprVkFramebuffer();
 
     WP<Aquamarine::IBuffer> m_hlBuffer;
+    bool                    m_initialized = false;
 
   private:
     void                          initImage(SVkFormatProps props, Aquamarine::SDMABUFAttrs attrs);

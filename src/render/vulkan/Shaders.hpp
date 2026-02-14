@@ -11,4 +11,5 @@ class CVkShaders : IDeviceUser {
 
     SP<CVkShader> m_vert;
     SP<CVkShader> m_frag;
+    SP<CVkShader> m_border;
 };

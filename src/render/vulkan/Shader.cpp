@@ -1,4 +1,5 @@
 #include "Shader.hpp"
+#include "debug/log/Logger.hpp"
 #include "macros.hpp"
 #include "utils.hpp"
 
@@ -30,19 +31,19 @@ static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage,
     glslang_shader_t* shader = glslang_shader_create(&input);
 
     if (!glslang_shader_preprocess(shader, &input)) {
-        // printf("GLSL preprocessing failed %s\n", fileName);
-        // printf("%s\n", glslang_shader_get_info_log(shader));
-        // printf("%s\n", glslang_shader_get_info_debug_log(shader));
-        // printf("%s\n", input.code);
+        Log::logger->log(Log::ERR, "GLSL preprocessing failed");
+        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_log(shader));
+        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_debug_log(shader));
+        Log::logger->log(Log::ERR, "{}", input.code);
         glslang_shader_delete(shader);
         return {};
     }
 
     if (!glslang_shader_parse(shader, &input)) {
-        // printf("GLSL parsing failed %s\n", fileName);
-        // printf("%s\n", glslang_shader_get_info_log(shader));
-        // printf("%s\n", glslang_shader_get_info_debug_log(shader));
-        // printf("%s\n", glslang_shader_get_preprocessed_code(shader));
+        Log::logger->log(Log::ERR, "GLSL parsing failed");
+        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_log(shader));
+        Log::logger->log(Log::ERR, "{}", glslang_shader_get_info_debug_log(shader));
+        Log::logger->log(Log::ERR, "{}", glslang_shader_get_preprocessed_code(shader));
         glslang_shader_delete(shader);
         return {};
     }
@@ -51,9 +52,9 @@ static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage,
     glslang_program_add_shader(program, shader);
 
     if (!glslang_program_link(program, GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT)) {
-        // printf("GLSL linking failed %s\n", fileName);
-        // printf("%s\n", glslang_program_get_info_log(program));
-        // printf("%s\n", glslang_program_get_info_debug_log(program));
+        Log::logger->log(Log::ERR, "GLSL linking failed");
+        Log::logger->log(Log::ERR, "{}", glslang_program_get_info_log(program));
+        Log::logger->log(Log::ERR, "{}", glslang_program_get_info_debug_log(program));
         glslang_program_delete(program);
         glslang_shader_delete(shader);
         return {};
@@ -65,9 +66,9 @@ static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage,
     std::vector<uint32_t> binary(size);
     glslang_program_SPIRV_get(program, binary.data());
 
-    // const char* spirv_messages = glslang_program_SPIRV_get_messages(program);
-    // if (spirv_messages)
-    //     printf("(%s) %s\b", fileName, spirv_messages);
+    const char* spirv_messages = glslang_program_SPIRV_get_messages(program);
+    if (spirv_messages)
+        Log::logger->log(Log::DEBUG, "{}", spirv_messages);
 
     glslang_program_delete(program);
     glslang_shader_delete(shader);
@@ -75,7 +76,7 @@ static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage,
     return binary;
 }
 
-CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, eShaderType type) : IDeviceUser(device) {
+CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, uint32_t pushSize, eShaderType type) : IDeviceUser(device), m_pushSize(pushSize) {
     const auto binary = compileShader(type == SH_FRAG ? GLSLANG_STAGE_FRAGMENT : GLSLANG_STAGE_VERTEX, source);
 
     ASSERT(binary.has_value());
@@ -92,6 +93,10 @@ CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, eS
 
 VkShaderModule CVkShader::module() {
     return m_module;
+}
+
+uint32_t CVkShader::pushSize() {
+    return m_pushSize;
 }
 
 CVkShader::~CVkShader() {

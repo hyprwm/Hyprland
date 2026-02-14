@@ -5,7 +5,7 @@
 #include "../Framebuffer.hpp"
 #include <drm_fourcc.h>
 
-class CGLFramebuffer : IFramebuffer {
+class CGLFramebuffer : public IFramebuffer {
   public:
     CGLFramebuffer();
     ~CGLFramebuffer();
@@ -18,9 +18,10 @@ class CGLFramebuffer : IFramebuffer {
     GLuint getFBID();
     void   invalidate(const std::vector<GLenum>& attachments);
 
-  private:
-    bool   internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) override;
+  protected:
+    bool internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) override;
 
+  private:
     GLuint m_fb = -1;
 
     friend class CRenderbuffer;

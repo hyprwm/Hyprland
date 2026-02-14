@@ -45,6 +45,7 @@
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "render/AsyncResourceGatherer.hpp"
+#include "render/Framebuffer.hpp"
 #include "render/OpenGL.hpp"
 #include "render/Texture.hpp"
 #include "render/pass/BorderPassElement.hpp"
@@ -652,7 +653,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            CFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB;
+            IFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB.get();
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
@@ -1642,7 +1643,7 @@ void IHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
-bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
+bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
     m_renderPass.clear();
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
@@ -2688,7 +2689,7 @@ void IHyprRenderer::unsetEGL() {
     eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool IHyprRenderer::beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
+bool IHyprRenderer::beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     return beginRender(pMonitor, damage, RENDER_MODE_FULL_FAKE, nullptr, fb, simple);
 }
 
@@ -2749,7 +2750,10 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_windowFramebuffers[ref];
+    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
+        g_pHyprOpenGL->m_windowFramebuffers[ref] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_windowFramebuffers[ref];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2782,7 +2786,10 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_layerFramebuffers[pLayer];
+    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
+        g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_layerFramebuffers[pLayer];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2816,7 +2823,10 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_popupFramebuffers[popup];
+    if (g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
+        g_pHyprOpenGL->m_popupFramebuffers[popup] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_popupFramebuffers[popup];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2865,7 +2875,7 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
         return;
 
-    const auto FBDATA = &g_pHyprOpenGL->m_windowFramebuffers.at(ref);
+    const auto FBDATA = g_pHyprOpenGL->m_windowFramebuffers.at(ref);
 
     if (!FBDATA->getTexture())
         return;
@@ -2904,7 +2914,7 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         data.roundingPower = pWindow->roundingPower();
         data.xray          = pWindow->m_ruleApplicator->xray().valueOr(false);
 
-        m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
 
     CTexPassElement::SRenderData data;
@@ -2921,7 +2931,7 @@ void IHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
         return;
 
-    const auto FBDATA = &g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
+    const auto FBDATA = g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
 
     if (!FBDATA->getTexture())
         return;
@@ -2965,7 +2975,7 @@ void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-    const auto          FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto          FBDATA = g_pHyprOpenGL->m_popupFramebuffers.at(popup);
 
     if (!FBDATA->getTexture())
         return;

@@ -3,6 +3,9 @@
 #include "OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../protocols/types/Buffer.hpp"
+#include "render/Framebuffer.hpp"
+#include "render/gl/GLFramebuffer.hpp"
+#include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/signal/Listener.hpp>
 #include <hyprutils/signal/Signal.hpp>
 
@@ -15,7 +18,7 @@ CRenderbuffer::~CRenderbuffer() {
     g_pHyprOpenGL->makeEGLCurrent();
 
     unbind();
-    m_framebuffer.release();
+    m_framebuffer->release();
 
     if (m_rbo)
         glDeleteRenderbuffers(1, &m_rbo);
@@ -38,10 +41,11 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
     g_pHyprOpenGL->m_proc.glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, m_image);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
-    glGenFramebuffers(1, &m_framebuffer.m_fb);
-    m_framebuffer.m_fbAllocated = true;
-    m_framebuffer.m_size        = buffer->size;
-    m_framebuffer.bind();
+    m_framebuffer = makeShared<CGLFramebuffer>();
+    glGenFramebuffers(1, &m_framebuffer->m_fb);
+    m_framebuffer->m_fbAllocated = true;
+    m_framebuffer->m_size        = buffer->size;
+    m_framebuffer->bind();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -49,7 +53,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
         return;
     }
 
-    m_framebuffer.unbind();
+    m_framebuffer->unbind();
 
     m_listeners.destroyBuffer = buffer->events.destroy.listen([this] { g_pHyprRenderer->onRenderbufferDestroy(this); });
 
@@ -61,13 +65,13 @@ bool CRenderbuffer::good() {
 }
 
 void CRenderbuffer::bind() {
-    m_framebuffer.bind();
+    m_framebuffer->bind();
 }
 
 void CRenderbuffer::unbind() {
-    m_framebuffer.unbind();
+    m_framebuffer->unbind();
 }
 
-CFramebuffer* CRenderbuffer::getFB() {
-    return &m_framebuffer;
+SP<CGLFramebuffer> CRenderbuffer::getFB() {
+    return m_framebuffer;
 }

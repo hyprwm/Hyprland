@@ -24,6 +24,7 @@ class CHyprVKRenderer : public IHyprRenderer {
     void*                   createImage(const SP<Aquamarine::IBuffer> buffer) override;
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
+    SP<IFramebuffer>        createFB() override;
 
     // TODO fix api
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
@@ -31,7 +32,7 @@ class CHyprVKRenderer : public IHyprRenderer {
 
   private:
     bool                                beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
-    bool                                beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false) override;
+    bool                                beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
     void                                initRender() override;
     bool                                initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
 

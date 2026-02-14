@@ -51,7 +51,7 @@ bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
     return true;
 }
 
-bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
+bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     return false;
 };
 
@@ -225,6 +225,11 @@ std::vector<SDRMFormat> CHyprVKRenderer::getDRMFormats() {
         };
     });
     return formats;
+}
+
+SP<IFramebuffer> CHyprVKRenderer::createFB() {
+    Log::logger->log(Log::ERR, "Unimplimented CHyprVKRenderer::createFB");
+    return nullptr;
 }
 
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {

@@ -7,8 +7,8 @@
 
 class IFramebuffer {
   public:
-    IFramebuffer() = default;
-    virtual ~IFramebuffer();
+    IFramebuffer()          = default;
+    virtual ~IFramebuffer() = default;
 
     virtual bool alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
     virtual void release() = 0;

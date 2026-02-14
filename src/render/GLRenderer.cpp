@@ -42,6 +42,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "render/OpenGL.hpp"
 #include "render/Renderer.hpp"
+#include "render/gl/GLFramebuffer.hpp"
 #include "render/gl/GLTexture.hpp"
 #include "render/vulkan/Vulkan.hpp"
 #include "decorations/CHyprDropShadowDecoration.hpp"
@@ -75,11 +76,11 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
     return g_pHyprOpenGL->m_renderData.m_currentRenderbuffer;
 }
 
-bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple) {
+bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
 
     RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
-    fb->bind();
+    GLFB(fb)->bind();
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
     else
@@ -269,6 +270,10 @@ void CHyprGLRenderer::cleanLsResources(Desktop::View::CLayerSurface* ls) {
     std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == ls; });
 }
 
+SP<IFramebuffer> CHyprGLRenderer::createFB() {
+    return makeShared<CGLFramebuffer>();
+}
+
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.hasGrad2)
@@ -286,8 +291,8 @@ void CHyprGLRenderer::draw(CClearPassElement* element, const CRegion& damage) {
 };
 
 void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
-    const auto    m_data = element->m_data;
-    CFramebuffer* fb     = nullptr;
+    const auto       m_data = element->m_data;
+    SP<IFramebuffer> fb     = nullptr;
 
     if (m_data.main) {
         switch (m_data.framebufferID) {
@@ -304,12 +309,12 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 
     } else {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offloadFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offMainFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->monitorMirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB; break;
             default: fb = nullptr;
         }
 
@@ -319,7 +324,7 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
         }
     }
 
-    fb->bind();
+    GLFB(fb)->bind();
 };
 
 void CHyprGLRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
@@ -539,13 +544,13 @@ void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
     if (m_data.disableTransformAndModify) {
         g_pHyprOpenGL->pushMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
-        g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, *m_data.fb);
+        g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->popMonitorTransformEnabled();
     } else
-        g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, *m_data.fb);
+        g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
 };
 
 SP<ITexture> CHyprGLRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
-    return g_pHyprOpenGL->m_monitorRenderResources[pMonitor].blurFB.getTexture();
+    return g_pHyprOpenGL->m_monitorRenderResources[pMonitor].blurFB->getTexture();
 }

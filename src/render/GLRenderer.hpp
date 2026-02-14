@@ -18,10 +18,11 @@ class CHyprGLRenderer : public IHyprRenderer {
     void                    cleanWindowResources(Desktop::View::CWindow* window) override;
     void                    cleanPopupResources(Desktop::View::CPopup* popup) override;
     void                    cleanLsResources(Desktop::View::CLayerSurface* ls) override;
+    SP<IFramebuffer>        createFB() override;
 
   private:
     bool         beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
-    bool         beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false) override;
+    bool         beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
     void         initRender() override;
     bool         initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
 

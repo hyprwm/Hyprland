@@ -294,11 +294,14 @@ void CScreencopyFrame::renderMon() {
 void CScreencopyFrame::storeTempFB() {
     g_pHyprOpenGL->makeEGLCurrent();
 
-    m_tempFb.alloc(m_box.w, m_box.h);
+    if (!m_tempFb)
+        m_tempFb = g_pHyprRenderer->createFB();
+
+    m_tempFb->alloc(m_box.w, m_box.h);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, &m_tempFb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, m_tempFb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }
@@ -320,10 +323,10 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        if (m_tempFb.isAllocated()) {
+        if (m_tempFb && m_tempFb->isAllocated()) {
             CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
-            m_tempFb.release();
+            g_pHyprOpenGL->renderTexture(m_tempFb->getTexture(), texbox, {});
+            m_tempFb->release();
         } else
             renderMon();
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
@@ -353,19 +356,19 @@ bool CScreencopyFrame::copyShm() {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    CFramebuffer fb;
-    fb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
+    auto fb = g_pHyprRenderer->createFB();
+    fb->alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
 
-    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, &fb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, fb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        if (m_tempFb.isAllocated()) {
+        if (m_tempFb && m_tempFb->isAllocated()) {
             CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
-            m_tempFb.release();
+            g_pHyprOpenGL->renderTexture(m_tempFb->getTexture(), texbox, {});
+            m_tempFb->release();
         } else
             renderMon();
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
@@ -377,7 +380,7 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(fb)->getFBID());
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -391,7 +394,7 @@ bool CScreencopyFrame::copyShm() {
 
     g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = m_monitor;
-    fb.bind();
+    GLFB(fb)->bind();
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -559,7 +562,7 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
         const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(f->m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
         if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            if (!f->m_tempFb.isAllocated())
+            if (!f->m_tempFb || !f->m_tempFb->isAllocated())
                 f->storeTempFB(); // make a snapshot before the popup
 
             continue; // pending an answer, don't do anything yet.

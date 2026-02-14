@@ -242,8 +242,8 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    CFramebuffer outFB;
-    outFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
+    auto outFB = g_pHyprRenderer->createFB();
+    outFB->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
     auto overlayCursor = shouldOverlayCursor();
 
@@ -252,7 +252,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, fakeDamage, &outFB))
+    if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, fakeDamage, outFB))
         return false;
 
     g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
@@ -283,9 +283,9 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
 
     g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
-    outFB.bind();
+    GLFB(outFB)->bind();
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     auto origin = Vector2D(0, 0);
@@ -336,7 +336,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    outFB.unbind();
+    GLFB(outFB)->unbind();
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

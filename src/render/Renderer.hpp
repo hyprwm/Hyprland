@@ -76,9 +76,9 @@ struct SRenderData {
 
     // // FIXME: raw pointer galore!
     // SMonitorRenderData*    pCurrentMonData = nullptr;
-    // CFramebuffer*          currentFB       = nullptr; // current rendering to
-    // CFramebuffer*          mainFB          = nullptr; // main to render to
-    // CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
+    // IFramebuffer*          currentFB       = nullptr; // current rendering to
+    // IFramebuffer*          mainFB          = nullptr; // main to render to
+    // IFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
     // CRegion                damage;
     // CRegion                finalDamage; // damage used for funal off -> main
@@ -148,7 +148,7 @@ class IHyprRenderer {
     bool                            isMgpu();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
 
-    bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false);
+    bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false);
     bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
     virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {}) {};
 
@@ -208,18 +208,19 @@ class IHyprRenderer {
     virtual void                    cleanWindowResources(Desktop::View::CWindow* window) {};
     virtual void                    cleanPopupResources(Desktop::View::CPopup* popup) {};
     virtual void                    cleanLsResources(Desktop::View::CLayerSurface* ls) {};
+    virtual SP<IFramebuffer>        createFB() = 0;
 
     bool                            preBlurQueued(PHLMONITORREF pMonitor);
 
   protected:
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
-    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
+    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr, bool simple = false);
 
     virtual bool beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) {
         return false;
     };
-    virtual bool beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, CFramebuffer* fb, bool simple = false) {
+    virtual bool beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) {
         return false;
     };
     virtual void initRender() {};

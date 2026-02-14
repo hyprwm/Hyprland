@@ -9,7 +9,7 @@ class CTextureMatteElement : public IPassElement {
     struct STextureMatteData {
         CBox             box;
         SP<ITexture>     tex;
-        SP<CFramebuffer> fb;
+        SP<IFramebuffer> fb;
         bool             disableTransformAndModify = false;
     };
 

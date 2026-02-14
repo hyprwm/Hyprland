@@ -12,6 +12,7 @@ bool IFramebuffer::alloc(int w, int h, uint32_t format) {
     m_size        = {w, h};
     m_drmFormat   = format;
     m_fbAllocated = internalAlloc(w, h, format);
+    return m_fbAllocated;
 }
 
 bool IFramebuffer::isAllocated() {

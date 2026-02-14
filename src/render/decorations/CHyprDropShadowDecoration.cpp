@@ -155,9 +155,9 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprOpenGL->m_renderData.currentWindow = m_window;
 
     // we'll take the liberty of using this as it should not be used rn
-    CFramebuffer& alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
-    CFramebuffer& alphaSwapFB = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB;
-    auto*         LASTFB      = g_pHyprOpenGL->m_renderData.currentFB;
+    const auto alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
+    const auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB;
+    const auto LASTFB      = g_pHyprOpenGL->m_renderData.currentFB;
 
     fullBox.scale(pMonitor->m_scale).round();
 
@@ -188,7 +188,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprOpenGL->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
         g_pHyprOpenGL->m_renderData.renderModif.applyToRegion(g_pHyprOpenGL->m_renderData.damage);
 
-        alphaFB.bind();
+        alphaFB->bind();
 
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
@@ -202,18 +202,18 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprOpenGL->renderRect(windowBox, CHyprColor(0, 0, 0, 1.0),
                                   {.round = (ROUNDING + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale, .roundingPower = ROUNDINGPOWER});
 
-        alphaSwapFB.bind();
+        alphaSwapFB->bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
         g_pHyprOpenGL->renderRect(fullBox, PWINDOW->m_realShadowColor->value().stripA(), {.round = 0});
 
-        LASTFB->bind();
+        GLFB(LASTFB)->bind();
 
         CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
         g_pHyprOpenGL->pushMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
-        g_pHyprOpenGL->renderTextureMatte(alphaSwapFB.getTexture(), monbox, alphaFB);
+        g_pHyprOpenGL->renderTextureMatte(alphaSwapFB->getTexture(), monbox, alphaFB);
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->popMonitorTransformEnabled();
 

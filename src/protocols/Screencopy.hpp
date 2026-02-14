@@ -75,14 +75,14 @@ class CScreencopyFrame {
     CBox                       m_box          = {};
 
     // if we have a pending perm, hold the buffer.
-    CFramebuffer m_tempFb;
+    SP<IFramebuffer> m_tempFb;
 
-    void         copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
-    void         copyDmabuf(std::function<void(bool)> callback);
-    bool         copyShm();
-    void         renderMon();
-    void         storeTempFB();
-    void         share();
+    void             copy(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer);
+    void             copyDmabuf(std::function<void(bool)> callback);
+    bool             copyShm();
+    void             renderMon();
+    void             storeTempFB();
+    void             share();
 
     friend class CScreencopyProtocol;
 };

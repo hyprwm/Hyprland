@@ -3,6 +3,7 @@
 #include "../helpers/signal/Signal.hpp"
 #include "../helpers/memory/Memory.hpp"
 #include "Framebuffer.hpp"
+#include "render/gl/GLFramebuffer.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
 class CMonitor;
@@ -15,17 +16,17 @@ class CRenderbuffer {
     bool                    good();
     void                    bind();
     void                    unbind();
-    CFramebuffer*           getFB();
+    SP<CGLFramebuffer>      getFB();
     uint32_t                getFormat();
 
     WP<Aquamarine::IBuffer> m_hlBuffer;
 
   private:
-    void*        m_image = nullptr;
-    GLuint       m_rbo   = 0;
-    CFramebuffer m_framebuffer;
-    uint32_t     m_drmFormat = 0;
-    bool         m_good      = false;
+    void*              m_image = nullptr;
+    GLuint             m_rbo   = 0;
+    SP<CGLFramebuffer> m_framebuffer;
+    uint32_t           m_drmFormat = 0;
+    bool               m_good      = false;
 
     struct {
         CHyprSignalListener destroyBuffer;

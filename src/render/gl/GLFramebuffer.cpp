@@ -8,6 +8,8 @@ CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {
 }
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
+    g_pHyprOpenGL->makeEGLCurrent();
+
     bool firstAlloc = false;
 
     if (!m_tex) {

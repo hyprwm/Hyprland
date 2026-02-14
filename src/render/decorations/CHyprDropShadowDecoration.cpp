@@ -182,11 +182,11 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
 
-        CRegion saveDamage = g_pHyprOpenGL->m_renderData.damage;
+        CRegion saveDamage = g_pHyprRenderer->m_renderData.damage;
 
-        g_pHyprOpenGL->m_renderData.damage = fullBox;
-        g_pHyprOpenGL->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
-        g_pHyprOpenGL->m_renderData.renderModif.applyToRegion(g_pHyprOpenGL->m_renderData.damage);
+        g_pHyprRenderer->m_renderData.damage = fullBox;
+        g_pHyprRenderer->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
+        g_pHyprOpenGL->m_renderData.renderModif.applyToRegion(g_pHyprRenderer->m_renderData.damage);
 
         alphaFB->bind();
 
@@ -217,7 +217,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprOpenGL->popMonitorTransformEnabled();
 
-        g_pHyprOpenGL->m_renderData.damage = saveDamage;
+        g_pHyprRenderer->m_renderData.damage = saveDamage;
     } else
         drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
 

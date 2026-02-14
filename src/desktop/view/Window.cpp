@@ -159,8 +159,6 @@ CWindow::~CWindow() {
     }
 
     m_events.destroy.emit();
-
-    g_pHyprRenderer->cleanWindowResources(this);
 }
 
 eViewType CWindow::type() const {

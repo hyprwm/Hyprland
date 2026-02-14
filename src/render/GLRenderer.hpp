@@ -15,10 +15,11 @@ class CHyprGLRenderer : public IHyprRenderer {
     void*                   createImage(const SP<Aquamarine::IBuffer> buffer) override;
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
-    void                    cleanWindowResources(Desktop::View::CWindow* window) override;
     void                    cleanPopupResources(Desktop::View::CPopup* popup) override;
     void                    cleanLsResources(Desktop::View::CLayerSurface* ls) override;
     SP<IFramebuffer>        createFB() override;
+
+    void                    unsetEGL();
 
   private:
     bool         beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;

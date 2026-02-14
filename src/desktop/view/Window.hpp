@@ -19,6 +19,7 @@
 #include "../Workspace.hpp"
 #include "../rule/windowRule/WindowRuleApplicator.hpp"
 #include "../../protocols/types/ContentType.hpp"
+#include "render/Framebuffer.hpp"
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
@@ -246,6 +247,9 @@ namespace Desktop::View {
 
         // Stable ID for ext_foreign_toplevel_list
         const uint64_t m_stableID = 0x2137;
+
+        // snapshots
+        SP<IFramebuffer> m_snapshotFB;
 
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;

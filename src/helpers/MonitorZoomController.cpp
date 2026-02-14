@@ -83,7 +83,8 @@ void CMonitorZoomController::applyZoomTransform(CBox& monbox, const SCurrentRend
     if (*PZOOMDETACHEDCAMERA && !INITANIM)
         zoomWithDetachedCamera(monbox, m_renderData);
     else {
-        const auto ZOOMCENTER = m_renderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m->m_position) * m->m_scale : m->m_transformedSize / 2.f;
+        const auto ZOOMCENTER =
+            g_pHyprRenderer->m_renderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m->m_position) * m->m_scale : m->m_transformedSize / 2.f;
 
         monbox.translate(-ZOOMCENTER).scale(ZOOM).translate(*PZOOMRIGID ? m->m_transformedSize / 2.0 : ZOOMCENTER);
     }

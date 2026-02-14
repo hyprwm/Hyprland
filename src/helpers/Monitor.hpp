@@ -13,6 +13,7 @@
 #include <xf86drmMode.h>
 #include "MonitorZoomController.hpp"
 #include "../render/Texture.hpp"
+#include "render/Framebuffer.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -171,6 +172,7 @@ class CMonitor {
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
+    SP<IFramebuffer>           m_monitorMirrorFB;
 
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();

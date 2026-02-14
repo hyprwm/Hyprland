@@ -990,7 +990,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     updateMatrix();
 
-    if (WAS10B != m_enabled10bit || OLDRES != m_pixelSize)
+    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize) && g_pHyprOpenGL)
         g_pHyprOpenGL->destroyMonitorResources(m_self);
 
     g_pCompositor->scheduleMonitorStateRecheck();

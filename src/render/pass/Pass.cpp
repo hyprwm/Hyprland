@@ -131,8 +131,8 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
     }
 
     if (m_damage.empty()) {
-        g_pHyprOpenGL->m_renderData.damage      = m_damage;
-        g_pHyprOpenGL->m_renderData.finalDamage = m_damage;
+        g_pHyprRenderer->m_renderData.damage      = m_damage;
+        g_pHyprRenderer->m_renderData.finalDamage = m_damage;
         return m_damage;
     }
 
@@ -162,7 +162,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
 
         blurRegion.intersect(m_damage).expand(oneBlurRadius());
 
-        g_pHyprOpenGL->m_renderData.finalDamage = blurRegion.copy().add(m_damage);
+        g_pHyprRenderer->m_renderData.finalDamage = blurRegion.copy().add(m_damage);
 
         // FIXME: why does this break on * 1.F ?
         // used to work when we expand all the damage... I think? Well, before pass.
@@ -171,7 +171,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
 
         m_damage = blurRegion.copy().add(m_damage);
     } else
-        g_pHyprOpenGL->m_renderData.finalDamage = m_damage;
+        g_pHyprRenderer->m_renderData.finalDamage = m_damage;
 
     if (std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->disableSimplification(); })) {
         for (auto& el : m_passElements) {
@@ -180,7 +180,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
     } else
         simplify();
 
-    if (g_pHyprOpenGL->m_renderData.pCurrentMonData)
+    if (g_pHyprRenderer->m_renderData.pMonitor)
         g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
 
     if (m_passElements.empty())
@@ -195,7 +195,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
             continue;
         }
 
-        g_pHyprOpenGL->m_renderData.damage = el->elementDamage;
+        g_pHyprRenderer->m_renderData.damage = el->elementDamage;
         g_pHyprRenderer->draw(el->element, el->elementDamage);
     }
 
@@ -208,7 +208,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
         });
     }
 
-    g_pHyprOpenGL->m_renderData.damage = m_damage;
+    g_pHyprRenderer->m_renderData.damage = m_damage;
     return m_damage;
 }
 

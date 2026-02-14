@@ -145,7 +145,6 @@ struct SMonitorRenderData {
     SP<CGLFramebuffer> mirrorFB;     // these are used for some effects,
     SP<CGLFramebuffer> mirrorSwapFB; // etc
     SP<CGLFramebuffer> offMainFB;
-    SP<CGLFramebuffer> monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
     SP<CGLFramebuffer> blurFB;
 
     SP<ITexture>       stencilTex;
@@ -158,24 +157,17 @@ struct SCurrentRenderData {
     Mat3x3        monitorProjection;
 
     // FIXME: raw pointer galore!
-    SMonitorRenderData* pCurrentMonData = nullptr;
-    SP<IFramebuffer>    currentFB       = nullptr; // current rendering to
-    SP<IFramebuffer>    mainFB          = nullptr; // main to render to
-    SP<IFramebuffer>    outFB           = nullptr; // out to render to (if offloaded, etc)
+    SMonitorRenderData*    pCurrentMonData = nullptr;
+    SP<IFramebuffer>       currentFB       = nullptr; // current rendering to
+    SP<IFramebuffer>       mainFB          = nullptr; // main to render to
+    SP<IFramebuffer>       outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    SP<CRenderbuffer>   m_currentRenderbuffer = nullptr;
+    SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
 
-    CRegion             damage;
-    CRegion             finalDamage; // damage used for funal off -> main
+    SRenderModifData       renderModif;
+    bool                   blockScreenShader = false;
+    bool                   simplePass        = false;
 
-    SRenderModifData    renderModif;
-    // float                  mouseZoomFactor    = 1.f;
-    bool                   mouseZoomUseMouse  = true; // true by default
-    bool                   useNearestNeighbor = false;
-    bool                   blockScreenShader  = false;
-    bool                   simplePass         = false;
-
-    CBox                   clipBox = {}; // scaled coordinates
     CRegion                clipRegion;
 
     uint32_t               discardMode    = DISCARD_OPAQUE;
@@ -285,15 +277,12 @@ class CHyprOpenGLImpl {
     void                                                  preRender(PHLMONITOR);
 
     void                                                  saveBufferForMirror(const CBox&);
-    void                                                  renderMirrored();
 
     void                                                  applyScreenShader(const std::string& path);
 
     void                                                  bindOffMain();
     void                                                  renderOffToMain(IFramebuffer* off);
     void                                                  bindBackOnMain();
-
-    void                                                  setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
     uint32_t                                              getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                               getDRMFormats();
@@ -302,8 +291,6 @@ class CHyprOpenGLImpl {
     bool                                                  initShaders();
 
     WP<CShader>                                           useShader(WP<CShader> prog);
-
-    void                                                  ensureLockTexturesRendered(bool load);
 
     bool                                                  explicitSyncSupported();
     WP<CShader>                                           getSurfaceShader(uint8_t features);
@@ -320,7 +307,6 @@ class CHyprOpenGLImpl {
     EGLDisplay                                            m_eglDisplay = nullptr;
     EGLDeviceEXT                                          m_eglDevice  = nullptr;
 
-    std::map<PHLWINDOWREF, SP<IFramebuffer>>              m_windowFramebuffers;
     std::map<PHLLSREF, SP<IFramebuffer>>                  m_layerFramebuffers;
     std::map<WP<Desktop::View::CPopup>, SP<IFramebuffer>> m_popupFramebuffers;
     std::map<PHLMONITORREF, SMonitorRenderData>           m_monitorRenderResources;
@@ -394,11 +380,8 @@ class CHyprOpenGLImpl {
 
     bool                             m_monitorTransformEnabled = false; // do not modify directly
     std::stack<bool>                 m_monitorTransformStack;
-    SP<ITexture>                     m_lockDeadTexture;
-    SP<ITexture>                     m_lockDead2Texture;
-    SP<ITexture>                     m_lockTtyTextTexture;
+
     SP<CShader>                      m_finalScreenShader;
-    CTimer                           m_globalTimer;
     GLuint                           m_currentProgram;
 
     void                             initDRMFormats();

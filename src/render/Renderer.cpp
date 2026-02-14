@@ -663,7 +663,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
     }
 
-    g_pHyprOpenGL->m_renderData.clipBox = CBox();
+    m_renderData.clipBox = CBox();
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_isX11) {
@@ -1450,12 +1450,35 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     return tex;
 }
 
+void IHyprRenderer::ensureLockTexturesRendered(bool load) {
+    static bool loaded = false;
+
+    if (loaded == load)
+        return;
+
+    loaded = load;
+
+    if (load) {
+        // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
+        m_lockDeadTexture  = loadAsset("lockdead.png");
+        m_lockDead2Texture = loadAsset("lockdead2.png");
+
+        const auto VT = g_pCompositor->getVTNr();
+
+        m_lockTtyTextTexture = renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+    } else {
+        m_lockDeadTexture.reset();
+        m_lockDead2Texture.reset();
+        m_lockTtyTextTexture.reset();
+    }
+}
+
 void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     const bool LOCKED = g_pSessionLockManager->isSessionLocked();
     if (!LOCKED) {
-        g_pHyprOpenGL->ensureLockTexturesRendered(false);
+        ensureLockTexturesRendered(false);
         return;
     }
 
@@ -1466,7 +1489,7 @@ void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
     const auto PSLS              = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
     const bool RENDERLOCKMISSING = (PSLS.expired() || g_pSessionLockManager->clientDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
 
-    g_pHyprOpenGL->ensureLockTexturesRendered(RENDERLOCKMISSING);
+    ensureLockTexturesRendered(RENDERLOCKMISSING);
 
     if (RENDERLOCKMISSING)
         renderSessionLockMissing(pMonitor);
@@ -1497,7 +1520,7 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};
 
-    m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+    m_renderPass.add(makeUnique<CRectPassElement>(data));
 }
 
 void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
@@ -1507,16 +1530,16 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    data.tex = (ANY_PRESENT) ? g_pHyprOpenGL->m_lockDead2Texture : g_pHyprOpenGL->m_lockDeadTexture;
+    data.tex = (ANY_PRESENT) ? m_lockDead2Texture : m_lockDeadTexture;
     data.box = monbox;
     data.a   = 1;
 
     m_renderPass.add(makeUnique<CTexPassElement>(data));
 
-    if (!ANY_PRESENT && g_pHyprOpenGL->m_lockTtyTextTexture) {
+    if (!ANY_PRESENT && m_lockTtyTextTexture) {
         // also render text for the tty number
-        CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-        data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
+        CBox texbox = {{}, m_lockTtyTextTexture->m_size};
+        data.tex    = m_lockTtyTextTexture;
         data.box    = texbox;
 
         m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
@@ -1684,6 +1707,45 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return res;
 }
 
+void IHyprRenderer::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
+    m_renderData.damage.set(damage_);
+    m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+}
+
+void IHyprRenderer::renderMirrored() {
+    auto         monitor  = m_renderData.pMonitor;
+    auto         mirrored = monitor->m_mirrorOf;
+
+    const double scale  = std::min(monitor->m_transformedSize.x / mirrored->m_transformedSize.x, monitor->m_transformedSize.y / mirrored->m_transformedSize.y);
+    CBox         monbox = {0, 0, mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale};
+
+    // transform box as it will be drawn on a transformed projection
+    monbox.transform(Math::wlTransformToHyprutils(mirrored->m_transform), mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale);
+
+    monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
+    monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
+
+    if (!monitor->m_monitorMirrorFB)
+        monitor->m_monitorMirrorFB = createFB();
+
+    const auto PFB = mirrored->m_monitorMirrorFB;
+    if (!PFB || !PFB->isAllocated() || !PFB->getTexture())
+        return;
+
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
+
+    CTexPassElement::SRenderData data;
+    data.tex               = PFB->getTexture();
+    data.box               = monbox;
+    data.replaceProjection = Mat3x3::identity()
+                                 .translate(monitor->m_pixelSize / 2.0)
+                                 .transform(Math::wlTransformToHyprutils(monitor->m_transform))
+                                 .transform(Math::wlTransformToHyprutils(Math::invertTransform(mirrored->m_transform)))
+                                 .translate(-monitor->m_transformedSize / 2.0);
+
+    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+}
+
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -1795,9 +1857,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.mouseZoomFactor = 1.f;
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        m_renderData.mouseZoomFactor                   = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
-        g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;
+        m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
+        m_renderData.mouseZoomUseMouse  = false;
+        m_renderData.useNearestNeighbor = false;
     }
 
     CRegion damage, finalDamage;
@@ -1813,7 +1875,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     finalDamage = damage;
 
     // update damage in renderdata as we modified it
-    g_pHyprOpenGL->setDamage(damage, finalDamage);
+    setDamage(damage, finalDamage);
 
     if (pMonitor->m_forceFullFrames > 0) {
         pMonitor->m_forceFullFrames -= 1;
@@ -1830,7 +1892,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     else if (!finalDamage.empty()) {
         if (pMonitor->isMirror()) {
             g_pHyprOpenGL->blend(false);
-            g_pHyprOpenGL->renderMirrored();
+            renderMirrored();
             g_pHyprOpenGL->blend(true);
             EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
             renderCursor = false;
@@ -1874,7 +1936,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, g_pHyprOpenGL->m_renderData.damage);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_renderData.damage);
     }
 
     if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
@@ -1891,7 +1953,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_COLLECT;
 
-    CRegion    frameDamage{g_pHyprOpenGL->m_renderData.damage};
+    CRegion    frameDamage{m_renderData.damage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
     frameDamage.transform(Math::wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);
@@ -2656,7 +2718,7 @@ void IHyprRenderer::initiateManualCrash() {
     m_crashingInProgress = true;
     m_crashingDistort    = 0.5;
 
-    g_pHyprOpenGL->m_globalTimer.reset();
+    m_globalTimer.reset();
 
     static auto PDT = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
 
@@ -2680,13 +2742,6 @@ SP<CRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer>
 
     m_renderbuffers.emplace_back(buf);
     return buf;
-}
-
-void IHyprRenderer::unsetEGL() {
-    if (!g_pHyprOpenGL)
-        return;
-
-    eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
 bool IHyprRenderer::beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
@@ -2748,12 +2803,10 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    g_pHyprOpenGL->makeEGLCurrent();
+    if (!ref->m_snapshotFB)
+        ref->m_snapshotFB = g_pHyprRenderer->createFB();
 
-    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
-        g_pHyprOpenGL->m_windowFramebuffers[ref] = g_pHyprRenderer->createFB();
-
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_windowFramebuffers[ref];
+    const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2761,7 +2814,8 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     m_bRenderingSnapshot = true;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+    auto clear = makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
+    draw(clear.get(), {});
 
     renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->m_X11DoesntWantBorders, RENDER_PASS_ALL);
 
@@ -2872,10 +2926,10 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
+    if (!ref->m_snapshotFB)
         return;
 
-    const auto FBDATA = g_pHyprOpenGL->m_windowFramebuffers.at(ref);
+    const auto FBDATA = ref->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;

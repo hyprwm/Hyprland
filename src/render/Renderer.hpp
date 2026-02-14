@@ -80,20 +80,20 @@ struct SRenderData {
     // IFramebuffer*          mainFB          = nullptr; // main to render to
     // IFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    // CRegion                damage;
-    // CRegion                finalDamage; // damage used for funal off -> main
+    CRegion damage;
+    CRegion finalDamage; // damage used for funal off -> main
 
     // SRenderModifData       renderModif;
-    float mouseZoomFactor = 1.f;
-    // bool                   mouseZoomUseMouse  = true; // true by default
-    // bool                   useNearestNeighbor = false;
+    float mouseZoomFactor    = 1.f;
+    bool  mouseZoomUseMouse  = true; // true by default
+    bool  useNearestNeighbor = false;
     // bool                   blockScreenShader  = false;
     // bool                   simplePass         = false;
 
     Vector2D primarySurfaceUVTopLeft     = Vector2D(-1, -1);
     Vector2D primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-    // CBox                   clipBox = {}; // scaled coordinates
+    CBox     clipBox = {}; // scaled coordinates
     // CRegion                clipRegion;
 
     // uint32_t               discardMode    = DISCARD_OPAQUE;
@@ -116,7 +116,6 @@ class IHyprRenderer {
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
     void initiateManualCrash();
-    void unsetEGL();
     void makeSnapshot(PHLWINDOW);
     void makeSnapshot(PHLLS);
     void makeSnapshot(WP<Desktop::View::CPopup>);
@@ -191,6 +190,7 @@ class IHyprRenderer {
     SP<ITexture>         m_screencopyDeniedTexture;                                             // TODO? make readonly
     uint                 m_failedAssetsNo     = 0;                                              // TODO? make readonly
     bool                 m_reloadScreenShader = true;                                           // at launch it can be set
+    CTimer               m_globalTimer;
 
     void                 draw(WP<IPassElement> element, const CRegion& damage);
     virtual SP<ITexture> createTexture(bool opaque = false)                                                                                                        = 0;
@@ -205,7 +205,6 @@ class IHyprRenderer {
     virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
     virtual bool         explicitSyncSupported()    = 0;
     virtual std::vector<SDRMFormat> getDRMFormats() = 0;
-    virtual void                    cleanWindowResources(Desktop::View::CWindow* window) {};
     virtual void                    cleanPopupResources(Desktop::View::CPopup* popup) {};
     virtual void                    cleanLsResources(Desktop::View::CLayerSurface* ls) {};
     virtual SP<IFramebuffer>        createFB() = 0;
@@ -213,6 +212,8 @@ class IHyprRenderer {
     bool                            preBlurQueued(PHLMONITORREF pMonitor);
 
   protected:
+    void renderMirrored();
+    void setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage);
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
     bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr, bool simple = false);
@@ -240,8 +241,13 @@ class IHyprRenderer {
     virtual void         draw(CTextureMatteElement* element, const CRegion& damage)      = 0;
     virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
 
+    void                 renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
+    void                 ensureLockTexturesRendered(bool load);
+    SP<ITexture>         m_lockDeadTexture;
+    SP<ITexture>         m_lockDead2Texture;
+    SP<ITexture>         m_lockTtyTextTexture;
+
     // refactor
-    void renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
     void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
     void renderSessionLockMissing(PHLMONITOR pMonitor);
 

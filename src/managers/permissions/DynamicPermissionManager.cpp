@@ -60,19 +60,6 @@ static const char* permissionToString(eDynamicPermissionType type) {
     return "error";
 }
 
-static const char* permissionToHumanString(eDynamicPermissionType type) {
-    switch (type) {
-        case PERMISSION_TYPE_UNKNOWN: return "An application <b>{}</b> is requesting an unknown permission.";
-        case PERMISSION_TYPE_SCREENCOPY: return "An application <b>{}</b> is trying to capture your screen.<br/><br/>Do you want to allow it to do so?";
-        case PERMISSION_TYPE_PLUGIN: return "An application <b>{}</b> is trying to load a plugin: <b>{}</b>.<br/><br/>Do you want to load it?";
-        case PERMISSION_TYPE_KEYBOARD: return "A new keyboard has been plugged in: {}.<br/><br/>Do you want to allow it to operate?";
-        case PERMISSION_TYPE_CLIPBOARD_READ: return "An application <b>{}</b> is trying to read from your clipboard.<br/><br/>Do you want to allow it to do so?";
-        case PERMISSION_TYPE_CLIPBOARD_WRITE: return "An application <b>{}</b> is trying to write to your clipboard.<br/><br/>Do you want to allow it to do so?";
-    }
-
-    return "error";
-}
-
 static const char* specialPidToString(eSpecialPidTypes type) {
     switch (type) {
         case SPECIAL_PID_TYPE_CONFIG: return "config";
@@ -276,6 +263,8 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         case PERMISSION_TYPE_SCREENCOPY: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}}); break;
         case PERMISSION_TYPE_PLUGIN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_PLUGIN, {{"app", appName}, {"plugin", binaryPath}}); break;
         case PERMISSION_TYPE_KEYBOARD: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_KEYBOARD, {{"keyboard", binaryPath}}); break;
+        case PERMISSION_TYPE_CLIPBOARD_READ: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_READ, {{"app", appName}}); break;
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_WRITE, {{"app", appName}}); break;
         case PERMISSION_TYPE_UNKNOWN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_UNKNOWN, {{"app", appName}}); break;
     }
 

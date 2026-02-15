@@ -162,6 +162,10 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "An application <b>{app}</b> is trying to capture your screen.\n\nDo you want to allow it to?");
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "An application <b>{app}</b> is trying to load a plugin: <b>{plugin}</b>.\n\nDo you want to allow it to?");
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "A new keyboard has been detected: <b>{keyboard}</b>.\n\nDo you want to allow it to operate?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_READ,
+                            "An application <b>{app}</b> is trying to read from your clipboard.\n\nDo you want to allow it to?");
+    huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_WRITE,
+                            "An application <b>{app}</b> is trying to write to your clipboard.\n\nDo you want to allow it to?");
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(unknown)");
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_TITLE, "Permission request");
     huEngine->registerEntry("en_US", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Hint: you can set persistent rules for these in the Hyprland config file.");

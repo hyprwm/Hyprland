@@ -97,7 +97,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
             return;
         }
 
-        LOGM(Log::INFO, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         if (!m_accepted) {
             LOGM(Log::WARN, "Offer was never accepted, sending accept first");

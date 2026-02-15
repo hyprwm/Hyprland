@@ -1281,7 +1281,7 @@ void CXWM::initSelection() {
 
 void CXWM::setClipboardToWayland(SXSelection& sel) {
     const auto CLIENT = g_pXWayland->m_server ? g_pXWayland->m_server->m_xwaylandClient : nullptr;
-    if (CLIENT && &sel == &m_clipboard) {
+    if (CLIENT) {
         const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
             Log::logger->log(Log::INFO, "[xwm] Clipboard write denied by permission manager for XWayland");

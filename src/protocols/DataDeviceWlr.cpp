@@ -28,10 +28,10 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
         const auto CLIENT = r->client();
         const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            LOGM(Log::LOG, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            LOGM(Log::LOG, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
             return;
         }
 
@@ -133,10 +133,10 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
         const auto CLIENT = r->client();
         const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            LOGM(Log::LOG, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            LOGM(Log::LOG, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
             return;
         }
 
@@ -160,10 +160,10 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
         const auto CLIENT = r->client();
         const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            LOGM(Log::LOG, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            LOGM(Log::LOG, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
             return;
         }
 

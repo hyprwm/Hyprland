@@ -58,10 +58,10 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
         const auto CLIENT = r->client();
         const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            LOGM(Log::LOG, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            LOGM(Log::LOG, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
             const auto PROMISE = g_pDynamicPermissionManager->promiseFor(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
             if (!PROMISE) {
                 LOGM(Log::ERR, "BUG THIS: No promise for client permission for clipboard read");
@@ -75,7 +75,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
                 }
 
                 if (r->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                    LOGM(Log::LOG, "Clipboard read denied by user");
+                    LOGM(Log::INFO, "Clipboard read denied by user");
                     return;
                 }
 
@@ -84,7 +84,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
                     return;
                 }
 
-                LOGM(Log::LOG, "Offer {:x} asks to send data from source {:x} (permission granted)", (uintptr_t)this, (uintptr_t)m_source.get());
+                LOGM(Log::INFO, "Offer {:x} asks to send data from source {:x} (permission granted)", (uintptr_t)this, (uintptr_t)m_source.get());
 
                 if (!m_accepted) {
                     LOGM(Log::WARN, "Offer was never accepted, sending accept first");
@@ -97,7 +97,7 @@ CWLDataOfferResource::CWLDataOfferResource(SP<CWlDataOffer> resource_, SP<IDataS
             return;
         }
 
-        LOGM(Log::LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOGM(Log::INFO, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         if (!m_accepted) {
             LOGM(Log::WARN, "Offer was never accepted, sending accept first");
@@ -300,10 +300,10 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : m_re
         const auto CLIENT = r->client();
         const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
         if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-            LOGM(Log::LOG, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
             return;
         } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            LOGM(Log::LOG, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            LOGM(Log::INFO, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
             const auto PROMISE = g_pDynamicPermissionManager->promiseFor(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
             if (!PROMISE) {
                 LOGM(Log::ERR, "BUG THIS: No promise for client permission for clipboard write");
@@ -316,7 +316,7 @@ CWLDataDeviceResource::CWLDataDeviceResource(SP<CWlDataDevice> resource_) : m_re
                 }
 
                 if (r->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-                    LOGM(Log::LOG, "Clipboard write denied by user");
+                    LOGM(Log::INFO, "Clipboard write denied by user");
                     return;
                 }
 

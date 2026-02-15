@@ -166,8 +166,6 @@ void CPopup::onDestroy() {
 void CPopup::fullyDestroy() {
     Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
-    g_pHyprRenderer->cleanPopupResources(this);
-
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });
 }
 

@@ -250,16 +250,6 @@ std::vector<SDRMFormat> CHyprGLRenderer::getDRMFormats() {
     return g_pHyprOpenGL->getDRMFormats();
 }
 
-void CHyprGLRenderer::cleanPopupResources(Desktop::View::CPopup* popup) {
-    g_pHyprOpenGL->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == popup; });
-}
-
-void CHyprGLRenderer::cleanLsResources(Desktop::View::CLayerSurface* ls) {
-    g_pHyprOpenGL->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.get() == ls; });
-}
-
 SP<IFramebuffer> CHyprGLRenderer::createFB() {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLFramebuffer>();

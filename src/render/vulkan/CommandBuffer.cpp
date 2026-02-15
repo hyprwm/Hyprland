@@ -4,6 +4,7 @@
 #include "render/vulkan/DeviceUser.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include "utils.hpp"
+#include <cstdint>
 #include <vulkan/vulkan_core.h>
 
 CHyprVkCommandBuffer::CHyprVkCommandBuffer(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
@@ -123,13 +124,14 @@ void CHyprVkCommandBuffer::useFB(SP<CHyprVkFramebuffer> fb) {
 }
 
 void CHyprVkCommandBuffer::resetUsedResources() {
-    if ((!m_usedFB || !m_usedFB->texture()) && !m_usedTextures.size())
-        return;
-    Log::logger->log(Log::DEBUG, "resetUsedResources {:x}", rc<uintptr_t>(m_cmdBuffer));
-    for (const auto& t : m_usedTextures)
-        Log::logger->log(Log::DEBUG, "    used tex {:x}", rc<uintptr_t>(dc<CVKTexture*>(t.get())->m_image));
+    // return;
+    // if ((!m_usedFB || !m_usedFB->texture()) && !m_usedTextures.size())
+    //     return;
+    // Log::logger->log(Log::DEBUG, "resetUsedResources {:x}", rc<uintptr_t>(m_cmdBuffer));
+    // for (const auto& t : m_usedTextures)
+    // Log::logger->log(Log::DEBUG, "    used tex {:x} {}x{}", rc<uintptr_t>(dc<CVKTexture*>(t.get())->m_image), t->m_size.x, t->m_size.y);
     m_usedTextures.clear();
-    if (m_usedFB && m_usedFB->texture())
-        Log::logger->log(Log::DEBUG, "    used fb text {:x}", rc<uintptr_t>(m_usedFB->texture()->m_image));
+    // if (m_usedFB && m_usedFB->texture())
+    // Log::logger->log(Log::DEBUG, "    used fb tex {:x}", rc<uintptr_t>(m_usedFB->texture()->m_image));
     m_usedFB.reset();
 }

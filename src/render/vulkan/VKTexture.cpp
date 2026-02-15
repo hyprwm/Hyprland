@@ -47,14 +47,11 @@ VkDescriptorSet CVKTextureView::vkDS() {
 }
 
 CVKTextureView::~CVKTextureView() {
-    Log::logger->log(Log::DEBUG, "CVKTextureView::~CVKTextureView free ds {:x}", rc<uintptr_t>(m_descriptorSet));
     if (m_descriptorSet)
         vkFreeDescriptorSets(vkDevice(), m_dsPool->vkPool(), 1, &m_descriptorSet);
 
-    if (m_imageView) {
-        Log::logger->log(Log::TRACE, "CVKTextureView vkDestroyImageView {:x}", rc<uintptr_t>(m_imageView));
+    if (m_imageView)
         vkDestroyImageView(g_pHyprVulkan->vkDevice(), m_imageView, nullptr);
-    }
 }
 
 CVKTexture::CVKTexture(bool opaque) {
@@ -287,13 +284,10 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
 };
 
 CVKTexture::~CVKTexture() {
-    Log::logger->log(Log::DEBUG, "CVKTexture::~CVKTexture {:x} clear views", rc<uintptr_t>(m_image));
     m_views.clear();
 
-    if (m_imageView) {
-        Log::logger->log(Log::DEBUG, "vkDestroyImageView {:x}", rc<uintptr_t>(m_imageView));
+    if (m_imageView)
         vkDestroyImageView(g_pHyprVulkan->vkDevice(), m_imageView, nullptr);
-    }
 
     if (m_image) {
         vkDestroyImage(g_pHyprVulkan->vkDevice(), m_image, nullptr);
@@ -378,7 +372,6 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         return false;
     }
 
-    Log::logger->log(Log::ERR, "get mem");
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(g_pHyprVulkan->vkDevice(), dstImage, &memReqs);
 
@@ -421,12 +414,10 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
     // vk_renderer->read_pixels_cache.height         = height;
     // }
 
-    Log::logger->log(Log::ERR, "get cb");
     const auto cb = g_pHyprVulkan->stageCB();
     if (!cb || cb->vk() == VK_NULL_HANDLE)
         return false;
 
-    Log::logger->log(Log::ERR, "init read");
     cb->changeLayout(dstImage, //
                      {.layout = VK_IMAGE_LAYOUT_UNDEFINED, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0},
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .accessMask = VK_PIPELINE_STAGE_TRANSFER_BIT});
@@ -448,10 +439,15 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
                                                       }},
                                        .dstSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1},
                                        .dstOffsets     = {{
-                                               .x = width,
-                                               .y = height,
-                                               .z = 1,
-                                       }}};
+                                                              .x = dstX,
+                                                              .y = dstY,
+                                                              .z = 0,
+                                                      },
+                                                          {
+                                                              .x = dstX + width,
+                                                              .y = dstY + height,
+                                                              .z = 1,
+                                                      }}};
         vkCmdBlitImage(cb->vk(), m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
     } else {
         VkImageCopy imageRegion = {.srcSubresource =
@@ -476,7 +472,7 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
                                    }};
         vkCmdCopyImage(cb->vk(), m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageRegion);
     }
-    Log::logger->log(Log::ERR, "fin read");
+
     cb->changeLayout(dstImage, //
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                      {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
@@ -487,6 +483,7 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
     Log::logger->log(Log::ERR, "submit read");
     if (!g_pHyprVulkan->submitStage())
         return false;
+    Log::logger->log(Log::ERR, "submit read done");
 
     VkImageSubresource imgSubRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

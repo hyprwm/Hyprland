@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <fcntl.h>
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <vulkan/vulkan_core.h>
 
 CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, int w, int h, uint32_t fmt) : IDeviceUser(device) {
     const auto format = m_device->getFormat(fmt).value();
@@ -29,17 +30,6 @@ CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamari
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
     const Vector2D size = {w, h};
     m_tex = makeShared<CVKTexture>(props.format.drmFormat, size, false, false, VULKAN_DMA_TEX_USAGE | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-    g_pHyprVulkan->stageCB()->changeLayout(m_tex->m_image,
-                                           {
-                                               .layout     = VK_IMAGE_LAYOUT_UNDEFINED,
-                                               .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                                               .accessMask = 0,
-                                           },
-                                           {
-                                               .layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                               .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
-                                               .accessMask = VK_ACCESS_SHADER_READ_BIT,
-                                           });
 }
 
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs) {

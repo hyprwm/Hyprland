@@ -2861,10 +2861,10 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
-        g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
+    if (!pLayer->m_snapshotFB)
+        pLayer->m_snapshotFB = g_pHyprRenderer->createFB();
 
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_layerFramebuffers[pLayer];
+    const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2897,12 +2897,10 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    g_pHyprOpenGL->makeEGLCurrent();
+    if (!popup->m_snapshotFB)
+        popup->m_snapshotFB = g_pHyprRenderer->createFB();
 
-    if (g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
-        g_pHyprOpenGL->m_popupFramebuffers[popup] = g_pHyprRenderer->createFB();
-
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_popupFramebuffers[popup];
+    const auto PFRAMEBUFFER = popup->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2910,7 +2908,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     m_bRenderingSnapshot = true;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
 
     CSurfacePassElement::SRenderData renderdata;
     renderdata.pos             = popup->coordsGlobal();
@@ -3004,10 +3002,10 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 }
 
 void IHyprRenderer::renderSnapshot(PHLLS pLayer) {
-    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
+    if (!pLayer->m_snapshotFB)
         return;
 
-    const auto FBDATA = g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
+    const auto FBDATA = pLayer->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;
@@ -3046,12 +3044,12 @@ void IHyprRenderer::renderSnapshot(PHLLS pLayer) {
 }
 
 void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
-    if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
+    if (!popup->m_snapshotFB)
         return;
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-    const auto          FBDATA = g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto          FBDATA = popup->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;

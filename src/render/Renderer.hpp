@@ -207,9 +207,7 @@ class IHyprRenderer {
     virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
     virtual bool         explicitSyncSupported()    = 0;
     virtual std::vector<SDRMFormat> getDRMFormats() = 0;
-    virtual void                    cleanPopupResources(Desktop::View::CPopup* popup) {};
-    virtual void                    cleanLsResources(Desktop::View::CLayerSurface* ls) {};
-    virtual SP<IFramebuffer>        createFB() = 0;
+    virtual SP<IFramebuffer>        createFB()      = 0;
 
     bool                            preBlurQueued(PHLMONITORREF pMonitor);
     void                            pushMonitorTransformEnabled(bool enabled);

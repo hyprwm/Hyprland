@@ -81,8 +81,6 @@ CLayerSurface::~CLayerSurface() {
     if (m_wlSurface)
         m_wlSurface->unassign();
 
-    g_pHyprRenderer->cleanLsResources(this);
-
     for (auto const& mon : g_pCompositor->m_realMonitors) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });

@@ -31,10 +31,12 @@ void CHyprVKRenderer::initRender() {
     ASSERT(!m_busy);
     m_busy = true;
     m_currentPipeline.reset();
-    for (const auto& cb : g_pHyprVulkan->m_commandBuffers) {
-        if (!cb->busy())
-            cb->resetUsedResources();
-    }
+    // for (const auto& cb : g_pHyprVulkan->m_commandBuffers) {
+    //     if (!cb->busy()) {
+    //         Log::logger->log(Log::DEBUG, "CHyprVKRenderer::initRender reset cb {}", cb->m_timelinePoint <= g_pHyprVulkan->m_device->timelinePoint());
+    //         // cb->resetUsedResources();
+    //     }
+    // }
 }
 
 SP<CVkRenderPass> CHyprVKRenderer::getRenderPass(uint32_t fmt) {

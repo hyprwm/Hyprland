@@ -14,8 +14,6 @@ class CHyprGLRenderer : public IHyprRenderer {
     SP<ITexture>            createTexture(cairo_surface_t* cairo) override;
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
-    void                    cleanPopupResources(Desktop::View::CPopup* popup) override;
-    void                    cleanLsResources(Desktop::View::CLayerSurface* ls) override;
     SP<IFramebuffer>        createFB() override;
 
     void                    unsetEGL();

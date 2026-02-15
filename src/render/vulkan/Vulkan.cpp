@@ -257,7 +257,6 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
 }
 
 bool CHyprVulkanImpl::waitCommandBuffer(WP<CHyprVkCommandBuffer> cb) {
-
     ASSERT(cb && (cb->vk() != VK_NULL_HANDLE) && !cb->busy());
 
     const auto             semaphore = m_device->timelineSemaphore();

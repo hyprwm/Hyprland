@@ -67,7 +67,7 @@ CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCo
     const auto props  = g_pHyprVulkan->device()->getFormat(drmFormat);
 
     if (!props.has_value() || props->format.isYCC) {
-        Log::logger->log(Log::ERR, "Unsupported DRM format", NFormatUtils::drmFormatName(drmFormat));
+        Log::logger->log(Log::ERR, "Unsupported DRM format {}", NFormatUtils::drmFormatName(drmFormat));
         return;
     }
 
@@ -217,7 +217,8 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
 
     VkBindImageMemoryInfo bindi[4] = {};
 
-    for (int i = 0; i < planeCount; ++i) {
+    const int             needMems = isDisjoint(attrs) ? planeCount : 1;
+    for (int i = 0; i < needMems; ++i) {
         VkMemoryFdPropertiesKHR fdp = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_FD_PROPERTIES_KHR,
         };
@@ -276,7 +277,7 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
         bindi[i].sType        = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO;
     }
 
-    if (vkBindImageMemory2(g_pHyprVulkan->vkDevice(), planeCount, bindi) != VK_SUCCESS) {
+    if (vkBindImageMemory2(g_pHyprVulkan->vkDevice(), needMems, bindi) != VK_SUCCESS) {
         CRIT("vkBindMemory failed");
     }
 

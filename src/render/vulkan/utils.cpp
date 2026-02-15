@@ -26,3 +26,25 @@ int findVkMemType(VkPhysicalDevice dev, VkMemoryPropertyFlags flags, uint32_t re
 
     return -1;
 }
+
+bool isDisjoint(const Aquamarine::SDMABUFAttrs& attrs) {
+    if (attrs.planes == 1) {
+        return false;
+    }
+
+    struct stat fdStat;
+    if (fstat(attrs.fds[0], &fdStat) != 0)
+        return true;
+
+    for (int i = 1; i < attrs.planes; i++) {
+        struct stat fdStat2;
+        if (fstat(attrs.fds[i], &fdStat2) != 0)
+            return true;
+
+        if (fdStat.st_ino != fdStat2.st_ino) {
+            return true;
+        }
+    }
+
+    return false;
+}

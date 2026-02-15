@@ -68,7 +68,11 @@ bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
     m_currentRenderbuffer     = dc<CVKFramebuffer*>(fb.get())->fb();
     m_currentRenderbufferSize = fb->m_size;
 
-    return beginRenderInternal(pMonitor, damage, simple);
+    if (beginRenderInternal(pMonitor, damage, simple)) {
+        m_currentCommandBuffer->useTexture(fb->getTexture());
+        return true;
+    }
+    return false;
 };
 
 void CHyprVKRenderer::startRenderPass() {
@@ -182,20 +186,17 @@ SP<ITexture> CHyprVKRenderer::createTexture(bool opaque) {
 
 SP<ITexture> CHyprVKRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
     auto tex = makeShared<CVKTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
-    Log::logger->log(Log::DEBUG, "CHyprVKRenderer::createTexture pixels {:x}", rc<uintptr_t>(tex->m_image));
     tex->m_lastUsedCB->useTexture(tex);
     return tex;
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
     auto tex = makeShared<CVKTexture>(attrs, opaque);
-    Log::logger->log(Log::DEBUG, "CHyprVKRenderer::createTexture dma {:x}", rc<uintptr_t>(tex->m_image));
     return tex;
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(const int width, const int height, unsigned char* const data) {
     auto tex = createTexture(DRM_FORMAT_ARGB8888, data, width * 4, {width, height});
-    Log::logger->log(Log::DEBUG, "CHyprVKRenderer::createTexture shm {:x}", rc<uintptr_t>(dc<CVKTexture*>(tex.get())->m_image));
     return tex;
 }
 

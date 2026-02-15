@@ -47,7 +47,7 @@ VkDescriptorSet CVKTextureView::vkDS() {
 }
 
 CVKTextureView::~CVKTextureView() {
-    return;
+    Log::logger->log(Log::DEBUG, "CVKTextureView::~CVKTextureView free ds {:x}", rc<uintptr_t>(m_descriptorSet));
     if (m_descriptorSet)
         vkFreeDescriptorSets(vkDevice(), m_dsPool->vkPool(), 1, &m_descriptorSet);
 
@@ -103,8 +103,8 @@ CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCo
         imgInfo.pNext = &listInfo;
     }
 
-    if (vkCreateImage(device, &imgInfo, nullptr, &m_image) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkCreateImage failed");
+    IF_VKFAIL(vkCreateImage, device, &imgInfo, nullptr, &m_image) {
+        LOG_VKFAIL;
         return;
     }
 
@@ -287,8 +287,7 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
 };
 
 CVKTexture::~CVKTexture() {
-    Log::logger->log(Log::DEBUG, "CVKTexture::~CVKTexture {:x}", rc<uintptr_t>(m_image));
-    return;
+    Log::logger->log(Log::DEBUG, "CVKTexture::~CVKTexture {:x} clear views", rc<uintptr_t>(m_image));
     m_views.clear();
 
     if (m_imageView) {
@@ -327,7 +326,7 @@ VkImageView CVKTexture::vkView() {
     return m_imageView;
 }
 
-WP<CVKTextureView> CVKTexture::getView(SP<CVkPipelineLayout> layout) {
+SP<CVKTextureView> CVKTexture::getView(SP<CVkPipelineLayout> layout) {
     if (m_views.contains(layout))
         return m_views.at(layout);
 

@@ -29,7 +29,6 @@ CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamari
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
     const Vector2D size = {w, h};
     m_tex = makeShared<CVKTexture>(props.format.drmFormat, size, false, false, VULKAN_DMA_TEX_USAGE | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-    Log::logger->log(Log::DEBUG, "CHyprVkFramebuffer::initImage {:x}", rc<uintptr_t>(m_tex->m_image));
     g_pHyprVulkan->stageCB()->changeLayout(m_tex->m_image,
                                            {
                                                .layout     = VK_IMAGE_LAYOUT_UNDEFINED,

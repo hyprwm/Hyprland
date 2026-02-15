@@ -2842,6 +2842,8 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     endRender();
 
+    Log::logger->log(Log::DEBUG, "renderer: made a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+
     m_bRenderingSnapshot = false;
 }
 

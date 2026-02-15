@@ -51,7 +51,7 @@ class CVKTexture : public ITexture {
     WP<CHyprVkCommandBuffer> m_lastUsedCB;
 
     VkImageView              vkView();
-    WP<CVKTextureView>       getView(SP<CVkPipelineLayout> layout);
+    SP<CVKTextureView>       getView(SP<CVkPipelineLayout> layout);
     bool                     read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint32_t height, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, void* data);
 
     VkImage                  m_image = VK_NULL_HANDLE; // TODO private

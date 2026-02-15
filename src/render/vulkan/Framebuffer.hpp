@@ -4,6 +4,7 @@
 #include "../../helpers/Format.hpp"
 #include "DeviceUser.hpp"
 #include "../Framebuffer.hpp"
+#include "render/Texture.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <array>
@@ -21,19 +22,17 @@ class CHyprVkFramebuffer : public IDeviceUser {
     WP<Aquamarine::IBuffer> m_hlBuffer;
     bool                    m_initialized = false;
 
+    VkFramebuffer           vk();
+    VkImage                 vkImage();
+    SP<CVKTexture>          texture();
+
   private:
-    void                          initImage(SVkFormatProps props, int w, int h);
-    void                          initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs);
-    void                          initImageView(VkFormat format);
-    void                          initFB(VkRenderPass renderPass, int w, int h);
+    void           initImage(SVkFormatProps props, int w, int h);
+    void           initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs);
+    void           initFB(VkRenderPass renderPass, int w, int h);
 
-    std::array<VkDeviceMemory, 4> m_memory      = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE};
-    VkImage                       m_image       = VK_NULL_HANDLE;
-    VkImageView                   m_imageView   = VK_NULL_HANDLE;
-    VkFramebuffer                 m_framebuffer = VK_NULL_HANDLE;
-    SP<CVKTexture>                m_tex;
-
-    friend class CHyprVKRenderer;
+    VkFramebuffer  m_framebuffer = VK_NULL_HANDLE;
+    SP<CVKTexture> m_tex;
 };
 
 class CVKFramebuffer : public IFramebuffer {

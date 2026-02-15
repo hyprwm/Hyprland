@@ -571,9 +571,12 @@ void CCompositor::cleanup() {
     m_workspaces.clear();
     m_windows.clear();
 
-    if (g_pHyprOpenGL) {
-        for (auto const& m : m_monitors) {
-            g_pHyprOpenGL->destroyMonitorResources(m);
+    if (g_pHyprRenderer) {
+        const auto gl = g_pHyprRenderer->glBackend();
+        if (gl) {
+            for (auto const& m : m_monitors) {
+                gl->destroyMonitorResources(m);
+            }
         }
     }
 

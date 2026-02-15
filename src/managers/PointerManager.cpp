@@ -585,13 +585,17 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     RBO->bind();
 
     g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damage.x, damage.y}, RBO);
-    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
+    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}}), {});
+    g_pHyprRenderer->startRenderPass();
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    g_pHyprOpenGL->renderTexture(texture, xbox, {});
+    CTexPassElement::SRenderData data;
+    data.tex = texture;
+    data.box = xbox;
+    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
 
     g_pHyprOpenGL->end();
     g_pHyprRenderer->m_renderData.pMonitor.reset();

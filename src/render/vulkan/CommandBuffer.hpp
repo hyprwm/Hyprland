@@ -8,6 +8,7 @@
 #include <vulkan/vulkan_core.h>
 
 class CHyprVKRenderer;
+class CHyprVkFramebuffer;
 
 class CHyprVkCommandBuffer : public IDeviceUser {
   public:
@@ -27,6 +28,9 @@ class CHyprVkCommandBuffer : public IDeviceUser {
     bool            busy();
     uint64_t        m_timelinePoint = 0;
     void            useTexture(SP<ITexture> tex);
+    void            useFB(SP<CHyprVkFramebuffer> fb);
+
+    void            resetUsedResources();
 
   private:
     VkCommandBuffer           m_cmdBuffer       = VK_NULL_HANDLE;
@@ -35,6 +39,7 @@ class CHyprVkCommandBuffer : public IDeviceUser {
 
     bool                      m_recording = false;
     std::vector<SP<ITexture>> m_usedTextures;
+    SP<CHyprVkFramebuffer>    m_usedFB;
 
     // friend class CHyprVKRenderer;
     // friend class CHyprVulkanImpl;

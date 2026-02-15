@@ -70,6 +70,7 @@ static int cursorTicker(void* data) {
 
 IHyprRenderer::IHyprRenderer() {
     m_globalTimer.reset();
+    pushMonitorTransformEnabled(false);
 
     if (g_pCompositor->m_aqBackend->hasSession()) {
         size_t drmDevices = 0;
@@ -203,6 +204,10 @@ IHyprRenderer::IHyprRenderer() {
 IHyprRenderer::~IHyprRenderer() {
     if (m_cursorTicker)
         wl_event_source_remove(m_cursorTicker);
+}
+
+WP<CHyprOpenGLImpl> IHyprRenderer::glBackend() {
+    return g_pHyprOpenGL;
 }
 
 bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
@@ -784,6 +789,20 @@ bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
     return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
 }
 
+void IHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
+    m_monitorTransformStack.push(enabled);
+    m_monitorTransformEnabled = enabled;
+}
+
+void IHyprRenderer::popMonitorTransformEnabled() {
+    m_monitorTransformStack.pop();
+    m_monitorTransformEnabled = m_monitorTransformStack.top();
+}
+
+bool IHyprRenderer::monitorTransformEnabled() {
+    return m_monitorTransformEnabled;
+}
+
 SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
         return createTexture();
@@ -804,14 +823,14 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
         return createTexture(fmt, pixelData, bufLen, shm.size, keepDataCopy, buffer->opaque);
     }
 
-    auto image = createImage(buffer);
+    auto tex = createTexture(attrs, buffer->opaque);
 
-    if (!image) {
-        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an EGLImage");
+    if (!tex) {
+        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an Image");
         return createTexture(buffer->opaque);
     }
 
-    return createTexture(attrs, image, buffer->opaque);
+    return tex;
 }
 
 void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -2840,8 +2859,6 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    g_pHyprOpenGL->makeEGLCurrent();
-
     if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
         g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
 
@@ -2853,7 +2870,8 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     m_bRenderingSnapshot = true;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0)); // JIC
+    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+    g_pHyprRenderer->startRenderPass();
 
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());

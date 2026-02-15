@@ -51,7 +51,7 @@ CHyprVkCommandBuffer::~CHyprVkCommandBuffer() {
 void CHyprVkCommandBuffer::begin() {
     ASSERT(!m_recording);
 
-    m_usedTextures.clear();
+    resetUsedResources();
 
     m_recording = true;
 
@@ -115,4 +115,13 @@ bool CHyprVkCommandBuffer::busy() {
 
 void CHyprVkCommandBuffer::useTexture(SP<ITexture> tex) {
     m_usedTextures.push_back(tex);
+}
+
+void CHyprVkCommandBuffer::useFB(SP<CHyprVkFramebuffer> fb) {
+    m_usedFB = fb;
+}
+
+void CHyprVkCommandBuffer::resetUsedResources() {
+    m_usedTextures.clear();
+    m_usedFB.reset();
 }

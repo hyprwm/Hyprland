@@ -80,14 +80,14 @@ struct SRenderData {
     // IFramebuffer*          mainFB          = nullptr; // main to render to
     // IFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    CRegion damage;
-    CRegion finalDamage; // damage used for funal off -> main
+    CRegion          damage;
+    CRegion          finalDamage; // damage used for funal off -> main
 
-    // SRenderModifData       renderModif;
-    float mouseZoomFactor    = 1.f;
-    bool  mouseZoomUseMouse  = true; // true by default
-    bool  useNearestNeighbor = false;
-    bool  blockScreenShader  = false;
+    SRenderModifData renderModif;
+    float            mouseZoomFactor    = 1.f;
+    bool             mouseZoomUseMouse  = true; // true by default
+    bool             useNearestNeighbor = false;
+    bool             blockScreenShader  = false;
     // bool                   simplePass         = false;
 
     Vector2D primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -108,6 +108,8 @@ class IHyprRenderer {
   public:
     IHyprRenderer();
     virtual ~IHyprRenderer();
+
+    WP<CHyprOpenGLImpl> glBackend();
 
     // TODO: refactor
     void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
@@ -196,10 +198,9 @@ class IHyprRenderer {
     void                 draw(WP<IPassElement> element, const CRegion& damage);
     virtual SP<ITexture> createTexture(bool opaque = false)                                                                                                        = 0;
     virtual SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) = 0;
-    virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false)                                                          = 0;
+    virtual SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false)                                                                       = 0;
     virtual SP<ITexture> createTexture(const int width, const int height, unsigned char* const)                                                                    = 0;
     virtual SP<ITexture> createTexture(cairo_surface_t* cairo)                                                                                                     = 0;
-    virtual void*        createImage(const SP<Aquamarine::IBuffer> buffer)                                                                                         = 0;
     virtual SP<ITexture> createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
     virtual SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
     SP<ITexture>         loadAsset(const std::string& filename);
@@ -211,6 +212,9 @@ class IHyprRenderer {
     virtual SP<IFramebuffer>        createFB() = 0;
 
     bool                            preBlurQueued(PHLMONITORREF pMonitor);
+    void                            pushMonitorTransformEnabled(bool enabled);
+    void                            popMonitorTransformEnabled();
+    bool                            monitorTransformEnabled();
 
   protected:
     void renderMirrored();
@@ -247,6 +251,8 @@ class IHyprRenderer {
     SP<ITexture>         m_lockDeadTexture;
     SP<ITexture>         m_lockDead2Texture;
     SP<ITexture>         m_lockTtyTextTexture;
+    bool                 m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>     m_monitorTransformStack;
 
     // refactor
     void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);

@@ -186,7 +186,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         g_pHyprRenderer->m_renderData.damage = fullBox;
         g_pHyprRenderer->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
-        g_pHyprOpenGL->m_renderData.renderModif.applyToRegion(g_pHyprRenderer->m_renderData.damage);
+        g_pHyprRenderer->m_renderData.renderModif.applyToRegion(g_pHyprRenderer->m_renderData.damage);
 
         alphaFB->bind();
 
@@ -211,11 +211,11 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        g_pHyprOpenGL->pushMonitorTransformEnabled(true);
-        g_pHyprOpenGL->setRenderModifEnabled(false);
+        g_pHyprRenderer->pushMonitorTransformEnabled(true);
+        g_pHyprRenderer->m_renderData.renderModif.enabled = false;
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB->getTexture(), monbox, alphaFB);
-        g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->m_renderData.renderModif.enabled = true;
+        g_pHyprRenderer->popMonitorTransformEnabled();
 
         g_pHyprRenderer->m_renderData.damage = saveDamage;
     } else

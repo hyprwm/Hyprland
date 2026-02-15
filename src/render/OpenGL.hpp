@@ -164,7 +164,6 @@ struct SCurrentRenderData {
 
     SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
 
-    SRenderModifData       renderModif;
     bool                   simplePass = false;
 
     CRegion                clipRegion;
@@ -251,10 +250,6 @@ class CHyprOpenGLImpl {
     void                                                  renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
     void                                                  renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
 
-    void                                                  pushMonitorTransformEnabled(bool enabled);
-    void                                                  popMonitorTransformEnabled();
-
-    void                                                  setRenderModifEnabled(bool enabled);
     void                                                  setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void                                                  setCapStatus(int cap, bool status);
 
@@ -375,9 +370,6 @@ class CHyprOpenGLImpl {
     bool                             m_blend                = false;
     bool                             m_offloadedFramebuffer = false;
     bool                             m_cmSupported          = true;
-
-    bool                             m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>                 m_monitorTransformStack;
 
     SP<CShader>                      m_finalScreenShader;
     GLuint                           m_currentProgram;

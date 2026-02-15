@@ -184,8 +184,11 @@ SP<ITexture> CHyprGLRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels,
     return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
 }
 
-SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool opaque) {
+SP<ITexture> CHyprGLRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
+    const auto image = g_pHyprOpenGL->createEGLImage(attrs);
+    if (!image)
+        return nullptr;
     return makeShared<CGLTexture>(attrs, image, opaque);
 }
 
@@ -237,11 +240,6 @@ SP<ITexture> CHyprGLRenderer::createTexture(cairo_surface_t* cairo) {
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
 
     return tex;
-}
-
-void* CHyprGLRenderer::createImage(const SP<Aquamarine::IBuffer> buffer) {
-    g_pHyprOpenGL->makeEGLCurrent();
-    return g_pHyprOpenGL->createEGLImage(buffer->dmabuf());
 }
 
 bool CHyprGLRenderer::explicitSyncSupported() {
@@ -345,7 +343,7 @@ void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
 void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.renderModif.has_value())
-        g_pHyprOpenGL->m_renderData.renderModif = *m_data.renderModif;
+        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
 };
 
 void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
@@ -362,7 +360,7 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
     g_pHyprOpenGL->m_renderData.discardMode          = m_data.discardMode;
     g_pHyprOpenGL->m_renderData.discardOpacity       = m_data.discardOpacity;
     g_pHyprRenderer->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
-    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
+    g_pHyprRenderer->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[]() {
         g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -372,7 +370,7 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
         g_pHyprOpenGL->m_renderData.clipRegion                    = {};
         g_pHyprOpenGL->m_renderData.discardMode                   = 0;
         g_pHyprOpenGL->m_renderData.discardOpacity                = 0;
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
@@ -491,11 +489,11 @@ void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
 
 void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
-    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
+    g_pHyprRenderer->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[m_data]() {
         //
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
         g_pHyprRenderer->m_renderData.clipBox = {};
         if (m_data.replaceProjection)
             g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix;
@@ -524,21 +522,30 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
                                          .round                 = m_data.round,
                                          .roundingPower         = m_data.roundingPower,
                                          .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
+                                         .cmBackToSRGB          = m_data.cmBackToSRGB,
+                                         .cmBackToSRGBSource    = m_data.cmBackToSRGBSource,
                                      });
     } else {
         g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
-                                     {.damage = m_data.damage.empty() ? &damage : &m_data.damage, .a = m_data.a, .round = m_data.round, .roundingPower = m_data.roundingPower});
+                                     {
+                                         .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
+                                         .a                  = m_data.a,
+                                         .round              = m_data.round,
+                                         .roundingPower      = m_data.roundingPower,
+                                         .cmBackToSRGB       = m_data.cmBackToSRGB,
+                                         .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
+                                     });
     }
 };
 
 void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
-        g_pHyprOpenGL->pushMonitorTransformEnabled(true);
-        g_pHyprOpenGL->setRenderModifEnabled(false);
+        g_pHyprRenderer->pushMonitorTransformEnabled(true);
+        g_pHyprRenderer->m_renderData.renderModif.enabled = false;
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
-        g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->m_renderData.renderModif.enabled = true;
+        g_pHyprRenderer->popMonitorTransformEnabled();
     } else
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
 };

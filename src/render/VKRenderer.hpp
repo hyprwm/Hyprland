@@ -19,10 +19,9 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
     SP<ITexture>            createTexture(bool opaque = false) override;
     SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
-    SP<ITexture>            createTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false) override;
+    SP<ITexture>            createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false) override;
     SP<ITexture>            createTexture(const int width, const int height, unsigned char* const data) override;
     SP<ITexture>            createTexture(cairo_surface_t* cairo) override;
-    void*                   createImage(const SP<Aquamarine::IBuffer> buffer) override;
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
     SP<IFramebuffer>        createFB() override;
@@ -50,12 +49,14 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                                draw(CTextureMatteElement* element, const CRegion& damage) override;
 
     void                                bindPipeline(WP<CVkPipeline> pipeline);
+    Vector2D                            currentRBSize();
 
     bool                                m_busy         = false;
     bool                                m_inRenderPass = false;
 
     std::vector<SP<CHyprVkFramebuffer>> m_renderBuffers;
     SP<CHyprVkFramebuffer>              m_currentRenderbuffer;
+    Vector2D                            m_currentRenderbufferSize;
 
     std::vector<SP<CVkRenderPass>>      m_renderPassList;
     SP<CVkRenderPass>                   m_currentRenderPass;

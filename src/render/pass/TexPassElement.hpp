@@ -22,6 +22,8 @@ class CTexPassElement : public IPassElement {
         bool                  blur = false;
         std::optional<float>  ignoreAlpha;
         std::optional<bool>   blockBlurOptimization;
+        bool                  cmBackToSRGB = false;
+        SP<CMonitor>          cmBackToSRGBSource;
     };
 
     CTexPassElement(const SRenderData& data);

@@ -1,5 +1,7 @@
 #include "Vulkan.hpp"
 #include "debug/log/Logger.hpp"
+#include "render/Renderer.hpp"
+#include "render/VKRenderer.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
 #include "render/vulkan/DescriptorPool.hpp"
 #include "render/vulkan/MemoryBuffer.hpp"
@@ -295,6 +297,7 @@ SP<CHyprVkCommandBuffer> CHyprVulkanImpl::acquireCB() {
         commandBuffer = wait;
 
     commandBuffer->begin();
+    commandBuffer->useFB(dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer);
     return commandBuffer;
 }
 
@@ -307,12 +310,46 @@ SP<CHyprVkCommandBuffer> CHyprVulkanImpl::begin() {
     return m_currentRenderCB;
 }
 
-void CHyprVulkanImpl::end() {
-    const auto stage = stageCB();
+SP<CHyprVkCommandBuffer> CHyprVulkanImpl::endStage() {
+    const auto stage = stageCB().lock();
     m_currentStageCB.reset();
 
     m_device->m_timelinePoint++;
     stage->end(m_device->m_timelinePoint);
+    return stage;
+}
+
+bool CHyprVulkanImpl::submitStage() {
+    auto stage = endStage();
+    if (!stage)
+        return false;
+
+    auto                             sem = m_device->timelineSemaphore();
+    auto                             cb  = stage->vk();
+
+    VkTimelineSemaphoreSubmitInfoKHR timelineSubmitInfo = {
+        .sType                     = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR,
+        .signalSemaphoreValueCount = 1,
+        .pSignalSemaphoreValues    = &stage->m_timelinePoint,
+    };
+    VkSubmitInfo submitInfo = {
+        .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext                = &timelineSubmitInfo,
+        .commandBufferCount   = 1,
+        .pCommandBuffers      = &cb,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores    = &sem,
+    };
+    if (vkQueueSubmit(m_device->queue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+        Log::logger->log(Log::ERR, "vkQueueSubmit failed");
+        return false;
+    }
+
+    return waitCommandBuffer(stage);
+}
+
+void CHyprVulkanImpl::end() {
+    auto                      stage = endStage();
 
     VkCommandBufferSubmitInfo stageInfo = {
         .sType         = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,

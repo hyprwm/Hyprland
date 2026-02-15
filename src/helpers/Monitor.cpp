@@ -67,8 +67,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
 
 CMonitor::~CMonitor() {
     m_events.destroy.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -366,8 +366,8 @@ void CMonitor::onDisconnect(bool destroy) {
     Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_output->name);
 
     m_events.disconnect.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
@@ -990,8 +990,8 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     updateMatrix();
 
-    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize) && g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize) && g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     g_pCompositor->scheduleMonitorStateRecheck();
 

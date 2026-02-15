@@ -25,6 +25,8 @@ class CHyprVulkanImpl {
 
     SP<CHyprVulkanDevice>    getDevice(int drmFd);
     SP<CHyprVkCommandBuffer> begin();
+    SP<CHyprVkCommandBuffer> endStage();
+    bool                     submitStage();
     void                     end();
 
     SP<CHyprVulkanDevice>    device();

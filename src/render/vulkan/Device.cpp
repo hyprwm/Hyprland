@@ -192,8 +192,8 @@ VkSemaphore CHyprVulkanDevice::timelineSemaphore() {
 
 uint64_t CHyprVulkanDevice::timelinePoint() {
     uint64_t point;
-    if (vkGetSemaphoreCounterValue(vkDevice(), m_timelineSemaphore, &point) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkGetSemaphoreCounterValueKHR failed");
+    IF_VKFAIL(vkGetSemaphoreCounterValue, vkDevice(), m_timelineSemaphore, &point) {
+        LOG_VKFAIL;
         return 0;
     }
     return point;

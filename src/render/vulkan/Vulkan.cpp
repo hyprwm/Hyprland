@@ -166,19 +166,16 @@ CHyprVulkanImpl::~CHyprVulkanImpl() {
 }
 
 SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
-    VkResult res;
     uint32_t deviceCount;
 
-    res = vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
-    if (res != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "Could not get physical device count: {}", resultToStr(res));
+    IF_VKFAIL(vkEnumeratePhysicalDevices, m_instance, &deviceCount, nullptr) {
+        LOG_VKFAIL;
         return nullptr;
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
-    res = vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
-    if (res != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "Could not retrieve physical devices: {}", resultToStr(res));
+    IF_VKFAIL(vkEnumeratePhysicalDevices, m_instance, &deviceCount, devices.data()) {
+        LOG_VKFAIL;
         return nullptr;
     }
 
@@ -198,7 +195,7 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
             continue;
 
         uint32_t extCount = 0;
-        res               = vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, nullptr);
+        auto     res      = vkEnumerateDeviceExtensionProperties(device, nullptr, &extCount, nullptr);
         if (res != VK_SUCCESS || !extCount) {
             Log::logger->log(Log::ERR, "  Could not enumerate device extensions: {}", resultToStr(res));
             continue;
@@ -266,8 +263,8 @@ bool CHyprVulkanImpl::waitCommandBuffer(WP<CHyprVkCommandBuffer> cb) {
          .pSemaphores    = &semaphore,
          .pValues        = &cb->m_timelinePoint,
     };
-    if (vkWaitSemaphores(m_device->vkDevice(), &waitInfo, UINT64_MAX) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkWaitSemaphores failed");
+    IF_VKFAIL(vkWaitSemaphores, m_device->vkDevice(), &waitInfo, UINT64_MAX) {
+        LOG_VKFAIL;
         return false;
     }
 
@@ -339,8 +336,8 @@ bool CHyprVulkanImpl::submitStage() {
         .signalSemaphoreCount = 1,
         .pSignalSemaphores    = &sem,
     };
-    if (vkQueueSubmit(m_device->queue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkQueueSubmit failed");
+    IF_VKFAIL(vkQueueSubmit, m_device->queue(), 1, &submitInfo, VK_NULL_HANDLE) {
+        LOG_VKFAIL;
         return false;
     }
 

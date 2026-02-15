@@ -120,13 +120,13 @@ CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCo
         .memoryTypeIndex = memTypeIndex,
     };
 
-    if (vkAllocateMemory(device, &memInfo, nullptr, &m_memory[0]) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkAllocatorMemory failed");
+    IF_VKFAIL(vkAllocateMemory, device, &memInfo, nullptr, &m_memory[0]) {
+        LOG_VKFAIL;
         return;
     }
 
-    if (vkBindImageMemory(device, m_image, m_memory[0], 0) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkBindImageMemory failed");
+    IF_VKFAIL(vkBindImageMemory, device, m_image, m_memory[0], 0) {
+        LOG_VKFAIL;
         return;
     }
 
@@ -367,8 +367,8 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         .usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
-    if (vkCreateImage(g_pHyprVulkan->vkDevice(), &imageCreateInfo, nullptr, &dstImage) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkCreateImage failed");
+    IF_VKFAIL(vkCreateImage, g_pHyprVulkan->vkDevice(), &imageCreateInfo, nullptr, &dstImage) {
+        LOG_VKFAIL;
         return false;
     }
 
@@ -390,13 +390,13 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         .memoryTypeIndex = memTypeIndex,
     };
 
-    if (vkAllocateMemory(g_pHyprVulkan->vkDevice(), &memAllocInfo, nullptr, &dstImgMemory) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkAllocateMemory failed");
+    IF_VKFAIL(vkAllocateMemory, g_pHyprVulkan->vkDevice(), &memAllocInfo, nullptr, &dstImgMemory) {
+        LOG_VKFAIL;
         vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
         return false;
     }
-    if (vkBindImageMemory(g_pHyprVulkan->vkDevice(), dstImage, dstImgMemory, 0) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkBindImageMemory failed");
+    IF_VKFAIL(vkBindImageMemory, g_pHyprVulkan->vkDevice(), dstImage, dstImgMemory, 0) {
+        LOG_VKFAIL;
         vkFreeMemory(g_pHyprVulkan->vkDevice(), dstImgMemory, nullptr);
         vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
         return false;
@@ -494,8 +494,8 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
     vkGetImageSubresourceLayout(g_pHyprVulkan->vkDevice(), dstImage, &imgSubRes, &imgSubLayout);
 
     void* v;
-    if (vkMapMemory(g_pHyprVulkan->vkDevice(), dstImgMemory, 0, VK_WHOLE_SIZE, 0, &v) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkMapMemory failed");
+    IF_VKFAIL(vkMapMemory, g_pHyprVulkan->vkDevice(), dstImgMemory, 0, VK_WHOLE_SIZE, 0, &v) {
+        LOG_VKFAIL;
         return false;
     }
 
@@ -505,8 +505,8 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         .offset = 0,
         .size   = VK_WHOLE_SIZE,
     };
-    if (vkInvalidateMappedMemoryRanges(g_pHyprVulkan->vkDevice(), 1, &memRange) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkInvalidateMappedMemoryRanges failed");
+    IF_VKFAIL(vkInvalidateMappedMemoryRanges, g_pHyprVulkan->vkDevice(), 1, &memRange) {
+        LOG_VKFAIL;
         vkUnmapMemory(g_pHyprVulkan->vkDevice(), dstImgMemory);
         return false;
     }
@@ -553,8 +553,8 @@ VkImageView CVKTexture::createImageView() {
 
     // TODO support YCC
 
-    if (vkCreateImageView(g_pHyprVulkan->vkDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkCreateImageView failed");
+    IF_VKFAIL(vkCreateImageView, g_pHyprVulkan->vkDevice(), &viewInfo, nullptr, &imageView) {
+        LOG_VKFAIL;
         return VK_NULL_HANDLE;
     }
 

@@ -1,5 +1,6 @@
 #include "DescriptorPool.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "utils.hpp"
 #include <vulkan/vulkan_core.h>
 
 CVKDescriptorPool::CVKDescriptorPool(WP<CHyprVulkanDevice> device, VkDescriptorType type, size_t size) : IDeviceUser(device), m_available(size) {
@@ -16,8 +17,8 @@ CVKDescriptorPool::CVKDescriptorPool(WP<CHyprVulkanDevice> device, VkDescriptorT
         .pPoolSizes    = &poolSize,
     };
 
-    if (vkCreateDescriptorPool(vkDevice(), &poolInfo, nullptr, &m_pool) != VK_SUCCESS) {
-        Log::logger->log(Log::DEBUG, "vkCreateDescriptorPool failed");
+    IF_VKFAIL(vkCreateDescriptorPool, vkDevice(), &poolInfo, nullptr, &m_pool) {
+        LOG_VKFAIL;
         return;
     }
 }

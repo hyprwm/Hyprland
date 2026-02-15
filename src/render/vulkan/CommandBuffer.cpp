@@ -57,10 +57,6 @@ void CHyprVkCommandBuffer::begin() {
 
     m_recording = true;
 
-    // if (vkResetCommandPool(vkDevice(), m_device->commandPool(), 0) != VK_SUCCESS) {
-    //     CRIT("vkResetCommandPool failed");
-    // }
-
     if (vkResetCommandBuffer(m_cmdBuffer, 0) != VK_SUCCESS) {
         CRIT("vkResetCommandBuffer failed");
     }

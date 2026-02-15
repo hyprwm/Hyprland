@@ -18,8 +18,8 @@ CVKMemoryBuffer::CVKMemoryBuffer(WP<CHyprVulkanDevice> device, VkDeviceSize buff
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    if (vkCreateBuffer(vkDevice(), &bufInfo, nullptr, &m_buffer) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkCreateBuffer");
+    IF_VKFAIL(vkCreateBuffer, vkDevice(), &bufInfo, nullptr, &m_buffer) {
+        LOG_VKFAIL;
         return;
     }
 
@@ -37,18 +37,18 @@ CVKMemoryBuffer::CVKMemoryBuffer(WP<CHyprVulkanDevice> device, VkDeviceSize buff
         .allocationSize  = memReqs.size,
         .memoryTypeIndex = memTypeIndex,
     };
-    if (vkAllocateMemory(vkDevice(), &memInfo, nullptr, &m_memory) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkAllocatorMemory failed");
+    IF_VKFAIL(vkAllocateMemory, vkDevice(), &memInfo, nullptr, &m_memory) {
+        LOG_VKFAIL;
         return;
     }
 
-    if (vkBindBufferMemory(vkDevice(), m_buffer, m_memory, 0) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkBindBufferMemory failed");
+    IF_VKFAIL(vkBindBufferMemory, vkDevice(), m_buffer, m_memory, 0) {
+        LOG_VKFAIL;
         return;
     }
 
-    if (vkMapMemory(vkDevice(), m_memory, 0, VK_WHOLE_SIZE, 0, &m_cpuMapping) != VK_SUCCESS) {
-        Log::logger->log(Log::ERR, "vkMapMemory failed");
+    IF_VKFAIL(vkMapMemory, vkDevice(), m_memory, 0, VK_WHOLE_SIZE, 0, &m_cpuMapping) {
+        LOG_VKFAIL;
         return;
     }
 

@@ -87,7 +87,7 @@ struct SRenderData {
     float mouseZoomFactor    = 1.f;
     bool  mouseZoomUseMouse  = true; // true by default
     bool  useNearestNeighbor = false;
-    // bool                   blockScreenShader  = false;
+    bool  blockScreenShader  = false;
     // bool                   simplePass         = false;
 
     Vector2D primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -149,7 +149,8 @@ class IHyprRenderer {
 
     bool                            beginFullFakeRender(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false);
     bool                            beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP<IHLBuffer> buffer, bool simple = false);
-    virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {}) {};
+    virtual void                    startRenderPass() {};
+    virtual void                    endRender(const std::function<void()>& renderingDoneCallback = {}) = 0;
 
     bool                            m_bBlockSurfaceFeedback = false;
     bool                            m_bRenderingSnapshot    = false;

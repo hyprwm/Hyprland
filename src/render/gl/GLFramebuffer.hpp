@@ -12,6 +12,7 @@ class CGLFramebuffer : public IFramebuffer {
 
     void   addStencil(SP<ITexture> tex) override;
     void   release() override;
+    bool   readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0) override;
 
     void   bind();
     void   unbind();

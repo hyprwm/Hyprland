@@ -2126,6 +2126,20 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
     };
 }
 
+uint32_t CMonitor::getPreferredReadFormat() {
+    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+
+    if (!*PFORCE8BIT)
+        return m_output->state->state().drmFormat;
+
+    auto fmt = m_output->state->state().drmFormat;
+
+    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
+        return DRM_FORMAT_XRGB8888;
+
+    return fmt;
+}
+
 bool CMonitor::needsCM() {
     const auto SRC_DESC = getFSImageDescription();
     return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;

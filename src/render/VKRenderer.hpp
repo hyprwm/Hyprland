@@ -15,6 +15,7 @@ class CHyprVKRenderer : public IHyprRenderer {
   public:
     CHyprVKRenderer();
 
+    void                    startRenderPass() override;
     void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
     SP<ITexture>            createTexture(bool opaque = false) override;
     SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;
@@ -29,6 +30,7 @@ class CHyprVKRenderer : public IHyprRenderer {
     // TODO fix api
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
     SP<CVkPipelineLayout> ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize);
+    SP<CVkRenderPass>     getRenderPass(uint32_t fmt);
 
   private:
     bool                                beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
@@ -48,6 +50,9 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                                draw(CTextureMatteElement* element, const CRegion& damage) override;
 
     void                                bindPipeline(WP<CVkPipeline> pipeline);
+
+    bool                                m_busy         = false;
+    bool                                m_inRenderPass = false;
 
     std::vector<SP<CHyprVkFramebuffer>> m_renderBuffers;
     SP<CHyprVkFramebuffer>              m_currentRenderbuffer;

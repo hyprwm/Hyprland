@@ -1,34 +1,39 @@
 #include "Framebuffer.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "render/Framebuffer.hpp"
+#include "render/Renderer.hpp"
+#include "render/VKRenderer.hpp"
+#include "render/vulkan/VKTexture.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #include "utils.hpp"
 #include "types.hpp"
 #include "DeviceUser.hpp"
 #include <cstdint>
 #include <fcntl.h>
+#include <hyprutils/memory/SharedPtr.hpp>
+
+CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, int w, int h, uint32_t fmt) : IDeviceUser(device) {
+    const auto format = m_device->getFormat(fmt).value();
+
+    initImage(format, w, h);
+    initImageView(format.format.vkFormat);
+    initFB(renderPass, w, h);
+}
 
 CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass) : IDeviceUser(device), m_hlBuffer(buffer) {
     const auto format = m_device->getFormat(buffer->dmabuf().format).value();
 
     initImage(format, buffer->dmabuf());
     initImageView(format.format.vkFormat);
-
-    VkFramebufferCreateInfo fbInfo = {
-        .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .flags           = 0,
-        .renderPass      = renderPass,
-        .attachmentCount = 1,
-        .pAttachments    = &m_imageView,
-        .width           = buffer->dmabuf().size.x,
-        .height          = buffer->dmabuf().size.y,
-        .layers          = 1,
-    };
-
-    if (vkCreateFramebuffer(vkDevice(), &fbInfo, nullptr, &m_framebuffer) != VK_SUCCESS) {
-        CRIT("vkCreateFramebuffer failed");
-    }
+    initFB(renderPass, buffer->dmabuf().size.x, buffer->dmabuf().size.y);
 }
 
-void CHyprVkFramebuffer::initImage(SVkFormatProps props, Aquamarine::SDMABUFAttrs attrs) {
+void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
+    const Vector2D size = {w, h};
+    m_tex               = makeShared<CVKTexture>(props.format.drmFormat, size);
+}
+
+void CHyprVkFramebuffer::initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs) {
     const uint8_t planeCount = attrs.planes;
     const auto    mod        = std::ranges::find_if(props.dmabuf.renderModifiers, [attrs](const auto m) { return m.props.drmFormatModifier == attrs.modifier; });
 
@@ -169,7 +174,7 @@ void CHyprVkFramebuffer::initImage(SVkFormatProps props, Aquamarine::SDMABUFAttr
 void CHyprVkFramebuffer::initImageView(VkFormat format) {
     VkImageViewCreateInfo viewInfo = {
         .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image    = m_image,
+        .image    = m_image ? m_image : m_tex->m_image,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
         .format   = format,
         .components =
@@ -194,6 +199,23 @@ void CHyprVkFramebuffer::initImageView(VkFormat format) {
     }
 }
 
+void CHyprVkFramebuffer::initFB(VkRenderPass renderPass, int w, int h) {
+    VkFramebufferCreateInfo fbInfo = {
+        .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .flags           = 0,
+        .renderPass      = renderPass,
+        .attachmentCount = 1,
+        .pAttachments    = &m_imageView,
+        .width           = w,
+        .height          = h,
+        .layers          = 1,
+    };
+
+    if (vkCreateFramebuffer(vkDevice(), &fbInfo, nullptr, &m_framebuffer) != VK_SUCCESS) {
+        CRIT("vkCreateFramebuffer failed");
+    }
+}
+
 CHyprVkFramebuffer::~CHyprVkFramebuffer() {
     if (m_framebuffer)
         vkDestroyFramebuffer(vkDevice(), m_framebuffer, nullptr);
@@ -208,4 +230,36 @@ CHyprVkFramebuffer::~CHyprVkFramebuffer() {
         if (mem)
             vkFreeMemory(vkDevice(), mem, nullptr);
     }
+}
+
+CVKFramebuffer::CVKFramebuffer() : IFramebuffer() {}
+
+CVKFramebuffer::~CVKFramebuffer() {
+    m_FB.reset();
+}
+
+bool CVKFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uint32_t offsetY) {
+    return false;
+}
+
+void CVKFramebuffer::release() {
+    m_FB.reset();
+    m_fbAllocated = false;
+};
+
+void CVKFramebuffer::addStencil(SP<ITexture> tex) {
+    if (m_stencilTex == tex)
+        return;
+
+    m_stencilTex = tex;
+    Log::logger->log(Log::WARN, "fixme: unimplemented CVKFramebuffer::addStencil");
+};
+
+bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
+    m_FB = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt);
+    return m_FB;
+};
+
+SP<CHyprVkFramebuffer> CVKFramebuffer::fb() {
+    return m_FB;
 }

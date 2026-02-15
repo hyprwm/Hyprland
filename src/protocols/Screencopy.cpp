@@ -40,9 +40,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         this->copy(pFrame, res);
     });
 
-    g_pHyprOpenGL->makeEGLCurrent();
-
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_shmFormat = m_monitor->getPreferredReadFormat();
     if (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(Log::ERR, "No format supported by renderer in capture output");
         m_resource->sendFailed();
@@ -60,7 +58,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_dmabufFormat = m_monitor->getPreferredReadFormat();
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
@@ -292,8 +290,6 @@ void CScreencopyFrame::renderMon() {
 }
 
 void CScreencopyFrame::storeTempFB() {
-    g_pHyprOpenGL->makeEGLCurrent();
-
     if (!m_tempFb)
         m_tempFb = g_pHyprRenderer->createFB();
 
@@ -338,7 +334,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
         g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([callback]() {
         LOGM(Log::TRACE, "Copied frame via dma");
@@ -349,14 +345,9 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 bool CScreencopyFrame::copyShm() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
-    auto       shm                = m_buffer->shm();
-    auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm
+    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
-
-    g_pHyprOpenGL->makeEGLCurrent();
-
-    auto fb = g_pHyprRenderer->createFB();
+    auto       fb = g_pHyprRenderer->createFB();
     fb->alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
 
     if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, fb, true)) {
@@ -380,64 +371,10 @@ bool CScreencopyFrame::copyShm() {
         g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(fb)->getFBID());
-
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
-    if (!PFORMAT) {
-        LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
-        g_pHyprRenderer->endRender();
-        return false;
-    }
-
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    g_pHyprOpenGL->makeEGLCurrent();
-    g_pHyprRenderer->m_renderData.pMonitor = m_monitor;
-    GLFB(fb)->bind();
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
-    int      glFormat   = PFORMAT->glFormat;
-
-    if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
-
-    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-        if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
-                glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
-                glFormat = GL_BGRA_EXT;
-            else {
-                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                glFormat = GL_RGBA;
-            }
-        }
-    }
-
-    // This could be optimized by using a pixel buffer object to make this async,
-    // but really clients should just use a dma buffer anyways.
-    if (packStride == sc<uint32_t>(shm.stride)) {
-        glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
-    } else {
-        for (size_t i = 0; i < m_box.h; ++i) {
-            uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
-        }
-    }
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    g_pHyprRenderer->m_renderData.pMonitor.reset();
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-    LOGM(Log::TRACE, "Copied frame via shm");
-
-    return true;
+    return fb->readPixels(m_buffer);
 }
 
 bool CScreencopyFrame::good() {

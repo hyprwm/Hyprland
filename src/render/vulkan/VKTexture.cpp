@@ -83,8 +83,7 @@ CVKTexture::CVKTexture(bool opaque) {
     m_opaque = opaque;
 };
 
-CVKTexture::CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) :
-    ITexture(drmFormat, pixels, stride, size, keepDataCopy, opaque) {
+CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCopy, bool opaque) : ITexture(drmFormat, nullptr, 0, size, keepDataCopy, opaque) {
     const auto device = g_pHyprVulkan->vkDevice();
     const auto props  = g_pHyprVulkan->device()->getFormat(drmFormat);
 
@@ -155,6 +154,11 @@ CVKTexture::CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, con
         return;
     }
 
+    m_ok = true;
+}
+
+CVKTexture::CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) :
+    CVKTexture(drmFormat, size, keepDataCopy, opaque) {
     m_ok = write(stride, {0, 0, size.x, size.y}, pixels, VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0);
 };
 

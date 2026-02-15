@@ -165,8 +165,7 @@ struct SCurrentRenderData {
     SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
 
     SRenderModifData       renderModif;
-    bool                   blockScreenShader = false;
-    bool                   simplePass        = false;
+    bool                   simplePass = false;
 
     CRegion                clipRegion;
 
@@ -284,7 +283,6 @@ class CHyprOpenGLImpl {
     void                                                  renderOffToMain(IFramebuffer* off);
     void                                                  bindBackOnMain();
 
-    uint32_t                                              getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                               getDRMFormats();
     EGLImageKHR                                           createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 

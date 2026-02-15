@@ -69,6 +69,8 @@ static int cursorTicker(void* data) {
 }
 
 IHyprRenderer::IHyprRenderer() {
+    m_globalTimer.reset();
+
     if (g_pCompositor->m_aqBackend->hasSession()) {
         size_t drmDevices = 0;
         for (auto const& dev : g_pCompositor->m_aqBackend->session->sessionDevices) {
@@ -2814,8 +2816,8 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     m_bRenderingSnapshot = true;
 
-    auto clear = makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
-    draw(clear.get(), {});
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    startRenderPass();
 
     renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->m_X11DoesntWantBorders, RENDER_PASS_ALL);
 

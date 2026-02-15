@@ -3,7 +3,10 @@
 #include "../defines.hpp"
 #include "../helpers/Format.hpp"
 #include "Texture.hpp"
+#include <cstdint>
 #include <drm_fourcc.h>
+
+class CHLBufferReference;
 
 class IFramebuffer {
   public:
@@ -11,7 +14,8 @@ class IFramebuffer {
     virtual ~IFramebuffer() = default;
 
     virtual bool alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
-    virtual void release() = 0;
+    virtual void release()                                                                         = 0;
+    virtual bool readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0) = 0;
 
     bool         isAllocated();
     SP<ITexture> getTexture();

@@ -4,11 +4,13 @@
 #include "render/vulkan/CommandBuffer.hpp"
 #include "render/vulkan/DescriptorPool.hpp"
 #include "render/vulkan/DeviceUser.hpp"
+#include "render/vulkan/Framebuffer.hpp"
 #include "render/vulkan/PipelineLayout.hpp"
 #include <hyprutils/math/Vector2D.hpp>
 #include <vulkan/vulkan_core.h>
 
 class CVKTexture;
+class CHyprVkFramebuffer;
 
 class CVKTextureView : public IDeviceUser {
   public:
@@ -33,6 +35,7 @@ class CVKTexture : public ITexture {
     CVKTexture(const CVKTexture&)  = delete;
 
     CVKTexture(bool opaque = false);
+    CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
     CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
     CVKTexture(const Aquamarine::SDMABUFAttrs&, void* image, bool opaque = false);
     ~CVKTexture();
@@ -58,4 +61,5 @@ class CVKTexture : public ITexture {
     bool                                                m_ok = true;
 
     friend class CVKTextureView;
+    friend class CHyprVkFramebuffer;
 };

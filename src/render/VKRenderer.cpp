@@ -6,7 +6,7 @@
 #include "./vulkan/PipelineLayout.hpp"
 #include "./vulkan/Shaders.hpp"
 #include "debug/log/Logger.hpp"
-#include "desktop/view/Window.hpp"
+#include "macros.hpp"
 #include "render/Renderer.hpp"
 #include "render/pass/PassElement.hpp"
 #include "render/vulkan/VKTexture.hpp"
@@ -27,15 +27,21 @@ CHyprVKRenderer::CHyprVKRenderer() : IHyprRenderer() {
 }
 
 void CHyprVKRenderer::initRender() {
+    ASSERT(!m_busy);
+    m_busy = true;
     m_currentPipeline.reset();
 }
 
-bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<CVkRenderPass> CHyprVKRenderer::getRenderPass(uint32_t fmt) {
     auto foundRP = std::ranges::find_if(m_renderPassList, [&](const auto& other) { return other->m_drmFormat == fmt; });
     if (foundRP != m_renderPassList.end())
-        m_currentRenderPass = *foundRP;
+        return *foundRP;
     else
-        m_currentRenderPass = m_renderPassList.emplace_back(makeShared<CVkRenderPass>(g_pHyprVulkan->m_device, fmt, m_shaders));
+        return m_renderPassList.emplace_back(makeShared<CVkRenderPass>(g_pHyprVulkan->m_device, fmt, m_shaders));
+}
+
+bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+    m_currentRenderPass = getRenderPass(fmt);
 
     auto foundFB = std::ranges::find_if(m_renderBuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
     if (foundFB != m_renderBuffers.end())
@@ -52,10 +58,14 @@ bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 }
 
 bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
-    return false;
+    initRender();
+    m_currentRenderPass   = getRenderPass(fb->m_drmFormat);
+    m_currentRenderbuffer = dc<CVKFramebuffer*>(fb.get())->fb();
+
+    return beginRenderInternal(pMonitor, damage, simple);
 };
 
-void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+void CHyprVKRenderer::startRenderPass() {
     const auto attrs = m_currentBuffer->dmabuf();
 
     m_renderPass.render(CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}}, PS_INIT);
@@ -72,6 +82,14 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     };
 
     vkCmdBeginRenderPass(m_currentCommandBuffer->vk(), &info, VK_SUBPASS_CONTENTS_INLINE);
+    m_inRenderPass = true;
+}
+
+void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+    if (!m_inRenderPass)
+        startRenderPass();
+
+    const auto attrs = m_currentBuffer->dmabuf();
 
     VkViewport viewport = {
         .width    = attrs.size.x,
@@ -83,6 +101,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     const auto damage = m_renderPass.render(CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}}, PS_MAIN);
 
     vkCmdEndRenderPass(g_pHyprVulkan->renderCB()->vk());
+    m_inRenderPass = false;
 
     std::vector<VkImageMemoryBarrier> acquireBarriers;
     std::vector<VkImageMemoryBarrier> releaseBarriers;
@@ -145,6 +164,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
         renderingDoneCallback();
 
     m_currentBuffer = nullptr;
+    m_busy          = false;
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(bool opaque) {
@@ -228,8 +248,7 @@ std::vector<SDRMFormat> CHyprVKRenderer::getDRMFormats() {
 }
 
 SP<IFramebuffer> CHyprVKRenderer::createFB() {
-    Log::logger->log(Log::ERR, "Unimplimented CHyprVKRenderer::createFB");
-    return nullptr;
+    return makeShared<CVKFramebuffer>();
 }
 
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {

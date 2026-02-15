@@ -109,6 +109,61 @@ void CGLFramebuffer::release() {
     m_size = Vector2D();
 }
 
+bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uint32_t offsetY) {
+    auto shm                      = buffer->shm();
+    auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
+
+    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    if (!PFORMAT) {
+        LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
+        return false;
+    }
+
+    g_pHyprOpenGL->makeEGLCurrent();
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, getFBID());
+    bind();
+
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_size.x);
+    int      glFormat   = PFORMAT->glFormat;
+
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
+        }
+    }
+
+    // This could be optimized by using a pixel buffer object to make this async,
+    // but really clients should just use a dma buffer anyways.
+    if (packStride == sc<uint32_t>(shm.stride)) {
+        glReadPixels(offsetX, offsetY, m_size.x, m_size.y, glFormat, PFORMAT->glType, pixelData);
+    } else {
+        for (size_t i = 0; i < m_size.y; ++i) {
+            uint32_t y = i;
+            glReadPixels(offsetX, offsetY + y, m_size.x, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
+        }
+    }
+
+    unbind();
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    return true;
+}
+
 CGLFramebuffer::~CGLFramebuffer() {
     release();
 }

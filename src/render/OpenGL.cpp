@@ -389,8 +389,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     RASSERT(eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
-    g_pHyprRenderer->m_globalTimer.reset();
-
     pushMonitorTransformEnabled(false);
 
     static auto addLastPressToHistory = [this](const Vector2D& pos, bool killing, bool touch) {
@@ -803,7 +801,7 @@ void CHyprOpenGLImpl::end() {
             m_renderData.pMonitor->m_zoomController.m_resetCameraState = true;
         m_renderData.pMonitor->m_zoomController.applyZoomTransform(monbox, m_renderData);
 
-        m_applyFinalShader = !m_renderData.blockScreenShader;
+        m_applyFinalShader = !g_pHyprRenderer->m_renderData.blockScreenShader;
         if UNLIKELY (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.F && g_pHyprRenderer->m_renderData.mouseZoomUseMouse && *PZOOMDISABLEAA)
             g_pHyprRenderer->m_renderData.useNearestNeighbor = true;
 
@@ -841,7 +839,7 @@ void CHyprOpenGLImpl::end() {
     m_renderData.pMonitor.reset();
     g_pHyprRenderer->m_renderData.mouseZoomFactor   = 1.f;
     g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
-    m_renderData.blockScreenShader                  = false;
+    g_pHyprRenderer->m_renderData.blockScreenShader = false;
     m_renderData.currentFB                          = nullptr;
     m_renderData.mainFB                             = nullptr;
     m_renderData.outFB                              = nullptr;
@@ -2568,20 +2566,6 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
         m_capStatus[idx] = status;
         glDisable(cap);
     }
-}
-
-uint32_t CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
-    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
-
-    if (!*PFORCE8BIT)
-        return pMonitor->m_output->state->state().drmFormat;
-
-    auto fmt = pMonitor->m_output->state->state().drmFormat;
-
-    if (fmt == DRM_FORMAT_BGRA1010102 || fmt == DRM_FORMAT_ARGB2101010 || fmt == DRM_FORMAT_XRGB2101010 || fmt == DRM_FORMAT_BGRX1010102 || fmt == DRM_FORMAT_XBGR2101010)
-        return DRM_FORMAT_XRGB8888;
-
-    return fmt;
 }
 
 bool CHyprOpenGLImpl::explicitSyncSupported() {

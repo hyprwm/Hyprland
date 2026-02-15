@@ -345,6 +345,8 @@ class CMonitor {
     NColorManagement::SPCPRimaries                              getMasteringPrimaries();
     NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
 
+    uint32_t                                                    getPreferredReadFormat();
+
     bool                                                        needsCM();
     /// Can do CM without shader
     bool                                canNoShaderCM();

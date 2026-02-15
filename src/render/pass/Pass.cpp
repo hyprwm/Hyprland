@@ -216,9 +216,15 @@ void CRenderPass::renderDebugData() {
     const auto pMonitor = g_pHyprRenderer->m_renderData.pMonitor;
     CBox       box      = {{}, pMonitor->m_transformedSize};
     for (const auto& rg : m_occludedRegions) {
-        g_pHyprOpenGL->renderRect(box, Colors::RED.modifyA(0.1F), {.damage = &rg});
+        CRectPassElement::SRectData data;
+        data.box   = box;
+        data.color = Colors::RED.modifyA(0.1F);
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), rg);
     }
-    g_pHyprOpenGL->renderRect(box, Colors::GREEN.modifyA(0.1F), {.damage = &m_totalLiveBlurRegion});
+    CRectPassElement::SRectData data;
+    data.box   = box;
+    data.color = Colors::GREEN.modifyA(0.1F);
+    g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), m_totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
@@ -241,9 +247,12 @@ void CRenderPass::renderDebugData() {
         if (box.intersection(CBox{{}, pMonitor->m_size}).empty())
             return;
 
-        static const auto FULL_REGION = CRegion{0, 0, INT32_MAX, INT32_MAX};
+        static const auto           FULL_REGION = CRegion{0, 0, INT32_MAX, INT32_MAX};
 
-        g_pHyprOpenGL->renderRect(box, color, {.damage = &FULL_REGION});
+        CRectPassElement::SRectData data;
+        data.box   = box;
+        data.color = color;
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), FULL_REGION);
 
         if (offsets.contains(surface.get()))
             box.translate(Vector2D{0.F, offsets[surface.get()]});
@@ -251,8 +260,16 @@ void CRenderPass::renderDebugData() {
             offsets[surface.get()] = 0;
 
         box = {box.pos(), texture->m_size};
-        g_pHyprOpenGL->renderRect(box, CHyprColor{0.F, 0.F, 0.F, 0.2F}, {.damage = &FULL_REGION, .round = std::min(5.0, box.size().y)});
-        g_pHyprOpenGL->renderTexture(texture, box, {});
+        CRectPassElement::SRectData data2;
+        data.box   = box;
+        data.color = color;
+        data.round = std::min(5.0, box.size().y);
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data2), FULL_REGION);
+
+        CTexPassElement::SRenderData texData;
+        texData.tex = texture;
+        texData.box = box;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
 
         offsets[surface.get()] += texture->m_size.y;
     };
@@ -270,7 +287,10 @@ void CRenderPass::renderDebugData() {
                 auto BOX = hlSurface->getSurfaceBoxGlobal();
                 if (BOX) {
                     auto region = g_pSeatManager->m_state.pointerFocus->m_current.input.copy().scale(pMonitor->m_scale).translate(BOX->pos() - pMonitor->m_position);
-                    g_pHyprOpenGL->renderRect(box, CHyprColor{0.8F, 0.8F, 0.2F, 0.4F}, {.damage = &region});
+                    CRectPassElement::SRectData data;
+                    data.box   = box;
+                    data.color = CHyprColor{0.8F, 0.8F, 0.2F, 0.4F};
+                    g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), region);
                 }
             }
         }
@@ -283,7 +303,10 @@ void CRenderPass::renderDebugData() {
 
     if (tex) {
         box = CBox{{0.F, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale);
-        g_pHyprOpenGL->renderTexture(tex, box, {});
+        CTexPassElement::SRenderData texData;
+        texData.tex = tex;
+        texData.box = box;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
     }
 
     std::string passStructure;
@@ -300,7 +323,10 @@ void CRenderPass::renderDebugData() {
     tex = g_pHyprRenderer->renderText(passStructure, Colors::WHITE, 12);
     if (tex) {
         box = CBox{{pMonitor->m_size.x - tex->m_size.x, pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(pMonitor->m_scale);
-        g_pHyprOpenGL->renderTexture(tex, box, {});
+        CTexPassElement::SRenderData texData;
+        texData.tex = tex;
+        texData.box = box;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
     }
 }
 

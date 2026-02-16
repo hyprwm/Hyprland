@@ -398,6 +398,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
+    auto        damage     = maxSize;
     auto const& cursorSize = m_currentCursorImage.size;
 
     static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
@@ -406,14 +407,21 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     if (maxSize == Vector2D{})
         return nullptr;
-
-    if (maxSize != Vector2D{-1, -1}) {
+    else if (maxSize == Vector2D{-1, -1}) {
+        damage = Vector2D{256, 256};
+        Log::logger->log(Log::TRACE, "cursor plane size is unlimited, falling back to 256x256");
+        if (cursorSize.x > damage.x || cursorSize.y > damage.y) {
+            Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, damage);
+            return nullptr;
+        }
+        maxSize = cursorSize;
+    } else {
         if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
             Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
             return nullptr;
-        }
-    } else
-        maxSize = cursorSize;
+        } else
+            maxSize = cursorSize;
+    }
 
     if (!state->monitor->m_cursorSwapchain || maxSize != state->monitor->m_cursorSwapchain->currentOptions().size ||
         shouldUseCpuBuffer != (state->monitor->m_cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
@@ -579,8 +587,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    const auto& damageSize = state->monitor->m_output->cursorPlaneSize();
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damageSize.x, damageSize.y}, RBO);
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damage.x, damage.y}, RBO);
     g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};

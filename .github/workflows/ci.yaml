@@ -46,12 +46,38 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     name: "Code Style"
     runs-on: ubuntu-latest
+    container:
+      image: archlinux
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # - name: clang-format check
+      #   uses: jidicula/clang-format-action@v4.16.0
+      #   with:
+      #     exclude-regex: ^subprojects$
+
+      - name: Install clang-format
+        run: |
+          pacman --noconfirm --noprogressbar -Syyu
+          pacman --noconfirm --noprogressbar -Sy clang
+
       - name: clang-format check
-        uses: jidicula/clang-format-action@v4.16.0
-        with:
-          clang-format-version: 20
-          exclude-regex: ^subprojects$
+        run: .github/workflows/clang-format-check.sh "." "llvm" "^subprojects$" ""
+
+      - name: Save PR head commit SHA
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          SHA="${{ github.event.pull_request.head.sha }}"
+          echo "SHA=$SHA" >> $GITHUB_ENV
+      - name: Save latest commit SHA if not PR
+        if: failure() && github.event_name != 'pull_request'
+        shell: bash
+        run: echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Report failure in job summary
+        if: failure()
+        run: |
+          DEEPLINK="${{ github.server_url }}/${{ github.repository }}/commit/${{ env.SHA }}"
+          echo -e "Format check failed on commit [${GITHUB_SHA:0:8}]($DEEPLINK) with files:\n$(<$GITHUB_WORKSPACE/failing-files.txt)" >> $GITHUB_STEP_SUMMARY

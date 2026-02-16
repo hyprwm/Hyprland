@@ -1704,7 +1704,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "cursor:use_cpu_buffer",
         .description = "Makes HW cursors use a CPU buffer. Required on Nvidia to have HW cursors. Experimental",
         .type        = CONFIG_OPTION_INT,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
         .value       = "cursor:sync_gsettings_theme",

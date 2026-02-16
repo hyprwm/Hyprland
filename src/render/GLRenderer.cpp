@@ -255,6 +255,14 @@ SP<IFramebuffer> CHyprGLRenderer::createFB() {
     return makeShared<CGLFramebuffer>();
 }
 
+void CHyprGLRenderer::disableScissor() {
+    g_pHyprOpenGL->scissor(nullptr);
+}
+
+void CHyprGLRenderer::blend(bool enabled) {
+    g_pHyprOpenGL->blend(enabled);
+}
+
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.hasGrad2)
@@ -309,7 +317,8 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 };
 
 void CHyprGLRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
-    g_pHyprOpenGL->preBlurForCurrentMonitor();
+    auto dmg = damage;
+    g_pHyprOpenGL->preBlurForCurrentMonitor(&dmg);
 };
 
 void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
@@ -320,8 +329,6 @@ void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     else
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
                                   {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
-
-    g_pHyprRenderer->m_renderData.clipBox = {};
 };
 
 void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
@@ -332,26 +339,19 @@ void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 };
 
 void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
-    const auto m_data                                = element->m_data;
-    g_pHyprOpenGL->m_renderData.currentWindow        = m_data.pWindow;
-    g_pHyprOpenGL->m_renderData.surface              = m_data.surface;
-    g_pHyprOpenGL->m_renderData.currentLS            = m_data.pLS;
-    g_pHyprRenderer->m_renderData.clipBox            = m_data.clipBox;
-    g_pHyprOpenGL->m_renderData.discardMode          = m_data.discardMode;
-    g_pHyprOpenGL->m_renderData.discardOpacity       = m_data.discardOpacity;
-    g_pHyprRenderer->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
-    g_pHyprRenderer->pushMonitorTransformEnabled(m_data.flipEndFrame);
+    const auto m_data = element->m_data;
+
+    g_pHyprOpenGL->m_renderData.surface        = m_data.surface;
+    g_pHyprOpenGL->m_renderData.currentLS      = m_data.pLS;
+    g_pHyprOpenGL->m_renderData.discardMode    = m_data.discardMode;
+    g_pHyprOpenGL->m_renderData.discardOpacity = m_data.discardOpacity;
 
     CScopeGuard x = {[]() {
         g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        g_pHyprRenderer->m_renderData.useNearestNeighbor          = false;
-        g_pHyprRenderer->m_renderData.clipBox                     = {};
         g_pHyprOpenGL->m_renderData.clipRegion                    = {};
         g_pHyprOpenGL->m_renderData.discardMode                   = 0;
         g_pHyprOpenGL->m_renderData.discardOpacity                = 0;
-        g_pHyprRenderer->popMonitorTransformEnabled();
-        g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
     }};
@@ -474,15 +474,11 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     CScopeGuard x = {[m_data]() {
         //
         g_pHyprRenderer->popMonitorTransformEnabled();
-        g_pHyprRenderer->m_renderData.clipBox = {};
         if (m_data.useMirrorProjection)
             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
         if (m_data.ignoreAlpha.has_value())
             g_pHyprOpenGL->m_renderData.discardMode = 0;
     }};
-
-    if (!m_data.clipBox.empty())
-        g_pHyprRenderer->m_renderData.clipBox = m_data.clipBox;
 
     if (m_data.useMirrorProjection)
         g_pHyprRenderer->setProjectionType(RPT_MIRROR);

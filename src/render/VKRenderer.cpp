@@ -9,6 +9,7 @@
 #include "macros.hpp"
 #include "render/OpenGL.hpp"
 #include "render/Renderer.hpp"
+#include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/pass/PassElement.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include "render/vulkan/types.hpp"
@@ -259,6 +260,22 @@ SP<IFramebuffer> CHyprVKRenderer::createFB() {
     return makeShared<CVKFramebuffer>();
 }
 
+void CHyprVKRenderer::disableScissor() {
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented disableScissor");
+    }
+}
+
+void CHyprVKRenderer::blend(bool enabled) {
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented disableScissor");
+    }
+}
+
 static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
     return {
         .mat4 =
@@ -443,7 +460,20 @@ void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
 void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
 
 void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
-    // Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
+    static auto PSHADOWSHARP        = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
+
+    if (!*PSHADOWIGNOREWINDOW && *PSHADOWSHARP) {
+        const auto m_data = element->m_data;
+        m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+        return;
+    }
+
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    }
 };
 
 void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {

@@ -116,7 +116,7 @@ struct SRenderData {
     // float                  discardOpacity = 0.f;
 
     // PHLLSREF               currentLS;
-    // PHLWINDOWREF           currentWindow;
+    PHLWINDOWREF currentWindow;
     // WP<CWLSurfaceResource> surface;
 };
 
@@ -221,9 +221,11 @@ class IHyprRenderer {
     virtual SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
     SP<ITexture>         loadAsset(const std::string& filename);
     virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
-    virtual bool         explicitSyncSupported()    = 0;
-    virtual std::vector<SDRMFormat> getDRMFormats() = 0;
-    virtual SP<IFramebuffer>        createFB()      = 0;
+    virtual bool         explicitSyncSupported()        = 0;
+    virtual std::vector<SDRMFormat> getDRMFormats()     = 0;
+    virtual SP<IFramebuffer>        createFB()          = 0;
+    virtual void                    disableScissor()    = 0;
+    virtual void                    blend(bool enabled) = 0;
 
     bool                            preBlurQueued(PHLMONITORREF pMonitor);
     void                            pushMonitorTransformEnabled(bool enabled);
@@ -327,7 +329,9 @@ class IHyprRenderer {
   private:
     void drawRect(CRectPassElement* element, const CRegion& damage);
     void drawHints(CRendererHintsPassElement* element, const CRegion& damage);
+    void drawPreBlur(CPreBlurElement* element, const CRegion& damage);
     void drawSurface(CSurfacePassElement* element, const CRegion& damage);
+    void drawTex(CTexPassElement* element, const CRegion& damage);
 };
 
 inline UP<IHyprRenderer> g_pHyprRenderer;

@@ -1353,7 +1353,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         }
     }
 
-    if (m_renderData.currentWindow && m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault())
+    if (g_pHyprRenderer->m_renderData.currentWindow && g_pHyprRenderer->m_renderData.currentWindow->m_ruleApplicator->RGBX().valueOrDefault())
         shaderFeatures &= ~SH_FEAT_RGBA;
 
     glActiveTexture(GL_TEXTURE0);
@@ -1393,7 +1393,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         shaderFeatures |= SH_FEAT_DISCARD;
 
     if (!usingFinalShader) {
-        if (data.allowDim && m_renderData.currentWindow && (m_renderData.currentWindow->m_notRespondingTint->value() > 0 || m_renderData.currentWindow->m_dimPercent->value() > 0))
+        if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow &&
+            (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0 || g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value() > 0))
             shaderFeatures |= SH_FEAT_TINT;
 
         if (data.round > 0)
@@ -1524,14 +1525,14 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         shader->setUniformFloat(SHADER_RADIUS, data.round);
         shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
-        if (data.allowDim && m_renderData.currentWindow) {
-            if (m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
-                const auto DIM = m_renderData.currentWindow->m_notRespondingTint->value();
+        if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow) {
+            if (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
+                const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value();
                 shader->setUniformInt(SHADER_APPLY_TINT, 1);
                 shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-            } else if (m_renderData.currentWindow->m_dimPercent->value() > 0) {
+            } else if (g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value() > 0) {
                 shader->setUniformInt(SHADER_APPLY_TINT, 1);
-                const auto DIM = m_renderData.currentWindow->m_dimPercent->value();
+                const auto DIM = g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value();
                 shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
             } else
                 shader->setUniformInt(SHADER_APPLY_TINT, 0);
@@ -1979,16 +1980,9 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     pMonitor->m_blurFBShouldRender = true;
 }
 
-void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
+void CHyprOpenGLImpl::preBlurForCurrentMonitor(CRegion* fakeDamage) {
 
-    TRACY_GPU_ZONE("RenderPreBlurForCurrentMonitor");
-
-    const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
-    g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
-
-    // make the fake dmg
-    CRegion    fakeDamage{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
-    const auto POUTFB = blurMainFramebufferWithDamage(1, &fakeDamage);
+    const auto POUTFB = blurMainFramebufferWithDamage(1, fakeDamage);
 
     // render onto blurFB
     m_renderData.pCurrentMonData->blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
@@ -1999,15 +1993,10 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     renderTextureInternal(POUTFB->getTexture(), CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-                          STextureRenderData{.damage = &fakeDamage, .a = 1, .round = 0, .roundingPower = 2.F, .discardActive = false, .allowCustomUV = false, .noAA = true});
+                          STextureRenderData{.damage = fakeDamage, .noAA = true});
     g_pHyprRenderer->popMonitorTransformEnabled();
 
     GLFB(m_renderData.currentFB)->bind();
-
-    m_renderData.pMonitor->m_blurFBDirty        = false;
-    m_renderData.pMonitor->m_blurFBShouldRender = false;
-
-    g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
 }
 
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
@@ -2048,7 +2037,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     inverseOpaque.scale(m_renderData.pMonitor->m_scale);
 
     //   vvv TODO: layered blur fbs?
-    const bool USENEWOPTIMIZE = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
+    const bool USENEWOPTIMIZE =
+        g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
 
     SP<CGLFramebuffer> POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {

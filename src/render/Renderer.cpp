@@ -563,7 +563,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pWindow = pWindow;
 
     // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+    m_renderData.currentWindow = pWindow;
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
@@ -751,17 +751,17 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     EMIT_HOOK_EVENT("render", RENDER_POST_WINDOW);
 
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    m_renderData.currentWindow.reset();
 }
 
 void IHyprRenderer::drawRect(CRectPassElement* element, const CRegion& damage) {
-    auto data = element->m_data;
+    auto& data = element->m_data;
 
     if (data.box.w <= 0 || data.box.h <= 0)
         return;
 
     if (!data.clipBox.empty())
-        g_pHyprRenderer->m_renderData.clipBox = data.clipBox;
+        m_renderData.clipBox = data.clipBox;
 
     data.modifiedBox = data.box;
     m_renderData.renderModif.applyToBox(data.modifiedBox);
@@ -775,28 +775,49 @@ void IHyprRenderer::drawRect(CRectPassElement* element, const CRegion& damage) {
     data.FULLSIZE[0] = sc<float>(transformedBox.width);
     data.FULLSIZE[1] = sc<float>(transformedBox.height);
 
-    data.drawRegion = data.color.a == 1.F || !data.blur ? damage : g_pHyprRenderer->m_renderData.damage;
+    data.drawRegion = data.color.a == 1.F || !data.blur ? damage : m_renderData.damage;
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
-        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                           g_pHyprRenderer->m_renderData.clipBox.height};
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0) {
+        CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
         data.drawRegion = damageClip.intersect(data.drawRegion);
     }
 
     draw(element, damage);
 
-    g_pHyprRenderer->m_renderData.clipBox = {};
+    m_renderData.clipBox = {};
 }
 
 void IHyprRenderer::drawHints(CRendererHintsPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.renderModif.has_value())
-        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
+        m_renderData.renderModif = *m_data.renderModif;
 
     draw(element, damage);
 }
 
+void IHyprRenderer::drawPreBlur(CPreBlurElement* element, const CRegion& damage) {
+    TRACY_GPU_ZONE("RenderPreBlurForCurrentMonitor");
+
+    const auto SAVEDRENDERMODIF = m_renderData.renderModif;
+    m_renderData.renderModif    = {}; // fix shit
+
+    // make the fake dmg
+    CRegion fakeDamage{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+
+    draw(element, fakeDamage);
+
+    m_renderData.pMonitor->m_blurFBDirty        = false;
+    m_renderData.pMonitor->m_blurFBShouldRender = false;
+
+    m_renderData.renderModif = SAVEDRENDERMODIF;
+}
+
 void IHyprRenderer::drawSurface(CSurfacePassElement* element, const CRegion& damage) {
+    m_renderData.clipBox            = element->m_data.clipBox;
+    m_renderData.useNearestNeighbor = element->m_data.useNearestNeighbor;
+    pushMonitorTransformEnabled(element->m_data.flipEndFrame);
+    m_renderData.currentWindow = element->m_data.pWindow;
+
     draw(element, damage);
     if (!m_bBlockSurfaceFeedback)
         element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
@@ -805,6 +826,20 @@ void IHyprRenderer::drawSurface(CSurfacePassElement* element, const CRegion& dam
     // sync (shm) buffers will be released in commitState, so no need to track them here
     if (element->m_data.surface->m_current.buffer && !element->m_data.surface->m_current.buffer->isSynchronous())
         m_usedAsyncBuffers.emplace_back(element->m_data.surface->m_current.buffer);
+
+    m_renderData.clipBox            = {};
+    m_renderData.useNearestNeighbor = false;
+    popMonitorTransformEnabled();
+    m_renderData.currentWindow.reset();
+}
+
+void IHyprRenderer::drawTex(CTexPassElement* element, const CRegion& damage) {
+    if (!element->m_data.clipBox.empty())
+        m_renderData.clipBox = element->m_data.clipBox;
+
+    draw(element, damage);
+
+    m_renderData.clipBox = {};
 }
 
 void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
@@ -815,12 +850,12 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         case EK_BORDER: draw(dc<CBorderPassElement*>(element.get()), damage); break;
         case EK_CLEAR: draw(dc<CClearPassElement*>(element.get()), damage); break;
         case EK_FRAMEBUFFER: draw(dc<CFramebufferElement*>(element.get()), damage); break;
-        case EK_PRE_BLUR: draw(dc<CPreBlurElement*>(element.get()), damage); break;
+        case EK_PRE_BLUR: drawPreBlur(dc<CPreBlurElement*>(element.get()), damage); break;
         case EK_RECT: drawRect(dc<CRectPassElement*>(element.get()), damage); break;
         case EK_HINTS: drawHints(dc<CRendererHintsPassElement*>(element.get()), damage); break;
         case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
         case EK_SURFACE: drawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
-        case EK_TEXTURE: draw(dc<CTexPassElement*>(element.get()), damage); break;
+        case EK_TEXTURE: drawTex(dc<CTexPassElement*>(element.get()), damage); break;
         case EK_TEXTURE_MATTE: draw(dc<CTextureMatteElement*>(element.get()), damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
@@ -1810,10 +1845,9 @@ void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
 }
 
 Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
-    return m_renderData.targetProjection.projectBox(box,
-                                                    transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(
-                                                        !g_pHyprRenderer->monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
-                                                    box.rot);
+    return m_renderData.targetProjection.projectBox(
+        box, transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(!monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
+        box.rot);
 }
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
@@ -1840,14 +1874,14 @@ void IHyprRenderer::renderMirrored() {
     if (!PFB || !PFB->isAllocated() || !PFB->getTexture())
         return;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
+    m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
     data.tex                 = PFB->getTexture();
     data.box                 = monbox;
     data.useMirrorProjection = true;
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
 void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
@@ -2908,7 +2942,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     PHLWINDOWREF ref{pWindow};
 
     if (!ref->m_snapshotFB)
-        ref->m_snapshotFB = g_pHyprRenderer->createFB();
+        ref->m_snapshotFB = createFB();
 
     const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
@@ -2945,7 +2979,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
     if (!pLayer->m_snapshotFB)
-        pLayer->m_snapshotFB = g_pHyprRenderer->createFB();
+        pLayer->m_snapshotFB = createFB();
 
     const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
 
@@ -2955,8 +2989,8 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     m_bRenderingSnapshot = true;
 
-    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
-    g_pHyprRenderer->startRenderPass();
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+    startRenderPass();
 
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());
@@ -2981,7 +3015,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
     if (!popup->m_snapshotFB)
-        popup->m_snapshotFB = g_pHyprRenderer->createFB();
+        popup->m_snapshotFB = createFB();
 
     const auto PFRAMEBUFFER = popup->m_snapshotFB;
 
@@ -2991,7 +3025,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     m_bRenderingSnapshot = true;
 
-    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
 
     CSurfacePassElement::SRenderData renderdata;
     renderdata.pos             = popup->coordsGlobal();

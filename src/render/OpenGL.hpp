@@ -169,7 +169,6 @@ struct SCurrentRenderData {
     float                  discardOpacity = 0.f;
 
     PHLLSREF               currentLS;
-    PHLWINDOWREF           currentWindow;
     WP<CWLSurfaceResource> surface;
 };
 
@@ -393,7 +392,7 @@ class CHyprOpenGLImpl {
     void               renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
     void               renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 
-    void               preBlurForCurrentMonitor();
+    void               preBlurForCurrentMonitor(CRegion* fakeDamage);
 
     friend class IHyprRenderer;
     friend class CHyprGLRenderer;

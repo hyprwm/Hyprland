@@ -15,6 +15,8 @@ class CHyprGLRenderer : public IHyprRenderer {
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
     SP<IFramebuffer>        createFB() override;
+    void                    disableScissor() override;
+    void                    blend(bool enabled) override;
 
     void                    unsetEGL();
 

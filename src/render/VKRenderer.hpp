@@ -25,6 +25,8 @@ class CHyprVKRenderer : public IHyprRenderer {
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
     SP<IFramebuffer>        createFB() override;
+    void                    disableScissor() override;
+    void                    blend(bool enabled) override;
 
     // TODO fix api
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);

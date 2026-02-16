@@ -199,7 +199,7 @@ CRegion CRenderPass::render(const CRegion& damage_, int stage) {
         g_pHyprRenderer->draw(el->element, el->elementDamage);
     }
 
-    if (*PDEBUGPASS) {
+    if (*PDEBUGPASS && stage & PS_MAIN) {
         renderDebugData();
         g_pEventLoopManager->doLater([] {
             for (auto& m : g_pCompositor->m_monitors) {

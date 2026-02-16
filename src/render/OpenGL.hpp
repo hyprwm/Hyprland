@@ -152,9 +152,6 @@ struct SMonitorRenderData {
 
 struct SCurrentRenderData {
     PHLMONITORREF pMonitor;
-    Mat3x3        projection;
-    Mat3x3        savedProjection;
-    Mat3x3        monitorProjection;
 
     // FIXME: raw pointer galore!
     SMonitorRenderData*    pCurrentMonData = nullptr;
@@ -252,10 +249,6 @@ class CHyprOpenGLImpl {
 
     void                                        setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void                                        setCapStatus(int cap, bool status);
-
-    void                                        saveMatrix();
-    void                                        setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void                                        restoreMatrix();
 
     void                                        blend(bool enabled);
 

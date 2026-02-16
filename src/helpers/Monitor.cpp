@@ -1519,10 +1519,19 @@ Vector2D CMonitor::middle() {
     return m_position + m_size / 2.f;
 }
 
+const Mat3x3& CMonitor::getTransformMatrix() {
+    return m_projMatrix;
+}
+const Mat3x3& CMonitor::getScaleMatrix() {
+    return m_projOutputMatrix;
+}
+
 void CMonitor::updateMatrix() {
     m_projMatrix = Mat3x3::identity();
     if (m_transform != WL_OUTPUT_TRANSFORM_NORMAL)
         m_projMatrix.translate(m_pixelSize / 2.0).transform(Math::wlTransformToHyprutils(m_transform)).translate(-m_transformedSize / 2.0);
+
+    m_projOutputMatrix = Mat3x3::outputProjection(m_pixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 }
 
 WORKSPACEID CMonitor::activeWorkspaceID() {

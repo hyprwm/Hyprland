@@ -57,6 +57,13 @@ static const VkImageUsageFlags    VULKAN_DMA_TEX_USAGE = VK_IMAGE_USAGE_SAMPLED_
 
 static const VkFormatFeatureFlags RENDER_FEATURES = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 
+struct SRounding {
+    float radius;
+    float power;
+    float topLeft[2];
+    float fullSize[2];
+};
+
 struct SVkVertShaderData {
     float mat4[4][4];
     float uvOffset[2];
@@ -75,17 +82,18 @@ struct SVkBorderShaderData {
     float thick;
     // float gradient[10][4];
     // float gradient2[10][4];
-    float gradient[1][4];
-    float gradient2[1][4];
-    int   gradientLength;
-    int   gradient2Length;
-    float angle;
-    float angle2;
-    float gradientLerp;
-    float alpha;
-    float radius;
-    float power;
-    float luminance_multiplier;
-    float topLeft[2];
-    float fullSize[2];
+    float     gradient[1][4];
+    float     gradient2[1][4];
+    int       gradientLength;
+    int       gradient2Length;
+    float     angle;
+    float     angle2;
+    float     gradientLerp;
+    float     alpha;
+    SRounding rounding;
+};
+
+struct SVkRectShaderData {
+    float     color[4];
+    SRounding rounding;
 };

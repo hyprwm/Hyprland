@@ -259,15 +259,7 @@ void CHyprDebugOverlay::draw() {
     cairo_surface_flush(m_cairoSurface);
 
     // copy the data to an OpenGL texture we have
-    const auto DATA = cairo_image_surface_get_data(m_cairoSurface);
-    m_texture->allocate();
-    m_texture->bind();
-    m_texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    m_texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
+    m_texture = g_pHyprRenderer->createTexture(m_cairoSurface);
 
     CTexPassElement::SRenderData data;
     data.tex = m_texture;

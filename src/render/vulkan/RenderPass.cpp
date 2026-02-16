@@ -63,18 +63,25 @@ CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format, SP<
     }
 }
 
-WP<CVkPipeline> CVkRenderPass::texturePipeline() {
-    if (!m_texturePipeline)
-        m_texturePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_frag);
-
-    return m_texturePipeline;
-}
-
 WP<CVkPipeline> CVkRenderPass::borderPipeline() {
     if (!m_borderPipeline)
         m_borderPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_border);
 
     return m_borderPipeline;
+}
+
+WP<CVkPipeline> CVkRenderPass::rectPipeline() {
+    if (!m_rectPipeline)
+        m_rectPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_rect);
+
+    return m_rectPipeline;
+}
+
+WP<CVkPipeline> CVkRenderPass::texturePipeline() {
+    if (!m_texturePipeline)
+        m_texturePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_frag);
+
+    return m_texturePipeline;
 }
 
 CVkRenderPass::~CVkRenderPass() {

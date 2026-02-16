@@ -16,12 +16,14 @@ class CVkRenderPass : IDeviceUser {
     DRMFormat       m_drmFormat;
     VkRenderPass    m_vkRenderPass;
 
-    WP<CVkPipeline> texturePipeline();
     WP<CVkPipeline> borderPipeline();
+    WP<CVkPipeline> rectPipeline();
+    WP<CVkPipeline> texturePipeline();
 
   private:
-    SP<CVkPipeline> m_texturePipeline;
     SP<CVkPipeline> m_borderPipeline;
+    SP<CVkPipeline> m_rectPipeline;
+    SP<CVkPipeline> m_texturePipeline;
 
     SP<CVkShaders>  m_shaders;
 };

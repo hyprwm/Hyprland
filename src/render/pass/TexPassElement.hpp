@@ -9,21 +9,21 @@ class CSyncTimeline;
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<ITexture>          tex;
-        CBox                  box;
-        float                 a     = 1.F;
-        float                 blurA = 1.F;
-        CRegion               damage;
-        int                   round         = 0;
-        float                 roundingPower = 2.0f;
-        bool                  flipEndFrame  = false;
-        std::optional<Mat3x3> replaceProjection;
-        CBox                  clipBox;
-        bool                  blur = false;
-        std::optional<float>  ignoreAlpha;
-        std::optional<bool>   blockBlurOptimization;
-        bool                  cmBackToSRGB = false;
-        SP<CMonitor>          cmBackToSRGBSource;
+        SP<ITexture>         tex;
+        CBox                 box;
+        float                a     = 1.F;
+        float                blurA = 1.F;
+        CRegion              damage;
+        int                  round               = 0;
+        float                roundingPower       = 2.0f;
+        bool                 flipEndFrame        = false;
+        bool                 useMirrorProjection = false;
+        CBox                 clipBox;
+        bool                 blur = false;
+        std::optional<float> ignoreAlpha;
+        std::optional<bool>  blockBlurOptimization;
+        bool                 cmBackToSRGB = false;
+        SP<CMonitor>         cmBackToSRGBSource;
     };
 
     CTexPassElement(const SRenderData& data);

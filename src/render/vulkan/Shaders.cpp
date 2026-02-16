@@ -126,6 +126,13 @@ void main() {
 precision highp float;
 layout(location = 0) in vec2 v_texcoord;
 
+struct sRounding {
+    float radius;
+	float power;
+	vec2 topLeft;
+	vec2 fullSize;
+};
+
 layout(push_constant, row_major) uniform UBO {
 	layout(offset = 80) vec2 fullSizeUntransformed;
 	float radiusOuter;
@@ -140,10 +147,7 @@ layout(push_constant, row_major) uniform UBO {
 	float angle2;
 	float gradientLerp;
 	float alpha;
-	float radius;
-	float power;
-	vec2 topLeft;
-	vec2 fullSize;
+	sRounding rounding;
 } data;
 
 #define M_PI 3.1415926535897932384626433832795
@@ -251,7 +255,7 @@ void main() {
     pixCoord -= data.fullSizeUntransformed * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     vec2 pixCoordOuter = pixCoord;
-    pixCoord -= data.fullSizeUntransformed * 0.5 - data.radius;
+    pixCoord -= data.fullSizeUntransformed * 0.5 - data.rounding.radius;
     pixCoordOuter -= data.fullSizeUntransformed * 0.5 - data.radiusOuter;
 
     // center the pixes don't make it top-left
@@ -259,14 +263,14 @@ void main() {
     pixCoordOuter += vec2(1.0, 1.0) / data.fullSizeUntransformed;
 
 
-    if (min(pixCoord.x, pixCoord.y) > 0.0 && data.radius > 0.0) {
-	    float dist = pow(pow(pixCoord.x,data.power)+pow(pixCoord.y,data.power),1.0/data.power);
-	    float distOuter = pow(pow(pixCoordOuter.x,data.power)+pow(pixCoordOuter.y,data.power),1.0/data.power);
+    if (min(pixCoord.x, pixCoord.y) > 0.0 && data.rounding.radius > 0.0) {
+	    float dist = pow(pow(pixCoord.x,data.rounding.power)+pow(pixCoord.y,data.rounding.power),1.0/data.rounding.power);
+	    float distOuter = pow(pow(pixCoordOuter.x,data.rounding.power)+pow(pixCoordOuter.y,data.rounding.power),1.0/data.rounding.power);
         float h = (data.thick / 2.0);
 
-	    if (dist < data.radius - h) {
+	    if (dist < data.rounding.radius - h) {
             // lower
-            float normalized = smoothstep(0.0, 1.0, (dist - data.radius + data.thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
+            float normalized = smoothstep(0.0, 1.0, (dist - data.rounding.radius + data.thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
             done = true;
         } else if (min(pixCoordOuter.x, pixCoordOuter.y) > 0.0) {
@@ -308,8 +312,65 @@ void main() {
 
 )#"
 
+#define RECT_FRAG_SRC                                                                                                                                                              \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+
+// smoothing constant for the edge: more = blurrier, but smoother
+#define M_PI 3.1415926535897932384626433832795
+#define SMOOTHING_CONSTANT (M_PI / 5.34665792551)
+
+struct SRounding {
+    float radius;
+	float power;
+	vec2 topLeft;
+	vec2 fullSize;
+};
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) vec4 v_color;
+	SRounding rounding;
+} data;
+
+vec4 rounding(vec4 color) {
+    vec2 pixCoord = vec2(gl_FragCoord);
+    pixCoord -= data.rounding.topLeft + data.rounding.fullSize * 0.5;
+    pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+    pixCoord -= data.rounding.fullSize * 0.5 - data.rounding.radius;
+    pixCoord += vec2(1.0, 1.0) / data.rounding.fullSize; // center the pix don't make it top-left
+
+    if (pixCoord.x + pixCoord.y > data.rounding.radius) {
+        float dist = pow(pow(pixCoord.x, data.rounding.power) + pow(pixCoord.y, data.rounding.power), 1.0/data.rounding.power);
+
+        if (dist > data.rounding.radius + SMOOTHING_CONSTANT)
+            discard;
+
+        float normalized = 1.0 - smoothstep(0.0, 1.0, (dist - data.rounding.radius + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
+
+        color *= normalized;
+    }
+
+    return color;
+}
+
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec4 pixColor = data.v_color;
+
+    if (data.rounding.radius > 0.0) 
+        pixColor = rounding(pixColor);
+
+    fragColor = pixColor;
+}
+
+)#"
+
 CVkShaders::CVkShaders(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
     m_vert   = makeShared<CVkShader>(device, VERT_SRC, sizeof(SVkVertShaderData), SH_VERT);
     m_frag   = makeShared<CVkShader>(device, FRAG_SRC, sizeof(SVkFragShaderData), SH_FRAG);
     m_border = makeShared<CVkShader>(device, BORDER_FRAG_SRC, sizeof(SVkBorderShaderData), SH_FRAG);
+    m_rect   = makeShared<CVkShader>(device, RECT_FRAG_SRC, sizeof(SVkRectShaderData), SH_FRAG);
 }

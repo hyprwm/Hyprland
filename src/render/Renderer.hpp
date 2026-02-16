@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <hyprutils/math/Box.hpp>
 #include <list>
+#include <optional>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "./pass/Pass.hpp"
@@ -68,11 +70,25 @@ struct SRenderWorkspaceUntilData {
     PHLWINDOW w;
 };
 
+enum eRenderProjectionType : uint8_t {
+    RPT_MONITOR,
+    RPT_MIRROR,
+    RPT_FB,
+};
+
 struct SRenderData {
-    PHLMONITORREF pMonitor;
+    // can be private
+    Mat3x3 targetProjection;
+
+    // ----------------------
+
+    // used by public
+    Vector2D              fbSize = {-1, -1};
+    PHLMONITORREF         pMonitor;
+
+    eRenderProjectionType projectionType = RPT_MONITOR;
+
     // Mat3x3        projection;
-    // Mat3x3        savedProjection;
-    // Mat3x3        monitorProjection;
 
     // // FIXME: raw pointer galore!
     // SMonitorRenderData*    pCurrentMonData = nullptr;
@@ -214,6 +230,11 @@ class IHyprRenderer {
     void                            popMonitorTransformEnabled();
     bool                            monitorTransformEnabled();
 
+    void                            setProjectionType(const Vector2D& fbSize);
+    void                            setProjectionType(eRenderProjectionType projectionType);
+    Mat3x3                          getBoxProjection(const CBox& box, std::optional<eTransform> transform = std::nullopt);
+    Mat3x3                          projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
+
   protected:
     void renderMirrored();
     void setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage);
@@ -304,6 +325,8 @@ class IHyprRenderer {
     friend class CRenderPass;
 
   private:
+    void drawRect(CRectPassElement* element, const CRegion& damage);
+    void drawHints(CRendererHintsPassElement* element, const CRegion& damage);
     void drawSurface(CSurfacePassElement* element, const CRegion& damage);
 };
 

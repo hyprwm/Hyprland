@@ -259,6 +259,37 @@ SP<IFramebuffer> CHyprVKRenderer::createFB() {
     return makeShared<CVKFramebuffer>();
 }
 
+static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
+    return {
+        .mat4 =
+            {
+                {mat[0], mat[1], 0, mat[2]},
+                {mat[3], mat[4], 0, mat[5]},
+                {0, 0, 1, 0},
+                {0, 0, 0, 1},
+            },
+        .uvOffset = {0, 0},
+        .uvSize   = {1, 1},
+    };
+}
+
+static void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
+    if (!region.empty()) {
+        region.forEachRect([&](const auto& RECT) {
+            VkRect2D rect = {
+                .offset = {.x = RECT.x1, .y = RECT.y1},
+                .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
+            };
+
+            if (rect.offset.x < 0 || rect.offset.y < 0)
+                Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
+
+            vkCmdSetScissor(cb, 0, 1, &rect);
+            vkCmdDraw(cb, 4, 1, 0, 0);
+        });
+    }
+}
+
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     // TODO
     // if (m_renderData.damage.empty())
@@ -290,30 +321,16 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
-    // Log::logger->log(Log::DEBUG, "Border {}x{}@{}x{} -> {}x{}@{}x{}", data.box.width, data.box.height, data.box.x, data.box.y, transformedBox.width, transformedBox.height,
-    //                  transformedBox.x, transformedBox.y);
+    const auto  TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
+    const auto  FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    const auto        TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
-    const auto        FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
+    const auto  cb = g_pHyprVulkan->renderCB();
 
-    const auto        cb = g_pHyprVulkan->renderCB();
+    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box).getMatrix();
 
-    auto              projection = g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix.projectBox(element->m_data.box, HYPRUTILS_TRANSFORM_NORMAL, element->m_data.box.rot);
-    const auto        mat        = Mat3x3::outputProjection(g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize, HYPRUTILS_TRANSFORM_NORMAL).multiply(projection).getMatrix();
+    const auto& vertData = matToVertShader(mat);
 
-    SVkVertShaderData vertData = {
-        .mat4 =
-            {
-                {mat[0], mat[1], 0, mat[2]},
-                {mat[3], mat[4], 0, mat[5]},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1},
-            },
-        .uvOffset = {0, 0},
-        .uvSize   = {1, 1},
-    };
-
-    const auto layout = m_currentRenderPass->borderPipeline()->layout().lock();
+    const auto  layout = m_currentRenderPass->borderPipeline()->layout().lock();
 
     // TODO large gradients
     // const auto          gradientLength  = data.grad1.m_colorsOkLabA.size() / 4;
@@ -331,10 +348,13 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
         .angle2                = sc<int>(data.grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0),
         .gradientLerp          = data.lerp,
         .alpha                 = data.a,
-        .radius                = round,
-        .power                 = data.roundingPower,
-        .topLeft               = {sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y)},
-        .fullSize              = {sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y)},
+        .rounding =
+            {
+                .radius   = round,
+                .power    = data.roundingPower,
+                .topLeft  = {sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y)},
+                .fullSize = {sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y)},
+            },
     };
 
     for (unsigned i = 0; i < gradientLength; i++) {
@@ -394,12 +414,33 @@ void CHyprVKRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
 };
 
 void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    const auto&             data = element->m_data;
+
+    const auto&             vertData = matToVertShader(g_pHyprRenderer->projectBoxToTarget(data.modifiedBox).getMatrix());
+    const SVkRectShaderData fragData = {
+        .color = {data.color.r * data.color.a, data.color.g * data.color.a, data.color.b * data.color.a, data.color.a},
+        .rounding =
+            {
+                .radius   = data.round,
+                .power    = data.roundingPower,
+                .topLeft  = {data.TOPLEFT[0], data.TOPLEFT[1]},
+                .fullSize = {data.FULLSIZE[0], data.FULLSIZE[1]},
+            },
+    };
+
+    const auto cb       = g_pHyprVulkan->renderCB();
+    const auto pipeline = m_currentRenderPass->rectPipeline();
+    const auto layout   = pipeline->layout().lock();
+
+    bindPipeline(pipeline);
+
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
+
+    drawRegionRects(data.drawRegion, cb->vk());
 };
 
-void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
-};
+void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
 
 void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     // Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
@@ -413,24 +454,13 @@ void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
     if (texture->isDMA())
         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
 
-    CBox              box        = CBox{element->m_data.pos * g_pHyprRenderer->m_renderData.pMonitor->m_scale, texture->m_size};
-    auto              projection = g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix.projectBox(box, texture->m_transform, box.rot);
-    const auto        mat        = Mat3x3::outputProjection(g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize, HYPRUTILS_TRANSFORM_NORMAL).multiply(projection).getMatrix();
+    CBox        box = CBox{element->m_data.pos * g_pHyprRenderer->m_renderData.pMonitor->m_scale, texture->m_size};
+    const auto  mat = g_pHyprRenderer->projectBoxToTarget(box, texture->m_transform).getMatrix();
 
-    SVkVertShaderData vertData = {
-        .mat4 =
-            {
-                {mat[0], mat[1], 0, mat[2]},
-                {mat[3], mat[4], 0, mat[5]},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1},
-            },
-        .uvOffset = {0, 0},
-        .uvSize   = {1, 1},
-    };
+    const auto& vertData = matToVertShader(mat);
 
-    const auto layout = m_currentRenderPass->texturePipeline()->layout().lock();
-    const auto view   = texture->getView(layout);
+    const auto  layout = m_currentRenderPass->texturePipeline()->layout().lock();
+    const auto  view   = texture->getView(layout);
     if (!view)
         return;
 
@@ -458,16 +488,8 @@ void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
 
     auto       clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : damage;
     const CBox max     = {{0, 0}, {INT32_MAX, INT32_MAX}};
-    clipBox.intersect(max).forEachRect([cb](const auto& RECT) {
-        VkRect2D rect = {
-            .offset = {.x = RECT.x1, .y = RECT.y1},
-            .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
-        };
-        if (rect.offset.x < 0 || rect.offset.y < 0)
-            Log::logger->log(Log::WARN, "vkCmdSetScissor surf {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
-        vkCmdSetScissor(cb->vk(), 0, 1, &rect);
-        vkCmdDraw(cb->vk(), 4, 1, 0, 0);
-    });
+
+    drawRegionRects(clipBox.intersect(max), cb->vk());
 
     texture->m_lastUsedCB = cb;
 
@@ -483,24 +505,12 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     if (texture->isDMA())
         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
 
-    auto projection = element->m_data.replaceProjection.value_or(g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix)
-                          .projectBox(element->m_data.box, texture->m_transform, element->m_data.box.rot);
-    const auto        mat = Mat3x3::outputProjection(g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize, HYPRUTILS_TRANSFORM_NORMAL).multiply(projection).getMatrix();
+    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box, texture->m_transform).getMatrix();
 
-    SVkVertShaderData vertData = {
-        .mat4 =
-            {
-                {mat[0], mat[1], 0, mat[2]},
-                {mat[3], mat[4], 0, mat[5]},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1},
-            },
-        .uvOffset = {0, 0},
-        .uvSize   = {1, 1},
-    };
+    const auto& vertData = matToVertShader(mat);
 
-    const auto layout = m_currentRenderPass->texturePipeline()->layout().lock();
-    const auto view   = texture->getView(layout);
+    const auto  layout = m_currentRenderPass->texturePipeline()->layout().lock();
+    const auto  view   = texture->getView(layout);
     if (!view)
         return;
 
@@ -528,17 +538,8 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
 
     auto       clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage);
     const CBox max     = {{0, 0}, {INT32_MAX, INT32_MAX}};
-    clipBox.intersect(max).forEachRect([cb](const auto& RECT) {
-        VkRect2D rect = {
-            .offset = {.x = RECT.x1, .y = RECT.y1},
-            .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
-        };
 
-        if (rect.offset.x < 0 || rect.offset.y < 0)
-            Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
-        vkCmdSetScissor(cb->vk(), 0, 1, &rect);
-        vkCmdDraw(cb->vk(), 4, 1, 0, 0);
-    });
+    drawRegionRects(clipBox.intersect(max), cb->vk());
 
     texture->m_lastUsedCB = cb;
 

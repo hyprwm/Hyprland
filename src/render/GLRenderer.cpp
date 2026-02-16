@@ -315,12 +315,6 @@ void CHyprGLRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
 void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
 
-    if (m_data.box.w <= 0 || m_data.box.h <= 0)
-        return;
-
-    if (!m_data.clipBox.empty())
-        g_pHyprRenderer->m_renderData.clipBox = m_data.clipBox;
-
     if (m_data.color.a == 1.F || !m_data.blur)
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
     else
@@ -330,11 +324,7 @@ void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     g_pHyprRenderer->m_renderData.clipBox = {};
 };
 
-void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-    if (m_data.renderModif.has_value())
-        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
-};
+void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
 
 void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
@@ -485,8 +475,8 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
         //
         g_pHyprRenderer->popMonitorTransformEnabled();
         g_pHyprRenderer->m_renderData.clipBox = {};
-        if (m_data.replaceProjection)
-            g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprRenderer->m_renderData.pMonitor->m_projMatrix;
+        if (m_data.useMirrorProjection)
+            g_pHyprRenderer->setProjectionType(RPT_MONITOR);
         if (m_data.ignoreAlpha.has_value())
             g_pHyprOpenGL->m_renderData.discardMode = 0;
     }};
@@ -494,8 +484,8 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     if (!m_data.clipBox.empty())
         g_pHyprRenderer->m_renderData.clipBox = m_data.clipBox;
 
-    if (m_data.replaceProjection)
-        g_pHyprOpenGL->m_renderData.monitorProjection = *m_data.replaceProjection;
+    if (m_data.useMirrorProjection)
+        g_pHyprRenderer->setProjectionType(RPT_MIRROR);
 
     if (m_data.ignoreAlpha.has_value()) {
         g_pHyprOpenGL->m_renderData.discardMode    = DISCARD_ALPHA;

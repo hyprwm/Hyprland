@@ -35,6 +35,7 @@
 #include "helpers/CursorShapes.hpp"
 #include "helpers/MainLoopExecutor.hpp"
 #include "helpers/Monitor.hpp"
+#include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -50,6 +51,9 @@
 #include "render/Texture.hpp"
 #include "render/pass/BorderPassElement.hpp"
 #include "render/pass/PreBlurElement.hpp"
+#include <hyprutils/math/Mat3x3.hpp>
+#include <hyprutils/math/Vector2D.hpp>
+#include <optional>
 #include <pango/pangocairo.h>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -750,6 +754,48 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     g_pHyprOpenGL->m_renderData.currentWindow.reset();
 }
 
+void IHyprRenderer::drawRect(CRectPassElement* element, const CRegion& damage) {
+    auto data = element->m_data;
+
+    if (data.box.w <= 0 || data.box.h <= 0)
+        return;
+
+    if (!data.clipBox.empty())
+        g_pHyprRenderer->m_renderData.clipBox = data.clipBox;
+
+    data.modifiedBox = data.box;
+    m_renderData.renderModif.applyToBox(data.modifiedBox);
+
+    CBox transformedBox = data.box;
+    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                             m_renderData.pMonitor->m_transformedSize.y);
+
+    data.TOPLEFT[0]  = sc<float>(transformedBox.x);
+    data.TOPLEFT[1]  = sc<float>(transformedBox.y);
+    data.FULLSIZE[0] = sc<float>(transformedBox.width);
+    data.FULLSIZE[1] = sc<float>(transformedBox.height);
+
+    data.drawRegion = data.color.a == 1.F || !data.blur ? damage : g_pHyprRenderer->m_renderData.damage;
+
+    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
+        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
+                           g_pHyprRenderer->m_renderData.clipBox.height};
+        data.drawRegion = damageClip.intersect(data.drawRegion);
+    }
+
+    draw(element, damage);
+
+    g_pHyprRenderer->m_renderData.clipBox = {};
+}
+
+void IHyprRenderer::drawHints(CRendererHintsPassElement* element, const CRegion& damage) {
+    const auto m_data = element->m_data;
+    if (m_data.renderModif.has_value())
+        g_pHyprRenderer->m_renderData.renderModif = *m_data.renderModif;
+
+    draw(element, damage);
+}
+
 void IHyprRenderer::drawSurface(CSurfacePassElement* element, const CRegion& damage) {
     draw(element, damage);
     if (!m_bBlockSurfaceFeedback)
@@ -770,8 +816,8 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         case EK_CLEAR: draw(dc<CClearPassElement*>(element.get()), damage); break;
         case EK_FRAMEBUFFER: draw(dc<CFramebufferElement*>(element.get()), damage); break;
         case EK_PRE_BLUR: draw(dc<CPreBlurElement*>(element.get()), damage); break;
-        case EK_RECT: draw(dc<CRectPassElement*>(element.get()), damage); break;
-        case EK_HINTS: draw(dc<CRendererHintsPassElement*>(element.get()), damage); break;
+        case EK_RECT: drawRect(dc<CRectPassElement*>(element.get()), damage); break;
+        case EK_HINTS: drawHints(dc<CRendererHintsPassElement*>(element.get()), damage); break;
         case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
         case EK_SURFACE: drawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
         case EK_TEXTURE: draw(dc<CTexPassElement*>(element.get()), damage); break;
@@ -1012,10 +1058,6 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             return;
     }
 
-    // todo: matrices are buggy atm for some reason, but probably would be preferable in the long run
-    // g_pHyprOpenGL->saveMatrix();
-    // g_pHyprOpenGL->setMatrixScaleTranslate(translate, scale);
-
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate));
@@ -1153,8 +1195,6 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     renderDragIcon(pMonitor, time);
-
-    //g_pHyprOpenGL->restoreMatrix();
 }
 
 SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
@@ -1692,6 +1732,11 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
 
+    if (simple)
+        setProjectionType(fb ? fb->m_size : buffer->m_texture->m_size);
+    else
+        setProjectionType(RPT_MONITOR);
+
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
 
@@ -1733,6 +1778,48 @@ void IHyprRenderer::setDamage(const CRegion& damage_, std::optional<CRegion> fin
     m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 }
 
+static Mat3x3 getMirrorProjection(PHLMONITORREF monitor) {
+    return Mat3x3::identity()
+        .translate(monitor->m_pixelSize / 2.0)
+        .transform(Math::wlTransformToHyprutils(monitor->m_transform))
+        .transform(Math::wlTransformToHyprutils(Math::invertTransform(monitor->m_mirrorOf->m_transform)))
+        .translate(-monitor->m_transformedSize / 2.0);
+}
+
+static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
+    if (pMonitor->m_transform == WL_OUTPUT_TRANSFORM_NORMAL)
+        return Mat3x3::identity();
+
+    const Vector2D tfmd = pMonitor->m_transform % 2 == 1 ? Vector2D{size.y, size.x} : size;
+    return Mat3x3::identity().translate(size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
+}
+
+void IHyprRenderer::setProjectionType(const Vector2D& fbSize) {
+    m_renderData.fbSize = fbSize;
+    setProjectionType(RPT_FB);
+}
+
+void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
+    m_renderData.projectionType = projectionType;
+    switch (projectionType) {
+        case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
+        case RPT_MIRROR: m_renderData.targetProjection = getMirrorProjection(m_renderData.pMonitor); break;
+        case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        default: UNREACHABLE();
+    }
+}
+
+Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
+    return m_renderData.targetProjection.projectBox(box,
+                                                    transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(
+                                                        !g_pHyprRenderer->monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
+                                                    box.rot);
+}
+
+Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
+    return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
+}
+
 void IHyprRenderer::renderMirrored() {
     auto         monitor  = m_renderData.pMonitor;
     auto         mirrored = monitor->m_mirrorOf;
@@ -1756,13 +1843,9 @@ void IHyprRenderer::renderMirrored() {
     g_pHyprRenderer->m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
-    data.tex               = PFB->getTexture();
-    data.box               = monbox;
-    data.replaceProjection = Mat3x3::identity()
-                                 .translate(monitor->m_pixelSize / 2.0)
-                                 .transform(Math::wlTransformToHyprutils(monitor->m_transform))
-                                 .transform(Math::wlTransformToHyprutils(Math::invertTransform(mirrored->m_transform)))
-                                 .translate(-monitor->m_transformedSize / 2.0);
+    data.tex                 = PFB->getTexture();
+    data.box                 = monbox;
+    data.useMirrorProjection = true;
 
     g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

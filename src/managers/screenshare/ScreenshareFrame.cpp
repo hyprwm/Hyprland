@@ -100,6 +100,12 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     m_callback = callback;
     m_shared   = true;
 
+    // schedule a frame so that when a screenshare starts it isn't black until the output is updated
+    if (m_isFirst) {
+        g_pCompositor->scheduleFrameForMonitor(m_session->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+        g_pHyprRenderer->damageMonitor(m_session->monitor());
+    }
+
     // TODO: add a damage ring for output damage since last shared frame
     CRegion frameDamage = CRegion(0, 0, m_bufferSize.x, m_bufferSize.y);
 
@@ -109,15 +115,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     else
         m_damage = frameDamage.add(clientDamage);
 
-    // schedule a frame so that when a screenshare starts it isn't black until the output is updated
-    if (m_session->m_frameCounter < 5) {
-        g_pCompositor->scheduleFrameForMonitor(m_session->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-        g_pHyprRenderer->damageMonitor(m_session->monitor());
-    }
-
     m_damage.intersect(0, 0, m_bufferSize.x, m_bufferSize.y);
-
-    g_pHyprRenderer->m_directScanoutBlocked = true;
 
     return ERROR_NONE;
 }
@@ -145,7 +143,11 @@ void CScreenshareFrame::copy() {
     else if (m_buffer->dmabuf().success)
         m_failed = !copyDmabuf();
 
-    if (m_failed)
+    if (!m_failed) {
+        // screensharing has started again
+        m_session->screenshareEvents(true);
+        m_session->m_shareStopTimer->updateTimeout(std::chrono::milliseconds(500)); // check in half second
+    } else
         m_callback(RESULT_NOT_COPIED);
 }
 

@@ -70,13 +70,12 @@ class CScreenshareSession {
     } m_events;
 
   private:
-    CScreenshareSession(PHLMONITOR monitor, wl_client* client, bool managed);
-    CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client, bool managed);
-    CScreenshareSession(PHLWINDOW window, wl_client* client, bool managed);
+    CScreenshareSession(PHLMONITOR monitor, wl_client* client);
+    CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client);
+    CScreenshareSession(PHLWINDOW window, wl_client* client);
 
     WP<CScreenshareSession> m_self;
     bool                    m_stopped = false;
-    bool                    m_managed = false;
 
     eScreenshareType        m_type = SHARE_NONE;
     PHLMONITORREF           m_monitor;
@@ -91,9 +90,8 @@ class CScreenshareSession {
 
     CFramebuffer            m_tempFB;
 
-    CTimer                  m_lastFrame;
-    int                     m_frameCounter           = 0;
-    int                     m_framesInLastHalfSecond = 0;
+    SP<CEventLoopTimer>     m_shareStopTimer;
+    bool                    m_sharing = false;
 
     struct {
         CHyprSignalListener monitorDestroyed;
@@ -103,6 +101,7 @@ class CScreenshareSession {
         CHyprSignalListener windowMonitorChanged;
     } m_listeners;
 
+    void screenshareEvents(bool started);
     void calculateConstraints();
     void init();
 
@@ -227,24 +226,17 @@ class CScreenshareManager {
   private:
     std::vector<WP<CScreenshareSession>> m_sessions;
     std::vector<WP<CCursorshareSession>> m_cursorSessions;
-    std::vector<WP<CScreenshareFrame>>   m_frames;
+    std::vector<WP<CScreenshareFrame>>   m_pendingFrames;
 
     struct SManagedSession {
         SManagedSession(UP<CScreenshareSession>&& session);
 
         UP<CScreenshareSession> m_session;
         CHyprSignalListener     stoppedListener;
-        CTimer                  m_lastMeasure;
-        bool                    m_sentScreencast = false;
     };
 
     std::vector<UP<SManagedSession>> m_managedSessions;
     WP<CScreenshareSession>          getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWINDOW window, CBox captureBox);
-
-    SP<CEventLoopTimer>              m_tickTimer;
-    void                             onTick();
-
-    void                             screenshareEvents(WP<CScreenshareSession> session, bool started);
 
     friend class CScreenshareSession;
 };

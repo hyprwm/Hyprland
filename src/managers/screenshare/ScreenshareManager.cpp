@@ -2,23 +2,19 @@
 #include "../../render/Renderer.hpp"
 #include "../../Compositor.hpp"
 #include "../../desktop/view/Window.hpp"
-#include "../HookSystemManager.hpp"
-#include "../EventManager.hpp"
-#include "../eventLoop/EventLoopManager.hpp"
 #include "../../protocols/core/Seat.hpp"
 
 CScreenshareManager::CScreenshareManager() {
-    m_tickTimer = makeShared<CEventLoopTimer>(std::chrono::microseconds(500), [this](SP<CEventLoopTimer> self, void* data) { onTick(); }, nullptr);
-    if (g_pEventLoopManager) // null in --verify-config mode
-        g_pEventLoopManager->addTimer(m_tickTimer);
+    ;
 }
 
 void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
     std::erase_if(m_sessions, [&](const WP<CScreenshareSession>& session) { return session.expired(); });
 
-    if (m_frames.empty()) {
+    // if no pending frames, and no sessions are sharing, then unblock ds
+    if (m_pendingFrames.empty()) {
         for (const auto& session : m_sessions) {
-            if (session->m_framesInLastHalfSecond > 0)
+            if (!session->m_stopped && session->m_sharing)
                 return;
         }
 
@@ -26,7 +22,7 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
         return; // nothing to share
     }
 
-    std::ranges::for_each(m_frames, [&](WP<CScreenshareFrame>& frame) {
+    std::ranges::for_each(m_pendingFrames, [&](WP<CScreenshareFrame>& frame) {
         if (frame.expired() || !frame->m_shared || frame->done())
             return;
 
@@ -40,52 +36,9 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
         }
 
         frame->copy();
-        frame->m_session->m_lastFrame.reset();
-        frame->m_session->m_frameCounter++;
     });
 
-    std::erase_if(m_frames, [&](const WP<CScreenshareFrame>& frame) { return frame.expired(); });
-}
-
-void CScreenshareManager::onTick() {
-    m_tickTimer->updateTimeout(std::chrono::microseconds(500));
-
-    std::ranges::for_each(m_managedSessions, [this](auto& session) {
-        if (session->m_lastMeasure.getMillis() < 500)
-            return;
-
-        session->m_session->m_framesInLastHalfSecond = session->m_session->m_frameCounter;
-        session->m_session->m_frameCounter           = 0;
-        session->m_lastMeasure.reset();
-
-        const auto LASTFRAMEDELTA = session->m_session->m_lastFrame.getMillis() / 1000.0;
-        const bool FRAMEAWAITING = std::ranges::any_of(m_frames, [&](const auto& frame) { return !frame.expired() && frame->m_session->m_client == session->m_session->m_client; });
-
-        if (session->m_session->m_framesInLastHalfSecond > 3 && !session->m_sentScreencast) {
-            screenshareEvents(session->m_session, true);
-            session->m_sentScreencast = true;
-        } else if (session->m_session->m_framesInLastHalfSecond < 4 && session->m_sentScreencast && LASTFRAMEDELTA > 1.0 && !FRAMEAWAITING) {
-            screenshareEvents(session->m_session, false);
-            session->m_sentScreencast = false;
-        }
-    });
-}
-
-void CScreenshareManager::screenshareEvents(WP<CScreenshareSession> session, bool started) {
-    if (session.expired()) {
-        LOGM(Log::ERR, "screenshareEvents: FAILED");
-        return;
-    }
-
-    if (started) {
-        EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{1, session->m_type, session->m_name}));
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", session->m_type, session->m_name)});
-        LOGM(Log::INFO, "New screenshare session for ({}): {}", session->m_type, session->m_name);
-    } else {
-        EMIT_HOOK_EVENT("screencastv2", (std::vector<std::any>{0, session->m_type, session->m_name}));
-        g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("0,{},{}", session->m_type, session->m_name)});
-        LOGM(Log::INFO, "Stopped screenshare session for ({}): {}", session->m_type, session->m_name);
-    }
+    std::erase_if(m_pendingFrames, [&](const WP<CScreenshareFrame>& frame) { return frame.expired(); });
 }
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor) {
@@ -94,7 +47,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMO
         return nullptr;
     }
 
-    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client, false));
+    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client));
 
     session->m_self = session;
     m_sessions.emplace_back(session);
@@ -108,7 +61,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMO
         return nullptr;
     }
 
-    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureRegion, client, false));
+    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureRegion, client));
 
     session->m_self = session;
     m_sessions.emplace_back(session);
@@ -122,7 +75,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWI
         return nullptr;
     }
 
-    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(window, client, false));
+    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(window, client));
 
     session->m_self = session;
     m_sessions.emplace_back(session);
@@ -174,9 +127,9 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
     if (it == m_managedSessions.end()) {
         UP<CScreenshareSession> session;
         switch (type) {
-            case SHARE_MONITOR: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client, true)); break;
-            case SHARE_WINDOW: session = UP<CScreenshareSession>(new CScreenshareSession(window, client, true)); break;
-            case SHARE_REGION: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureBox, client, true)); break;
+            case SHARE_MONITOR: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client)); break;
+            case SHARE_WINDOW: session = UP<CScreenshareSession>(new CScreenshareSession(window, client)); break;
+            case SHARE_REGION: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureBox, client)); break;
             case SHARE_NONE:
             default: return {};
         }
@@ -202,5 +155,5 @@ void CScreenshareManager::destroyClientSessions(wl_client* client) {
 }
 
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {
-    m_lastMeasure.reset();
+    ;
 }

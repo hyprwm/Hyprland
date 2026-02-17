@@ -206,9 +206,10 @@ void CScreencopyFrame::renderMon() {
     CTexPassElement::SRenderData data;
     data.tex                = TEXTURE;
     data.box                = monbox;
+    data.damage             = monbox;
     data.cmBackToSRGB       = !IS_CM_AWARE;
     data.cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr;
-    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
+    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), monbox);
 
     g_pHyprRenderer->m_renderData.renderModif.enabled = true;
     g_pHyprRenderer->popMonitorTransformEnabled();
@@ -336,6 +337,7 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        g_pHyprRenderer->startRenderPass();
         if (m_tempFb && m_tempFb->isAllocated()) {
             CBox                         texbox = {{}, m_box.size()};
 
@@ -386,6 +388,7 @@ bool CScreencopyFrame::copyShm() {
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_ALLOW");
+        g_pHyprRenderer->startRenderPass();
         if (m_tempFb && m_tempFb->isAllocated()) {
             LOGM(Log::DEBUG, "CScreencopyFrame::copyShm m_tempFb");
             CBox                         texbox = {{}, m_box.size()};

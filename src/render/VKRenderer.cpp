@@ -51,8 +51,9 @@ SP<CVkRenderPass> CHyprVKRenderer::getRenderPass(uint32_t fmt) {
 bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     m_currentRenderPass = getRenderPass(fmt);
 
-    m_renderData.currentFB = g_pHyprRenderer->getOrCreateRenderbuffer(buffer, fmt)->getFB();
-    m_currentRenderbuffer  = dc<CVKFramebuffer*>(m_renderData.currentFB.get())->fb();
+    m_renderData.currentFB    = g_pHyprRenderer->getOrCreateRenderbuffer(buffer, fmt)->getFB();
+    m_currentRenderbuffer     = dc<CVKFramebuffer*>(m_renderData.currentFB.get())->fb();
+    m_currentRenderbufferSize = m_renderData.currentFB->m_size;
 
     return true;
 };
@@ -66,21 +67,14 @@ bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
     return true;
 }
 
-static bool internal = false;
-
-bool        CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
+bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
     m_currentRenderPass       = getRenderPass(fb->m_drmFormat);
     m_renderData.currentFB    = fb;
     m_currentRenderbuffer     = dc<CVKFramebuffer*>(fb.get())->fb();
     m_currentRenderbufferSize = fb->m_size;
 
-    if (beginRenderInternal(pMonitor, damage, simple)) {
-        Log::logger->log(Log::WARN, "CHyprVKRenderer::beginFullFakeRenderInternal {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
-        internal = true;
-        return true;
-    }
-    return false;
+    return beginRenderInternal(pMonitor, damage, simple);
 };
 
 void CHyprVKRenderer::startRenderPass() {
@@ -101,14 +95,6 @@ void CHyprVKRenderer::startRenderPass() {
     };
 
     vkCmdBeginRenderPass(m_currentCommandBuffer->vk(), &info, VK_SUBPASS_CONTENTS_INLINE);
-    m_inRenderPass = true;
-}
-
-void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    if (!m_inRenderPass)
-        startRenderPass();
-
-    const auto size = currentRBSize();
 
     VkViewport viewport = {
         .width    = size.x,
@@ -116,6 +102,13 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
         .maxDepth = 1,
     };
     vkCmdSetViewport(m_currentCommandBuffer->vk(), 0, 1, &viewport);
+
+    m_inRenderPass = true;
+}
+
+void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+    if (!m_inRenderPass)
+        startRenderPass();
 
     const auto damage = m_renderPass.render(CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}}, PS_MAIN);
 
@@ -174,8 +167,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     vkCmdPipelineBarrier(g_pHyprVulkan->renderCB()->vk(), VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr,
                          releaseBarriers.size(), releaseBarriers.data());
 
-    if (internal) {
-        Log::logger->log(Log::WARN, "CHyprVKRenderer::endRender finishing {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
+    if (m_renderMode != RENDER_MODE_NORMAL)
         m_currentCommandBuffer->changeLayout(m_currentRenderbuffer->vkImage(),
                                              {
                                                  .layout     = VK_IMAGE_LAYOUT_GENERAL,
@@ -187,12 +179,8 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
                                                  .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                                                  .accessMask = VK_ACCESS_SHADER_READ_BIT,
                                              });
-    }
+
     g_pHyprVulkan->end();
-    if (internal) {
-        Log::logger->log(Log::WARN, "CHyprVKRenderer::endRender done {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
-        internal = false;
-    }
 
     if (m_renderMode == RENDER_MODE_NORMAL)
         renderData().pMonitor->m_output->state->setBuffer(m_currentBuffer);
@@ -604,7 +592,7 @@ void CHyprVKRenderer::bindPipeline(WP<CVkPipeline> pipeline) {
 }
 
 Vector2D CHyprVKRenderer::currentRBSize() {
-    return m_currentBuffer ? m_currentBuffer->dmabuf().size : m_currentRenderbufferSize;
+    return m_currentBuffer && m_currentBuffer->dmabuf().size.x > 0 && m_currentBuffer->dmabuf().size.y > 0 ? m_currentBuffer->dmabuf().size : m_currentRenderbufferSize;
 }
 
 SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(CVkPipelineLayout::KEY key) {

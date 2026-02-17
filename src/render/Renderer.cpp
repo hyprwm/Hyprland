@@ -2993,7 +2993,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     m_bRenderingSnapshot = true;
 
-    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
     startRenderPass();
 
     Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));

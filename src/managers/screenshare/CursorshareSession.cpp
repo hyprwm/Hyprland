@@ -60,7 +60,7 @@ void CCursorshareSession::calculateConstraints() {
 
 // TODO: allow render to buffer without monitor and remove monitor param
 eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> buffer, FSourceBoxCallback sourceBoxCallback, FScreenshareCallback callback) {
-    if (m_stopped || m_pointer.expired())
+    if (m_stopped || m_pointer.expired() || m_bufferSize == Vector2D(0, 0))
         return ERROR_STOPPED;
 
     if UNLIKELY (!buffer || !buffer->m_resource || !buffer->m_resource->good()) {
@@ -74,11 +74,11 @@ eScreenshareError CCursorshareSession::share(PHLMONITOR monitor, SP<IHLBuffer> b
     }
 
     uint32_t bufFormat;
-    if (buffer->dmabuf().success) {
+    if (buffer->dmabuf().success)
         bufFormat = buffer->dmabuf().format;
-    } else if (buffer->shm().success) {
+    else if (buffer->shm().success)
         bufFormat = buffer->shm().format;
-    } else {
+    else {
         LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }

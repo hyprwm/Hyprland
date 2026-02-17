@@ -48,7 +48,7 @@ class CScreencopyFrame {
 
     CHLBufferReference         m_buffer;
     Time::steady_tp            m_timestamp;
-    bool                       m_overlayCursor;
+    bool                       m_overlayCursor = true;
 
     struct {
         CHyprSignalListener stopped;

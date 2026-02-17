@@ -11,6 +11,8 @@
 
 CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
     m_resource(resource), m_source(source), m_paintCursor(options & EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS) {
+    if UNLIKELY (!good())
+        return;
 
     m_resource->setDestroy([this](CExtImageCopyCaptureSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCopyCaptureSessionV1* pMgr) { PROTO::imageCopyCapture->destroyResource(this); });
@@ -52,6 +54,10 @@ CImageCopyCaptureSession::~CImageCopyCaptureSession() {
         m_resource->sendStopped();
 }
 
+bool CImageCopyCaptureSession::good() {
+    return m_resource && m_resource->resource();
+}
+
 void CImageCopyCaptureSession::sendConstraints() {
     auto formats = m_session->allowedFormats();
 
@@ -91,6 +97,9 @@ void CImageCopyCaptureSession::sendConstraints() {
 
 CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyCaptureCursorSessionV1> resource, SP<CImageCaptureSource> source, SP<CWLPointerResource> pointer) :
     m_resource(resource), m_source(source), m_pointer(pointer) {
+    if UNLIKELY (!good())
+        return;
+
     if (!m_source || (!m_source->m_monitor && !m_source->m_window))
         return;
 
@@ -145,6 +154,10 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
 
 CImageCopyCaptureCursorSession::~CImageCopyCaptureCursorSession() {
     destroyCaptureSession();
+}
+
+bool CImageCopyCaptureCursorSession::good() {
+    return m_resource && m_resource->resource();
 }
 
 void CImageCopyCaptureCursorSession::destroyCaptureSession() {
@@ -336,6 +349,9 @@ void CImageCopyCaptureCursorSession::sendCursorEvents() {
 }
 
 CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> resource, WP<CImageCopyCaptureSession> session) : m_resource(resource), m_session(session) {
+    if UNLIKELY (!good())
+        return;
+
     if (m_session->m_bufferSize != m_session->m_session->bufferSize()) {
         m_session->sendConstraints();
         m_resource->sendFailed(EXT_IMAGE_COPY_CAPTURE_FRAME_V1_FAILURE_REASON_UNKNOWN);
@@ -420,6 +436,10 @@ CImageCopyCaptureFrame::CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> r
 CImageCopyCaptureFrame::~CImageCopyCaptureFrame() {
     if (m_session)
         m_session->m_frame.reset();
+}
+
+bool CImageCopyCaptureFrame::good() {
+    return m_resource && m_resource->resource();
 }
 
 CImageCopyCaptureProtocol::CImageCopyCaptureProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {

@@ -28,6 +28,9 @@ bool CScreenshareFrame::done() const {
     if (m_session.expired() || m_session->m_stopped)
         return true;
 
+    if (m_session->m_type == SHARE_NONE || m_bufferSize == Vector2D(0, 0))
+        return true;
+
     if (m_failed || m_copied)
         return true;
 
@@ -79,11 +82,11 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     }
 
     uint32_t bufFormat;
-    if (buffer->dmabuf().success) {
+    if (buffer->dmabuf().success)
         bufFormat = buffer->dmabuf().format;
-    } else if (buffer->shm().success) {
+    else if (buffer->shm().success)
         bufFormat = buffer->shm().format;
-    } else {
+    else {
         LOGM(Log::ERR, "Client requested sharing to an invalid buffer");
         return ERROR_NO_BUFFER;
     }
@@ -326,6 +329,8 @@ void CScreenshareFrame::render() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_NONE:
+        default: return;
     }
 }
 
@@ -459,6 +464,8 @@ void CScreenshareFrame::storeTempFB() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_NONE:
+        default: return;
     }
 
     g_pHyprRenderer->endRender();

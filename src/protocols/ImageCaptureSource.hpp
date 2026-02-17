@@ -14,6 +14,7 @@ class CImageCaptureSource {
     CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLMONITOR pMonitor);
     CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWINDOW pWindow);
 
+    bool                    good();
     std::string             getName();
     std::string             getTypeName();
     CBox                    logicalBox();

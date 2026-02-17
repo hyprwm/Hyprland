@@ -20,6 +20,8 @@ class CImageCopyCaptureFrame {
     CImageCopyCaptureFrame(SP<CExtImageCopyCaptureFrameV1> resource, WP<CImageCopyCaptureSession> session);
     ~CImageCopyCaptureFrame();
 
+    bool good();
+
   private:
     SP<CExtImageCopyCaptureFrameV1> m_resource;
     WP<CImageCopyCaptureSession>    m_session;
@@ -37,6 +39,8 @@ class CImageCopyCaptureSession {
     CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options);
     ~CImageCopyCaptureSession();
 
+    bool good();
+
   private:
     SP<CExtImageCopyCaptureSessionV1> m_resource;
 
@@ -44,8 +48,8 @@ class CImageCopyCaptureSession {
     UP<CScreenshareSession>           m_session;
     WP<CImageCopyCaptureFrame>        m_frame;
 
-    Vector2D                          m_bufferSize;
-    bool                              m_paintCursor;
+    Vector2D                          m_bufferSize  = Vector2D(0, 0);
+    bool                              m_paintCursor = true;
 
     struct {
         CHyprSignalListener constraintsChanged;
@@ -66,6 +70,8 @@ class CImageCopyCaptureCursorSession {
     CImageCopyCaptureCursorSession(SP<CExtImageCopyCaptureCursorSessionV1> resource, SP<CImageCaptureSource> source, SP<CWLPointerResource> pointer);
     ~CImageCopyCaptureCursorSession();
 
+    bool good();
+
   private:
     SP<CExtImageCopyCaptureCursorSessionV1> m_resource;
     SP<CImageCaptureSource>                 m_source;
@@ -73,12 +79,13 @@ class CImageCopyCaptureCursorSession {
 
     // cursor session stuff
     bool     m_entered = false;
-    Vector2D m_pos, m_hotspot;
+    Vector2D m_pos     = Vector2D(0, 0);
+    Vector2D m_hotspot = Vector2D(0, 0);
 
     // capture session stuff
     SP<CExtImageCopyCaptureSessionV1> m_sessionResource;
     UP<CCursorshareSession>           m_session;
-    Vector2D                          m_bufferSize;
+    Vector2D                          m_bufferSize = Vector2D(0, 0);
 
     // frame stuff
     SP<CExtImageCopyCaptureFrameV1> m_frameResource;

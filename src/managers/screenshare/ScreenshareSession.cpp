@@ -96,6 +96,11 @@ void CScreenshareSession::calculateConstraints() {
             m_bufferSize = PMONITOR->m_transform % 2 == 0 ? m_captureBox.size() : Vector2D{m_captureBox.h, m_captureBox.w};
             m_name       = PMONITOR->m_name;
             break;
+        case SHARE_NONE:
+        default:
+            LOGM(Log::ERR, "Invalid share type?? This shouldn't happen");
+            stop();
+            return;
     }
 
     LOGM(Log::TRACE, "constraints changed for {}", m_name);

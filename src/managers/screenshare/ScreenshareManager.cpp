@@ -153,6 +153,9 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client
 }
 
 WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWINDOW window, CBox captureBox) {
+    if (type == SHARE_NONE)
+        return {};
+
     auto it = std::ranges::find_if(m_managedSessions, [&](const auto& session) {
         if (session->m_session->m_client != client || session->m_session->m_type != type)
             return false;
@@ -161,6 +164,8 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
             case SHARE_WINDOW: return session->m_session->m_window == window;
             case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
+            case SHARE_NONE:
+            default: return false;
         }
 
         return false;
@@ -172,6 +177,8 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client, true)); break;
             case SHARE_WINDOW: session = UP<CScreenshareSession>(new CScreenshareSession(window, client, true)); break;
             case SHARE_REGION: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureBox, client, true)); break;
+            case SHARE_NONE:
+            default: return {};
         }
 
         session->m_self = session;
@@ -194,6 +201,6 @@ void CScreenshareManager::destroyClientSessions(wl_client* client) {
     std::erase_if(m_managedSessions, [&](const auto& session) { return !session || session->m_session->m_client == client; });
 }
 
-CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession> session) : m_session(std::move(session)) {
+CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {
     m_lastMeasure.reset();
 }

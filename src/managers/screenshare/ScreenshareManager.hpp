@@ -12,7 +12,8 @@
 enum eScreenshareType : uint8_t {
     SHARE_MONITOR,
     SHARE_WINDOW,
-    SHARE_REGION
+    SHARE_REGION,
+    SHARE_NONE
 };
 
 enum eScreenshareError : uint8_t {
@@ -37,6 +38,7 @@ struct std::formatter<eScreenshareType> : std::formatter<std::string> {
             case SHARE_MONITOR: return formatter<string>::format("monitor", ctx);
             case SHARE_WINDOW: return formatter<string>::format("window", ctx);
             case SHARE_REGION: return formatter<string>::format("region", ctx);
+            case SHARE_NONE: return formatter<string>::format("ERR NONE", ctx);
         }
         return formatter<string>::format("error", ctx);
     }
@@ -76,16 +78,16 @@ class CScreenshareSession {
     bool                    m_stopped = false;
     bool                    m_managed = false;
 
-    eScreenshareType        m_type;
+    eScreenshareType        m_type = SHARE_NONE;
     PHLMONITORREF           m_monitor;
     PHLWINDOWREF            m_window;
-    CBox                    m_captureBox; // given capture area in logical coordinates (see xdg_output)
+    CBox                    m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
 
-    wl_client*              m_client;
-    std::string             m_name;
+    wl_client*              m_client = nullptr;
+    std::string             m_name   = "";
 
     std::vector<DRMFormat>  m_formats;
-    Vector2D                m_bufferSize;
+    Vector2D                m_bufferSize = Vector2D(0, 0);
 
     CFramebuffer            m_tempFB;
 
@@ -134,13 +136,13 @@ class CCursorshareSession {
     bool                    m_stopped            = false;
     bool                    m_constraintsChanged = true;
 
-    wl_client*              m_client;
+    wl_client*              m_client = nullptr;
     WP<CWLPointerResource>  m_pointer;
 
     // constraints
-    DRMFormat m_format;
-    Vector2D  m_hotspot;
-    Vector2D  m_bufferSize;
+    DRMFormat m_format     = 0 /* DRM_FORMAT_INVALID */;
+    Vector2D  m_hotspot    = Vector2D(0, 0);
+    Vector2D  m_bufferSize = Vector2D(0, 0);
 
     struct {
         bool                 pending = false;
@@ -182,11 +184,11 @@ class CScreenshareFrame {
     WP<CScreenshareSession> m_session;
     FScreenshareCallback    m_callback;
     SP<IHLBuffer>           m_buffer;
-    Vector2D                m_bufferSize;
+    Vector2D                m_bufferSize = Vector2D(0, 0);
     CRegion                 m_damage; // damage in buffer coords
     bool                    m_shared = false, m_copied = false, m_failed = false;
-    bool                    m_overlayCursor;
-    bool                    m_isFirst = false;
+    bool                    m_overlayCursor = true;
+    bool                    m_isFirst       = false;
 
     //
     void copy();
@@ -228,7 +230,7 @@ class CScreenshareManager {
     std::vector<WP<CScreenshareFrame>>   m_frames;
 
     struct SManagedSession {
-        SManagedSession(UP<CScreenshareSession> session);
+        SManagedSession(UP<CScreenshareSession>&& session);
 
         UP<CScreenshareSession> m_session;
         CHyprSignalListener     stoppedListener;

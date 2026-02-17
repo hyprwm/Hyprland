@@ -5,15 +5,25 @@
 #include "ForeignToplevel.hpp"
 
 CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLMONITOR pMonitor) : m_resource(resource), m_monitor(pMonitor) {
+    if UNLIKELY (!good())
+        return;
+
     m_resource->setData(this);
     m_resource->setDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
 }
 
 CImageCaptureSource::CImageCaptureSource(SP<CExtImageCaptureSourceV1> resource, PHLWINDOW pWindow) : m_resource(resource), m_window(pWindow) {
+    if UNLIKELY (!good())
+        return;
+
     m_resource->setData(this);
     m_resource->setDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
     m_resource->setOnDestroy([this](CExtImageCaptureSourceV1* pMgr) { PROTO::imageCaptureSource->destroyResource(this); });
+}
+
+bool CImageCaptureSource::good() {
+    return m_resource && m_resource->resource();
 }
 
 std::string CImageCaptureSource::getName() {

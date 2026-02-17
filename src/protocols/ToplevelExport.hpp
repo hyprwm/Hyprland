@@ -24,7 +24,7 @@ class CToplevelExportClient {
     SP<CHyprlandToplevelExportManagerV1> m_resource;
     WP<CToplevelExportClient>            m_self;
 
-    wl_client*                           m_savedClient;
+    wl_client*                           m_savedClient = nullptr;
 
     void                                 captureToplevel(uint32_t frame, int32_t overlayCursor, PHLWINDOW handle);
 

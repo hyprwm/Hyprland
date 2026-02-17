@@ -27,6 +27,7 @@ class CHyprVKRenderer : public IHyprRenderer {
     SP<IFramebuffer>        createFB() override;
     void                    disableScissor() override;
     void                    blend(bool enabled) override;
+    void                    drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) override;
 
     // TODO fix api
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
@@ -34,40 +35,40 @@ class CHyprVKRenderer : public IHyprRenderer {
     SP<CVkRenderPass>     getRenderPass(uint32_t fmt);
 
   private:
-    bool                                beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
-    bool                                beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
-    void                                initRender() override;
-    bool                                initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
+    SP<IRenderbuffer>                  getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
+    bool                               beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
+    bool                               beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
+    void                               initRender() override;
+    bool                               initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
 
-    void                                draw(CBorderPassElement* element, const CRegion& damage) override;
-    void                                draw(CClearPassElement* element, const CRegion& damage) override;
-    void                                draw(CFramebufferElement* element, const CRegion& damage) override;
-    void                                draw(CPreBlurElement* element, const CRegion& damage) override;
-    void                                draw(CRectPassElement* element, const CRegion& damage) override;
-    void                                draw(CRendererHintsPassElement* element, const CRegion& damage) override;
-    void                                draw(CShadowPassElement* element, const CRegion& damage) override;
-    void                                draw(CSurfacePassElement* element, const CRegion& damage) override;
-    void                                draw(CTexPassElement* element, const CRegion& damage) override;
-    void                                draw(CTextureMatteElement* element, const CRegion& damage) override;
+    void                               draw(CBorderPassElement* element, const CRegion& damage) override;
+    void                               draw(CClearPassElement* element, const CRegion& damage) override;
+    void                               draw(CFramebufferElement* element, const CRegion& damage) override;
+    void                               draw(CPreBlurElement* element, const CRegion& damage) override;
+    void                               draw(CRectPassElement* element, const CRegion& damage) override;
+    void                               draw(CRendererHintsPassElement* element, const CRegion& damage) override;
+    void                               draw(CShadowPassElement* element, const CRegion& damage) override;
+    void                               draw(CSurfacePassElement* element, const CRegion& damage) override;
+    void                               draw(CTexPassElement* element, const CRegion& damage) override;
+    void                               draw(CTextureMatteElement* element, const CRegion& damage) override;
 
-    void                                bindPipeline(WP<CVkPipeline> pipeline);
-    Vector2D                            currentRBSize();
+    void                               bindPipeline(WP<CVkPipeline> pipeline);
+    Vector2D                           currentRBSize();
 
-    bool                                m_busy         = false;
-    bool                                m_inRenderPass = false;
+    bool                               m_busy         = false;
+    bool                               m_inRenderPass = false;
 
-    std::vector<SP<CHyprVkFramebuffer>> m_renderBuffers;
-    SP<CHyprVkFramebuffer>              m_currentRenderbuffer;
-    Vector2D                            m_currentRenderbufferSize;
+    SP<CHyprVkFramebuffer>             m_currentRenderbuffer;
+    Vector2D                           m_currentRenderbufferSize;
 
-    std::vector<SP<CVkRenderPass>>      m_renderPassList;
-    SP<CVkRenderPass>                   m_currentRenderPass;
-    SP<CVkShaders>                      m_shaders;
+    std::vector<SP<CVkRenderPass>>     m_renderPassList;
+    SP<CVkRenderPass>                  m_currentRenderPass;
+    SP<CVkShaders>                     m_shaders;
 
-    std::vector<SP<CVkPipelineLayout>>  m_pipelineLayouts;
+    std::vector<SP<CVkPipelineLayout>> m_pipelineLayouts;
 
-    WP<CVkPipeline>                     m_currentPipeline;
-    WP<CHyprVkCommandBuffer>            m_currentCommandBuffer;
+    WP<CVkPipeline>                    m_currentPipeline;
+    WP<CHyprVkCommandBuffer>           m_currentCommandBuffer;
 
     friend class CHyprVulkanImpl;
 };

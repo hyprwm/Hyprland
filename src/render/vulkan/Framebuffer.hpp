@@ -4,6 +4,7 @@
 #include "../../helpers/Format.hpp"
 #include "DeviceUser.hpp"
 #include "../Framebuffer.hpp"
+#include "render/Renderbuffer.hpp"
 #include "render/Texture.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
@@ -19,12 +20,11 @@ class CHyprVkFramebuffer : public IDeviceUser {
     CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass);
     ~CHyprVkFramebuffer();
 
-    WP<Aquamarine::IBuffer> m_hlBuffer;
-    bool                    m_initialized = false;
+    bool           m_initialized = false;
 
-    VkFramebuffer           vk();
-    VkImage                 vkImage();
-    SP<CVKTexture>          texture();
+    VkFramebuffer  vk();
+    VkImage        vkImage();
+    SP<CVKTexture> texture();
 
   private:
     void           initImage(SVkFormatProps props, int w, int h);
@@ -33,6 +33,15 @@ class CHyprVkFramebuffer : public IDeviceUser {
 
     VkFramebuffer  m_framebuffer = VK_NULL_HANDLE;
     SP<CVKTexture> m_tex;
+};
+
+class CVKRenderBuffer : public IRenderbuffer {
+  public:
+    CVKRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
+    ~CVKRenderBuffer();
+
+    virtual void bind() override;
+    virtual void unbind() override;
 };
 
 class CVKFramebuffer : public IFramebuffer {
@@ -48,4 +57,5 @@ class CVKFramebuffer : public IFramebuffer {
   protected:
     bool                   internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) override;
     SP<CHyprVkFramebuffer> m_FB;
+    friend class CVKRenderBuffer;
 };

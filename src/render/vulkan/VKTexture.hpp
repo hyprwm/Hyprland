@@ -56,6 +56,7 @@ class CVKTexture : public ITexture {
 
     VkImage                  m_image = VK_NULL_HANDLE; // TODO private
   private:
+    VkImageLayout                 m_imageLayoutTemp = VK_IMAGE_LAYOUT_GENERAL; // not guaranteed to be in sync with real layout
     VkImageView                   createImageView();
     bool                          write(uint32_t stride, const CRegion& region, const void* data, VkImageLayout oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                         VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VkAccessFlags srcAccess = VK_ACCESS_SHADER_READ_BIT);
@@ -69,4 +70,5 @@ class CVKTexture : public ITexture {
 
     friend class CVKTextureView;
     friend class CHyprVkFramebuffer;
+    friend class CVKFramebuffer;
 };

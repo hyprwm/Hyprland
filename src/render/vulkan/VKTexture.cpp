@@ -4,6 +4,7 @@
 #include "helpers/Format.hpp"
 #include <array>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <hyprutils/math/Region.hpp>
@@ -105,6 +106,8 @@ CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCo
         return;
     }
 
+    SET_VK_IMG_NAME(m_image, "empty ITexture");
+
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(device, m_image, &memReqs);
 
@@ -136,6 +139,8 @@ CVKTexture::CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCo
 CVKTexture::CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) :
     CVKTexture(drmFormat, size, keepDataCopy, opaque) {
     m_ok = write(stride, {0, 0, size.x, size.y}, pixels, VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0);
+    if (m_ok)
+        SET_VK_IMG_NAME(m_image, "SHM ITexture");
 };
 
 CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkImageUsageFlags flags) : ITexture(attrs.format, nullptr, 0, attrs.size, false, opaque), m_isDMA(true) {
@@ -145,7 +150,8 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
     const auto    mod        = std::ranges::find_if(props.dmabuf.renderModifiers, [attrs](const auto m) { return m.props.drmFormatModifier == attrs.modifier; });
 
     if (attrs.size.x > mod->maxExtent.width || attrs.size.y > mod->maxExtent.height) {
-        CRIT("DMA-BUF is too large to import {}x{} > {}x{}", attrs.size.x, attrs.size.y, mod->maxExtent.width, mod->maxExtent.height);
+        CRIT("DMA-BUF {}({}) is too large to import {}x{} > {}x{}", NFormatUtils::drmFormatName(attrs.format), NFormatUtils::drmModifierName(mod->props.drmFormatModifier),
+             attrs.size.x, attrs.size.y, mod->maxExtent.width, mod->maxExtent.height);
     }
 
     if (mod->props.drmFormatModifierPlaneCount != planeCount) {
@@ -211,6 +217,8 @@ CVKTexture::CVKTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque, VkIma
     if (vkCreateImage(g_pHyprVulkan->vkDevice(), &imgInfo, nullptr, &m_image) != VK_SUCCESS) {
         CRIT("vkCreateImage");
     }
+
+    SET_VK_IMG_NAME(m_image, "DMA ITexture");
 
     VkBindImageMemoryInfo bindi[4] = {};
 
@@ -372,6 +380,8 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         return false;
     }
 
+    SET_VK_IMG_NAME(dstImage, "read dstImage")
+
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(g_pHyprVulkan->vkDevice(), dstImage, &memReqs);
 
@@ -379,7 +389,7 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         findVkMemType(g_pHyprVulkan->device()->physicalDevice(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, memReqs.memoryTypeBits);
 
     if (memTypeIndex < 0) {
-        Log::logger->log(Log::ERR, "vkCreateImage failed");
+        Log::logger->log(Log::ERR, "findVkMemType failed");
         vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
         return false;
     }
@@ -420,10 +430,12 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
 
     cb->changeLayout(dstImage, //
                      {.layout = VK_IMAGE_LAYOUT_UNDEFINED, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0},
-                     {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .accessMask = VK_PIPELINE_STAGE_TRANSFER_BIT});
+                     {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT});
+
     cb->changeLayout(m_image, //
-                     {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT},
+                     {.layout = m_imageLayoutTemp, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT},
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_READ_BIT});
+    m_imageLayoutTemp = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
     if (blitSupported) {
         VkImageBlit imageBlitRegion = {.srcSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1},
@@ -476,14 +488,14 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
     cb->changeLayout(dstImage, //
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                      {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+
     cb->changeLayout(m_image, //
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_READ_BIT},
                      {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT});
+    m_imageLayoutTemp = VK_IMAGE_LAYOUT_GENERAL;
 
-    Log::logger->log(Log::ERR, "submit read");
     if (!g_pHyprVulkan->submitStage())
         return false;
-    Log::logger->log(Log::ERR, "submit read done");
 
     VkImageSubresource imgSubRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

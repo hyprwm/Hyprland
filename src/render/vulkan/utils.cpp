@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include "render/vulkan/Vulkan.hpp"
 
 // "UNASSIGNED-CoreValidation-Shader-OutputNotConsumed"
 bool isIgnoredDebugMessage(const std::string& idName) {

@@ -25,5 +25,5 @@ class CGLFramebuffer : public IFramebuffer {
   private:
     GLuint m_fb = -1;
 
-    friend class CRenderbuffer;
+    friend class CGLRenderbuffer;
 };

@@ -32,6 +32,8 @@
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "render/gl/GLFramebuffer.hpp"
+#include "render/gl/GLRenderbuffer.hpp"
 
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
@@ -155,11 +157,10 @@ struct SCurrentRenderData {
 
     // FIXME: raw pointer galore!
     SMonitorRenderData*    pCurrentMonData = nullptr;
-    SP<IFramebuffer>       currentFB       = nullptr; // current rendering to
     SP<IFramebuffer>       mainFB          = nullptr; // main to render to
     SP<IFramebuffer>       outFB           = nullptr; // out to render to (if offloaded, etc)
 
-    SP<CRenderbuffer>      m_currentRenderbuffer = nullptr;
+    SP<IRenderbuffer>      m_currentRenderbuffer = nullptr;
 
     bool                   simplePass = false;
 
@@ -236,7 +237,7 @@ class CHyprOpenGLImpl {
 
     void                                        makeEGLCurrent();
     void                                        begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void                                        beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+    void                                        beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
     void                                        end();
 
     void                                        renderRect(const CBox&, const CHyprColor&, SRectRenderData data);

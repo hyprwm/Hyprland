@@ -8,6 +8,7 @@
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "debug/log/Logger.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -21,6 +22,8 @@
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
+#include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
@@ -573,7 +576,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return buf;
     }
 
-    g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
@@ -584,7 +586,8 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damage.x, damage.y}, RBO);
+    CRegion damageRegion = {0, 0, damage.x, damage.y};
+    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, RBO->getFB(), true);
     g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}}), {});
     g_pHyprRenderer->startRenderPass();
 
@@ -597,7 +600,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     data.box = xbox;
     g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
 
-    g_pHyprOpenGL->end();
+    g_pHyprRenderer->endRender();
     g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     return buf;

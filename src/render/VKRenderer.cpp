@@ -51,28 +51,33 @@ SP<CVkRenderPass> CHyprVKRenderer::getRenderPass(uint32_t fmt) {
 bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     m_currentRenderPass = getRenderPass(fmt);
 
-    auto foundFB = std::ranges::find_if(m_renderBuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
-    if (foundFB != m_renderBuffers.end())
-        m_currentRenderbuffer = *foundFB;
-    else
-        m_currentRenderbuffer = m_renderBuffers.emplace_back(makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->m_device, buffer, m_currentRenderPass->m_vkRenderPass));
+    m_renderData.currentFB = g_pHyprRenderer->getOrCreateRenderbuffer(buffer, fmt)->getFB();
+    m_currentRenderbuffer  = dc<CVKFramebuffer*>(m_renderData.currentFB.get())->fb();
 
     return true;
 };
+
+SP<IRenderbuffer> CHyprVKRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+    return makeShared<CVKRenderBuffer>(buffer, fmt);
+}
 
 bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
     m_currentCommandBuffer = g_pHyprVulkan->begin();
     return true;
 }
 
-bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
+static bool internal = false;
+
+bool        CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
     m_currentRenderPass       = getRenderPass(fb->m_drmFormat);
+    m_renderData.currentFB    = fb;
     m_currentRenderbuffer     = dc<CVKFramebuffer*>(fb.get())->fb();
     m_currentRenderbufferSize = fb->m_size;
 
     if (beginRenderInternal(pMonitor, damage, simple)) {
-        m_currentCommandBuffer->useTexture(fb->getTexture());
+        Log::logger->log(Log::WARN, "CHyprVKRenderer::beginFullFakeRenderInternal {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
+        internal = true;
         return true;
     }
     return false;
@@ -169,7 +174,25 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     vkCmdPipelineBarrier(g_pHyprVulkan->renderCB()->vk(), VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr,
                          releaseBarriers.size(), releaseBarriers.data());
 
+    if (internal) {
+        Log::logger->log(Log::WARN, "CHyprVKRenderer::endRender finishing {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
+        m_currentCommandBuffer->changeLayout(m_currentRenderbuffer->vkImage(),
+                                             {
+                                                 .layout     = VK_IMAGE_LAYOUT_GENERAL,
+                                                 .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                                                 .accessMask = VK_ACCESS_SHADER_READ_BIT,
+                                             },
+                                             {
+                                                 .layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                 .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+                                                 .accessMask = VK_ACCESS_SHADER_READ_BIT,
+                                             });
+    }
     g_pHyprVulkan->end();
+    if (internal) {
+        Log::logger->log(Log::WARN, "CHyprVKRenderer::endRender done {:x}", rc<uint64_t>(m_currentRenderbuffer->vkImage()));
+        internal = false;
+    }
 
     if (m_renderMode == RENDER_MODE_NORMAL)
         renderData().pMonitor->m_output->state->setBuffer(m_currentBuffer);
@@ -460,20 +483,7 @@ void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
 void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
 
 void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
-    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
-    static auto PSHADOWSHARP        = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
-
-    if (!*PSHADOWIGNOREWINDOW && *PSHADOWSHARP) {
-        const auto m_data = element->m_data;
-        m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
-        return;
-    }
-
-    static int count = 0;
-    if (count < 10) {
-        count++;
-        Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
-    }
+    element->m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), element->m_data.a);
 };
 
 void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
@@ -580,6 +590,10 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
 void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
     Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
 };
+
+void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
+    Log::logger->log(Log::WARN, "Unimplimented draw for shadow");
+}
 
 void CHyprVKRenderer::bindPipeline(WP<CVkPipeline> pipeline) {
     if (m_currentPipeline == pipeline)

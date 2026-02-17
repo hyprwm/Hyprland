@@ -137,6 +137,10 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
         loadVulkanProc(&m_proc.vkImportSemaphoreFdKHR, "vkImportSemaphoreFdKHR");
     }
 
+#if ISDEBUG
+    loadVulkanProc(&m_proc.vkSetDebugUtilsObjectNameEXT, "vkSetDebugUtilsObjectNameEXT");
+#endif
+
     VkSemaphoreTypeCreateInfo timelineCreateInfo = {
         .sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
         .pNext         = nullptr,

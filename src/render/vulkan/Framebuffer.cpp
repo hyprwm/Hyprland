@@ -1,6 +1,7 @@
 #include "Framebuffer.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "render/Framebuffer.hpp"
+#include "render/Renderbuffer.hpp"
 #include "render/Renderer.hpp"
 #include "render/VKRenderer.hpp"
 #include "render/vulkan/VKTexture.hpp"
@@ -20,7 +21,7 @@ CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, VkRenderPas
     initFB(renderPass, w, h);
 }
 
-CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass) : IDeviceUser(device), m_hlBuffer(buffer) {
+CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass) : IDeviceUser(device) {
     const auto format = m_device->getFormat(buffer->dmabuf().format).value();
 
     initImage(format, buffer->dmabuf());
@@ -71,6 +72,23 @@ CHyprVkFramebuffer::~CHyprVkFramebuffer() {
         vkDestroyFramebuffer(vkDevice(), m_framebuffer, nullptr);
 }
 
+CVKRenderBuffer::CVKRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : IRenderbuffer(buffer, format) {
+    m_framebuffer = makeShared<CVKFramebuffer>();
+    dc<CVKFramebuffer*>(m_framebuffer.get())->m_FB =
+        makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer, dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(format)->m_vkRenderPass);
+    m_good = true;
+}
+
+CVKRenderBuffer::~CVKRenderBuffer() = default;
+
+void CVKRenderBuffer::bind() {
+    LOGM(Log::WARN, "fixme: unimplemented bind");
+}
+
+void CVKRenderBuffer::unbind() {
+    LOGM(Log::WARN, "fixme: unimplemented unbind");
+}
+
 CVKFramebuffer::CVKFramebuffer() : IFramebuffer() {}
 
 CVKFramebuffer::~CVKFramebuffer() {
@@ -92,7 +110,8 @@ bool CVKFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_size.x);
 
-    LOGM(Log::DEBUG, "Read from tex {} {}x{}@{}x{}", !!m_tex, m_size.x, m_size.y, offsetX, offsetY);
+    LOGM(Log::DEBUG, "Read from tex {}x{}@{}x{}", m_size.x, m_size.y, offsetX, offsetY);
+    dc<CVKTexture*>(m_tex.get())->m_imageLayoutTemp = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     return dc<CVKTexture*>(m_tex.get())->read(shm.format, packStride, m_size.x, m_size.y, offsetX, offsetY, 0, 0, pixelData);
 }
 
@@ -113,6 +132,8 @@ bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
     m_FB = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt);
     if (m_FB)
         m_tex = m_FB->texture();
+    if (m_tex && m_tex->ok())
+        SET_VK_IMG_NAME(m_FB->vkImage(), "IFramebuffer");
     return m_FB;
 };
 

@@ -49,7 +49,7 @@ static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
 
     for (uint32_t i = 0; i < debugData->objectCount; ++i) {
         if (debugData->pObjects[i].pObjectName)
-            Log::logger->log(level, "    involving '{}'", debugData->pMessage);
+            Log::logger->log(level, "    involving '{}'", debugData->pObjects[i].pObjectName);
     }
 
     return false;

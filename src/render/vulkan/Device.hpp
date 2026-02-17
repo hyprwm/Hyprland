@@ -17,6 +17,7 @@ class CHyprVulkanDevice {
         PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR = nullptr;
         PFN_vkGetSemaphoreFdKHR           vkGetSemaphoreFdKHR           = nullptr;
         PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
+        PFN_vkSetDebugUtilsObjectNameEXT  vkSetDebugUtilsObjectNameEXT  = nullptr;
     } m_proc;
 
     bool                                good();

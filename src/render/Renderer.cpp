@@ -664,7 +664,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            IFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB.get();
+            IFramebuffer* last = g_pHyprRenderer->m_renderData.currentFB.get();
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
@@ -2029,9 +2029,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
         if (pMonitor->isMirror()) {
-            g_pHyprOpenGL->blend(false);
+            g_pHyprRenderer->blend(false);
             renderMirrored();
-            g_pHyprOpenGL->blend(true);
+            g_pHyprRenderer->blend(true);
             EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
             renderCursor = false;
         } else {
@@ -2867,13 +2867,13 @@ const SRenderData& IHyprRenderer::renderData() {
     return m_renderData;
 }
 
-SP<CRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<IRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
     if (it != m_renderbuffers.end())
         return *it;
 
-    auto buf = makeShared<CRenderbuffer>(buffer, fmt);
+    auto buf = getOrCreateRenderbufferInternal(buffer, fmt);
 
     if (!buf->good())
         return nullptr;
@@ -2890,7 +2890,7 @@ bool IHyprRenderer::beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP
     return beginRender(pMonitor, damage, RENDER_MODE_TO_BUFFER, buffer, nullptr, simple);
 }
 
-void IHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
+void IHyprRenderer::onRenderbufferDestroy(IRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
 
@@ -2955,7 +2955,11 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
     startRenderPass();
 
+    Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
+
     renderWindow(pWindow, PMONITOR, Time::steadyNow(), !pWindow->m_X11DoesntWantBorders, RENDER_PASS_ALL);
+
+    Log::logger->log(Log::DEBUG, "renderer: rendered a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
 
     endRender();
 
@@ -2971,7 +2975,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
 
-    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pLayer.get()));
+    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
@@ -2992,10 +2996,16 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
     startRenderPass();
 
+    Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+
     // draw the layer
     renderLayer(pLayer, PMONITOR, Time::steadyNow());
 
+    Log::logger->log(Log::DEBUG, "renderer: rendered a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
+
     endRender();
+
+    Log::logger->log(Log::DEBUG, "renderer: made a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     m_bRenderingSnapshot = false;
 }

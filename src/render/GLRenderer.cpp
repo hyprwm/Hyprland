@@ -174,6 +174,11 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     }
 }
 
+SP<IRenderbuffer> CHyprGLRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+    g_pHyprOpenGL->makeEGLCurrent();
+    return makeShared<CGLRenderbuffer>(buffer, fmt);
+}
+
 SP<ITexture> CHyprGLRenderer::createTexture(bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(opaque);
@@ -263,6 +268,10 @@ void CHyprGLRenderer::blend(bool enabled) {
     g_pHyprOpenGL->blend(enabled);
 }
 
+void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
+    g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, color, a);
+}
+
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.hasGrad2)
@@ -286,7 +295,7 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
     if (m_data.main) {
         switch (m_data.framebufferID) {
             case FB_MONITOR_RENDER_MAIN: fb = g_pHyprOpenGL->m_renderData.mainFB; break;
-            case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprOpenGL->m_renderData.currentFB; break;
+            case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
             case FB_MONITOR_RENDER_OUT: fb = g_pHyprOpenGL->m_renderData.outFB; break;
             default: fb = nullptr;
         }

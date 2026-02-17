@@ -385,7 +385,9 @@ bool CScreencopyFrame::copyShm() {
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_ALLOW");
         if (m_tempFb && m_tempFb->isAllocated()) {
+            LOGM(Log::DEBUG, "CScreencopyFrame::copyShm m_tempFb");
             CBox                         texbox = {{}, m_box.size()};
 
             CTexPassElement::SRenderData data;
@@ -397,9 +399,11 @@ bool CScreencopyFrame::copyShm() {
         } else
             renderMon();
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_PENDING");
         g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
         g_pHyprRenderer->startRenderPass();
     } else {
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_DENY");
         g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
         g_pHyprRenderer->startRenderPass();
         CBox texbox =

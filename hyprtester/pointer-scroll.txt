@@ -1,0 +1,1 @@
+Failed to connect to wayland display

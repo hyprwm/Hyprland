@@ -491,6 +491,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{0, 0, 359},
     },
     SConfigOptionDescription{
+        .value       = "input:flip_x",
+        .description = "Inverts the horizontal movement of the pointer device",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "input:flip_y",
+        .description = "Inverts the vertical movement of the pointer device",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "input:left_handed",
         .description = "Switches RMB and LMB",
         .type        = CONFIG_OPTION_BOOL,
@@ -644,18 +656,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "input:touchpad:tap-and-drag",
         .description = "Sets the tap and drag mode for the touchpad",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "input:touchpad:flip_x",
-        .description = "Inverts the horizontal movement of the touchpad",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "input:touchpad:flip_y",
-        .description = "Inverts the vertical movement of the touchpad",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

@@ -22,12 +22,13 @@ class CToplevelExportClient {
     CTimer                    m_lastFrame;
     int                       m_frameCounter = 0;
 
+    bool                      m_sentScreencast = false;
+
   private:
     SP<CHyprlandToplevelExportManagerV1> m_resource;
 
     int                                  m_framesInLastHalfSecond = 0;
     CTimer                               m_lastMeasure;
-    bool                                 m_sentScreencast = false;
 
     SP<HOOK_CALLBACK_FN>                 m_tickCallback;
     void                                 onTick();
@@ -45,11 +46,10 @@ class CToplevelExportFrame {
 
     WP<CToplevelExportFrame>  m_self;
     WP<CToplevelExportClient> m_client;
+    PHLWINDOW                 m_window;
 
   private:
     SP<CHyprlandToplevelExportFrameV1> m_resource;
-
-    PHLWINDOW                          m_window;
     bool                               m_cursorOverlayRequested = false;
     bool                               m_ignoreDamage           = false;
 
@@ -79,9 +79,10 @@ class CToplevelExportProtocol : IWaylandProtocol {
 
     void onOutputCommit(PHLMONITOR pMonitor);
 
+    std::vector<SP<CToplevelExportFrame>> m_frames;
+
   private:
     std::vector<SP<CToplevelExportClient>> m_clients;
-    std::vector<SP<CToplevelExportFrame>>  m_frames;
     std::vector<WP<CToplevelExportFrame>>  m_framesAwaitingWrite;
 
     void                                   onWindowUnmap(PHLWINDOW pWindow);

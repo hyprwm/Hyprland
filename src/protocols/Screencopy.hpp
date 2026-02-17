@@ -36,12 +36,13 @@ class CScreencopyClient {
     CTimer                m_lastFrame;
     int                   m_frameCounter = 0;
 
+    bool                  m_sentScreencast = false;
+
   private:
     SP<CZwlrScreencopyManagerV1> m_resource;
 
     int                          m_framesInLastHalfSecond = 0;
     CTimer                       m_lastMeasure;
-    bool                         m_sentScreencast = false;
 
     SP<HOOK_CALLBACK_FN>         m_tickCallback;
     void                         onTick();
@@ -59,11 +60,10 @@ class CScreencopyFrame {
 
     WP<CScreencopyFrame>  m_self;
     WP<CScreencopyClient> m_client;
+    PHLMONITORREF         m_monitor;
 
   private:
     SP<CZwlrScreencopyFrameV1> m_resource;
-
-    PHLMONITORREF              m_monitor;
     bool                       m_overlayCursor = false;
     bool                       m_withDamage    = false;
 
@@ -97,8 +97,9 @@ class CScreencopyProtocol : public IWaylandProtocol {
 
     void         onOutputCommit(PHLMONITOR pMonitor);
 
-  private:
     std::vector<SP<CScreencopyFrame>>  m_frames;
+
+  private:
     std::vector<WP<CScreencopyFrame>>  m_framesAwaitingWrite;
     std::vector<SP<CScreencopyClient>> m_clients;
 

@@ -368,9 +368,106 @@ void main() {
 
 )#"
 
+#define SHADOW_FRAG_SRC                                                                                                                                                            \
+    R"#(#version 450
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+
+struct sRounding {
+    float radius;
+	float power;
+	vec2 topLeft;
+	vec2 fullSize;
+};
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) vec4 v_color;
+    vec2 bottomRight;
+    float range;
+    float shadowPower;
+	sRounding rounding;
+} data;
+
+float pixAlphaRoundedDistance(float distanceToCorner) {
+     if (distanceToCorner > data.rounding.radius) {
+        return 0.0;
+    }
+
+    if (distanceToCorner > data.rounding.radius - data.range) {
+        return pow((data.range - (distanceToCorner - data.rounding.radius + data.range)) / data.range, data.shadowPower); // i think?
+    }
+
+    return 1.0;
+}
+
+float modifiedLength(vec2 a) {
+    return pow(pow(abs(a.x),data.rounding.power)+pow(abs(a.y),data.rounding.power),1.0/data.rounding.power);
+}
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+
+	vec4 pixColor = data.v_color;
+    float originalAlpha = pixColor[3];
+
+    bool done = false;
+
+	vec2 pixCoord = data.rounding.fullSize * v_texcoord;
+
+    // ok, now we check the distance to a border.
+
+    if (pixCoord[0] < data.rounding.topLeft[0]) {
+        if (pixCoord[1] < data.rounding.topLeft[1]) {
+            // top left
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - data.rounding.topLeft));
+            done = true;
+        } else if (pixCoord[1] > data.bottomRight[1]) {
+            // bottom left
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(data.rounding.topLeft[0], data.bottomRight[1])));
+            done = true;
+        }
+    } else if (pixCoord[0] > data.bottomRight[0]) {
+        if (pixCoord[1] < data.rounding.topLeft[1]) {
+            // top right
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(data.bottomRight[0], data.rounding.topLeft[1])));
+            done = true;
+        } else if (pixCoord[1] > data.bottomRight[1]) {
+            // bottom right
+            pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - data.bottomRight));
+            done = true;
+        }
+    }
+
+    if (!done) {
+        // distance to all straight bb borders
+        float distanceT = pixCoord[1];
+        float distanceB = data.rounding.fullSize[1] - pixCoord[1];
+        float distanceL = pixCoord[0];
+        float distanceR = data.rounding.fullSize[0] - pixCoord[0];
+
+        // get the smallest
+        float smallest = min(min(distanceT, distanceB), min(distanceL, distanceR));
+
+        if (smallest < data.range) {
+            pixColor[3] = pixColor[3] * pow((smallest / data.range), data.shadowPower);
+        }
+    }
+
+    if (pixColor[3] == 0.0) {
+        discard; return;
+    }
+
+    // premultiply
+    pixColor.rgb *= pixColor[3];
+
+	fragColor = pixColor;
+}
+)#"
+
 CVkShaders::CVkShaders(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
     m_vert   = makeShared<CVkShader>(device, VERT_SRC, sizeof(SVkVertShaderData), SH_VERT);
     m_frag   = makeShared<CVkShader>(device, FRAG_SRC, sizeof(SVkFragShaderData), SH_FRAG);
     m_border = makeShared<CVkShader>(device, BORDER_FRAG_SRC, sizeof(SVkBorderShaderData), SH_FRAG);
     m_rect   = makeShared<CVkShader>(device, RECT_FRAG_SRC, sizeof(SVkRectShaderData), SH_FRAG);
+    m_shadow = makeShared<CVkShader>(device, SHADOW_FRAG_SRC, sizeof(SVkShadowShaderData), SH_FRAG);
 }

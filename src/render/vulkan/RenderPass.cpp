@@ -77,6 +77,13 @@ WP<CVkPipeline> CVkRenderPass::rectPipeline() {
     return m_rectPipeline;
 }
 
+WP<CVkPipeline> CVkRenderPass::shadowPipeline() {
+    if (!m_shadowPipeline)
+        m_shadowPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_shadow);
+
+    return m_shadowPipeline;
+}
+
 WP<CVkPipeline> CVkRenderPass::texturePipeline() {
     if (!m_texturePipeline)
         m_texturePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_frag);

@@ -303,7 +303,8 @@ static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
 
 static void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
     if (!region.empty()) {
-        region.forEachRect([&](const auto& RECT) {
+        const CBox max = {{0, 0}, {INT32_MAX, INT32_MAX}};
+        region.copy().intersect(max).forEachRect([&](const auto& RECT) {
             VkRect2D rect = {
                 .offset = {.x = RECT.x1, .y = RECT.y1},
                 .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
@@ -514,10 +515,9 @@ void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    auto       clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : damage;
-    const CBox max     = {{0, 0}, {INT32_MAX, INT32_MAX}};
+    auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : damage;
 
-    drawRegionRects(clipBox.intersect(max), cb->vk());
+    drawRegionRects(clipBox, cb->vk());
 
     texture->m_lastUsedCB = cb;
 
@@ -564,10 +564,9 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    auto       clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage);
-    const CBox max     = {{0, 0}, {INT32_MAX, INT32_MAX}};
+    auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage);
 
-    drawRegionRects(clipBox.intersect(max), cb->vk());
+    drawRegionRects(clipBox, cb->vk());
 
     texture->m_lastUsedCB = cb;
 
@@ -580,7 +579,58 @@ void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
 };
 
 void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for shadow");
+    RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
+    RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
+
+    if (g_pHyprRenderer->m_renderData.damage.empty())
+        return;
+
+    TRACY_GPU_ZONE("RenderShadow");
+
+    CBox newBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+
+    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
+    const auto  SHADOWPOWER  = std::clamp(sc<int>(*PSHADOWPOWER), 1, 4);
+    const auto  TOPLEFT      = Vector2D(range + round, range + round);
+    const auto  BOTTOMRIGHT  = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
+    const auto  FULLSIZE     = Vector2D(newBox.width, newBox.height);
+
+    blend(true);
+
+    const auto&               vertData = matToVertShader(g_pHyprRenderer->projectBoxToTarget(newBox).getMatrix());
+    const SVkShadowShaderData fragData = {
+        .color       = {color.r, color.g, color.b, color.a * a},
+        .bottomRight = {BOTTOMRIGHT.x, BOTTOMRIGHT.y},
+        .range       = range,
+        .shadowPower = SHADOWPOWER,
+        .rounding =
+            {
+                .radius   = range + round,
+                .power    = roundingPower,
+                .topLeft  = {TOPLEFT.x, TOPLEFT.y},
+                .fullSize = {FULLSIZE.x, FULLSIZE.y},
+            },
+    };
+
+    const auto cb       = g_pHyprVulkan->renderCB();
+    const auto pipeline = m_currentRenderPass->shadowPipeline();
+    const auto layout   = pipeline->layout().lock();
+
+    bindPipeline(pipeline);
+
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
+
+    CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
+                       g_pHyprRenderer->m_renderData.clipBox.height};
+    auto    clipBox = g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0 ?
+           damageClip.intersect(g_pHyprRenderer->m_renderData.damage) :
+           g_pHyprRenderer->m_renderData.damage;
+
+    clipBox = clipBox.subtract({newBox.x + range, newBox.y + range, newBox.width - range * 2, newBox.height - range * 2});
+
+    drawRegionRects(clipBox, cb->vk());
 }
 
 void CHyprVKRenderer::bindPipeline(WP<CVkPipeline> pipeline) {

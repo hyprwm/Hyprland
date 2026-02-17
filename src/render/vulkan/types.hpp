@@ -97,3 +97,11 @@ struct SVkRectShaderData {
     float     color[4];
     SRounding rounding;
 };
+
+struct SVkShadowShaderData {
+    float     color[4];
+    float     bottomRight[2];
+    float     range;
+    float     shadowPower;
+    SRounding rounding;
+};

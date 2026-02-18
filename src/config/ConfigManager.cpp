@@ -1791,24 +1791,41 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             m->m_vrrActive = false;
             return;
-        } else if (USEVRR == 1) {
-            if (!m->m_vrrActive) {
-                m->m_output->state->resetExplicitFences();
-                m->m_output->state->setAdaptiveSync(true);
+        }
 
-                if (!m->m_state.test()) {
-                    Log::logger->log(Log::DEBUG, "Pending output {} does not accept VRR.", m->m_output->name);
-                    m->m_output->state->setAdaptiveSync(false);
+        const auto PWORKSPACE = m->m_activeWorkspace;
+
+        if (USEVRR == 1) {
+            bool wantVRR = true;
+            if (PWORKSPACE && PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN))
+                wantVRR = !PWORKSPACE->getFullscreenWindow()->m_ruleApplicator->noVRR().valueOrDefault();
+
+            if (wantVRR) {
+                if (!m->m_vrrActive) {
+                    m->m_output->state->resetExplicitFences();
+                    m->m_output->state->setAdaptiveSync(true);
+
+                    if (!m->m_state.test()) {
+                        Log::logger->log(Log::DEBUG, "Pending output {} does not accept VRR.", m->m_output->name);
+                        m->m_output->state->setAdaptiveSync(false);
+                    }
+
+                    if (!m->m_state.commit())
+                        Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
                 }
+                m->m_vrrActive = true;
+            } else {
+                if (m->m_vrrActive) {
+                    m->m_output->state->resetExplicitFences();
+                    m->m_output->state->setAdaptiveSync(false);
 
-                if (!m->m_state.commit())
-                    Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
+                    if (!m->m_state.commit())
+                        Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
+                }
+                m->m_vrrActive = false;
             }
-            m->m_vrrActive = true;
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            const auto PWORKSPACE = m->m_activeWorkspace;
-
             if (!PWORKSPACE)
                 return; // ???
 

@@ -11,8 +11,10 @@
 
 class CMonitor;
 class IHLBuffer;
-class CScreenshareSession;
-class CScreenshareFrame;
+namespace Screenshare {
+    class CScreenshareSession;
+    class CScreenshareFrame;
+};
 
 class CScreencopyClient {
   public:
@@ -34,21 +36,21 @@ class CScreencopyClient {
 
 class CScreencopyFrame {
   public:
-    CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource, WP<CScreenshareSession> session, bool overlayCursor);
+    CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource, WP<Screenshare::CScreenshareSession> session, bool overlayCursor);
 
     bool good();
 
   private:
-    SP<CZwlrScreencopyFrameV1> m_resource;
-    WP<CScreencopyFrame>       m_self;
-    WP<CScreencopyClient>      m_client;
+    SP<CZwlrScreencopyFrameV1>           m_resource;
+    WP<CScreencopyFrame>                 m_self;
+    WP<CScreencopyClient>                m_client;
 
-    WP<CScreenshareSession>    m_session;
-    UP<CScreenshareFrame>      m_frame;
+    WP<Screenshare::CScreenshareSession> m_session;
+    UP<Screenshare::CScreenshareFrame>   m_frame;
 
-    CHLBufferReference         m_buffer;
-    Time::steady_tp            m_timestamp;
-    bool                       m_overlayCursor = true;
+    CHLBufferReference                   m_buffer;
+    Time::steady_tp                      m_timestamp;
+    bool                                 m_overlayCursor = true;
 
     struct {
         CHyprSignalListener stopped;

@@ -4,7 +4,7 @@
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
 
-#include <cstring>
+using namespace Screenshare;
 
 CCursorshareSession::CCursorshareSession(wl_client* client, WP<CWLPointerResource> pointer) : m_client(client), m_pointer(pointer) {
     m_listeners.pointerDestroyed = m_pointer->m_events.destroyed.listen([this] { stop(); });

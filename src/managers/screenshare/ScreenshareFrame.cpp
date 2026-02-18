@@ -11,6 +11,8 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
 
+using namespace Screenshare;
+
 CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst) :
     m_session(session), m_bufferSize(m_session->bufferSize()), m_overlayCursor(overlayCursor), m_isFirst(isFirst) {
     ;

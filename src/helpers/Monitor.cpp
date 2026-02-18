@@ -89,8 +89,8 @@ void CMonitor::onConnect(bool noRule) {
         m_events.commit.emit();
 
         // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
-        if (true && g_pScreenshareManager)
-            g_pScreenshareManager->onOutputCommit(m_self.lock());
+        if (true && Screenshare::mgr())
+            Screenshare::mgr()->onOutputCommit(m_self.lock());
     });
     m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 

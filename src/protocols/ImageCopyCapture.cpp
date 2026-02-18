@@ -9,6 +9,8 @@
 #include "../desktop/state/FocusState.hpp"
 #include <cstring>
 
+using namespace Screenshare;
+
 CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessionV1> resource, SP<CImageCaptureSource> source, extImageCopyCaptureManagerV1Options options) :
     m_resource(resource), m_source(source), m_paintCursor(options & EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS) {
     if UNLIKELY (!good())
@@ -31,9 +33,9 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
     });
 
     if (m_source->m_monitor)
-        m_session = g_pScreenshareManager->newSession(m_resource->client(), m_source->m_monitor.lock());
+        m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_monitor.lock());
     else
-        m_session = g_pScreenshareManager->newSession(m_resource->client(), m_source->m_window.lock());
+        m_session = Screenshare::mgr()->newSession(m_resource->client(), m_source->m_window.lock());
 
     if UNLIKELY (!m_session) {
         m_resource->sendStopped();
@@ -138,7 +140,7 @@ CImageCopyCaptureCursorSession::CImageCopyCaptureCursorSession(SP<CExtImageCopyC
             createFrame(makeShared<CExtImageCopyCaptureFrameV1>(pMgr->client(), pMgr->version(), id));
         });
 
-        m_session = g_pScreenshareManager->newCursorSession(pMgr->client(), m_pointer);
+        m_session = Screenshare::mgr()->newCursorSession(pMgr->client(), m_pointer);
         if UNLIKELY (!m_session) {
             m_sessionResource->sendStopped();
             m_sessionResource->error(-1, "unable to share cursor");

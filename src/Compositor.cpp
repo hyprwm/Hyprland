@@ -720,9 +720,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Starting XWayland");
             g_pXWayland = makeUnique<CXWayland>(g_pCompositor->m_wantsXwayland);
-
-            Log::logger->log(Log::DEBUG, "Starting ScreenshareManager");
-            g_pScreenshareManager = makeUnique<CScreenshareManager>();
         } break;
         default: UNREACHABLE();
     }

@@ -6,13 +6,15 @@
 #include "../helpers/Format.hpp"
 #include "../helpers/time/Time.hpp"
 
+using namespace Screenshare;
+
 CScreencopyClient::CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
     m_resource->setDestroy([this](CZwlrScreencopyManagerV1* pMgr) { PROTO::screencopy->destroyResource(this); });
     m_resource->setOnDestroy([this](CZwlrScreencopyManagerV1* pMgr) {
-        g_pScreenshareManager->destroyClientSessions(m_savedClient);
+        Screenshare::mgr()->destroyClientSessions(m_savedClient);
         PROTO::screencopy->destroyResource(this);
     });
     m_resource->setCaptureOutput(
@@ -24,7 +26,7 @@ CScreencopyClient::CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_) : m
 }
 
 CScreencopyClient::~CScreencopyClient() {
-    g_pScreenshareManager->destroyClientSessions(m_savedClient);
+    Screenshare::mgr()->destroyClientSessions(m_savedClient);
 }
 
 void CScreencopyClient::captureOutput(uint32_t frame, int32_t overlayCursor_, wl_resource* output, CBox box) {
@@ -36,8 +38,8 @@ void CScreencopyClient::captureOutput(uint32_t frame, int32_t overlayCursor_, wl
     }
 
     const auto PMONITOR = PMONITORRES->m_monitor.lock();
-    auto       session  = box.w == 0 && box.h == 0 ? g_pScreenshareManager->getManagedSession(m_resource->client(), PMONITOR) :
-                                                     g_pScreenshareManager->getManagedSession(m_resource->client(), PMONITOR, box);
+    auto       session  = box.w == 0 && box.h == 0 ? Screenshare::mgr()->getManagedSession(m_resource->client(), PMONITOR) :
+                                                     Screenshare::mgr()->getManagedSession(m_resource->client(), PMONITOR, box);
 
     const auto FRAME = PROTO::screencopy->m_frames.emplace_back(
         makeShared<CScreencopyFrame>(makeShared<CZwlrScreencopyFrameV1>(m_resource->client(), m_resource->version(), frame), session, !!overlayCursor_));

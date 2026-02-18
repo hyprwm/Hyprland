@@ -8,12 +8,14 @@
 
 #include <hyprutils/math/Vector2D.hpp>
 
+using namespace Screenshare;
+
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
     m_resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) {
-        g_pScreenshareManager->destroyClientSessions(m_savedClient);
+        Screenshare::mgr()->destroyClientSessions(m_savedClient);
         PROTO::toplevelExport->destroyResource(this);
     });
     m_resource->setDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
@@ -28,11 +30,11 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
 }
 
 CToplevelExportClient::~CToplevelExportClient() {
-    g_pScreenshareManager->destroyClientSessions(m_savedClient);
+    Screenshare::mgr()->destroyClientSessions(m_savedClient);
 }
 
 void CToplevelExportClient::captureToplevel(uint32_t frame, int32_t overlayCursor_, PHLWINDOW handle) {
-    auto session = g_pScreenshareManager->getManagedSession(m_resource->client(), handle);
+    auto session = Screenshare::mgr()->getManagedSession(m_resource->client(), handle);
 
     // create a frame
     const auto FRAME = PROTO::toplevelExport->m_frames.emplace_back(

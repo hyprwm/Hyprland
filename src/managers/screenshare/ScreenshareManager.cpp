@@ -4,6 +4,8 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../protocols/core/Seat.hpp"
 
+using namespace Screenshare;
+
 CScreenshareManager::CScreenshareManager() {
     ;
 }
@@ -143,7 +145,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
     auto& session = *it;
 
     session->stoppedListener = session->m_session->m_events.stopped.listen([session = WP<SManagedSession>(session)]() {
-        std::erase_if(g_pScreenshareManager->m_managedSessions, [&](const auto& s) { return !s || session.expired() || s->m_session == session->m_session; });
+        std::erase_if(Screenshare::mgr()->m_managedSessions, [&](const auto& s) { return !s || session.expired() || s->m_session == session->m_session; });
     });
 
     return session->m_session;

@@ -17,9 +17,11 @@ class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
 class CToplevelExportProtocolManager;
-class CScreenshareFrame;
 class CInputManager;
 struct SSessionLockSurface;
+namespace Screenshare {
+    class CScreenshareFrame;
+};
 
 enum eDamageTrackingModes : int8_t {
     DAMAGE_TRACKING_INVALID = -1,
@@ -166,7 +168,7 @@ class CHyprRenderer {
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;
-    friend class CScreenshareFrame;
+    friend class Screenshare::CScreenshareFrame;
     friend class CInputManager;
     friend class CPointerManager;
     friend class CMonitor;

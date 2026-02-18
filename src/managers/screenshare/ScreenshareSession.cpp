@@ -6,6 +6,8 @@
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 
+using namespace Screenshare;
+
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
     init();
 }
@@ -151,7 +153,7 @@ UP<CScreenshareFrame> CScreenshareSession::nextFrame(bool overlayCursor) {
     UP<CScreenshareFrame> frame = makeUnique<CScreenshareFrame>(m_self, overlayCursor, !m_sharing);
     frame->m_self               = frame;
 
-    g_pScreenshareManager->m_pendingFrames.emplace_back(frame);
+    Screenshare::mgr()->m_pendingFrames.emplace_back(frame);
 
     // there is now a pending frame, so block ds
     g_pHyprRenderer->m_directScanoutBlocked = true;

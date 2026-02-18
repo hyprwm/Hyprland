@@ -10,8 +10,10 @@
 #include <vector>
 
 class CMonitor;
-class CScreenshareSession;
-class CScreenshareFrame;
+namespace Screenshare {
+    class CScreenshareSession;
+    class CScreenshareFrame;
+};
 
 class CToplevelExportClient {
   public:
@@ -33,20 +35,20 @@ class CToplevelExportClient {
 
 class CToplevelExportFrame {
   public:
-    CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource, WP<CScreenshareSession> session, bool overlayCursor);
+    CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> resource, WP<Screenshare::CScreenshareSession> session, bool overlayCursor);
 
     bool good();
 
   private:
-    SP<CHyprlandToplevelExportFrameV1> m_resource;
-    WP<CToplevelExportFrame>           m_self;
-    WP<CToplevelExportClient>          m_client;
+    SP<CHyprlandToplevelExportFrameV1>   m_resource;
+    WP<CToplevelExportFrame>             m_self;
+    WP<CToplevelExportClient>            m_client;
 
-    WP<CScreenshareSession>            m_session;
-    UP<CScreenshareFrame>              m_frame;
+    WP<Screenshare::CScreenshareSession> m_session;
+    UP<Screenshare::CScreenshareFrame>   m_frame;
 
-    CHLBufferReference                 m_buffer;
-    Time::steady_tp                    m_timestamp;
+    CHLBufferReference                   m_buffer;
+    Time::steady_tp                      m_timestamp;
 
     struct {
         CHyprSignalListener stopped;

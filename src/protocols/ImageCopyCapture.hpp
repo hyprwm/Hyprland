@@ -11,9 +11,11 @@
 
 class IHLBuffer;
 class CWLPointerResource;
-class CCursorshareSession;
-class CScreenshareSession;
-class CScreenshareFrame;
+namespace Screenshare {
+    class CCursorshareSession;
+    class CScreenshareSession;
+    class CScreenshareFrame;
+};
 
 class CImageCopyCaptureFrame {
   public:
@@ -23,13 +25,13 @@ class CImageCopyCaptureFrame {
     bool good();
 
   private:
-    SP<CExtImageCopyCaptureFrameV1> m_resource;
-    WP<CImageCopyCaptureSession>    m_session;
-    UP<CScreenshareFrame>           m_frame;
+    SP<CExtImageCopyCaptureFrameV1>    m_resource;
+    WP<CImageCopyCaptureSession>       m_session;
+    UP<Screenshare::CScreenshareFrame> m_frame;
 
-    bool                            m_captured = false;
-    SP<IHLBuffer>                   m_buffer;
-    CRegion                         m_clientDamage;
+    bool                               m_captured = false;
+    SP<IHLBuffer>                      m_buffer;
+    CRegion                            m_clientDamage;
 
     friend class CImageCopyCaptureSession;
 };
@@ -42,14 +44,14 @@ class CImageCopyCaptureSession {
     bool good();
 
   private:
-    SP<CExtImageCopyCaptureSessionV1> m_resource;
+    SP<CExtImageCopyCaptureSessionV1>    m_resource;
 
-    SP<CImageCaptureSource>           m_source;
-    UP<CScreenshareSession>           m_session;
-    WP<CImageCopyCaptureFrame>        m_frame;
+    SP<CImageCaptureSource>              m_source;
+    UP<Screenshare::CScreenshareSession> m_session;
+    WP<CImageCopyCaptureFrame>           m_frame;
 
-    Vector2D                          m_bufferSize  = Vector2D(0, 0);
-    bool                              m_paintCursor = true;
+    Vector2D                             m_bufferSize  = Vector2D(0, 0);
+    bool                                 m_paintCursor = true;
 
     struct {
         CHyprSignalListener constraintsChanged;
@@ -83,9 +85,9 @@ class CImageCopyCaptureCursorSession {
     Vector2D m_hotspot = Vector2D(0, 0);
 
     // capture session stuff
-    SP<CExtImageCopyCaptureSessionV1> m_sessionResource;
-    UP<CCursorshareSession>           m_session;
-    Vector2D                          m_bufferSize = Vector2D(0, 0);
+    SP<CExtImageCopyCaptureSessionV1>    m_sessionResource;
+    UP<Screenshare::CCursorshareSession> m_session;
+    Vector2D                             m_bufferSize = Vector2D(0, 0);
 
     // frame stuff
     SP<CExtImageCopyCaptureFrameV1> m_frameResource;

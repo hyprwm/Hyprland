@@ -5,9 +5,11 @@
 #include "render/vulkan/CommandBuffer.hpp"
 #include "render/vulkan/DescriptorPool.hpp"
 #include "render/vulkan/MemoryBuffer.hpp"
+#include "render/vulkan/VKTexture.hpp"
 #include "utils.hpp"
 
 #include "../../macros.hpp"
+#include <algorithm>
 #include <drm_fourcc.h>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <sys/stat.h>
@@ -483,4 +485,33 @@ SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayo
 
     Log::logger->log(Log::ERR, "failed to allocate descriptor set on a new pool: {}", (unsigned)res);
     return nullptr;
+}
+
+static const int MAX_READ_CACHE_SIZE = 10;
+
+SP<CVKTexture>   CHyprVulkanImpl::getReadTexture(uint32_t drmFformat, uint32_t width, uint32_t height) {
+    auto cached = std::ranges::find_if(m_readTexturesCache, [&](const auto& cache) {
+        return cache.texture && cache.texture->m_drmFormat == drmFformat && cache.texture->m_size.x == width && cache.texture->m_size.y == height;
+    });
+    if (cached != m_readTexturesCache.end()) {
+        cached->lastUsed = Time::steadyNow();
+        return cached->texture;
+    }
+
+    if (m_readTexturesCache.size() >= MAX_READ_CACHE_SIZE) {
+        auto remove = std::ranges::min_element(m_readTexturesCache, std::less<>{}, [](const auto& cache) { return cache.lastUsed; });
+        m_readTexturesCache.erase(remove);
+    }
+
+    const auto props = g_pHyprVulkan->device()->getFormat(drmFformat).value();
+    auto       tex   = makeShared<CVKTexture>(drmFformat, props.format.vkFormat, width, height);
+    if (!tex || !tex->ok())
+        return nullptr;
+
+    m_readTexturesCache.emplace_back(SCacheItem{
+          .texture  = tex,
+          .lastUsed = Time::steadyNow(),
+    });
+
+    return tex;
 }

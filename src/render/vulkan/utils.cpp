@@ -14,12 +14,12 @@ bool hasExtension(const std::vector<VkExtensionProperties>& extensions, const st
     return std::ranges::any_of(extensions, [name](const auto& ext) { return ext.extensionName == name; });
 };
 
-int findVkMemType(VkPhysicalDevice dev, VkMemoryPropertyFlags flags, uint32_t req_bits) {
+int findVkMemType(VkPhysicalDevice dev, VkMemoryPropertyFlags flags, uint32_t bits) {
     VkPhysicalDeviceMemoryProperties props;
     vkGetPhysicalDeviceMemoryProperties(dev, &props);
 
     for (unsigned i = 0; i < props.memoryTypeCount; ++i) {
-        if (req_bits & (1 << i)) {
+        if (bits & (1 << i)) {
             if ((props.memoryTypes[i].propertyFlags & flags) == flags)
                 return i;
         }
@@ -48,4 +48,26 @@ bool isDisjoint(const Aquamarine::SDMABUFAttrs& attrs) {
     }
 
     return false;
+}
+
+void startRenderPassHelper(VkRenderPass renderPass, VkFramebuffer fb, const Vector2D& size, VkCommandBuffer cb) {
+    VkRenderPassBeginInfo info = {
+        .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass  = renderPass,
+        .framebuffer = fb,
+        .renderArea =
+            {
+                .extent = {size.x, size.y},
+            },
+        .clearValueCount = 0,
+    };
+
+    vkCmdBeginRenderPass(cb, &info, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport = {
+        .width    = size.x,
+        .height   = size.y,
+        .maxDepth = 1,
+    };
+    vkCmdSetViewport(cb, 0, 1, &viewport);
 }

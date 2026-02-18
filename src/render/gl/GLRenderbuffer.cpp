@@ -45,7 +45,7 @@ CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
     glGenFramebuffers(1, &GLFB(m_framebuffer)->m_fb);
     GLFB(m_framebuffer)->m_fbAllocated = true;
     m_framebuffer->m_size              = buffer->size;
-    GLFB(m_framebuffer)->bind();
+    m_framebuffer->bind();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -62,7 +62,7 @@ CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
 
 void CGLRenderbuffer::bind() {
     g_pHyprOpenGL->makeEGLCurrent();
-    GLFB(m_framebuffer)->bind();
+    m_framebuffer->bind();
 }
 
 void CGLRenderbuffer::unbind() {

@@ -3,10 +3,12 @@
 #include <vulkan/vulkan_core.h>
 
 CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : IDeviceUser(device), m_key({key}) {
+    const auto [vertSize, fragSize, filter, texCount] = key;
+
     VkSamplerCreateInfo samplerCreateInfo = {
         .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter    = std::get<2>(key),
-        .minFilter    = std::get<2>(key),
+        .magFilter    = filter,
+        .minFilter    = filter,
         .mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -41,18 +43,22 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
         CRIT("vkCreateSampler");
     }
 
-    VkDescriptorSetLayoutBinding dsBinding = {
-        .binding            = 0,
-        .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        .descriptorCount    = 1,
-        .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
-        .pImmutableSamplers = &m_sampler,
-    };
+    std::vector<VkDescriptorSetLayoutBinding> dsBinding(texCount);
+    for (int i = 0; i < texCount; i++) {
+        dsBinding[i] = {
+            .binding            = i,
+            .descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .descriptorCount    = 1,
+            .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .pImmutableSamplers = &m_sampler,
+        };
+    }
+    Log::logger->log(Log::INFO, "dsBinding {} {}", texCount, dsBinding.size());
 
     VkDescriptorSetLayoutCreateInfo dsInfo = {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .bindingCount = 1,
-        .pBindings    = &dsBinding,
+        .bindingCount = dsBinding.size(),
+        .pBindings    = dsBinding.data(),
     };
 
     if (vkCreateDescriptorSetLayout(vkDevice(), &dsInfo, nullptr, &m_descriptorSet) != VK_SUCCESS) {
@@ -62,12 +68,12 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
     VkPushConstantRange pcRanges[] = {
         {
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .size       = std::get<0>(key),
+            .size       = vertSize,
         },
         {
             .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .offset     = std::get<0>(key),
-            .size       = std::get<1>(key),
+            .offset     = vertSize,
+            .size       = fragSize,
         },
     };
 
@@ -75,7 +81,7 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
         .sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount         = 1,
         .pSetLayouts            = &m_descriptorSet,
-        .pushConstantRangeCount = 2,
+        .pushConstantRangeCount = pcRanges[1].size > 0 ? 2 : 1,
         .pPushConstantRanges    = pcRanges,
     };
 

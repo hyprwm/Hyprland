@@ -5,8 +5,10 @@
 #include "./vulkan/Vulkan.hpp"
 #include "./vulkan/PipelineLayout.hpp"
 #include "./vulkan/Shaders.hpp"
+#include "./vulkan/utils.hpp"
 #include "debug/log/Logger.hpp"
 #include "macros.hpp"
+#include "render/Framebuffer.hpp"
 #include "render/OpenGL.hpp"
 #include "render/Renderer.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
@@ -14,11 +16,13 @@
 #include "render/vulkan/VKTexture.hpp"
 #include "render/vulkan/types.hpp"
 #include <algorithm>
+#include <array>
 #include <cairo.h>
 #include <cstdint>
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -69,7 +73,7 @@ bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 
 bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
-    m_currentRenderPass       = getRenderPass(fb->m_drmFormat);
+
     m_renderData.currentFB    = fb;
     m_currentRenderbuffer     = dc<CVKFramebuffer*>(fb.get())->fb();
     m_currentRenderbufferSize = fb->m_size;
@@ -78,32 +82,26 @@ bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 };
 
 void CHyprVKRenderer::startRenderPass() {
-    const auto size = currentRBSize();
-
     // TODO damage
     m_renderPass.render(CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}}, PS_INIT);
 
-    VkRenderPassBeginInfo info = {
-        .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass  = m_currentRenderPass->m_vkRenderPass,
-        .framebuffer = m_currentRenderbuffer->vk(),
-        .renderArea =
-            {
-                .extent = {size.x, size.y},
-            },
-        .clearValueCount = 0,
-    };
-
-    vkCmdBeginRenderPass(m_currentCommandBuffer->vk(), &info, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport = {
-        .width    = size.x,
-        .height   = size.y,
-        .maxDepth = 1,
-    };
-    vkCmdSetViewport(m_currentCommandBuffer->vk(), 0, 1, &viewport);
+    bindFB(m_currentRenderbuffer);
 
     m_inRenderPass = true;
+}
+
+void CHyprVKRenderer::bindFB(SP<CHyprVkFramebuffer> fb) {
+    if (m_hasBoundFB == fb)
+        return;
+
+    if (m_hasBoundFB)
+        vkCmdEndRenderPass(m_currentCommandBuffer->vk());
+
+    if (m_currentRenderPass->m_drmFormat != fb->texture()->m_drmFormat)
+        m_currentRenderPass = getRenderPass(fb->texture()->m_drmFormat);
+
+    startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, fb->vk(), fb->texture()->m_size, m_currentCommandBuffer->vk());
+    m_hasBoundFB = fb;
 }
 
 void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
@@ -114,6 +112,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
     vkCmdEndRenderPass(g_pHyprVulkan->renderCB()->vk());
     m_inRenderPass = false;
+    m_hasBoundFB.reset();
 
     std::vector<VkImageMemoryBarrier> acquireBarriers;
     std::vector<VkImageMemoryBarrier> releaseBarriers;
@@ -193,9 +192,9 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(bool opaque) {
-    // return makeShared<CVKTexture>(opaque);
-    Log::logger->log(Log::WARN, "CHyprVKRenderer::createTexture");
-    return nullptr;
+    return makeShared<CVKTexture>(opaque);
+    // Log::logger->log(Log::WARN, "CHyprVKRenderer::createTexture");
+    // return nullptr;
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
@@ -403,16 +402,9 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    // const auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage);
-    // element->m_data.box.forEachRect([cb](const auto& RECT) {
-    VkRect2D rect = {
-        .offset = {.x = element->m_data.box.x, .y = element->m_data.box.y},
-        .extent = {.width = element->m_data.box.width, .height = element->m_data.box.height},
-    };
+    auto clipBox = CRegion{element->m_data.box}.intersect(damage);
 
-    vkCmdSetScissor(cb->vk(), 0, 1, &rect);
-    vkCmdDraw(cb->vk(), 4, 1, 0, 0);
-    // });
+    drawRegionRects(clipBox, cb->vk());
 };
 
 void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
@@ -575,7 +567,47 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
 };
 
 void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
-    Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
+    }
+    return;
+
+    const auto cb       = g_pHyprVulkan->renderCB();
+    const auto tex      = element->m_data.tex;
+    const auto texMatte = element->m_data.fb->getTexture();
+    cb->useTexture(tex);
+    cb->useTexture(texMatte);
+    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
+
+    TRACY_GPU_ZONE("RenderTextureMatte");
+
+    CBox newBox = element->m_data.box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+
+    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box).getMatrix();
+
+    const auto& vertData = matToVertShader(mat);
+
+    const auto  layout = m_currentRenderPass->textureMattePipeline()->layout().lock();
+
+    const auto  view = dc<CVKTexture*>(tex.get())->getView(layout);
+    if (!view)
+        return;
+
+    const auto viewMatte = dc<CVKTexture*>(texMatte.get())->getView(layout);
+    if (!viewMatte)
+        return;
+
+    bindPipeline(m_currentRenderPass->textureMattePipeline());
+
+    const std::array<VkDescriptorSet, 2> ds = {view->vkDS(), viewMatte->vkDS()};
+    vkCmdBindDescriptorSets(cb->vk(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout->vk(), 0, ds.size(), ds.data(), 0, nullptr);
+
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
+
+    drawRegionRects(g_pHyprRenderer->m_renderData.damage, cb->vk());
 };
 
 void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
@@ -654,6 +686,6 @@ SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(CVkPipelineLayout::K
     return m_pipelineLayouts.emplace_back(makeShared<CVkPipelineLayout>(g_pHyprVulkan->m_device, key));
 }
 
-SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize) {
-    return ensurePipelineLayout({vertSize, fragSize, VK_FILTER_LINEAR});
+SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize, uint8_t texCount) {
+    return ensurePipelineLayout({vertSize, fragSize, VK_FILTER_LINEAR, texCount});
 }

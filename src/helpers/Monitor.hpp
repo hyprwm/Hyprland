@@ -174,6 +174,14 @@ class CMonitor {
     std::vector<PHLMONITORREF> m_mirrors;
     SP<IFramebuffer>           m_monitorMirrorFB;
 
+    // rendering fb
+    SP<IFramebuffer> m_offloadFB;
+    SP<IFramebuffer> m_mirrorFB;     // these are used for some effects,
+    SP<IFramebuffer> m_mirrorSwapFB; // etc
+    SP<IFramebuffer> m_offMainFB;
+    SP<IFramebuffer> m_blurFB;
+    SP<ITexture>     m_stencilTex;
+
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();
     bool   m_ctmUpdated = false;

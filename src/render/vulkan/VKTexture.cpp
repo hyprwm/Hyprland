@@ -11,6 +11,7 @@
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include "render/Texture.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
 #include "render/vulkan/DeviceUser.hpp"
 #include "render/vulkan/utils.hpp"
@@ -307,8 +308,15 @@ CVKTexture::~CVKTexture() {
     }
 };
 
-void CVKTexture::setTexParameter(GLenum pname, GLint param) {};
-void CVKTexture::allocate() {};
+void CVKTexture::setTexParameter(GLenum pname, GLint param) {
+    Log::logger->log(Log::WARN, "fixme: CVKTexture::setTexParameter");
+};
+
+void CVKTexture::allocate(const Vector2D& size, uint32_t drmFormat) {
+    m_size      = size;
+    m_drmFormat = drmFormat;
+    Log::logger->log(Log::WARN, "fixme: CVKTexture::allocate");
+};
 
 void CVKTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) {
     write(stride, damage, pixels);
@@ -337,6 +345,57 @@ SP<CVKTextureView> CVKTexture::getView(SP<CVkPipelineLayout> layout) {
     return view;
 }
 
+// temp for CVKTexture::read
+CVKTexture::CVKTexture(uint32_t drmFormat, VkFormat format, uint32_t width, uint32_t height) : ITexture(drmFormat, nullptr, width, Vector2D{(int)width, (int)height}) {
+    VkImageCreateInfo imageCreateInfo = {
+        .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType     = VK_IMAGE_TYPE_2D,
+        .format        = format,
+        .extent        = {.width = width, .height = height, .depth = 1},
+        .mipLevels     = 1,
+        .arrayLayers   = 1,
+        .samples       = VK_SAMPLE_COUNT_1_BIT,
+        .tiling        = VK_IMAGE_TILING_LINEAR,
+        .usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+    IF_VKFAIL(vkCreateImage, g_pHyprVulkan->vkDevice(), &imageCreateInfo, nullptr, &m_image) {
+        LOG_VKFAIL;
+        return;
+    }
+
+    SET_VK_IMG_NAME(m_image, "read dstImage")
+
+    VkMemoryRequirements memReqs;
+    vkGetImageMemoryRequirements(g_pHyprVulkan->vkDevice(), m_image, &memReqs);
+
+    const auto memTypeIndex =
+        findVkMemType(g_pHyprVulkan->device()->physicalDevice(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, memReqs.memoryTypeBits);
+
+    if (memTypeIndex < 0) {
+        Log::logger->log(Log::ERR, "findVkMemType failed");
+        vkDestroyImage(g_pHyprVulkan->vkDevice(), m_image, nullptr);
+        return;
+    }
+
+    VkMemoryAllocateInfo memAllocInfo = {
+        .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize  = memReqs.size,
+        .memoryTypeIndex = memTypeIndex,
+    };
+
+    IF_VKFAIL(vkAllocateMemory, g_pHyprVulkan->vkDevice(), &memAllocInfo, nullptr, &m_memory[0]) {
+        LOG_VKFAIL;
+        return;
+    }
+    IF_VKFAIL(vkBindImageMemory, g_pHyprVulkan->vkDevice(), m_image, m_memory[0], 0) {
+        LOG_VKFAIL;
+        return;
+    }
+
+    m_ok = true;
+}
+
 bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint32_t height, uint32_t srcX, uint32_t srcY, uint32_t dstX, uint32_t dstY, void* data) {
     const auto         srcProps = g_pHyprVulkan->device()->getFormat(m_drmFormat).value();
     const auto         dstProps = g_pHyprVulkan->device()->getFormat(drmFformat).value();
@@ -354,77 +413,14 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
         return false;
     }
 
-    VkImage        dstImage;
-    VkDeviceMemory dstImgMemory;
-    // bool use_cached = vk_renderer->read_pixels_cache.initialized && vk_renderer->read_pixels_cache.drm_format == drm_format && vk_renderer->read_pixels_cache.width == width &&
-    //     vk_renderer->read_pixels_cache.height == height;
-
-    // if (use_cached) {
-    //     dst_image      = vk_renderer->read_pixels_cache.dst_image;
-    //     dst_img_memory = vk_renderer->read_pixels_cache.dst_img_memory;
-    // } else {
-    VkImageCreateInfo imageCreateInfo = {
-        .sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType     = VK_IMAGE_TYPE_2D,
-        .format        = dstFormat,
-        .extent        = {.width = width, .height = height, .depth = 1},
-        .mipLevels     = 1,
-        .arrayLayers   = 1,
-        .samples       = VK_SAMPLE_COUNT_1_BIT,
-        .tiling        = VK_IMAGE_TILING_LINEAR,
-        .usage         = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-    IF_VKFAIL(vkCreateImage, g_pHyprVulkan->vkDevice(), &imageCreateInfo, nullptr, &dstImage) {
-        LOG_VKFAIL;
+    auto dstTexture = g_pHyprVulkan->getReadTexture(drmFformat, width, height);
+    if (!dstTexture || !dstTexture->ok())
         return false;
-    }
 
-    SET_VK_IMG_NAME(dstImage, "read dstImage")
+    VkImage        dstImage     = dstTexture->m_image;
+    VkDeviceMemory dstImgMemory = dstTexture->m_memory[0];
 
-    VkMemoryRequirements memReqs;
-    vkGetImageMemoryRequirements(g_pHyprVulkan->vkDevice(), dstImage, &memReqs);
-
-    const auto memTypeIndex =
-        findVkMemType(g_pHyprVulkan->device()->physicalDevice(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, memReqs.memoryTypeBits);
-
-    if (memTypeIndex < 0) {
-        Log::logger->log(Log::ERR, "findVkMemType failed");
-        vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
-        return false;
-    }
-
-    VkMemoryAllocateInfo memAllocInfo = {
-        .sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize  = memReqs.size,
-        .memoryTypeIndex = memTypeIndex,
-    };
-
-    IF_VKFAIL(vkAllocateMemory, g_pHyprVulkan->vkDevice(), &memAllocInfo, nullptr, &dstImgMemory) {
-        LOG_VKFAIL;
-        vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
-        return false;
-    }
-    IF_VKFAIL(vkBindImageMemory, g_pHyprVulkan->vkDevice(), dstImage, dstImgMemory, 0) {
-        LOG_VKFAIL;
-        vkFreeMemory(g_pHyprVulkan->vkDevice(), dstImgMemory, nullptr);
-        vkDestroyImage(g_pHyprVulkan->vkDevice(), dstImage, nullptr);
-        return false;
-    }
-
-    // if (vk_renderer->read_pixels_cache.initialized) {
-    //     vkFreeMemory(dev, vk_renderer->read_pixels_cache.dst_img_memory, NULL);
-    //     vkDestroyImage(dev, vk_renderer->read_pixels_cache.dst_image, NULL);
-    // }
-    // vk_renderer->read_pixels_cache.initialized    = true;
-    // vk_renderer->read_pixels_cache.drm_format     = drm_format;
-    // vk_renderer->read_pixels_cache.dst_image      = dst_image;
-    // vk_renderer->read_pixels_cache.dst_img_memory = dst_img_memory;
-    // vk_renderer->read_pixels_cache.width          = width;
-    // vk_renderer->read_pixels_cache.height         = height;
-    // }
-
-    const auto cb = g_pHyprVulkan->stageCB();
+    const auto     cb = g_pHyprVulkan->stageCB();
     if (!cb || cb->vk() == VK_NULL_HANDLE)
         return false;
 
@@ -433,9 +429,9 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT});
 
     cb->changeLayout(m_image, //
-                     {.layout = m_imageLayoutTemp, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT},
+                     {.layout = m_lastKnownLayout, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT},
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_READ_BIT});
-    m_imageLayoutTemp = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    m_lastKnownLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
     if (blitSupported) {
         VkImageBlit imageBlitRegion = {.srcSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .layerCount = 1},
@@ -492,7 +488,7 @@ bool CVKTexture::read(uint32_t drmFformat, uint32_t stride, uint32_t width, uint
     cb->changeLayout(m_image, //
                      {.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_READ_BIT},
                      {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_MEMORY_READ_BIT});
-    m_imageLayoutTemp = VK_IMAGE_LAYOUT_GENERAL;
+    m_lastKnownLayout = VK_IMAGE_LAYOUT_GENERAL;
 
     if (!g_pHyprVulkan->submitStage())
         return false;

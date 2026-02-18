@@ -7,8 +7,10 @@
 #include "./vulkan/Pipeline.hpp"
 #include "./vulkan/PipelineLayout.hpp"
 #include "./vulkan/Shaders.hpp"
+#include "render/Framebuffer.hpp"
 #include "render/Texture.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
+#include <cstdint>
 #include <vector>
 
 class CHyprVKRenderer : public IHyprRenderer {
@@ -31,8 +33,9 @@ class CHyprVKRenderer : public IHyprRenderer {
 
     // TODO fix api
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
-    SP<CVkPipelineLayout> ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize);
+    SP<CVkPipelineLayout> ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize, uint8_t texCount = 1);
     SP<CVkRenderPass>     getRenderPass(uint32_t fmt);
+    void                  bindFB(SP<CHyprVkFramebuffer> fb);
 
   private:
     SP<IRenderbuffer>                  getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
@@ -57,6 +60,7 @@ class CHyprVKRenderer : public IHyprRenderer {
 
     bool                               m_busy         = false;
     bool                               m_inRenderPass = false;
+    SP<CHyprVkFramebuffer>             m_hasBoundFB;
 
     SP<CHyprVkFramebuffer>             m_currentRenderbuffer;
     Vector2D                           m_currentRenderbufferSize;

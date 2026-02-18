@@ -73,7 +73,9 @@ CHyprVkFramebuffer::~CHyprVkFramebuffer() {
 }
 
 CVKRenderBuffer::CVKRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : IRenderbuffer(buffer, format) {
-    m_framebuffer = makeShared<CVKFramebuffer>();
+    m_framebuffer              = makeShared<CVKFramebuffer>();
+    m_framebuffer->m_drmFormat = format;
+    m_framebuffer->m_size      = buffer->size;
     dc<CVKFramebuffer*>(m_framebuffer.get())->m_FB =
         makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer, dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(format)->m_vkRenderPass);
     m_good = true;
@@ -95,6 +97,10 @@ CVKFramebuffer::~CVKFramebuffer() {
     m_FB.reset();
 }
 
+void CVKFramebuffer::bind() {
+    dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->bindFB(m_FB);
+}
+
 bool CVKFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uint32_t offsetY) {
     if (!m_tex)
         return false;
@@ -111,7 +117,7 @@ bool CVKFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_size.x);
 
     LOGM(Log::DEBUG, "Read from tex {}x{}@{}x{}", m_size.x, m_size.y, offsetX, offsetY);
-    dc<CVKTexture*>(m_tex.get())->m_imageLayoutTemp = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    dc<CVKTexture*>(m_tex.get())->m_lastKnownLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     return dc<CVKTexture*>(m_tex.get())->read(shm.format, packStride, m_size.x, m_size.y, offsetX, offsetY, 0, 0, pixelData);
 }
 
@@ -129,11 +135,14 @@ void CVKFramebuffer::addStencil(SP<ITexture> tex) {
 };
 
 bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
-    m_FB = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt);
+    m_drmFormat = fmt;
+    m_size      = {w, h};
+    m_FB        = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt);
     if (m_FB)
         m_tex = m_FB->texture();
     if (m_tex && m_tex->ok())
         SET_VK_IMG_NAME(m_FB->vkImage(), "IFramebuffer");
+    m_fbAllocated = true;
     return m_FB;
 };
 

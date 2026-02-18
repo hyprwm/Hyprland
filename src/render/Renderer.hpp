@@ -334,6 +334,7 @@ class IHyprRenderer {
     void drawPreBlur(CPreBlurElement* element, const CRegion& damage);
     void drawSurface(CSurfacePassElement* element, const CRegion& damage);
     void drawTex(CTexPassElement* element, const CRegion& damage);
+    void drawTexMatte(CTextureMatteElement* element, const CRegion& damage);
 };
 
 inline UP<IHyprRenderer> g_pHyprRenderer;

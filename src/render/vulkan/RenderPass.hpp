@@ -20,12 +20,14 @@ class CVkRenderPass : IDeviceUser {
     WP<CVkPipeline> rectPipeline();
     WP<CVkPipeline> shadowPipeline();
     WP<CVkPipeline> texturePipeline();
+    WP<CVkPipeline> textureMattePipeline();
 
   private:
     SP<CVkPipeline> m_borderPipeline;
     SP<CVkPipeline> m_rectPipeline;
     SP<CVkPipeline> m_shadowPipeline;
     SP<CVkPipeline> m_texturePipeline;
+    SP<CVkPipeline> m_textureMattePipeline;
 
     SP<CVkShaders>  m_shaders;
 };

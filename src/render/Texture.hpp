@@ -24,7 +24,7 @@ class ITexture {
     virtual ~ITexture() = default;
 
     virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
-    virtual void                allocate()                                                                          = 0;
+    virtual void                allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
     virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
     virtual void                bind() {};
     virtual void                unbind() {};

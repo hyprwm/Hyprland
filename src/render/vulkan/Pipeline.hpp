@@ -10,7 +10,7 @@ class CVkShader;
 class CVkPipeline : public IDeviceUser {
   public:
     using KEY = std::tuple<VkShaderModule, VkShaderModule>;
-    CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag);
+    CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, uint8_t texCount = 1);
     ~CVkPipeline();
 
     VkPipeline            vk();

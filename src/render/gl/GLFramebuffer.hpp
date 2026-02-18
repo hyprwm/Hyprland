@@ -14,7 +14,7 @@ class CGLFramebuffer : public IFramebuffer {
     void   release() override;
     bool   readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0) override;
 
-    void   bind();
+    void   bind() override;
     void   unbind();
     GLuint getFBID();
     void   invalidate(const std::vector<GLenum>& attachments);

@@ -8,9 +8,9 @@ static CHyprVKRenderer* getRenderer() {
     return dc<CHyprVKRenderer*>(g_pHyprRenderer.get());
 }
 
-CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag) :
+CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, uint8_t texCount) :
     IDeviceUser(device), m_key({vert->module(), frag->module()}) {
-    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize());
+    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), texCount);
 
     VkSpecializationMapEntry specEntry = {
         .constantID = 0,
@@ -110,6 +110,7 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, 
         .layout              = m_layout->vk(),
         .renderPass          = renderPass,
         .subpass             = 0,
+
     };
 
     VkPipelineCache cache = VK_NULL_HANDLE;

@@ -234,8 +234,8 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     if (data.ignoreWindow) {
         // we'll take the liberty of using this as it should not be used rn
-        const auto alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
-        const auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB;
+        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
+        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
         const auto LASTFB      = g_pHyprRenderer->m_renderData.currentFB;
 
         alphaFB->bind();
@@ -264,7 +264,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}),
                               {});
 
-        GLFB(LASTFB)->bind();
+        LASTFB->bind();
 
         CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 

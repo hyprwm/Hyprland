@@ -842,6 +842,21 @@ void IHyprRenderer::drawTex(CTexPassElement* element, const CRegion& damage) {
     m_renderData.clipBox = {};
 }
 
+void IHyprRenderer::drawTexMatte(CTextureMatteElement* element, const CRegion& damage) {
+    if (m_renderData.damage.empty())
+        return;
+
+    const auto m_data = element->m_data;
+    if (m_data.disableTransformAndModify) {
+        pushMonitorTransformEnabled(true);
+        m_renderData.renderModif.enabled = false;
+        draw(element, damage);
+        m_renderData.renderModif.enabled = true;
+        popMonitorTransformEnabled();
+    } else
+        draw(element, damage);
+}
+
 void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     if (!element)
         return;
@@ -856,7 +871,7 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
         case EK_SURFACE: drawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
         case EK_TEXTURE: drawTex(dc<CTexPassElement*>(element.get()), damage); break;
-        case EK_TEXTURE_MATTE: draw(dc<CTextureMatteElement*>(element.get()), damage); break;
+        case EK_TEXTURE_MATTE: drawTexMatte(dc<CTextureMatteElement*>(element.get()), damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
 }
@@ -1785,6 +1800,36 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         }
     } else
         m_currentBuffer = buffer;
+
+    const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
+
+    // ensure a framebuffer for the monitor exists
+    if (!m_renderData.pMonitor->m_offloadFB || m_renderData.pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize ||
+        DRM_FORMAT != m_renderData.pMonitor->m_offloadFB->m_drmFormat) {
+        if (!m_renderData.pMonitor->m_stencilTex)
+            m_renderData.pMonitor->m_stencilTex = createTexture();
+
+        m_renderData.pMonitor->m_stencilTex->allocate(m_renderData.pMonitor->m_pixelSize);
+
+        if (!m_renderData.pMonitor->m_offloadFB) {
+            m_renderData.pMonitor->m_offloadFB       = createFB();
+            m_renderData.pMonitor->m_mirrorFB        = createFB();
+            m_renderData.pMonitor->m_mirrorSwapFB    = createFB();
+            m_renderData.pMonitor->m_offMainFB       = createFB();
+            m_renderData.pMonitor->m_monitorMirrorFB = createFB();
+            m_renderData.pMonitor->m_blurFB          = createFB();
+        }
+        m_renderData.pMonitor->m_offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+        m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+        m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+
+        m_renderData.pMonitor->m_offloadFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+        m_renderData.pMonitor->m_mirrorFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+        m_renderData.pMonitor->m_mirrorSwapFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+    }
+
+    if (pMonitor->m_monitorMirrorFB->isAllocated() && pMonitor->m_mirrors.empty())
+        pMonitor->m_monitorMirrorFB->release();
 
     initRender();
 

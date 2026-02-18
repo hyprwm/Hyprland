@@ -11,6 +11,7 @@
 #include "CommandBuffer.hpp"
 #include "render/vulkan/DescriptorPool.hpp"
 #include "render/vulkan/MemoryBuffer.hpp"
+#include "render/vulkan/VKTexture.hpp"
 
 class CHyprVulkanImpl {
   public:
@@ -35,6 +36,7 @@ class CHyprVulkanImpl {
     WP<CHyprVkCommandBuffer> stageCB();
     WP<CVKMemorySpan>        getMemorySpan(VkDeviceSize size, VkDeviceSize alignment = 1);
     SP<CVKDescriptorPool>    allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds);
+    SP<CVKTexture>           getReadTexture(uint32_t drmFformat, uint32_t width, uint32_t height);
 
   private:
     inline void                           loadVulkanProc(void* pProc, const char* name);
@@ -53,6 +55,13 @@ class CHyprVulkanImpl {
     size_t                                m_lastDsPoolSize = 0;
 
     uint64_t                              m_lastStagePoint = 0;
+
+    struct SCacheItem {
+        SP<CVKTexture>  texture;
+        Time::steady_tp lastUsed;
+    };
+
+    std::vector<SCacheItem> m_readTexturesCache;
 
     friend class CHyprVKRenderer;
 };

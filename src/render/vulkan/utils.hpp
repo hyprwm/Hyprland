@@ -2,6 +2,7 @@
 
 #include <aquamarine/buffer/Buffer.hpp>
 #include <fcntl.h>
+#include <hyprutils/math/Vector2D.hpp>
 #include <sys/stat.h>
 #include <vulkan/vulkan.h>
 #include "../../debug/log/Logger.hpp"
@@ -54,3 +55,4 @@ bool        hasExtension(const std::vector<VkExtensionProperties>& extensions, c
 std::string resultToStr(VkResult res);
 int         findVkMemType(VkPhysicalDevice dev, VkMemoryPropertyFlags flags, uint32_t req_bits);
 bool        isDisjoint(const Aquamarine::SDMABUFAttrs& attrs);
+void        startRenderPassHelper(VkRenderPass renderPass, VkFramebuffer fb, const Hyprutils::Math::Vector2D& size, VkCommandBuffer cb);

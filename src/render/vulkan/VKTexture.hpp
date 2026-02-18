@@ -39,10 +39,11 @@ class CVKTexture : public ITexture {
     CVKTexture(uint32_t drmFormat, const Vector2D& size, bool keepDataCopy = false, bool opaque = false, VkImageUsageFlags flags = VULKAN_SHM_TEX_USAGE);
     CVKTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
     CVKTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false, VkImageUsageFlags flags = VULKAN_DMA_TEX_USAGE);
+    CVKTexture(uint32_t drmFormat, VkFormat format, uint32_t width, uint32_t height); // temp for CVKTexture::read
     ~CVKTexture();
 
     void setTexParameter(GLenum pname, GLint param) override;
-    void allocate() override;
+    void allocate(const Vector2D& size, uint32_t drmFormat = 0) override;
     void update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) override;
     // virtual void                bind() {};
     // virtual void                unbind() {};
@@ -56,7 +57,7 @@ class CVKTexture : public ITexture {
 
     VkImage                  m_image = VK_NULL_HANDLE; // TODO private
   private:
-    VkImageLayout                 m_imageLayoutTemp = VK_IMAGE_LAYOUT_GENERAL; // not guaranteed to be in sync with real layout
+    VkImageLayout                 m_lastKnownLayout = VK_IMAGE_LAYOUT_GENERAL; // not guaranteed to be in sync with real layout
     VkImageView                   createImageView();
     bool                          write(uint32_t stride, const CRegion& region, const void* data, VkImageLayout oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                         VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VkAccessFlags srcAccess = VK_ACCESS_SHADER_READ_BIT);

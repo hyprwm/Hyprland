@@ -1,14 +1,17 @@
 #include "RenderPass.hpp"
 #include "DeviceUser.hpp"
+#include "helpers/Format.hpp"
+#include "macros.hpp"
 #include "render/vulkan/types.hpp"
 #include "utils.hpp"
 #include <hyprutils/memory/Casts.hpp>
 
 CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format, SP<CVkShaders> shaders) : IDeviceUser(device), m_drmFormat(format), m_shaders(shaders) {
-    const auto              info = m_device->getFormat(m_drmFormat).value();
+    const auto info = m_device->getFormat(m_drmFormat);
+    RASSERT(info.has_value(), "No info for drm format {}", NFormatUtils::drmFormatName(m_drmFormat));
 
     VkAttachmentDescription attachment = {
-        .format         = info.format.vkFormat,
+        .format         = info->format.vkFormat,
         .samples        = VK_SAMPLE_COUNT_1_BIT,
         .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
@@ -89,6 +92,13 @@ WP<CVkPipeline> CVkRenderPass::texturePipeline() {
         m_texturePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_frag);
 
     return m_texturePipeline;
+}
+
+WP<CVkPipeline> CVkRenderPass::textureMattePipeline() {
+    if (!m_textureMattePipeline)
+        m_textureMattePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_matte, 2);
+
+    return m_textureMattePipeline;
 }
 
 CVkRenderPass::~CVkRenderPass() {

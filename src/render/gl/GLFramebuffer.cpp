@@ -14,7 +14,7 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
 
     if (!m_tex) {
         m_tex = g_pHyprRenderer->createTexture();
-        m_tex->allocate();
+        m_tex->allocate({w, h});
         m_tex->bind();
         m_tex->setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         m_tex->setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

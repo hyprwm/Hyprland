@@ -144,7 +144,7 @@ void CHyprError::createQueued() {
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     auto       tex  = texture();
-    tex->allocate();
+    tex->allocate(PMONITOR->m_pixelSize);
     tex->bind();
     tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);

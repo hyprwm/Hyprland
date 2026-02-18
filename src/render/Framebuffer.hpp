@@ -17,6 +17,8 @@ class IFramebuffer {
     virtual void release()                                                                         = 0;
     virtual bool readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0) = 0;
 
+    virtual void bind() = 0;
+
     bool         isAllocated();
     SP<ITexture> getTexture();
     SP<ITexture> getStencilTex();

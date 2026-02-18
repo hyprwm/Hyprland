@@ -78,8 +78,13 @@ enum eValidResult : uint8_t {
 static eValidResult isBarrierValidAgainstMonitor(int x1, int y1, int x2, int y2, PHLMONITOR monitor) {
     int mx1 = monitor->m_position.x;
     int my1 = monitor->m_position.y;
-    int mx2 = mx1 + monitor->m_pixelSize.x - 1;
-    int my2 = my1 + monitor->m_pixelSize.y - 1;
+
+    const auto scale  = std::max(monitor->m_scale, 1.F);
+    const int  width  = static_cast<int>(monitor->m_pixelSize.x / scale);
+    const int  height = static_cast<int>(monitor->m_pixelSize.y / scale);
+
+    int mx2 = mx1 + width - 1;
+    int my2 = my1 + height - 1;
 
     if (x1 == x2) {                     //If zone is vertical
         if (x1 != mx1 && x1 != mx2 + 1) //If the zone don't touch the left or right side
@@ -132,20 +137,27 @@ static bool isBarrierValid(int x1, int y1, int x2, int y2) {
 
 void CInputCaptureResource::onAddBarrier(uint32_t zoneSet, uint32_t id, uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2) {
 	static auto PENFORCEBARRIERS = CConfigValue<Hyprlang::INT>("inputcapture:enforce_barriers");
-    bool valid = isBarrierValid(x1, y1, x2, y2);
+    // Protocol coordinates are transported as uint32_t. Negative global-space
+    // coordinates are encoded via two's complement and must be reinterpreted.
+    const int32_t sx1 = static_cast<int32_t>(x1);
+    const int32_t sy1 = static_cast<int32_t>(y1);
+    const int32_t sx2 = static_cast<int32_t>(x2);
+    const int32_t sy2 = static_cast<int32_t>(y2);
+
+    bool valid = isBarrierValid(sx1, sy1, sx2, sy2);
 
     if (!valid) {
-        Log::logger->log(Log::INFO, "[input-capture]({}) Barrier {} is invalid [{}, {}], [{}, {}]", m_sessionId.c_str(), id, x1, y1, x2, y2);
+        Log::logger->log(Log::INFO, "[input-capture]({}) Barrier {} is invalid [{}, {}], [{}, {}]", m_sessionId.c_str(), id, sx1, sy1, sx2, sy2);
 
 		if (*PENFORCEBARRIERS) {
-        	m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, "The barrier id " + std::to_string(id) + " is invalid");
+			m_resource->error(HYPRLAND_INPUT_CAPTURE_V1_ERROR_INVALID_BARRIER, "The barrier id " + std::to_string(id) + " is invalid");
 			return;
 		}
     }
 
-    Log::logger->log(Log::INFO, "[input-capture]({}) Barrier {} [{}, {}], [{}, {}] added", m_sessionId.c_str(), id, x1, y1, x2, y2);
+    Log::logger->log(Log::INFO, "[input-capture]({}) Barrier {} [{}, {}], [{}, {}] added", m_sessionId.c_str(), id, sx1, sy1, sx2, sy2);
 
-    PROTO::inputCapture->addBarrier({.sessionId = m_sessionId, .id = id, .x1 = x1, .y1 = y1, .x2 = x2, .y2 = y2});
+    PROTO::inputCapture->addBarrier({.sessionId = m_sessionId, .id = id, .x1 = sx1, .y1 = sy1, .x2 = sx2, .y2 = sy2});
 }
 
 void CInputCaptureResource::onDisable() {

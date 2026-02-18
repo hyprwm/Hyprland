@@ -512,7 +512,7 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
         g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
-        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        m_stateQueue.tryProcess();
     }
 }
 

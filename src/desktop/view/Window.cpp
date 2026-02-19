@@ -53,6 +53,10 @@ using enum NContentType::eContentType;
 using namespace Desktop;
 using namespace Desktop::View;
 
+// I wish I had an elven wife instead of a windowIDCounter
+static uint64_t windowIDCounter = 0x18000000;
+
+//
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
@@ -105,7 +109,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource) {
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++) {
     m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
     m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
@@ -115,7 +119,7 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create())
     m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface) {
+CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++) {
     m_listeners.map              = m_xwaylandSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.listen([this] { unmapWindow(); });
     m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.listen([this] { destroyWindow(); });

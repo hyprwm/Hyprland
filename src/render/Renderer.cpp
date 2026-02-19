@@ -496,6 +496,19 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     }
 }
 
+void IHyprRenderer::bindOffMain() {
+    RASSERT(m_renderData.pMonitor->m_offMainFB->isAllocated(), "IHyprRenderer::beginRender should allocate monitor FBs")
+
+    m_renderData.pMonitor->m_offMainFB->bind();
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
+    m_renderData.currentFB = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB;
+}
+
+void IHyprRenderer::bindBackOnMain() {
+    m_renderData.mainFB->bind();
+    m_renderData.currentFB = m_renderData.mainFB;
+}
+
 void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
     if (pWindow->isHidden() && !standalone)
         return;
@@ -593,7 +606,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         const bool TRANSFORMERSPRESENT = !pWindow->m_transformers.empty();
 
         if (TRANSFORMERSPRESENT) {
-            g_pHyprOpenGL->bindOffMain();
+            bindOffMain();
 
             for (auto const& t : pWindow->m_transformers) {
                 t->preWindowRender(&renderdata);
@@ -669,8 +682,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 last = t->transform(last);
             }
 
-            g_pHyprOpenGL->bindBackOnMain();
-            g_pHyprOpenGL->renderOffToMain(last);
+            bindBackOnMain();
+            renderOffToMain(last);
         }
     }
 
@@ -1897,6 +1910,39 @@ Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
     return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
+}
+
+SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
+    if (!m_renderData.currentFB->getTexture()) {
+        Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
+        return m_renderData.pMonitor->m_mirrorFB->getTexture(); // return something to sample from at least
+    }
+
+    return blurFramebuffer(m_renderData.currentFB, a, originalDamage);
+}
+
+void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
+
+    const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
+
+    // render onto blurFB
+    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
+    m_renderData.pMonitor->m_blurFB->bind();
+
+    draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
+
+    pushMonitorTransformEnabled(true);
+
+    draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+             .tex    = blurredTex,
+             .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
+             .damage = *fakeDamage,
+         }),
+         *fakeDamage); // .noAA = true
+
+    popMonitorTransformEnabled();
+
+    m_renderData.currentFB->bind();
 }
 
 void IHyprRenderer::renderMirrored() {

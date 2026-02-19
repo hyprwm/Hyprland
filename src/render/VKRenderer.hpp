@@ -38,6 +38,8 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                  bindFB(SP<CHyprVkFramebuffer> fb);
 
   private:
+    SP<ITexture>                       blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
+    void                               renderOffToMain(IFramebuffer* off) override;
     SP<IRenderbuffer>                  getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
     bool                               beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
     bool                               beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;

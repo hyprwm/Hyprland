@@ -27,6 +27,38 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
+    return {
+        .mat4 =
+            {
+                {mat[0], mat[1], 0, mat[2]},
+                {mat[3], mat[4], 0, mat[5]},
+                {0, 0, 1, 0},
+                {0, 0, 0, 1},
+            },
+        .uvOffset = {0, 0},
+        .uvSize   = {1, 1},
+    };
+}
+
+static void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
+    if (!region.empty()) {
+        const CBox max = {{0, 0}, {INT32_MAX, INT32_MAX}};
+        region.copy().intersect(max).forEachRect([&](const auto& RECT) {
+            VkRect2D rect = {
+                .offset = {.x = RECT.x1, .y = RECT.y1},
+                .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
+            };
+
+            if (rect.offset.x < 0 || rect.offset.y < 0)
+                Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
+
+            vkCmdSetScissor(cb, 0, 1, &rect);
+            vkCmdDraw(cb, 4, 1, 0, 0);
+        });
+    }
+}
+
 CHyprVKRenderer::CHyprVKRenderer() : IHyprRenderer() {
     if (!m_shaders)
         m_shaders = makeShared<CVkShaders>(g_pHyprVulkan->m_device);
@@ -61,6 +93,64 @@ bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
 
     return true;
 };
+
+SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
+    static int count = 0;
+    if (count < 10) {
+        count++;
+        Log::logger->log(Log::WARN, "Unimplimented blend");
+    }
+    return source->getTexture();
+}
+
+void CHyprVKRenderer::renderOffToMain(IFramebuffer* off) {
+    CBox       newBox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
+
+    const auto tex = off->getTexture();
+    RASSERT(m_renderData.pMonitor, "Tried to render texture without begin()!");
+    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
+
+    TRACY_GPU_ZONE("RenderTexturePrimitive");
+
+    if (g_pHyprRenderer->m_renderData.damage.empty())
+        return;
+
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+
+    const auto cb = g_pHyprVulkan->renderCB();
+    cb->useTexture(tex);
+
+    const auto  mat = g_pHyprRenderer->projectBoxToTarget(newBox).getMatrix();
+
+    const auto& vertData = matToVertShader(mat);
+
+    const auto  layout = m_currentRenderPass->passPipeline()->layout().lock();
+    const auto  view   = dc<CVKTexture*>(tex.get())->getView(layout);
+    if (!view)
+        return;
+
+    bindPipeline(m_currentRenderPass->passPipeline());
+
+    const auto ds = view->vkDS();
+    vkCmdBindDescriptorSets(cb->vk(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout->vk(), 0, 1, &ds, 0, nullptr);
+
+    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
+
+    // TODO
+    // ensure the final blit uses the desired sampling filter
+    // when cursor zoom is active we want nearest-neighbor (no anti-aliasing)
+    // if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+    //     tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    //     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // } else {
+    //     tex->setTexParameter(GL_TEXTURE_MAG_FILTER, tex->magFilter);
+    //     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
+    // }
+
+    drawRegionRects(g_pHyprRenderer->m_renderData.damage, cb->vk());
+
+    disableScissor();
+}
 
 SP<IRenderbuffer> CHyprVKRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     return makeShared<CVKRenderBuffer>(buffer, fmt);
@@ -193,8 +283,6 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
 
 SP<ITexture> CHyprVKRenderer::createTexture(bool opaque) {
     return makeShared<CVKTexture>(opaque);
-    // Log::logger->log(Log::WARN, "CHyprVKRenderer::createTexture");
-    // return nullptr;
 }
 
 SP<ITexture> CHyprVKRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
@@ -271,50 +359,19 @@ SP<IFramebuffer> CHyprVKRenderer::createFB() {
 }
 
 void CHyprVKRenderer::disableScissor() {
-    static int count = 0;
-    if (count < 10) {
-        count++;
-        Log::logger->log(Log::WARN, "Unimplimented disableScissor");
-    }
+    VkRect2D rect = {
+        .offset = {.x = 0, .y = 0},
+        .extent = {.width = currentRBSize().x, .height = currentRBSize().y},
+    };
+
+    vkCmdSetScissor(g_pHyprVulkan->renderCB()->vk(), 0, 1, &rect);
 }
 
 void CHyprVKRenderer::blend(bool enabled) {
     static int count = 0;
     if (count < 10) {
         count++;
-        Log::logger->log(Log::WARN, "Unimplimented disableScissor");
-    }
-}
-
-static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
-    return {
-        .mat4 =
-            {
-                {mat[0], mat[1], 0, mat[2]},
-                {mat[3], mat[4], 0, mat[5]},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1},
-            },
-        .uvOffset = {0, 0},
-        .uvSize   = {1, 1},
-    };
-}
-
-static void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
-    if (!region.empty()) {
-        const CBox max = {{0, 0}, {INT32_MAX, INT32_MAX}};
-        region.copy().intersect(max).forEachRect([&](const auto& RECT) {
-            VkRect2D rect = {
-                .offset = {.x = RECT.x1, .y = RECT.y1},
-                .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
-            };
-
-            if (rect.offset.x < 0 || rect.offset.y < 0)
-                Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
-
-            vkCmdSetScissor(cb, 0, 1, &rect);
-            vkCmdDraw(cb, 4, 1, 0, 0);
-        });
+        Log::logger->log(Log::WARN, "Unimplimented blend");
     }
 }
 
@@ -408,6 +465,34 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
 };
 
 void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
+    if (m_hasBoundFB) {
+        const auto& dmg = damage.empty() ? g_pHyprRenderer->m_renderData.damage : damage;
+        if (dmg.empty())
+            return;
+
+        VkClearAttachment clearAttachment = {
+            .aspectMask      = VK_IMAGE_ASPECT_COLOR_BIT,
+            .colorAttachment = 0,
+            .clearValue      = {.color = {{element->m_data.color.r, element->m_data.color.g, element->m_data.color.b, element->m_data.color.a}}},
+        };
+
+        std::vector<VkClearRect> rects;
+        g_pHyprRenderer->m_renderData.damage.forEachRect([&](const auto& RECT) {
+            rects.push_back(VkClearRect{
+                .rect =
+                    {
+                        .offset = {.x = RECT.x1, .y = RECT.y1},
+                        .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
+                    },
+                .baseArrayLayer = 0,
+                .layerCount     = 1,
+            });
+        });
+
+        vkCmdClearAttachments(g_pHyprVulkan->renderCB()->vk(), 1, &clearAttachment, rects.size(), rects.data());
+        return;
+    }
+
     VkClearColorValue clearValue;
     clearValue = {{element->m_data.color.r, element->m_data.color.g, element->m_data.color.b, element->m_data.color.a}};
 
@@ -427,11 +512,8 @@ void CHyprVKRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 };
 
 void CHyprVKRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
-    static int count = 0;
-    if (count < 10) {
-        count++;
-        Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
-    }
+    auto dmg = damage;
+    g_pHyprRenderer->preBlurForCurrentMonitor(&dmg);
 };
 
 void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {

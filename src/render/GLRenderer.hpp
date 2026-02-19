@@ -18,10 +18,12 @@ class CHyprGLRenderer : public IHyprRenderer {
     void                    disableScissor() override;
     void                    blend(bool enabled) override;
     void                    drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) override;
+    SP<ITexture>            blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
 
     void                    unsetEGL();
 
   private:
+    void              renderOffToMain(IFramebuffer* off) override;
     SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
     bool              beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
     bool              beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;

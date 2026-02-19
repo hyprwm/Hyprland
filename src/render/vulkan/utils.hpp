@@ -20,11 +20,12 @@
 
 #define SET_VK_NAME(target, name, type)                                                                                                                                            \
     {                                                                                                                                                                              \
+        const std::string             tmp  = name;                                                                                                                                 \
         VkDebugUtilsObjectNameInfoEXT info = {                                                                                                                                     \
             .sType        = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,                                                                                                    \
             .objectType   = type,                                                                                                                                                  \
             .objectHandle = (uintptr_t)(target),                                                                                                                                   \
-            .pObjectName  = name,                                                                                                                                                  \
+            .pObjectName  = tmp.c_str(),                                                                                                                                           \
         };                                                                                                                                                                         \
         if (g_pHyprVulkan->device()->m_proc.vkSetDebugUtilsObjectNameEXT)                                                                                                          \
             g_pHyprVulkan->device()->m_proc.vkSetDebugUtilsObjectNameEXT(g_pHyprVulkan->vkDevice(), &info);                                                                        \

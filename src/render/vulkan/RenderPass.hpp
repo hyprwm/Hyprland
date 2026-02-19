@@ -21,6 +21,7 @@ class CVkRenderPass : IDeviceUser {
     WP<CVkPipeline> shadowPipeline();
     WP<CVkPipeline> texturePipeline();
     WP<CVkPipeline> textureMattePipeline();
+    WP<CVkPipeline> passPipeline();
 
   private:
     SP<CVkPipeline> m_borderPipeline;
@@ -28,6 +29,7 @@ class CVkRenderPass : IDeviceUser {
     SP<CVkPipeline> m_shadowPipeline;
     SP<CVkPipeline> m_texturePipeline;
     SP<CVkPipeline> m_textureMattePipeline;
+    SP<CVkPipeline> m_passPipeline;
 
     SP<CVkShaders>  m_shaders;
 };

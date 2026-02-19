@@ -1,5 +1,6 @@
 #include "Framebuffer.hpp"
 #include "../../debug/log/Logger.hpp"
+#include "helpers/Format.hpp"
 #include "render/Framebuffer.hpp"
 #include "render/Renderbuffer.hpp"
 #include "render/Renderer.hpp"
@@ -11,6 +12,7 @@
 #include "DeviceUser.hpp"
 #include <cstdint>
 #include <fcntl.h>
+#include <format>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vulkan/vulkan_core.h>
 
@@ -141,7 +143,7 @@ bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
     if (m_FB)
         m_tex = m_FB->texture();
     if (m_tex && m_tex->ok())
-        SET_VK_IMG_NAME(m_FB->vkImage(), "IFramebuffer");
+        SET_VK_IMG_NAME(m_FB->vkImage(), std::format("IFramebuffer {} {}x{}", NFormatUtils::drmFormatName(m_drmFormat), m_size.x, m_size.y));
     m_fbAllocated = true;
     return m_FB;
 };

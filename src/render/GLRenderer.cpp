@@ -174,6 +174,10 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     }
 }
 
+void CHyprGLRenderer::renderOffToMain(IFramebuffer* off) {
+    g_pHyprOpenGL->renderOffToMain(off);
+}
+
 SP<IRenderbuffer> CHyprGLRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLRenderbuffer>(buffer, fmt);
@@ -271,6 +275,11 @@ void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower
     g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, color, a);
 }
 
+SP<ITexture> CHyprGLRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
+    auto src = GLFB(source);
+    return g_pHyprOpenGL->blurFramebufferWithDamage(a, originalDamage, *src)->getTexture();
+}
+
 void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     if (m_data.hasGrad2)
@@ -293,9 +302,9 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 
     if (m_data.main) {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_MAIN: fb = g_pHyprOpenGL->m_renderData.mainFB; break;
+            case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->m_renderData.mainFB; break;
             case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
-            case FB_MONITOR_RENDER_OUT: fb = g_pHyprOpenGL->m_renderData.outFB; break;
+            case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->m_renderData.outFB; break;
             default: fb = nullptr;
         }
 
@@ -326,7 +335,7 @@ void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 
 void CHyprGLRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
     auto dmg = damage;
-    g_pHyprOpenGL->preBlurForCurrentMonitor(&dmg);
+    g_pHyprRenderer->preBlurForCurrentMonitor(&dmg);
 };
 
 void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {

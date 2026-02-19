@@ -101,6 +101,13 @@ WP<CVkPipeline> CVkRenderPass::textureMattePipeline() {
     return m_textureMattePipeline;
 }
 
+WP<CVkPipeline> CVkRenderPass::passPipeline() {
+    if (!m_passPipeline)
+        m_passPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_pass);
+
+    return m_passPipeline;
+}
+
 CVkRenderPass::~CVkRenderPass() {
     if (m_vkRenderPass)
         vkDestroyRenderPass(vkDevice(), m_vkRenderPass, nullptr);

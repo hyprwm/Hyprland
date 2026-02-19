@@ -145,9 +145,6 @@ struct SPreparedShaders {
 struct SCurrentRenderData {
     PHLMONITORREF          pMonitor;
 
-    SP<IFramebuffer>       mainFB = nullptr; // main to render to
-    SP<IFramebuffer>       outFB  = nullptr; // out to render to (if offloaded, etc)
-
     SP<IRenderbuffer>      m_currentRenderbuffer = nullptr;
 
     bool                   simplePass = false;
@@ -208,7 +205,7 @@ class CHyprOpenGLImpl {
         bool                   discardActive         = false;
         bool                   allowCustomUV         = false;
         bool                   allowDim              = true;
-        bool                   noAA                  = false;
+        bool                   noAA                  = false; // unused
         bool                   blockBlurOptimization = false;
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
@@ -255,9 +252,7 @@ class CHyprOpenGLImpl {
 
     void                                    applyScreenShader(const std::string& path);
 
-    void                                    bindOffMain();
     void                                    renderOffToMain(IFramebuffer* off);
-    void                                    bindBackOnMain();
 
     std::vector<SDRMFormat>                 getDRMFormats();
     EGLImageKHR                             createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
@@ -367,7 +362,6 @@ class CHyprOpenGLImpl {
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    SP<IFramebuffer> blurMainFramebufferWithDamage(float a, CRegion* damage);
     SP<IFramebuffer> blurFramebufferWithDamage(float a, CRegion* damage, CGLFramebuffer& source);
 
     void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
@@ -379,8 +373,6 @@ class CHyprOpenGLImpl {
     void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
     void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
-
-    void             preBlurForCurrentMonitor(CRegion* fakeDamage);
 
     friend class IHyprRenderer;
     friend class CHyprGLRenderer;

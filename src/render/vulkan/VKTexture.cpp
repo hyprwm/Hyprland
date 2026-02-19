@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
+#include <format>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vector>

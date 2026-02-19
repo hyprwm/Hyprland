@@ -53,7 +53,6 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
             .pImmutableSamplers = &m_sampler,
         };
     }
-    Log::logger->log(Log::INFO, "dsBinding {} {}", texCount, dsBinding.size());
 
     VkDescriptorSetLayoutCreateInfo dsInfo = {
         .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,

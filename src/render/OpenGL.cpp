@@ -48,6 +48,7 @@
 #include <filesystem>
 #include <cstring>
 #include "./shaders/Shaders.hpp"
+#include "render/Texture.hpp"
 #include "render/gl/GLFramebuffer.hpp"
 #include "render/gl/GLTexture.hpp"
 
@@ -675,8 +676,8 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     FBO->bind();
     m_offloadedFramebuffer = false;
 
-    m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
-    m_renderData.outFB  = FBO;
+    g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
+    g_pHyprRenderer->m_renderData.outFB  = FBO;
 
     m_renderData.simplePass = true;
 
@@ -729,8 +730,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     g_pHyprRenderer->m_renderData.currentFB = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB;
     m_offloadedFramebuffer                  = true;
 
-    m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
-    m_renderData.outFB  = fb ? fb : m_renderData.m_currentRenderbuffer->getFB();
+    g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
+    g_pHyprRenderer->m_renderData.outFB  = fb ? fb : m_renderData.m_currentRenderbuffer->getFB();
 
     g_pHyprRenderer->pushMonitorTransformEnabled(false);
 }
@@ -760,7 +761,7 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (!m_renderData.pMonitor->m_mirrors.empty() && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
-        m_renderData.outFB->bind();
+        g_pHyprRenderer->m_renderData.outFB->bind();
         blend(false);
 
         if LIKELY (m_finalScreenShader->program() < 1 && !g_pHyprRenderer->m_crashingInProgress)
@@ -791,8 +792,8 @@ void CHyprOpenGLImpl::end() {
     g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
     g_pHyprRenderer->m_renderData.blockScreenShader = false;
     g_pHyprRenderer->m_renderData.currentFB         = nullptr;
-    m_renderData.mainFB                             = nullptr;
-    m_renderData.outFB                              = nullptr;
+    g_pHyprRenderer->m_renderData.mainFB            = nullptr;
+    g_pHyprRenderer->m_renderData.outFB             = nullptr;
     g_pHyprRenderer->popMonitorTransformEnabled();
 
     // if we dropped to offMain, release it now.
@@ -1095,7 +1096,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto POUTFB = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB : blurMainFramebufferWithDamage(data.blurA, &damage);
+    auto POUTFB = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
     g_pHyprRenderer->m_renderData.currentFB->bind();
 
@@ -1103,7 +1104,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
-    renderTexture(POUTFB->getTexture(), MONITORBOX,
+    renderTexture(POUTFB, MONITORBOX,
                   STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
     g_pHyprRenderer->popMonitorTransformEnabled();
     g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
@@ -1643,16 +1644,6 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
 // but it works... well, I guess?
 //
 // Dual (or more) kawase blur
-SP<IFramebuffer> CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
-    if (!g_pHyprRenderer->m_renderData.currentFB->getTexture()) {
-        Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB; // return something to sample from at least
-    }
-
-    auto src = GLFB(g_pHyprRenderer->m_renderData.currentFB);
-    return blurFramebufferWithDamage(a, originalDamage, *src);
-}
-
 SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* originalDamage, CGLFramebuffer& source) {
     TRACY_GPU_ZONE("RenderBlurFramebufferWithDamage");
 
@@ -1941,25 +1932,6 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     pMonitor->m_blurFBShouldRender = true;
 }
 
-void CHyprOpenGLImpl::preBlurForCurrentMonitor(CRegion* fakeDamage) {
-
-    const auto POUTFB = blurMainFramebufferWithDamage(1, fakeDamage);
-
-    // render onto blurFB
-    g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                            m_renderData.pMonitor->m_output->state->state().drmFormat);
-    g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->bind();
-
-    clear(CHyprColor(0, 0, 0, 0));
-
-    g_pHyprRenderer->pushMonitorTransformEnabled(true);
-    renderTextureInternal(POUTFB->getTexture(), CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-                          STextureRenderData{.damage = fakeDamage, .noAA = true});
-    g_pHyprRenderer->popMonitorTransformEnabled();
-
-    g_pHyprRenderer->m_renderData.currentFB->bind();
-}
-
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(m_renderData.pMonitor, "Tried to render texture with blur without begin()!");
 
@@ -2001,14 +1973,14 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     const bool USENEWOPTIMIZE =
         g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
 
-    SP<IFramebuffer> POUTFB = nullptr;
+    SP<ITexture> POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
         inverseOpaque.translate(box.pos());
         g_pHyprRenderer->m_renderData.renderModif.applyToRegion(inverseOpaque);
         inverseOpaque.intersect(texDamage);
-        POUTFB = blurMainFramebufferWithDamage(data.a, &inverseOpaque);
+        POUTFB = g_pHyprRenderer->blurMainFramebuffer(data.a, &inverseOpaque);
     } else
-        POUTFB = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB;
+        POUTFB = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture();
 
     g_pHyprRenderer->m_renderData.currentFB->bind();
 
@@ -2062,7 +2034,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     if (!USENEWOPTIMIZE)
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
-    renderTextureInternal(POUTFB->getTexture(), box,
+    renderTextureInternal(POUTFB, box,
                           STextureRenderData{
                               .damage        = &texDamage,
                               .a             = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
@@ -2387,22 +2359,9 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
         Log::logger->log(Log::DEBUG, "Monitor {} -> destroyed all render data", pMonitor->m_name);
 }
 
-void CHyprOpenGLImpl::bindOffMain() {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->isAllocated(), "IHyprRenderer::beginRender should allocate monitor FBs")
-
-    g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
-    clear(CHyprColor(0, 0, 0, 0));
-    g_pHyprRenderer->m_renderData.currentFB = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB;
-}
-
 void CHyprOpenGLImpl::renderOffToMain(IFramebuffer* off) {
     CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
     renderTexturePrimitive(off->getTexture(), monbox);
-}
-
-void CHyprOpenGLImpl::bindBackOnMain() {
-    m_renderData.mainFB->bind();
-    g_pHyprRenderer->m_renderData.currentFB = m_renderData.mainFB;
 }
 
 void CHyprOpenGLImpl::setViewport(GLint x, GLint y, GLsizei width, GLsizei height) {

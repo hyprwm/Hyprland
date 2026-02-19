@@ -93,8 +93,8 @@ struct SRenderData {
     // // FIXME: raw pointer galore!
     // SMonitorRenderData*    pCurrentMonData = nullptr;
     SP<IFramebuffer> currentFB = nullptr; // current rendering to
-    // IFramebuffer*          mainFB          = nullptr; // main to render to
-    // IFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
+    SP<IFramebuffer> mainFB    = nullptr; // main to render to
+    SP<IFramebuffer> outFB     = nullptr; // out to render to (if offloaded, etc)
 
     CRegion          damage;
     CRegion          finalDamage; // damage used for funal off -> main
@@ -238,7 +238,12 @@ class IHyprRenderer {
     Mat3x3                          getBoxProjection(const CBox& box, std::optional<eTransform> transform = std::nullopt);
     Mat3x3                          projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
 
+    SP<ITexture>                    blurMainFramebuffer(float a, CRegion* originalDamage);
+    virtual SP<ITexture>            blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) = 0;
+    void                            preBlurForCurrentMonitor(CRegion* fakeDamage);
+
   protected:
+    virtual void              renderOffToMain(IFramebuffer* off)                                            = 0;
     virtual SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) = 0;
     void                      renderMirrored();
     void                      setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage);
@@ -329,6 +334,9 @@ class IHyprRenderer {
     friend class CRenderPass;
 
   private:
+    void bindOffMain();
+    void bindBackOnMain();
+
     void drawRect(CRectPassElement* element, const CRegion& damage);
     void drawHints(CRendererHintsPassElement* element, const CRegion& damage);
     void drawPreBlur(CPreBlurElement* element, const CRegion& damage);

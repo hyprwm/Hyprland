@@ -15,4 +15,5 @@ class CVkShaders : IDeviceUser {
     SP<CVkShader> m_rect;
     SP<CVkShader> m_shadow;
     SP<CVkShader> m_matte;
+    SP<CVkShader> m_pass;
 };

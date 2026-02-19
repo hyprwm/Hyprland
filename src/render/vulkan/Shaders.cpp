@@ -479,6 +479,20 @@ void main() {
 
 )#"
 
+#define PASS_FRAG_SRC                                                                                                                                                              \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+layout(set = 0, binding = 0) uniform sampler2D tex;
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    fragColor = texture(tex, v_texcoord);
+}
+
+)#"
+
 CVkShaders::CVkShaders(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
     m_vert   = makeShared<CVkShader>(device, VERT_SRC, sizeof(SVkVertShaderData), SH_VERT);
     m_frag   = makeShared<CVkShader>(device, FRAG_SRC, sizeof(SVkFragShaderData), SH_FRAG);
@@ -486,4 +500,5 @@ CVkShaders::CVkShaders(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
     m_rect   = makeShared<CVkShader>(device, RECT_FRAG_SRC, sizeof(SVkRectShaderData), SH_FRAG);
     m_shadow = makeShared<CVkShader>(device, SHADOW_FRAG_SRC, sizeof(SVkShadowShaderData), SH_FRAG);
     m_matte  = makeShared<CVkShader>(device, MATTE_FRAG_SRC, 0, SH_FRAG);
+    m_pass   = makeShared<CVkShader>(device, PASS_FRAG_SRC, 0, SH_FRAG);
 }

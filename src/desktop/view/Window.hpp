@@ -239,6 +239,9 @@ namespace Desktop::View {
 
         bool     m_tearingHint = false;
 
+        // Stable ID for ext_foreign_toplevel_list
+        const uint64_t m_stableID = 0x2137;
+
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;
 

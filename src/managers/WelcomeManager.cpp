@@ -1,4 +1,5 @@
 #include "WelcomeManager.hpp"
+#include "../Compositor.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../helpers/fs/FsUtils.hpp"
@@ -12,6 +13,11 @@ CWelcomeManager::CWelcomeManager() {
 
     if (!*PAUTOGEN) {
         Log::logger->log(Log::DEBUG, "[welcome] skipping, not autogen");
+        return;
+    }
+
+    if (g_pCompositor->m_safeMode) {
+        Log::logger->log(Log::DEBUG, "[welcome] skipping, safe mode");
         return;
     }
 

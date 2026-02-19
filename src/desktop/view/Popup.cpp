@@ -334,7 +334,7 @@ void CPopup::reposition() {
     if (!PMONITOR)
         return;
 
-    m_resource->applyPositioning(PMONITOR->logicalBoxMinusReserved(), COORDS);
+    m_resource->applyPositioning(m_windowOwner ? PMONITOR->logicalBoxMinusReserved() : PMONITOR->logicalBox(), COORDS);
 }
 
 SP<Desktop::View::CWLSurface> CPopup::getT1Owner() const {

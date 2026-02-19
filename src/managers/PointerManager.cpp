@@ -397,31 +397,27 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 }
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
-    auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
-    auto        damage     = maxSize;
-    auto const& cursorSize = m_currentCursorImage.size;
-
-    static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
-
-    const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
+    auto maxSize = state->monitor->m_output->cursorPlaneSize();
 
     if (maxSize == Vector2D{})
         return nullptr;
     else if (maxSize == Vector2D{-1, -1}) {
-        damage = Vector2D{256, 256};
         Log::logger->log(Log::TRACE, "cursor plane size is unlimited, falling back to 256x256");
-        if (cursorSize.x > damage.x || cursorSize.y > damage.y) {
-            Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, damage);
-            return nullptr;
-        }
-        maxSize = cursorSize;
-    } else {
-        if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
-            Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
-            return nullptr;
-        } else
-            maxSize = cursorSize;
+        maxSize = Vector2D{256, 256};
     }
+
+    auto const  damage     = maxSize;
+    auto const& cursorSize = m_currentCursorImage.size;
+
+    static auto PCPUBUFFER         = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+    const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
+
+    if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
+        Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
+        return nullptr;
+    }
+
+    maxSize = cursorSize;
 
     if (!state->monitor->m_cursorSwapchain || maxSize != state->monitor->m_cursorSwapchain->currentOptions().size ||
         shouldUseCpuBuffer != (state->monitor->m_cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {

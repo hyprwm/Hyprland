@@ -1,4 +1,5 @@
 #include "Device.hpp"
+#include "helpers/Format.hpp"
 #include "utils.hpp"
 
 #include "../../debug/log/Logger.hpp"
@@ -80,10 +81,11 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
         .pQueuePriorities = &prio,
     };
 
-    const bool hasGlobalPriority = hasExtension(m_extensions, VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME);
+    const bool                               hasGlobalPriority = hasExtension(m_extensions, VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME);
+    VkDeviceQueueGlobalPriorityCreateInfoKHR globalPriority;
     if (hasGlobalPriority) {
         // If global priorities are supported, request a high-priority context
-        auto globalPriority = VkDeviceQueueGlobalPriorityCreateInfoKHR{
+        globalPriority = VkDeviceQueueGlobalPriorityCreateInfoKHR{
             .sType          = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR,
             .globalPriority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR,
         };
@@ -265,7 +267,7 @@ std::optional<SVkFormatProps> CHyprVulkanDevice::getFormat(const SPixelFormat& f
             isValid = true;
         }
     } else
-        Log::logger->log(Log::ERR, "{} missing required features", NFormatUtils::drmFormatName(format.drmFormat));
+        Log::logger->log(Log::DEBUG, "{} missing required features", NFormatUtils::drmFormatName(format.drmFormat));
 
     if (mods.drmFormatModifierCount > 0)
         isValid |= getModifiers(props, mods.drmFormatModifierCount);
@@ -347,7 +349,8 @@ bool CHyprVulkanDevice::getModifiers(SVkFormatProps& props, const size_t modifie
                 found = true;
             }
         } else
-            Log::logger->log(Log::DEBUG, "{} missing required render features", NFormatUtils::drmFormatName(props.format.drmFormat));
+            Log::logger->log(Log::DEBUG, "{}({}) missing required render features", NFormatUtils::drmFormatName(props.format.drmFormat),
+                             NFormatUtils::drmModifierName(mod.drmFormatModifier));
 
         VkFormatFeatureFlags features = DMA_TEX_FEATURES;
         if (props.format.isYCC)
@@ -366,7 +369,8 @@ bool CHyprVulkanDevice::getModifiers(SVkFormatProps& props, const size_t modifie
                 found = true;
             }
         } else
-            Log::logger->log(Log::ERR, "{} missing required texture features", NFormatUtils::drmFormatName(props.format.drmFormat));
+            Log::logger->log(Log::ERR, "{}({}) missing required texture features", NFormatUtils::drmFormatName(props.format.drmFormat),
+                             NFormatUtils::drmModifierName(mod.drmFormatModifier));
     }
 
     return found;

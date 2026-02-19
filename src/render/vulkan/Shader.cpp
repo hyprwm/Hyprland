@@ -8,8 +8,9 @@
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
 
+// GLSLANG_TARGET_SPV_1_5 for shader "discard" op
 #define CLIENT_VERSION          GLSLANG_TARGET_VULKAN_1_4
-#define TARGET_LANGUAGE_VERSION GLSLANG_TARGET_SPV_1_6
+#define TARGET_LANGUAGE_VERSION GLSLANG_TARGET_SPV_1_5
 
 static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage, const std::string& shaderSource) {
     const glslang_input_t input = {

@@ -1811,12 +1811,12 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         m_renderData.pMonitor->m_stencilTex->allocate(m_renderData.pMonitor->m_pixelSize);
 
         if (!m_renderData.pMonitor->m_offloadFB) {
-            m_renderData.pMonitor->m_offloadFB       = createFB();
-            m_renderData.pMonitor->m_mirrorFB        = createFB();
-            m_renderData.pMonitor->m_mirrorSwapFB    = createFB();
-            m_renderData.pMonitor->m_offMainFB       = createFB();
-            m_renderData.pMonitor->m_monitorMirrorFB = createFB();
-            m_renderData.pMonitor->m_blurFB          = createFB();
+            m_renderData.pMonitor->m_offloadFB       = createFB("offload");
+            m_renderData.pMonitor->m_mirrorFB        = createFB("mirror");
+            m_renderData.pMonitor->m_mirrorSwapFB    = createFB("mirrorSwap");
+            m_renderData.pMonitor->m_offMainFB       = createFB("offMain");
+            m_renderData.pMonitor->m_monitorMirrorFB = createFB("monitorMirror");
+            m_renderData.pMonitor->m_blurFB          = createFB("blur");
         }
         m_renderData.pMonitor->m_offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
         m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
@@ -1961,7 +1961,7 @@ void IHyprRenderer::renderMirrored() {
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
 
     if (!monitor->m_monitorMirrorFB)
-        monitor->m_monitorMirrorFB = createFB();
+        monitor->m_monitorMirrorFB = createFB("monitorMirror");
 
     const auto PFB = mirrored->m_monitorMirrorFB;
     if (!PFB || !PFB->isAllocated() || !PFB->getTexture())
@@ -3035,7 +3035,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     PHLWINDOWREF ref{pWindow};
 
     if (!ref->m_snapshotFB)
-        ref->m_snapshotFB = createFB();
+        ref->m_snapshotFB = createFB("window snapshot");
 
     const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
@@ -3076,7 +3076,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
     if (!pLayer->m_snapshotFB)
-        pLayer->m_snapshotFB = createFB();
+        pLayer->m_snapshotFB = createFB("layer snapshot");
 
     const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
 
@@ -3118,7 +3118,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
     if (!popup->m_snapshotFB)
-        popup->m_snapshotFB = createFB();
+        popup->m_snapshotFB = createFB("popup shapshot");
 
     const auto PFRAMEBUFFER = popup->m_snapshotFB;
 

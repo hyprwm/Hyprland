@@ -258,9 +258,9 @@ std::vector<SDRMFormat> CHyprGLRenderer::getDRMFormats() {
     return g_pHyprOpenGL->getDRMFormats();
 }
 
-SP<IFramebuffer> CHyprGLRenderer::createFB() {
+SP<IFramebuffer> CHyprGLRenderer::createFB(const std::string& name) {
     g_pHyprOpenGL->makeEGLCurrent();
-    return makeShared<CGLFramebuffer>();
+    return makeShared<CGLFramebuffer>(name);
 }
 
 void CHyprGLRenderer::disableScissor() {

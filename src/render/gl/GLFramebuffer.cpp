@@ -3,9 +3,8 @@
 #include "../Renderer.hpp"
 #include "render/Framebuffer.hpp"
 
-CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {
-    ;
-}
+CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
+CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name) {}
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->makeEGLCurrent();

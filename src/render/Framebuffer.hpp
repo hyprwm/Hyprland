@@ -10,7 +10,8 @@ class CHLBufferReference;
 
 class IFramebuffer {
   public:
-    IFramebuffer()          = default;
+    IFramebuffer() = default;
+    IFramebuffer(const std::string& name);
     virtual ~IFramebuffer() = default;
 
     virtual bool alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
@@ -35,4 +36,5 @@ class IFramebuffer {
     bool         m_fbAllocated = false;
 
     SP<ITexture> m_stencilTex;
+    std::string  m_name; // name for logging
 };

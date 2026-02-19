@@ -14,7 +14,7 @@ class CHyprGLRenderer : public IHyprRenderer {
     SP<ITexture>            createTexture(cairo_surface_t* cairo) override;
     bool                    explicitSyncSupported() override;
     std::vector<SDRMFormat> getDRMFormats() override;
-    SP<IFramebuffer>        createFB() override;
+    SP<IFramebuffer>        createFB(const std::string& name = "") override;
     void                    disableScissor() override;
     void                    blend(bool enabled) override;
     void                    drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) override;

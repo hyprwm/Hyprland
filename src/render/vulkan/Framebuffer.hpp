@@ -47,6 +47,7 @@ class CVKRenderBuffer : public IRenderbuffer {
 class CVKFramebuffer : public IFramebuffer {
   public:
     CVKFramebuffer();
+    CVKFramebuffer(const std::string& name);
     ~CVKFramebuffer();
 
     virtual void           bind() override;

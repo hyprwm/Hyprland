@@ -223,7 +223,7 @@ class IHyprRenderer {
     virtual bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
     virtual bool         explicitSyncSupported()                                                                                      = 0;
     virtual std::vector<SDRMFormat> getDRMFormats()                                                                                   = 0;
-    virtual SP<IFramebuffer>        createFB()                                                                                        = 0;
+    virtual SP<IFramebuffer>        createFB(const std::string& name = "")                                                            = 0;
     virtual void                    disableScissor()                                                                                  = 0;
     virtual void                    blend(bool enabled)                                                                               = 0;
     virtual void                    drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) = 0;

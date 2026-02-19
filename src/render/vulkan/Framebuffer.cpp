@@ -94,6 +94,7 @@ void CVKRenderBuffer::unbind() {
 }
 
 CVKFramebuffer::CVKFramebuffer() : IFramebuffer() {}
+CVKFramebuffer::CVKFramebuffer(const std::string& name) : IFramebuffer(name) {}
 
 CVKFramebuffer::~CVKFramebuffer() {
     m_FB.reset();
@@ -143,7 +144,7 @@ bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
     if (m_FB)
         m_tex = m_FB->texture();
     if (m_tex && m_tex->ok())
-        SET_VK_IMG_NAME(m_FB->vkImage(), std::format("IFramebuffer {} {}x{}", NFormatUtils::drmFormatName(m_drmFormat), m_size.x, m_size.y));
+        SET_VK_IMG_NAME(m_FB->vkImage(), std::format("IFramebuffer '{}' {} {}x{}", m_name.length() ? m_name : "?", NFormatUtils::drmFormatName(m_drmFormat), m_size.x, m_size.y));
     m_fbAllocated = true;
     return m_FB;
 };

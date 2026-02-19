@@ -8,6 +8,7 @@
 class CGLFramebuffer : public IFramebuffer {
   public:
     CGLFramebuffer();
+    CGLFramebuffer(const std::string& name);
     ~CGLFramebuffer();
 
     void   addStencil(SP<ITexture> tex) override;

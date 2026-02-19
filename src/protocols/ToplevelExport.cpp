@@ -238,7 +238,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     const auto PMONITOR = m_window->m_monitor.lock();
     CRegion    fakeDamage{0, 0, PMONITOR->m_pixelSize.x * 10, PMONITOR->m_pixelSize.y * 10};
 
-    auto       outFB = g_pHyprRenderer->createFB();
+    auto       outFB = g_pHyprRenderer->createFB("CToplevelExportFrame::copyShm");
     outFB->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
     auto overlayCursor = shouldOverlayCursor();

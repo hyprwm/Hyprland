@@ -354,8 +354,8 @@ std::vector<SDRMFormat> CHyprVKRenderer::getDRMFormats() {
     return formats;
 }
 
-SP<IFramebuffer> CHyprVKRenderer::createFB() {
-    return makeShared<CVKFramebuffer>();
+SP<IFramebuffer> CHyprVKRenderer::createFB(const std::string& name) {
+    return makeShared<CVKFramebuffer>(name);
 }
 
 void CHyprVKRenderer::disableScissor() {
@@ -477,7 +477,8 @@ void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
         };
 
         std::vector<VkClearRect> rects;
-        g_pHyprRenderer->m_renderData.damage.forEachRect([&](const auto& RECT) {
+        const CBox               max = {{0, 0}, currentRBSize()};
+        g_pHyprRenderer->m_renderData.damage.copy().intersect(max).forEachRect([&](const auto& RECT) {
             rects.push_back(VkClearRect{
                 .rect =
                     {

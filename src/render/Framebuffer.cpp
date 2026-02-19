@@ -1,5 +1,7 @@
 #include "Framebuffer.hpp"
 
+IFramebuffer::IFramebuffer(const std::string& name) : m_name(name) {}
+
 bool IFramebuffer::alloc(int w, int h, uint32_t format) {
     RASSERT((w > 0 && h > 0), "cannot alloc a FB with negative / zero size! (attempted {}x{})", w, h);
 

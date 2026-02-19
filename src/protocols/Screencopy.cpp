@@ -309,7 +309,7 @@ void CScreencopyFrame::renderMon() {
 
 void CScreencopyFrame::storeTempFB() {
     if (!m_tempFb)
-        m_tempFb = g_pHyprRenderer->createFB();
+        m_tempFb = g_pHyprRenderer->createFB("CScreencopyFrame::storeTempFB");
 
     m_tempFb->alloc(m_box.w, m_box.h);
 
@@ -377,7 +377,7 @@ bool CScreencopyFrame::copyShm() {
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    auto       fb = g_pHyprRenderer->createFB();
+    auto       fb = g_pHyprRenderer->createFB("CScreencopyFrame::copyShm");
     fb->alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
     LOGM(Log::DEBUG, "CScreencopyFrame::copyShm");
 

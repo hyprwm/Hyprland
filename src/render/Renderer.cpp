@@ -546,7 +546,8 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     EMIT_HOOK_EVENT("render", RENDER_PRE_WINDOW);
 
-    const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
+    const auto fullAlpha       = renderdata.alpha * renderdata.fadeAlpha;
+    const auto decorationAlpha = 1.f * renderdata.fadeAlpha;
 
     if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
         CBox                        monbox = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
@@ -584,14 +585,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
                     continue;
 
-                wd->draw(pMonitor, fullAlpha);
+                wd->draw(pMonitor, decorationAlpha);
             }
 
             for (auto const& wd : pWindow->m_windowDecorations) {
                 if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
                     continue;
 
-                wd->draw(pMonitor, fullAlpha);
+                wd->draw(pMonitor, decorationAlpha);
             }
         }
 
@@ -638,7 +639,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
                     continue;
 
-                wd->draw(pMonitor, fullAlpha);
+                wd->draw(pMonitor, decorationAlpha);
             }
         }
 
@@ -723,7 +724,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
                     continue;
 
-                wd->draw(pMonitor, fullAlpha);
+                wd->draw(pMonitor, decorationAlpha);
             }
         }
     }

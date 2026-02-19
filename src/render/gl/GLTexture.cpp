@@ -37,7 +37,7 @@ CGLTexture::CGLTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, con
     m_size          = size_;
     m_isSynchronous = true;
     m_target        = GL_TEXTURE_2D;
-    allocate(m_size);
+    allocate(size_);
     bind();
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -80,7 +80,7 @@ CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool 
     m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
     //}
 
-    allocate(m_size);
+    allocate(attrs.size);
     m_eglImage = image;
 
     bind();

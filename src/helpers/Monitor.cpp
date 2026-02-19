@@ -990,8 +990,17 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     updateMatrix();
 
-    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize) && g_pHyprRenderer && g_pHyprRenderer->glBackend())
-        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
+        m_mirrorFB.reset();
+        m_offloadFB.reset();
+        m_mirrorSwapFB.reset();
+        m_blurFB.reset();
+        m_offMainFB.reset();
+        m_stencilTex.reset();
+
+        if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+            g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+    }
 
     g_pCompositor->scheduleMonitorStateRecheck();
 

@@ -2030,7 +2030,7 @@ bool CMonitor::attemptDirectScanout() {
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 
-    bool ok = m_output->commit();
+    bool ok = m_state.commit(false);
 
     if (!ok) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
@@ -2038,6 +2038,7 @@ bool CMonitor::attemptDirectScanout() {
             m_output->state->setFormat(PREV_FORMAT);
             m_drmFormat = PREV_FORMAT;
         }
+
         m_lastScanout.reset();
         return false;
     }
@@ -2466,15 +2467,23 @@ void CMonitorState::ensureBufferPresent() {
     m_owner->m_output->swapchain->rollback(); // restore the counter, don't advance the swapchain
 }
 
-bool CMonitorState::commit() {
-    if (!updateSwapchain())
+bool CMonitorState::commit(bool update) {
+    if (update && !updateSwapchain())
         return false;
 
     Event::bus()->m_events.monitor.preCommit.emit(m_owner->m_self.lock());
 
-    ensureBufferPresent();
+    if (update)
+        ensureBufferPresent();
 
-    bool ret = m_owner->m_output->commit();
+    m_owner->m_delayedCommit = m_owner->m_output->pendingPageFlip();
+
+    bool ret = false;
+    if (!m_owner->m_delayedCommit)
+        ret = m_owner->m_output->commit();
+    else
+        Log::logger->log(Log::DEBUG, "CMonitorState::commit: tried to commit with a pendingPageFlip, delaying it.");
+
     return ret;
 }
 

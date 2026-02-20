@@ -27,8 +27,11 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
 
     const auto& output = PROTO::outputs.at(m_monitor->m_name);
 
-    if (auto resource = output->outputResourceFrom(m_resource->client()))
-        m_resource->sendOutputEnter(resource->getResource()->resource());
+    if (auto resources = output->outputResourcesFrom(m_resource->client()); !resources.empty()) {
+        for (const auto& r : resources) {
+            m_resource->sendOutputEnter(r->getResource()->resource());
+        }
+    }
 
     m_listeners.outputBound = output->m_events.outputBound.listen([this](const SP<CWLOutputResource>& output) {
         if (output->client() == m_resource->client())

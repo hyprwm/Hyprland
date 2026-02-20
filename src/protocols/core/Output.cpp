@@ -117,15 +117,17 @@ void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
         PROTO::outputs.erase(m_name);
 }
 
-SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
+std::vector<SP<CWLOutputResource>> CWLOutputProtocol::outputResourcesFrom(wl_client* client) {
+    std::vector<SP<CWLOutputResource>> ret;
+
     for (auto const& r : m_outputs) {
         if (r->client() != client)
             continue;
 
-        return r;
+        ret.emplace_back(r);
     }
 
-    return nullptr;
+    return ret;
 }
 
 void CWLOutputProtocol::remove() {

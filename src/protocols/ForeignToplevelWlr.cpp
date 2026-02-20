@@ -154,17 +154,23 @@ void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
     const auto CLIENT = m_resource->client();
 
     if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
-        const auto OLDRESOURCE = PROTO::outputs.at(PLASTMONITOR->m_name)->outputResourceFrom(CLIENT);
+        const auto OLDRESOURCES = PROTO::outputs.at(PLASTMONITOR->m_name)->outputResourcesFrom(CLIENT);
 
-        if LIKELY (OLDRESOURCE)
-            m_resource->sendOutputLeave(OLDRESOURCE->getResource()->resource());
+        if LIKELY (!OLDRESOURCES.empty()) {
+            for (const auto& r : OLDRESOURCES) {
+                m_resource->sendOutputLeave(r->getResource()->resource());
+            }
+        }
     }
 
     if (PROTO::outputs.contains(pMonitor->m_name)) {
-        const auto NEWRESOURCE = PROTO::outputs.at(pMonitor->m_name)->outputResourceFrom(CLIENT);
+        const auto NEWRESOURCES = PROTO::outputs.at(pMonitor->m_name)->outputResourcesFrom(CLIENT);
 
-        if LIKELY (NEWRESOURCE)
-            m_resource->sendOutputEnter(NEWRESOURCE->getResource()->resource());
+        if LIKELY (!NEWRESOURCES.empty()) {
+            for (const auto& r : NEWRESOURCES) {
+                m_resource->sendOutputEnter(r->getResource()->resource());
+            }
+        }
     }
 
     m_lastMonitorID = pMonitor->m_id;

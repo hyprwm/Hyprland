@@ -540,6 +540,14 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid no close for {}", effect); }
                 break;
             }
+            case WINDOW_RULE_EFFECT_NOMOUSEMOVE: {
+                static_.noMouseMove = truthy(effect);
+                break;
+            }
+            case WINDOW_RULE_EFFECT_NOMOUSERESIZE: {
+                static_.noMouseResize = truthy(effect);
+                break;
+            }
         }
     }
 

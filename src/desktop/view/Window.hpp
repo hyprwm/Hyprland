@@ -128,6 +128,8 @@ namespace Desktop::View {
 
         bool             m_firstMap        = false; // for layouts
         bool             m_isFloating      = false;
+        bool             m_noMouseMove     = false; // suppress mouse move
+        bool             m_noMouseResize   = false; // suppress mouse resize
         bool             m_draggingTiled   = false; // for dragging around tiled windows
         SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
         std::string      m_title           = "";

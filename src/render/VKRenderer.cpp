@@ -82,7 +82,6 @@ SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, 
     const auto bp = getBlurPass(m_currentRenderbuffer->texture()->m_drmFormat);
     if (m_hasBoundFB)
         vkCmdEndRenderPass(m_currentCommandBuffer->vk());
-    Log::logger->log(Log::DEBUG, "blurTexture");
 
     m_currentCommandBuffer->changeLayout(dc<CVKTexture*>(source->getTexture().get())->m_image, //
                                          {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -95,7 +94,6 @@ SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, 
         {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
         {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
-    Log::logger->log(Log::DEBUG, "blurTexture done");
     if (m_hasBoundFB)
         startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, m_hasBoundFB->vk(), m_hasBoundFB->texture()->m_size, m_currentCommandBuffer->vk());
     return tex;
@@ -182,8 +180,13 @@ void CHyprVKRenderer::bindFB(SP<CHyprVkFramebuffer> fb) {
     if (m_hasBoundFB == fb)
         return;
 
-    if (m_hasBoundFB)
+    if (m_hasBoundFB) {
         vkCmdEndRenderPass(m_currentCommandBuffer->vk());
+        if (m_hasBoundFB == dc<CVKFramebuffer*>(m_renderData.pMonitor->m_blurFB.get())->fb())
+            m_currentCommandBuffer->changeLayout(m_hasBoundFB->texture()->m_image, //
+                                                 {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+                                                 {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+    }
 
     if (m_currentRenderPass->m_drmFormat != fb->texture()->m_drmFormat)
         m_currentRenderPass = getRenderPass(fb->texture()->m_drmFormat);
@@ -557,9 +560,10 @@ void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 
 void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     if (element->m_data.blur) {
-        auto el = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex     = m_renderData.pMonitor->m_blurFB->getTexture(),
-                                                                           .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
-                                                                           .clipBox = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
+        auto blurred = m_renderData.pMonitor->m_blurFB->getTexture();
+        auto el      = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex     = blurred,
+                                                                                .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
+                                                                                .clipBox = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
         draw(el.get(), damage);
     }
 

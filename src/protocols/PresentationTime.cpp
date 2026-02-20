@@ -44,8 +44,11 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
     auto client = m_resource->client();
 
     if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name) && data->m_wasPresented) {
-        if LIKELY (auto outputResource = PROTO::outputs.at(data->m_monitor->m_name)->outputResourceFrom(client); outputResource)
-            m_resource->sendSyncOutput(outputResource->getResource()->resource());
+        if LIKELY (auto outputResources = PROTO::outputs.at(data->m_monitor->m_name)->outputResourcesFrom(client); !outputResources.empty()) {
+            for (const auto& r : outputResources) {
+                m_resource->sendSyncOutput(r->getResource()->resource());
+            }
+        }
     }
 
     if (data->m_wasPresented) {

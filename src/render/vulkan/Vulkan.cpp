@@ -471,8 +471,8 @@ WP<CVKMemorySpan> CHyprVulkanImpl::getMemorySpan(VkDeviceSize size, VkDeviceSize
     return buffer->allocate(size);
 }
 
-SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds) {
-    for (const auto& pool : m_dsPools) {
+SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds, CVKDescriptorPool::eDSPoolType type) {
+    for (const auto& pool : m_dsPools[type]) {
         const auto res = pool->allocateSet(layout, ds);
         switch (res) {
             case VK_ERROR_FRAGMENTED_POOL:
@@ -482,9 +482,10 @@ SP<CVKDescriptorPool> CHyprVulkanImpl::allocateDescriptorSet(VkDescriptorSetLayo
         }
     }
 
-    const auto size = m_lastDsPoolSize ? m_lastDsPoolSize * 2 : INITIAL_DESCRIPTOR_POOL_SIZE;
-    auto       pool = m_dsPools.emplace_back(makeShared<CVKDescriptorPool>(m_device, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, size));
-    const auto res  = pool->allocateSet(layout, ds);
+    const auto size = m_lastDsPoolSize[type] ? m_lastDsPoolSize[type] * 2 : INITIAL_DESCRIPTOR_POOL_SIZE;
+    auto       pool = m_dsPools[type].emplace_back(
+        makeShared<CVKDescriptorPool>(m_device, type == CVKDescriptorPool::DSP_UBO ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, size));
+    const auto res = pool->allocateSet(layout, ds);
 
     if (res == VK_SUCCESS)
         return pool;

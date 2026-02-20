@@ -14,9 +14,10 @@ class CVkPipeline : public IDeviceUser {
         uint8_t texCount = 1;
         uint8_t subpass  = 0;
         bool    blend    = true;
+        uint8_t uboCount = 0;
     };
     CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag,
-                const SSettings& settings = {.texCount = 1, .subpass = 0, .blend = true});
+                const SSettings& settings = {.texCount = 1, .subpass = 0, .blend = true, .uboCount = 0});
     ~CVkPipeline();
 
     VkPipeline            vk();

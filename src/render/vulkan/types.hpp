@@ -57,48 +57,56 @@ static const VkImageUsageFlags    VULKAN_DMA_TEX_USAGE = VK_IMAGE_USAGE_SAMPLED_
 
 static const VkFormatFeatureFlags RENDER_FEATURES = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
 
-struct SRounding {
+struct alignas(16) SRounding {
     float radius;
     float power;
     float topLeft[2];
     float fullSize[2];
 };
 
-struct SVkVertShaderData {
+struct alignas(16) SVkVertShaderData {
     float mat4[4][4];
     float uvOffset[2];
     float uvSize[2];
 };
 
-struct SVkFragShaderData {
+struct alignas(16) SVkFragShaderData {
     float matrix[4][4];
     float alpha;
     float luminanceMultiplier;
 };
 
-struct SVkBorderShaderData {
+struct alignas(16) SVkBorderShaderData {
     float fullSizeUntransformed[2];
     float radiusOuter;
     float thick;
     // float gradient[10][4];
     // float gradient2[10][4];
-    float     gradient[1][4];
-    float     gradient2[1][4];
-    int       gradientLength;
-    int       gradient2Length;
-    float     angle;
-    float     angle2;
-    float     gradientLerp;
+    // float     gradient[1][4];
+    // float     gradient2[1][4];
+    // int       gradientLength;
+    // int       gradient2Length;
+    float angle;
+    float angle2;
+    // float     gradientLerp;
     float     alpha;
     SRounding rounding;
 };
 
-struct SVkRectShaderData {
+struct alignas(16) SVkBorderGradientShaderData {
+    float gradient[10][4];
+    float gradient2[10][4];
+    int   gradientLength;
+    int   gradient2Length;
+    float gradientLerp;
+};
+
+struct alignas(16) SVkRectShaderData {
     float     color[4];
     SRounding rounding;
 };
 
-struct SVkShadowShaderData {
+struct alignas(16) SVkShadowShaderData {
     float     color[4];
     float     bottomRight[2];
     float     range;
@@ -106,12 +114,12 @@ struct SVkShadowShaderData {
     SRounding rounding;
 };
 
-struct SVkPrepareShaderData {
+struct alignas(16) SVkPrepareShaderData {
     float contrast;
     float brightness;
 };
 
-struct SVkBlur1ShaderData {
+struct alignas(16) SVkBlur1ShaderData {
     float radius;
     float halfpixel[2];
     int   passes;
@@ -119,12 +127,12 @@ struct SVkBlur1ShaderData {
     float vibrancyDarkness;
 };
 
-struct SVkBlur2ShaderData {
+struct alignas(16) SVkBlur2ShaderData {
     float radius;
     float halfpixel[2];
 };
 
-struct SVkFinishShaderData {
+struct alignas(16) SVkFinishShaderData {
     float noise;
     float brightness;
 };

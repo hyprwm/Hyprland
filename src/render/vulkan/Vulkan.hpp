@@ -35,26 +35,26 @@ class CHyprVulkanImpl {
     WP<CHyprVkCommandBuffer> renderCB();
     WP<CHyprVkCommandBuffer> stageCB();
     WP<CVKMemorySpan>        getMemorySpan(VkDeviceSize size, VkDeviceSize alignment = 1);
-    SP<CVKDescriptorPool>    allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds);
+    SP<CVKDescriptorPool>    allocateDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet* ds, CVKDescriptorPool::eDSPoolType type = CVKDescriptorPool::DSP_SAMPLER);
     SP<CVKTexture>           getReadTexture(uint32_t drmFformat, uint32_t width, uint32_t height);
 
   private:
-    inline void                           loadVulkanProc(void* pProc, const char* name);
-    bool                                  waitCommandBuffer(WP<CHyprVkCommandBuffer>);
-    SP<CHyprVkCommandBuffer>              acquireCB();
+    inline void                                       loadVulkanProc(void* pProc, const char* name);
+    bool                                              waitCommandBuffer(WP<CHyprVkCommandBuffer>);
+    SP<CHyprVkCommandBuffer>                          acquireCB();
 
-    VkInstance                            m_instance = VK_NULL_HANDLE;
-    VkDebugUtilsMessengerEXT              m_debug    = VK_NULL_HANDLE;
+    VkInstance                                        m_instance = VK_NULL_HANDLE;
+    VkDebugUtilsMessengerEXT                          m_debug    = VK_NULL_HANDLE;
 
-    SP<CHyprVulkanDevice>                 m_device;
-    SP<CHyprVkCommandBuffer>              m_currentStageCB;
-    SP<CHyprVkCommandBuffer>              m_currentRenderCB;
-    std::vector<SP<CHyprVkCommandBuffer>> m_commandBuffers;
-    std::vector<SP<CVKMemoryBuffer>>      m_sharedBuffers;
-    std::vector<SP<CVKDescriptorPool>>    m_dsPools;
-    size_t                                m_lastDsPoolSize = 0;
+    SP<CHyprVulkanDevice>                             m_device;
+    SP<CHyprVkCommandBuffer>                          m_currentStageCB;
+    SP<CHyprVkCommandBuffer>                          m_currentRenderCB;
+    std::vector<SP<CHyprVkCommandBuffer>>             m_commandBuffers;
+    std::vector<SP<CVKMemoryBuffer>>                  m_sharedBuffers;
+    std::array<std::vector<SP<CVKDescriptorPool>>, 2> m_dsPools;
+    std::array<size_t, 2>                             m_lastDsPoolSize = {0, 0};
 
-    uint64_t                              m_lastStagePoint = 0;
+    uint64_t                                          m_lastStagePoint = 0;
 
     struct SCacheItem {
         SP<CVKTexture>  texture;

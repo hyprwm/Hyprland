@@ -68,7 +68,7 @@ CVkRenderPass::CVkRenderPass(WP<CHyprVulkanDevice> device, DRMFormat format, SP<
 
 WP<CVkPipeline> CVkRenderPass::borderPipeline() {
     if (!m_borderPipeline)
-        m_borderPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_border);
+        m_borderPipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_border, CVkPipeline::SSettings{.texCount = 0, .uboCount = 1});
 
     return m_borderPipeline;
 }

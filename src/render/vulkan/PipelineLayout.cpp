@@ -3,7 +3,7 @@
 #include <vulkan/vulkan_core.h>
 
 CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : IDeviceUser(device), m_key({key}) {
-    const auto [vertSize, fragSize, filter, texCount] = key;
+    const auto [vertSize, fragSize, filter, texCount, uboCount] = key;
 
     VkSamplerCreateInfo samplerCreateInfo = {
         .sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -43,7 +43,7 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
         CRIT("vkCreateSampler");
     }
 
-    std::vector<VkDescriptorSetLayoutBinding> dsBinding(texCount);
+    std::vector<VkDescriptorSetLayoutBinding> dsBinding(texCount + uboCount);
     for (int i = 0; i < texCount; i++) {
         dsBinding[i] = {
             .binding            = i,
@@ -51,6 +51,14 @@ CVkPipelineLayout::CVkPipelineLayout(WP<CHyprVulkanDevice> device, KEY key) : ID
             .descriptorCount    = 1,
             .stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT,
             .pImmutableSamplers = &m_sampler,
+        };
+    }
+    for (int i = 0; i < uboCount; i++) {
+        dsBinding[texCount + i] = {
+            .binding         = texCount + i,
+            .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
         };
     }
 

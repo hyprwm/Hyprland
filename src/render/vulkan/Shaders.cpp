@@ -135,26 +135,28 @@ struct sRounding {
 	vec2 fullSize;
 };
 
-layout(push_constant, row_major) uniform UBO {
+layout(push_constant, row_major) uniform UBOPush {
 	layout(offset = 80) vec2 fullSizeUntransformed;
 	float radiusOuter;
 	float thick;
-	// vec4 gradient[10];
-	// vec4 gradient2[10];
-    vec4 gradient[1];
-	vec4 gradient2[1];
-	int gradientLength;
-	int gradient2Length;
 	float angle;
 	float angle2;
-	float gradientLerp;
 	float alpha;
 	sRounding rounding;
 } data;
 
+layout(std140, set = 0, binding = 0) uniform UBO {
+    vec4 gradient[10];
+	vec4 gradient2[10];
+	int gradientLength;
+	int gradient2Length;
+    float gradientLerp;
+} gradientData;
+
 #define M_PI 3.1415926535897932384626433832795
 #define SMOOTHING_CONSTANT (M_PI / 5.34665792551)
 #define CM_TRANSFER_FUNCTION_GAMMA22 1
+
 
 vec3 fromLinearRGB(vec3 color, int tf) {
 	return pow(max(color, vec3(0.0)), vec3(1.0 / 2.2));
@@ -175,8 +177,8 @@ vec4 okLabAToSrgb(vec4 lab) {
 }
 
 vec4 getOkColorForCoordArray1(vec2 normalizedCoord) {
-    if (data.gradientLength < 2)
-        return data.gradient[0];
+    if (gradientData.gradientLength < 2)
+        return gradientData.gradient[0];
 
     float finalAng = 0.0;
 
@@ -196,16 +198,16 @@ vec4 getOkColorForCoordArray1(vec2 normalizedCoord) {
 
     float sine = sin(finalAng);
 
-    float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(data.gradientLength - 1);
+    float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradientData.gradientLength - 1);
     int bottom = int(floor(progress));
     int top = bottom + 1;
 
-    return data.gradient[top] * (progress - float(bottom)) + data.gradient[bottom] * (float(top) - progress);
+    return gradientData.gradient[top] * (progress - float(bottom)) + gradientData.gradient[bottom] * (float(top) - progress);
 }
 
 vec4 getOkColorForCoordArray2(vec2 normalizedCoord) {
-    if (data.gradient2Length < 2)
-        return data.gradient2[0];
+    if (gradientData.gradient2Length < 2)
+        return gradientData.gradient2[0];
 
     float finalAng = 0.0;
 
@@ -225,24 +227,26 @@ vec4 getOkColorForCoordArray2(vec2 normalizedCoord) {
 
     float sine = sin(finalAng);
 
-    float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(data.gradient2Length - 1);
+    float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradientData.gradient2Length - 1);
     int bottom = int(floor(progress));
     int top = bottom + 1;
 
-    return data.gradient2[top] * (progress - float(bottom)) + data.gradient2[bottom] * (float(top) - progress);
+    return gradientData.gradient2[top] * (progress - float(bottom)) + gradientData.gradient2[bottom] * (float(top) - progress);
 }
 
 vec4 getColorForCoord(vec2 normalizedCoord) {
     vec4 result1 = getOkColorForCoordArray1(normalizedCoord);
 
-    if (data.gradient2Length <= 0)
+    if (gradientData.gradient2Length <= 0)
         return okLabAToSrgb(result1);
 
     vec4 result2 = getOkColorForCoordArray2(normalizedCoord);
 
-    return okLabAToSrgb(mix(result1, result2, data.gradientLerp));
+    return okLabAToSrgb(mix(result1, result2, gradientData.gradientLerp));
 }
 
+#define RADIUS data.rounding.radius
+#define RADIUS_OUTER data.radiusOuter
 
 layout(location = 0) out vec4 fragColor;
 void main() {
@@ -257,30 +261,52 @@ void main() {
     pixCoord -= data.fullSizeUntransformed * 0.5;
     pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
     vec2 pixCoordOuter = pixCoord;
-    pixCoord -= data.fullSizeUntransformed * 0.5 - data.rounding.radius;
-    pixCoordOuter -= data.fullSizeUntransformed * 0.5 - data.radiusOuter;
+    pixCoord -= data.fullSizeUntransformed * 0.5 - RADIUS;
+    pixCoordOuter -= data.fullSizeUntransformed * 0.5 - RADIUS_OUTER;
 
     // center the pixes don't make it top-left
     pixCoord += vec2(1.0, 1.0) / data.fullSizeUntransformed;
     pixCoordOuter += vec2(1.0, 1.0) / data.fullSizeUntransformed;
 
 
-    if (min(pixCoord.x, pixCoord.y) > 0.0 && data.rounding.radius > 0.0) {
+
+    // highp vec2 pixCoord = vec2(gl_FragCoord);
+    // highp vec2 pixCoordOuter = pixCoord;
+    // highp vec2 originalPixCoord = v_texcoord;
+    // originalPixCoord *= data.fullSizeUntransformed;
+    // float additionalAlpha = 1.0;
+
+    // vec4 pixColor = vec4(1.0, 1.0, 1.0, 1.0);
+
+    // bool done = false;
+
+    // pixCoord -= data.rounding.topLeft + data.rounding.fullSize * 0.5;
+    // pixCoord *= vec2(lessThan(pixCoord, vec2(0.0))) * -2.0 + 1.0;
+    // pixCoordOuter = pixCoord;
+    // pixCoord -= data.rounding.fullSize * 0.5 - RADIUS;
+    // pixCoordOuter -= data.rounding.fullSize * 0.5 - data.radiusOuter;
+
+    // // center the pixes don't make it top-left
+    // pixCoord += vec2(1.0, 1.0) / data.rounding.fullSize;
+    // pixCoordOuter += vec2(1.0, 1.0) / data.rounding.fullSize;
+
+
+    if (min(pixCoord.x, pixCoord.y) > 0.0 && RADIUS > 0.0) {
 	    float dist = pow(pow(pixCoord.x,data.rounding.power)+pow(pixCoord.y,data.rounding.power),1.0/data.rounding.power);
 	    float distOuter = pow(pow(pixCoordOuter.x,data.rounding.power)+pow(pixCoordOuter.y,data.rounding.power),1.0/data.rounding.power);
         float h = (data.thick / 2.0);
 
-	    if (dist < data.rounding.radius - h) {
+	    if (dist < RADIUS - h) {
             // lower
-            float normalized = smoothstep(0.0, 1.0, (dist - data.rounding.radius + data.thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
+            float normalized = smoothstep(0.0, 1.0, (dist - RADIUS + data.thick + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
             done = true;
         } else if (min(pixCoordOuter.x, pixCoordOuter.y) > 0.0) {
             // higher
-            float normalized = 1.0 - smoothstep(0.0, 1.0, (distOuter - data.radiusOuter + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
+            float normalized = 1.0 - smoothstep(0.0, 1.0, (distOuter - RADIUS_OUTER + SMOOTHING_CONSTANT) / (SMOOTHING_CONSTANT * 2.0));
             additionalAlpha *= normalized;
             done = true;
-        } else if (distOuter < data.radiusOuter - h) {
+        } else if (distOuter < RADIUS_OUTER - h) {
             additionalAlpha = 1.0;
             done = true;
         }

@@ -11,7 +11,7 @@ static CHyprVKRenderer* getRenderer() {
 
 CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) :
     IDeviceUser(device), m_key({vert->module(), frag->module()}) {
-    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), settings.texCount);
+    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), settings.texCount, settings.uboCount);
 
     VkSpecializationMapEntry specEntry = {
         .constantID = 0,

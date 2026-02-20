@@ -14,12 +14,14 @@
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/pass/PassElement.hpp"
 #include "render/vulkan/BlurPass.hpp"
+#include "render/vulkan/BorderGradientUBO.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include "render/vulkan/types.hpp"
 #include <algorithm>
 #include <array>
 #include <cairo.h>
 #include <cstdint>
+#include <cstring>
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
@@ -69,7 +71,7 @@ SP<CVKBlurPass> CHyprVKRenderer::getBlurPass(uint32_t fmt) {
 bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     m_currentRenderPass = getRenderPass(fmt);
 
-    m_renderData.currentFB    = g_pHyprRenderer->getOrCreateRenderbuffer(buffer, fmt)->getFB();
+    m_renderData.currentFB    = getOrCreateRenderbuffer(buffer, fmt)->getFB();
     m_currentRenderbuffer     = dc<CVKFramebuffer*>(m_renderData.currentFB.get())->fb();
     m_currentRenderbufferSize = m_renderData.currentFB->m_size;
 
@@ -108,15 +110,15 @@ void CHyprVKRenderer::renderOffToMain(IFramebuffer* off) {
 
     TRACY_GPU_ZONE("RenderTexturePrimitive");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (m_renderData.damage.empty())
         return;
 
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    m_renderData.renderModif.applyToBox(newBox);
 
     const auto cb = g_pHyprVulkan->renderCB();
     cb->useTexture(tex);
 
-    const auto  mat = g_pHyprRenderer->projectBoxToTarget(newBox).getMatrix();
+    const auto  mat = projectBoxToTarget(newBox).getMatrix();
 
     const auto& vertData = matToVertShader(mat);
 
@@ -135,7 +137,7 @@ void CHyprVKRenderer::renderOffToMain(IFramebuffer* off) {
     // TODO
     // ensure the final blit uses the desired sampling filter
     // when cursor zoom is active we want nearest-neighbor (no anti-aliasing)
-    // if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+    // if (m_renderData.useNearestNeighbor) {
     //     tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     //     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     // } else {
@@ -143,7 +145,7 @@ void CHyprVKRenderer::renderOffToMain(IFramebuffer* off) {
     //     tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
     // }
 
-    drawRegionRects(g_pHyprRenderer->m_renderData.damage, cb->vk());
+    drawRegionRects(m_renderData.damage, cb->vk());
 
     disableScissor();
 }
@@ -372,22 +374,18 @@ void CHyprVKRenderer::blend(bool enabled) {
 }
 
 void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
-    // TODO
-    // if (m_renderData.damage.empty())
-    //     return;
+    if (m_renderData.damage.empty())
+        return;
 
     auto data   = element->m_data;
     CBox newBox = data.box;
-
-    // TODO
-    // m_renderData.renderModif.applyToBox(newBox);
+    m_renderData.renderModif.applyToBox(newBox);
 
     if (data.borderSize < 1)
         return;
 
     int scaledBorderSize = std::round(data.borderSize * m_renderData.pMonitor->m_scale);
-    // TODO
-    // scaledBorderSize     = std::round(scaledBorderSize * m_renderData.renderModif.combinedScale());
+    scaledBorderSize     = std::round(scaledBorderSize * m_renderData.renderModif.combinedScale());
 
     // adjust box
     newBox.x -= scaledBorderSize;
@@ -407,27 +405,21 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
 
     const auto  cb = g_pHyprVulkan->renderCB();
 
-    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box).getMatrix();
+    const auto& vertData = matToVertShader(projectBoxToTarget(newBox).getMatrix());
 
-    const auto& vertData = matToVertShader(mat);
-
-    const auto  layout = m_currentRenderPass->borderPipeline()->layout().lock();
+    // TODO CM
+    const auto layout = m_currentRenderPass->borderPipeline()->layout().lock();
 
     // TODO large gradients
-    // const auto          gradientLength  = data.grad1.m_colorsOkLabA.size() / 4;
-    // const auto          gradient2Length = data.grad2.m_colorsOkLabA.size() / 4;
-    const auto          gradientLength  = data.grad1.m_colorsOkLabA.size() / 4 > 0 ? 1 : 0;
-    const auto          gradient2Length = data.grad2.m_colorsOkLabA.size() / 4 > 0 ? 1 : 0;
+    const auto          gradientLength  = data.grad1.m_colorsOkLabA.size() / 4;
+    const auto          gradient2Length = data.grad2.m_colorsOkLabA.size() / 4;
 
     SVkBorderShaderData fragData = {
-        .fullSizeUntransformed = {sc<float>(newBox.width), sc<float>(newBox.height)},
+        .fullSizeUntransformed = {sc<float>(element->m_data.box.width), sc<float>(element->m_data.box.height)},
         .radiusOuter           = data.outerRound == -1 ? round : data.outerRound,
         .thick                 = scaledBorderSize,
-        .gradientLength        = gradientLength,
-        .gradient2Length       = gradient2Length,
         .angle                 = sc<int>(data.grad1.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0),
         .angle2                = sc<int>(data.grad2.m_angle / (std::numbers::pi / 180.0)) % 360 * (std::numbers::pi / 180.0),
-        .gradientLerp          = data.lerp,
         .alpha                 = data.a,
         .rounding =
             {
@@ -438,15 +430,21 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
             },
     };
 
+    SVkBorderGradientShaderData gradientData = {
+        .gradientLength  = gradientLength,
+        .gradient2Length = gradient2Length,
+        .gradientLerp    = data.lerp,
+    };
+
     for (unsigned i = 0; i < gradientLength; i++) {
         for (unsigned j = 0; j < 4; j++) {
-            fragData.gradient[i][j] = data.grad1.m_colorsOkLabA.at(i * 4 + j);
+            gradientData.gradient[i][j] = data.grad1.m_colorsOkLabA.at(i * 4 + j);
         }
     }
 
     for (unsigned i = 0; i < gradient2Length; i++) {
         for (unsigned j = 0; j < 4; j++) {
-            fragData.gradient2[i][j] = data.grad2.m_colorsOkLabA.at(i * 4 + j);
+            gradientData.gradient2[i][j] = data.grad2.m_colorsOkLabA.at(i * 4 + j);
         }
     }
 
@@ -455,14 +453,25 @@ void CHyprVKRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    auto clipBox = CRegion{element->m_data.box}.intersect(damage);
+    auto ubo = getGradientForWindow(data.window);
+    if (ubo) {
+        auto ds = ubo->ds();
+        vkCmdBindDescriptorSets(cb->vk(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout->vk(), 0, 1, &ds, 0, nullptr);
+        ubo->update(gradientData);
+    }
+
+    CRegion clipBox = m_renderData.damage.copy().intersect(newBox);
+    clipBox.subtract(element->m_data.box.copy().expand(-scaledBorderSize - round));
+
+    if (m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0)
+        clipBox.intersect(m_renderData.clipBox);
 
     drawRegionRects(clipBox, cb->vk());
 };
 
 void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
     if (m_hasBoundFB) {
-        const auto& dmg = damage.empty() ? g_pHyprRenderer->m_renderData.damage : damage;
+        const auto& dmg = damage.empty() ? m_renderData.damage : damage;
         if (dmg.empty())
             return;
 
@@ -474,7 +483,7 @@ void CHyprVKRenderer::draw(CClearPassElement* element, const CRegion& damage) {
 
         std::vector<VkClearRect> rects;
         const CBox               max = {{0, 0}, currentRBSize()};
-        g_pHyprRenderer->m_renderData.damage.copy().intersect(max).forEachRect([&](const auto& RECT) {
+        m_renderData.damage.copy().intersect(max).forEachRect([&](const auto& RECT) {
             rects.push_back(VkClearRect{
                 .rect =
                     {
@@ -510,13 +519,13 @@ void CHyprVKRenderer::draw(CFramebufferElement* element, const CRegion& damage) 
 
 void CHyprVKRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
     auto dmg = damage;
-    g_pHyprRenderer->preBlurForCurrentMonitor(&dmg);
+    preBlurForCurrentMonitor(&dmg);
 };
 
 void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     const auto&             data = element->m_data;
 
-    const auto&             vertData = matToVertShader(g_pHyprRenderer->projectBoxToTarget(data.modifiedBox).getMatrix());
+    const auto&             vertData = matToVertShader(projectBoxToTarget(data.modifiedBox).getMatrix());
     const SVkRectShaderData fragData = {
         .color = {data.color.r * data.color.a, data.color.g * data.color.a, data.color.b * data.color.a, data.color.a},
         .rounding =
@@ -543,15 +552,14 @@ void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
 void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
 
 void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
-    element->m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), element->m_data.a);
+    element->m_data.deco->render(m_renderData.pMonitor.lock(), element->m_data.a);
 };
 
 void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     if (element->m_data.blur) {
-        auto el = makeUnique<CTexPassElement>(
-            CTexPassElement::SRenderData{.tex     = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture(),
-                                         .box     = CBox{{0, 0}, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize},
-                                         .clipBox = CBox{element->m_data.pos * g_pHyprRenderer->m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
+        auto el = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex     = m_renderData.pMonitor->m_blurFB->getTexture(),
+                                                                           .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
+                                                                           .clipBox = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
         draw(el.get(), damage);
     }
 
@@ -562,8 +570,8 @@ void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) 
     if (texture->isDMA())
         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
 
-    CBox        box = CBox{element->m_data.pos * g_pHyprRenderer->m_renderData.pMonitor->m_scale, texture->m_size};
-    const auto  mat = g_pHyprRenderer->projectBoxToTarget(box, texture->m_transform).getMatrix();
+    CBox        box = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, texture->m_size};
+    const auto  mat = projectBoxToTarget(box, texture->m_transform).getMatrix();
 
     const auto& vertData = matToVertShader(mat);
 
@@ -612,7 +620,7 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     if (texture->isDMA())
         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
 
-    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box, texture->m_transform).getMatrix();
+    const auto  mat = projectBoxToTarget(element->m_data.box, texture->m_transform).getMatrix();
 
     const auto& vertData = matToVertShader(mat);
 
@@ -671,9 +679,9 @@ void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
     TRACY_GPU_ZONE("RenderTextureMatte");
 
     CBox newBox = element->m_data.box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    m_renderData.renderModif.applyToBox(newBox);
 
-    const auto  mat = g_pHyprRenderer->projectBoxToTarget(element->m_data.box).getMatrix();
+    const auto  mat = projectBoxToTarget(element->m_data.box).getMatrix();
 
     const auto& vertData = matToVertShader(mat);
 
@@ -694,20 +702,20 @@ void CHyprVKRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
 
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
 
-    drawRegionRects(g_pHyprRenderer->m_renderData.damage, cb->vk());
+    drawRegionRects(m_renderData.damage, cb->vk());
 };
 
 void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
     RASSERT(m_renderData.pMonitor, "Tried to render shadow without begin()!");
     RASSERT((box.width > 0 && box.height > 0), "Tried to render shadow with width/height < 0!");
 
-    if (g_pHyprRenderer->m_renderData.damage.empty())
+    if (m_renderData.damage.empty())
         return;
 
     TRACY_GPU_ZONE("RenderShadow");
 
     CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    m_renderData.renderModif.applyToBox(newBox);
 
     static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
     const auto  SHADOWPOWER  = std::clamp(sc<int>(*PSHADOWPOWER), 1, 4);
@@ -717,7 +725,7 @@ void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower
 
     blend(true);
 
-    const auto&               vertData = matToVertShader(g_pHyprRenderer->projectBoxToTarget(newBox).getMatrix());
+    const auto&               vertData = matToVertShader(projectBoxToTarget(newBox).getMatrix());
     const SVkShadowShaderData fragData = {
         .color       = {color.r, color.g, color.b, color.a * a},
         .bottomRight = {BOTTOMRIGHT.x, BOTTOMRIGHT.y},
@@ -741,11 +749,8 @@ void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                       g_pHyprRenderer->m_renderData.clipBox.height};
-    auto    clipBox = g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0 ?
-           damageClip.intersect(g_pHyprRenderer->m_renderData.damage) :
-           g_pHyprRenderer->m_renderData.damage;
+    CRegion damageClip{m_renderData.clipBox.x, m_renderData.clipBox.y, m_renderData.clipBox.width, m_renderData.clipBox.height};
+    auto    clipBox = m_renderData.clipBox.width != 0 && m_renderData.clipBox.height != 0 ? damageClip.intersect(m_renderData.damage) : m_renderData.damage;
 
     clipBox = clipBox.subtract({newBox.x + range, newBox.y + range, newBox.width - range * 2, newBox.height - range * 2});
 
@@ -764,6 +769,19 @@ Vector2D CHyprVKRenderer::currentRBSize() {
     return m_currentBuffer && m_currentBuffer->dmabuf().size.x > 0 && m_currentBuffer->dmabuf().size.y > 0 ? m_currentBuffer->dmabuf().size : m_currentRenderbufferSize;
 }
 
+SP<CVKBorderGradientUBO> CHyprVKRenderer::getGradientForWindow(PHLWINDOWREF window) {
+    std::erase_if(m_borderGradients, [](const auto& it) { return !it.first; });
+    if (!window)
+        return nullptr;
+
+    if (m_borderGradients.contains(window))
+        return m_borderGradients[window];
+
+    auto gradient             = makeShared<CVKBorderGradientUBO>(g_pHyprVulkan->device(), m_currentRenderPass->borderPipeline()->layout()->descriptorSet());
+    m_borderGradients[window] = gradient;
+    return gradient;
+}
+
 SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(CVkPipelineLayout::KEY key) {
     const auto pipeline = std::ranges::find_if(m_pipelineLayouts, [key](const auto layout) { return layout->key() == key; });
     if (pipeline != m_pipelineLayouts.end()) {
@@ -773,6 +791,6 @@ SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(CVkPipelineLayout::K
     return m_pipelineLayouts.emplace_back(makeShared<CVkPipelineLayout>(g_pHyprVulkan->m_device, key));
 }
 
-SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize, uint8_t texCount) {
-    return ensurePipelineLayout({vertSize, fragSize, VK_FILTER_LINEAR, texCount});
+SP<CVkPipelineLayout> CHyprVKRenderer::ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize, uint8_t texCount, uint8_t uboCount) {
+    return ensurePipelineLayout({vertSize, fragSize, VK_FILTER_LINEAR, texCount, uboCount});
 }

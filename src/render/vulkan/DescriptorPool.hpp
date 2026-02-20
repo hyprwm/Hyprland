@@ -5,6 +5,11 @@
 
 class CVKDescriptorPool : IDeviceUser {
   public:
+    enum eDSPoolType : uint8_t {
+        DSP_SAMPLER = 0,
+        DSP_UBO     = 1,
+    };
+
     CVKDescriptorPool(WP<CHyprVulkanDevice> device, VkDescriptorType type, size_t size);
     ~CVKDescriptorPool();
 

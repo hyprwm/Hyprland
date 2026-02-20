@@ -1479,22 +1479,32 @@ void CWindow::onX11ConfigureRequest(CBox box) {
         return;
     }
 
-    if (box.size() > Vector2D{1, 1})
-        setHidden(false);
-    else
-        setHidden(true);
+    if (!m_ruleApplicator->static_.center.has_value() && m_ruleApplicator->static_.position.empty()) {
+        m_realPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
+    } else {
+        Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: window '{}' ({:#x}) requested pos={:.0f},{:.0f} but was rejected due to window rule", m_title, (uintptr_t)this, box.x,
+                         box.y);
+    }
 
-    m_realPosition->setValueAndWarp(xwaylandPositionToReal(box.pos()));
-    m_realSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
+    if (m_ruleApplicator->static_.size.empty()) {
+        if (box.size() > Vector2D{1, 1})
+            setHidden(false);
+        else
+            setHidden(true);
+
+        m_realSize->setValueAndWarp(xwaylandSizeToReal(box.size()));
+    } else {
+        Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: window '{}' ({:#x}) requested size={:.0f},{:.0f} but was rejected due to window rule", m_title, (uintptr_t)this, box.w,
+                         box.h);
+    }
 
     m_position = m_realPosition->goal();
     m_size     = m_realSize->goal();
-
-    if (m_pendingReportedSize != box.size() || m_reportedPosition != box.pos()) {
-        m_xwaylandSurface->configure(box);
-        m_reportedSize        = box.size();
-        m_pendingReportedSize = box.size();
-        m_reportedPosition    = box.pos();
+    if (m_pendingReportedSize != m_size || m_reportedPosition != m_position) {
+        m_xwaylandSurface->configure({m_position, m_size});
+        m_reportedSize        = m_size;
+        m_pendingReportedSize = m_size;
+        m_reportedPosition    = m_position;
     }
 
     updateX11SurfaceScale();

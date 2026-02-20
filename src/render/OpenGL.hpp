@@ -35,13 +35,19 @@
 struct gbm_device;
 class CHyprRenderer;
 
-inline const float fullVerts[] = {
-    1, 0, // top right
-    0, 0, // top left
-    1, 1, // bottom right
-    0, 1, // bottom left
+struct SVertex {
+    float x, y; // position
+    float u, v; // uv
 };
-inline const float fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
+
+constexpr std::array<SVertex, 4> fullVerts = {{
+    {0.0f, 0.0f, 0.0f, 0.0f}, // top-left
+    {0.0f, 1.0f, 0.0f, 1.0f}, // bottom-left
+    {1.0f, 0.0f, 1.0f, 0.0f}, // top-right
+    {1.0f, 1.0f, 1.0f, 1.0f}, // bottom-right
+}};
+
+inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 
 enum eDiscardMode : uint8_t {
     DISCARD_OPAQUE = 1,
@@ -81,23 +87,54 @@ enum eMonitorExtraRenderFBs : uint8_t {
     FB_MONITOR_RENDER_EXTRA_BLUR,
 };
 
+enum ePreparedFragmentShader : uint8_t {
+    SH_FRAG_QUAD = 0,
+    SH_FRAG_PASSTHRURGBA,
+    SH_FRAG_MATTE,
+    SH_FRAG_EXT,
+    SH_FRAG_BLUR1,
+    SH_FRAG_BLUR2,
+    SH_FRAG_CM_BLURPREPARE,
+    SH_FRAG_BLURPREPARE,
+    SH_FRAG_BLURFINISH,
+    SH_FRAG_SHADOW,
+    SH_FRAG_CM_BORDER1,
+    SH_FRAG_BORDER1,
+    SH_FRAG_GLITCH,
+
+    SH_FRAG_LAST,
+};
+
+enum ePreparedFragmentShaderFeature : uint8_t {
+    SH_FEAT_UNKNOWN = 0, // all features just in case
+
+    SH_FEAT_RGBA     = (1 << 0), // RGBA/RGBX texture sampling
+    SH_FEAT_DISCARD  = (1 << 1), // RGBA/RGBX texture sampling
+    SH_FEAT_TINT     = (1 << 2), // uniforms: tint; condition: applyTint
+    SH_FEAT_ROUNDING = (1 << 3), // uniforms: radius, roundingPower, topLeft, fullSize; condition: radius > 0
+    SH_FEAT_CM       = (1 << 4), // uniforms: srcTFRange, dstTFRange, srcRefLuminance, convertMatrix; condition: !skipCM
+    SH_FEAT_TONEMAP  = (1 << 5), // uniforms: maxLuminance, dstMaxLuminance, dstRefLuminance; condition: maxLuminance < dstMaxLuminance * 1.01
+    SH_FEAT_SDR_MOD  = (1 << 6), // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
+
+    // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
+};
+
+struct SFragShaderDesc {
+    ePreparedFragmentShader id;
+    const char*             file;
+};
+
 struct SPreparedShaders {
-    std::string TEXVERTSRC;
-    std::string TEXVERTSRC320;
-    SShader     m_shQUAD;
-    SShader     m_shRGBA;
-    SShader     m_shPASSTHRURGBA;
-    SShader     m_shMATTE;
-    SShader     m_shRGBX;
-    SShader     m_shEXT;
-    SShader     m_shBLUR1;
-    SShader     m_shBLUR2;
-    SShader     m_shBLURPREPARE;
-    SShader     m_shBLURFINISH;
-    SShader     m_shSHADOW;
-    SShader     m_shBORDER1;
-    SShader     m_shGLITCH;
-    SShader     m_shCM;
+    SPreparedShaders() {
+        for (auto& f : frag) {
+            f = makeShared<CShader>();
+        }
+    }
+
+    std::string                           TEXVERTSRC;
+    std::string                           TEXVERTSRC320;
+    std::array<SP<CShader>, SH_FRAG_LAST> frag;
+    std::map<uint8_t, SP<CShader>>        fragVariants;
 };
 
 struct SMonitorRenderData {
@@ -274,16 +311,16 @@ class CHyprOpenGLImpl {
 
     bool                                              initShaders();
 
-    GLuint                                            createProgram(const std::string&, const std::string&, bool dynamic = false, bool silent = false);
-    GLuint                                            compileShader(const GLuint&, std::string, bool dynamic = false, bool silent = false);
-    void                                              useProgram(GLuint prog);
+    WP<CShader>                                       useShader(WP<CShader> prog);
 
     void                                              ensureLockTexturesRendered(bool load);
 
     bool                                              explicitSyncSupported();
+    WP<CShader>                                       getSurfaceShader(uint8_t features);
 
     bool                                              m_shadersInitialized = false;
     SP<SPreparedShaders>                              m_shaders;
+    std::map<std::string, std::string>                m_includes;
 
     SCurrentRenderData                                m_renderData;
 
@@ -324,6 +361,7 @@ class CHyprOpenGLImpl {
         bool EXT_read_format_bgra               = false;
         bool EXT_image_dma_buf_import           = false;
         bool EXT_image_dma_buf_import_modifiers = false;
+        bool KHR_context_flush_control          = false;
         bool KHR_display_reference              = false;
         bool IMG_context_priority               = false;
         bool EXT_create_context_robustness      = false;
@@ -375,13 +413,12 @@ class CHyprOpenGLImpl {
     SP<CTexture>                      m_lockDeadTexture;
     SP<CTexture>                      m_lockDead2Texture;
     SP<CTexture>                      m_lockTtyTextTexture;
-    SShader                           m_finalScreenShader;
+    SP<CShader>                       m_finalScreenShader;
     CTimer                            m_globalTimer;
     GLuint                            m_currentProgram;
     ASP<Hyprgraphics::CImageResource> m_backgroundResource;
     bool                              m_backgroundResourceFailed = false;
 
-    void                              logShaderError(const GLuint&, bool program = false, bool silent = false);
     void                              createBGTextureForMonitor(PHLMONITOR);
     void                              initDRMFormats();
     void                              initEGL(bool gbm);
@@ -403,9 +440,9 @@ class CHyprOpenGLImpl {
     CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
     CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
 
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(SShader&, const NColorManagement::PImageDescription imageDescription);
+    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
     void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

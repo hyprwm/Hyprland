@@ -372,11 +372,11 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
         return ret == 0 && cap != 0;
     };
 
-    if ((m_drm.syncobjSupport = syncObjSupport(m_drm.fd)))
-        Log::logger->log(Log::DEBUG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
+    m_drm.syncobjSupport = syncObjSupport(m_drm.fd);
+    Log::logger->log(Log::DEBUG, "DRM DisplayNode syncobj timeline support: {}", m_drm.syncobjSupport ? "yes" : "no");
 
-    if ((m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd)))
-        Log::logger->log(Log::DEBUG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
+    m_drmRenderNode.syncObjSupport = syncObjSupport(m_drmRenderNode.fd);
+    Log::logger->log(Log::DEBUG, "DRM RenderNode syncobj timeline support: {}", m_drmRenderNode.syncObjSupport ? "yes" : "no");
 
     if (!m_drm.syncobjSupport && !m_drmRenderNode.syncObjSupport)
         Log::logger->log(Log::DEBUG, "DRM no syncobj support, disabling explicit sync");
@@ -482,6 +482,10 @@ void CCompositor::initAllSignals() {
                 Log::logger->log(Log::DEBUG, "Session got activated!");
 
                 m_sessionActive = true;
+
+                // Reset animation tick state to avoid stale timer issues after suspend/wake
+                if (g_pAnimationManager)
+                    g_pAnimationManager->resetTickState();
 
                 for (auto const& m : m_monitors) {
                     scheduleFrameForMonitor(m);
@@ -1034,6 +1038,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
+                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect())
+                    box.expand(BORDER_GRAB_AREA);
                 if (box.containsPoint(pos))
                     return w;
             }
@@ -1179,7 +1185,7 @@ PHLWINDOW CCompositor::getWindowFromSurface(SP<CWLSurfaceResource> pSurface) {
 
     const auto VIEW = pSurface->m_hlSurface->view();
 
-    if (VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
+    if (!VIEW || VIEW->type() != Desktop::View::VIEW_TYPE_WINDOW)
         return nullptr;
 
     return dynamicPointerCast<Desktop::View::CWindow>(VIEW);
@@ -2973,13 +2979,16 @@ PImageDescription CCompositor::getHDRImageDescription() {
     }
 
     return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?
-        CImageDescription::from(SImageDescription{.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                                  .primariesNameSet = true,
-                                                  .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                                  .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                                  .luminances       = {.min       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                                                       .max       = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                                                       .reference = m_monitors[0]->m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}}) :
+        CImageDescription::from(SImageDescription{
+            .transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+            .primariesNameSet    = true,
+            .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+            .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+            .masteringPrimaries  = m_monitors[0]->getMasteringPrimaries(),
+            .luminances          = {.min = m_monitors[0]->minLuminance(HDR_MIN_LUMINANCE), .max = m_monitors[0]->maxLuminance(HDR_MAX_LUMINANCE), .reference = HDR_REF_LUMINANCE},
+            .masteringLuminances = m_monitors[0]->getMasteringLuminances(),
+            .maxCLL              = m_monitors[0]->maxCLL(),
+            .maxFALL             = m_monitors[0]->maxFALL()}) :
         DEFAULT_HDR_IMAGE_DESCRIPTION;
 }
 
@@ -3095,4 +3104,8 @@ std::optional<unsigned int> CCompositor::getVTNr() {
     }
 
     return ttynum;
+}
+
+bool CCompositor::isVRRActiveOnAnyMonitor() const {
+    return std::ranges::any_of(m_monitors, [](const PHLMONITOR& m) { return m->m_vrrActive; });
 }

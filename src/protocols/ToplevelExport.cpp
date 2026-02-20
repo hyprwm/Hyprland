@@ -100,7 +100,9 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     g_pHyprRenderer->makeEGLCurrent();
 
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_shmFormat = NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
+    LOGM(Log::DEBUG, "Format {:x}", m_shmFormat);
+    //m_shmFormat = NFormatUtils::alphaFormat(m_shmFormat);
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(Log::ERR, "No format supported by renderer in capture toplevel");
         m_resource->sendFailed();
@@ -114,7 +116,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(PMONITOR);
+    m_dmabufFormat = NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 
@@ -253,7 +255,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
         return false;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
 
     // render client at 0,0
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
@@ -285,8 +287,6 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    auto glFormat = PFORMAT->flipRB ? GL_BGRA_EXT : GL_RGBA;
-
     auto origin = Vector2D(0, 0);
     switch (PMONITOR->m_transform) {
         case WL_OUTPUT_TRANSFORM_FLIPPED_180:
@@ -308,6 +308,26 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         default: break;
     }
 
+    int glFormat = PFORMAT->glFormat;
+
+    if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
+
+    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
+        if (PFORMAT->swizzle.has_value()) {
+            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
+            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
+            if (PFORMAT->swizzle == RGBA)
+                glFormat = GL_RGBA;
+            else if (PFORMAT->swizzle == BGRA)
+                glFormat = GL_BGRA_EXT;
+            else {
+                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+                glFormat = GL_RGBA;
+            }
+        }
+    }
+
     glReadPixels(origin.x, origin.y, m_box.width, m_box.height, glFormat, PFORMAT->glType, pixelData);
 
     if (overlayCursor) {
@@ -316,6 +336,7 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     }
 
     outFB.unbind();
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
     return true;
@@ -337,7 +358,7 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
     if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer))
         return false;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1.0));
+    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (!m_window->m_ruleApplicator->noScreenShare().valueOrDefault()) {
             g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible

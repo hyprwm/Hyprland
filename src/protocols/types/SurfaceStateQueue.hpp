@@ -15,7 +15,7 @@ class CSurfaceStateQueue {
     WP<SSurfaceState> enqueue(UP<SSurfaceState>&& state);
     void              dropState(const WP<SSurfaceState>& state);
     void              lock(const WP<SSurfaceState>& state, eLockReason reason);
-    void              unlock(const WP<SSurfaceState>& state, eLockReason reason = LOCK_REASON_NONE);
+    void              unlock(const WP<SSurfaceState>& state, eLockReason reason);
     void              unlockFirst(eLockReason reason);
     void              tryProcess();
 

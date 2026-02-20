@@ -176,6 +176,7 @@ CWLSHMResource::CWLSHMResource(UP<CWlShm>&& resource_) : m_resource(std::move(re
     if UNLIKELY (!good())
         return;
 
+    m_resource->setRelease([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
     m_resource->setOnDestroy([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
 
     m_resource->setCreatePool([](CWlShm* r, uint32_t id, int32_t fd, int32_t size) {

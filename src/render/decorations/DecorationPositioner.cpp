@@ -214,29 +214,23 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
                 continue;
             }
 
-            auto desiredSize = 0;
-            if (LEFT)
-                desiredSize = wd->positioningInfo.desiredExtents.topLeft.x;
-            else if (RIGHT)
-                desiredSize = wd->positioningInfo.desiredExtents.bottomRight.x;
-            else if (TOP)
-                desiredSize = wd->positioningInfo.desiredExtents.topLeft.y;
-            else
-                desiredSize = wd->positioningInfo.desiredExtents.bottomRight.y;
+            const auto desiredExtents = wd->positioningInfo.desiredExtents;
 
             const auto EDGEPOINT = getEdgeDefinedPoint(wd->positioningInfo.edges, pWindow);
 
             Vector2D   pos, size;
 
             if (EDGESNO == 4) {
-                pos  = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL + desiredSize, stickyOffsetYT + desiredSize};
-                size = wb.size() + Vector2D{stickyOffsetXL + stickyOffsetXR + desiredSize * 2, stickyOffsetYB + stickyOffsetYT + desiredSize * 2};
+                stickyOffsetXL += desiredExtents.topLeft.x;
+                stickyOffsetXR += desiredExtents.bottomRight.x;
+                stickyOffsetYT += desiredExtents.topLeft.y;
+                stickyOffsetYB += desiredExtents.bottomRight.y;
 
-                stickyOffsetXL += desiredSize;
-                stickyOffsetXR += desiredSize;
-                stickyOffsetYT += desiredSize;
-                stickyOffsetYB += desiredSize;
+                pos  = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYT};
+                size = wb.size() + Vector2D{stickyOffsetXL + stickyOffsetXR, stickyOffsetYB + stickyOffsetYT};
             } else if (LEFT) {
+                const auto desiredSize = desiredExtents.topLeft.x;
+
                 pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, -stickyOffsetYT};
                 pos.x -= desiredSize;
                 size = {sc<double>(desiredSize), wb.size().y + stickyOffsetYB + stickyOffsetYT};
@@ -244,12 +238,16 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
                 if (SOLID)
                     stickyOffsetXL += desiredSize;
             } else if (RIGHT) {
+                const auto desiredSize = desiredExtents.bottomRight.x;
+
                 pos  = wb.pos() + Vector2D{wb.size().x, 0.0} - EDGEPOINT + Vector2D{stickyOffsetXR, -stickyOffsetYT};
                 size = {sc<double>(desiredSize), wb.size().y + stickyOffsetYB + stickyOffsetYT};
 
                 if (SOLID)
                     stickyOffsetXR += desiredSize;
             } else if (TOP) {
+                const auto desiredSize = desiredExtents.topLeft.y;
+
                 pos = wb.pos() - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYT};
                 pos.y -= desiredSize;
                 size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, sc<double>(desiredSize)};
@@ -257,6 +255,8 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
                 if (SOLID)
                     stickyOffsetYT += desiredSize;
             } else {
+                const auto desiredSize = desiredExtents.bottomRight.y;
+
                 pos  = wb.pos() + Vector2D{0.0, wb.size().y} - EDGEPOINT - Vector2D{stickyOffsetXL, stickyOffsetYB};
                 size = {wb.size().x + stickyOffsetXL + stickyOffsetXR, sc<double>(desiredSize)};
 

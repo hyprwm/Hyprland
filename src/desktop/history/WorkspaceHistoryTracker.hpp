@@ -32,21 +32,19 @@ namespace Desktop::History {
         SWorkspaceIDName              previousWorkspaceIDName(PHLWORKSPACE ws, PHLMONITOR restrict);
 
       private:
-        struct SMonitorData {
+        struct SLastWorkspaceData {
             PHLMONITORREF   monitor;
             PHLWORKSPACEREF workspace;
             std::string     workspaceName = "";
             WORKSPACEID     workspaceID   = WORKSPACE_INVALID;
-        };
+        } m_lastWorkspaceData;
 
         std::vector<SWorkspacePreviousData> m_datas;
-        std::vector<SMonitorData>           m_monitorDatas;
 
         void                                track(PHLWORKSPACE w);
-        void                                track(PHLMONITOR mon);
         void                                gc();
+        void                                setLastWorkspaceData(PHLWORKSPACE w);
 
-        SMonitorData&                       dataFor(PHLMONITOR mon);
         SWorkspacePreviousData&             dataFor(PHLWORKSPACE ws);
     };
 

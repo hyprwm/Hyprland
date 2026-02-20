@@ -35,9 +35,9 @@ struct SXTransfer {
 
     xcb_selection_request_event_t  request;
 
-    int                            propertyStart;
-    xcb_get_property_reply_t*      propertyReply;
-    xcb_window_t                   incomingWindow;
+    int                            propertyStart  = 0;
+    xcb_get_property_reply_t*      propertyReply  = nullptr;
+    xcb_window_t                   incomingWindow = 0;
 
     bool                           getIncomingSelectionProp(bool erase);
 };
@@ -54,6 +54,7 @@ struct SXSelection {
     bool             sendData(xcb_selection_request_event_t* e, std::string mime);
     int              onRead(int fd, uint32_t mask);
     int              onWrite();
+    void             removeTransfer(xcb_window_t window);
 
     struct {
         CHyprSignalListener setSelection;
@@ -163,6 +164,8 @@ class CXWM {
     void         handleFocusIn(xcb_focus_in_event_t* e);
     void         handleFocusOut(xcb_focus_out_event_t* e);
     void         handleError(xcb_value_error_t* e);
+
+    void         removeTransfersForWindow(xcb_window_t window);
 
     bool         handleSelectionEvent(xcb_generic_event_t* e);
     void         handleSelectionNotify(xcb_selection_notify_event_t* e);

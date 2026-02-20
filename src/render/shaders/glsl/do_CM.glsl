@@ -1,0 +1,1 @@
+pixColor = doColorManagement(pixColor, sourceTF, targetTF, targetPrimariesXYZ);

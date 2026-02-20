@@ -73,14 +73,22 @@ void CTexture::createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t strid
     setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
+
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
     }
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
     GLCALL(glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, size_.x, size_.y, 0, format->glFormat, format->glType, pixels));
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
+
     unbind();
 
     if (m_keepDataCopy) {
@@ -96,10 +104,18 @@ void CTexture::createFromDma(const Aquamarine::SDMABUFAttrs& attrs, void* image)
     }
 
     m_opaque = NFormatUtils::isFormatOpaque(attrs.format);
+
+    // #TODO external only formats should be external aswell.
+    // also needs a seperate color shader.
+    /*if (NFormatUtils::isFormatYUV(attrs.format)) {
+        m_target = GL_TEXTURE_EXTERNAL_OES;
+        m_type   = TEXTURE_EXTERNAL;
+    } else {*/
     m_target = GL_TEXTURE_2D;
-    m_type   = TEXTURE_RGBA;
-    m_size   = attrs.size;
     m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
+    //}
+
+    m_size = attrs.size;
     allocate();
     m_eglImage = image;
 
@@ -121,13 +137,19 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
 
     bind();
 
-    if (format->flipRB) {
-        setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-        setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    if (format->swizzle.has_value())
+        swizzle(format->swizzle.value());
+
+    bool alignmentChanged = false;
+    if (format->bytesPerBlock != 4) {
+        const GLint alignment = (stride % 4 == 0) ? 4 : 1;
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, alignment));
+        alignmentChanged = true;
     }
 
-    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &stride, &pixels](const auto& rect) {
-        GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+    GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, stride / format->bytesPerBlock));
+
+    damage.copy().intersect(CBox{{}, m_size}).forEachRect([&format, &pixels](const auto& rect) {
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, rect.x1));
         GLCALL(glPixelStorei(GL_UNPACK_SKIP_ROWS_EXT, rect.y1));
 
@@ -135,6 +157,9 @@ void CTexture::update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, cons
         int height = rect.y2 - rect.y1;
         GLCALL(glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x1, rect.y1, width, height, format->glFormat, format->glType, pixels));
     });
+
+    if (alignmentChanged)
+        GLCALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
 
     GLCALL(glPixelStorei(GL_UNPACK_ROW_LENGTH_EXT, 0));
     GLCALL(glPixelStorei(GL_UNPACK_SKIP_PIXELS_EXT, 0));
@@ -204,4 +229,11 @@ void CTexture::setTexParameter(GLenum pname, GLint param) {
 
     m_cachedStates[idx] = param;
     GLCALL(glTexParameteri(m_target, pname, param));
+}
+
+void CTexture::swizzle(const std::array<GLint, 4>& colors) {
+    setTexParameter(GL_TEXTURE_SWIZZLE_R, colors.at(0));
+    setTexParameter(GL_TEXTURE_SWIZZLE_G, colors.at(1));
+    setTexParameter(GL_TEXTURE_SWIZZLE_B, colors.at(2));
+    setTexParameter(GL_TEXTURE_SWIZZLE_A, colors.at(3));
 }

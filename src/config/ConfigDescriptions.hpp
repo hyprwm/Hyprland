@@ -1116,6 +1116,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{0, -20, 20},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:text_padding",
+        .description = "set horizontal padding for a text",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 22},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:blur",
         .description = "enable background blur for groupbars",
         .type        = CONFIG_OPTION_BOOL,
@@ -1567,6 +1573,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{0, "default,gamma22,gamma22force,srgb"},
     },
+    SConfigOptionDescription{
+        .value       = "render:commit_timing_enabled",
+        .description = "Enable commit timing proto. Requires restart",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
 
     /*
      * cursor:
@@ -1747,6 +1759,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SBoolData{false},
     },
     SConfigOptionDescription{
+        .value       = "debug:gl_debugging",
+        .description = "enable OpenGL debugging and error checking, they hurt performance.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
         .value       = "debug:disable_logs",
         .description = "disable logging to a file",
         .type        = CONFIG_OPTION_BOOL,
@@ -1821,6 +1839,30 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     SConfigOptionDescription{
         .value       = "debug:full_cm_proto",
         .description = "claims support for all cm proto features (requires restart)",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:ds_handle_same_buffer",
+        .description = "Special case for DS with unmodified buffer",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:ds_handle_same_buffer_fifo",
+        .description = "Special case for DS with unmodified buffer unlocks fifo",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:fifo_pending_workaround",
+        .description = "Fifo workaround for empty pending list",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+    SConfigOptionDescription{
+        .value       = "debug:render_solitary_wo_damage",
+        .description = "Render solitary window with empty damage",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },
@@ -2010,6 +2052,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",
         .type        = CONFIG_OPTION_INT,
         .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 2},
+    },
+    SConfigOptionDescription{
+        .value       = "quirks:skip_non_kms_dmabuf_formats",
+        .description = "Do not report dmabuf formats which cannot be imported into KMS",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
     },
 
 };

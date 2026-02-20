@@ -11,7 +11,7 @@ in {
         jq
         kitty
         wl-clipboard
-        xorg.xeyes
+        xeyes
       ];
 
       # Enabled by default for some reason

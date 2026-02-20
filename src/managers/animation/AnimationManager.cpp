@@ -198,7 +198,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     }
 
     // manually schedule a frame
-    if (PMONITOR)
+    if (PMONITOR && !PMONITOR->inFullscreenMode())
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 
@@ -215,6 +215,9 @@ void CHyprAnimationManager::tick() {
         for (const auto& PAV : CPY) {
             if (!PAV)
                 continue;
+
+            // lock this value while we are doing handleUpdate to avoid a UAF if an update callback destroys it
+            const auto LOCK = PAV.lock();
 
             // for disabled anims just warp
             bool warp = !*PANIMENABLED || !PAV->enabled();
@@ -249,8 +252,8 @@ void CHyprAnimationManager::frameTick() {
     if (!shouldTickForNext())
         return;
 
-    if (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
-        !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
+    if UNLIKELY (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
+                 !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
         return;
 
     if (!m_lastTickValid || m_lastTickTimer.getMillis() >= 1.0f) {
@@ -280,6 +283,11 @@ void CHyprAnimationManager::scheduleTick() {
 }
 
 void CHyprAnimationManager::onTicked() {
+    m_tickScheduled = false;
+}
+
+void CHyprAnimationManager::resetTickState() {
+    m_lastTickValid = false;
     m_tickScheduled = false;
 }
 

@@ -39,6 +39,7 @@
 #include "../managers/input/trackpad/gestures/CloseGesture.hpp"
 #include "../managers/input/trackpad/gestures/FloatGesture.hpp"
 #include "../managers/input/trackpad/gestures/FullscreenGesture.hpp"
+#include "../managers/input/trackpad/gestures/CursorZoomGesture.hpp"
 
 #include "../managers/HookSystemManager.hpp"
 #include "../protocols/types/ContentType.hpp"
@@ -399,6 +400,12 @@ static Hyprlang::CParseResult handleWindowrule(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleWindowrulev2(const char* c, const char* v) {
+    Hyprlang::CParseResult res;
+    res.setError("windowrulev2 is deprecated. Correct syntax can be found on the wiki.");
+    return res;
+}
+
 static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -409,6 +416,12 @@ static Hyprlang::CParseResult handleLayerrule(const char* c, const char* v) {
     if (RESULT.has_value())
         result.setError(RESULT.value().c_str());
     return result;
+}
+
+static Hyprlang::CParseResult handleLayerrulev2(const char* c, const char* v) {
+    Hyprlang::CParseResult res;
+    res.setError("layerrulev2 doesn't exist. Correct syntax can be found on the wiki.");
+    return res;
 }
 
 void CConfigManager::registerConfigVar(const char* name, const Hyprlang::INT& val) {
@@ -541,12 +554,14 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:gaps_in", Hyprlang::INT{2});
     registerConfigVar("group:groupbar:keep_upper_gap", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:text_offset", Hyprlang::INT{0});
+    registerConfigVar("group:groupbar:text_padding", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:blur", Hyprlang::INT{0});
 
     registerConfigVar("debug:log_damage", Hyprlang::INT{0});
     registerConfigVar("debug:overlay", Hyprlang::INT{0});
     registerConfigVar("debug:damage_blink", Hyprlang::INT{0});
     registerConfigVar("debug:pass", Hyprlang::INT{0});
+    registerConfigVar("debug:gl_debugging", Hyprlang::INT{0});
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});
     registerConfigVar("debug:disable_time", Hyprlang::INT{1});
     registerConfigVar("debug:enable_stdout_logs", Hyprlang::INT{0});
@@ -558,6 +573,10 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:disable_scale_checks", Hyprlang::INT{0});
     registerConfigVar("debug:colored_stdout_logs", Hyprlang::INT{1});
     registerConfigVar("debug:full_cm_proto", Hyprlang::INT{0});
+    registerConfigVar("debug:ds_handle_same_buffer", Hyprlang::INT{1});
+    registerConfigVar("debug:ds_handle_same_buffer_fifo", Hyprlang::INT{1});
+    registerConfigVar("debug:fifo_pending_workaround", Hyprlang::INT{0});
+    registerConfigVar("debug:render_solitary_wo_damage", Hyprlang::INT{0});
 
     registerConfigVar("decoration:rounding", Hyprlang::INT{0});
     registerConfigVar("decoration:rounding_power", {2.F});
@@ -766,12 +785,14 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
+    registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
+    registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});
 
     // devices
     m_config->addSpecialCategory("device", {"name"});
@@ -870,6 +891,10 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handlePermission, "permission", {false});
     m_config->registerHandler(&::handleGesture, "gesture", {true});
     m_config->registerHandler(&::handleEnv, "env", {true});
+
+    // windowrulev2 and layerrulev2 errors
+    m_config->registerHandler(&::handleWindowrulev2, "windowrulev2", {false});
+    m_config->registerHandler(&::handleLayerrulev2, "layerrulev2", {false});
 
     // pluginza
     m_config->addSpecialCategory("plugin", {nullptr, true});
@@ -1766,24 +1791,41 @@ void CConfigManager::ensureVRR(PHLMONITOR pMonitor) {
             }
             m->m_vrrActive = false;
             return;
-        } else if (USEVRR == 1) {
-            if (!m->m_vrrActive) {
-                m->m_output->state->resetExplicitFences();
-                m->m_output->state->setAdaptiveSync(true);
+        }
 
-                if (!m->m_state.test()) {
-                    Log::logger->log(Log::DEBUG, "Pending output {} does not accept VRR.", m->m_output->name);
-                    m->m_output->state->setAdaptiveSync(false);
+        const auto PWORKSPACE = m->m_activeWorkspace;
+
+        if (USEVRR == 1) {
+            bool wantVRR = true;
+            if (PWORKSPACE && PWORKSPACE->m_hasFullscreenWindow && (PWORKSPACE->m_fullscreenMode & FSMODE_FULLSCREEN))
+                wantVRR = !PWORKSPACE->getFullscreenWindow()->m_ruleApplicator->noVRR().valueOrDefault();
+
+            if (wantVRR) {
+                if (!m->m_vrrActive) {
+                    m->m_output->state->resetExplicitFences();
+                    m->m_output->state->setAdaptiveSync(true);
+
+                    if (!m->m_state.test()) {
+                        Log::logger->log(Log::DEBUG, "Pending output {} does not accept VRR.", m->m_output->name);
+                        m->m_output->state->setAdaptiveSync(false);
+                    }
+
+                    if (!m->m_state.commit())
+                        Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
                 }
+                m->m_vrrActive = true;
+            } else {
+                if (m->m_vrrActive) {
+                    m->m_output->state->resetExplicitFences();
+                    m->m_output->state->setAdaptiveSync(false);
 
-                if (!m->m_state.commit())
-                    Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> true", m->m_output->name);
+                    if (!m->m_state.commit())
+                        Log::logger->log(Log::ERR, "Couldn't commit output {} in ensureVRR -> false", m->m_output->name);
+                }
+                m->m_vrrActive = false;
             }
-            m->m_vrrActive = true;
             return;
         } else if (USEVRR == 2 || USEVRR == 3) {
-            const auto PWORKSPACE = m->m_activeWorkspace;
-
             if (!PWORKSPACE)
                 return; // ???
 
@@ -2821,7 +2863,7 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
     if (mode == PERMISSION_RULE_ALLOW_MODE_UNKNOWN)
         return "unknown permission allow mode";
 
-    if (m_isFirstLaunch)
+    if (m_isFirstLaunch && g_pDynamicPermissionManager)
         g_pDynamicPermissionManager->addConfigPermissionRule(std::string(data[0]), type, mode);
 
     return {};
@@ -2896,7 +2938,10 @@ std::optional<std::string> CConfigManager::handleGesture(const std::string& comm
     else if (data[startDataIdx] == "fullscreen")
         result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(std::string{data[startDataIdx + 1]}), fingerCount, direction, modMask, deltaScale,
                                                  disableInhibit);
-    else if (data[startDataIdx] == "unset")
+    else if (data[startDataIdx] == "cursorZoom") {
+        result = g_pTrackpadGestures->addGesture(makeUnique<CCursorZoomTrackpadGesture>(std::string{data[startDataIdx + 1]}, std::string{data[startDataIdx + 2]}), fingerCount,
+                                                 direction, modMask, deltaScale, disableInhibit);
+    } else if (data[startDataIdx] == "unset")
         result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
     else
         return std::format("Invalid gesture: {}", data[startDataIdx]);
@@ -3000,7 +3045,7 @@ bool CConfigManager::shouldUseSoftwareCursors(PHLMONITOR pMonitor) {
     switch (*PNOHW) {
         case 0: return false;
         case 1: return true;
-        case 2: return g_pHyprRenderer->isNvidia() && g_pHyprRenderer->isMgpu();
+        case 2: return g_pHyprRenderer->isNvidia() && (g_pHyprRenderer->isMgpu() || g_pCompositor->isVRRActiveOnAnyMonitor());
         default: break;
     }
 

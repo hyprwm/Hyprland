@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<protocol name="hyprpaper_core" version="1">
+<protocol name="hyprpaper_core" version="2">
   <copyright>
     BSD 3-Clause License
 
@@ -31,7 +31,7 @@
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   </copyright>
 
-  <object name="hyprpaper_core_manager" version="1">
+  <object name="hyprpaper_core_manager" version="2">
     <description summary="manager object">
       This is the core manager object for hyprpaper operations
     </description>
@@ -61,6 +61,13 @@
       <description summary="Destroy this object">
         Destroys this object. Children remain alive until destroyed.
       </description>
+    </c2s>
+
+    <c2s name="get_status_object" since="2">
+      <description summary="Get a status object">
+        Creates a status object
+      </description>
+      <returns iface="hyprpaper_status"/>
     </c2s>
   </object>
 
@@ -133,6 +140,27 @@
         Wallpaper was not applied. See the error field for more information.
       </description>
       <arg name="error" type="enum" interface="hyprpaper_wallpaper_application_error" summary="path"/>
+    </s2c>
+
+    <c2s name="destroy" destructor="true">
+      <description summary="Destroy this object">
+        Destroys this object.
+      </description>
+    </c2s>
+  </object>
+
+  <object name="hyprpaper_status" version="2">
+    <description summary="status object">
+      This is an object which will emit various status updates.
+    </description>
+    
+    <s2c name="active_wallpaper">
+      <description summary="Active wallpaper state">
+        Sends the active wallpaper for a given monitor. This will be emitted
+        immediately after binding, and then every time the path changes.
+      </description>
+      <arg name="monitor" type="varchar" summary="monitor name"/>
+      <arg name="path" type="varchar" summary="wallpaper path"/>
     </s2c>
 
     <c2s name="destroy" destructor="true">

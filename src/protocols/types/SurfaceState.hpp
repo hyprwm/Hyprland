@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
+#include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
 
@@ -48,6 +50,7 @@ struct SSurfaceState {
             bool acquire : 1;
             bool acked : 1;
             bool frame : 1;
+            bool fifo : 1;
         } bits;
     } updated;
 
@@ -87,6 +90,15 @@ struct SSurfaceState {
     // texture of surface content, used for rendering
     SP<CTexture> texture;
     void         updateSynchronousTexture(SP<CTexture> lastTexture);
+
+    // fifo
+    bool barrierSet    = false;
+    bool surfaceLocked = false;
+    bool fifoScheduled = false;
+
+    // commit timing
+    std::optional<Time::steady_dur> pendingTimeout;
+    SP<CEventLoopTimer>             timer;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

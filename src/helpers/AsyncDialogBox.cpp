@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <unistd.h>
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../desktop/rule/windowRule/WindowRule.hpp"
+#include "../desktop/rule/Engine.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -119,6 +121,9 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
 
     m_selfReference = m_selfWeakReference.lock();
 
+    if (!m_execRuleToken.empty())
+        proc.addEnv(Desktop::Rule::EXEC_RULE_ENV_NAME, m_execRuleToken);
+
     if (!proc.runAsync()) {
         Log::logger->log(Log::ERR, "CAsyncDialogBox::open: failed to run async");
         wl_event_source_remove(m_readEventSource);
@@ -153,4 +158,10 @@ pid_t CAsyncDialogBox::getPID() const {
 
 SP<CAsyncDialogBox> CAsyncDialogBox::lockSelf() {
     return m_selfWeakReference.lock();
+}
+
+void CAsyncDialogBox::setExecRule(std::string&& s) {
+    auto rule       = Desktop::Rule::CWindowRule::buildFromExecString(std::move(s));
+    m_execRuleToken = rule->execToken();
+    Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
 }

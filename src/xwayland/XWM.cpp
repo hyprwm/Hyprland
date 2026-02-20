@@ -33,6 +33,8 @@ static int       onX11Event(int fd, uint32_t mask, void* data) {
     return g_pXWayland->m_wm->onEvent(fd, mask);
 }
 
+static int writeDataSource(int fd, uint32_t mask, void* data);
+
 struct SFreeDeleter {
     void operator()(void* ptr) const {
         std::free(ptr); // NOLINT(cppcoreguidelines-no-malloc)
@@ -66,6 +68,8 @@ void CXWM::handleCreate(xcb_create_notify_event_t* e) {
 }
 
 void CXWM::handleDestroy(xcb_destroy_notify_event_t* e) {
+    removeTransfersForWindow(e->window);
+
     const auto XSURF = windowForXID(e->window);
 
     if (!XSURF)
@@ -341,14 +345,17 @@ void CXWM::readProp(SP<CXWaylandSurface> XSURF, uint32_t atom, xcb_get_property_
 void CXWM::handlePropertyNotify(xcb_property_notify_event_t* e) {
     const auto XSURF = windowForXID(e->window);
 
-    if (!XSURF)
+    if (!XSURF) {
+        removeTransfersForWindow(e->window);
         return;
+    }
 
     xcb_get_property_cookie_t             cookie = xcb_get_property(getConnection(), 0, XSURF->m_xID, e->atom, XCB_ATOM_ANY, 0, 2048);
     XCBReplyPtr<xcb_get_property_reply_t> reply(xcb_get_property_reply(getConnection(), cookie, nullptr));
 
     if (!reply) {
-        Log::logger->log(Log::ERR, "[xwm] Failed to read property notify cookie");
+        Log::logger->log(Log::ERR, "[xwm] Failed to read property notify cookie for window {}", e->window);
+        removeTransfersForWindow(e->window);
         return;
     }
 
@@ -643,19 +650,33 @@ void CXWM::handleSelectionNotify(xcb_selection_notify_event_t* e) {
 }
 
 bool CXWM::handleSelectionPropertyNotify(xcb_property_notify_event_t* e) {
-    if (e->state != XCB_PROPERTY_DELETE)
-        return false;
-
-    for (auto* sel : {&m_clipboard, &m_primarySelection}) {
+    for (auto* sel : {&m_clipboard, &m_primarySelection, &m_dndSelection}) {
         auto it = std::ranges::find_if(sel->transfers, [e](const auto& t) { return t->incomingWindow == e->window; });
-        if (it != sel->transfers.end()) {
-            if (!(*it)->getIncomingSelectionProp(true)) {
-                sel->transfers.erase(it);
-                return false;
+        if (it == sel->transfers.end())
+            continue;
+
+        auto& transfer = *it;
+
+        if (e->state == XCB_PROPERTY_NEW_VALUE) {
+            if (!transfer->incremental) {
+                getTransferData(*sel);
+                return true;
             }
+
+            if (!transfer->getIncomingSelectionProp(true) || xcb_get_property_value_length(transfer->propertyReply) == 0) {
+                sel->transfers.erase(it);
+                return true;
+            }
+
+            int result = sel->onWrite();
+
+            if (result == 1 && !transfer->eventSource) {
+                transfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, transfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, sel);
+            }
+        } else if (e->state == XCB_PROPERTY_DELETE) {
             getTransferData(*sel);
-            return true;
         }
+        return true;
     }
 
     return false;
@@ -1069,8 +1090,8 @@ void CXWM::sendState(SP<CXWaylandSurface> surf) {
     if (surf->m_fullscreen)
         props.push_back(HYPRATOMS["_NET_WM_STATE_FULLSCREEN"]);
     if (surf->m_maximized) {
-        props.push_back(HYPRATOMS["NET_WM_STATE_MAXIMIZED_VERT"]);
-        props.push_back(HYPRATOMS["NET_WM_STATE_MAXIMIZED_HORZ"]);
+        props.push_back(HYPRATOMS["_NET_WM_STATE_MAXIMIZED_VERT"]);
+        props.push_back(HYPRATOMS["_NET_WM_STATE_MAXIMIZED_HORZ"]);
     }
     if (surf->m_minimized)
         props.push_back(HYPRATOMS["_NET_WM_STATE_HIDDEN"]);
@@ -1315,20 +1336,23 @@ void CXWM::getTransferData(SXSelection& sel) {
         return;
     }
 
-    const size_t transferIndex = std::distance(sel.transfers.begin(), it);
-    int          writeResult   = sel.onWrite();
+    // Store window ID before onWrite() - transfer may be erased during the call
+    const xcb_window_t targetWindow = transfer->incomingWindow;
+    int                writeResult  = sel.onWrite();
 
     if (writeResult != 1)
         return;
 
-    if (transferIndex >= sel.transfers.size())
+    // Re-find the transfer by window ID (safe after potential vector modification)
+    auto updatedIt = std::ranges::find_if(sel.transfers, [targetWindow](const auto& t) { return t->incomingWindow == targetWindow; });
+    if (updatedIt == sel.transfers.end())
         return;
 
-    Hyprutils::Memory::CUniquePointer<SXTransfer>& updatedTransfer = sel.transfers[transferIndex];
+    auto& updatedTransfer = *updatedIt;
     if (!updatedTransfer)
         return;
 
-    if (updatedTransfer->eventSource && updatedTransfer->wlFD.get() == -1)
+    if (updatedTransfer->eventSource || updatedTransfer->wlFD.get() == -1)
         return;
 
     updatedTransfer->eventSource = wl_event_loop_add_fd(g_pCompositor->m_wlEventLoop, updatedTransfer->wlFD.get(), WL_EVENT_WRITABLE, ::writeDataSource, &sel);
@@ -1607,14 +1631,30 @@ int SXSelection::onWrite() {
         Log::logger->log(Log::DEBUG, "[xwm] cb transfer to wl client complete, read {} bytes", len);
         if (!transfer->incremental) {
             transfers.erase(it);
+            return 0;
         } else {
             free(transfer->propertyReply); // NOLINT(cppcoreguidelines-no-malloc)
             transfer->propertyReply = nullptr;
             transfer->propertyStart = 0;
+            if (transfer->eventSource) {
+                wl_event_source_remove(transfer->eventSource);
+                transfer->eventSource = nullptr;
+            }
+            return 0;
         }
     }
 
     return 1;
+}
+
+void SXSelection::removeTransfer(xcb_window_t window) {
+    std::erase_if(transfers, [window](const auto& t) { return t->incomingWindow == window; });
+}
+
+void CXWM::removeTransfersForWindow(xcb_window_t window) {
+    m_clipboard.removeTransfer(window);
+    m_primarySelection.removeTransfer(window);
+    m_dndSelection.removeTransfer(window);
 }
 
 SXTransfer::~SXTransfer() {

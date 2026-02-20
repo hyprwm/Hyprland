@@ -59,6 +59,10 @@ CHLBufferReference::CHLBufferReference(const CHLBufferReference& other) : m_buff
         m_buffer->lock();
 }
 
+CHLBufferReference::CHLBufferReference(CHLBufferReference&& other) noexcept : m_buffer(std::move(other.m_buffer)) {
+    ;
+}
+
 CHLBufferReference::CHLBufferReference(SP<IHLBuffer> buffer_) : m_buffer(buffer_) {
     if (m_buffer)
         m_buffer->lock();
@@ -70,11 +74,24 @@ CHLBufferReference::~CHLBufferReference() {
 }
 
 CHLBufferReference& CHLBufferReference::operator=(const CHLBufferReference& other) {
+    if (m_buffer == other.m_buffer)
+        return *this; // same buffer, do nothing
+
     if (other.m_buffer)
         other.m_buffer->lock();
     if (m_buffer)
         m_buffer->unlock();
     m_buffer = other.m_buffer;
+    return *this;
+}
+
+CHLBufferReference& CHLBufferReference::operator=(CHLBufferReference&& other) {
+    if (this != &other) {
+        if (m_buffer)
+            m_buffer->unlock();
+        m_buffer       = other.m_buffer;
+        other.m_buffer = nullptr;
+    }
     return *this;
 }
 

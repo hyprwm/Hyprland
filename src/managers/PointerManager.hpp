@@ -48,6 +48,7 @@ class CPointerManager {
     void lockSoftwareAll();
     void unlockSoftwareAll();
     bool softwareLockedFor(PHLMONITOR pMonitor);
+    bool hasVisibleHWCursor(PHLMONITOR pMonitor);
 
     void renderSoftwareCursorsFor(PHLMONITOR pMonitor, const Time::steady_tp& now, CRegion& damage /* logical */, std::optional<Vector2D> overridePos = {} /* monitor-local */,
                                   bool forceRender = false);
@@ -55,14 +56,11 @@ class CPointerManager {
     // this is needed e.g. during screensharing where
     // the software cursors aren't locked during the cursor move, but they
     // are rendered later.
-    void damageCursor(PHLMONITOR pMonitor);
+    void damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule = false);
 
     //
     Vector2D position();
     Vector2D cursorSizeLogical();
-    void     storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
-    void     sendStoredMovement();
 
     void     recheckEnteredOutputs();
 
@@ -153,10 +151,6 @@ class CPointerManager {
     } m_currentCursorImage; // TODO: support various sizes per-output so we can have pixel-perfect cursors
 
     Vector2D m_pointerPos = {0, 0};
-
-    uint64_t m_storedTime    = 0;
-    Vector2D m_storedDelta   = {0, 0};
-    Vector2D m_storedUnaccel = {0, 0};
 
     struct SMonitorPointerState {
         SMonitorPointerState(const PHLMONITOR& m) : monitor(m) {}

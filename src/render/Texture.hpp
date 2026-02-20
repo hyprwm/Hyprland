@@ -37,6 +37,7 @@ class CTexture {
     void                        bind();
     void                        unbind();
     void                        setTexParameter(GLenum pname, GLint param);
+    void                        swizzle(const std::array<GLint, 4>& colors);
 
     eTextureType                m_type          = TEXTURE_RGBA;
     GLenum                      m_target        = GL_TEXTURE_2D;
@@ -47,6 +48,9 @@ class CTexture {
     bool                        m_opaque        = false;
     uint32_t                    m_drmFormat     = 0; // for shm
     bool                        m_isSynchronous = false;
+
+    GLenum                      magFilter = GL_LINEAR; // useNearestNeighbor overwrites these
+    GLenum                      minFilter = GL_LINEAR;
 
   private:
     enum eTextureParam : uint8_t {

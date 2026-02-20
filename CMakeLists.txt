@@ -243,7 +243,7 @@ configure_file(
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERATED TRUE)
 
 set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
-set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.90)
+set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.91)
 set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
 set(LIBINPUT_MINIMUM_VERSION 1.28)
 
@@ -298,26 +298,28 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
   endif()
 
-  if(USE_TRACY)
-    message(STATUS "Tracy is turned on")
-
-    option(TRACY_ENABLE "" ON)
-    option(TRACY_ON_DEMAND "" ON)
-    add_subdirectory(subprojects/tracy)
-
-    target_link_libraries(hyprland_lib PUBLIC Tracy::TracyClient)
-
-    if(USE_TRACY_GPU)
-      message(STATUS "Tracy GPU Profiling is turned on")
-      add_compile_definitions(USE_TRACY_GPU)
-    endif()
-  endif()
-
   add_compile_options(-fno-pie -fno-builtin)
   add_link_options(-no-pie -fno-builtin)
   if(USE_GPROF)
     add_compile_options(-pg)
     add_link_options(-pg)
+  endif()
+endif()
+
+if(USE_TRACY)
+  message(STATUS "Tracy is turned on")
+
+  option(TRACY_ENABLE "" ON)
+  option(TRACY_ON_DEMAND "" ON)
+  add_subdirectory(subprojects/tracy)
+
+  add_compile_options(-fno-omit-frame-pointer)
+
+  target_link_libraries(hyprland_lib PUBLIC Tracy::TracyClient)
+
+  if(USE_TRACY_GPU)
+    message(STATUS "Tracy GPU Profiling is turned on")
+    add_compile_definitions(USE_TRACY_GPU)
   endif()
 endif()
 
@@ -474,7 +476,11 @@ function(protocolWayland)
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
 
-target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+if(TARGET OpenGL::GL)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+else()
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
+endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
 if(hyprland_protocols_dep_FOUND)

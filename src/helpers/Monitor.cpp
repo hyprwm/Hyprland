@@ -50,7 +50,7 @@ using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, g_pConfigManager->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
@@ -114,10 +114,12 @@ void CMonitor::onConnect(bool noRule) {
             ts = nullptr;
         }
 
-        if (!ts)
-            PROTO::presentation->onPresented(m_self.lock(), Time::steadyNow(), event.refresh, event.seq, event.flags);
-        else
-            PROTO::presentation->onPresented(m_self.lock(), Time::fromTimespec(event.when), event.refresh, event.seq, event.flags);
+        if (!ts) {
+            timespec mono{};
+            clock_gettime(CLOCK_MONOTONIC, &mono);
+            PROTO::presentation->onPresented(m_self.lock(), mono, event.refresh, event.seq, event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
+        } else
+            PROTO::presentation->onPresented(m_self.lock(), *ts, event.refresh, event.seq, event.flags);
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;
@@ -411,7 +413,6 @@ void CMonitor::onDisconnect(bool destroy) {
         m_layerSurfaceLayers[i].clear();
     }
 
-    std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
     Log::logger->log(Log::DEBUG, "Removed monitor {}!", m_name);
 
     if (!BACKUPMON) {
@@ -463,7 +464,7 @@ void CMonitor::onDisconnect(bool destroy) {
         PHLMONITOR pMonitorMostHz = nullptr;
 
         for (auto const& m : g_pCompositor->m_monitors) {
-            if (m->m_refreshRate > mostHz) {
+            if (m->m_refreshRate > mostHz && m != m_self) {
                 pMonitorMostHz = m;
                 mostHz         = m->m_refreshRate;
             }
@@ -471,6 +472,8 @@ void CMonitor::onDisconnect(bool destroy) {
 
         g_pHyprRenderer->m_mostHzMonitor = pMonitorMostHz;
     }
+
+    std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
 void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
@@ -479,70 +482,87 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, int cmSdrEotf) {
     auto        chosenSdrEotf       = cmSdrEotf == 0 ? (*PSDREOTF != 3 ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB) :
                                                        (cmSdrEotf == 1 ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 
+    const auto  masteringPrimaries                                                        = getMasteringPrimaries();
+    const NColorManagement::SImageDescription::SPCMasteringLuminances masteringLuminances = getMasteringLuminances();
+
+    const auto                                                        maxFALL = this->maxFALL();
+    const auto                                                        maxCLL  = this->maxCLL();
+
     switch (cmType) {
         case NCMType::CM_SRGB: m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf}); break; // assumes SImageDescription defaults to sRGB
         case NCMType::CM_WIDE:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DCIP3:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_DCI_P3,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_DCI_P3,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DCI_P3),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_DP3:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_DISPLAY_P3,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_DISPLAY_P3),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_ADOBE:
-            m_imageDescription = CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                                          .primariesNameSet = true,
-                                                          .primariesNamed   = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
-                                                          .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB)});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_ADOBE_RGB,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_ADOBE_RGB),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_EDID:
-            m_imageDescription =
-                CImageDescription::from({.transferFunction = chosenSdrEotf,
-                                         .primariesNameSet = false,
-                                         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                         .primaries        = {
-                                                    .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                                    .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                                    .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                                    .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                         }});
+            m_imageDescription = CImageDescription::from({.transferFunction    = chosenSdrEotf,
+                                                          .primariesNameSet    = false,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+                                                          .primaries           = masteringPrimaries,
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
             break;
         case NCMType::CM_HDR: m_imageDescription = DEFAULT_HDR_IMAGE_DESCRIPTION; break;
         case NCMType::CM_HDR_EDID:
-            m_imageDescription =
-                CImageDescription::from({.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
-                                         .primariesNameSet = false,
-                                         .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-                                         .primaries        = m_output->parsedEDID.chromaticityCoords.has_value() ?
-                                                    NColorManagement::SPCPRimaries{
-                                                        .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
-                                                        .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
-                                                        .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
-                                                        .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
-                                             } :
-                                                    NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
-                                         .luminances       = {.min       = m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance,
-                                                              .max       = m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance,
-                                                              .reference = m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance}});
+            m_imageDescription = CImageDescription::from(
+                {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                 .primariesNameSet = false,
+                 .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+                 .primaries = m_output->parsedEDID.chromaticityCoords.has_value() ? masteringPrimaries : NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                 .masteringPrimaries  = masteringPrimaries,
+                 .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
+                                         .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
+                                         .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
+                 .masteringLuminances = masteringLuminances,
+                 .maxCLL              = maxCLL,
+                 .maxFALL             = maxFALL});
 
             break;
         default: UNREACHABLE();
     }
-    if (m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0)
+    if ((m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
-            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min,            //
-            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max,            //
-            .reference = m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : m_imageDescription->value().luminances.reference //
+            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min, //
+            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max, //
+            .reference = m_imageDescription->value().luminances.reference                                   //
         });
 
     if (oldImageDescription != m_imageDescription) {
@@ -1026,8 +1046,10 @@ bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
     static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
-    const bool shouldSkip = inFullscreenMode() && (*PNOBREAK == 1 || (*PNOBREAK == 2 && m_activeWorkspace->getFullscreenWindow()->getContentType() == CONTENT_TYPE_GAME)) &&
-        m_output->state->state().adaptiveSync;
+    const auto FS_WINDOW          = getFullscreenWindow();
+    const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
+    const bool noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
+    const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
 
     // keep requested minimum refresh rate
     if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
@@ -1357,6 +1379,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             g_pDesktopAnimationManager->startAnimation(m_activeSpecialWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_OUT, false);
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + m_name});
             g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + m_name});
+
+            // Reset layer surface state when closing special workspace
+            for (auto const& ls : g_pCompositor->m_layers) {
+                if (ls->m_monitor == m_self)
+                    ls->m_aboveFullscreen = false;
+            }
         }
         m_activeSpecialWorkspace.reset();
 
@@ -1396,6 +1424,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
 
+        // Reset layer surfaces on the old monitor when special workspace is stolen
+        for (auto const& ls : g_pCompositor->m_layers) {
+            if (ls->m_monitor == PMWSOWNER)
+                ls->m_aboveFullscreen = false;
+        }
+
         const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
                                                                PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
@@ -1408,6 +1442,12 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     pWorkspace->m_monitor               = m_self;
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
+
+    // Reset layer surface state when opening special workspace
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_self)
+            ls->m_aboveFullscreen = false;
+    }
 
     if (POLDSPECIAL)
         POLDSPECIAL->m_events.activeChanged.emit();
@@ -1686,6 +1726,10 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
+    // TODO: remove this when kernel allows tearing + hw cursor updated
+    if (g_pPointerManager->hasVisibleHWCursor(m_self.lock()))
+        reasons |= TC_HW_CURSOR;
+
     if (m_solitaryClient.expired()) {
         reasons |= TC_CANDIDATE;
         return reasons;
@@ -1725,12 +1769,6 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             if (!full)
                 return reasons;
         }
-    }
-
-    if (m_tearingState.activelyTearing) {
-        reasons |= DS_BLOCK_TEARING;
-        if (!full)
-            return reasons;
     }
 
     if (!m_mirrors.empty() || isMirror()) {
@@ -1777,15 +1815,21 @@ uint16_t CMonitor::isDSBlocked(bool full) {
             return reasons;
     }
 
-    const bool surfaceIsHDR = PSURFACE->m_colorManagement.valid() && (PSURFACE->m_colorManagement->isHDR() || PSURFACE->m_colorManagement->isWindowsScRGB());
-    if (needsCM() && *PNONSHADER != CM_NS_IGNORE && !canNoShaderCM() && ((inHDR() && (*PPASS == 0 || !surfaceIsHDR)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
+    const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();
+    const bool surfaceIsScRGB = surfaceIsHDR && PSURFACE->m_colorManagement->isWindowsScRGB();
+
+    if (needsCM() && (*PNONSHADER != CM_NS_IGNORE || surfaceIsScRGB) && !canNoShaderCM() &&
+        ((inHDR() && (*PPASS == 0 || !surfaceIsHDR || surfaceIsScRGB)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
         reasons |= DS_BLOCK_CM;
 
     return reasons;
 }
 
 bool CMonitor::attemptDirectScanout() {
-    const auto blockedReason = isDSBlocked();
+    static const auto PSAME     = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer");
+    static const auto PSAMEFIFO = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer_fifo");
+
+    const auto        blockedReason = isDSBlocked();
     if (blockedReason)
         return false;
 
@@ -1799,7 +1843,7 @@ bool CMonitor::attemptDirectScanout() {
     auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
-    if (PBUFFER == m_output->state->state().buffer) {
+    if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
@@ -1818,7 +1862,7 @@ bool CMonitor::attemptDirectScanout() {
         }
 
         //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo)
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
             PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
 
         return true;
@@ -1849,7 +1893,18 @@ bool CMonitor::attemptDirectScanout() {
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
-    m_output->state->resetExplicitFences();
+
+    // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
+    if (m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd && g_pHyprOpenGL->explicitSyncSupported()) {
+        auto sync = CEGLSync::create();
+
+        if (sync->fd().isValid()) {
+            m_inFence = sync->takeFd();
+            m_output->state->setExplicitInFence(m_inFence.get());
+        } else
+            m_output->state->resetExplicitFences(); // good luck.
+    } else
+        m_output->state->resetExplicitFences();
 
     // no need to do explicit sync here as surface current can only ever be ready to read
 
@@ -2004,6 +2059,14 @@ int CMonitor::maxAvgLuminance(int defaultValue) {
                                     (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : defaultValue);
 }
 
+float CMonitor::maxFALL() {
+    return m_maxAvgLuminance >= 0 ? m_maxAvgLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredMaxFrameAverageLuminance : 0);
+}
+
+float CMonitor::maxCLL() {
+    return m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0);
+}
+
 bool CMonitor::wantsWideColor() {
     return supportsWideColor() && (wantsHDR() || m_imageDescription->value().primariesNamed == CM_PRIMARIES_BT2020);
 }
@@ -2017,20 +2080,50 @@ bool CMonitor::inHDR() {
 }
 
 bool CMonitor::inFullscreenMode() {
+    // Check special workspace first since it renders on top of regular workspaces
+    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return true;
     return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+}
+
+PHLWINDOW CMonitor::getFullscreenWindow() {
+    // Check special workspace first since it renders on top of regular workspaces
+    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return m_activeSpecialWorkspace->getFullscreenWindow();
+    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+        return m_activeWorkspace->getFullscreenWindow();
+    return nullptr;
 }
 
 std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescription() {
     if (!inFullscreenMode())
         return {};
 
-    const auto FS_WINDOW = m_activeWorkspace->getFullscreenWindow();
+    const auto FS_WINDOW = getFullscreenWindow();
     if (!FS_WINDOW)
-        return {}; // should be unreachable
+        return {};
 
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
     return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : DEFAULT_IMAGE_DESCRIPTION;
+}
+
+NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {
+    return m_output->parsedEDID.chromaticityCoords.has_value() ?
+        NColorManagement::SPCPRimaries{
+            .red   = {.x = m_output->parsedEDID.chromaticityCoords->red.x, .y = m_output->parsedEDID.chromaticityCoords->red.y},
+            .green = {.x = m_output->parsedEDID.chromaticityCoords->green.x, .y = m_output->parsedEDID.chromaticityCoords->green.y},
+            .blue  = {.x = m_output->parsedEDID.chromaticityCoords->blue.x, .y = m_output->parsedEDID.chromaticityCoords->blue.y},
+            .white = {.x = m_output->parsedEDID.chromaticityCoords->white.x, .y = m_output->parsedEDID.chromaticityCoords->white.y},
+        } :
+        NColorManagement::SPCPRimaries{};
+}
+
+NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteringLuminances() {
+    return {
+        .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
+        .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
+    };
 }
 
 bool CMonitor::needsCM() {
@@ -2058,13 +2151,15 @@ bool CMonitor::canNoShaderCM() {
 
     static auto PSDREOTF = CConfigValue<Hyprlang::INT>("render:cm_sdr_eotf");
     // only primaries differ
-    return ((SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
-             (*PSDREOTF == 2 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
-              m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
-            SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
-            (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances) &&
-            SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL &&
-            SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL);
+    return (
+        (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
+         (*PSDREOTF == 2 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
+          m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
+        SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
+        (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)
+        // not used by shaders atm
+        // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL
+    );
 }
 
 bool CMonitor::doesNoShaderCM() {

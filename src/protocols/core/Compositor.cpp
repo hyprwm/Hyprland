@@ -506,17 +506,26 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
         }
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
-        m_stateQueue.unlock(state);
+        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
     } else if (state->buffer && state->buffer->m_syncFd.isValid()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
         g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
-        m_stateQueue.unlock(state);
+        m_stateQueue.tryProcess();
     }
 }
 
 void CWLSurfaceResource::commitState(SSurfaceState& state) {
+    // TODO might be incorrect. needed for VRR with FIFO to avoid same buffer extra frames for second commit when it's used in this way:
+    // wp_fifo_v1#43.set_barrier()
+    // wp_fifo_v1#43.wait_barrier()
+    // wl_surface#3.commit()
+    // wp_fifo_v1#43.wait_barrier()
+    // wl_surface#3.commit()
+    if (!state.updated.all && m_mapped && state.fifoScheduled)
+        return;
+
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
 
@@ -617,6 +626,30 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
     return false;
 }
 
+bool CWLSurfaceResource::isTearing() {
+    if (m_enteredOutputs.empty() && m_hlSurface) {
+        for (auto& m : g_pCompositor->m_monitors) {
+            if (!m || !m->m_enabled)
+                continue;
+
+            auto box = m_hlSurface->getSurfaceBoxGlobal();
+            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                if (m->m_tearingState.activelyTearing)
+                    return true;
+            }
+        }
+    } else {
+        for (auto& m : m_enteredOutputs) {
+            if (!m)
+                continue;
+
+            if (m->m_tearingState.activelyTearing)
+                return true;
+        }
+    }
+    return false;
+}
+
 void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     if (damage.empty())
         return;
@@ -661,8 +694,14 @@ void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)
         FEEDBACK->discarded();
-    else
+    else {
         FEEDBACK->presented();
+        if (!pMonitor->m_lastScanout.expired()) {
+            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+            if (WINDOW == pMonitor->m_lastScanout)
+                FEEDBACK->setPresentationType(true);
+        }
+    }
     PROTO::presentation->queueData(std::move(FEEDBACK));
 }
 

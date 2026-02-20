@@ -11,6 +11,7 @@ class CXWaylandSurfaceResource;
 #ifdef NO_XWAYLAND
 using xcb_pixmap_t         = uint32_t;
 using xcb_window_t         = uint32_t;
+using xcb_atom_t           = uint32_t;
 using xcb_icccm_wm_hints_t = struct {
     int32_t      flags;
     uint32_t     input;
@@ -117,6 +118,8 @@ class CXWaylandSurface {
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
     } m_listeners;
+
+    std::unordered_map<xcb_atom_t, bool> m_supportedProps;
 
     friend class CXWM;
 };

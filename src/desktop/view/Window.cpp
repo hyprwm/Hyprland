@@ -53,6 +53,10 @@ using enum NContentType::eContentType;
 using namespace Desktop;
 using namespace Desktop::View;
 
+// I wish I had an elven wife instead of a windowIDCounter
+static uint64_t windowIDCounter = 0x18000000;
+
+//
 PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     PHLWINDOW pWindow = SP<CWindow>(new CWindow(surface));
 
@@ -105,7 +109,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     return pWindow;
 }
 
-CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource) {
+CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create()), m_xdgSurface(resource), m_stableID(windowIDCounter++) {
     m_listeners.map            = m_xdgSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.ack            = m_xdgSurface->m_events.ack.listen([this](uint32_t d) { onAck(d); });
     m_listeners.unmap          = m_xdgSurface->m_events.unmap.listen([this] { unmapWindow(); });
@@ -115,7 +119,7 @@ CWindow::CWindow(SP<CXDGSurfaceResource> resource) : IView(CWLSurface::create())
     m_listeners.updateMetadata = m_xdgSurface->m_toplevel->m_events.metadataChanged.listen([this] { onUpdateMeta(); });
 }
 
-CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface) {
+CWindow::CWindow(SP<CXWaylandSurface> surface) : IView(CWLSurface::create()), m_xwaylandSurface(surface), m_stableID(windowIDCounter++) {
     m_listeners.map              = m_xwaylandSurface->m_events.map.listen([this] { mapWindow(); });
     m_listeners.unmap            = m_xwaylandSurface->m_events.unmap.listen([this] { unmapWindow(); });
     m_listeners.destroy          = m_xwaylandSurface->m_events.destroy.listen([this] { destroyWindow(); });
@@ -1499,7 +1503,22 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
-    m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f)->m_activeWorkspace;
+    const auto monitorByRequestedPosition = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f);
+    const auto currentMonitor             = m_workspace->m_monitor.lock();
+
+    Log::logger->log(
+        Log::DEBUG,
+        "onX11ConfigureRequest: window '{}' ({:#x}) - workspace '{}' (special={}), currentMonitor='{}', monitorByRequestedPosition='{}', pos={:.0f},{:.0f}, size={:.0f},{:.0f}",
+        m_title, (uintptr_t)this, m_workspace->m_name, m_workspace->m_isSpecialWorkspace, currentMonitor ? currentMonitor->m_name : "null",
+        monitorByRequestedPosition ? monitorByRequestedPosition->m_name : "null", m_realPosition->goal().x, m_realPosition->goal().y, m_realSize->goal().x, m_realSize->goal().y);
+
+    // Reassign workspace only when moving to a different monitor and not on a special workspace
+    // X11 apps send configure requests with positions based on XWayland's monitor layout, such as "0,0",
+    // which would incorrectly move windows off special workspaces
+    if (monitorByRequestedPosition && monitorByRequestedPosition != currentMonitor && !m_workspace->m_isSpecialWorkspace) {
+        Log::logger->log(Log::DEBUG, "onX11ConfigureRequest: reassigning workspace from '{}' to '{}'", m_workspace->m_name, monitorByRequestedPosition->m_activeWorkspace->m_name);
+        m_workspace = monitorByRequestedPosition->m_activeWorkspace;
+    }
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
@@ -1607,7 +1626,8 @@ Vector2D CWindow::realToReportSize() {
     const auto  PMONITOR   = m_monitor.lock();
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
-        return REPORTSIZE * PMONITOR->m_scale;
+        // Keep X11 configure sizes integral to avoid truncation (e.g. 2879.999 -> 2879) later in xcb.
+        return (REPORTSIZE * PMONITOR->m_scale).round();
 
     return REPORTSIZE;
 }
@@ -2599,20 +2619,7 @@ void CWindow::commitWindow() {
 
     const auto PMONITOR = m_monitor.lock();
 
-    if (PMONITOR)
-        PMONITOR->debugLastPresentation(g_pSeatManager->m_isPointerFrameCommit ? "listener_commitWindow skip" : "listener_commitWindow");
-
-    if (g_pSeatManager->m_isPointerFrameCommit) {
-        g_pSeatManager->m_isPointerFrameSkipped = false;
-        g_pSeatManager->m_isPointerFrameCommit  = false;
-    } else
-        g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, m_isX11 ? 1.0 / m_X11SurfaceScaledBy : 1.0);
-
-    if (g_pSeatManager->m_isPointerFrameSkipped) {
-        g_pPointerManager->sendStoredMovement();
-        g_pSeatManager->sendPointerFrame();
-        g_pSeatManager->m_isPointerFrameCommit = true;
-    }
+    g_pHyprRenderer->damageSurface(wlSurface()->resource(), m_realPosition->goal().x, m_realPosition->goal().y, m_isX11 ? 1.0 / m_X11SurfaceScaledBy : 1.0);
 
     if (!m_isX11) {
         m_subsurfaceHead->recheckDamageForSubsurfaces();
@@ -2652,15 +2659,15 @@ void CWindow::destroyWindow() {
 
     m_xdgSurface.reset();
 
-    if (!m_fadingOut) {
-        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
-        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
-    }
-
     m_listeners.unmap.reset();
     m_listeners.destroy.reset();
     m_listeners.map.reset();
     m_listeners.commit.reset();
+
+    if (!m_fadingOut) {
+        Log::logger->log(Log::DEBUG, "Unmapped {} removed instantly", m_self.lock());
+        g_pCompositor->removeWindowFromVectorSafe(m_self.lock()); // most likely X11 unmanaged or sumn
+    }
 }
 
 void CWindow::activateX11() {

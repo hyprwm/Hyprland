@@ -18,6 +18,9 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     virtual void scheduleTick();
     virtual void onTicked();
 
+    // Reset tick state after session changes (suspend/wake, lock/unlock)
+    void resetTickState();
+
     using SAnimationPropertyConfig = Hyprutils::Animation::SAnimationPropertyConfig;
     template <Animable VarType>
     void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, eAVarDamagePolicy policy) {

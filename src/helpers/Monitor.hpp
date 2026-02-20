@@ -177,6 +177,7 @@ class CMonitor {
 
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
+    bool         m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
     bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur
@@ -232,9 +233,8 @@ class CMonitor {
         DS_BLOCK_SURFACE   = (1 << 8),
         DS_BLOCK_TRANSFORM = (1 << 9),
         DS_BLOCK_DMA       = (1 << 10),
-        DS_BLOCK_TEARING   = (1 << 11),
-        DS_BLOCK_FAILED    = (1 << 12),
-        DS_BLOCK_CM        = (1 << 13),
+        DS_BLOCK_FAILED    = (1 << 11),
+        DS_BLOCK_CM        = (1 << 12),
 
         DS_CHECKS_COUNT = 14,
     };
@@ -275,8 +275,9 @@ class CMonitor {
         TC_SUPPORT   = (1 << 4),
         TC_CANDIDATE = (1 << 5),
         TC_WINDOW    = (1 << 6),
+        TC_HW_CURSOR = (1 << 7),
 
-        TC_CHECKS_COUNT = 7,
+        TC_CHECKS_COUNT = 8,
     };
 
     // methods
@@ -321,17 +322,24 @@ class CMonitor {
     float       minLuminance(float defaultValue = 0);
     int         maxLuminance(int defaultValue = 80);
     int         maxAvgLuminance(int defaultValue = 80);
+    float       maxFALL();
+    float       maxCLL();
 
     bool        wantsWideColor();
     bool        wantsHDR();
 
     bool        inHDR();
 
-    /// Has an active workspace with a real fullscreen window
-    bool                                               inFullscreenMode();
-    std::optional<NColorManagement::PImageDescription> getFSImageDescription();
+    /// Has an active workspace with a real fullscreen window (includes special workspace)
+    bool inFullscreenMode();
+    /// Get fullscreen window from active or special workspace
+    PHLWINDOW                                                   getFullscreenWindow();
+    std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 
-    bool                                               needsCM();
+    NColorManagement::SPCPRimaries                              getMasteringPrimaries();
+    NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
+
+    bool                                                        needsCM();
     /// Can do CM without shader
     bool                                canNoShaderCM();
     bool                                doesNoShaderCM();

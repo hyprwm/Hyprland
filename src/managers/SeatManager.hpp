@@ -127,9 +127,6 @@ class CSeatManager {
     void          setGrab(SP<CSeatGrab> grab); // nullptr removes
     SP<CSeatGrab> m_seatGrab;
 
-    bool          m_isPointerFrameSkipped = false;
-    bool          m_isPointerFrameCommit  = false;
-
   private:
     struct SSeatResourceContainer {
         SSeatResourceContainer(SP<CWLSeatResource>);

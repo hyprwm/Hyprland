@@ -20,13 +20,11 @@ void main() {
 
     // noise
     float noiseHash   = hash(v_texcoord);
-    float noiseAmount = (mod(noiseHash, 1.0) - 0.5);
+    float noiseAmount = noiseHash - 0.5;
     pixColor.rgb += noiseAmount * noise;
 
     // brightness
-    if (brightness < 1.0) {
-        pixColor.rgb *= brightness;
-    }
+    pixColor.rgb *= min(1.0, brightness);
 
     fragColor = pixColor;
 }

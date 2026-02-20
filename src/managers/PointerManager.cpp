@@ -72,8 +72,10 @@ void CPointerManager::lockSoftwareForMonitor(PHLMONITOR mon) {
 void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
     auto const state = stateFor(mon);
     state->softwareLocks--;
-    if (state->softwareLocks < 0)
+    if (state->softwareLocks < 0) {
         state->softwareLocks = 0;
+        Log::logger->log(Log::WARN, "Unlocking SW for monitor while it's not locked");
+    }
 
     if (state->softwareLocks == 0)
         updateCursorBackend();
@@ -81,7 +83,12 @@ void CPointerManager::unlockSoftwareForMonitor(PHLMONITOR mon) {
 
 bool CPointerManager::softwareLockedFor(PHLMONITOR mon) {
     auto const state = stateFor(mon);
-    return state->softwareLocks > 0 || state->hardwareFailed;
+    return state->softwareLocks > 0 || (state->hardwareFailed && hasCursor() && g_pHyprRenderer->shouldRenderCursor());
+}
+
+bool CPointerManager::hasVisibleHWCursor(PHLMONITOR pMonitor) {
+    auto const state = stateFor(pMonitor);
+    return state->softwareLocks == 0 && !state->hardwareFailed && hasCursor() && g_pHyprRenderer->shouldRenderCursor();
 }
 
 Vector2D CPointerManager::position() {
@@ -572,8 +579,9 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, INT16_MAX, INT16_MAX}, RBO);
-    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F});
+    const auto& damageSize = state->monitor->m_output->cursorPlaneSize();
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damageSize.x, damageSize.y}, RBO);
+    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
@@ -583,8 +591,6 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     g_pHyprOpenGL->end();
     g_pHyprOpenGL->m_renderData.pMonitor.reset();
-
-    g_pHyprRenderer->onRenderbufferDestroy(RBO.get());
 
     return buf;
 }
@@ -738,17 +744,26 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
+    if (g_pCompositor->m_unsafeState)
+        return;
+
     auto b = getCursorBoxGlobal().expand(4);
 
     for (auto const& mw : m_monitorStates) {
-        if (mw->monitor.expired() || !mw->monitor->m_output)
+        auto monitor = mw->monitor.lock();
+        if (!monitor || !monitor->m_output || monitor->isMirror())
             continue;
 
-        if ((mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(mw->monitor.lock())) &&
-            b.overlaps({mw->monitor->m_position, mw->monitor->m_size})) {
-            g_pHyprRenderer->damageBox(b, mw->monitor->shouldSkipScheduleFrameOnMouseEvent());
-            break;
-        }
+        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(monitor));
+        if (!usesSoftwareCursor)
+            continue;
+
+        auto shouldAddDamage = !monitor->shouldSkipScheduleFrameOnMouseEvent() && b.overlaps({monitor->m_position, monitor->m_size});
+        if (!shouldAddDamage)
+            continue;
+
+        CBox damageBox = b.copy().translate(-monitor->m_position).scale(monitor->m_scale).round();
+        monitor->addDamage(damageBox);
     }
 }
 
@@ -920,24 +935,11 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
         PROTO::idle->onActivity();
     });
 
-    listener->axis = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
+    listener->axis  = pointer->m_pointerEvents.axis.listen([weak = WP<IPointer>(pointer)](const IPointer::SAxisEvent& event) {
         g_pInputManager->onMouseWheel(event, weak.lock());
         PROTO::idle->onActivity();
     });
-
-    listener->frame = pointer->m_pointerEvents.frame.listen([] {
-        bool shouldSkip = false;
-        if (!g_pSeatManager->m_mouse.expired() && g_pInputManager->isLocked()) {
-            auto PMONITOR = Desktop::focusState()->monitor().get();
-            if (PMONITOR && PMONITOR->shouldSkipScheduleFrameOnMouseEvent()) {
-                auto fsWindow = PMONITOR->m_activeWorkspace->getFullscreenWindow();
-                shouldSkip    = fsWindow && fsWindow->m_isX11;
-            }
-        }
-        g_pSeatManager->m_isPointerFrameSkipped = shouldSkip;
-        if (!g_pSeatManager->m_isPointerFrameSkipped)
-            g_pSeatManager->sendPointerFrame();
-    });
+    listener->frame = pointer->m_pointerEvents.frame.listen([] { g_pInputManager->onPointerFrame(); });
 
     listener->swipeBegin = pointer->m_pointerEvents.swipeBegin.listen([](const IPointer::SSwipeBeginEvent& event) {
         g_pInputManager->onSwipeBegin(event);
@@ -1090,7 +1092,7 @@ void CPointerManager::detachTablet(SP<CTablet> tablet) {
     std::erase_if(m_tabletListeners, [tablet](const auto& e) { return e->tablet.expired() || e->tablet == tablet; });
 }
 
-void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
+void CPointerManager::damageCursor(PHLMONITOR pMonitor, bool skipFrameSchedule) {
     for (auto const& mw : m_monitorStates) {
         if (mw->monitor != pMonitor)
             continue;
@@ -1100,7 +1102,7 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
         if (b.empty())
             return;
 
-        g_pHyprRenderer->damageBox(b);
+        g_pHyprRenderer->damageBox(b, skipFrameSchedule);
 
         return;
     }
@@ -1108,23 +1110,4 @@ void CPointerManager::damageCursor(PHLMONITOR pMonitor) {
 
 Vector2D CPointerManager::cursorSizeLogical() {
     return m_currentCursorImage.size / m_currentCursorImage.scale;
-}
-
-void CPointerManager::storeMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    m_storedTime = time;
-    m_storedDelta += delta;
-    m_storedUnaccel += deltaUnaccel;
-}
-
-void CPointerManager::setStoredMovement(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    m_storedTime    = time;
-    m_storedDelta   = delta;
-    m_storedUnaccel = deltaUnaccel;
-}
-
-void CPointerManager::sendStoredMovement() {
-    PROTO::relativePointer->sendRelativeMotion(m_storedTime * 1000, m_storedDelta, m_storedUnaccel);
-    m_storedTime    = 0;
-    m_storedDelta   = Vector2D{};
-    m_storedUnaccel = Vector2D{};
 }

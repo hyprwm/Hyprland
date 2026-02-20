@@ -96,10 +96,13 @@
 #define GLCALL(__CALL__)                                                                                                                                                           \
     {                                                                                                                                                                              \
         __CALL__;                                                                                                                                                                  \
-        auto err = glGetError();                                                                                                                                                   \
-        if (err != GL_NO_ERROR) {                                                                                                                                                  \
-            Log::logger->log(Log::ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                          \
-                             ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                        \
+        static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");                                                                                             \
+        if (*GLDEBUG) {                                                                                                                                                            \
+            auto err = glGetError();                                                                                                                                               \
+            if (err != GL_NO_ERROR) {                                                                                                                                              \
+                Log::logger->log(Log::ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                      \
+                                 ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                    \
+            }                                                                                                                                                                      \
         }                                                                                                                                                                          \
     }
 

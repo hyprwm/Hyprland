@@ -13,6 +13,7 @@
 #include "render/Renderer.hpp"
 #include "render/decorations/CHyprDropShadowDecoration.hpp"
 #include "render/pass/PassElement.hpp"
+#include "render/vulkan/BlurPass.hpp"
 #include "render/vulkan/VKTexture.hpp"
 #include "render/vulkan/types.hpp"
 #include <algorithm>
@@ -26,38 +27,6 @@
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <vector>
 #include <vulkan/vulkan_core.h>
-
-static SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
-    return {
-        .mat4 =
-            {
-                {mat[0], mat[1], 0, mat[2]},
-                {mat[3], mat[4], 0, mat[5]},
-                {0, 0, 1, 0},
-                {0, 0, 0, 1},
-            },
-        .uvOffset = {0, 0},
-        .uvSize   = {1, 1},
-    };
-}
-
-static void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
-    if (!region.empty()) {
-        const CBox max = {{0, 0}, {INT32_MAX, INT32_MAX}};
-        region.copy().intersect(max).forEachRect([&](const auto& RECT) {
-            VkRect2D rect = {
-                .offset = {.x = RECT.x1, .y = RECT.y1},
-                .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
-            };
-
-            if (rect.offset.x < 0 || rect.offset.y < 0)
-                Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
-
-            vkCmdSetScissor(cb, 0, 1, &rect);
-            vkCmdDraw(cb, 4, 1, 0, 0);
-        });
-    }
-}
 
 CHyprVKRenderer::CHyprVKRenderer() : IHyprRenderer() {
     if (!m_shaders)
@@ -84,6 +53,19 @@ SP<CVkRenderPass> CHyprVKRenderer::getRenderPass(uint32_t fmt) {
         return m_renderPassList.emplace_back(makeShared<CVkRenderPass>(g_pHyprVulkan->m_device, fmt, m_shaders));
 }
 
+SP<CVKBlurPass> CHyprVKRenderer::getBlurPass(uint32_t fmt) {
+    static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
+    const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
+
+    auto        foundRP = std::ranges::find_if(m_blurPassList, [&](const auto& other) { return other->format() == fmt; });
+    if (foundRP != m_blurPassList.end()) {
+        if ((*foundRP)->passes() != BLUR_PASSES)
+            *foundRP = makeShared<CVKBlurPass>(g_pHyprVulkan->m_device, fmt, m_shaders, BLUR_PASSES);
+        return *foundRP;
+    } else
+        return m_blurPassList.emplace_back(makeShared<CVKBlurPass>(g_pHyprVulkan->m_device, fmt, m_shaders, BLUR_PASSES));
+}
+
 bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     m_currentRenderPass = getRenderPass(fmt);
 
@@ -95,12 +77,26 @@ bool CHyprVKRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
 };
 
 SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
-    static int count = 0;
-    if (count < 10) {
-        count++;
-        Log::logger->log(Log::WARN, "Unimplimented blend");
-    }
-    return source->getTexture();
+    const auto bp = getBlurPass(m_currentRenderbuffer->texture()->m_drmFormat);
+    if (m_hasBoundFB)
+        vkCmdEndRenderPass(m_currentCommandBuffer->vk());
+    Log::logger->log(Log::DEBUG, "blurTexture");
+
+    m_currentCommandBuffer->changeLayout(dc<CVKTexture*>(source->getTexture().get())->m_image, //
+                                         {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+                                         {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+
+    const auto tex = bp->blurTexture(source->getTexture(), m_renderData.pMonitor->m_mirrorFB, m_renderData.pMonitor->m_mirrorSwapFB);
+
+    m_currentCommandBuffer->changeLayout(
+        dc<CVKTexture*>(source->getTexture().get())->m_image, //
+        {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+        {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+
+    Log::logger->log(Log::DEBUG, "blurTexture done");
+    if (m_hasBoundFB)
+        startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, m_hasBoundFB->vk(), m_hasBoundFB->texture()->m_size, m_currentCommandBuffer->vk());
+    return tex;
 }
 
 void CHyprVKRenderer::renderOffToMain(IFramebuffer* off) {
@@ -551,6 +547,14 @@ void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 };
 
 void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
+    if (element->m_data.blur) {
+        auto el = makeUnique<CTexPassElement>(
+            CTexPassElement::SRenderData{.tex     = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture(),
+                                         .box     = CBox{{0, 0}, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize},
+                                         .clipBox = CBox{element->m_data.pos * g_pHyprRenderer->m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
+        draw(el.get(), damage);
+    }
+
     const auto cb = g_pHyprVulkan->renderCB();
     cb->useTexture(element->m_data.texture);
     const auto texture = dc<CVKTexture*>(element->m_data.texture.get());

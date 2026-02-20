@@ -9,11 +9,12 @@ enum eShaderType : uint8_t {
 
 class CVkShader : public IDeviceUser {
   public:
-    CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, uint32_t pushSize, eShaderType type = SH_FRAG);
+    CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, uint32_t pushSize, eShaderType type = SH_FRAG, const std::string& name = "");
     ~CVkShader();
 
-    VkShaderModule module();
-    uint32_t       pushSize();
+    VkShaderModule    module();
+    uint32_t          pushSize();
+    const std::string m_name;
 
   private:
     VkShaderModule m_module;

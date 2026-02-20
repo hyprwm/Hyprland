@@ -1,6 +1,8 @@
 #include "Shaders.hpp"
 #include "Shader.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #include "render/vulkan/types.hpp"
+#include "render/vulkan/utils.hpp"
 
 #define VERT_SRC                                                                                                                                                                   \
     R"#(
@@ -493,12 +495,285 @@ void main() {
 
 )#"
 
+#define PREPARE_FRAG_SRC                                                                                                                                                           \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+layout(set = 0, binding = 0) uniform sampler2D tex;
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) float contrast;
+    float brightness;
+} data;
+
+#define contrast data.contrast
+#define brightness data.brightness
+
+vec3 gain(vec3 x, float k) {
+    vec3 t = step(0.5, x);
+    vec3 y = mix(x, 1.0 - x, t);
+    vec3 a = 0.5 * pow(2.0 * y, vec3(k));
+    return mix(a, 1.0 - a, t);
+}
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec4 pixColor = texture(tex, v_texcoord);
+
+    // contrast
+    if (contrast != 1.0)
+        pixColor.rgb = gain(pixColor.rgb, contrast);
+
+    // brightness
+    pixColor.rgb *= max(1.0, brightness);
+
+    fragColor = pixColor;
+}
+
+)#"
+
+#define BLUR1_FRAG_SRC                                                                                                                                                             \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+layout(set = 0, binding = 0) uniform sampler2D tex;
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) float radius;
+    vec2 halfpixel;
+    int passes;
+    float vibrancy;
+    float vibrancy_darkness;
+} data;
+
+#define radius data.radius
+#define halfpixel data.halfpixel
+#define passes data.passes
+#define vibrancy data.vibrancy
+#define vibrancy_darkness data.vibrancy_darkness
+
+// see http://alienryderflex.com/hsp.html
+const float Pr = 0.299;
+const float Pg = 0.587;
+const float Pb = 0.114;
+
+// Y is "v" ( brightness ). X is "s" ( saturation )
+// see https://www.desmos.com/3d/a88652b9a4
+// Determines if high brightness or high saturation is more important
+const float a = 0.93;
+const float b = 0.11;
+const float c = 0.66; //  Determines the smoothness of the transition of unboosted to boosted colors
+//
+
+// http://www.flong.com/archive/texts/code/shapers_circ/
+float doubleCircleSigmoid(float x, float a) {
+    a = clamp(a, 0.0, 1.0);
+
+    float y = .0;
+    if (x <= a) {
+        y = a - sqrt(a * a - x * x);
+    } else {
+        y = a + sqrt(pow(1. - a, 2.) - pow(x - 1., 2.));
+    }
+    return y;
+}
+
+vec3 rgb2hsl(vec3 col) {
+    float red   = col.r;
+    float green = col.g;
+    float blue  = col.b;
+
+    float minc  = min(col.r, min(col.g, col.b));
+    float maxc  = max(col.r, max(col.g, col.b));
+    float delta = maxc - minc;
+
+    float lum = (minc + maxc) * 0.5;
+    float sat = 0.0;
+    float hue = 0.0;
+
+    if (lum > 0.0 && lum < 1.0) {
+        float mul = (lum < 0.5) ? (lum) : (1.0 - lum);
+        sat       = delta / (mul * 2.0);
+    }
+
+    if (delta > 0.0) {
+        vec3  maxcVec = vec3(maxc);
+        vec3  masks = vec3(equal(maxcVec, col)) * vec3(notEqual(maxcVec, vec3(green, blue, red)));
+        vec3  adds = vec3(0.0, 2.0, 4.0) + vec3(green - blue, blue - red, red - green) / delta;
+
+        hue += dot(adds, masks);
+        hue /= 6.0;
+
+        if (hue < 0.0)
+            hue += 1.0;
+    }
+
+    return vec3(hue, sat, lum);
+}
+
+vec3 hsl2rgb(vec3 col) {
+    const float onethird = 1.0 / 3.0;
+    const float twothird = 2.0 / 3.0;
+    const float rcpsixth = 6.0;
+
+    float       hue = col.x;
+    float       sat = col.y;
+    float       lum = col.z;
+
+    vec3        xt = vec3(0.0);
+
+    if (hue < onethird) {
+        xt.r = rcpsixth * (onethird - hue);
+        xt.g = rcpsixth * hue;
+        xt.b = 0.0;
+    } else if (hue < twothird) {
+        xt.r = 0.0;
+        xt.g = rcpsixth * (twothird - hue);
+        xt.b = rcpsixth * (hue - onethird);
+    } else
+        xt = vec3(rcpsixth * (hue - twothird), 0.0, rcpsixth * (1.0 - hue));
+
+    xt = min(xt, 1.0);
+
+    float sat2   = 2.0 * sat;
+    float satinv = 1.0 - sat;
+    float luminv = 1.0 - lum;
+    float lum2m1 = (2.0 * lum) - 1.0;
+    vec3  ct     = (sat2 * xt) + satinv;
+
+    vec3  rgb;
+    if (lum >= 0.5)
+        rgb = (luminv * ct) + lum2m1;
+    else
+        rgb = lum * ct;
+
+    return rgb;
+}
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec2 uv = v_texcoord * 2.0;
+
+    vec4 sum = texture(tex, uv) * 4.0;
+    sum += texture(tex, uv - halfpixel.xy * radius);
+    sum += texture(tex, uv + halfpixel.xy * radius);
+    sum += texture(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
+    sum += texture(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
+
+    vec4 color = sum / 8.0;
+
+    if (vibrancy == 0.0) {
+        fragColor = color;
+    } else {
+        // Invert it so that it correctly maps to the config setting
+        float vibrancy_darkness1 = 1.0 - vibrancy_darkness;
+
+        // Decrease the RGB components based on their perceived brightness, to prevent visually dark colors from overblowing the rest.
+        vec3 hsl = rgb2hsl(color.rgb);
+        // Calculate perceived brightness, as not boost visually dark colors like deep blue as much as equally saturated yellow
+        float perceivedBrightness = doubleCircleSigmoid(sqrt(color.r * color.r * Pr + color.g * color.g * Pg + color.b * color.b * Pb), 0.8 * vibrancy_darkness1);
+
+        float b1        = b * vibrancy_darkness1;
+        float boostBase = hsl[1] > 0.0 ? smoothstep(b1 - c * 0.5, b1 + c * 0.5, 1.0 - (pow(1.0 - hsl[1] * cos(a), 2.0) + pow(1.0 - perceivedBrightness * sin(a), 2.0))) : 0.0;
+
+        float saturation = clamp(hsl[1] + (boostBase * vibrancy) / float(passes), 0.0, 1.0);
+
+        vec3  newColor = hsl2rgb(vec3(hsl[0], saturation, hsl[2]));
+
+        fragColor = vec4(newColor, color[3]);
+    }
+}
+
+
+)#"
+
+#define BLUR2_FRAG_SRC                                                                                                                                                             \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+layout(set = 0, binding = 0) uniform sampler2D tex;
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) float radius;
+    vec2 halfpixel;
+} data;
+
+#define radius data.radius
+#define halfpixel data.halfpixel
+
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec2 uv = v_texcoord / 2.0;
+
+    vec4 sum = texture(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
+
+    sum += texture(tex, uv + vec2(-halfpixel.x,  halfpixel.y) * radius) * 2.0;
+    sum += texture(tex, uv + vec2(0.0,           halfpixel.y * 2.0) * radius);
+    sum += texture(tex, uv + vec2(halfpixel.x,   halfpixel.y) * radius) * 2.0;
+    sum += texture(tex, uv + vec2(halfpixel.x * 2.0, 0.0) * radius);
+    sum += texture(tex, uv + vec2(halfpixel.x,  -halfpixel.y) * radius) * 2.0;
+    sum += texture(tex, uv + vec2(0.0,          -halfpixel.y * 2.0) * radius);
+    sum += texture(tex, uv + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
+
+    fragColor = sum / 12.0;
+}
+
+)#"
+
+#define FINISH_FRAG_SRC                                                                                                                                                            \
+    R"#(#version 450
+
+precision highp float;
+layout(location = 0) in vec2 v_texcoord;
+layout(set = 0, binding = 0) uniform sampler2D tex;
+
+layout(push_constant, row_major) uniform UBO {
+	layout(offset = 80) float noise;
+    float brightness;
+} data;
+
+#define noise data.noise
+#define brightness data.brightness
+
+float hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 1689.1984);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+layout(location = 0) out vec4 fragColor;
+void main() {
+    vec4 pixColor = texture(tex, v_texcoord);
+
+    // noise
+    float noiseHash   = hash(v_texcoord);
+    float noiseAmount = noiseHash - 0.5;
+    pixColor.rgb += noiseAmount * noise;
+
+    // brightness
+    pixColor.rgb *= min(1.0, brightness);
+
+    fragColor = pixColor;
+}
+
+
+)#"
+
 CVkShaders::CVkShaders(WP<CHyprVulkanDevice> device) : IDeviceUser(device) {
-    m_vert   = makeShared<CVkShader>(device, VERT_SRC, sizeof(SVkVertShaderData), SH_VERT);
-    m_frag   = makeShared<CVkShader>(device, FRAG_SRC, sizeof(SVkFragShaderData), SH_FRAG);
-    m_border = makeShared<CVkShader>(device, BORDER_FRAG_SRC, sizeof(SVkBorderShaderData), SH_FRAG);
-    m_rect   = makeShared<CVkShader>(device, RECT_FRAG_SRC, sizeof(SVkRectShaderData), SH_FRAG);
-    m_shadow = makeShared<CVkShader>(device, SHADOW_FRAG_SRC, sizeof(SVkShadowShaderData), SH_FRAG);
-    m_matte  = makeShared<CVkShader>(device, MATTE_FRAG_SRC, 0, SH_FRAG);
-    m_pass   = makeShared<CVkShader>(device, PASS_FRAG_SRC, 0, SH_FRAG);
+    m_vert   = makeShared<CVkShader>(device, VERT_SRC, sizeof(SVkVertShaderData), SH_VERT, "vert");
+    m_frag   = makeShared<CVkShader>(device, FRAG_SRC, sizeof(SVkFragShaderData), SH_FRAG, "frag");
+    m_border = makeShared<CVkShader>(device, BORDER_FRAG_SRC, sizeof(SVkBorderShaderData), SH_FRAG, "border");
+    m_rect   = makeShared<CVkShader>(device, RECT_FRAG_SRC, sizeof(SVkRectShaderData), SH_FRAG, "rect");
+    m_shadow = makeShared<CVkShader>(device, SHADOW_FRAG_SRC, sizeof(SVkShadowShaderData), SH_FRAG, "shadow");
+    m_matte  = makeShared<CVkShader>(device, MATTE_FRAG_SRC, 0, SH_FRAG, "matte");
+    m_pass   = makeShared<CVkShader>(device, PASS_FRAG_SRC, 0, SH_FRAG, "pass");
+
+    m_prepare = makeShared<CVkShader>(device, PREPARE_FRAG_SRC, sizeof(SVkPrepareShaderData), SH_FRAG, "blur prepare");
+    m_blur1   = makeShared<CVkShader>(device, BLUR1_FRAG_SRC, sizeof(SVkBlur1ShaderData), SH_FRAG, "blur 1");
+    m_blur2   = makeShared<CVkShader>(device, BLUR2_FRAG_SRC, sizeof(SVkBlur2ShaderData), SH_FRAG, "blur 2");
+    m_finish  = makeShared<CVkShader>(device, FINISH_FRAG_SRC, sizeof(SVkFinishShaderData), SH_FRAG, "blur finish");
 }

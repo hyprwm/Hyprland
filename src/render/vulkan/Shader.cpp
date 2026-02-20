@@ -1,9 +1,11 @@
 #include "Shader.hpp"
 #include "debug/log/Logger.hpp"
 #include "macros.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #include "utils.hpp"
 
 // based on https://github.com/KhronosGroup/glslang?tab=readme-ov-file#c-functional-interface-new
+#include <cmath>
 #include <cstdint>
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
@@ -77,7 +79,8 @@ static std::optional<std::vector<uint32_t>> compileShader(glslang_stage_t stage,
     return binary;
 }
 
-CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, uint32_t pushSize, eShaderType type) : IDeviceUser(device), m_pushSize(pushSize) {
+CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, uint32_t pushSize, eShaderType type, const std::string& name) :
+    IDeviceUser(device), m_name(name), m_pushSize(std::ceil(pushSize / 16.f) * 16) {
     const auto binary = compileShader(type == SH_FRAG ? GLSLANG_STAGE_FRAGMENT : GLSLANG_STAGE_VERTEX, source);
 
     ASSERT(binary.has_value());
@@ -90,6 +93,8 @@ CVkShader::CVkShader(WP<CHyprVulkanDevice> device, const std::string& source, ui
     if (vkCreateShaderModule(vkDevice(), &info, nullptr, &m_module) != VK_SUCCESS) {
         CRIT("vkCreateShaderModule");
     }
+    if (m_name.length())
+        SET_VK_SHADER_NAME(m_module, m_name)
 }
 
 VkShaderModule CVkShader::module() {

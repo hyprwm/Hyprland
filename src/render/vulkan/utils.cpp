@@ -71,3 +71,35 @@ void startRenderPassHelper(VkRenderPass renderPass, VkFramebuffer fb, const Vect
     };
     vkCmdSetViewport(cb, 0, 1, &viewport);
 }
+
+SVkVertShaderData matToVertShader(const std::array<float, 9> mat) {
+    return {
+        .mat4 =
+            {
+                {mat[0], mat[1], 0, mat[2]},
+                {mat[3], mat[4], 0, mat[5]},
+                {0, 0, 1, 0},
+                {0, 0, 0, 1},
+            },
+        .uvOffset = {0, 0},
+        .uvSize   = {1, 1},
+    };
+}
+
+void drawRegionRects(const CRegion& region, VkCommandBuffer cb) {
+    if (!region.empty()) {
+        const CBox max = {{0, 0}, {INT32_MAX, INT32_MAX}};
+        region.copy().intersect(max).forEachRect([&](const auto& RECT) {
+            VkRect2D rect = {
+                .offset = {.x = RECT.x1, .y = RECT.y1},
+                .extent = {.width = RECT.x2 - RECT.x1, .height = RECT.y2 - RECT.y1},
+            };
+
+            if (rect.offset.x < 0 || rect.offset.y < 0)
+                Log::logger->log(Log::WARN, "vkCmdSetScissor tex {}x{}@{}x{}", rect.extent.width, rect.extent.height, rect.offset.x, rect.offset.y);
+
+            vkCmdSetScissor(cb, 0, 1, &rect);
+            vkCmdDraw(cb, 4, 1, 0, 0);
+        });
+    }
+}

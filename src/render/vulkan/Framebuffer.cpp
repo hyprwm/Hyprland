@@ -32,11 +32,14 @@ CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamari
 
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
     const Vector2D size = {w, h};
-    m_tex = makeShared<CVKTexture>(props.format.drmFormat, size, false, false, VULKAN_DMA_TEX_USAGE | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    m_tex               = makeShared<CVKTexture>(props.format.drmFormat, size, false, false,
+                                                 VULKAN_DMA_TEX_USAGE | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                     VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs) {
-    m_tex = makeShared<CVKTexture>(attrs, false, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    m_tex = makeShared<CVKTexture>(attrs, false,
+                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void CHyprVkFramebuffer::initFB(VkRenderPass renderPass, int w, int h) {
@@ -78,8 +81,9 @@ CVKRenderBuffer::CVKRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
     m_framebuffer              = makeShared<CVKFramebuffer>();
     m_framebuffer->m_drmFormat = format;
     m_framebuffer->m_size      = buffer->size;
-    dc<CVKFramebuffer*>(m_framebuffer.get())->m_FB =
-        makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer, dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(format)->m_vkRenderPass);
+    auto fb = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer, dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(format)->m_vkRenderPass);
+    dc<CVKFramebuffer*>(m_framebuffer.get())->m_FB = fb;
+    dc<CVKFramebuffer*>(m_framebuffer.get())->setTexture(fb->texture());
     m_good = true;
 }
 
@@ -143,11 +147,19 @@ bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
     m_FB        = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt);
     if (m_FB)
         m_tex = m_FB->texture();
-    if (m_tex && m_tex->ok())
+    if (m_tex && m_tex->ok()) {
         SET_VK_IMG_NAME(m_FB->vkImage(), std::format("IFramebuffer '{}' {} {}x{}", m_name.length() ? m_name : "?", NFormatUtils::drmFormatName(m_drmFormat), m_size.x, m_size.y));
+        g_pHyprVulkan->stageCB()->changeLayout(m_FB->vkImage(), //
+                                               {.layout = VK_IMAGE_LAYOUT_UNDEFINED, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+                                               {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+    }
     m_fbAllocated = true;
     return m_FB;
 };
+
+void CVKFramebuffer::setTexture(SP<ITexture> tex) {
+    m_tex = tex;
+}
 
 SP<CHyprVkFramebuffer> CVKFramebuffer::fb() {
     return m_FB;

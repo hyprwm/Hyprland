@@ -1,6 +1,7 @@
 #include "Pipeline.hpp"
 #include "../VKRenderer.hpp"
 #include "utils.hpp"
+#include <format>
 #include <vulkan/vulkan_core.h>
 
 // TODO change api
@@ -8,9 +9,9 @@ static CHyprVKRenderer* getRenderer() {
     return dc<CHyprVKRenderer*>(g_pHyprRenderer.get());
 }
 
-CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, uint8_t texCount) :
+CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) :
     IDeviceUser(device), m_key({vert->module(), frag->module()}) {
-    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), texCount);
+    m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), settings.texCount);
 
     VkSpecializationMapEntry specEntry = {
         .constantID = 0,
@@ -54,16 +55,21 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, 
         .lineWidth   = 1.f,
     };
 
-    VkPipelineColorBlendAttachmentState blendAttachment = {
-        .blendEnable         = true,
-        .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp        = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .alphaBlendOp        = VK_BLEND_OP_ADD,
-        .colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-    };
+    VkPipelineColorBlendAttachmentState blendAttachment = settings.blend ?
+        VkPipelineColorBlendAttachmentState{
+            .blendEnable         = true,
+            .srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .colorBlendOp        = VK_BLEND_OP_ADD,
+            .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+            .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+            .alphaBlendOp        = VK_BLEND_OP_ADD,
+            .colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+        } :
+        VkPipelineColorBlendAttachmentState{
+            .blendEnable    = false,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+        };
 
     VkPipelineColorBlendStateCreateInfo blend = {
         .sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
@@ -109,14 +115,14 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, 
         .pDynamicState       = &dynamic,
         .layout              = m_layout->vk(),
         .renderPass          = renderPass,
-        .subpass             = 0,
-
+        .subpass             = settings.subpass,
     };
 
     VkPipelineCache cache = VK_NULL_HANDLE;
     if (vkCreateGraphicsPipelines(vkDevice(), cache, 1, &pinfo, nullptr, &m_vkPipeline) != VK_SUCCESS) {
         CRIT("failed to create vulkan pipelines");
     }
+    SET_VK_PIPELINE_NAME(m_vkPipeline, std::format("Pipeline {}", frag->m_name))
 }
 
 CVkPipeline::~CVkPipeline() {

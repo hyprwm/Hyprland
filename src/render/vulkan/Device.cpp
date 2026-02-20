@@ -140,7 +140,12 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
     }
 
 #if ISDEBUG
+
     loadVulkanProc(&m_proc.vkSetDebugUtilsObjectNameEXT, "vkSetDebugUtilsObjectNameEXT");
+    loadVulkanProc(&m_proc.vkQueueBeginDebugUtilsLabelEXT, "vkQueueBeginDebugUtilsLabelEXT");
+    loadVulkanProc(&m_proc.vkQueueEndDebugUtilsLabelEXT, "vkQueueEndDebugUtilsLabelEXT");
+    loadVulkanProc(&m_proc.vkCmdBeginDebugUtilsLabelEXT, "vkCmdBeginDebugUtilsLabelEXT");
+    loadVulkanProc(&m_proc.vkCmdEndDebugUtilsLabelEXT, "vkCmdEndDebugUtilsLabelEXT");
 #endif
 
     VkSemaphoreTypeCreateInfo timelineCreateInfo = {

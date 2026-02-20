@@ -9,6 +9,7 @@
 #include "./vulkan/Shaders.hpp"
 #include "render/Framebuffer.hpp"
 #include "render/Texture.hpp"
+#include "render/vulkan/BlurPass.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
 #include <cstdint>
 #include <vector>
@@ -35,6 +36,7 @@ class CHyprVKRenderer : public IHyprRenderer {
     SP<CVkPipelineLayout> ensurePipelineLayout(CVkPipelineLayout::KEY key);
     SP<CVkPipelineLayout> ensurePipelineLayout(uint32_t vertSize, uint32_t fragSize, uint8_t texCount = 1);
     SP<CVkRenderPass>     getRenderPass(uint32_t fmt);
+    SP<CVKBlurPass>       getBlurPass(uint32_t fmt);
     void                  bindFB(SP<CHyprVkFramebuffer> fb);
 
   private:
@@ -68,6 +70,7 @@ class CHyprVKRenderer : public IHyprRenderer {
     Vector2D                           m_currentRenderbufferSize;
 
     std::vector<SP<CVkRenderPass>>     m_renderPassList;
+    std::vector<SP<CVKBlurPass>>       m_blurPassList;
     SP<CVkRenderPass>                  m_currentRenderPass;
     SP<CVkShaders>                     m_shaders;
 
@@ -77,4 +80,5 @@ class CHyprVKRenderer : public IHyprRenderer {
     WP<CHyprVkCommandBuffer>           m_currentCommandBuffer;
 
     friend class CHyprVulkanImpl;
+    friend class CVKBlurPass;
 };

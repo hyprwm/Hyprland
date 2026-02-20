@@ -58,6 +58,7 @@ class CVKFramebuffer : public IFramebuffer {
     SP<CHyprVkFramebuffer> fb();
 
   protected:
+    void                   setTexture(SP<ITexture> tex);
     bool                   internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) override;
     SP<CHyprVkFramebuffer> m_FB;
     friend class CVKRenderBuffer;

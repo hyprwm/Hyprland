@@ -46,7 +46,13 @@ static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
     if (debugData->queueLabelCount > 0) {
         const char* name = debugData->pQueueLabels[0].pLabelName;
         if (name)
-            Log::logger->log(level, "    last label '{}'", name);
+            Log::logger->log(level, "    last queue label '{}'", name);
+    }
+
+    if (debugData->cmdBufLabelCount > 0) {
+        const char* name = debugData->pCmdBufLabels[0].pLabelName;
+        if (name)
+            Log::logger->log(level, "    last cb label '{}'", name);
     }
 
     for (uint32_t i = 0; i < debugData->objectCount; ++i) {

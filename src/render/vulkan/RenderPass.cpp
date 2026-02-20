@@ -96,7 +96,7 @@ WP<CVkPipeline> CVkRenderPass::texturePipeline() {
 
 WP<CVkPipeline> CVkRenderPass::textureMattePipeline() {
     if (!m_textureMattePipeline)
-        m_textureMattePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_matte, 2);
+        m_textureMattePipeline = makeShared<CVkPipeline>(m_device, m_vkRenderPass, m_shaders->m_vert, m_shaders->m_matte, CVkPipeline::SSettings{.texCount = 2});
 
     return m_textureMattePipeline;
 }

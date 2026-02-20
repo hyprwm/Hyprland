@@ -10,7 +10,13 @@ class CVkShader;
 class CVkPipeline : public IDeviceUser {
   public:
     using KEY = std::tuple<VkShaderModule, VkShaderModule>;
-    CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, uint8_t texCount = 1);
+    struct SSettings {
+        uint8_t texCount = 1;
+        uint8_t subpass  = 0;
+        bool    blend    = true;
+    };
+    CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag,
+                const SSettings& settings = {.texCount = 1, .subpass = 0, .blend = true});
     ~CVkPipeline();
 
     VkPipeline            vk();

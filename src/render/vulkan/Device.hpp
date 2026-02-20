@@ -12,12 +12,17 @@ class CHyprVulkanDevice {
     ~CHyprVulkanDevice();
 
     struct {
-        PFN_vkGetMemoryFdPropertiesKHR    vkGetMemoryFdPropertiesKHR    = nullptr;
-        PFN_vkWaitSemaphoresKHR           vkWaitSemaphoresKHR           = nullptr;
-        PFN_vkGetSemaphoreCounterValueKHR vkGetSemaphoreCounterValueKHR = nullptr;
-        PFN_vkGetSemaphoreFdKHR           vkGetSemaphoreFdKHR           = nullptr;
-        PFN_vkImportSemaphoreFdKHR        vkImportSemaphoreFdKHR        = nullptr;
-        PFN_vkSetDebugUtilsObjectNameEXT  vkSetDebugUtilsObjectNameEXT  = nullptr;
+        PFN_vkGetMemoryFdPropertiesKHR     vkGetMemoryFdPropertiesKHR     = nullptr;
+        PFN_vkWaitSemaphoresKHR            vkWaitSemaphoresKHR            = nullptr;
+        PFN_vkGetSemaphoreCounterValueKHR  vkGetSemaphoreCounterValueKHR  = nullptr;
+        PFN_vkGetSemaphoreFdKHR            vkGetSemaphoreFdKHR            = nullptr;
+        PFN_vkImportSemaphoreFdKHR         vkImportSemaphoreFdKHR         = nullptr;
+        PFN_vkSetDebugUtilsObjectNameEXT   vkSetDebugUtilsObjectNameEXT   = nullptr;
+        PFN_vkQueueBeginDebugUtilsLabelEXT vkQueueBeginDebugUtilsLabelEXT = nullptr;
+        PFN_vkQueueEndDebugUtilsLabelEXT   vkQueueEndDebugUtilsLabelEXT   = nullptr;
+        PFN_vkCmdBeginDebugUtilsLabelEXT   vkCmdBeginDebugUtilsLabelEXT   = nullptr;
+        PFN_vkCmdEndDebugUtilsLabelEXT     vkCmdEndDebugUtilsLabelEXT     = nullptr;
+
     } m_proc;
 
     bool                                good();

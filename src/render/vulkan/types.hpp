@@ -105,3 +105,26 @@ struct SVkShadowShaderData {
     float     shadowPower;
     SRounding rounding;
 };
+
+struct SVkPrepareShaderData {
+    float contrast;
+    float brightness;
+};
+
+struct SVkBlur1ShaderData {
+    float radius;
+    float halfpixel[2];
+    int   passes;
+    float vibrancy;
+    float vibrancyDarkness;
+};
+
+struct SVkBlur2ShaderData {
+    float radius;
+    float halfpixel[2];
+};
+
+struct SVkFinishShaderData {
+    float noise;
+    float brightness;
+};

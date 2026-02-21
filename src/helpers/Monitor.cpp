@@ -142,6 +142,9 @@ void CMonitor::onConnect(bool noRule) {
             });
         }
 
+        auto minVBlankInterval = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / m_refreshRate));
+        m_estimatedNextVblank  = (ts ? Time::fromTimespec(ts) : Time::steadyNow()) + minVBlankInterval;
+
         m_frameScheduler->onPresented();
 
         m_events.presented.emit();

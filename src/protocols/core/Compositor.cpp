@@ -148,10 +148,43 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         // fifo and fences first
         m_events.stateCommit.emit(state);
 
-        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
-            state->buffer->m_syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
-            if (state->buffer->m_syncFd.isValid())
-                m_stateQueue.lock(state, LOCK_REASON_FENCE);
+        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
+            state->buffer->m_syncFence = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportFence();
+
+            if (state->buffer->m_syncFence.fd().isValid()) {
+                Time::steady_tp deadline = Time::steadyNow();
+                if (m_enteredOutputs.empty() && m_hlSurface) {
+                    for (const auto& m : g_pCompositor->m_monitors) {
+                        if (!m || !m->m_enabled)
+                            continue;
+
+                        auto box = m_hlSurface->getSurfaceBoxGlobal();
+                        if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                            if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank)
+                                continue; // dont estimate vblank on tearing or vrr.
+
+                            deadline = m->m_estimatedNextVblank.value();
+                            break;
+                        }
+                    }
+                } else {
+                    for (const auto& m : m_enteredOutputs) {
+                        if (!m)
+                            continue;
+
+                        if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank)
+                            continue; // dont estimate vblank on tearing or vrr
+
+                        deadline = m->m_estimatedNextVblank.value();
+                        break;
+                    }
+                }
+
+                state->buffer->m_syncFence.setDeadline(deadline);
+
+                if (!state->updated.bits.acquire)
+                    m_stateQueue.lock(state, LOCK_REASON_FENCE);
+            }
         }
 
         // now for timer.
@@ -515,9 +548,9 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
         m_stateQueue.unlock(state, LOCK_REASON_FENCE);
-    } else if (state->buffer && state->buffer->m_syncFd.isValid()) {
+    } else if (state->buffer && state->buffer->m_syncFence.fd().isValid()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
-        g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
+        g_pEventLoopManager->doOnReadable(state->buffer->m_syncFence.fd().duplicate(), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
         m_stateQueue.tryProcess();

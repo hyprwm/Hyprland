@@ -6,6 +6,10 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+namespace Layout {
+    class CSpace;
+};
+
 enum eFullscreenMode : int8_t {
     FSMODE_NONE       = 0,
     FSMODE_MAXIMIZED  = 1 << 0,
@@ -20,7 +24,9 @@ class CWorkspace {
     CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
 
-    WP<CWorkspace> m_self;
+    WP<CWorkspace>     m_self;
+
+    SP<Layout::CSpace> m_space;
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337

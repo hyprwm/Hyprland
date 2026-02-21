@@ -154,12 +154,6 @@ class CInputManager {
 
     STouchData         m_touchData;
 
-    // for dragging floating windows
-    PHLWINDOWREF   m_currentlyDraggedWindow;
-    eMouseBindMode m_dragMode             = MBIND_INVALID;
-    bool           m_wasDraggingWindow    = false;
-    bool           m_dragThresholdReached = false;
-
     // for refocus to be forced
     PHLWINDOWREF                 m_forcedFocus;
 

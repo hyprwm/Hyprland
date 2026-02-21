@@ -77,7 +77,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_GROUP:
-                if (!engine->match(w->m_groupData.pNextWindow))
+                if (!engine->match(!!w->m_group))
                     return false;
                 break;
             case RULE_PROP_MODAL:

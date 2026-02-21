@@ -607,12 +607,16 @@ void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 // };
 
 void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
+    auto       discardOpacity = element->m_data.ignoreAlpha.has_value() ? *element->m_data.ignoreAlpha : element->m_data.discardOpacity;
+    auto       discardMode    = element->m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : element->m_data.discardMode;
+
+    const auto box = element->m_data.box;
+
     if (element->m_data.blur) {
-        auto blurred = m_renderData.pMonitor->m_blurFB->getTexture();
-        auto el      = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
-                 .tex     = blurred,
-                 .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
-                 .clipBox = CBox{element->m_data.box.pos(), element->m_data.tex->m_size},
+        auto el = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+            .tex     = element->m_data.blurredBG,
+            .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
+            .clipBox = CBox{element->m_data.box.pos(), element->m_data.tex->m_size},
         });
         draw(el.get(), damage);
     }

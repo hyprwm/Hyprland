@@ -40,6 +40,8 @@ class CTexPassElement : public IPassElement {
 
         CRegion                clipRegion;
         PHLLSREF               currentLS;
+
+        SP<ITexture>           blurredBG;
     };
 
     CTexPassElement(const SRenderData& data);

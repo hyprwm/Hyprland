@@ -52,6 +52,7 @@
 #include "render/pass/BorderPassElement.hpp"
 #include "render/pass/PreBlurElement.hpp"
 #include <hyprutils/math/Mat3x3.hpp>
+#include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <optional>
 #include <pango/pangocairo.h>
@@ -501,7 +502,7 @@ void IHyprRenderer::bindOffMain() {
 
     m_renderData.pMonitor->m_offMainFB->bind();
     draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
-    m_renderData.currentFB = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB;
+    m_renderData.currentFB = m_renderData.pMonitor->m_offMainFB;
 }
 
 void IHyprRenderer::bindBackOnMain() {
@@ -677,7 +678,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            IFramebuffer* last = g_pHyprRenderer->m_renderData.currentFB.get();
+            IFramebuffer* last = m_renderData.currentFB.get();
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
@@ -1006,7 +1007,69 @@ void IHyprRenderer::drawTex(CTexPassElement* element, const CRegion& damage) {
     if (!element->m_data.clipBox.empty())
         m_renderData.clipBox = element->m_data.clipBox;
 
-    draw(element, damage);
+    pushMonitorTransformEnabled(element->m_data.flipEndFrame);
+    if (element->m_data.useMirrorProjection)
+        setProjectionType(RPT_MIRROR);
+
+    CScopeGuard x = {[useMirrorProjection = element->m_data.useMirrorProjection]() {
+        g_pHyprRenderer->popMonitorTransformEnabled();
+        if (useMirrorProjection)
+            g_pHyprRenderer->setProjectionType(RPT_MONITOR);
+    }};
+
+    if (element->m_data.blur) {
+        // make a damage region for this window
+        CRegion texDamage{m_renderData.damage};
+        texDamage.intersect(element->m_data.box.x, element->m_data.box.y, element->m_data.box.width, element->m_data.box.height);
+
+        // While renderTextureInternalWithDamage will clip the blur as well,
+        // clipping texDamage here allows blur generation to be optimized.
+        if (!element->m_data.clipRegion.empty())
+            texDamage.intersect(element->m_data.clipRegion);
+
+        if (texDamage.empty())
+            return;
+
+        m_renderData.renderModif.applyToRegion(texDamage);
+
+        element->m_data.damage = texDamage;
+
+        // amazing hack: the surface has an opaque region!
+        const auto& surface = element->m_data.surface;
+        const auto& box     = element->m_data.box;
+        CRegion     inverseOpaque;
+        if (element->m_data.a >= 1.f && surface && std::round(surface->m_current.size.x * m_renderData.pMonitor->m_scale) == box.w &&
+            std::round(surface->m_current.size.y * m_renderData.pMonitor->m_scale) == box.h) {
+            pixman_box32_t surfbox = {0, 0, surface->m_current.size.x * surface->m_current.scale, surface->m_current.size.y * surface->m_current.scale};
+            inverseOpaque          = surface->m_current.opaque;
+            inverseOpaque.invert(&surfbox).intersect(0, 0, surface->m_current.size.x * surface->m_current.scale, surface->m_current.size.y * surface->m_current.scale);
+
+            if (inverseOpaque.empty()) {
+                element->m_data.blur = false;
+                draw(element, damage);
+                m_renderData.clipBox = {};
+                return;
+            }
+        } else
+            inverseOpaque = {0, 0, element->m_data.box.width, element->m_data.box.height};
+
+        inverseOpaque.scale(m_renderData.pMonitor->m_scale);
+        element->m_data.blockBlurOptimization =
+            element->m_data.blockBlurOptimization.value_or(false) || !shouldUseNewBlurOptimizations(element->m_data.currentLS.lock(), m_renderData.currentWindow.lock());
+
+        //   vvv TODO: layered blur fbs?
+        if (element->m_data.blockBlurOptimization) {
+            inverseOpaque.translate(box.pos());
+            m_renderData.renderModif.applyToRegion(inverseOpaque);
+            inverseOpaque.intersect(element->m_data.damage);
+            element->m_data.blurredBG = blurMainFramebuffer(element->m_data.a, &inverseOpaque);
+            m_renderData.currentFB->bind();
+        } else
+            element->m_data.blurredBG = m_renderData.pMonitor->m_blurFB->getTexture();
+
+        draw(element, damage);
+    } else
+        draw(element, damage);
 
     m_renderData.clipBox = {};
 }
@@ -2278,9 +2341,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         renderWindow(pMonitor->m_solitaryClient.lock(), pMonitor, NOW, false, RENDER_PASS_MAIN /* solitary = no popups */);
     else if (!finalDamage.empty()) {
         if (pMonitor->isMirror()) {
-            g_pHyprRenderer->blend(false);
+            blend(false);
             renderMirrored();
-            g_pHyprRenderer->blend(true);
+            blend(true);
             EMIT_HOOK_EVENT("render", RENDER_POST_MIRROR);
             renderCursor = false;
         } else {

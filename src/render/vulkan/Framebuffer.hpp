@@ -56,6 +56,7 @@ class CVKFramebuffer : public IFramebuffer {
     void                   release() override;
     void                   addStencil(SP<ITexture> tex) override;
     SP<CHyprVkFramebuffer> fb();
+    VkImageLayout          m_lastKnownLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
   protected:
     void                   setTexture(SP<ITexture> tex);
@@ -63,3 +64,5 @@ class CVKFramebuffer : public IFramebuffer {
     SP<CHyprVkFramebuffer> m_FB;
     friend class CVKRenderBuffer;
 };
+
+#define VKFB(fb) dc<CVKFramebuffer*>(fb.get())

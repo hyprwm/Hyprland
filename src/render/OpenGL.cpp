@@ -1937,54 +1937,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
-    // make a damage region for this window
-    CRegion texDamage{g_pHyprRenderer->m_renderData.damage};
-    texDamage.intersect(box.x, box.y, box.width, box.height);
+    SP<ITexture> blurredBG = data.blurredBG;
 
-    // While renderTextureInternalWithDamage will clip the blur as well,
-    // clipping texDamage here allows blur generation to be optimized.
-    if (!data.clipRegion.empty())
-        texDamage.intersect(data.clipRegion);
-
-    if (texDamage.empty())
-        return;
-
-    g_pHyprRenderer->m_renderData.renderModif.applyToRegion(texDamage);
-
-    // amazing hack: the surface has an opaque region!
-    CRegion inverseOpaque;
-    if (data.a >= 1.f && data.surface && std::round(data.surface->m_current.size.x * m_renderData.pMonitor->m_scale) == box.w &&
-        std::round(data.surface->m_current.size.y * m_renderData.pMonitor->m_scale) == box.h) {
-        pixman_box32_t surfbox = {0, 0, data.surface->m_current.size.x * data.surface->m_current.scale, data.surface->m_current.size.y * data.surface->m_current.scale};
-        inverseOpaque          = data.surface->m_current.opaque;
-        inverseOpaque.invert(&surfbox).intersect(0, 0, data.surface->m_current.size.x * data.surface->m_current.scale,
-                                                 data.surface->m_current.size.y * data.surface->m_current.scale);
-
-        if (inverseOpaque.empty()) {
-            renderTextureInternal(tex, box, data);
-            return;
-        }
-    } else
-        inverseOpaque = {0, 0, box.width, box.height};
-
-    inverseOpaque.scale(m_renderData.pMonitor->m_scale);
-
-    //   vvv TODO: layered blur fbs?
-    const bool USENEWOPTIMIZE =
-        g_pHyprRenderer->shouldUseNewBlurOptimizations(data.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
-
-    SP<ITexture> POUTFB = nullptr;
-    if (!USENEWOPTIMIZE) {
-        inverseOpaque.translate(box.pos());
-        g_pHyprRenderer->m_renderData.renderModif.applyToRegion(inverseOpaque);
-        inverseOpaque.intersect(texDamage);
-        POUTFB = g_pHyprRenderer->blurMainFramebuffer(data.a, &inverseOpaque);
-    } else
-        POUTFB = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture();
-
-    g_pHyprRenderer->m_renderData.currentFB->bind();
-
-    const auto NEEDS_STENCIL = data.discardMode != 0;
+    const auto   NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
 
     if (NEEDS_STENCIL) {
         scissor(nullptr); // allow the entire window and stencil to render
@@ -1997,23 +1952,23 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        if (USENEWOPTIMIZE && !(data.discardMode & DISCARD_ALPHA))
-            renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
-        else
-            renderTexture(tex, box,
-                          STextureRenderData{
-                              .a              = data.a,
-                              .round          = data.round,
-                              .roundingPower  = data.roundingPower,
-                              .discardActive  = true,
-                              .allowCustomUV  = true,
-                              .wrapX          = data.wrapX,
-                              .wrapY          = data.wrapY,
-                              .discardMode    = data.discardMode,
-                              .discardOpacity = data.discardOpacity,
-                              .clipRegion     = data.clipRegion,
-                              .currentLS      = data.currentLS,
-                          }); // discard opaque
+
+        renderTexture(tex, box,
+                      STextureRenderData{
+                          .damage         = &g_pHyprRenderer->m_renderData.damage,
+                          .a              = data.a,
+                          .round          = data.round,
+                          .roundingPower  = data.roundingPower,
+                          .discardActive  = true,
+                          .allowCustomUV  = true,
+                          .wrapX          = data.wrapX,
+                          .wrapY          = data.wrapY,
+                          .discardMode    = data.discardMode,
+                          .discardOpacity = data.discardOpacity,
+                          .clipRegion     = data.clipRegion,
+                          .currentLS      = data.currentLS,
+                      }); // discard opaque and alpha < discardOpacity
+
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -2038,11 +1993,12 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
-    if (!USENEWOPTIMIZE)
+    bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
+    if (!data.blockBlurOptimization)
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
-    renderTextureInternal(POUTFB, box,
+    renderTextureInternal(blurredBG, box,
                           STextureRenderData{
-                              .damage         = &texDamage,
+                              .damage         = data.damage,
                               .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
                               .round          = data.round,
                               .roundingPower  = data.roundingPower,
@@ -2056,8 +2012,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .clipRegion     = data.clipRegion,
                               .currentLS      = data.currentLS,
                           });
-    if (!USENEWOPTIMIZE)
-        g_pHyprRenderer->m_renderData.renderModif.enabled = true;
+
+    g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
     g_pHyprRenderer->popMonitorTransformEnabled();
 
     g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = LASTTL;
@@ -2067,7 +2023,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternal(tex, box,
                           STextureRenderData{
-                              .damage         = &texDamage,
+                              .damage         = data.damage,
                               .a              = data.a * data.overallA,
                               .round          = data.round,
                               .roundingPower  = data.roundingPower,

@@ -152,6 +152,7 @@ bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
         g_pHyprVulkan->stageCB()->changeLayout(m_FB->vkImage(), //
                                                {.layout = VK_IMAGE_LAYOUT_UNDEFINED, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                                                {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+        m_lastKnownLayout = VK_IMAGE_LAYOUT_GENERAL;
     }
     m_fbAllocated = true;
     return m_FB;

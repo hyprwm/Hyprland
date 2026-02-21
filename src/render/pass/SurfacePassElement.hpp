@@ -1,5 +1,6 @@
 #pragma once
 #include "PassElement.hpp"
+#include "TexPassElement.hpp"
 #include <optional>
 #include "../../helpers/time/Time.hpp"
 
@@ -41,7 +42,7 @@ class CSurfacePassElement : public IPassElement {
 
         CBox     clipBox = {}; // scaled coordinates
 
-        uint32_t discardMode    = 0;
+        uint32_t discardMode    = DISCARD_OPAQUE;
         float    discardOpacity = 0.f;
 
         bool     useNearestNeighbor = false;

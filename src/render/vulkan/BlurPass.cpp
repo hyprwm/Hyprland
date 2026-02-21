@@ -196,11 +196,11 @@ SP<ITexture> CVKBlurPass::blurTexture(SP<ITexture> tex, SP<IFramebuffer> first, 
     cb->useTexture(second->getTexture());
 
     cb->changeLayout(dc<CVKTexture*>(first->getTexture().get())->m_image, //
-                     {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+                     {.layout = VKFB(first)->m_lastKnownLayout, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                      {.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
     cb->changeLayout(dc<CVKTexture*>(second->getTexture().get())->m_image, //
-                     {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
+                     {.layout = VKFB(second)->m_lastKnownLayout, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                      {.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
     const auto  mat = g_pHyprRenderer->projectBoxToTarget({{0, 0}, texture->m_size}, texture->m_transform).getMatrix();
@@ -369,6 +369,9 @@ SP<ITexture> CVKBlurPass::blurTexture(SP<ITexture> tex, SP<IFramebuffer> first, 
     }
 
     vkCmdEndRenderPass(g_pHyprVulkan->renderCB()->vk());
+
+    VKFB(first)->m_lastKnownLayout  = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VKFB(second)->m_lastKnownLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     return second->getTexture();
 }

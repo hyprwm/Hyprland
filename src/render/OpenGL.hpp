@@ -185,18 +185,20 @@ class CHyprOpenGLImpl {
     };
 
     struct STextureRenderData {
-        const CRegion*         damage  = nullptr;
-        SP<CWLSurfaceResource> surface = nullptr;
-        float                  a       = 1.F;
-        bool                   blur    = false;
+        bool                   blur  = false;
         float                  blurA = 1.F, overallA = 1.F;
-        int                    round                 = 0;
-        float                  roundingPower         = 2.F;
-        bool                   discardActive         = false;
-        bool                   allowCustomUV         = false;
-        bool                   allowDim              = true;
-        bool                   noAA                  = false; // unused
         bool                   blockBlurOptimization = false;
+        SP<ITexture>           blurredBG;
+
+        const CRegion*         damage        = nullptr;
+        SP<CWLSurfaceResource> surface       = nullptr;
+        float                  a             = 1.F;
+        int                    round         = 0;
+        float                  roundingPower = 2.F;
+        bool                   discardActive = false;
+        bool                   allowCustomUV = false;
+        bool                   allowDim      = true;
+        bool                   noAA          = false; // unused
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
         SP<CMonitor>           cmBackToSRGBSource;

@@ -355,62 +355,36 @@ void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 
 void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
-    g_pHyprRenderer->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     g_pHyprOpenGL->m_renderData.surface = m_data.surface;
 
-    CScopeGuard x = {[m_data]() {
-        //
-        g_pHyprRenderer->popMonitorTransformEnabled();
-        g_pHyprOpenGL->m_renderData.surface.reset();
-        if (m_data.useMirrorProjection)
-            g_pHyprRenderer->setProjectionType(RPT_MONITOR);
-    }};
+    CScopeGuard x = {[m_data]() { g_pHyprOpenGL->m_renderData.surface.reset(); }};
 
-    if (m_data.useMirrorProjection)
-        g_pHyprRenderer->setProjectionType(RPT_MIRROR);
+    g_pHyprOpenGL->renderTexture( //
+        m_data.tex, m_data.box,
+        {
+            // blur settings for m_data.blur == true
+            .blur                  = m_data.blur,
+            .blurA                 = m_data.blurA,
+            .overallA              = m_data.overallA,
+            .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
+            .blurredBG             = m_data.blurredBG,
 
-    auto discardOpacity = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity;
-    auto discardMode    = m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : m_data.discardMode;
-
-    if (m_data.blur) {
-        g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
-                                     {
-                                         .surface               = m_data.surface,
-                                         .a                     = m_data.a,
-                                         .blur                  = true,
-                                         .blurA                 = m_data.blurA,
-                                         .overallA              = m_data.overallA,
-                                         .round                 = m_data.round,
-                                         .roundingPower         = m_data.roundingPower,
-                                         .discardActive         = m_data.discardActive,
-                                         .allowCustomUV         = m_data.allowCustomUV,
-                                         .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
-                                         .cmBackToSRGB          = m_data.cmBackToSRGB,
-                                         .cmBackToSRGBSource    = m_data.cmBackToSRGBSource,
-                                         .discardMode           = discardMode,
-                                         .discardOpacity        = discardOpacity,
-                                         .clipRegion            = m_data.clipRegion,
-                                         .currentLS             = m_data.currentLS,
-                                     });
-    } else {
-        g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
-                                     {
-                                         .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
-                                         .surface            = m_data.surface,
-                                         .a                  = m_data.a,
-                                         .round              = m_data.round,
-                                         .roundingPower      = m_data.roundingPower,
-                                         .discardActive      = m_data.discardActive,
-                                         .allowCustomUV      = m_data.allowCustomUV,
-                                         .cmBackToSRGB       = m_data.cmBackToSRGB,
-                                         .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
-                                         .discardMode        = discardMode,
-                                         .discardOpacity     = discardOpacity,
-                                         .clipRegion         = m_data.clipRegion,
-                                         .currentLS          = m_data.currentLS,
-                                     });
-    }
+            // common settings
+            .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
+            .surface            = m_data.surface,
+            .a                  = m_data.a,
+            .round              = m_data.round,
+            .roundingPower      = m_data.roundingPower,
+            .discardActive      = m_data.discardActive,
+            .allowCustomUV      = m_data.allowCustomUV,
+            .cmBackToSRGB       = m_data.cmBackToSRGB,
+            .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
+            .discardMode        = m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : m_data.discardMode,
+            .discardOpacity     = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
+            .clipRegion         = m_data.clipRegion,
+            .currentLS          = m_data.currentLS,
+        });
 };
 
 void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {

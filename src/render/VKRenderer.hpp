@@ -55,7 +55,6 @@ class CHyprVKRenderer : public IHyprRenderer {
     void                                             draw(CFramebufferElement* element, const CRegion& damage) override;
     void                                             draw(CPreBlurElement* element, const CRegion& damage) override;
     void                                             draw(CRectPassElement* element, const CRegion& damage) override;
-    void                                             draw(CRendererHintsPassElement* element, const CRegion& damage) override;
     void                                             draw(CShadowPassElement* element, const CRegion& damage) override;
     void                                             draw(CTexPassElement* element, const CRegion& damage) override;
     void                                             draw(CTextureMatteElement* element, const CRegion& damage) override;

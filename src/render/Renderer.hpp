@@ -263,15 +263,14 @@ class IHyprRenderer {
     };
 
     SP<ITexture>         getBackground(PHLMONITOR pMonitor);
-    virtual void         draw(CBorderPassElement* element, const CRegion& damage)        = 0;
-    virtual void         draw(CClearPassElement* element, const CRegion& damage)         = 0;
-    virtual void         draw(CFramebufferElement* element, const CRegion& damage)       = 0;
-    virtual void         draw(CPreBlurElement* element, const CRegion& damage)           = 0;
-    virtual void         draw(CRectPassElement* element, const CRegion& damage)          = 0;
-    virtual void         draw(CRendererHintsPassElement* element, const CRegion& damage) = 0;
-    virtual void         draw(CShadowPassElement* element, const CRegion& damage)        = 0;
-    virtual void         draw(CTexPassElement* element, const CRegion& damage)           = 0;
-    virtual void         draw(CTextureMatteElement* element, const CRegion& damage)      = 0;
+    virtual void         draw(CBorderPassElement* element, const CRegion& damage)   = 0;
+    virtual void         draw(CClearPassElement* element, const CRegion& damage)    = 0;
+    virtual void         draw(CFramebufferElement* element, const CRegion& damage)  = 0;
+    virtual void         draw(CPreBlurElement* element, const CRegion& damage)      = 0;
+    virtual void         draw(CRectPassElement* element, const CRegion& damage)     = 0;
+    virtual void         draw(CShadowPassElement* element, const CRegion& damage)   = 0;
+    virtual void         draw(CTexPassElement* element, const CRegion& damage)      = 0;
+    virtual void         draw(CTextureMatteElement* element, const CRegion& damage) = 0;
     virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
 
     void                 renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);

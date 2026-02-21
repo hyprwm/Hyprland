@@ -804,8 +804,6 @@ void IHyprRenderer::drawHints(CRendererHintsPassElement* element, const CRegion&
     const auto m_data = element->m_data;
     if (m_data.renderModif.has_value())
         m_renderData.renderModif = *m_data.renderModif;
-
-    draw(element, damage);
 }
 
 void IHyprRenderer::drawPreBlur(CPreBlurElement* element, const CRegion& damage) {

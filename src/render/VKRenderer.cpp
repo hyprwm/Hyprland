@@ -552,8 +552,6 @@ void CHyprVKRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     drawRegionRects(data.drawRegion, cb->vk());
 };
 
-void CHyprVKRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
-
 void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     element->m_data.deco->render(m_renderData.pMonitor.lock(), element->m_data.a);
 };

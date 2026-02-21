@@ -348,8 +348,6 @@ void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
                                   {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
 };
 
-void CHyprGLRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {};
-
 void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);

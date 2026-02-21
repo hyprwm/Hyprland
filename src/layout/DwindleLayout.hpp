@@ -88,6 +88,7 @@ class CHyprDwindleLayout : public IHyprLayout {
 
     void                    toggleSplit(PHLWINDOW);
     void                    swapSplit(PHLWINDOW);
+    void                    rotateSplit(PHLWINDOW, int angle = 90);
     void                    moveToRoot(PHLWINDOW, bool stable = true);
 
     eDirection              m_overrideDirection = DIRECTION_DEFAULT;

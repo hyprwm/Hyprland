@@ -387,7 +387,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     // and check its monitor
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(middle);
 
-    if (PMONITOR && PMONITOR->m_activeWorkspace) {
+    if (PMONITOR && PMONITOR->m_activeWorkspace && DRAGGINGTARGET->floating() /* If we're resaizing a tiled target, don't do this */) {
         const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
         DRAGGINGTARGET->assignToSpace(WS->m_space);
     }

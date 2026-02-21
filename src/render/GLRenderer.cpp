@@ -384,6 +384,9 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
             .discardOpacity     = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
             .clipRegion         = m_data.clipRegion,
             .currentLS          = m_data.currentLS,
+
+            .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+            .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
         });
 };
 

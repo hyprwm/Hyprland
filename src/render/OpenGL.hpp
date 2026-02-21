@@ -208,6 +208,9 @@ class CHyprOpenGLImpl {
 
         CRegion                clipRegion;
         PHLLSREF               currentLS;
+
+        Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
     };
 
     struct SBorderRenderData {

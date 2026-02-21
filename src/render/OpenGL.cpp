@@ -1515,11 +1515,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     auto verts = fullVerts;
 
-    if (data.allowCustomUV && g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        const float u0 = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft.x;
-        const float v0 = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft.y;
-        const float u1 = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight.x;
-        const float v1 = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight.y;
+    if (data.allowCustomUV && data.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
+        const float u0 = data.primarySurfaceUVTopLeft.x;
+        const float v0 = data.primarySurfaceUVTopLeft.y;
+        const float u1 = data.primarySurfaceUVBottomRight.x;
+        const float v1 = data.primarySurfaceUVBottomRight.y;
 
         verts[0].u = u0;
         verts[0].v = v0;
@@ -1937,9 +1937,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
-    SP<ITexture> blurredBG = data.blurredBG;
-
-    const auto   NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
+    const auto NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
 
     if (NEEDS_STENCIL) {
         scissor(nullptr); // allow the entire window and stencil to render
@@ -1955,18 +1953,20 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         renderTexture(tex, box,
                       STextureRenderData{
-                          .damage         = &g_pHyprRenderer->m_renderData.damage,
-                          .a              = data.a,
-                          .round          = data.round,
-                          .roundingPower  = data.roundingPower,
-                          .discardActive  = true,
-                          .allowCustomUV  = true,
-                          .wrapX          = data.wrapX,
-                          .wrapY          = data.wrapY,
-                          .discardMode    = data.discardMode,
-                          .discardOpacity = data.discardOpacity,
-                          .clipRegion     = data.clipRegion,
-                          .currentLS      = data.currentLS,
+                          .damage                      = &g_pHyprRenderer->m_renderData.damage,
+                          .a                           = data.a,
+                          .round                       = data.round,
+                          .roundingPower               = data.roundingPower,
+                          .discardActive               = true,
+                          .allowCustomUV               = true,
+                          .wrapX                       = data.wrapX,
+                          .wrapY                       = data.wrapY,
+                          .discardMode                 = data.discardMode,
+                          .discardOpacity              = data.discardOpacity,
+                          .clipRegion                  = data.clipRegion,
+                          .currentLS                   = data.currentLS,
+                          .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+                          .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
                       }); // discard opaque and alpha < discardOpacity
 
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -1976,27 +1976,23 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     }
 
     // stencil done. Render everything.
-    const auto LASTTL = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft;
-    const auto LASTBR = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight;
-
-    CBox       transformedBox = box;
+    CBox transformedBox = box;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
                              m_renderData.pMonitor->m_transformedSize.y);
 
-    CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
-                            transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
-
-    g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize;
-    g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
+    CBox        monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                                   transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
+                                   transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
+                                   transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
 
     static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
+
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
     if (!data.blockBlurOptimization)
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
-    renderTextureInternal(blurredBG, box,
+
+    renderTextureInternal(data.blurredBG, box,
                           STextureRenderData{
                               .damage         = data.damage,
                               .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
@@ -2011,16 +2007,18 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .discardOpacity = data.discardOpacity,
                               .clipRegion     = data.clipRegion,
                               .currentLS      = data.currentLS,
+
+                              .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
+                              .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
                           });
 
     g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
     g_pHyprRenderer->popMonitorTransformEnabled();
 
-    g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = LASTTL;
-    g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = LASTBR;
+    if (NEEDS_STENCIL)
+        setCapStatus(GL_STENCIL_TEST, false);
 
     // draw window
-    setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternal(tex, box,
                           STextureRenderData{
                               .damage         = data.damage,
@@ -2037,6 +2035,9 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .discardOpacity = data.discardOpacity,
                               .clipRegion     = data.clipRegion,
                               .currentLS      = data.currentLS,
+
+                              .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+                              .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
                           });
 
     GLFB(g_pHyprRenderer->m_renderData.currentFB)->invalidate({GL_STENCIL_ATTACHMENT});

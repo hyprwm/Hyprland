@@ -395,7 +395,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
     "xdgTag": "{}",
     "xdgDescription": "{}",
     "contentType": "{}",
-    "stable_id": "{:x}"
+    "stableId": "{:x}"
 }},)#",
             rc<uintptr_t>(w.get()), (w->m_isMapped ? "true" : "false"), (w->isHidden() ? "true" : "false"), sc<int>(w->m_realPosition->goal().x),
             sc<int>(w->m_realPosition->goal().y), sc<int>(w->m_realSize->goal().x), sc<int>(w->m_realSize->goal().y), w->m_workspace ? w->workspaceID() : WORKSPACE_INVALID,

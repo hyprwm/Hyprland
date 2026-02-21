@@ -1936,7 +1936,7 @@ void CWindow::mapWindow() {
         && Desktop::focusState()->window()                             // focused window exists
         && canBeGroupedInto(Desktop::focusState()->window()->m_group)  // we can group
         && Desktop::focusState()->window()->m_workspace == m_workspace // workspaces match, we're not opening on another ws
-        && isModal() && !isX11OverrideRedirect()                       // not a modal or X11 OR
+        && !isModal() && !isX11OverrideRedirect()                      // not a modal or X11 OR
     ) {
         // add to group if we are focused on one
         Desktop::focusState()->window()->m_group->add(m_self.lock());

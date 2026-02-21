@@ -85,6 +85,10 @@ namespace Desktop::View {
         float   m_overallOpacity = 1.F;
         CRegion m_visibleRegion;
 
+        // used by the ext-background-effect protocol
+        bool    m_hasBackgroundEffect = false;
+        CRegion m_blurRegion;
+
         struct {
             CSignalT<> destroy;
         } m_events;

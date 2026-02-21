@@ -50,6 +50,7 @@
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
 #include "../protocols/HyprlandSurface.hpp"
+#include "../protocols/BackgroundEffect.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -196,6 +197,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::commitTiming        = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
+    PROTO::backgroundEffect    = makeUnique<CBackgroundEffectProtocol>(&ext_background_effect_manager_v1_interface, 1, "BackgroundEffect");
 
     if (*PENABLECT)
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
@@ -298,6 +301,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
     PROTO::commitTiming.reset();
+    PROTO::backgroundEffect.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();
@@ -352,6 +356,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
 		PROTO::xdgBell->getGlobal(),
         PROTO::fifo->getGlobal(),
         PROTO::commitTiming->getGlobal(),
+        PROTO::backgroundEffect->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

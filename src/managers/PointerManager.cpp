@@ -17,6 +17,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../helpers/Drm.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -440,7 +441,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
-        options.multigpu = state->monitor->m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd;
+        options.multigpu = !DRM::sameGpu(state->monitor->m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd);
         // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
         if (shouldUseCpuBuffer)

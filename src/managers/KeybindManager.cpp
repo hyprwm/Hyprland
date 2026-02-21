@@ -1688,7 +1688,8 @@ SDispatchResult CKeybindManager::moveActiveTo(std::string args) {
 
     // If the window to change to is on the same workspace, switch them
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(PLASTWINDOW, arg);
-    if (PWINDOWTOCHANGETO) {
+    // Only move the window if it's also in the same monitor since workspaces are bound to monitors.
+    if (PWINDOWTOCHANGETO && PWINDOWTOCHANGETO->m_monitor.lock() == PLASTWINDOW->m_monitor.lock()) {
         updateRelativeCursorCoords();
 
         g_pLayoutManager->getCurrentLayout()->moveWindowTo(PLASTWINDOW, args, silent);

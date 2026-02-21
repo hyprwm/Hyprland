@@ -1203,9 +1203,12 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     } else
         result += "\tunknown: not runtime\n";
 
-    if (g_pHyprOpenGL) {
-        result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
-        result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+    if (g_pHyprRenderer) {
+        const auto gl = g_pHyprRenderer->glBackend();
+        if (gl) {
+            result += std::format("\nExplicit sync: {}", gl->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
+            result += std::format("\nGL ver: {}", gl->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+        }
     }
 
     if (g_pCompositor) {
@@ -1304,11 +1307,12 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
     if (COMMAND.contains("decoration:screen_shader") || COMMAND == "source")
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
-            rd.blurFBDirty = true;
+        for (auto const& m : g_pCompositor->m_monitors) {
+            if (m)
+                m->m_blurFBDirty = true;
         }
     }
 
@@ -2049,7 +2053,7 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
-    if (g_pHyprOpenGL->initShaders())
+    if (g_pHyprOpenGL && g_pHyprOpenGL->initShaders())
         return format == FORMAT_JSON ? "{\"ok\": true}" : "ok";
     else
         return format == FORMAT_JSON ? "{\"ok\": false}" : "error";
@@ -2184,10 +2188,11 @@ std::string CHyprCtl::getReply(std::string request) {
         g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
         g_pInputManager->setTabletConfigs();      // update tablets
 
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
 
-        for (auto& [m, rd] : g_pHyprOpenGL->m_monitorRenderResources) {
-            rd.blurFBDirty = true;
+        for (auto const& m : g_pCompositor->m_monitors) {
+            if (m)
+                m->m_blurFBDirty = true;
         }
 
         for (auto const& w : g_pCompositor->m_windows) {

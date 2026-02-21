@@ -5,27 +5,22 @@
 #include "Framebuffer.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 
-class CMonitor;
-
-class CRenderbuffer {
+class IRenderbuffer {
   public:
-    CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
-    ~CRenderbuffer();
+    IRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
+    virtual ~IRenderbuffer() = default;
 
     bool                    good();
-    void                    bind();
-    void                    unbind();
-    CFramebuffer*           getFB();
-    uint32_t                getFormat();
+    SP<IFramebuffer>        getFB();
+
+    virtual void            bind()   = 0;
+    virtual void            unbind() = 0;
 
     WP<Aquamarine::IBuffer> m_hlBuffer;
 
-  private:
-    void*        m_image = nullptr;
-    GLuint       m_rbo   = 0;
-    CFramebuffer m_framebuffer;
-    uint32_t     m_drmFormat = 0;
-    bool         m_good      = false;
+  protected:
+    SP<IFramebuffer> m_framebuffer;
+    bool             m_good = false;
 
     struct {
         CHyprSignalListener destroyBuffer;

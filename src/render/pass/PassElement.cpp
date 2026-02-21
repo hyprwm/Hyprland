@@ -12,6 +12,10 @@ bool IPassElement::disableSimplification() {
     return false;
 }
 
+ePassStage IPassElement::stage() {
+    return PS_MAIN;
+}
+
 void IPassElement::discard() {
     ;
 }

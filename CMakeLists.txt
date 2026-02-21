@@ -14,6 +14,14 @@ include(CheckIncludeFile)
 include(GNUInstallDirs)
 
 set(HYPRLAND_VERSION ${VER})
+string(REPLACE "." ";" HYPRLAND_VERSION_LIST ${VER})
+list(GET HYPRLAND_VERSION_LIST 0 HYPRLAND_VERSION_MAJOR)
+list(GET HYPRLAND_VERSION_LIST 1 HYPRLAND_VERSION_MINOR)
+list(GET HYPRLAND_VERSION_LIST 2 HYPRLAND_VERSION_PATCH)
+set(HYPRLAND_VERSION_MAJOR "${HYPRLAND_VERSION_MAJOR}")
+set(HYPRLAND_VERSION_MINOR "${HYPRLAND_VERSION_MINOR}")
+set(HYPRLAND_VERSION_PATCH "${HYPRLAND_VERSION_PATCH}")
+
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 set(INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
 set(BINDIR ${CMAKE_INSTALL_BINDIR})
@@ -94,6 +102,9 @@ else()
 endif()
 
 add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
+add_compile_definitions(HYPRLAND_VERSION_MAJOR=${HYPRLAND_VERSION_MAJOR})
+add_compile_definitions(HYPRLAND_VERSION_MINOR=${HYPRLAND_VERSION_MINOR})
+add_compile_definitions(HYPRLAND_VERSION_PATCH=${HYPRLAND_VERSION_PATCH})
 
 include_directories(. "src/" "protocols/")
 
@@ -125,6 +136,9 @@ find_package(Threads REQUIRED)
 
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
+
+find_package(Vulkan COMPONENTS glslang)
+find_package(glslang CONFIG REQUIRED)
 
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
@@ -478,9 +492,9 @@ function(protocolWayland)
 endfunction()
 
 if(TARGET OpenGL::GL)
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Vulkan::Vulkan Vulkan::glslang glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 else()
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Vulkan::Vulkan Vulkan::glslang glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)

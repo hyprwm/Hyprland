@@ -796,6 +796,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", Hyprlang::INT{0});
     registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
+    registerConfigVar("render:use_vulkan", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -1359,7 +1360,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
 
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
     }
 
     // parseError will be displayed next frame
@@ -1433,7 +1434,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty
-        g_pHyprOpenGL->markBlurDirtyForMonitor(m);
+        m->m_blurFBDirty = true;
 
         g_pCompositor->scheduleFrameForMonitor(m);
 

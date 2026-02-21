@@ -1,73 +1,20 @@
 #include "Renderbuffer.hpp"
-#include "Renderer.hpp"
-#include "OpenGL.hpp"
-#include "../Compositor.hpp"
-#include "../protocols/types/Buffer.hpp"
+#include "Framebuffer.hpp"
+#include "render/Renderer.hpp"
+#include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/signal/Listener.hpp>
 #include <hyprutils/signal/Signal.hpp>
 
 #include <dlfcn.h>
 
-CRenderbuffer::~CRenderbuffer() {
-    if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
-        return;
-
-    g_pHyprRenderer->makeEGLCurrent();
-
-    unbind();
-    m_framebuffer.release();
-
-    if (m_rbo)
-        glDeleteRenderbuffers(1, &m_rbo);
-
-    if (m_image != EGL_NO_IMAGE_KHR)
-        g_pHyprOpenGL->m_proc.eglDestroyImageKHR(g_pHyprOpenGL->m_eglDisplay, m_image);
-}
-
-CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_hlBuffer(buffer), m_drmFormat(format) {
-    auto dma = buffer->dmabuf();
-
-    m_image = g_pHyprOpenGL->createEGLImage(dma);
-    if (m_image == EGL_NO_IMAGE_KHR) {
-        Log::logger->log(Log::ERR, "rb: createEGLImage failed");
-        return;
-    }
-
-    glGenRenderbuffers(1, &m_rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-    g_pHyprOpenGL->m_proc.glEGLImageTargetRenderbufferStorageOES(GL_RENDERBUFFER, m_image);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    glGenFramebuffers(1, &m_framebuffer.m_fb);
-    m_framebuffer.m_fbAllocated = true;
-    m_framebuffer.m_size        = buffer->size;
-    m_framebuffer.bind();
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        Log::logger->log(Log::ERR, "rbo: glCheckFramebufferStatus failed");
-        return;
-    }
-
-    m_framebuffer.unbind();
-
+IRenderbuffer::IRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_hlBuffer(buffer) {
     m_listeners.destroyBuffer = buffer->events.destroy.listen([this] { g_pHyprRenderer->onRenderbufferDestroy(this); });
-
-    m_good = true;
 }
 
-bool CRenderbuffer::good() {
+bool IRenderbuffer::good() {
     return m_good;
 }
 
-void CRenderbuffer::bind() {
-    m_framebuffer.bind();
-}
-
-void CRenderbuffer::unbind() {
-    m_framebuffer.unbind();
-}
-
-CFramebuffer* CRenderbuffer::getFB() {
-    return &m_framebuffer;
+SP<IFramebuffer> IRenderbuffer::getFB() {
+    return m_framebuffer;
 }

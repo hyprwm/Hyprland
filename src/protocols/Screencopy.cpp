@@ -9,6 +9,7 @@
 #include "../render/OpenGL.hpp"
 #include "../helpers/Monitor.hpp"
 #include "core/Output.hpp"
+#include "debug/log/Logger.hpp"
 #include "types/WLBuffer.hpp"
 #include "types/Buffer.hpp"
 #include "ColorManagement.hpp"
@@ -40,9 +41,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         this->copy(pFrame, res);
     });
 
-    g_pHyprRenderer->makeEGLCurrent();
-
-    m_shmFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_shmFormat = m_monitor->getPreferredReadFormat();
     if (m_shmFormat == DRM_FORMAT_INVALID) {
         LOGM(Log::ERR, "No format supported by renderer in capture output");
         m_resource->sendFailed();
@@ -60,7 +59,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, int32_t
         return;
     }
 
-    m_dmabufFormat = g_pHyprOpenGL->getPreferredReadFormat(m_monitor.lock());
+    m_dmabufFormat = m_monitor->getPreferredReadFormat();
 
     if (box_.width == 0 && box_.height == 0)
         m_box = {0, 0, sc<int>(m_monitor->m_size.x), sc<int>(m_monitor->m_size.y)};
@@ -192,7 +191,7 @@ void CScreencopyFrame::share() {
 }
 
 void CScreencopyFrame::renderMon() {
-    auto       TEXTURE    = makeShared<CTexture>(m_monitor->m_output->state->state().buffer);
+    auto       TEXTURE    = g_pHyprRenderer->createTexture(m_monitor->m_output->state->state().buffer);
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
     const bool IS_CM_AWARE = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_client->client());
@@ -200,15 +199,20 @@ void CScreencopyFrame::renderMon() {
     CBox       monbox = CBox{0, 0, m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y}
                       .translate({-m_box.x, -m_box.y}) // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
                       .transform(Math::wlTransformToHyprutils(Math::invertTransform(m_monitor->m_transform)), m_monitor->m_pixelSize.x, m_monitor->m_pixelSize.y);
-    g_pHyprOpenGL->pushMonitorTransformEnabled(true);
-    g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
-                                 {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr,
-                                 });
-    g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->popMonitorTransformEnabled();
+
+    g_pHyprRenderer->pushMonitorTransformEnabled(true);
+    g_pHyprRenderer->m_renderData.renderModif.enabled = false;
+
+    CTexPassElement::SRenderData data;
+    data.tex                = TEXTURE;
+    data.box                = monbox;
+    data.damage             = monbox;
+    data.cmBackToSRGB       = !IS_CM_AWARE;
+    data.cmBackToSRGBSource = !IS_CM_AWARE ? m_monitor.lock() : nullptr;
+    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), monbox);
+
+    g_pHyprRenderer->m_renderData.renderModif.enabled = true;
+    g_pHyprRenderer->popMonitorTransformEnabled();
 
     auto hidePopups = [&](Vector2D popupBaseOffset) {
         return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
@@ -221,8 +225,12 @@ void CScreencopyFrame::renderMon() {
                     const auto size    = surf->m_current.size;
                     const auto surfBox = CBox{popupBaseOffset + popRel + localOff, size}.translate(m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
 
-                    if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                    if LIKELY (surfBox.w > 0 && surfBox.h > 0) {
+                        CRectPassElement::SRectData data;
+                        data.box   = surfBox;
+                        data.color = Colors::BLACK;
+                        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), {});
+                    }
                 },
                 nullptr);
         };
@@ -241,7 +249,10 @@ void CScreencopyFrame::renderMon() {
         const auto noScreenShareBox =
             CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}.translate(-m_monitor->m_position).scale(m_monitor->m_scale).translate(-m_box.pos());
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+        CRectPassElement::SRectData data;
+        data.box   = noScreenShareBox;
+        data.color = Colors::BLACK;
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), {});
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
@@ -271,11 +282,16 @@ void CScreencopyFrame::renderMon() {
                                           .scale(m_monitor->m_scale)
                                           .translate(-m_box.pos());
 
-        const auto dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-        const auto rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+        const auto                  dontRound     = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+        const auto                  rounding      = dontRound ? 0 : w->rounding() * m_monitor->m_scale;
+        const auto                  roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
+        CRectPassElement::SRectData data;
+        data.box           = noScreenShareBox;
+        data.color         = Colors::BLACK;
+        data.round         = rounding;
+        data.roundingPower = roundingPower;
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), {});
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -292,13 +308,14 @@ void CScreencopyFrame::renderMon() {
 }
 
 void CScreencopyFrame::storeTempFB() {
-    g_pHyprRenderer->makeEGLCurrent();
+    if (!m_tempFb)
+        m_tempFb = g_pHyprRenderer->createFB("CScreencopyFrame::storeTempFB");
 
-    m_tempFb.alloc(m_box.w, m_box.h);
+    m_tempFb->alloc(m_box.w, m_box.h);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &m_tempFb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, m_tempFb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }
@@ -313,28 +330,41 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 
     CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer, nullptr, true)) {
+    if (!g_pHyprRenderer->beginRenderToBuffer(m_monitor.lock(), fakeDamage, m_buffer.m_buffer, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         callback(false);
         return;
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        if (m_tempFb.isAllocated()) {
-            CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
-            m_tempFb.release();
+        g_pHyprRenderer->startRenderPass();
+        if (m_tempFb && m_tempFb->isAllocated()) {
+            CBox                         texbox = {{}, m_box.size()};
+
+            CTexPassElement::SRenderData data;
+            data.tex = m_tempFb->getTexture();
+            data.box = texbox;
+            g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
+
+            m_tempFb->release();
         } else
             renderMon();
-    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
-        g_pHyprOpenGL->clear(Colors::BLACK);
-    else {
-        g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+        g_pHyprRenderer->startRenderPass();
+    } else {
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+        g_pHyprRenderer->startRenderPass();
+        CBox texbox =
+            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+
+        CTexPassElement::SRenderData data;
+        data.tex = g_pHyprRenderer->m_screencopyDeniedTexture;
+        data.box = texbox;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
     }
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([callback]() {
         LOGM(Log::TRACE, "Copied frame via dma");
@@ -345,94 +375,56 @@ void CScreencopyFrame::copyDmabuf(std::function<void(bool)> callback) {
 bool CScreencopyFrame::copyShm() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
-    auto       shm                = m_buffer->shm();
-    auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm
+    CRegion    fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    auto       fb = g_pHyprRenderer->createFB("CScreencopyFrame::copyShm");
+    fb->alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
+    LOGM(Log::DEBUG, "CScreencopyFrame::copyShm");
 
-    g_pHyprRenderer->makeEGLCurrent();
-
-    CFramebuffer fb;
-    fb.alloc(m_box.w, m_box.h, m_monitor->m_output->state->state().drmFormat);
-
-    if (!g_pHyprRenderer->beginRender(m_monitor.lock(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &fb, true)) {
+    if (!g_pHyprRenderer->beginFullFakeRender(m_monitor.lock(), fakeDamage, fb, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
 
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
-        if (m_tempFb.isAllocated()) {
-            CBox texbox = {{}, m_box.size()};
-            g_pHyprOpenGL->renderTexture(m_tempFb.getTexture(), texbox, {});
-            m_tempFb.release();
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_ALLOW");
+        g_pHyprRenderer->startRenderPass();
+        if (m_tempFb && m_tempFb->isAllocated()) {
+            LOGM(Log::DEBUG, "CScreencopyFrame::copyShm m_tempFb");
+            CBox                         texbox = {{}, m_box.size()};
+
+            CTexPassElement::SRenderData data;
+            data.tex = m_tempFb->getTexture();
+            data.box = texbox;
+            g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
+
+            m_tempFb->release();
         } else
             renderMon();
-    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
-        g_pHyprOpenGL->clear(Colors::BLACK);
-    else {
-        g_pHyprOpenGL->clear(Colors::BLACK);
-        CBox texbox = CBox{m_monitor->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+    } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_PENDING");
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+        g_pHyprRenderer->startRenderPass();
+    } else {
+        LOGM(Log::DEBUG, "CScreencopyFrame::copyShm PERMISSION_RULE_ALLOW_MODE_DENY");
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+        g_pHyprRenderer->startRenderPass();
+        CBox texbox =
+            CBox{m_monitor->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+
+        CTexPassElement::SRenderData data;
+        data.tex = g_pHyprRenderer->m_screencopyDeniedTexture;
+        data.box = texbox;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
     }
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb.getFBID());
-
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
-    if (!PFORMAT) {
-        LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
-        g_pHyprRenderer->endRender();
-        return false;
-    }
-
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
-    g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = m_monitor;
-    fb.bind();
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_box.w);
-    int      glFormat   = PFORMAT->glFormat;
-
-    if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
-
-    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-        if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
-                glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
-                glFormat = GL_BGRA_EXT;
-            else {
-                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                glFormat = GL_RGBA;
-            }
-        }
-    }
-
-    // This could be optimized by using a pixel buffer object to make this async,
-    // but really clients should just use a dma buffer anyways.
-    if (packStride == sc<uint32_t>(shm.stride)) {
-        glReadPixels(0, 0, m_box.w, m_box.h, glFormat, PFORMAT->glType, pixelData);
-    } else {
-        for (size_t i = 0; i < m_box.h; ++i) {
-            uint32_t y = i;
-            glReadPixels(0, y, m_box.w, 1, glFormat, PFORMAT->glType, pixelData + i * shm.stride);
-        }
-    }
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-    LOGM(Log::TRACE, "Copied frame via shm");
-
-    return true;
+    LOGM(Log::DEBUG, "CScreencopyFrame::copyShm read");
+    bool res = fb->readPixels(m_buffer);
+    LOGM(Log::DEBUG, "CScreencopyFrame::copyShm end");
+    return res;
 }
 
 bool CScreencopyFrame::good() {
@@ -536,7 +528,7 @@ void CScreencopyProtocol::destroyResource(CScreencopyFrame* frame) {
 
 void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
     if (m_framesAwaitingWrite.empty()) {
-        for (auto client : m_clients) {
+        for (const auto& client : m_clients) {
             if (client->m_framesInLastHalfSecond > 0)
                 return;
         }
@@ -557,7 +549,7 @@ void CScreencopyProtocol::onOutputCommit(PHLMONITOR pMonitor) {
         const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(f->m_resource->client(), PERMISSION_TYPE_SCREENCOPY);
 
         if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-            if (!f->m_tempFb.isAllocated())
+            if (!f->m_tempFb || !f->m_tempFb->isAllocated())
                 f->storeTempFB(); // make a snapshot before the popup
 
             continue; // pending an answer, don't do anything yet.

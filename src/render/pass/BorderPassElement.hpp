@@ -13,12 +13,12 @@ class CBorderPassElement : public IPassElement {
         float              lerp = 0.F, a = 1.F;
         int                round = 0, borderSize = 1, outerRound = -1;
         float              roundingPower = 2.F;
+        PHLWINDOWREF       window;
     };
 
     CBorderPassElement(const SBorderData& data_);
     virtual ~CBorderPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
 
@@ -26,6 +26,9 @@ class CBorderPassElement : public IPassElement {
         return "CBorderPassElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_BORDER;
+    };
+
     SBorderData m_data;
 };

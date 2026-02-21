@@ -6,6 +6,7 @@
 #include "View.hpp"
 #include "../rule/layerRule/LayerRuleApplicator.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
+#include "render/Framebuffer.hpp"
 
 class CLayerShellResource;
 
@@ -58,6 +59,8 @@ namespace Desktop::View {
         Vector2D                                m_position;
         std::string                             m_namespace = "";
         SP<Desktop::View::CPopup>               m_popupHead;
+
+        SP<IFramebuffer>                        m_snapshotFB;
 
         pid_t                                   getPID();
 

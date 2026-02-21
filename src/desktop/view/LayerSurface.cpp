@@ -12,6 +12,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
+#include "render/OpenGL.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -77,13 +78,8 @@ CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurfa
 }
 
 CLayerSurface::~CLayerSurface() {
-    if (!g_pHyprOpenGL)
-        return;
-
     if (m_wlSurface)
         m_wlSurface->unassign();
-    g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == m_self.lock(); });
 
     for (auto const& mon : g_pCompositor->m_realMonitors) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
@@ -315,7 +311,7 @@ void CLayerSurface::onCommit() {
         return;
 
     if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
+        PMONITOR->m_blurFBDirty = true;
 
     CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
@@ -340,7 +336,7 @@ void CLayerSurface::onCommit() {
             *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-                g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
+                PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);

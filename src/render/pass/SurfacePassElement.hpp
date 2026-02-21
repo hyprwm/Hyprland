@@ -1,10 +1,11 @@
 #pragma once
 #include "PassElement.hpp"
+#include "TexPassElement.hpp"
 #include <optional>
 #include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
-class CTexture;
+class ITexture;
 class CSyncTimeline;
 
 class CSurfacePassElement : public IPassElement {
@@ -16,7 +17,7 @@ class CSurfacePassElement : public IPassElement {
 
         void*                  data        = nullptr;
         SP<CWLSurfaceResource> surface     = nullptr;
-        SP<CTexture>           texture     = nullptr;
+        SP<ITexture>           texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
         int                    rounding      = 0;
@@ -41,7 +42,7 @@ class CSurfacePassElement : public IPassElement {
 
         CBox     clipBox = {}; // scaled coordinates
 
-        uint32_t discardMode    = 0;
+        uint32_t discardMode    = DISCARD_OPAQUE;
         float    discardOpacity = 0.f;
 
         bool     useNearestNeighbor = false;
@@ -52,7 +53,6 @@ class CSurfacePassElement : public IPassElement {
     CSurfacePassElement(const SRenderData& data);
     virtual ~CSurfacePassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -64,7 +64,10 @@ class CSurfacePassElement : public IPassElement {
         return "CSurfacePassElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_SURFACE;
+    };
+
     SRenderData m_data;
 
     CBox        getTexBox();

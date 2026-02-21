@@ -215,7 +215,7 @@ CProtocolManager::CProtocolManager() {
         else
             lease.reset();
 
-        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
+        if (g_pHyprRenderer->explicitSyncSupported() && !PROTO::sync) {
             if (g_pCompositor->supportsDrmSyncobjTimeline()) {
                 PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
                 Log::logger->log(Log::DEBUG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
@@ -224,7 +224,7 @@ CProtocolManager::CProtocolManager() {
         }
     }
 
-    if (!g_pHyprOpenGL->getDRMFormats().empty()) {
+    if (!g_pHyprRenderer->getDRMFormats().empty()) {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else

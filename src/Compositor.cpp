@@ -31,6 +31,9 @@
 #include <unordered_set>
 #include "debug/HyprCtl.hpp"
 #include "debug/crash/CrashReporter.hpp"
+#include "render/GLRenderer.hpp"
+#include "render/VKRenderer.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
@@ -568,8 +571,13 @@ void CCompositor::cleanup() {
     m_workspaces.clear();
     m_windows.clear();
 
-    for (auto const& m : m_monitors) {
-        g_pHyprOpenGL->destroyMonitorResources(m);
+    if (g_pHyprRenderer) {
+        const auto gl = g_pHyprRenderer->glBackend();
+        if (gl) {
+            for (auto const& m : m_monitors) {
+                gl->destroyMonitorResources(m);
+            }
+        }
     }
 
     g_pXWayland.reset();
@@ -590,6 +598,7 @@ void CCompositor::cleanup() {
     g_pSessionLockManager.reset();
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
+    g_pHyprVulkan.reset();
     g_pHyprOpenGL.reset();
     g_pConfigManager.reset();
     g_layoutManager.reset();
@@ -664,6 +673,16 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the CHyprOpenGLImpl!");
             g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
 
+            Log::logger->log(Log::DEBUG, "Creating the CHyprVulkanImpl!");
+            g_pHyprVulkan = makeUnique<CHyprVulkanImpl>();
+
+            static auto PVKRENDERER = CConfigValue<Hyprlang::INT>("render:use_vulkan");
+            Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
+            if (*PVKRENDERER)
+                g_pHyprRenderer = makeUnique<CHyprVKRenderer>();
+            else
+                g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+
             Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();
 
@@ -681,9 +700,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the InputManager!");
             g_pInputManager = makeUnique<CInputManager>();
-
-            Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = makeUnique<CHyprRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();
@@ -1330,8 +1346,11 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
             continue;
 
         // mark blur for recalc
-        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-            g_pHyprOpenGL->markBlurDirtyForMonitor(getMonitorFromID(monid));
+        if (ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || ls->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
+            auto mon = getMonitorFromID(monid);
+            if (mon)
+                mon->m_blurFBDirty = true;
+        }
 
         if (ls->m_fadingOut && ls->m_readyToDelete && ls->isFadedOut()) {
             for (auto const& m : m_monitors) {
@@ -2499,8 +2518,8 @@ void CCompositor::performUserChecks() {
             g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_NO_GUIUTILS), CHyprColor{}, 15000, ICON_WARNING);
     }
 
-    if (g_pHyprOpenGL->m_failedAssetsNo > 0) {
-        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprOpenGL->m_failedAssetsNo)}}),
+    if (g_pHyprRenderer->m_failedAssetsNo > 0) {
+        g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_ASSETS, {{"count", std::to_string(g_pHyprRenderer->m_failedAssetsNo)}}),
                                                     CHyprColor{1.0, 0.1, 0.1, 1.0}, 15000, ICON_ERROR);
     }
 

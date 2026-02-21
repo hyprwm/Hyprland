@@ -20,6 +20,7 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 #include "Renderbuffer.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "pass/Pass.hpp"
 
 #include <EGL/egl.h>
@@ -31,9 +32,14 @@
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "render/gl/GLFramebuffer.hpp"
+#include "render/gl/GLRenderbuffer.hpp"
+#include "render/pass/TexPassElement.hpp"
+
+#define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
 struct gbm_device;
-class CHyprRenderer;
+class IHyprRenderer;
 
 struct SVertex {
     float x, y; // position
@@ -48,11 +54,6 @@ constexpr std::array<SVertex, 4> fullVerts = {{
 }};
 
 inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
-
-enum eDiscardMode : uint8_t {
-    DISCARD_OPAQUE = 1,
-    DISCARD_ALPHA  = 1 << 1
-};
 
 struct SRenderModifData {
     enum eRenderModifType : uint8_t {
@@ -137,53 +138,13 @@ struct SPreparedShaders {
     std::map<uint8_t, SP<CShader>>        fragVariants;
 };
 
-struct SMonitorRenderData {
-    CFramebuffer offloadFB;
-    CFramebuffer mirrorFB;     // these are used for some effects,
-    CFramebuffer mirrorSwapFB; // etc
-    CFramebuffer offMainFB;
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
-    CFramebuffer blurFB;
-
-    SP<CTexture> stencilTex = makeShared<CTexture>();
-
-    bool         blurFBDirty        = true;
-    bool         blurFBShouldRender = false;
-};
-
 struct SCurrentRenderData {
-    PHLMONITORREF pMonitor;
-    Mat3x3        projection;
-    Mat3x3        savedProjection;
-    Mat3x3        monitorProjection;
+    PHLMONITORREF          pMonitor;
 
-    // FIXME: raw pointer galore!
-    SMonitorRenderData*    pCurrentMonData = nullptr;
-    CFramebuffer*          currentFB       = nullptr; // current rendering to
-    CFramebuffer*          mainFB          = nullptr; // main to render to
-    CFramebuffer*          outFB           = nullptr; // out to render to (if offloaded, etc)
+    SP<IRenderbuffer>      m_currentRenderbuffer = nullptr;
 
-    CRegion                damage;
-    CRegion                finalDamage; // damage used for funal off -> main
+    bool                   simplePass = false;
 
-    SRenderModifData       renderModif;
-    float                  mouseZoomFactor    = 1.f;
-    bool                   mouseZoomUseMouse  = true; // true by default
-    bool                   useNearestNeighbor = false;
-    bool                   blockScreenShader  = false;
-    bool                   simplePass         = false;
-
-    Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
-
-    CBox                   clipBox = {}; // scaled coordinates
-    CRegion                clipRegion;
-
-    uint32_t               discardMode    = DISCARD_OPAQUE;
-    float                  discardOpacity = 0.f;
-
-    PHLLSREF               currentLS;
-    PHLWINDOWREF           currentWindow;
     WP<CWLSurfaceResource> surface;
 };
 
@@ -224,21 +185,32 @@ class CHyprOpenGLImpl {
     };
 
     struct STextureRenderData {
-        const CRegion*         damage  = nullptr;
-        SP<CWLSurfaceResource> surface = nullptr;
-        float                  a       = 1.F;
-        bool                   blur    = false;
+        bool                   blur  = false;
         float                  blurA = 1.F, overallA = 1.F;
-        int                    round                 = 0;
-        float                  roundingPower         = 2.F;
-        bool                   discardActive         = false;
-        bool                   allowCustomUV         = false;
-        bool                   allowDim              = true;
-        bool                   noAA                  = false;
         bool                   blockBlurOptimization = false;
+        SP<ITexture>           blurredBG;
+
+        const CRegion*         damage        = nullptr;
+        SP<CWLSurfaceResource> surface       = nullptr;
+        float                  a             = 1.F;
+        int                    round         = 0;
+        float                  roundingPower = 2.F;
+        bool                   discardActive = false;
+        bool                   allowCustomUV = false;
+        bool                   allowDim      = true;
+        bool                   noAA          = false; // unused
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
         SP<CMonitor>           cmBackToSRGBSource;
+
+        uint32_t               discardMode    = DISCARD_OPAQUE;
+        float                  discardOpacity = 0.f;
+
+        CRegion                clipRegion;
+        PHLLSREF               currentLS;
+
+        Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
     };
 
     struct SBorderRenderData {
@@ -249,95 +221,63 @@ class CHyprOpenGLImpl {
         int   outerRound    = -1; /* use round */
     };
 
-    void         begin(PHLMONITOR, const CRegion& damage, CFramebuffer* fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void         beginSimple(PHLMONITOR, const CRegion& damage, SP<CRenderbuffer> rb = nullptr, CFramebuffer* fb = nullptr);
-    void         end();
+    void                                    makeEGLCurrent();
+    void                                    begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void                                    beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+    void                                    end();
 
-    void         renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-    void         renderTexture(SP<CTexture>, const CBox&, STextureRenderData data);
-    void         renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
-    void         renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
-    void         renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
-    void         renderTextureMatte(SP<CTexture> tex, const CBox& pBox, CFramebuffer& matte);
+    void                                    renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
+    void                                    renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+    void                                    renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
+    void                                    renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
+    void                                    renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
+    void                                    renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
 
-    void         pushMonitorTransformEnabled(bool enabled);
-    void         popMonitorTransformEnabled();
+    void                                    setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void                                    setCapStatus(int cap, bool status);
 
-    void         setRenderModifEnabled(bool enabled);
-    void         setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
-    void         setCapStatus(int cap, bool status);
+    void                                    blend(bool enabled);
 
-    void         saveMatrix();
-    void         setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void         restoreMatrix();
+    void                                    clear(const CHyprColor&);
+    void                                    scissor(const CBox&, bool transform = true);
+    void                                    scissor(const pixman_box32*, bool transform = true);
+    void                                    scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void         blend(bool enabled);
+    void                                    destroyMonitorResources(PHLMONITORREF);
 
-    bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    void                                    markBlurDirtyForMonitor(PHLMONITOR);
 
-    void         clear(const CHyprColor&);
-    void         clearWithTex();
-    void         scissor(const CBox&, bool transform = true);
-    void         scissor(const pixman_box32*, bool transform = true);
-    void         scissor(const int x, const int y, const int w, const int h, bool transform = true);
+    void                                    preRender(PHLMONITOR);
 
-    void         destroyMonitorResources(PHLMONITORREF);
+    void                                    saveBufferForMirror(const CBox&);
 
-    void         markBlurDirtyForMonitor(PHLMONITOR);
+    void                                    applyScreenShader(const std::string& path);
 
-    void         preWindowPass();
-    bool         preBlurQueued();
-    void         preRender(PHLMONITOR);
+    void                                    renderOffToMain(IFramebuffer* off);
 
-    void         saveBufferForMirror(const CBox&);
-    void         renderMirrored();
+    std::vector<SDRMFormat>                 getDRMFormats();
+    EGLImageKHR                             createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
-    void         applyScreenShader(const std::string& path);
+    bool                                    initShaders();
 
-    void         bindOffMain();
-    void         renderOffToMain(CFramebuffer* off);
-    void         bindBackOnMain();
+    WP<CShader>                             useShader(WP<CShader> prog);
 
-    std::string  resolveAssetPath(const std::string& file);
-    SP<CTexture> loadAsset(const std::string& file);
-    SP<CTexture> texFromCairo(cairo_surface_t* cairo);
-    SP<CTexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    bool                                    explicitSyncSupported();
+    WP<CShader>                             getSurfaceShader(uint8_t features);
 
-    void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    bool                                    m_shadersInitialized = false;
+    SP<SPreparedShaders>                    m_shaders;
+    std::map<std::string, std::string>      m_includes;
 
-    uint32_t     getPreferredReadFormat(PHLMONITOR pMonitor);
-    std::vector<SDRMFormat>                           getDRMFormats();
-    EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    SCurrentRenderData                      m_renderData;
 
-    bool                                              initShaders();
+    Hyprutils::OS::CFileDescriptor          m_gbmFD;
+    gbm_device*                             m_gbmDevice  = nullptr;
+    EGLContext                              m_eglContext = nullptr;
+    EGLDisplay                              m_eglDisplay = nullptr;
+    EGLDeviceEXT                            m_eglDevice  = nullptr;
 
-    WP<CShader>                                       useShader(WP<CShader> prog);
-
-    void                                              ensureLockTexturesRendered(bool load);
-
-    bool                                              explicitSyncSupported();
-    WP<CShader>                                       getSurfaceShader(uint8_t features);
-
-    bool                                              m_shadersInitialized = false;
-    SP<SPreparedShaders>                              m_shaders;
-    std::map<std::string, std::string>                m_includes;
-
-    SCurrentRenderData                                m_renderData;
-
-    Hyprutils::OS::CFileDescriptor                    m_gbmFD;
-    gbm_device*                                       m_gbmDevice      = nullptr;
-    EGLContext                                        m_eglContext     = nullptr;
-    EGLDisplay                                        m_eglDisplay     = nullptr;
-    EGLDeviceEXT                                      m_eglDevice      = nullptr;
-    uint                                              m_failedAssetsNo = 0;
-
-    bool                                              m_reloadScreenShader = true; // at launch it can be set
-
-    std::map<PHLWINDOWREF, CFramebuffer>              m_windowFramebuffers;
-    std::map<PHLLSREF, CFramebuffer>                  m_layerFramebuffers;
-    std::map<WP<Desktop::View::CPopup>, CFramebuffer> m_popupFramebuffers;
-    std::map<PHLMONITORREF, SMonitorRenderData>       m_monitorRenderResources;
-    std::map<PHLMONITORREF, CFramebuffer>             m_monitorBGFBs;
+    std::map<PHLMONITORREF, CGLFramebuffer> m_monitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -368,8 +308,6 @@ class CHyprOpenGLImpl {
         bool EGL_ANDROID_native_fence_sync_ext  = false;
     } m_exts;
 
-    SP<CTexture> m_screencopyDeniedTexture;
-
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,
         EGL_CONTEXT_GLES_3_0,
@@ -393,39 +331,27 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    std::array<bool, CAP_STATUS_END>  m_capStatus = {};
+    std::array<bool, CAP_STATUS_END> m_capStatus = {};
 
-    std::vector<SDRMFormat>           m_drmFormats;
-    bool                              m_hasModifiers = false;
+    std::vector<SDRMFormat>          m_drmFormats;
+    bool                             m_hasModifiers = false;
 
-    int                               m_drmFD = -1;
-    std::string                       m_extensions;
+    int                              m_drmFD = -1;
+    std::string                      m_extensions;
 
-    bool                              m_fakeFrame            = false;
-    bool                              m_applyFinalShader     = false;
-    bool                              m_blend                = false;
-    bool                              m_offloadedFramebuffer = false;
-    bool                              m_cmSupported          = true;
+    bool                             m_fakeFrame            = false;
+    bool                             m_applyFinalShader     = false;
+    bool                             m_blend                = false;
+    bool                             m_offloadedFramebuffer = false;
+    bool                             m_cmSupported          = true;
 
-    bool                              m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>                  m_monitorTransformStack;
-    SP<CTexture>                      m_missingAssetTexture;
-    SP<CTexture>                      m_lockDeadTexture;
-    SP<CTexture>                      m_lockDead2Texture;
-    SP<CTexture>                      m_lockTtyTextTexture;
-    SP<CShader>                       m_finalScreenShader;
-    CTimer                            m_globalTimer;
-    GLuint                            m_currentProgram;
-    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
-    bool                              m_backgroundResourceFailed = false;
+    SP<CShader>                      m_finalScreenShader;
+    GLuint                           m_currentProgram;
 
-    void                              createBGTextureForMonitor(PHLMONITOR);
-    void                              initDRMFormats();
-    void                              initEGL(bool gbm);
-    EGLDeviceEXT                      eglDeviceFromDRMFD(int drmFD);
-    void                              initAssets();
-    void                              initMissingAssetTexture();
-    void                              requestBackgroundResource();
+    void                             initDRMFormats();
+    void                             initEGL(bool gbm);
+    EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
+    void                             requestBackgroundResource();
 
     // for the final shader
     std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};
@@ -437,23 +363,22 @@ class CHyprOpenGLImpl {
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    CFramebuffer* blurMainFramebufferWithDamage(float a, CRegion* damage);
-    CFramebuffer* blurFramebufferWithDamage(float a, CRegion* damage, CFramebuffer& source);
+    SP<IFramebuffer> blurFramebufferWithDamage(float a, CRegion* damage, CGLFramebuffer& source);
 
-    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                 bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-    void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
-    void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
-    void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-    void          renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-    void          renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
-    void          renderTextureInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
-    void          renderTextureWithBlurInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
+    void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                    bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+    void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
+    void             renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
+    void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+    void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+    void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+    WP<CShader>      renderToOutputInternal();
+    WP<CShader>      renderToFBInternal(const STextureRenderData& data, eTextureType texType, const CBox& newBox);
+    void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
+    void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 
-    void          preBlurForCurrentMonitor();
-
-    friend class CHyprRenderer;
+    friend class IHyprRenderer;
+    friend class CHyprGLRenderer;
     friend class CTexPassElement;
     friend class CPreBlurElement;
     friend class CSurfacePassElement;

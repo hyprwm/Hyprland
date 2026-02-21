@@ -4,7 +4,7 @@
 #include "PassElement.hpp"
 
 class CGradientValueData;
-class CTexture;
+class ITexture;
 
 class CRenderPass {
   public:
@@ -15,7 +15,7 @@ class CRenderPass {
     void    clear();
     void    removeAllOfType(const std::string& type);
 
-    CRegion render(const CRegion& damage_);
+    CRegion render(const CRegion& damage_, int stage = PS_ANY);
 
   private:
     CRegion              m_damage;
@@ -36,8 +36,10 @@ class CRenderPass {
 
     struct {
         bool         present = false;
-        SP<CTexture> keyboardFocusText, pointerFocusText, lastWindowText;
+        SP<ITexture> keyboardFocusText, pointerFocusText, lastWindowText;
     } m_debugData;
 
     friend class CHyprOpenGLImpl;
+    friend class CHyprVulkanImpl;
+    friend class CHyprVKRenderer;
 };

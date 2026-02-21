@@ -13,7 +13,6 @@ class CShadowPassElement : public IPassElement {
     CShadowPassElement(const SShadowData& data_);
     virtual ~CShadowPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
 
@@ -21,6 +20,9 @@ class CShadowPassElement : public IPassElement {
         return "CShadowPassElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_SHADOW;
+    };
+
     SShadowData m_data;
 };

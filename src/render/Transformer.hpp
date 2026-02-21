@@ -14,7 +14,7 @@ class IWindowTransformer {
 
     // called by Hyprland. For more data about what is being rendered, inspect render data.
     // returns the out fb.
-    virtual CFramebuffer* transform(CFramebuffer* in) = 0;
+    virtual IFramebuffer* transform(IFramebuffer* in) = 0;
 
     // called by Hyprland before a window main pass is started.
     virtual void preWindowRender(CSurfacePassElement::SRenderData* pRenderData);

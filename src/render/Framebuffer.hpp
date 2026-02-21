@@ -3,34 +3,38 @@
 #include "../defines.hpp"
 #include "../helpers/Format.hpp"
 #include "Texture.hpp"
+#include <cstdint>
 #include <drm_fourcc.h>
 
-class CFramebuffer {
-  public:
-    CFramebuffer();
-    ~CFramebuffer();
+class CHLBufferReference;
 
-    bool         alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
-    void         addStencil(SP<CTexture> tex);
-    void         bind();
-    void         unbind();
-    void         release();
-    void         reset();
+class IFramebuffer {
+  public:
+    IFramebuffer() = default;
+    IFramebuffer(const std::string& name);
+    virtual ~IFramebuffer() = default;
+
+    virtual bool alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
+    virtual void release()                                                                         = 0;
+    virtual bool readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0) = 0;
+
+    virtual void bind() = 0;
+
     bool         isAllocated();
-    SP<CTexture> getTexture();
-    SP<CTexture> getStencilTex();
-    GLuint       getFBID();
-    void         invalidate(const std::vector<GLenum>& attachments);
+    SP<ITexture> getTexture();
+    SP<ITexture> getStencilTex();
+
+    virtual void addStencil(SP<ITexture> tex) = 0;
 
     Vector2D     m_size;
-    DRMFormat    m_drmFormat = 0 /* DRM_FORMAT_INVALID */;
+    DRMFormat    m_drmFormat = DRM_FORMAT_INVALID;
 
-  private:
-    SP<CTexture> m_tex;
-    GLuint       m_fb          = -1;
+  protected:
+    virtual bool internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) = 0;
+
+    SP<ITexture> m_tex;
     bool         m_fbAllocated = false;
 
-    SP<CTexture> m_stencilTex;
-
-    friend class CRenderbuffer;
+    SP<ITexture> m_stencilTex;
+    std::string  m_name; // name for logging
 };

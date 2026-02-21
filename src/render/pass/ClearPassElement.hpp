@@ -10,7 +10,6 @@ class CClearPassElement : public IPassElement {
     CClearPassElement(const SClearData& data);
     virtual ~CClearPassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -20,6 +19,13 @@ class CClearPassElement : public IPassElement {
         return "CClearPassElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_CLEAR;
+    };
+
+    virtual ePassStage stage() {
+        return PS_INIT;
+    };
+
     SClearData m_data;
 };

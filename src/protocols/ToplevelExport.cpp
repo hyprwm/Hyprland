@@ -98,9 +98,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
 
     const auto PMONITOR = m_window->m_monitor.lock();
 
-    g_pHyprRenderer->makeEGLCurrent();
-
-    m_shmFormat = NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
+    m_shmFormat = NFormatUtils::alphaFormat(PMONITOR->getPreferredReadFormat());
     LOGM(Log::DEBUG, "Format {:x}", m_shmFormat);
     //m_shmFormat = NFormatUtils::alphaFormat(m_shmFormat);
     if UNLIKELY (m_shmFormat == DRM_FORMAT_INVALID) {
@@ -116,7 +114,7 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
         return;
     }
 
-    m_dmabufFormat = NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR));
+    m_dmabufFormat = NFormatUtils::alphaFormat(PMONITOR->getPreferredReadFormat());
 
     m_box = {0, 0, sc<int>(m_window->m_realSize->value().x * PMONITOR->m_scale), sc<int>(m_window->m_realSize->value().y * PMONITOR->m_scale)};
 
@@ -240,10 +238,8 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
     const auto PMONITOR = m_window->m_monitor.lock();
     CRegion    fakeDamage{0, 0, PMONITOR->m_pixelSize.x * 10, PMONITOR->m_pixelSize.y * 10};
 
-    g_pHyprRenderer->makeEGLCurrent();
-
-    CFramebuffer outFB;
-    outFB.alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
+    auto       outFB = g_pHyprRenderer->createFB("CToplevelExportFrame::copyShm");
+    outFB->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, PMONITOR->m_output->state->state().drmFormat);
 
     auto overlayCursor = shouldOverlayCursor();
 
@@ -252,10 +248,17 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB))
+    // TODO move earlier?
+    if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, fakeDamage, outFB)) {
+        if (overlayCursor) {
+            g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());
+            g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
+        }
         return false;
+    }
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
+    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    g_pHyprRenderer->startRenderPass();
 
     // render client at 0,0
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
@@ -267,25 +270,16 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        CBox texbox = CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        CTexPassElement::SRenderData data;
+        data.tex = g_pHyprRenderer->m_screencopyDeniedTexture;
+        data.box = texbox;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
     }
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
-    if (!PFORMAT) {
-        g_pHyprRenderer->endRender();
-        return false;
-    }
-
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
-
-    g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
-    outFB.bind();
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
     auto origin = Vector2D(0, 0);
     switch (PMONITOR->m_transform) {
@@ -308,38 +302,14 @@ bool CToplevelExportFrame::copyShm(const Time::steady_tp& now) {
         default: break;
     }
 
-    int glFormat = PFORMAT->glFormat;
-
-    if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
-
-    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-        if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
-                glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
-                glFormat = GL_BGRA_EXT;
-            else {
-                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                glFormat = GL_RGBA;
-            }
-        }
-    }
-
-    glReadPixels(origin.x, origin.y, m_box.width, m_box.height, glFormat, PFORMAT->glType, pixelData);
+    const bool ok = outFB->readPixels(m_buffer, origin.x, origin.y);
 
     if (overlayCursor) {
         g_pPointerManager->unlockSoftwareForMonitor(PMONITOR->m_self.lock());
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    outFB.unbind();
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-    return true;
+    return ok;
 }
 
 bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
@@ -355,10 +325,11 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         g_pPointerManager->damageCursor(PMONITOR->m_self.lock());
     }
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, fakeDamage, RENDER_MODE_TO_BUFFER, m_buffer.m_buffer))
+    if (!g_pHyprRenderer->beginRenderToBuffer(PMONITOR, fakeDamage, m_buffer.m_buffer))
         return false;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
+    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    g_pHyprRenderer->startRenderPass();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_ALLOW) {
         if (!m_window->m_ruleApplicator->noScreenShare().valueOrDefault()) {
             g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(m_window); // block the feedback to avoid spamming the surface if it's visible
@@ -369,11 +340,16 @@ bool CToplevelExportFrame::copyDmabuf(const Time::steady_tp& now) {
         if (overlayCursor)
             g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), now, fakeDamage, g_pInputManager->getMouseCoordsInternal() - m_window->m_realPosition->value());
     } else if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
-        CBox texbox = CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox =
+            CBox{PMONITOR->m_transformedSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+
+        CTexPassElement::SRenderData data;
+        data.tex = g_pHyprRenderer->m_screencopyDeniedTexture;
+        data.box = texbox;
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
     }
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
     g_pHyprRenderer->endRender();
 
     if (overlayCursor) {

@@ -11,7 +11,7 @@
 
 class CMonitor;
 class IHID;
-class CTexture;
+class ITexture;
 
 AQUAMARINE_FORWARD(IBuffer);
 
@@ -85,7 +85,7 @@ class CPointerManager {
 
     Vector2D     transformedHotspot(PHLMONITOR pMonitor);
 
-    SP<CTexture> getCurrentCursorTexture();
+    SP<ITexture> getCurrentCursorTexture();
 
     struct SPointerListener {
         CHyprSignalListener destroy;
@@ -139,7 +139,7 @@ class CPointerManager {
 
     struct {
         SP<Aquamarine::IBuffer>       pBuffer;
-        SP<CTexture>                  bufferTex;
+        SP<ITexture>                  bufferTex;
         WP<Desktop::View::CWLSurface> surface;
 
         Vector2D                      hotspot;
@@ -171,7 +171,7 @@ class CPointerManager {
     std::vector<SP<SMonitorPointerState>> m_monitorStates;
     SP<SMonitorPointerState>              stateFor(PHLMONITOR mon);
     bool                                  attemptHardwareCursor(SP<SMonitorPointerState> state);
-    SP<Aquamarine::IBuffer>               renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<CTexture> texture);
+    SP<Aquamarine::IBuffer>               renderHWCursorBuffer(SP<SMonitorPointerState> state, SP<ITexture> texture);
     bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquamarine::IBuffer> buf);
 
     struct {

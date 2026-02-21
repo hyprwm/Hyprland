@@ -428,7 +428,7 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
                 NEWPARENT->children[1] = OPENINGON;
             }
         }
-    } else if (*PFORCESPLIT == 0 || !pWindow->m_firstMap) {
+    } else if (*PFORCESPLIT == 0) {
         if ((SIDEBYSIDE &&
              VECINRECT(MOUSECOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w / 2.f, NEWPARENT->box.y + NEWPARENT->box.h)) ||
             (!SIDEBYSIDE &&
@@ -441,14 +441,12 @@ void CHyprDwindleLayout::onWindowCreatedTiling(PHLWINDOW pWindow, eDirection dir
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
         }
+    } else if (*PFORCESPLIT == 1) {
+        NEWPARENT->children[1] = OPENINGON;
+        NEWPARENT->children[0] = PNODE;
     } else {
-        if (*PFORCESPLIT == 1) {
-            NEWPARENT->children[1] = OPENINGON;
-            NEWPARENT->children[0] = PNODE;
-        } else {
-            NEWPARENT->children[0] = OPENINGON;
-            NEWPARENT->children[1] = PNODE;
-        }
+        NEWPARENT->children[0] = OPENINGON;
+        NEWPARENT->children[1] = PNODE;
     }
 
     // split in favor of a specific window

@@ -15,4 +15,5 @@ namespace Tests {
     bool                                                       killAllWindows();
     void                                                       waitUntilWindowsN(int n);
     std::string                                                execAndGet(const std::string& cmd);
+    std::string                                                getWindowAttribute(const std::string& winInfo, const std::string& attr);
 };

@@ -1290,9 +1290,17 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
 }
 
 void CCompositor::cleanupFadingOut(const MONITORID& monid) {
+    bool windowsFadingDirty = false;
+
     for (auto const& ww : m_windowsFadingOut) {
 
         auto w = ww.lock();
+
+        if (!w || !w->m_monitor) {
+            windowsFadingDirty = true;
+            Log::logger->log(Log::DEBUG, "Cleanup: m_windowsFadingOut had expired window or monitor");
+            continue;
+        }
 
         if (w->monitorID() != monid && w->m_monitor)
             continue;
@@ -1313,14 +1321,18 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
         }
     }
 
+    if (windowsFadingDirty)
+        std::erase_if(m_windowsFadingOut, [](const auto& el) { return el.expired() || !el->m_monitor; });
+
     bool layersDirty = false;
 
     for (auto const& lsr : m_surfacesFadingOut) {
 
         auto ls = lsr.lock();
 
-        if (!ls) {
+        if (!ls || !ls->m_monitor) {
             layersDirty = true;
+            Log::logger->log(Log::DEBUG, "Cleanup: m_surfacesFadingOut had expired layer or monitor");
             continue;
         }
 
@@ -1351,8 +1363,10 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
         }
     }
 
-    if (layersDirty)
-        std::erase_if(m_surfacesFadingOut, [](const auto& el) { return el.expired(); });
+    if (layersDirty) {
+        std::erase_if(m_surfacesFadingOut, [](const auto& el) { return el.expired() || !el->m_monitor; });
+        std::erase_if(m_layers, [](const auto& el) { return !el->m_monitor; });
+    }
 }
 
 void CCompositor::addToFadingOutSafe(PHLLS pLS) {

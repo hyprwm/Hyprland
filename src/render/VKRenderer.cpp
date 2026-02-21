@@ -607,10 +607,15 @@ void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
 // };
 
 void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
-    auto       discardOpacity = element->m_data.ignoreAlpha.has_value() ? *element->m_data.ignoreAlpha : element->m_data.discardOpacity;
-    auto       discardMode    = element->m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : element->m_data.discardMode;
+    // TODO
+    // auto        discardOpacity = element->m_data.ignoreAlpha.has_value() ? *element->m_data.ignoreAlpha : element->m_data.discardOpacity;
+    // auto        discardMode    = element->m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : element->m_data.discardMode;
 
-    const auto box = element->m_data.box;
+    // const auto& data   = element->m_data;
+    // float       alpha  = std::clamp(data.a, 0.f, 1.f);
+    // const auto  box    = element->m_data.box;
+    // CBox        newBox = box;
+    // g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
 
     if (element->m_data.blur) {
         auto el = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{

@@ -336,7 +336,7 @@ void CLayerSurface::onCommit() {
             *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-                PMONITOR->m_blurFBDirty; // so that blur is recalc'd
+                PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);

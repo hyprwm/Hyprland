@@ -2044,6 +2044,17 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
+     * Experimental
+    */
+
+    SConfigOptionDescription{
+        .value       = "experimental:wp_cm_1_2",
+        .description = "Allow wp-cm-v1 version 2",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
+
+    /*
      * Quirks
     */
 

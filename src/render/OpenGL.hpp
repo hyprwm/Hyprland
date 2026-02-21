@@ -34,6 +34,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "render/gl/GLFramebuffer.hpp"
 #include "render/gl/GLRenderbuffer.hpp"
+#include "render/pass/TexPassElement.hpp"
 
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
@@ -53,11 +54,6 @@ constexpr std::array<SVertex, 4> fullVerts = {{
 }};
 
 inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
-
-enum eDiscardMode : uint8_t {
-    DISCARD_OPAQUE = 1,
-    DISCARD_ALPHA  = 1 << 1
-};
 
 struct SRenderModifData {
     enum eRenderModifType : uint8_t {
@@ -149,12 +145,6 @@ struct SCurrentRenderData {
 
     bool                   simplePass = false;
 
-    CRegion                clipRegion;
-
-    uint32_t               discardMode    = DISCARD_OPAQUE;
-    float                  discardOpacity = 0.f;
-
-    PHLLSREF               currentLS;
     WP<CWLSurfaceResource> surface;
 };
 
@@ -210,6 +200,12 @@ class CHyprOpenGLImpl {
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB = false;
         SP<CMonitor>           cmBackToSRGBSource;
+
+        uint32_t               discardMode    = DISCARD_OPAQUE;
+        float                  discardOpacity = 0.f;
+
+        CRegion                clipRegion;
+        PHLLSREF               currentLS;
     };
 
     struct SBorderRenderData {

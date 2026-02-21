@@ -826,12 +826,170 @@ void IHyprRenderer::drawPreBlur(CPreBlurElement* element, const CRegion& damage)
 }
 
 void IHyprRenderer::drawSurface(CSurfacePassElement* element, const CRegion& damage) {
+    const auto  m_data = element->m_data;
+
+    CScopeGuard x = {[]() {
+        g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    }};
+
+    if (!m_data.texture)
+        return;
+
+    const auto& TEXTURE = m_data.texture;
+
+    // this is bad, probably has been logged elsewhere. Means the texture failed
+    // uploading to the GPU.
+    if (!TEXTURE->ok())
+        return;
+
+    const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;
+    TRACY_GPU_ZONE("RenderSurface");
+
+    auto        PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
+
+    const float ALPHA         = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier : 1.F);
+    const float OVERALL_ALPHA = PSURFACE ? PSURFACE->m_overallOpacity : 1.F;
+    const bool  BLUR          = m_data.blur && (!TEXTURE->m_opaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
+
+    auto        windowBox = element->getTexBox();
+
+    const auto  PROJSIZEUNSCALED = windowBox.size();
+
+    windowBox.scale(m_data.pMonitor->m_scale);
+    windowBox.round();
+
+    if (windowBox.width <= 1 || windowBox.height <= 1) {
+        element->discard();
+        return;
+    }
+
+    const bool MISALIGNEDFSV1 = std::floor(m_data.pMonitor->m_scale) != m_data.pMonitor->m_scale /* Fractional */ && m_data.surface->m_current.scale == 1 /* fs protocol */ &&
+        windowBox.size() != m_data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, m_data.surface->m_current.bufferSize.x, 3) &&
+        DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
+        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
+        (!m_data.pLS || (!m_data.pLS->m_realSize->isBeingAnimated())); /* not LS or not animated */
+
+    calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+
+    auto cancelRender = false;
+    auto clipRegion   = element->visibleRegion(cancelRender);
+    if (cancelRender)
+        return;
+
+    // check for fractional scale surfaces misaligning the buffer size
+    // in those cases it's better to just force nearest neighbor
+    // as long as the window is not animated. During those it'd look weird.
+    // UV will fixup it as well
+    if (MISALIGNEDFSV1)
+        m_renderData.useNearestNeighbor = true;
+
+    float rounding      = m_data.rounding;
+    float roundingPower = m_data.roundingPower;
+
+    rounding -= 1; // to fix a border issue
+
+    if (m_data.dontRound) {
+        rounding      = 0;
+        roundingPower = 2.0f;
+    }
+
+    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
+    const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
+
+    if (CANDISABLEBLEND)
+        blend(false);
+    else
+        blend(true);
+
+    // FIXME: This is wrong and will bug the blur out as shit if the first surface
+    // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
+    // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
+    if (m_data.surfaceCounter == 0 && !m_data.popup) {
+        if (BLUR)
+            draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                     .tex                   = TEXTURE,
+                     .box                   = windowBox,
+                     .a                     = ALPHA,
+                     .blurA                 = m_data.fadeAlpha,
+                     .overallA              = OVERALL_ALPHA,
+                     .round                 = rounding,
+                     .roundingPower         = roundingPower,
+                     .blur                  = true,
+                     .blockBlurOptimization = m_data.blockBlurOptimization,
+                     .allowCustomUV         = true,
+                     .surface               = m_data.surface,
+                     .discardMode           = m_data.discardMode,
+                     .discardOpacity        = m_data.discardOpacity,
+                     .clipRegion            = clipRegion,
+                     .currentLS             = m_data.pLS,
+                 }),
+                 m_renderData.damage.copy().intersect(windowBox));
+        else
+            draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                     .tex            = TEXTURE,
+                     .box            = windowBox,
+                     .a              = ALPHA * OVERALL_ALPHA,
+                     .round          = rounding,
+                     .roundingPower  = roundingPower,
+                     .discardActive  = false,
+                     .allowCustomUV  = true,
+                     .surface        = m_data.surface,
+                     .discardMode    = m_data.discardMode,
+                     .discardOpacity = m_data.discardOpacity,
+                     .clipRegion     = clipRegion,
+                     .currentLS      = m_data.pLS,
+                 }),
+                 m_renderData.damage.copy().intersect(windowBox));
+    } else {
+        if (BLUR && m_data.popup)
+            draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                     .tex                   = TEXTURE,
+                     .box                   = windowBox,
+                     .a                     = ALPHA,
+                     .blurA                 = m_data.fadeAlpha,
+                     .overallA              = OVERALL_ALPHA,
+                     .round                 = rounding,
+                     .roundingPower         = roundingPower,
+                     .blur                  = true,
+                     .blockBlurOptimization = true,
+                     .allowCustomUV         = true,
+                     .surface               = m_data.surface,
+                     .discardMode           = m_data.discardMode,
+                     .discardOpacity        = m_data.discardOpacity,
+                     .clipRegion            = clipRegion,
+                     .currentLS             = m_data.pLS,
+                 }),
+                 m_renderData.damage.copy().intersect(windowBox));
+        else
+            draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                     .tex            = TEXTURE,
+                     .box            = windowBox,
+                     .a              = ALPHA * OVERALL_ALPHA,
+                     .round          = rounding,
+                     .roundingPower  = roundingPower,
+                     .discardActive  = false,
+                     .allowCustomUV  = true,
+                     .surface        = m_data.surface,
+                     .discardMode    = m_data.discardMode,
+                     .discardOpacity = m_data.discardOpacity,
+                     .clipRegion     = clipRegion,
+                     .currentLS      = m_data.pLS,
+                 }),
+                 m_renderData.damage.copy().intersect(windowBox));
+    }
+
+    blend(true);
+};
+
+void IHyprRenderer::preDrawSurface(CSurfacePassElement* element, const CRegion& damage) {
     m_renderData.clipBox            = element->m_data.clipBox;
     m_renderData.useNearestNeighbor = element->m_data.useNearestNeighbor;
     pushMonitorTransformEnabled(element->m_data.flipEndFrame);
     m_renderData.currentWindow = element->m_data.pWindow;
 
-    draw(element, damage);
+    drawSurface(element, damage);
+
     if (!m_bBlockSurfaceFeedback)
         element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
 
@@ -882,7 +1040,7 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         case EK_RECT: drawRect(dc<CRectPassElement*>(element.get()), damage); break;
         case EK_HINTS: drawHints(dc<CRendererHintsPassElement*>(element.get()), damage); break;
         case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
-        case EK_SURFACE: drawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
+        case EK_SURFACE: preDrawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
         case EK_TEXTURE: drawTex(dc<CTexPassElement*>(element.get()), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dc<CTextureMatteElement*>(element.get()), damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());

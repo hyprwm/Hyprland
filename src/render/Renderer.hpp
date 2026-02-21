@@ -261,6 +261,7 @@ class IHyprRenderer {
     virtual bool initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
         return false;
     };
+
     SP<ITexture>         getBackground(PHLMONITOR pMonitor);
     virtual void         draw(CBorderPassElement* element, const CRegion& damage)        = 0;
     virtual void         draw(CClearPassElement* element, const CRegion& damage)         = 0;
@@ -269,7 +270,6 @@ class IHyprRenderer {
     virtual void         draw(CRectPassElement* element, const CRegion& damage)          = 0;
     virtual void         draw(CRendererHintsPassElement* element, const CRegion& damage) = 0;
     virtual void         draw(CShadowPassElement* element, const CRegion& damage)        = 0;
-    virtual void         draw(CSurfacePassElement* element, const CRegion& damage)       = 0;
     virtual void         draw(CTexPassElement* element, const CRegion& damage)           = 0;
     virtual void         draw(CTextureMatteElement* element, const CRegion& damage)      = 0;
     virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
@@ -341,6 +341,7 @@ class IHyprRenderer {
     void drawHints(CRendererHintsPassElement* element, const CRegion& damage);
     void drawPreBlur(CPreBlurElement* element, const CRegion& damage);
     void drawSurface(CSurfacePassElement* element, const CRegion& damage);
+    void preDrawSurface(CSurfacePassElement* element, const CRegion& damage);
     void drawTex(CTexPassElement* element, const CRegion& damage);
     void drawTexMatte(CTextureMatteElement* element, const CRegion& damage);
 };

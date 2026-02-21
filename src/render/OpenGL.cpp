@@ -1467,9 +1467,9 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         shader->setUniformFloat(SHADER_ALPHA, alpha);
 
         if (data.discardActive) {
-            shader->setUniformInt(SHADER_DISCARD_OPAQUE, !!(m_renderData.discardMode & DISCARD_OPAQUE));
-            shader->setUniformInt(SHADER_DISCARD_ALPHA, !!(m_renderData.discardMode & DISCARD_ALPHA));
-            shader->setUniformFloat(SHADER_DISCARD_ALPHA_VALUE, m_renderData.discardOpacity);
+            shader->setUniformInt(SHADER_DISCARD_OPAQUE, !!(data.discardMode & DISCARD_OPAQUE));
+            shader->setUniformInt(SHADER_DISCARD_ALPHA, !!(data.discardMode & DISCARD_ALPHA));
+            shader->setUniformFloat(SHADER_DISCARD_ALPHA_VALUE, data.discardOpacity);
         } else {
             shader->setUniformInt(SHADER_DISCARD_OPAQUE, 0);
             shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
@@ -1533,14 +1533,14 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data());
 
-    if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !m_renderData.clipRegion.empty()) {
+    if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !data.clipRegion.empty()) {
         CRegion damageClip = g_pHyprRenderer->m_renderData.clipBox;
 
-        if (!m_renderData.clipRegion.empty()) {
+        if (!data.clipRegion.empty()) {
             if (g_pHyprRenderer->m_renderData.clipBox.empty())
-                damageClip = m_renderData.clipRegion;
+                damageClip = data.clipRegion;
             else
-                damageClip.intersect(m_renderData.clipRegion);
+                damageClip.intersect(data.clipRegion);
         }
 
         if (!damageClip.empty()) {
@@ -1943,8 +1943,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     // While renderTextureInternalWithDamage will clip the blur as well,
     // clipping texDamage here allows blur generation to be optimized.
-    if (!m_renderData.clipRegion.empty())
-        texDamage.intersect(m_renderData.clipRegion);
+    if (!data.clipRegion.empty())
+        texDamage.intersect(data.clipRegion);
 
     if (texDamage.empty())
         return;
@@ -1971,7 +1971,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     //   vvv TODO: layered blur fbs?
     const bool USENEWOPTIMIZE =
-        g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
+        g_pHyprRenderer->shouldUseNewBlurOptimizations(data.currentLS.lock(), g_pHyprRenderer->m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
 
     SP<ITexture> POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
@@ -1984,7 +1984,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     g_pHyprRenderer->m_renderData.currentFB->bind();
 
-    const auto NEEDS_STENCIL = m_renderData.discardMode != 0;
+    const auto NEEDS_STENCIL = data.discardMode != 0;
 
     if (NEEDS_STENCIL) {
         scissor(nullptr); // allow the entire window and stencil to render
@@ -1997,17 +1997,23 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        if (USENEWOPTIMIZE && !(m_renderData.discardMode & DISCARD_ALPHA))
+        if (USENEWOPTIMIZE && !(data.discardMode & DISCARD_ALPHA))
             renderRect(box, CHyprColor(0, 0, 0, 0), SRectRenderData{.round = data.round, .roundingPower = data.roundingPower});
         else
             renderTexture(tex, box,
-                          STextureRenderData{.a             = data.a,
-                                             .round         = data.round,
-                                             .roundingPower = data.roundingPower,
-                                             .discardActive = true,
-                                             .allowCustomUV = true,
-                                             .wrapX         = data.wrapX,
-                                             .wrapY         = data.wrapY}); // discard opaque
+                          STextureRenderData{
+                              .a              = data.a,
+                              .round          = data.round,
+                              .roundingPower  = data.roundingPower,
+                              .discardActive  = true,
+                              .allowCustomUV  = true,
+                              .wrapX          = data.wrapX,
+                              .wrapY          = data.wrapY,
+                              .discardMode    = data.discardMode,
+                              .discardOpacity = data.discardOpacity,
+                              .clipRegion     = data.clipRegion,
+                              .currentLS      = data.currentLS,
+                          }); // discard opaque
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         glStencilFunc(GL_EQUAL, 1, 0xFF);
@@ -2036,15 +2042,19 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
     renderTextureInternal(POUTFB, box,
                           STextureRenderData{
-                              .damage        = &texDamage,
-                              .a             = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
-                              .round         = data.round,
-                              .roundingPower = data.roundingPower,
-                              .discardActive = false,
-                              .allowCustomUV = true,
-                              .noAA          = false,
-                              .wrapX         = data.wrapX,
-                              .wrapY         = data.wrapY,
+                              .damage         = &texDamage,
+                              .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
+                              .round          = data.round,
+                              .roundingPower  = data.roundingPower,
+                              .discardActive  = false,
+                              .allowCustomUV  = true,
+                              .noAA           = false,
+                              .wrapX          = data.wrapX,
+                              .wrapY          = data.wrapY,
+                              .discardMode    = data.discardMode,
+                              .discardOpacity = data.discardOpacity,
+                              .clipRegion     = data.clipRegion,
+                              .currentLS      = data.currentLS,
                           });
     if (!USENEWOPTIMIZE)
         g_pHyprRenderer->m_renderData.renderModif.enabled = true;
@@ -2057,16 +2067,20 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     setCapStatus(GL_STENCIL_TEST, false);
     renderTextureInternal(tex, box,
                           STextureRenderData{
-                              .damage        = &texDamage,
-                              .a             = data.a * data.overallA,
-                              .round         = data.round,
-                              .roundingPower = data.roundingPower,
-                              .discardActive = false,
-                              .allowCustomUV = true,
-                              .allowDim      = true,
-                              .noAA          = false,
-                              .wrapX         = data.wrapX,
-                              .wrapY         = data.wrapY,
+                              .damage         = &texDamage,
+                              .a              = data.a * data.overallA,
+                              .round          = data.round,
+                              .roundingPower  = data.roundingPower,
+                              .discardActive  = false,
+                              .allowCustomUV  = true,
+                              .allowDim       = true,
+                              .noAA           = false,
+                              .wrapX          = data.wrapX,
+                              .wrapY          = data.wrapY,
+                              .discardMode    = data.discardMode,
+                              .discardOpacity = data.discardOpacity,
+                              .clipRegion     = data.clipRegion,
+                              .currentLS      = data.currentLS,
                           });
 
     GLFB(g_pHyprRenderer->m_renderData.currentFB)->invalidate({GL_STENCIL_ATTACHMENT});

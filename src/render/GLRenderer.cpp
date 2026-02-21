@@ -355,178 +355,62 @@ void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
-void CHyprGLRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-
-    g_pHyprOpenGL->m_renderData.surface        = m_data.surface;
-    g_pHyprOpenGL->m_renderData.currentLS      = m_data.pLS;
-    g_pHyprOpenGL->m_renderData.discardMode    = m_data.discardMode;
-    g_pHyprOpenGL->m_renderData.discardOpacity = m_data.discardOpacity;
-
-    CScopeGuard x = {[]() {
-        g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.clipRegion                    = {};
-        g_pHyprOpenGL->m_renderData.discardMode                   = 0;
-        g_pHyprOpenGL->m_renderData.discardOpacity                = 0;
-        g_pHyprOpenGL->m_renderData.surface.reset();
-        g_pHyprOpenGL->m_renderData.currentLS.reset();
-    }};
-
-    if (!m_data.texture)
-        return;
-
-    const auto& TEXTURE = m_data.texture;
-
-    // this is bad, probably has been logged elsewhere. Means the texture failed
-    // uploading to the GPU.
-    if (!TEXTURE->ok())
-        return;
-
-    const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;
-    TRACY_GPU_ZONE("RenderSurface");
-
-    auto        PSURFACE = Desktop::View::CWLSurface::fromResource(m_data.surface);
-
-    const float ALPHA         = m_data.alpha * m_data.fadeAlpha * (PSURFACE ? PSURFACE->m_alphaModifier : 1.F);
-    const float OVERALL_ALPHA = PSURFACE ? PSURFACE->m_overallOpacity : 1.F;
-    const bool  BLUR          = m_data.blur && (!TEXTURE->m_opaque || ALPHA < 1.F || OVERALL_ALPHA < 1.F);
-
-    auto        windowBox = element->getTexBox();
-
-    const auto  PROJSIZEUNSCALED = windowBox.size();
-
-    windowBox.scale(m_data.pMonitor->m_scale);
-    windowBox.round();
-
-    if (windowBox.width <= 1 || windowBox.height <= 1) {
-        element->discard();
-        return;
-    }
-
-    const bool MISALIGNEDFSV1 = std::floor(m_data.pMonitor->m_scale) != m_data.pMonitor->m_scale /* Fractional */ && m_data.surface->m_current.scale == 1 /* fs protocol */ &&
-        windowBox.size() != m_data.surface->m_current.bufferSize /* misaligned */ && DELTALESSTHAN(windowBox.width, m_data.surface->m_current.bufferSize.x, 3) &&
-        DELTALESSTHAN(windowBox.height, m_data.surface->m_current.bufferSize.y, 3) /* off by one-or-two */ &&
-        (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
-        (!m_data.pLS || (!m_data.pLS->m_realSize->isBeingAnimated())); /* not LS or not animated */
-
-    g_pHyprRenderer->calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
-
-    auto cancelRender                      = false;
-    g_pHyprOpenGL->m_renderData.clipRegion = element->visibleRegion(cancelRender);
-    if (cancelRender)
-        return;
-
-    // check for fractional scale surfaces misaligning the buffer size
-    // in those cases it's better to just force nearest neighbor
-    // as long as the window is not animated. During those it'd look weird.
-    // UV will fixup it as well
-    if (MISALIGNEDFSV1)
-        g_pHyprRenderer->m_renderData.useNearestNeighbor = true;
-
-    float rounding      = m_data.rounding;
-    float roundingPower = m_data.roundingPower;
-
-    rounding -= 1; // to fix a border issue
-
-    if (m_data.dontRound) {
-        rounding      = 0;
-        roundingPower = 2.0f;
-    }
-
-    const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
-    const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding == 0 && WINDOWOPAQUE;
-
-    if (CANDISABLEBLEND)
-        g_pHyprOpenGL->blend(false);
-    else
-        g_pHyprOpenGL->blend(true);
-
-    // FIXME: This is wrong and will bug the blur out as shit if the first surface
-    // is a subsurface that does NOT cover the entire frame. In such cases, we probably should fall back
-    // to what we do for misaligned surfaces (blur the entire thing and then render shit without blur)
-    if (m_data.surfaceCounter == 0 && !m_data.popup) {
-        if (BLUR)
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
-                                         {
-                                             .surface               = m_data.surface,
-                                             .a                     = ALPHA,
-                                             .blur                  = true,
-                                             .blurA                 = m_data.fadeAlpha,
-                                             .overallA              = OVERALL_ALPHA,
-                                             .round                 = rounding,
-                                             .roundingPower         = roundingPower,
-                                             .allowCustomUV         = true,
-                                             .blockBlurOptimization = m_data.blockBlurOptimization,
-                                         });
-        else
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
-                                         {.a = ALPHA * OVERALL_ALPHA, .round = rounding, .roundingPower = roundingPower, .discardActive = false, .allowCustomUV = true});
-    } else {
-        if (BLUR && m_data.popup)
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
-                                         {
-                                             .surface               = m_data.surface,
-                                             .a                     = ALPHA,
-                                             .blur                  = true,
-                                             .blurA                 = m_data.fadeAlpha,
-                                             .overallA              = OVERALL_ALPHA,
-                                             .round                 = rounding,
-                                             .roundingPower         = roundingPower,
-                                             .allowCustomUV         = true,
-                                             .blockBlurOptimization = true,
-                                         });
-        else
-            g_pHyprOpenGL->renderTexture(TEXTURE, windowBox,
-                                         {.a = ALPHA * OVERALL_ALPHA, .round = rounding, .roundingPower = roundingPower, .discardActive = false, .allowCustomUV = true});
-    }
-
-    g_pHyprOpenGL->blend(true);
-};
-
 void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     g_pHyprRenderer->pushMonitorTransformEnabled(m_data.flipEndFrame);
 
+    g_pHyprOpenGL->m_renderData.surface = m_data.surface;
+
     CScopeGuard x = {[m_data]() {
         //
         g_pHyprRenderer->popMonitorTransformEnabled();
+        g_pHyprOpenGL->m_renderData.surface.reset();
         if (m_data.useMirrorProjection)
             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
-        if (m_data.ignoreAlpha.has_value())
-            g_pHyprOpenGL->m_renderData.discardMode = 0;
     }};
 
     if (m_data.useMirrorProjection)
         g_pHyprRenderer->setProjectionType(RPT_MIRROR);
 
-    if (m_data.ignoreAlpha.has_value()) {
-        g_pHyprOpenGL->m_renderData.discardMode    = DISCARD_ALPHA;
-        g_pHyprOpenGL->m_renderData.discardOpacity = *m_data.ignoreAlpha;
-    }
+    auto discardOpacity = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity;
+    auto discardMode    = m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : m_data.discardMode;
 
     if (m_data.blur) {
         g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
                                      {
+                                         .surface               = m_data.surface,
                                          .a                     = m_data.a,
                                          .blur                  = true,
                                          .blurA                 = m_data.blurA,
-                                         .overallA              = 1.F,
+                                         .overallA              = m_data.overallA,
                                          .round                 = m_data.round,
                                          .roundingPower         = m_data.roundingPower,
+                                         .discardActive         = m_data.discardActive,
+                                         .allowCustomUV         = m_data.allowCustomUV,
                                          .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
                                          .cmBackToSRGB          = m_data.cmBackToSRGB,
                                          .cmBackToSRGBSource    = m_data.cmBackToSRGBSource,
+                                         .discardMode           = discardMode,
+                                         .discardOpacity        = discardOpacity,
+                                         .clipRegion            = m_data.clipRegion,
+                                         .currentLS             = m_data.currentLS,
                                      });
     } else {
         g_pHyprOpenGL->renderTexture(m_data.tex, m_data.box,
                                      {
                                          .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
+                                         .surface            = m_data.surface,
                                          .a                  = m_data.a,
                                          .round              = m_data.round,
                                          .roundingPower      = m_data.roundingPower,
+                                         .discardActive      = m_data.discardActive,
+                                         .allowCustomUV      = m_data.allowCustomUV,
                                          .cmBackToSRGB       = m_data.cmBackToSRGB,
                                          .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
+                                         .discardMode        = discardMode,
+                                         .discardOpacity     = discardOpacity,
+                                         .clipRegion         = m_data.clipRegion,
+                                         .currentLS          = m_data.currentLS,
                                      });
     }
 };

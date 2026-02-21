@@ -558,65 +558,67 @@ void CHyprVKRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     element->m_data.deco->render(m_renderData.pMonitor.lock(), element->m_data.a);
 };
 
-void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
+// void CHyprVKRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
+//     const auto cb = g_pHyprVulkan->renderCB();
+//     cb->useTexture(element->m_data.texture);
+//     const auto texture = dc<CVKTexture*>(element->m_data.texture.get());
+
+//     if (texture->isDMA())
+//         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
+
+//     CBox        box = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, texture->m_size};
+//     const auto  mat = projectBoxToTarget(box, texture->m_transform).getMatrix();
+
+//     const auto& vertData = matToVertShader(mat);
+
+//     const auto  layout = m_currentRenderPass->texturePipeline()->layout().lock();
+//     const auto  view   = texture->getView(layout);
+//     if (!view)
+//         return;
+
+//     const auto        ctm = Mat3x3::identity().getMatrix();
+
+//     SVkFragShaderData fragData = {
+//         .matrix =
+//             {
+//                 {ctm[0], ctm[1], ctm[2], 0},
+//                 {ctm[3], ctm[4], ctm[5], 0},
+//                 {ctm[6], ctm[7], ctm[8], 0},
+//                 {0, 0, 0, 0},
+//             },
+//         .alpha               = element->m_data.alpha,
+//         .luminanceMultiplier = 1.0,
+//     };
+
+//     bindPipeline(m_currentRenderPass->texturePipeline());
+
+//     const auto ds = view->vkDS();
+//     vkCmdBindDescriptorSets(cb->vk(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout->vk(), 0, 1, &ds, 0, nullptr);
+
+//     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
+//     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
+
+//     auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : damage;
+
+//     drawRegionRects(clipBox, cb->vk());
+
+//     texture->m_lastUsedCB = cb;
+
+//     if (texture->isDMA())
+//         Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
+// };
+
+void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     if (element->m_data.blur) {
         auto blurred = m_renderData.pMonitor->m_blurFB->getTexture();
-        auto el      = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{.tex     = blurred,
-                                                                                .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
-                                                                                .clipBox = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, element->m_data.texture->m_size}});
+        auto el      = makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                 .tex     = blurred,
+                 .box     = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
+                 .clipBox = CBox{element->m_data.box.pos(), element->m_data.tex->m_size},
+        });
         draw(el.get(), damage);
     }
 
-    const auto cb = g_pHyprVulkan->renderCB();
-    cb->useTexture(element->m_data.texture);
-    const auto texture = dc<CVKTexture*>(element->m_data.texture.get());
-
-    if (texture->isDMA())
-        Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
-
-    CBox        box = CBox{element->m_data.pos * m_renderData.pMonitor->m_scale, texture->m_size};
-    const auto  mat = projectBoxToTarget(box, texture->m_transform).getMatrix();
-
-    const auto& vertData = matToVertShader(mat);
-
-    const auto  layout = m_currentRenderPass->texturePipeline()->layout().lock();
-    const auto  view   = texture->getView(layout);
-    if (!view)
-        return;
-
-    const auto        ctm = Mat3x3::identity().getMatrix();
-
-    SVkFragShaderData fragData = {
-        .matrix =
-            {
-                {ctm[0], ctm[1], ctm[2], 0},
-                {ctm[3], ctm[4], ctm[5], 0},
-                {ctm[6], ctm[7], ctm[8], 0},
-                {0, 0, 0, 0},
-            },
-        .alpha               = element->m_data.alpha,
-        .luminanceMultiplier = 1.0,
-    };
-
-    bindPipeline(m_currentRenderPass->texturePipeline());
-
-    const auto ds = view->vkDS();
-    vkCmdBindDescriptorSets(cb->vk(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout->vk(), 0, 1, &ds, 0, nullptr);
-
-    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
-    vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
-
-    auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : damage;
-
-    drawRegionRects(clipBox, cb->vk());
-
-    texture->m_lastUsedCB = cb;
-
-    if (texture->isDMA())
-        Log::logger->log(Log::WARN, "fixme: vulkan draw dma texture sync");
-};
-
-void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto cb = g_pHyprVulkan->renderCB();
     cb->useTexture(element->m_data.tex);
     const auto texture = dc<CVKTexture*>(element->m_data.tex.get());
@@ -655,7 +657,9 @@ void CHyprVKRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vertData), &vertData);
     vkCmdPushConstants(cb->vk(), layout->vk(), VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vertData), sizeof(fragData), &fragData);
 
-    auto clipBox = !element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage);
+    auto clipBox = !element->m_data.clipRegion.empty() ?
+        element->m_data.clipRegion :
+        (!element->m_data.clipBox.empty() ? element->m_data.clipBox : (element->m_data.damage.empty() ? damage : element->m_data.damage));
 
     drawRegionRects(clipBox, cb->vk());
 

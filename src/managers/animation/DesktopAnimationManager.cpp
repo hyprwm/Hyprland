@@ -4,6 +4,7 @@
 
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "../../desktop/view/Group.hpp"
 #include "../../desktop/Workspace.hpp"
 
 #include "../../config/ConfigManager.hpp"
@@ -469,7 +470,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
                 *w->m_alpha = 1.F;
             else if (!w->isFullscreen()) {
                 const bool CREATED_OVER_FS   = w->m_createdOverFullscreen;
-                const bool IS_IN_GROUP_OF_FS = FSWINDOW && FSWINDOW->hasInGroup(w);
+                const bool IS_IN_GROUP_OF_FS = FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(w);
                 *w->m_alpha                  = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
             }
         }

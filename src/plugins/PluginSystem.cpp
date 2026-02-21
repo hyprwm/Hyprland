@@ -4,11 +4,11 @@
 #include <ranges>
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../i18n/Engine.hpp"
 
 CPluginSystem::CPluginSystem() {
@@ -156,9 +156,9 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             g_pHookSystem->unhook(SHP);
     }
 
-    const auto ls = plugin->m_registeredLayouts;
-    for (auto const& l : ls)
-        g_pLayoutManager->removeLayout(l);
+    for (const auto& l : plugin->m_registeredAlgos) {
+        Layout::Supplementary::algoMatcher()->unregisterAlgo(l);
+    }
 
     g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_handle);
 

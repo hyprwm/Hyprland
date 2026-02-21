@@ -1,10 +1,13 @@
 #include "Workspace.hpp"
+#include "view/Group.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "config/ConfigManager.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../managers/HookSystemManager.hpp"
+#include "../layout/space/Space.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
@@ -40,6 +43,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
         if (PWINDOW == m_lastFocusedWindow.lock())
             m_lastFocusedWindow.reset();
     });
+
+    m_space = Layout::CSpace::create(m_self.lock());
+    m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
 
     m_inert = false;
 
@@ -406,14 +412,19 @@ bool CWorkspace::isVisibleNotCovered() {
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+
+    if (!m_space)
+        return 0;
+
+    for (auto const& t : m_space->targets()) {
+        if (!t)
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+
+        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && (!t->window() || t->window()->isHidden() == onlyVisible.value()))
             continue;
         no++;
     }
@@ -423,16 +434,16 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
 
 int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+    for (auto const& g : Desktop::View::groups()) {
+        const auto HEAD = g->head();
+
+        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
-        if (!w->m_groupData.head)
+        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
-            continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && g->current()->isHidden() == onlyVisible.value())
             continue;
         no++;
     }
@@ -514,13 +525,11 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_isMapped && w->m_workspace == m_self && w->isFullscreen(); });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t->fullscreenMode() != FSMODE_NONE; });
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || w->m_workspace != m_self)
-            continue;
-
-        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    for (auto const& t : m_space->targets()) {
+        if (t->window())
+            t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 

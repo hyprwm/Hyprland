@@ -1702,9 +1702,9 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "cursor:use_cpu_buffer",
-        .description = "Makes HW cursors use a CPU buffer. Required on Nvidia to have HW cursors. Experimental",
-        .type        = CONFIG_OPTION_BOOL,
-        .data        = SConfigOptionDescription::SBoolData{false},
+        .description = "Makes HW cursors use a CPU buffer. Required on Nvidia to have HW cursors. 0 - off, 1 - on, 2 - auto (nvidia only)",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
     },
     SConfigOptionDescription{
         .value       = "cursor:sync_gsettings_theme",
@@ -1868,6 +1868,22 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
 
     /*
+     * layout:
+     */
+    SConfigOptionDescription{
+        .value       = "layout:single_window_aspect_ratio",
+        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
+        .type        = CONFIG_OPTION_VECTOR,
+        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
+    },
+    SConfigOptionDescription{
+        .value       = "layout:single_window_aspect_ratio_tolerance",
+        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
+    },
+
+    /*
      * dwindle:
      */
 
@@ -1945,18 +1961,6 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
-    },
-    SConfigOptionDescription{
-        .value       = "dwindle:single_window_aspect_ratio",
-        .description = "If specified, whenever only a single window is open, it will be coerced into the specified aspect ratio.  Ignored if the y-value is zero.",
-        .type        = CONFIG_OPTION_VECTOR,
-        .data        = SConfigOptionDescription::SVectorData{{0, 0}, {0, 0}, {1000., 1000.}},
-    },
-    SConfigOptionDescription{
-        .value       = "dwindle:single_window_aspect_ratio_tolerance",
-        .description = "Minimum distance for single_window_aspect_ratio to take effect, in fractions of the monitor's size.",
-        .type        = CONFIG_OPTION_FLOAT,
-        .data        = SConfigOptionDescription::SFloatData{0.1f, 0.f, 1.f},
     },
 
     /*
@@ -2041,6 +2045,53 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "whether to keep the master window in its configured position when there are no slave windows",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
+    },
+
+    /*
+     * scrolling:
+     */
+
+    SConfigOptionDescription{
+        .value       = "scrolling:fullscreen_on_one_column",
+        .description = "when enabled, a single column on a workspace will always span the entire screen.",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:column_width",
+        .description = "the default width of a column, [0.1 - 1.0].",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{.value = 0.5, .min = 0.1, .max = 1.0},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:focus_fit_method",
+        .description = "When a column is focused, what method should be used to bring it into view",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "center,fit"},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:follow_focus",
+        .description = "when a window is focused, should the layout move to bring it into view automatically",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:follow_min_visible",
+        .description = "when a window is focused, require that at least a given fraction of it is visible for focus to follow",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{.value = 0.4, .min = 0.0, .max = 1.0},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:explicit_column_widths",
+        .description = "A comma-separated list of preconfigured widths for colresize +conf/-conf",
+        .type        = CONFIG_OPTION_STRING_SHORT,
+        .data        = SConfigOptionDescription::SStringData{"0.333, 0.5, 0.667, 1.0"},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:direction",
+        .description = "Direction in which new windows appear and the layout scrolls",
+        .type        = CONFIG_OPTION_CHOICE,
+        .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "right,left,down,up"},
     },
 
     /*

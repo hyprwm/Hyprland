@@ -54,26 +54,26 @@ void CForeignToplevelList::onMap(PHLWINDOW pWindow) {
         std::erase_if(m_handles, [&](const auto& other) { return other.get() == OLDHANDLE.get(); });
     }
 
-    const auto NEWHANDLE = PROTO::foreignToplevel->m_handles.emplace_back(
+    auto newHandle = PROTO::foreignToplevel->m_handles.emplace_back(
         makeShared<CForeignToplevelHandle>(makeShared<CExtForeignToplevelHandleV1>(m_resource->client(), m_resource->version(), 0), pWindow));
 
-    if (!NEWHANDLE->good()) {
+    if (!newHandle->good()) {
         LOGM(Log::ERR, "Couldn't create a foreign handle");
         m_resource->noMemory();
         PROTO::foreignToplevel->m_handles.pop_back();
         return;
     }
 
-    const auto IDENTIFIER = std::format("{:08x}->{:016x}", sc<uint32_t>(rc<uintptr_t>(this) & 0xFFFFFFFF), rc<uintptr_t>(pWindow.get()));
+    const auto IDENTIFIER = std::format("{:x}", pWindow->m_stableID);
 
     LOGM(Log::DEBUG, "Newly mapped window gets an identifier of {}", IDENTIFIER);
-    m_resource->sendToplevel(NEWHANDLE->m_resource.get());
-    NEWHANDLE->m_resource->sendIdentifier(IDENTIFIER.c_str());
-    NEWHANDLE->m_resource->sendAppId(pWindow->m_initialClass.c_str());
-    NEWHANDLE->m_resource->sendTitle(pWindow->m_initialTitle.c_str());
-    NEWHANDLE->m_resource->sendDone();
+    m_resource->sendToplevel(newHandle->m_resource.get());
+    newHandle->m_resource->sendIdentifier(IDENTIFIER.c_str());
+    newHandle->m_resource->sendAppId(pWindow->m_initialClass.c_str());
+    newHandle->m_resource->sendTitle(pWindow->m_initialTitle.c_str());
+    newHandle->m_resource->sendDone();
 
-    m_handles.push_back(NEWHANDLE);
+    m_handles.emplace_back(std::move(newHandle));
 }
 
 SP<CForeignToplevelHandle> CForeignToplevelList::handleForWindow(PHLWINDOW pWindow) {

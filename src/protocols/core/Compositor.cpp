@@ -286,16 +286,20 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
         return;
     }
 
-    auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);
+    auto outputs = PROTO::outputs.at(monitor->m_name)->outputResourcesFrom(m_client);
 
-    if UNLIKELY (!output || !output->getResource() || !output->getResource()->resource()) {
+    if UNLIKELY (outputs.empty() || std::ranges::all_of(outputs, [](const auto& o) { return !o->getResource() || !o->getResource()->resource(); })) {
         LOGM(Log::ERR, "Cannot enter surface {:x} to {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
     m_enteredOutputs.emplace_back(monitor);
 
-    m_resource->sendEnter(output->getResource().get());
+    for (const auto& o : outputs) {
+        if (!o->getResource() || !o->getResource()->resource())
+            continue;
+        m_resource->sendEnter(o->getResource().get());
+    }
     m_events.enter.emit(monitor);
 }
 
@@ -303,16 +307,20 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
     if UNLIKELY (std::ranges::find(m_enteredOutputs, monitor) == m_enteredOutputs.end())
         return;
 
-    auto output = PROTO::outputs.at(monitor->m_name)->outputResourceFrom(m_client);
+    auto outputs = PROTO::outputs.at(monitor->m_name)->outputResourcesFrom(m_client);
 
-    if UNLIKELY (!output) {
+    if UNLIKELY (outputs.empty() || std::ranges::all_of(outputs, [](const auto& o) { return !o->getResource() || !o->getResource()->resource(); })) {
         LOGM(Log::ERR, "Cannot leave surface {:x} from {}, client hasn't bound the output", (uintptr_t)this, monitor->m_name);
         return;
     }
 
     std::erase(m_enteredOutputs, monitor);
 
-    m_resource->sendLeave(output->getResource().get());
+    for (const auto& o : outputs) {
+        if (!o->getResource() || !o->getResource()->resource())
+            continue;
+        m_resource->sendLeave(o->getResource().get());
+    }
     m_events.leave.emit(monitor);
 }
 
@@ -512,7 +520,7 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
         g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
     } else {
         // state commit without a buffer.
-        m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        m_stateQueue.tryProcess();
     }
 }
 

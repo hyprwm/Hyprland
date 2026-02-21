@@ -112,6 +112,7 @@ class CXWaylandSurface {
     void unmap();
     void considerMap();
     void setWithdrawn(bool withdrawn);
+    void recheckSupportedProps();
 
     struct {
         CHyprSignalListener destroyResource;

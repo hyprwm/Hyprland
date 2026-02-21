@@ -11,7 +11,6 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/HookSystemManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../desktop/view/Window.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/view/GlobalViewMethods.hpp"
@@ -28,6 +27,8 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../layout/LayoutManager.hpp"
+#include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
@@ -1305,7 +1306,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (pMonitor->m_scheduledRecalc) {
         pMonitor->m_scheduledRecalc = false;
-        g_pLayoutManager->getCurrentLayout()->recalculateMonitor(pMonitor->m_id);
+        pMonitor->m_activeWorkspace->m_space->recalculate();
     }
 
     if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0)
@@ -1906,7 +1907,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     // damage the monitor if can
     damageMonitor(PMONITOR);
 
-    g_pLayoutManager->getCurrentLayout()->recalculateMonitor(monitor);
+    g_layoutManager->invalidateMonitorGeometries(PMONITOR);
 }
 
 void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {

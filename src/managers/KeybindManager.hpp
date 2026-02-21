@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <functional>
 #include <xkbcommon/xkbcommon.h>
@@ -26,30 +27,32 @@ struct SSubmap {
 };
 
 struct SKeybind {
-    std::string            key             = "";
-    std::set<xkb_keysym_t> sMkKeys         = {};
-    uint32_t               keycode         = 0;
-    bool                   catchAll        = false;
-    uint32_t               modmask         = 0;
-    std::set<xkb_keysym_t> sMkMods         = {};
-    std::string            handler         = "";
-    std::string            arg             = "";
-    bool                   locked          = false;
-    SSubmap                submap          = {};
-    std::string            description     = "";
-    bool                   release         = false;
-    bool                   repeat          = false;
-    bool                   longPress       = false;
-    bool                   mouse           = false;
-    bool                   nonConsuming    = false;
-    bool                   transparent     = false;
-    bool                   ignoreMods      = false;
-    bool                   multiKey        = false;
-    bool                   hasDescription  = false;
-    bool                   dontInhibit     = false;
-    bool                   click           = false;
-    bool                   drag            = false;
-    bool                   submapUniversal = false;
+    std::string                     key             = "";
+    std::set<xkb_keysym_t>          sMkKeys         = {};
+    uint32_t                        keycode         = 0;
+    bool                            catchAll        = false;
+    uint32_t                        modmask         = 0;
+    std::set<xkb_keysym_t>          sMkMods         = {};
+    std::string                     handler         = "";
+    std::string                     arg             = "";
+    bool                            locked          = false;
+    SSubmap                         submap          = {};
+    std::string                     description     = "";
+    bool                            release         = false;
+    bool                            repeat          = false;
+    bool                            longPress       = false;
+    bool                            mouse           = false;
+    bool                            nonConsuming    = false;
+    bool                            transparent     = false;
+    bool                            ignoreMods      = false;
+    bool                            multiKey        = false;
+    bool                            hasDescription  = false;
+    bool                            dontInhibit     = false;
+    bool                            click           = false;
+    bool                            drag            = false;
+    bool                            submapUniversal = false;
+    bool                            deviceInclusive = false;
+    std::unordered_set<std::string> devices         = {};
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -94,8 +97,8 @@ class CKeybindManager {
     ~CKeybindManager();
 
     bool                                                                         onKeyEvent(std::any, SP<IKeyboard>);
-    bool                                                                         onAxisEvent(const IPointer::SAxisEvent&);
-    bool                                                                         onMouseEvent(const IPointer::SButtonEvent&);
+    bool                                                                         onAxisEvent(const IPointer::SAxisEvent&, SP<IPointer>);
+    bool                                                                         onMouseEvent(const IPointer::SButtonEvent&, SP<IPointer>);
     void                                                                         resizeWithBorder(const IPointer::SButtonEvent&);
     void                                                                         onSwitchEvent(const std::string&);
     void                                                                         onSwitchOnEvent(const std::string&);
@@ -145,7 +148,7 @@ class CKeybindManager {
 
     CTimer                           m_scrollTimer;
 
-    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>);
+    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>, SP<IHID>);
 
     std::set<xkb_keysym_t>           m_mkKeys = {};
     std::set<xkb_keysym_t>           m_mkMods = {};

@@ -66,6 +66,8 @@ class CTestKeyboard : public IKeyboard {
         keeb->m_self        = keeb;
         keeb->m_isVirtual   = isVirtual;
         keeb->m_shareStates = !isVirtual;
+        keeb->m_hlName      = "test-keyboard";
+        keeb->m_deviceName  = "test-keyboard";
         return keeb;
     }
 

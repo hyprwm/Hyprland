@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 #include "../helpers/signal/Signal.hpp"
 
 enum eHIDCapabilityType : uint8_t {
@@ -36,6 +37,7 @@ class IHID {
         CSignalT<> destroy;
     } m_events;
 
-    std::string m_deviceName;
-    std::string m_hlName;
+    std::string           m_deviceName;
+    std::string           m_hlName;
+    std::set<std::string> m_deviceTags;
 };

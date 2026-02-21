@@ -8,6 +8,7 @@
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
+#include <unordered_map>
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
   public:
@@ -17,6 +18,9 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     void         frameTick();
     virtual void scheduleTick();
     virtual void onTicked();
+    float        getCurveValueFor(const Hyprutils::Animation::CBaseAnimatedVariable& av);
+    bool         shouldWarpAnimation(const Hyprutils::Animation::CBaseAnimatedVariable& av, bool animationsDisabled);
+    bool         isBezierNameValid(const std::string& name);
 
     // Reset tick state after session changes (suspend/wake, lock/unlock)
     void resetTickState();
@@ -55,9 +59,11 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     float               m_lastTickTimeMs;
 
   private:
-    bool   m_tickScheduled = false;
-    bool   m_lastTickValid = false;
-    CTimer m_lastTickTimer;
+    std::unordered_map<const Hyprutils::Animation::CBaseAnimatedVariable*, float> m_springPhysicsElapsedSec;
+
+    bool                                                                          m_tickScheduled = false;
+    bool                                                                          m_lastTickValid = false;
+    CTimer                                                                        m_lastTickTimer;
 };
 
 inline UP<CHyprAnimationManager> g_pAnimationManager;

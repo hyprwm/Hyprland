@@ -2867,6 +2867,10 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "clipboard-read" || data[1] == "clip-read")
+        type = PERMISSION_TYPE_CLIPBOARD_READ;
+    else if (data[1] == "clipboard-write" || data[1] == "clip-write")
+        type = PERMISSION_TYPE_CLIPBOARD_WRITE;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

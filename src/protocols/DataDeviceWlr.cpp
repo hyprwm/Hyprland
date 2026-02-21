@@ -1,6 +1,8 @@
 #include "DataDeviceWlr.hpp"
 #include <algorithm>
+#include <hyprutils/os/FileDescriptor.hpp>
 #include "../managers/SeatManager.hpp"
+#include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "core/Seat.hpp"
 using namespace Hyprutils::OS;
 
@@ -20,6 +22,42 @@ CWLRDataOffer::CWLRDataOffer(SP<CZwlrDataControlOfferV1> resource_, SP<IDataSour
 
         if (m_dead) {
             LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
+            return;
+        }
+
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::INFO, "Clipboard read denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::INFO, "Clipboard read permission pending for client {:x}", (uintptr_t)CLIENT);
+            const auto PROMISE = g_pDynamicPermissionManager->promiseFor(CLIENT, PERMISSION_TYPE_CLIPBOARD_READ);
+            if (!PROMISE) {
+                LOGM(Log::ERR, "BUG THIS: No promise for client permission for clipboard read");
+                return;
+            }
+            auto sharedFd = std::make_shared<CFileDescriptor>(std::move(sendFd));
+            PROMISE->then([this, mime = std::string(mime ? mime : ""), sharedFd](SP<CPromiseResult<eDynamicPermissionAllowMode>> pr) {
+                if (pr->hasError()) {
+                    LOGM(Log::ERR, "BUG THIS: No permission returned for clipboard read");
+                    return;
+                }
+
+                if (pr->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                    LOGM(Log::INFO, "Clipboard read denied by user");
+                    return;
+                }
+
+                if (!m_source) {
+                    LOGM(Log::WARN, "Source disappeared while waiting for permission");
+                    return;
+                }
+
+                LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x} (permission granted)", (uintptr_t)this, (uintptr_t)m_source.get());
+
+                m_source->send(mime, std::move(*sharedFd));
+            });
             return;
         }
 
@@ -118,6 +156,45 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
             return;
         }
 
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::INFO, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::INFO, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            const auto PROMISE = g_pDynamicPermissionManager->promiseFor(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+            if (!PROMISE) {
+                LOGM(Log::ERR, "BUG THIS: No promise for client permission for clipboard write");
+                return;
+            }
+            PROMISE->then([source](SP<CPromiseResult<eDynamicPermissionAllowMode>> pr) mutable {
+                if (pr->hasError()) {
+                    LOGM(Log::ERR, "BUG THIS: No permission returned for clipboard write");
+                    return;
+                }
+
+                if (pr->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                    LOGM(Log::INFO, "Clipboard write denied by user");
+                    return;
+                }
+
+                if (!source) {
+                    LOGM(Log::WARN, "Source disappeared while waiting for permission");
+                    return;
+                }
+
+                if (source && source->used())
+                    LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+
+                source->markUsed();
+
+                LOGM(Log::DEBUG, "wlr manager requests selection to {:x}", (uintptr_t)source.get());
+                g_pSeatManager->setCurrentSelection(source);
+            });
+            return;
+        }
+
         if (source && source->used())
             LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
@@ -132,6 +209,45 @@ CWLRDataDevice::CWLRDataDevice(SP<CZwlrDataControlDeviceV1> resource_) : m_resou
         if (!source) {
             LOGM(Log::DEBUG, "wlr reset primary selection received");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
+            return;
+        }
+
+        const auto CLIENT = r->client();
+        const auto PERM   = g_pDynamicPermissionManager->clientPermissionMode(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+        if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY) {
+            LOGM(Log::INFO, "Clipboard write denied by permission manager for client {:x}", (uintptr_t)CLIENT);
+            return;
+        } else if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
+            LOGM(Log::INFO, "Clipboard write permission pending for client {:x}", (uintptr_t)CLIENT);
+            const auto PROMISE = g_pDynamicPermissionManager->promiseFor(CLIENT, PERMISSION_TYPE_CLIPBOARD_WRITE);
+            if (!PROMISE) {
+                LOGM(Log::ERR, "BUG THIS: No promise for client permission for clipboard write");
+                return;
+            }
+            PROMISE->then([source](SP<CPromiseResult<eDynamicPermissionAllowMode>> pr) mutable {
+                if (pr->hasError()) {
+                    LOGM(Log::ERR, "BUG THIS: No permission returned for clipboard write");
+                    return;
+                }
+
+                if (pr->result() != PERMISSION_RULE_ALLOW_MODE_ALLOW) {
+                    LOGM(Log::INFO, "Clipboard write denied by user");
+                    return;
+                }
+
+                if (!source) {
+                    LOGM(Log::WARN, "Source disappeared while waiting for permission");
+                    return;
+                }
+
+                if (source && source->used())
+                    LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+
+                source->markUsed();
+
+                LOGM(Log::DEBUG, "wlr manager requests primary selection to {:x}", (uintptr_t)source.get());
+                g_pSeatManager->setCurrentPrimarySelection(source);
+            });
             return;
         }
 

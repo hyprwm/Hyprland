@@ -53,6 +53,8 @@ static const char* permissionToString(eDynamicPermissionType type) {
         case PERMISSION_TYPE_SCREENCOPY: return "PERMISSION_TYPE_SCREENCOPY";
         case PERMISSION_TYPE_PLUGIN: return "PERMISSION_TYPE_PLUGIN";
         case PERMISSION_TYPE_KEYBOARD: return "PERMISSION_TYPE_KEYBOARD";
+        case PERMISSION_TYPE_CLIPBOARD_READ: return "PERMISSION_TYPE_CLIPBOARD_READ";
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: return "PERMISSION_TYPE_CLIPBOARD_WRITE";
     }
 
     return "error";
@@ -140,6 +142,10 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionMode(wl_c
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
+    // clipboard permissions are allow default (like keyboard)
+    if (permission == PERMISSION_TYPE_CLIPBOARD_READ || permission == PERMISSION_TYPE_CLIPBOARD_WRITE)
+        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+
     // if we are here, we need to ask, that's the fallback for all these (keyboards won't come here)
     askForPermission(client, LOOKUP.value_or(""), permission);
 
@@ -216,9 +222,13 @@ eDynamicPermissionAllowMode CDynamicPermissionManager::clientPermissionModeWithS
         return PERMISSION_RULE_ALLOW_MODE_PENDING;
     }
 
-    // keyboards are allow default
-    if (permission == PERMISSION_TYPE_KEYBOARD)
-        return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+    // keyboards and clipboards are allowed by default
+    switch (permission) {
+        case PERMISSION_TYPE_KEYBOARD:
+        case PERMISSION_TYPE_CLIPBOARD_READ:
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: return PERMISSION_RULE_ALLOW_MODE_ALLOW;
+        default: break;
+    }
 
     // if we are here, we need to ask.
     askForPermission(nullptr, str, permission, pid);
@@ -253,6 +263,8 @@ void CDynamicPermissionManager::askForPermission(wl_client* client, const std::s
         case PERMISSION_TYPE_SCREENCOPY: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, {{"app", appName}}); break;
         case PERMISSION_TYPE_PLUGIN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_PLUGIN, {{"app", appName}, {"plugin", binaryPath}}); break;
         case PERMISSION_TYPE_KEYBOARD: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_KEYBOARD, {{"keyboard", binaryPath}}); break;
+        case PERMISSION_TYPE_CLIPBOARD_READ: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_READ, {{"app", appName}}); break;
+        case PERMISSION_TYPE_CLIPBOARD_WRITE: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_CLIPBOARD_WRITE, {{"app", appName}}); break;
         case PERMISSION_TYPE_UNKNOWN: description = I18n::i18nEngine()->localize(I18n::TXT_KEY_PERMISSION_REQUEST_UNKNOWN, {{"app", appName}}); break;
     }
 

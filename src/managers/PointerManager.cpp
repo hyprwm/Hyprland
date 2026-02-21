@@ -398,23 +398,27 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
 }
 
 SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
-    auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
-    auto const& cursorSize = m_currentCursorImage.size;
-
-    static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
-
-    const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
+    auto maxSize = state->monitor->m_output->cursorPlaneSize();
 
     if (maxSize == Vector2D{})
         return nullptr;
+    else if (maxSize == Vector2D{-1, -1}) {
+        Log::logger->log(Log::TRACE, "cursor plane size is unlimited, falling back to 256x256");
+        maxSize = Vector2D{256, 256};
+    }
 
-    if (maxSize != Vector2D{-1, -1}) {
-        if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
-            Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
-            return nullptr;
-        }
-    } else
-        maxSize = cursorSize;
+    auto const  damage     = maxSize;
+    auto const& cursorSize = m_currentCursorImage.size;
+
+    static auto PCPUBUFFER         = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+    const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
+
+    if (cursorSize.x > maxSize.x || cursorSize.y > maxSize.y) {
+        Log::logger->log(Log::TRACE, "hardware cursor too big! {} > {}", m_currentCursorImage.size, maxSize);
+        return nullptr;
+    }
+
+    maxSize = cursorSize;
 
     if (!state->monitor->m_cursorSwapchain || maxSize != state->monitor->m_cursorSwapchain->currentOptions().size ||
         shouldUseCpuBuffer != (state->monitor->m_cursorSwapchain->getAllocator()->type() != Aquamarine::AQ_ALLOCATOR_TYPE_GBM)) {
@@ -580,8 +584,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    const auto& damageSize = state->monitor->m_output->cursorPlaneSize();
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damageSize.x, damageSize.y}, RBO);
+    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damage.x, damage.y}, RBO);
     g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};

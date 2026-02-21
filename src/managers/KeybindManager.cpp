@@ -2747,6 +2747,8 @@ SDispatchResult CKeybindManager::mouse(std::string args) {
 
     if (ARGS[0] == "movewindow") {
         return changeMouseBindMode(MBIND_MOVE);
+    } else if (ARGS[0] == "swapwindow") {
+        return changeMouseBindMode(MBIND_SWAP);
     } else {
         try {
             switch (std::stoi(ARGS[1])) {
@@ -2769,13 +2771,19 @@ SDispatchResult CKeybindManager::changeMouseBindMode(const eMouseBindMode MODE) 
         if (!PWINDOW)
             return SDispatchResult{.passEvent = true};
 
-        if (!PWINDOW->isFullscreen() && MODE == MBIND_MOVE)
+        if (PWINDOW->isFullscreen())
+            return SDispatchResult{.passEvent = true};
+
+        // For floating windows, use move mode instead of swap mode
+        const auto DRAG_MODE = (PWINDOW->m_isFloating && MODE == MBIND_SWAP) ? MBIND_MOVE : MODE;
+
+        if (DRAG_MODE == MBIND_MOVE)
             PWINDOW->checkInputOnDecos(INPUT_TYPE_DRAG_START, MOUSECOORDS);
 
         if (g_pInputManager->m_currentlyDraggedWindow.expired())
             g_pInputManager->m_currentlyDraggedWindow = PWINDOW;
 
-        g_pInputManager->m_dragMode = MODE;
+        g_pInputManager->m_dragMode = DRAG_MODE;
 
         g_pLayoutManager->getCurrentLayout()->onBeginDragWindow();
     } else {

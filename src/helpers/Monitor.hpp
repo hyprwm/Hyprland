@@ -23,6 +23,8 @@
 #include <aquamarine/allocator/Swapchain.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 
+#include "../helpers/TransferFunction.hpp"
+
 class CMonitorFrameScheduler;
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
@@ -50,7 +52,7 @@ struct SMonitorRule {
     std::string            mirrorOf      = "";
     bool                   enable10bit   = false;
     NCMType::eCMType       cmType        = NCMType::CM_SRGB;
-    int                    sdrEotf       = 0;
+    NTransferFunction::eTF sdrEotf       = NTransferFunction::TF_DEFAULT;
     float                  sdrSaturation = 1.0f; // SDR -> HDR
     float                  sdrBrightness = 1.0f; // SDR -> HDR
     Desktop::CReservedArea reservedArea;
@@ -137,7 +139,7 @@ class CMonitor {
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
     NCMType::eCMType            m_cmType           = NCMType::CM_SRGB;
-    int                         m_sdrEotf          = 0;
+    NTransferFunction::eTF      m_sdrEotf          = NTransferFunction::TF_DEFAULT;
     float                       m_sdrSaturation    = 1.0f;
     float                       m_sdrBrightness    = 1.0f;
     float                       m_sdrMinLuminance  = 0.2f;
@@ -283,7 +285,7 @@ class CMonitor {
     // methods
     void        onConnect(bool noRule);
     void        onDisconnect(bool destroy = false);
-    void        applyCMType(NCMType::eCMType cmType, int cmSdrEotf);
+    void        applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
     bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
     void        addDamage(const pixman_region32_t* rg);
     void        addDamage(const CRegion& rg);

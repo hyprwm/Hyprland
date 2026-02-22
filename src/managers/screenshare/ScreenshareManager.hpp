@@ -1,0 +1,252 @@
+#pragma once
+
+#include <vector>
+#include "../../helpers/memory/Memory.hpp"
+#include "../../protocols/types/Buffer.hpp"
+#include "../../render/Framebuffer.hpp"
+#include "../eventLoop/EventLoopTimer.hpp"
+#include "../../render/Renderer.hpp"
+
+// TODO: do screenshare damage
+
+class CWLPointerResource;
+
+namespace Screenshare {
+    enum eScreenshareType : uint8_t {
+        SHARE_MONITOR,
+        SHARE_WINDOW,
+        SHARE_REGION,
+        SHARE_NONE
+    };
+
+    enum eScreenshareError : uint8_t {
+        ERROR_NONE,
+        ERROR_UNKNOWN,
+        ERROR_STOPPED,
+        ERROR_NO_BUFFER,
+        ERROR_BUFFER_SIZE,
+        ERROR_BUFFER_FORMAT
+    };
+
+    enum eScreenshareResult : uint8_t {
+        RESULT_COPIED,
+        RESULT_NOT_COPIED,
+        RESULT_TIMESTAMP,
+    };
+
+    using FScreenshareCallback = std::function<void(eScreenshareResult result)>;
+    using FSourceBoxCallback   = std::function<CBox(void)>;
+
+    class CScreenshareSession {
+      public:
+        CScreenshareSession(const CScreenshareSession&) = delete;
+        CScreenshareSession(CScreenshareSession&&)      = delete;
+        ~CScreenshareSession();
+
+        UP<CScreenshareFrame> nextFrame(bool overlayCursor);
+        void                  stop();
+
+        // constraints
+        const std::vector<DRMFormat>& allowedFormats() const;
+        Vector2D                      bufferSize() const;
+        PHLMONITOR                    monitor() const; // this will return the correct monitor based on type
+
+        struct {
+            CSignalT<> stopped;
+            CSignalT<> constraintsChanged;
+        } m_events;
+
+      private:
+        CScreenshareSession(PHLMONITOR monitor, wl_client* client);
+        CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client);
+        CScreenshareSession(PHLWINDOW window, wl_client* client);
+
+        WP<CScreenshareSession> m_self;
+        bool                    m_stopped = false;
+
+        eScreenshareType        m_type = SHARE_NONE;
+        PHLMONITORREF           m_monitor;
+        PHLWINDOWREF            m_window;
+        CBox                    m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
+
+        wl_client*              m_client = nullptr;
+        std::string             m_name   = "";
+
+        std::vector<DRMFormat>  m_formats;
+        Vector2D                m_bufferSize = Vector2D(0, 0);
+
+        CFramebuffer            m_tempFB;
+
+        SP<CEventLoopTimer>     m_shareStopTimer;
+        bool                    m_sharing = false;
+
+        struct {
+            CHyprSignalListener monitorDestroyed;
+            CHyprSignalListener monitorModeChanged;
+            CHyprSignalListener windowDestroyed;
+            CHyprSignalListener windowSizeChanged;
+            CHyprSignalListener windowMonitorChanged;
+        } m_listeners;
+
+        void screenshareEvents(bool started);
+        void calculateConstraints();
+        void init();
+
+        friend class CScreenshareFrame;
+        friend class CScreenshareManager;
+    };
+
+    class CCursorshareSession {
+      public:
+        CCursorshareSession(const CCursorshareSession&) = delete;
+        CCursorshareSession(CCursorshareSession&&)      = delete;
+        ~CCursorshareSession();
+
+        eScreenshareError share(PHLMONITOR monitor, SP<IHLBuffer> buffer, FSourceBoxCallback sourceBoxCallback, FScreenshareCallback callback);
+        void              stop();
+
+        // constraints
+        DRMFormat format() const;
+        Vector2D  bufferSize() const;
+        Vector2D  hotspot() const;
+
+        struct {
+            CSignalT<> stopped;
+            CSignalT<> constraintsChanged;
+        } m_events;
+
+      private:
+        CCursorshareSession(wl_client* client, WP<CWLPointerResource> pointer);
+
+        WP<CCursorshareSession> m_self;
+        bool                    m_stopped            = false;
+        bool                    m_constraintsChanged = true;
+
+        wl_client*              m_client = nullptr;
+        WP<CWLPointerResource>  m_pointer;
+
+        // constraints
+        DRMFormat m_format     = 0 /* DRM_FORMAT_INVALID */;
+        Vector2D  m_hotspot    = Vector2D(0, 0);
+        Vector2D  m_bufferSize = Vector2D(0, 0);
+
+        struct {
+            bool                 pending = false;
+            PHLMONITOR           monitor;
+            SP<IHLBuffer>        buffer;
+            FSourceBoxCallback   sourceBoxCallback;
+            FScreenshareCallback callback;
+        } m_pendingFrame;
+
+        struct {
+            CHyprSignalListener pointerDestroyed;
+            CHyprSignalListener cursorChanged;
+        } m_listeners;
+
+        bool copy();
+        void render();
+        void calculateConstraints();
+
+        friend class CScreenshareFrame;
+        friend class CScreenshareManager;
+    };
+
+    class CScreenshareFrame {
+      public:
+        CScreenshareFrame(const CScreenshareFrame&) = delete;
+        CScreenshareFrame(CScreenshareFrame&&)      = delete;
+        CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst);
+        ~CScreenshareFrame();
+
+        bool                done() const;
+        eScreenshareError   share(SP<IHLBuffer> buffer, const CRegion& damage, FScreenshareCallback callback);
+
+        Vector2D            bufferSize() const;
+        wl_output_transform transform() const; // returns the transform applied by compositor on the buffer
+        const CRegion&      damage() const;
+
+      private:
+        WP<CScreenshareFrame>   m_self;
+        WP<CScreenshareSession> m_session;
+        FScreenshareCallback    m_callback;
+        SP<IHLBuffer>           m_buffer;
+        Vector2D                m_bufferSize = Vector2D(0, 0);
+        CRegion                 m_damage; // damage in buffer coords
+        bool                    m_shared = false, m_copied = false, m_failed = false;
+        bool                    m_overlayCursor = true;
+        bool                    m_isFirst       = false;
+
+        //
+        void copy();
+        bool copyDmabuf();
+        bool copyShm();
+
+        void render();
+        void renderMonitor();
+        void renderMonitorRegion();
+        void renderWindow();
+
+        void storeTempFB();
+
+        friend class CScreenshareManager;
+        friend class CScreenshareSession;
+    };
+
+    class CScreenshareManager {
+      public:
+        CScreenshareManager();
+
+        UP<CScreenshareSession> newSession(wl_client* client, PHLMONITOR monitor);
+        UP<CScreenshareSession> newSession(wl_client* client, PHLMONITOR monitor, CBox captureRegion);
+        UP<CScreenshareSession> newSession(wl_client* client, PHLWINDOW window);
+
+        WP<CScreenshareSession> getManagedSession(wl_client* client, PHLMONITOR monitor);
+        WP<CScreenshareSession> getManagedSession(wl_client* client, PHLMONITOR monitor, CBox captureBox);
+        WP<CScreenshareSession> getManagedSession(wl_client* client, PHLWINDOW window);
+
+        UP<CCursorshareSession> newCursorSession(wl_client* client, WP<CWLPointerResource> pointer);
+
+        void                    destroyClientSessions(wl_client* client);
+
+        void                    onOutputCommit(PHLMONITOR monitor);
+
+      private:
+        std::vector<WP<CScreenshareSession>> m_sessions;
+        std::vector<WP<CCursorshareSession>> m_cursorSessions;
+        std::vector<WP<CScreenshareFrame>>   m_pendingFrames;
+
+        struct SManagedSession {
+            SManagedSession(UP<CScreenshareSession>&& session);
+
+            UP<CScreenshareSession> m_session;
+            CHyprSignalListener     stoppedListener;
+        };
+
+        std::vector<UP<SManagedSession>> m_managedSessions;
+        WP<CScreenshareSession>          getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWINDOW window, CBox captureBox);
+
+        friend class CScreenshareSession;
+    };
+
+    inline UP<CScreenshareManager>& mgr() {
+        static UP<CScreenshareManager> manager = nullptr;
+        if (!manager && g_pHyprRenderer) {
+            Log::logger->log(Log::DEBUG, "Starting ScreenshareManager");
+            manager = makeUnique<CScreenshareManager>();
+        }
+        return manager;
+    }
+}
+
+template <>
+struct std::formatter<Screenshare::eScreenshareType> : std::formatter<std::string> {
+    auto format(const Screenshare::eScreenshareType& res, std::format_context& ctx) const {
+        switch (res) {
+            case Screenshare::SHARE_MONITOR: return formatter<string>::format("monitor", ctx);
+            case Screenshare::SHARE_WINDOW: return formatter<string>::format("window", ctx);
+            case Screenshare::SHARE_REGION: return formatter<string>::format("region", ctx);
+            case Screenshare::SHARE_NONE: return formatter<string>::format("ERR NONE", ctx);
+        }
+        return formatter<string>::format("error", ctx);
+    }
+};

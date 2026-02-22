@@ -20,6 +20,7 @@
 #include "managers/ANRManager.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
+#include "managers/screenshare/ScreenshareManager.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>

@@ -16,6 +16,12 @@ class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
+class CToplevelExportProtocolManager;
+class CInputManager;
+struct SSessionLockSurface;
+namespace Screenshare {
+    class CScreenshareFrame;
+};
 
 enum eDamageTrackingModes : int8_t {
     DAMAGE_TRACKING_INVALID = -1,
@@ -36,10 +42,6 @@ enum eRenderMode : uint8_t {
     RENDER_MODE_TO_BUFFER           = 2,
     RENDER_MODE_TO_BUFFER_READ_ONLY = 3,
 };
-
-class CToplevelExportProtocolManager;
-class CInputManager;
-struct SSessionLockSurface;
 
 struct SRenderWorkspaceUntilData {
     PHLLS     ls;
@@ -166,6 +168,7 @@ class CHyprRenderer {
 
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;
+    friend class Screenshare::CScreenshareFrame;
     friend class CInputManager;
     friend class CPointerManager;
     friend class CMonitor;

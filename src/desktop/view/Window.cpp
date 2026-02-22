@@ -2224,8 +2224,11 @@ void CWindow::unmapWindow() {
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
-            g_pInputManager->refocus();
+        if (!candidate && m_workspace && m_workspace->getWindows() == 0) {
+            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            if (*PFOLLOWMOUSE == 1)
+                g_pInputManager->refocus();
+        }
 
         g_pInputManager->sendMotionEventsToFocused();
 

@@ -279,7 +279,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                              rc<uintptr_t>(CONSTRAINT.get()));
     }
 
-    if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
+    if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || (refocus && *PFOLLOWMOUSE == 1)) && m_forcedFocus.expired())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     // check for windows that have focus priority like our permission popups
@@ -1597,13 +1597,16 @@ void CInputManager::refocus(std::optional<Vector2D> overridePos) {
 }
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
+    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+
     if (!m_exclusiveLSes.empty()) {
         Log::logger->log(Log::DEBUG, "CInputManager::refocusLastWindow: ignoring, exclusive LS present.");
         return false;
     }
 
     if (!pMonitor) {
-        refocus();
+        if (*PFOLLOWMOUSE == 1)
+            refocus();
         return true;
     }
 
@@ -1640,7 +1643,8 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
             Desktop::focusState()->fullWindowFocus(PLASTWINDOW, Desktop::FOCUS_REASON_FFM);
         }
 
-        refocus();
+        if (*PFOLLOWMOUSE == 1)
+            refocus();
     }
 
     return true;

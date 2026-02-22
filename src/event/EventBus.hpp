@@ -54,6 +54,7 @@ namespace Event {
             struct {
                 Event<PHLLS> opened;
                 Event<PHLLS> closed;
+                Event<PHLLS> updateRules;
             } layer;
 
             struct {

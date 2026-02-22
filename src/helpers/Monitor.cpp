@@ -22,9 +22,11 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
+#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/HookSystemManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
@@ -85,10 +87,11 @@ void CMonitor::onConnect(bool noRule) {
             m_frameScheduler->onFrame();
     });
     m_listeners.commit     = m_output->events.commit.listen([this] {
-        if (true) { // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
-            PROTO::screencopy->onOutputCommit(m_self.lock());
-            PROTO::toplevelExport->onOutputCommit(m_self.lock());
-        }
+        m_events.commit.emit();
+
+        // FIXME: E->state->committed & WLR_OUTPUT_STATE_BUFFER
+        if (true && Screenshare::mgr())
+            Screenshare::mgr()->onOutputCommit(m_self.lock());
     });
     m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 

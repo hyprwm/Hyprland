@@ -653,6 +653,18 @@ void CWindow::onMap() {
         },
         false);
 
+    m_realSize->setUpdateCallback([this](auto) {
+        if (m_isMapped)
+            m_events.resize.emit();
+    });
+
+    m_realPosition->setUpdateCallback([this](auto) {
+        if (m_isMapped && m_monitor != m_prevMonitor) {
+            m_prevMonitor = m_monitor;
+            m_events.monitorChanged.emit();
+        }
+    });
+
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
 
     m_reportedSize = m_pendingReportedSize;
@@ -686,6 +698,9 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
 
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
+
+    if (hidden)
+        m_events.hide.emit();
 
     if (hidden && Desktop::focusState()->window() == m_self)
         Desktop::focusState()->window().reset();
@@ -2119,6 +2134,7 @@ void CWindow::unmapWindow() {
         m_originalClosedExtents = getFullWindowExtents();
     }
 
+    m_events.unmap.emit();
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", m_self.lock())});
     EMIT_HOOK_EVENT("closeWindow", m_self.lock());
 

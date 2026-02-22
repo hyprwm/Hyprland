@@ -71,6 +71,7 @@ class CWLTouchResource {
 class CWLPointerResource {
   public:
     CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResource> owner_);
+    ~CWLPointerResource();
 
     bool                good();
     int                 version();
@@ -87,6 +88,10 @@ class CWLPointerResource {
     void                sendAxisRelativeDirection(wl_pointer_axis axis, wl_pointer_axis_relative_direction direction);
 
     WP<CWLSeatResource> m_owner;
+
+    struct {
+        CSignalT<> destroyed;
+    } m_events;
 
     //
     static SP<CWLPointerResource> fromResource(wl_resource* res);

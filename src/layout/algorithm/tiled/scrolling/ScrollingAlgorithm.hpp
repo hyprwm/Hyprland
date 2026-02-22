@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../TiledAlgorithm.hpp"
-#include "../../../../managers/HookSystemManager.hpp"
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
+#include "../../../../helpers/signal/Signal.hpp"
 
 #include <vector>
 
@@ -112,11 +112,11 @@ namespace Layout::Tiled {
         CBox                                     usableArea();
 
       private:
-        SP<SScrollingData>   m_scrollingData;
+        SP<SScrollingData>  m_scrollingData;
 
-        SP<HOOK_CALLBACK_FN> m_configCallback;
-        SP<HOOK_CALLBACK_FN> m_focusCallback;
-        SP<HOOK_CALLBACK_FN> m_mouseButtonCallback;
+        CHyprSignalListener m_configCallback;
+        CHyprSignalListener m_focusCallback;
+        CHyprSignalListener m_mouseButtonCallback;
 
         struct {
             std::vector<float> configuredWidths;

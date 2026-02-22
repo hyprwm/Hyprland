@@ -4,7 +4,7 @@
 #include "../utils/SetUtils.hpp"
 #include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
-#include "../../../managers/HookSystemManager.hpp"
+#include "../../../event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -634,5 +634,5 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         g_pDecorationPositioner->forceRecalcFor(m_window.lock());
 
     // for plugins
-    EMIT_HOOK_EVENT("windowUpdateRules", m_window.lock());
+    Event::bus()->m_events.window.updateRules.emit(m_window.lock());
 }

@@ -93,13 +93,13 @@ class CWorkspace {
     } m_events;
 
   private:
-    void                 init(PHLWORKSPACE self);
+    void                init(PHLWORKSPACE self);
 
-    SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
-    bool                 m_inert = true;
+    CHyprSignalListener m_focusedWindowHook;
+    bool                m_inert = true;
 
-    SP<CWorkspace>       m_selfPersistent; // for persistent workspaces.
-    bool                 m_persistent = false;
+    SP<CWorkspace>      m_selfPersistent; // for persistent workspaces.
+    bool                m_persistent = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

@@ -1,7 +1,7 @@
 #include "WindowHistoryTracker.hpp"
 
-#include "../../managers/HookSystemManager.hpp"
 #include "../view/Window.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Desktop;
 using namespace Desktop::History;
@@ -12,18 +12,12 @@ SP<CWindowHistoryTracker> History::windowTracker() {
 }
 
 CWindowHistoryTracker::CWindowHistoryTracker() {
-    static auto P = g_pHookSystem->hookDynamic("openWindowEarly", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
+    static auto P = Event::bus()->m_events.window.openEarly.listen([this](PHLWINDOW pWindow) {
         // add a last track
-        m_history.insert(m_history.begin(), window);
+        m_history.insert(m_history.begin(), pWindow);
     });
 
-    static auto P1 = g_pHookSystem->hookDynamic("activeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<Desktop::View::SWindowActiveEvent>(data).window;
-
-        track(window);
-    });
+    static auto P1 = Event::bus()->m_events.window.active.listen([this](PHLWINDOW window, uint8_t reason) { track(window); });
 }
 
 void CWindowHistoryTracker::track(PHLWINDOW w) {

@@ -3,8 +3,8 @@
 #include "../../helpers/Monitor.hpp"
 #include "../Workspace.hpp"
 #include "../state/FocusState.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../event/EventBus.hpp"
 #include "../../config/ConfigValue.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -18,14 +18,9 @@ SP<CWorkspaceHistoryTracker> History::workspaceTracker() {
 }
 
 CWorkspaceHistoryTracker::CWorkspaceHistoryTracker() {
-    static auto P = g_pHookSystem->hookDynamic("workspace", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto workspace = std::any_cast<PHLWORKSPACE>(data);
-        track(workspace);
-    });
+    static auto P = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) { track(workspace); });
 
-    static auto P1 = g_pHookSystem->hookDynamic("focusedMon", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto mon = std::any_cast<PHLMONITOR>(data);
-
+    static auto P1 = Event::bus()->m_events.monitor.focused.listen([this](PHLMONITOR mon) {
         // This sucks ASS, but we have to do this because switching to a workspace on another mon will trigger a workspace event right afterwards and we don't
         // want to remember the workspace that was not visible there
         // TODO: do something about this

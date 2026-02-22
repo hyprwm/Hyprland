@@ -62,7 +62,6 @@
 #include "managers/animation/AnimationManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/EventManager.hpp"
-#include "managers/HookSystemManager.hpp"
 #include "managers/ProtocolManager.hpp"
 #include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
@@ -74,6 +73,7 @@
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
 #include "layout/target/WindowTarget.hpp"
+#include "event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <aquamarine/input/Input.hpp>
@@ -105,11 +105,6 @@ static void handleUnrecoverableSignal(int sig) {
     // remove our handlers
     signal(SIGABRT, SIG_DFL);
     signal(SIGSEGV, SIG_DFL);
-
-    if (g_pHookSystem && g_pHookSystem->m_currentEventPlugin) {
-        longjmp(g_pHookSystem->m_hookFaultJumpBuf, 1);
-        return;
-    }
 
     // Kill the program if the crash-reporter is caught in a deadlock.
     signal(SIGALRM, [](int _) {
@@ -286,7 +281,6 @@ static bool filterGlobals(const wl_client* client, const wl_global* global, void
 //
 void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
-        g_pHookSystem       = makeUnique<CHookSystemManager>();
         g_pKeybindManager   = makeUnique<CKeybindManager>();
         g_pAnimationManager = makeUnique<CHyprAnimationManager>();
         g_pConfigManager    = makeUnique<CConfigManager>();
@@ -597,7 +591,6 @@ void CCompositor::cleanup() {
     g_pHyprError.reset();
     g_pConfigManager.reset();
     g_pKeybindManager.reset();
-    g_pHookSystem.reset();
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
     g_pSeatManager.reset();
@@ -625,9 +618,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
         case STAGE_PRIORITY: {
             Log::logger->log(Log::DEBUG, "Creating the EventLoopManager!");
             g_pEventLoopManager = makeUnique<CEventLoopManager>(m_wlDisplay, m_wlEventLoop);
-
-            Log::logger->log(Log::DEBUG, "Creating the HookSystem!");
-            g_pHookSystem = makeUnique<CHookSystemManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the KeybindManager!");
             g_pKeybindManager = makeUnique<CKeybindManager>();
@@ -799,7 +789,8 @@ void CCompositor::startCompositor() {
 
     createLockFile();
 
-    EMIT_HOOK_EVENT("ready", nullptr);
+    Event::bus()->m_events.ready.emit();
+
     if (m_watchdogWriteFd.isValid())
         write(m_watchdogWriteFd.get(), "vax", 3);
 
@@ -879,7 +870,7 @@ PHLMONITOR CCompositor::getMonitorFromVector(const Vector2D& point) {
 
 void CCompositor::removeWindowFromVectorSafe(PHLWINDOW pWindow) {
     if (!pWindow->m_fadingOut) {
-        EMIT_HOOK_EVENT("destroyWindow", pWindow);
+        Event::bus()->m_events.window.destroy.emit(pWindow);
 
         std::erase_if(m_windows, [&](SP<Desktop::View::CWindow>& el) { return el == pWindow; });
         std::erase_if(m_windowsFadingOut, [&](PHLWINDOWREF el) { return el.lock() == pWindow; });
@@ -1834,17 +1825,17 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
         const auto PNEWWORKSPACE = pMonitorA->m_id == Desktop::focusState()->monitor()->m_id ? PWORKSPACEB : PWORKSPACEA;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspace", .data = PNEWWORKSPACE->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "workspacev2", .data = std::format("{},{}", PNEWWORKSPACE->m_id, PNEWWORKSPACE->m_name)});
-        EMIT_HOOK_EVENT("workspace", PNEWWORKSPACE);
+        Event::bus()->m_events.workspace.active.emit(PNEWWORKSPACE);
     }
 
-    // event
+    // events
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEA->m_name + "," + pMonitorB->m_name});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEA->m_id, PWORKSPACEA->m_name, pMonitorB->m_name)});
-    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{PWORKSPACEA, pMonitorB}));
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = PWORKSPACEB->m_name + "," + pMonitorA->m_name});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", PWORKSPACEB->m_id, PWORKSPACEB->m_name, pMonitorA->m_name)});
 
-    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{PWORKSPACEB, pMonitorA}));
+    Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEA, pMonitorB);
+    Event::bus()->m_events.workspace.moveToMonitor.emit(PWORKSPACEB, pMonitorA);
 }
 
 PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
@@ -2054,7 +2045,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     // event
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspace", .data = pWorkspace->m_name + "," + pMonitor->m_name});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
-    EMIT_HOOK_EVENT("moveWorkspace", (std::vector<std::any>{pWorkspace, pMonitor}));
+
+    Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
 }
 
 bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
@@ -2149,7 +2141,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     PWINDOW->m_fullscreenState.internal = state.internal;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
-    EMIT_HOOK_EVENT("fullscreen", PWINDOW);
+    Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
 
     PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                  Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
@@ -2897,7 +2889,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     PNEWMONITOR->m_id               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);
     PNEWMONITOR->m_isUnsafeFallback = FALLBACK;
 
-    EMIT_HOOK_EVENT("newMonitor", PNEWMONITOR);
+    Event::bus()->m_events.monitor.newMon.emit(PNEWMONITOR);
 
     if (!FALLBACK)
         PNEWMONITOR->onConnect(false);

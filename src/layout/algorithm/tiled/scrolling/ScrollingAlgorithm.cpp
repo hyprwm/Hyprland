@@ -11,6 +11,7 @@
 #include "../../../../config/ConfigManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/input/InputManager.hpp"
+#include "../../../../event/EventBus.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
@@ -477,7 +478,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
             return SCROLL_DIR_RIGHT; // default
     };
 
-    m_configCallback = g_pHookSystem->hookDynamic("configReloaded", [this, parseDirection](void* hk, SCallbackInfo& info, std::any param) {
+    m_configCallback = Event::bus()->m_events.config.reloaded.listen([this, parseDirection] {
         static const auto PCONFDIRECTION = CConfigValue<Hyprlang::STRING>("scrolling:direction");
 
         m_config.configuredWidths.clear();
@@ -495,32 +496,28 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         m_scrollingData->controller->setDirection(parseDirection(*PCONFDIRECTION));
     });
 
-    m_mouseButtonCallback = g_pHookSystem->hookDynamic("mouseButton", [this](void* self, SCallbackInfo& info, std::any e) {
-        auto E = std::any_cast<IPointer::SButtonEvent>(e);
-        if (E.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+    m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
+        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
             focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
     });
 
-    m_focusCallback = g_pHookSystem->hookDynamic("activeWindow", [this](void* hk, SCallbackInfo& info, std::any param) {
-        const auto E       = std::any_cast<Desktop::View::SWindowActiveEvent>(param);
-        const auto PWINDOW = E.window;
-
-        if (!PWINDOW)
+    m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {
+        if (!pWindow)
             return;
 
         static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
-        if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(E.reason))
+        if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))
             return;
 
-        if (PWINDOW->m_workspace != m_parent->space()->workspace())
+        if (pWindow->m_workspace != m_parent->space()->workspace())
             return;
 
-        const auto TARGET = PWINDOW->layoutTarget();
+        const auto TARGET = pWindow->layoutTarget();
         if (!TARGET || TARGET->floating())
             return;
 
-        focusOnInput(TARGET, Desktop::isHardInputFocusReason(E.reason));
+        focusOnInput(TARGET, Desktop::isHardInputFocusReason(reason));
     });
 
     // Initialize default widths and direction

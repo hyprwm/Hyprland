@@ -4,13 +4,13 @@
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/EventManager.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Desktop;
 
@@ -133,7 +133,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-        EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{nullptr COMMA reason});
+        Event::bus()->m_events.window.active.emit(nullptr, reason);
 
         m_focusSurface.reset();
 
@@ -200,7 +200,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
-    EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{pWindow COMMA reason});
+    Event::bus()->m_events.window.active.emit(pWindow, reason);
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
@@ -233,7 +233,7 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
-        EMIT_HOOK_EVENT("keyboardFocus", SP<CWLSurfaceResource>{nullptr});
+        Event::bus()->m_events.input.keyboard.focus.emit(nullptr);
         m_focusSurface.reset();
         return;
     }
@@ -249,7 +249,7 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_focusSurface = pSurface;
 
-    EMIT_HOOK_EVENT("keyboardFocus", pSurface);
+    Event::bus()->m_events.input.keyboard.focus.emit(pSurface);
 
     const auto SURF    = Desktop::View::CWLSurface::fromResource(pSurface);
     const auto OLDSURF = Desktop::View::CWLSurface::fromResource(PLASTSURF);
@@ -278,7 +278,7 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
 
-    EMIT_HOOK_EVENT("focusedMon", pMonitor);
+    Event::bus()->m_events.monitor.focused.emit(pMonitor);
     m_focusMonitor = pMonitor;
 }
 

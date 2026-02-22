@@ -67,9 +67,9 @@
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
 #include "../protocols/CommitTiming.hpp"
-#include "HookSystemManager.hpp"
 
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
 #include "content-type-v1.hpp"
@@ -113,9 +113,7 @@ CProtocolManager::CProtocolManager() {
     static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
 
     // Outputs are a bit dumb, we have to agree.
-    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
-
+    static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
         // also ignore the fallback
@@ -132,8 +130,7 @@ CProtocolManager::CProtocolManager() {
         m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.listen([this, M] { onMonitorModeChange(M); });
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
+    static auto P2 = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR M) {
         if (!PROTO::outputs.contains(M->m_name))
             return;
         PROTO::outputs.at(M->m_name)->remove();

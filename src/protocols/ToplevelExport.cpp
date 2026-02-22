@@ -2,7 +2,6 @@
 #include "../Compositor.hpp"
 #include "ForeignToplevelWlr.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../helpers/Format.hpp"
 #include "../render/Renderer.hpp"
 

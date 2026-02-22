@@ -11,13 +11,13 @@
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/Drm.hpp"
+#include "../event/EventBus.hpp"
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
@@ -26,21 +26,19 @@
 using namespace Hyprutils::Utils;
 
 CPointerManager::CPointerManager() {
-    m_hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto PMONITOR = std::any_cast<PHLMONITOR>(data);
-
+    m_hooks.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         onMonitorLayoutChange();
 
-        PMONITOR->m_events.modeChanged.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
-        PMONITOR->m_events.disconnect.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
-        PMONITOR->m_events.destroy.listenStatic([this] {
+        monitor->m_events.modeChanged.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
+        monitor->m_events.disconnect.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
+        monitor->m_events.destroy.listenStatic([this] {
             if (g_pCompositor && !g_pCompositor->m_isShuttingDown)
                 std::erase_if(m_monitorStates, [](const auto& other) { return other->monitor.expired(); });
         });
     });
 
-    m_hooks.monitorPreRender = g_pHookSystem->hookDynamic("preMonitorCommit", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto state = stateFor(std::any_cast<PHLMONITOR>(data));
+    m_hooks.monitorPreRender = Event::bus()->m_events.monitor.preCommit.listen([this](PHLMONITOR monitor) {
+        auto state = stateFor(monitor);
         if (!state)
             return;
 

@@ -10,9 +10,9 @@
 #include "core/Compositor.hpp"
 #include "types/DMABuffer.hpp"
 #include "types/WLBuffer.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../render/OpenGL.hpp"
 #include "../Compositor.hpp"
+#include "../event/EventBus.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -434,7 +434,7 @@ void CLinuxDMABUFResource::sendMods() {
 }
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
+    static auto P = Event::bus()->m_events.ready.listen([this] {
         int  rendererFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
         auto dev        = devIDFromFD(rendererFD);
 
@@ -467,24 +467,22 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 tches.emplace_back(std::make_pair<>(mon, tranche));
             }
 
-            static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                auto tranche  = SDMABUFTranche{
-                     .device  = m_mainDevice,
-                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
-                     .formats = pMonitor->m_output->getRenderFormats(),
+            static auto monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR mon) {
+                auto tranche = SDMABUFTranche{
+                    .device  = m_mainDevice,
+                    .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
+                    .formats = mon->m_output->getRenderFormats(),
                 };
-                m_formatTable->m_monitorTranches.emplace_back(std::make_pair<>(pMonitor, tranche));
+                m_formatTable->m_monitorTranches.emplace_back(std::make_pair<>(mon, tranche));
                 resetFormatTable();
             });
 
-            static auto monitorRemoved = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                std::erase_if(m_formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
+            static auto monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) {
+                std::erase_if(m_formatTable->m_monitorTranches, [mon](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == mon; });
                 resetFormatTable();
             });
 
-            static auto configReloaded = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) {
+            static auto configReloaded = Event::bus()->m_events.config.reloaded.listen([this] {
                 static const auto PSKIP_NON_KMS = CConfigValue<Hyprlang::INT>("quirks:skip_non_kms_dmabuf_formats");
                 static auto       prev          = *PSKIP_NON_KMS;
                 if (prev != *PSKIP_NON_KMS) {

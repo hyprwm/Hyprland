@@ -12,22 +12,22 @@ class IHyprWindowDecoration;
 
 class CPlugin {
   public:
-    std::string                                               m_name        = "";
-    std::string                                               m_description = "";
-    std::string                                               m_author      = "";
-    std::string                                               m_version     = "";
+    std::string                         m_name        = "";
+    std::string                         m_description = "";
+    std::string                         m_author      = "";
+    std::string                         m_version     = "";
 
-    std::string                                               m_path = "";
+    std::string                         m_path = "";
 
-    bool                                                      m_loadedWithConfig = false;
+    bool                                m_loadedWithConfig = false;
 
-    HANDLE                                                    m_handle = nullptr;
+    HANDLE                              m_handle = nullptr;
 
-    std::vector<IHyprWindowDecoration*>                       m_registeredDecorations;
-    std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> m_registeredCallbacks;
-    std::vector<std::string>                                  m_registeredDispatchers;
-    std::vector<WP<SHyprCtlCommand>>                          m_registeredHyprctlCommands;
-    std::vector<std::string>                                  m_registeredAlgos;
+    std::vector<IHyprWindowDecoration*> m_registeredDecorations;
+    //std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> m_registeredCallbacks;
+    std::vector<std::string>         m_registeredDispatchers;
+    std::vector<WP<SHyprCtlCommand>> m_registeredHyprctlCommands;
+    std::vector<std::string>         m_registeredAlgos;
 };
 
 class CPluginSystem {

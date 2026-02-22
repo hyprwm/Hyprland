@@ -2,8 +2,8 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../event/EventBus.hpp"
 
 using namespace Aquamarine;
 
@@ -578,7 +578,7 @@ bool COutputConfigurationHead::good() {
 }
 
 COutputManagementProtocol::COutputManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = Event::bus()->m_events.monitor.layoutChanged.listen([this] {
         updateAllOutputs();
         sendPendingSuccessEvents();
     });

@@ -6,8 +6,8 @@
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../event/EventBus.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Animation;
@@ -15,7 +15,7 @@ using namespace Hyprutils::Animation;
 CHyprError::CHyprError() {
     g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
-    static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)
             return;
 
@@ -23,7 +23,7 @@ CHyprError::CHyprError() {
         m_monitorChanged = true;
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P2 = Event::bus()->m_events.render.pre.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)
             return;
 

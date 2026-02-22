@@ -1,18 +1,11 @@
 #include "DecorationPositioner.hpp"
 #include "../../desktop/view/Window.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../layout/target/Target.hpp"
+#include "../../event/EventBus.hpp"
 
 CDecorationPositioner::CDecorationPositioner() {
-    static auto P = g_pHookSystem->hookDynamic("closeWindow", [this](void* call, SCallbackInfo& info, std::any data) {
-        auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        this->onWindowUnmap(PWINDOW);
-    });
-
-    static auto P2 = g_pHookSystem->hookDynamic("openWindow", [this](void* call, SCallbackInfo& info, std::any data) {
-        auto PWINDOW = std::any_cast<PHLWINDOW>(data);
-        this->onWindowMap(PWINDOW);
-    });
+    static auto P  = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) { onWindowUnmap(window); });
+    static auto P2 = Event::bus()->m_events.window.open.listen([this](PHLWINDOW window) { onWindowMap(window); });
 }
 
 Vector2D CDecorationPositioner::getEdgeDefinedPoint(uint32_t edges, PHLWINDOWREF pWindow) {

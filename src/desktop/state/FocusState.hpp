@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../DesktopTypes.hpp"
-#include "../../SharedDefs.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 class CWLSurfaceResource;
 
@@ -44,7 +44,7 @@ namespace Desktop {
         PHLWINDOWREF           m_focusWindow;
         PHLMONITORREF          m_focusMonitor;
 
-        SP<HOOK_CALLBACK_FN>   m_windowOpen, m_windowClose;
+        CHyprSignalListener    m_windowOpen, m_windowClose;
     };
 
     SP<CFocusState> focusState();

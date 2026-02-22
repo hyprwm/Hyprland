@@ -1,8 +1,8 @@
 #include "Fifo.hpp"
 #include "Compositor.hpp"
 #include "core/Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -153,9 +153,7 @@ bool CFifoManagerResource::good() {
 }
 
 CFifoProtocol::CFifoProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
-
+    static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
         M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}]() {
             if (!m || !PROTO::fifo)
                 return;

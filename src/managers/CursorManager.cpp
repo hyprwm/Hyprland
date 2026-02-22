@@ -3,8 +3,8 @@
 #include "../config/ConfigValue.hpp"
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = sc<CCursorManager*>(data);
@@ -111,7 +111,7 @@ CCursorManager::CCursorManager() {
 
     updateTheme();
 
-    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
+    static auto P = Event::bus()->m_events.monitor.layoutChanged.listen([this] { this->updateTheme(); });
 }
 
 CCursorManager::~CCursorManager() {

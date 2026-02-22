@@ -1,9 +1,8 @@
 #include "ExtWorkspace.hpp"
 #include "../Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../event/EventBus.hpp"
 #include <algorithm>
-#include <any>
 #include <utility>
 #include "core/Output.hpp"
 
@@ -297,17 +296,13 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
 }
 
 CExtWorkspaceProtocol::CExtWorkspaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P1 = g_pHookSystem->hookDynamic("createWorkspace", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto workspace = std::any_cast<CWorkspace*>(data)->m_self.lock();
-
+    static auto P1 = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF workspace) {
         for (auto const& m : m_managers) {
-            m->onWorkspaceCreated(workspace);
+            m->onWorkspaceCreated(workspace.lock());
         }
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto monitor = std::any_cast<PHLMONITOR>(data);
-
+    static auto P2 = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         for (auto const& m : m_managers) {
             m->onMonitorCreated(monitor);
         }

@@ -7,8 +7,8 @@
 #include "../../config/ConfigValue.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
+#include "../../event/EventBus.hpp"
 #include "../SeatManager.hpp"
-#include "../HookSystemManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
@@ -19,10 +19,14 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
     auto* const PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
     // TODO: WORKSPACERULE.gapsOut.value_or()
-    auto        gapsOut     = *PGAPSOUT;
-    static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PSWIPEINVR  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
-    EMIT_HOOK_EVENT_CANCELLABLE("touchDown", e);
+    auto                 gapsOut     = *PGAPSOUT;
+    static auto          PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto          PSWIPEINVR  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch_invert");
+
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.touch.down.emit(e, info);
+    if (info.cancelled)
+        return;
 
     auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
 
@@ -109,7 +113,11 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 void CInputManager::onTouchUp(ITouch::SUpEvent e) {
     m_lastInputTouch = true;
 
-    EMIT_HOOK_EVENT_CANCELLABLE("touchUp", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.touch.up.emit(e, info);
+    if (info.cancelled)
+        return;
+
     if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         // If there was a swipe from this finger, end it.
         if (e.touchID == g_pUnifiedWorkspaceSwipe->m_touchID)
@@ -126,7 +134,11 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
     m_lastCursorMovement.reset();
 
-    EMIT_HOOK_EVENT_CANCELLABLE("touchMove", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.touch.motion.emit(e, info);
+    if (info.cancelled)
+        return;
+
     if (g_pUnifiedWorkspaceSwipe->isGestureInProgress()) {
         // Do nothing if this is using a different finger.
         if (e.touchID != g_pUnifiedWorkspaceSwipe->m_touchID)

@@ -39,7 +39,6 @@
 #include "../../helpers/math/Expression.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
@@ -48,6 +47,7 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/target/WindowTarget.hpp"
 #include "../../layout/target/WindowGroupTarget.hpp"
+#include "../../event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -521,7 +521,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (valid(pWorkspace)) {
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindow", .data = std::format("{:x},{}", rc<uintptr_t>(this), pWorkspace->m_name)});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "movewindowv2", .data = std::format("{:x},{},{}", rc<uintptr_t>(this), pWorkspace->m_id, pWorkspace->m_name)});
-        EMIT_HOOK_EVENT("moveWindow", (std::vector<std::any>{m_self.lock(), pWorkspace}));
+        Event::bus()->m_events.window.moveToWorkspace.emit(m_self.lock(), pWorkspace);
     }
 
     if (const auto SWALLOWED = m_swallowed.lock()) {
@@ -1037,7 +1037,7 @@ void CWindow::activate(bool force) {
     m_isUrgent = true;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "urgent", .data = std::format("{:x}", rc<uintptr_t>(this))});
-    EMIT_HOOK_EVENT("urgent", m_self.lock());
+    Event::bus()->m_events.window.urgent.emit(m_self.lock());
 
     if (!force &&
         (!m_ruleApplicator->focusOnActivate().valueOr(*PFOCUSONACTIVATE) || (m_suppressedEvents & SUPPRESS_ACTIVATE_FOCUSONLY) || (m_suppressedEvents & SUPPRESS_ACTIVATE)))
@@ -1098,7 +1098,7 @@ void CWindow::onUpdateMeta() {
         m_title = NEWTITLE;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitle", .data = std::format("{:x}", rc<uintptr_t>(this))});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "windowtitlev2", .data = std::format("{:x},{}", rc<uintptr_t>(this), m_title)});
-        EMIT_HOOK_EVENT("windowTitle", m_self.lock());
+        Event::bus()->m_events.window.title.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
@@ -1114,6 +1114,8 @@ void CWindow::onUpdateMeta() {
     const auto NEWCLASS = fetchClass();
     if (m_class != NEWCLASS) {
         m_class = NEWCLASS;
+
+        Event::bus()->m_events.window.class_.emit(m_self.lock());
 
         if (m_self == Desktop::focusState()->window()) { // if it's the active, let's post an event to update others
             g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = m_class + "," + m_title});
@@ -1945,7 +1947,7 @@ void CWindow::mapWindow() {
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
-    EMIT_HOOK_EVENT("openWindowEarly", m_self.lock());
+    Event::bus()->m_events.window.openEarly.emit(m_self.lock());
 
     if (*PAUTOGROUP                                                              // auto_group enabled
         && Desktop::focusState()->window()                                       // focused window exists
@@ -2078,7 +2080,7 @@ void CWindow::mapWindow() {
     Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
 
     // emit the hook event here after basic stuff has been initialized
-    EMIT_HOOK_EVENT("openWindow", m_self.lock());
+    Event::bus()->m_events.window.open.emit(m_self.lock());
 
     // apply data from default decos. Borders, shadows.
     g_pDecorationPositioner->forceRecalcFor(m_self.lock());
@@ -2136,7 +2138,7 @@ void CWindow::unmapWindow() {
 
     m_events.unmap.emit();
     g_pEventManager->postEvent(SHyprIPCEvent{"closewindow", std::format("{:x}", m_self.lock())});
-    EMIT_HOOK_EVENT("closeWindow", m_self.lock());
+    Event::bus()->m_events.window.close.emit(m_self.lock());
 
     if (m_isFloating && !m_isX11 && m_ruleApplicator->persistentSize().valueOrDefault()) {
         Log::logger->log(Log::DEBUG, "storing floating size {}x{} for window {}::{} on close", m_realSize->value().x, m_realSize->value().y, m_class, m_title);
@@ -2250,7 +2252,7 @@ void CWindow::unmapWindow() {
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
             g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-            EMIT_HOOK_EVENT("activeWindow", Desktop::View::SWindowActiveEvent{nullptr COMMA FOCUS_REASON_OTHER});
+            Event::bus()->m_events.window.active.emit(m_self.lock(), FOCUS_REASON_OTHER);
         }
     } else {
         Log::logger->log(Log::DEBUG, "Unmapped was not focused, ignoring a refocus.");

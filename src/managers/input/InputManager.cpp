@@ -35,7 +35,6 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
 
@@ -43,6 +42,8 @@
 #include "../../helpers/MiscFunctions.hpp"
 
 #include "../../layout/LayoutManager.hpp"
+
+#include "../../event/EventBus.hpp"
 
 #include "trackpad/TrackpadGestures.hpp"
 #include "../cursor/CursorShapeOverrideController.hpp"
@@ -233,7 +234,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     PHLLS                  pFoundLayerSurface;
     const auto             FOCUS_REASON = refocus ? Desktop::FOCUS_REASON_CLICK : Desktop::FOCUS_REASON_FFM;
 
-    EMIT_HOOK_EVENT_CANCELLABLE("mouseMove", MOUSECOORDSFLOORED);
+    Event::SCallbackInfo   info;
+    Event::bus()->m_events.input.mouse.move.emit(MOUSECOORDSFLOORED, info);
+    if (info.cancelled)
+        return;
 
     m_lastCursorPosFloored = MOUSECOORDSFLOORED;
 
@@ -644,7 +648,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 }
 
 void CInputManager::onMouseButton(IPointer::SButtonEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("mouseButton", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.mouse.button.emit(e, info);
+    if (info.cancelled)
+        return;
 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
@@ -866,8 +873,10 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (pointer && pointer->m_scrollFactor.has_value())
         factor = *pointer->m_scrollFactor;
 
-    const auto EMAP = std::unordered_map<std::string, std::any>{{"event", e}};
-    EMIT_HOOK_EVENT_CANCELLABLE("mouseAxis", EMAP);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.mouse.axis.emit(e, info);
+    if (info.cancelled)
+        return;
 
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
@@ -1056,7 +1065,7 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         }
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", PKEEB->m_hlName + "," + LAYOUT});
-        EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{PKEEB, LAYOUT}));
+        Event::bus()->m_events.input.keyboard.layout.emit(PKEEB, LAYOUT);
     });
 
     disableAllKeyboards(false);
@@ -1153,7 +1162,7 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto LAYOUTSTR = pKeyboard->getActiveLayout();
 
     g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUTSTR});
-    EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUTSTR}));
+    Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUTSTR);
 
     Log::logger->log(Log::DEBUG, "Set the keyboard layout to {} and variant to {} for keyboard \"{}\"", pKeyboard->m_currentRules.layout, pKeyboard->m_currentRules.variant,
                      pKeyboard->m_hlName);
@@ -1475,14 +1484,16 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
     if (!pKeyboard->m_enabled || !pKeyboard->m_allowed)
         return;
 
-    const bool DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
+    const bool           DISALLOWACTION = pKeyboard->isVirtual() && shouldIgnoreVirtualKeyboard(pKeyboard);
 
-    const auto IME    = m_relay.m_inputMethod.lock();
-    const bool HASIME = IME && IME->hasGrab();
-    const bool USEIME = HASIME && !DISALLOWACTION;
+    const auto           IME    = m_relay.m_inputMethod.lock();
+    const bool           HASIME = IME && IME->hasGrab();
+    const bool           USEIME = HASIME && !DISALLOWACTION;
 
-    const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
-    EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.keyboard.key.emit(event, info);
+    if (info.cancelled)
+        return;
 
     bool passEvent = DISALLOWACTION;
 
@@ -1571,7 +1582,7 @@ void CInputManager::onKeyboardMod(SP<IKeyboard> pKeyboard) {
         Log::logger->log(Log::DEBUG, "LAYOUT CHANGED TO {} GROUP {}", LAYOUT, MODS.group);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"activelayout", pKeyboard->m_hlName + "," + LAYOUT});
-        EMIT_HOOK_EVENT("activeLayout", (std::vector<std::any>{pKeyboard, LAYOUT}));
+        Event::bus()->m_events.input.keyboard.layout.emit(pKeyboard, LAYOUT);
     }
 }
 
@@ -2039,7 +2050,10 @@ void CInputManager::recheckMouseWarpOnMouseInput() {
 }
 
 void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("swipeBegin", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.swipe.begin.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureBegin(e);
 
@@ -2047,7 +2061,10 @@ void CInputManager::onSwipeBegin(IPointer::SSwipeBeginEvent e) {
 }
 
 void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("swipeUpdate", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.swipe.update.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureUpdate(e);
 
@@ -2055,7 +2072,10 @@ void CInputManager::onSwipeUpdate(IPointer::SSwipeUpdateEvent e) {
 }
 
 void CInputManager::onSwipeEnd(IPointer::SSwipeEndEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("swipeEnd", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.swipe.end.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureEnd(e);
 
@@ -2063,7 +2083,10 @@ void CInputManager::onSwipeEnd(IPointer::SSwipeEndEvent e) {
 }
 
 void CInputManager::onPinchBegin(IPointer::SPinchBeginEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("pinchBegin", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.pinch.begin.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureBegin(e);
 
@@ -2071,7 +2094,10 @@ void CInputManager::onPinchBegin(IPointer::SPinchBeginEvent e) {
 }
 
 void CInputManager::onPinchUpdate(IPointer::SPinchUpdateEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("pinchUpdate", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.pinch.update.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureUpdate(e);
 
@@ -2079,7 +2105,10 @@ void CInputManager::onPinchUpdate(IPointer::SPinchUpdateEvent e) {
 }
 
 void CInputManager::onPinchEnd(IPointer::SPinchEndEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("pinchEnd", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.gesture.pinch.end.emit(e, info);
+    if (info.cancelled)
+        return;
 
     g_pTrackpadGestures->gestureEnd(e);
 

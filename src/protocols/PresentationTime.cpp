@@ -1,7 +1,7 @@
 #include "PresentationTime.hpp"
 #include <algorithm>
 #include "../helpers/Monitor.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../event/EventBus.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -77,10 +77,8 @@ void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const t
 }
 
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = PHLMONITORREF{std::any_cast<PHLMONITOR>(param)};
-        std::erase_if(m_queue, [PMONITOR](const auto& other) { return !other->m_surface || other->m_monitor == PMONITOR; });
-    });
+    static auto P = Event::bus()->m_events.monitor.removed.listen(
+        [this](PHLMONITOR mon) { std::erase_if(m_queue, [mon](const auto& other) { return !other->m_surface || other->m_monitor == mon; }); });
 }
 
 void CPresentationProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {

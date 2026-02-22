@@ -7,6 +7,7 @@
 #include "../desktop/view/WLSurface.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../helpers/signal/Signal.hpp"
 #include <tuple>
 
 class CMonitor;
@@ -184,8 +185,8 @@ class CPointerManager {
     bool                                  setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquamarine::IBuffer> buf);
 
     struct {
-        SP<HOOK_CALLBACK_FN> monitorAdded;
-        SP<HOOK_CALLBACK_FN> monitorPreRender;
+        CHyprSignalListener monitorAdded;
+        CHyprSignalListener monitorPreRender;
     } m_hooks;
 };
 

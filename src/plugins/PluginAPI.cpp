@@ -2,7 +2,6 @@
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -38,9 +37,9 @@ APICALL SP<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle,
     if (!PLUGIN)
         return nullptr;
 
-    auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
-    return PFN;
+    //auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
+    //PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
+    return nullptr;
 }
 
 APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN> fn) {
@@ -49,8 +48,8 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN>
     if (!PLUGIN)
         return false;
 
-    g_pHookSystem->unhook(fn);
-    std::erase_if(PLUGIN->m_registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
+    //g_pHookSystem->unhook(fn);
+    // std::erase_if(PLUGIN->m_registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
 
     return true;
 }

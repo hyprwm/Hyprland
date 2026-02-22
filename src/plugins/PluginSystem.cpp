@@ -4,7 +4,6 @@
 #include <ranges>
 #include "../config/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -151,10 +150,10 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             exitFunc();
     }
 
-    for (auto const& [k, v] : plugin->m_registeredCallbacks) {
-        if (const auto SHP = v.lock())
-            g_pHookSystem->unhook(SHP);
-    }
+    // for (auto const& [k, v] : plugin->m_registeredCallbacks) {
+    //     if (const auto SHP = v.lock())
+    //         g_pHookSystem->unhook(SHP);
+    // }
 
     for (const auto& l : plugin->m_registeredAlgos) {
         Layout::Supplementary::algoMatcher()->unregisterAlgo(l);

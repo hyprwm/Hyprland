@@ -4,7 +4,6 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
-#include "../../managers/HookSystemManager.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;

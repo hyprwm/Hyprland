@@ -10,8 +10,8 @@
 #include "../../config/ConfigManager.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -222,7 +222,7 @@ void CLayerSurface::onMap() {
     m_fadingOut     = false;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
-    EMIT_HOOK_EVENT("openLayer", m_self.lock());
+    Event::bus()->m_events.layer.opened.emit(m_self.lock());
 
     g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
@@ -232,7 +232,7 @@ void CLayerSurface::onUnmap() {
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
-    EMIT_HOOK_EVENT("closeLayer", m_self.lock());
+    Event::bus()->m_events.layer.closed.emit(m_self.lock());
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 

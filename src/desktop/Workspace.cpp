@@ -5,9 +5,9 @@
 #include "config/ConfigManager.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../event/EventBus.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
@@ -37,10 +37,8 @@ void CWorkspace::init(PHLWORKSPACE self) {
     if (RULEFORTHIS.defaultName.has_value())
         m_name = RULEFORTHIS.defaultName.value();
 
-    m_focusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
-
-        if (PWINDOW == m_lastFocusedWindow.lock())
+    m_focusedWindowHook = Event::bus()->m_events.window.close.listen([this](PHLWINDOW pWindow) {
+        if (pWindow == m_lastFocusedWindow.lock())
             m_lastFocusedWindow.reset();
     });
 
@@ -58,21 +56,18 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
     g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-    EMIT_HOOK_EVENT("createWorkspace", this);
+    Event::bus()->m_events.workspace.created.emit(self);
 }
 
 CWorkspace::~CWorkspace() {
     Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
-    // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
-    if (g_pHookSystem)
-        g_pHookSystem->unhook(m_focusedWindowHook);
-
     if (g_pEventManager) {
         g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
         g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-        EMIT_HOOK_EVENT("destroyWorkspace", this);
     }
+
+    Event::bus()->m_events.workspace.removed.emit(m_self);
 
     m_events.destroy.emit();
 }

@@ -4,9 +4,9 @@
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/TexPassElement.hpp"
+#include "../event/EventBus.hpp"
 
 #include "../managers/animation/AnimationManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 
 static inline auto iconBackendFromLayout(PangoLayout* layout) {
@@ -22,7 +22,7 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
 }
 
 CHyprNotificationOverlay::CHyprNotificationOverlay() {
-    static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (m_notifications.empty())
             return;
 

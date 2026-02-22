@@ -1,6 +1,5 @@
 #include "AnimationManager.hpp"
 #include "../../Compositor.hpp"
-#include "../HookSystemManager.hpp"
 #include "../../config/ConfigManager.hpp"
 #include "../../desktop/DesktopTypes.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
@@ -11,6 +10,7 @@
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../helpers/varlist/VarList.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../event/EventBus.hpp"
 
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
@@ -252,7 +252,7 @@ void CHyprAnimationManager::frameTick() {
     if (!shouldTickForNext())
         return;
 
-    if UNLIKELY (!g_pCompositor->m_sessionActive || !g_pHookSystem || g_pCompositor->m_unsafeState ||
+    if UNLIKELY (!g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState ||
                  !std::ranges::any_of(g_pCompositor->m_monitors, [](const auto& mon) { return mon->m_enabled && mon->m_output; }))
         return;
 
@@ -261,7 +261,7 @@ void CHyprAnimationManager::frameTick() {
         m_lastTickValid = true;
 
         tick();
-        EMIT_HOOK_EVENT("tick", nullptr);
+        Event::bus()->m_events.tick.emit();
     }
 
     if (shouldTickForNext())

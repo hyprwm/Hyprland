@@ -7,6 +7,7 @@
 #include <pango/pangocairo.h>
 #include "../pass/TexPassElement.hpp"
 #include "../pass/RectPassElement.hpp"
+#include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
@@ -103,33 +104,42 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     if (!VISIBLE)
         return;
 
-    static auto PRENDERTITLES              = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
-    static auto PTITLEFONTSIZE             = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
-    static auto PHEIGHT                    = CConfigValue<Hyprlang::INT>("group:groupbar:height");
-    static auto PINDICATORGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
-    static auto PINDICATORHEIGHT           = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
-    static auto PGRADIENTS                 = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
-    static auto PSTACKED                   = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
-    static auto PROUNDING                  = CConfigValue<Hyprlang::INT>("group:groupbar:rounding");
-    static auto PROUNDINGPOWER             = CConfigValue<Hyprlang::FLOAT>("group:groupbar:rounding_power");
-    static auto PGRADIENTROUNDING          = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_rounding");
-    static auto PGRADIENTROUNDINGPOWER     = CConfigValue<Hyprlang::FLOAT>("group:groupbar:gradient_rounding_power");
-    static auto PGRADIENTROUNDINGONLYEDGES = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_round_only_edges");
-    static auto PROUNDONLYEDGES            = CConfigValue<Hyprlang::INT>("group:groupbar:round_only_edges");
-    static auto PGROUPCOLACTIVE            = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
-    static auto PGROUPCOLINACTIVE          = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
-    static auto PGROUPCOLACTIVELOCKED      = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
-    static auto PGROUPCOLINACTIVELOCKED    = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
-    static auto POUTERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
-    static auto PINNERGAP                  = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
-    static auto PKEEPUPPERGAP              = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
-    static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
-    static auto PTEXTPADDING               = CConfigValue<Hyprlang::INT>("group:groupbar:text_padding");
-    static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
-    auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
-    auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
-    auto* const GROUPCOLACTIVELOCKED       = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
-    auto* const GROUPCOLINACTIVELOCKED     = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    static auto PRENDERTITLES                 = CConfigValue<Hyprlang::INT>("group:groupbar:render_titles");
+    static auto PTITLEFONTSIZE                = CConfigValue<Hyprlang::INT>("group:groupbar:font_size");
+    static auto PHEIGHT                       = CConfigValue<Hyprlang::INT>("group:groupbar:height");
+    static auto PINDICATORGAP                 = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_gap");
+    static auto PINDICATORHEIGHT              = CConfigValue<Hyprlang::INT>("group:groupbar:indicator_height");
+    static auto PGRADIENTS                    = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
+    static auto PSTACKED                      = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
+    static auto PROUNDING                     = CConfigValue<Hyprlang::INT>("group:groupbar:rounding");
+    static auto PROUNDINGPOWER                = CConfigValue<Hyprlang::FLOAT>("group:groupbar:rounding_power");
+    static auto PGRADIENTROUNDING             = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_rounding");
+    static auto PGRADIENTROUNDINGPOWER        = CConfigValue<Hyprlang::FLOAT>("group:groupbar:gradient_rounding_power");
+    static auto PGRADIENTROUNDINGONLYEDGES    = CConfigValue<Hyprlang::INT>("group:groupbar:gradient_round_only_edges");
+    static auto PROUNDONLYEDGES               = CConfigValue<Hyprlang::INT>("group:groupbar:round_only_edges");
+    static auto PGROUPCOLACTIVE               = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.active");
+    static auto PGROUPCOLINACTIVE             = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
+    static auto PGROUPCOLACTIVELOCKED         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
+    static auto PGROUPCOLINACTIVELOCKED       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
+    static auto PGROUPBARBORDERSIZE           = CConfigValue<Hyprlang::INT>("group:groupbar:border_size");
+    static auto PGROUPCOLBORDERACTIVE         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_active");
+    static auto PGROUPCOLBORDERINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_inactive");
+    static auto PGROUPCOLBORDERLOCKEDACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_locked_active");
+    static auto PGROUPCOLBORDERLOCKEDINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.border_locked_inactive");
+    static auto POUTERGAP                     = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
+    static auto PINNERGAP                     = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_in");
+    static auto PKEEPUPPERGAP                 = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
+    static auto PTEXTOFFSET                   = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
+    static auto PTEXTPADDING                  = CConfigValue<Hyprlang::INT>("group:groupbar:text_padding");
+    static auto PBLUR                         = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
+    auto* const GROUPCOLACTIVE                = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
+    auto* const GROUPCOLINACTIVE              = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
+    auto* const GROUPCOLACTIVELOCKED          = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLINACTIVELOCKED        = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLBORDERACTIVE          = sc<CGradientValueData*>((PGROUPCOLBORDERACTIVE.ptr())->getData());
+    auto* const GROUPCOLBORDERINACTIVE        = sc<CGradientValueData*>((PGROUPCOLBORDERINACTIVE.ptr())->getData());
+    auto* const GROUPCOLBORDERLOCKEDACTIVE    = sc<CGradientValueData*>((PGROUPCOLBORDERLOCKEDACTIVE.ptr())->getData());
+    auto* const GROUPCOLBORDERLOCKEDINACTIVE  = sc<CGradientValueData*>((PGROUPCOLBORDERLOCKEDINACTIVE.ptr())->getData());
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
@@ -251,6 +261,39 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                 data.box = rect;
                 data.a   = a;
                 g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+            }
+        }
+
+        const bool         ISACTIVE        = m_dwGroupMembers[WINDOWINDEX].lock() == Desktop::focusState()->window();
+        const auto* const  PBORDERACTIVE   = GROUPLOCKED ? GROUPCOLBORDERLOCKEDACTIVE : GROUPCOLBORDERACTIVE;
+        const auto* const  PBORDERINACTIVE = GROUPLOCKED ? GROUPCOLBORDERLOCKEDINACTIVE : GROUPCOLBORDERINACTIVE;
+        CGradientValueData borderGradient  = ISACTIVE ? *PBORDERACTIVE : *PBORDERINACTIVE;
+
+        for (auto& color : borderGradient.m_colors)
+            color.a *= a;
+        borderGradient.updateColorsOk();
+
+        const int BORDERSIZE = std::round(*PGROUPBARBORDERSIZE * pMonitor->m_scale);
+
+        if (BORDERSIZE > 0 && !borderGradient.m_colors.empty() && borderGradient.m_colors[0].a > 0) {
+            CBox fullTabBox = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
+                               ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + m_window->m_floatingOffset.y, m_barWidth,
+                               (double)(ONEBARHEIGHT - *POUTERGAP)};
+            fullTabBox.scale(pMonitor->m_scale).round();
+
+            CBorderPassElement::SBorderData borderData;
+            borderData.box = fullTabBox.copy().expand(-BORDERSIZE).round();
+            if (borderData.box.w > 0 && borderData.box.h > 0) {
+                borderData.grad1      = borderGradient;
+                borderData.borderSize = BORDERSIZE;
+                borderData.a          = 1.0;
+
+                if (*PROUNDING || *PGRADIENTROUNDING) {
+                    borderData.round         = std::max(0.0, std::max((double)*PROUNDING, (double)*PGRADIENTROUNDING) * pMonitor->m_scale - BORDERSIZE);
+                    borderData.outerRound    = std::max((double)*PROUNDING, (double)*PGRADIENTROUNDING) * pMonitor->m_scale;
+                    borderData.roundingPower = std::max(*PROUNDINGPOWER, *PGRADIENTROUNDINGPOWER);
+                }
+                g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPassElement>(borderData));
             }
         }
 

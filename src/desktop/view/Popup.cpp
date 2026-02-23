@@ -9,6 +9,7 @@
 #include "../../managers/animation/AnimationManager.hpp"
 #include "LayerSurface.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include <ranges>
@@ -108,8 +109,12 @@ void CPopup::initAllSignals() {
     m_alpha->setCallbackOnEnd(
         [this](auto) {
             if (inert()) {
-                g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
-                fullyDestroy();
+                g_pEventLoopManager->doLater([p = m_self] {
+                    if (!p)
+                        return;
+                    g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
+                    p->fullyDestroy();
+                });
             }
         },
         false);

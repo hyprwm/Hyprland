@@ -515,20 +515,26 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
     static auto PDEADZONE = CConfigValue<Hyprlang::FLOAT>("binds:scroll_deadzone");
     if (m_scrollTimer.getMillis() < *PDELAY)
         return true; // timer hasn't passed yet!
-    // deadzone: accumulate scroll delta, only fire when threshold is met
     if (*PDEADZONE > 0) {
-        // reset accumulator if direction reversed or stale (>1s gap)
-        if (m_scrollDeadzoneTimer.getMillis() > 1000 ||
-            (m_accumulatedScrollDelta > 0) != (e.delta > 0))
+        const int CURRDIR = e.delta > 0 ? 1 : -1;
+
+        if (m_scrollDeadzoneTimer.getMillis() > 1000 || m_lastScrollDirection != CURRDIR) {
             m_accumulatedScrollDelta = 0;
+            m_scrollDeadzoneUnlocked = false;
+        }
 
+        m_lastScrollDirection = CURRDIR;
         m_scrollDeadzoneTimer.reset();
-        m_accumulatedScrollDelta += e.delta;
 
-        if (std::abs(m_accumulatedScrollDelta) < *PDEADZONE)
-            return true; // not enough movement yet
+        if (!m_scrollDeadzoneUnlocked) {
+            m_accumulatedScrollDelta += e.delta;
 
-        m_accumulatedScrollDelta = 0;
+            if (std::abs(m_accumulatedScrollDelta) < *PDEADZONE)
+                return true;
+
+            m_scrollDeadzoneUnlocked = true;
+            m_accumulatedScrollDelta = 0;
+        }
     }
 
     m_scrollTimer.reset();

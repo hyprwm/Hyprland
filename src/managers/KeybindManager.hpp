@@ -146,6 +146,8 @@ class CKeybindManager {
     CTimer                           m_scrollTimer;
     CTimer                           m_scrollDeadzoneTimer;
     double                           m_accumulatedScrollDelta = 0;
+    int                              m_lastScrollDirection    = 0;
+    bool                             m_scrollDeadzoneUnlocked = false;
 
     SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>);
 

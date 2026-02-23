@@ -410,16 +410,30 @@ void SScrollingData::fitCol(SP<SColumnData> c) {
         controller->fitStrip(colIdx, USABLE, *PFSONONE);
 }
 
+void SScrollingData::clampedCenterCol(SP<SColumnData> c) {
+    if (!c)
+        return;
+
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    const auto        USABLE   = algorithm->usableArea();
+    int64_t           colIdx   = idx(c);
+
+    if (colIdx >= 0)
+        controller->clampedCenterStrip(colIdx, USABLE, *PFSONONE);
+}
+
 void SScrollingData::centerOrFitCol(SP<SColumnData> c) {
     if (!c)
         return;
 
     static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
 
-    if (*PFITMETHOD == 1)
+    if (*PFITMETHOD == 0)
+        centerCol(c);
+    else if (*PFITMETHOD == 1)
         fitCol(c);
     else
-        centerCol(c);
+        clampedCenterCol(c);
 }
 
 SP<SColumnData> SScrollingData::atCenter() {
@@ -714,11 +728,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_HARD)
         return;
 
-    static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
-    if (*PFITMETHOD == 1)
-        m_scrollingData->fitCol(TARGETDATA->column.lock());
-    else
-        m_scrollingData->centerCol(TARGETDATA->column.lock());
+    m_scrollingData->centerOrFitCol(TARGETDATA->column.lock());
     m_scrollingData->recalculate();
 }
 
@@ -1158,13 +1168,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto notFound   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NOT_FOUND); };
     const auto stateErr   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE); };
 
-    auto       centerOrFit = [this](const SP<SColumnData> COL) -> void {
-        static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
-        if (*PFITMETHOD == 1)
-            m_scrollingData->fitCol(COL);
-        else
-            m_scrollingData->centerCol(COL);
-    };
+    auto       centerOrFit = [this](const SP<SColumnData> COL) -> void { m_scrollingData->centerOrFitCol(COL); };
 
     const auto ARGS = CVarList(std::string{sv}, 0, ' ');
     if (ARGS[0] == "move") {

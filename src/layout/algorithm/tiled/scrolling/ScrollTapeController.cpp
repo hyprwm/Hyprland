@@ -281,6 +281,22 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
     setOffset(std::clamp(m_offset, lo, hi));
 }
 
+void CScrollTapeController::clampedCenterStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne) {
+    if (stripIndex >= m_strips.size())
+        return;
+
+    const double usablePrimary = getPrimary(usableArea.size());
+    const double stripStart    = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
+    const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
+
+    const double maxExtent = calculateMaxExtent(usableArea, fullscreenOnOne);
+    const double limit     = std::max(0., maxExtent - usablePrimary);
+
+    const double center = stripStart - (usablePrimary - stripSize) / 2.0;
+
+    m_offset = std::clamp(center, 0., limit);
+}
+
 bool CScrollTapeController::isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne, bool full) const {
     if (stripIndex >= m_strips.size())
         return false;

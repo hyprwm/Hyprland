@@ -1168,8 +1168,6 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto notFound   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NOT_FOUND); };
     const auto stateErr   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE); };
 
-    auto       centerOrFit = [this](const SP<SColumnData> COL) -> void { m_scrollingData->centerOrFitCol(COL); };
-
     const auto ARGS = CVarList(std::string{sv}, 0, ' ');
     if (ARGS[0] == "move") {
         if (ARGS[1] == "+col" || ARGS[1] == "col") {
@@ -1187,7 +1185,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 return {};
             }
 
-            centerOrFit(COL);
+            m_scrollingData->centerOrFitCol(COL);
             m_scrollingData->recalculate();
 
             focusTargetUpdate(COL->targetDatas.front()->target.lock());
@@ -1213,7 +1211,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             if (!COL)
                 return {};
 
-            centerOrFit(COL);
+            m_scrollingData->centerOrFitCol(COL);
             m_scrollingData->recalculate();
 
             focusTargetUpdate(COL->targetDatas.back()->target.lock());
@@ -1359,7 +1357,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 WDATA->column->setColumnWidth(rem);
 
                 m_scrollingData->controller->setOffset(0);
-                centerOrFit(USED_COL);
+                m_scrollingData->centerOrFitCol(USED_COL);
                 m_scrollingData->recalculate();
             }
 
@@ -1515,7 +1513,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             auto PREV = m_scrollingData->prev(TDATA->column.lock());
             if (!PREV) {
                 if (*PNOFALLBACK) {
-                    centerOrFit(TDATA->column.lock());
+                    m_scrollingData->centerOrFitCol(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
                         Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
@@ -1527,7 +1525,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             auto pTargetData = findBestNeighbor(TDATA, PREV);
             if (pTargetData) {
                 focusTargetUpdate(pTargetData->target.lock());
-                centerOrFit(PREV);
+                m_scrollingData->centerOrFitCol(PREV);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
                     Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());
@@ -1537,7 +1535,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             auto NEXT = m_scrollingData->next(TDATA->column.lock());
             if (!NEXT) {
                 if (*PNOFALLBACK) {
-                    centerOrFit(TDATA->column.lock());
+                    m_scrollingData->centerOrFitCol(TDATA->column.lock());
                     m_scrollingData->recalculate();
                     if (TDATA->target->window())
                         Pointer::pointerController()->warpTo(TDATA->target->window()->middle());
@@ -1549,7 +1547,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             auto pTargetData = findBestNeighbor(TDATA, NEXT);
             if (pTargetData) {
                 focusTargetUpdate(pTargetData->target.lock());
-                centerOrFit(NEXT);
+                m_scrollingData->centerOrFitCol(NEXT);
                 m_scrollingData->recalculate();
                 if (pTargetData->target->window())
                     Pointer::pointerController()->warpTo(pTargetData->target->window()->middle());

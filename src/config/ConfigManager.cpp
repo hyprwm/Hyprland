@@ -699,6 +699,7 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("binds:pass_mouse_when_bound", Hyprlang::INT{0});
     registerConfigVar("binds:scroll_event_delay", Hyprlang::INT{300});
+    registerConfigVar("binds:scroll_deadzone", Hyprlang::FLOAT{0.f});
     registerConfigVar("binds:workspace_back_and_forth", Hyprlang::INT{0});
     registerConfigVar("binds:hide_special_on_workspace_change", Hyprlang::INT{0});
     registerConfigVar("binds:allow_workspace_cycles", Hyprlang::INT{0});

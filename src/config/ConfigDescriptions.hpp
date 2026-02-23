@@ -1381,6 +1381,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{300, 0, 2000},
     },
     SConfigOptionDescription{
+        .value       = "binds:scroll_deadzone",
+        .description = "Minimum accumulated scroll delta required before a scroll keybind fires. Helps prevent accidental workspace switches with sensitive or free-spinning mouse wheels. 0 disables.",
+        .type        = CONFIG_OPTION_FLOAT,
+        .data        = SConfigOptionDescription::SFloatData{0.f, 0.f, 100.f},
+    },
+    SConfigOptionDescription{
         .value       = "binds:workspace_back_and_forth",
         .description = "If enabled, an attempt to switch to the currently focused workspace will instead switch to the previous workspace. Akin to i3’s auto_back_and_forth.",
         .type        = CONFIG_OPTION_BOOL,

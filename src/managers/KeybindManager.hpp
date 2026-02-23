@@ -144,6 +144,8 @@ class CKeybindManager {
     int                              m_passPressed = -1; // used for pass
 
     CTimer                           m_scrollTimer;
+    CTimer                           m_scrollDeadzoneTimer;
+    double                           m_accumulatedScrollDelta = 0;
 
     SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>);
 

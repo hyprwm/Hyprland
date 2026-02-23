@@ -511,16 +511,29 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
 bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
     const auto  MODS = g_pInputManager->getModsFromAllKBs();
-
-    static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
-
+    static auto PDELAY    = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
+    static auto PDEADZONE = CConfigValue<Hyprlang::FLOAT>("binds:scroll_deadzone");
     if (m_scrollTimer.getMillis() < *PDELAY)
         return true; // timer hasn't passed yet!
+    // deadzone: accumulate scroll delta, only fire when threshold is met
+    if (*PDEADZONE > 0) {
+        // reset accumulator if direction reversed or stale (>1s gap)
+        if (m_scrollDeadzoneTimer.getMillis() > 1000 ||
+            (m_accumulatedScrollDelta > 0) != (e.delta > 0))
+            m_accumulatedScrollDelta = 0;
+
+        m_scrollDeadzoneTimer.reset();
+        m_accumulatedScrollDelta += e.delta;
+
+        if (std::abs(m_accumulatedScrollDelta) < *PDEADZONE)
+            return true; // not enough movement yet
+
+        m_accumulatedScrollDelta = 0;
+    }
 
     m_scrollTimer.reset();
 
     m_activeKeybinds.clear();
-
     bool found = false;
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         if (e.delta < 0)
@@ -533,10 +546,8 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e) {
         else
             found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true, nullptr).passEvent;
     }
-
     if (found)
         shadowKeybinds();
-
     return !found;
 }
 

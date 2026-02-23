@@ -276,24 +276,96 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         const int BORDERSIZE = std::round(*PGROUPBARBORDERSIZE * pMonitor->m_scale);
 
         if (BORDERSIZE > 0 && !borderGradient.m_colors.empty() && borderGradient.m_colors[0].a > 0) {
-            CBox fullTabBox = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
-                               ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + m_window->m_floatingOffset.y, m_barWidth,
-                               (double)(ONEBARHEIGHT - *POUTERGAP)};
-            fullTabBox.scale(pMonitor->m_scale).round();
-
-            CBorderPassElement::SBorderData borderData;
-            borderData.box = fullTabBox.copy().expand(-BORDERSIZE).round();
-            if (borderData.box.w > 0 && borderData.box.h > 0) {
-                borderData.grad1      = borderGradient;
-                borderData.borderSize = BORDERSIZE;
-                borderData.a          = 1.0;
-
-                if (*PROUNDING || *PGRADIENTROUNDING) {
-                    borderData.round         = std::max(0.0, std::max((double)*PROUNDING, (double)*PGRADIENTROUNDING) * pMonitor->m_scale - BORDERSIZE);
-                    borderData.outerRound    = std::max((double)*PROUNDING, (double)*PGRADIENTROUNDING) * pMonitor->m_scale;
-                    borderData.roundingPower = std::max(*PROUNDINGPOWER, *PGRADIENTROUNDINGPOWER);
+            auto drawBorder = [&](const CBox& box, const CBox& clipBox, int round, float roundingPower) {
+                CBorderPassElement::SBorderData borderData;
+                borderData.box = box.copy().expand(-BORDERSIZE).round();
+                if (borderData.box.w > 0 && borderData.box.h > 0) {
+                    borderData.grad1      = borderGradient;
+                    borderData.borderSize = BORDERSIZE;
+                    borderData.a          = 1.0;
+                    borderData.clipBox    = clipBox;
+                    if (round > 0) {
+                        borderData.round         = std::max(0, (int)(round * pMonitor->m_scale - BORDERSIZE));
+                        borderData.outerRound    = (int)(round * pMonitor->m_scale);
+                        borderData.roundingPower = roundingPower;
+                    }
+                    g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPassElement>(borderData));
                 }
-                g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPassElement>(borderData));
+            };
+
+            if (*PINDICATORGAP == 0) {
+                CBox fullTabBox = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
+                                   ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + m_window->m_floatingOffset.y, m_barWidth,
+                                   (double)(ONEBARHEIGHT - *POUTERGAP)};
+                fullTabBox.scale(pMonitor->m_scale).round();
+
+                CBox  box = fullTabBox;
+                CBox  clipBox;
+                int   round         = std::max(*PROUNDING, *PGRADIENTROUNDING);
+                float roundingPower = std::max(*PROUNDINGPOWER, *PGRADIENTROUNDINGPOWER);
+
+                if (*PROUNDONLYEDGES || *PGRADIENTROUNDINGONLYEDGES) {
+                    round               = 0;
+                    const double offset = std::max(*PROUNDING, *PGRADIENTROUNDING) * 2;
+                    if (i == 0) {
+                        round   = std::max(*PROUNDING, *PGRADIENTROUNDING);
+                        clipBox = fullTabBox;
+                        box     = CBox{fullTabBox.pos(), Vector2D{fullTabBox.w + offset, fullTabBox.h}};
+                    } else if (i == barsToDraw - 1) {
+                        round   = std::max(*PROUNDING, *PGRADIENTROUNDING);
+                        clipBox = fullTabBox;
+                        box     = CBox{fullTabBox.pos() - Vector2D{offset, 0.F}, Vector2D{fullTabBox.w + offset, fullTabBox.h}};
+                    }
+                }
+                drawBorder(box, clipBox, round, roundingPower);
+            } else {
+                if (*PGRADIENTS || *PRENDERTITLES) {
+                    CBox titleBox = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
+                                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - ONEBARHEIGHT - pMonitor->m_position.y + m_window->m_floatingOffset.y, m_barWidth,
+                                     (double)(*PGRADIENTS || *PRENDERTITLES ? *PHEIGHT : 0)};
+                    titleBox.scale(pMonitor->m_scale).round();
+
+                    CBox box = titleBox;
+                    CBox clipBox;
+                    int  round = *PGRADIENTROUNDING;
+                    if (*PGRADIENTROUNDINGONLYEDGES) {
+                        round               = 0;
+                        const double offset = *PGRADIENTROUNDING * 2;
+                        if (i == 0) {
+                            round   = *PGRADIENTROUNDING;
+                            clipBox = titleBox;
+                            box     = CBox{titleBox.pos(), Vector2D{titleBox.w + offset, titleBox.h}};
+                        } else if (i == barsToDraw - 1) {
+                            round   = *PGRADIENTROUNDING;
+                            clipBox = titleBox;
+                            box     = CBox{titleBox.pos() - Vector2D{offset, 0.F}, Vector2D{titleBox.w + offset, titleBox.h}};
+                        }
+                    }
+                    drawBorder(box, clipBox, round, *PGRADIENTROUNDINGPOWER);
+                }
+
+                CBox indicatorBox = {ASSIGNEDBOX.x + xoff - pMonitor->m_position.x + m_window->m_floatingOffset.x,
+                                     ASSIGNEDBOX.y + ASSIGNEDBOX.h - floor(yoff) - *PINDICATORHEIGHT - *POUTERGAP - pMonitor->m_position.y + m_window->m_floatingOffset.y,
+                                     m_barWidth, (double)*PINDICATORHEIGHT};
+                indicatorBox.scale(pMonitor->m_scale).round();
+
+                CBox box = indicatorBox;
+                CBox clipBox;
+                int  round = *PROUNDING;
+                if (*PROUNDONLYEDGES) {
+                    round               = 0;
+                    const double offset = *PROUNDING * 2;
+                    if (i == 0) {
+                        round   = *PROUNDING;
+                        clipBox = indicatorBox;
+                        box     = CBox{indicatorBox.pos(), Vector2D{indicatorBox.w + offset, indicatorBox.h}};
+                    } else if (i == barsToDraw - 1) {
+                        round   = *PROUNDING;
+                        clipBox = indicatorBox;
+                        box     = CBox{indicatorBox.pos() - Vector2D{offset, 0.F}, Vector2D{indicatorBox.w + offset, indicatorBox.h}};
+                    }
+                }
+                drawBorder(box, clipBox, round, *PROUNDINGPOWER);
             }
         }
 

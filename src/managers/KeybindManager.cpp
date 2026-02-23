@@ -2834,12 +2834,13 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
     const bool ISWINDOWGROUP       = PWINDOW->m_group;
     const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && PWINDOW->m_group->locked();
     const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && PWINDOW->m_group->size() == 1;
+    const bool ISWINDOWGROUPDENIED = ISWINDOWGROUP && PWINDOW->m_group->denied();
 
     updateRelativeCursorCoords();
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_isFloating
     if (PWINDOWINDIR && PWINDOWINDIR->m_group) { // target is group
-        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || PWINDOW->m_group->denied())) {
+        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || ISWINDOWGROUPDENIED)) {
             g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else

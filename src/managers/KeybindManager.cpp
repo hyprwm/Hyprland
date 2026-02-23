@@ -2839,7 +2839,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
 
     // note: PWINDOWINDIR is not null implies !PWINDOW->m_isFloating
     if (PWINDOWINDIR && PWINDOWINDIR->m_group) { // target is group
-        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || PWINDOW->m_group->denied())) {
+        if (!*PIGNOREGROUPLOCK && (PWINDOWINDIR->m_group->locked() || ISWINDOWGROUPLOCKED || (ISWINDOWGROUP && PWINDOW->m_group->denied()))) {
             g_layoutManager->moveInDirection(PWINDOW->layoutTarget(), args);
             PWINDOW->warpCursor();
         } else

@@ -496,10 +496,13 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         m_scrollingData->controller->setDirection(parseDirection(*PCONFDIRECTION));
     });
 
-    m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
-            focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
-    });
+    static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
+    if (*PFOLLOW_FOCUS) {
+        m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
+            if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+                focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
+        });
+    }
 
     m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {
         if (!pWindow)

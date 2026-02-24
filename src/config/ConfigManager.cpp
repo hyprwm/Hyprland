@@ -803,8 +803,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
     registerConfigVar("ecosystem:enforce_permissions", Hyprlang::INT{0});
 
-	registerConfigVar("inputcapture:capture_modifiers", Hyprlang::INT{0});
-	registerConfigVar("inputcapture:enforce_barriers", Hyprlang::INT{1});
+    registerConfigVar("inputcapture:capture_modifiers", Hyprlang::INT{0});
+    registerConfigVar("inputcapture:enforce_barriers", Hyprlang::INT{1});
 
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
     registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});

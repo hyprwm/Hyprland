@@ -415,7 +415,7 @@ SP<SColumnData> SScrollingData::atCenter() {
 }
 
 void SScrollingData::recalculate(bool forceInstant) {
-    if (algorithm->m_parent->space()->workspace()->m_hasFullscreenWindow)
+    if (!algorithm->m_parent->space()->workspace() || algorithm->m_parent->space()->workspace()->m_hasFullscreenWindow)
         return;
 
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
@@ -1404,6 +1404,11 @@ eScrollDirection CScrollingAlgorithm::getDynamicDirection() {
 
 CBox CScrollingAlgorithm::usableArea() {
     CBox box = m_parent->space()->workArea();
+
+    // doesn't matter, this happens when this algo is about to be destroyed
+    if (!m_parent->space()->workspace())
+        return box;
+
     box.translate(-m_parent->space()->workspace()->m_monitor->m_position);
     return box;
 }

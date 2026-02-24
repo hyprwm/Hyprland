@@ -448,13 +448,13 @@ double SScrollingData::maxWidth() {
     return controller->calculateMaxExtent(USABLE, *PFSONONE);
 }
 
-bool SScrollingData::visible(SP<SColumnData> c) {
+bool SScrollingData::visible(SP<SColumnData> c, bool full) {
     static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
     if (colIdx >= 0)
-        return controller->isStripVisible(colIdx, USABLE, *PFSONONE);
+        return controller->isStripVisible(colIdx, USABLE, *PFSONONE, full);
 
     return false;
 }
@@ -497,8 +497,10 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     });
 
     m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
-            focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
+        static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
+
+        if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+            focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_CLICK);
     });
 
     m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {
@@ -517,7 +519,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         if (!TARGET || TARGET->floating())
             return;
 
-        focusOnInput(TARGET, Desktop::isHardInputFocusReason(reason));
+        focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_KB : INPUT_MODE_SOFT));
     });
 
     // Initialize default widths and direction
@@ -530,7 +532,7 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
     m_focusCallback.reset();
 }
 
-void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, bool hardInput) {
+void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Hyprlang::FLOAT>("scrolling:follow_min_visible");
 
     if (!target || target->space() != m_parent->space())
@@ -540,7 +542,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, bool hardInput) {
     if (!TARGETDATA)
         return;
 
-    if (*PFOLLOW_FOCUS_MIN_PERC > 0.F && !hardInput) {
+    if (*PFOLLOW_FOCUS_MIN_PERC > 0.F && input == INPUT_MODE_SOFT) {
         // check how much of the window is visible, unless hard input focus
 
         const auto   IS_HORIZ = m_scrollingData->controller->isPrimaryHorizontal();
@@ -557,8 +559,12 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, bool hardInput) {
             return;
     }
 
+    // if we moved via non-kb, and it's fully visible, ignore
+    if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)
+        return;
+
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
-    if (*PFITMETHOD == 1)
+    if (*PFITMETHOD == 1 || input == INPUT_MODE_CLICK)
         m_scrollingData->fitCol(TARGETDATA->column.lock());
     else
         m_scrollingData->centerCol(TARGETDATA->column.lock());
@@ -770,8 +776,14 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
 }
 
 void CScrollingAlgorithm::recalculate() {
-    if (Desktop::focusState()->window())
-        focusOnInput(Desktop::focusState()->window()->layoutTarget(), true);
+    if (Desktop::focusState()->window()) {
+        const auto TARGET = Desktop::focusState()->window()->layoutTarget();
+
+        const auto TARGETDATA = dataFor(TARGET);
+
+        if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true))
+            focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_KB);
+    }
 
     m_scrollingData->recalculate();
 }

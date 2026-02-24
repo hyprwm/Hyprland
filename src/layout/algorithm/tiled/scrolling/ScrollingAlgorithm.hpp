@@ -77,7 +77,7 @@ namespace Layout::Tiled {
         SP<SColumnData>              prev(SP<SColumnData> c);
         SP<SColumnData>              atCenter();
 
-        bool                         visible(SP<SColumnData> c);
+        bool                         visible(SP<SColumnData> c, bool full = false);
         void                         centerCol(SP<SColumnData> c);
         void                         fitCol(SP<SColumnData> c);
         void                         centerOrFitCol(SP<SColumnData> c);
@@ -111,6 +111,12 @@ namespace Layout::Tiled {
 
         CBox                                     usableArea();
 
+        enum eInputMode : uint8_t {
+            INPUT_MODE_SOFT = 0,
+            INPUT_MODE_CLICK,
+            INPUT_MODE_KB
+        };
+
       private:
         SP<SScrollingData>  m_scrollingData;
 
@@ -130,7 +136,7 @@ namespace Layout::Tiled {
 
         void                     focusTargetUpdate(SP<ITarget> target);
         void                     moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
-        void                     focusOnInput(SP<ITarget> target, bool hardInput);
+        void                     focusOnInput(SP<ITarget> target, eInputMode input);
 
         friend struct SScrollingData;
     };

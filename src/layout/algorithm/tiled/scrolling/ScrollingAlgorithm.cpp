@@ -462,6 +462,7 @@ bool SScrollingData::visible(SP<SColumnData> c) {
 CScrollingAlgorithm::CScrollingAlgorithm() {
     static const auto PCONFWIDTHS    = CConfigValue<Hyprlang::STRING>("scrolling:explicit_column_widths");
     static const auto PCONFDIRECTION = CConfigValue<Hyprlang::STRING>("scrolling:direction");
+    static const auto PFOLLOW_FOCUS  = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
     m_scrollingData       = makeShared<SScrollingData>(this);
     m_scrollingData->self = m_scrollingData;
@@ -496,7 +497,6 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         m_scrollingData->controller->setDirection(parseDirection(*PCONFDIRECTION));
     });
 
-    static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
     if (*PFOLLOW_FOCUS) {
         m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
             if (e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
@@ -507,8 +507,6 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {
         if (!pWindow)
             return;
-
-        static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
         if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))
             return;

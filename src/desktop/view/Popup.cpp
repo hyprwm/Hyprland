@@ -403,7 +403,7 @@ void CPopup::recheckChildrenRecursive() {
     std::vector<WP<CPopup>> cpy;
     std::ranges::for_each(m_children, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
-        if (!c->visible())
+        if (!c || !c->visible())
             continue;
         c->onCommit(true);
         c->recheckChildrenRecursive();

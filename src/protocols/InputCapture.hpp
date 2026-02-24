@@ -2,10 +2,12 @@
 
 #include "managers/input/Eis.hpp"
 #include "helpers/memory/Memory.hpp"
+#include "helpers/signal/Signal.hpp"
 #include "hyprland-input-capture-v1.hpp"
 #include "../protocols/WaylandProtocol.hpp"
 #include <cstdint>
 #include <hyprutils/math/Vector2D.hpp>
+#include <hyprutils/signal/Listener.hpp>
 #include <optional>
 #include <wayland-server.h>
 
@@ -63,7 +65,7 @@ class CInputCaptureResource {
 
     uint32_t                    m_activationId = 0;
     eClientStatus               m_status       = eClientStatus::CLIENT_STATUS_CREATED;
-    SP<HOOK_CALLBACK_FN>        m_monitorCallback;
+    CHyprSignalListener        m_monitorCallback;
 };
 
 class CInputCaptureProtocol : public IWaylandProtocol {

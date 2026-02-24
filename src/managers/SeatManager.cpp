@@ -6,12 +6,12 @@
 #include "../protocols/PrimarySelection.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/LayerShell.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>

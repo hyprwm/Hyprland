@@ -2067,7 +2067,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .value       = "scrolling:focus_fit_method",
         .description = "When a column is focused, what method should be used to bring it into view",
         .type        = CONFIG_OPTION_CHOICE,
-        .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "center,fit"},
+        .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "center,fit,clamped_center"},
     },
     SConfigOptionDescription{
         .value       = "scrolling:follow_focus",

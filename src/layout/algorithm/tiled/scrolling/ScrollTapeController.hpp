@@ -62,6 +62,7 @@ namespace Layout::Tiled {
 
         void              centerStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
         void              fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
+        void              clampedCenterStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
 
         bool              isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
 

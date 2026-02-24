@@ -870,10 +870,14 @@ void CMasterAlgorithm::runOrientationCycle(Hyprutils::String::CVarList2* vars, i
 }
 
 eOrientation CMasterAlgorithm::getDynamicOrientation() {
+    static auto PORIENT = CConfigValue<std::string>("master:orientation");
+
     const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
     std::string orientationString;
     if (WORKSPACERULE.layoutopts.contains("orientation"))
         orientationString = WORKSPACERULE.layoutopts.at("orientation");
+    else
+        orientationString = *PORIENT;
 
     eOrientation orientation = m_workspaceData.orientation;
     // override if workspace rule is set

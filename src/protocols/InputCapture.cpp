@@ -3,8 +3,8 @@
 #include "Compositor.hpp"
 #include "config/ConfigValue.hpp"
 #include "debug/log/Logger.hpp"
+#include "event/EventBus.hpp"
 #include "hyprland-input-capture-v1.hpp"
-#include "managers/HookSystemManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "protocols/WaylandProtocol.hpp"
 #include "render/Renderer.hpp"
@@ -40,11 +40,11 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
 
     m_resource->sendEisFd(m_eis->getFileDescriptor());
 
-    m_monitorCallback = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) {
-        onClearBarriers();
-        disable();
-        m_eis->resetPointer();
-    });
+	m_monitorCallback = Event::bus()->m_events.monitor.layoutChanged.listen([this] { 
+		onClearBarriers();
+		disable();
+		m_eis->resetPointer();
+	});
 }
 
 CInputCaptureResource::~CInputCaptureResource() {
@@ -52,7 +52,6 @@ CInputCaptureResource::~CInputCaptureResource() {
         PROTO::inputCapture->forceRelease();
 
     Log::logger->log(Log::INFO, "[input-capture]({}) session destroyed", m_sessionId.c_str());
-    g_pHookSystem->unhook(m_monitorCallback);
     PROTO::inputCapture->clearBarriers(m_sessionId);
 };
 

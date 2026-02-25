@@ -900,7 +900,14 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    bool passEvent = g_pKeybindManager->onAxisEvent(e, pointer);
+    PROTO::inputCapture->axis(e.axis, e.delta);
+    if (e.source == 0)
+        PROTO::inputCapture->axisValue120(e.axis, e.delta);
+    else if (e.delta == 0)
+        PROTO::inputCapture->axisStop(e.axis);
+    PROTO::inputCapture->frame();
+
+    bool passEvent = !PROTO::inputCapture->isCaptured() && g_pKeybindManager->onAxisEvent(e, pointer);
 
     if (!passEvent)
         return;
@@ -988,11 +995,6 @@ void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
         m_pointerAxisFramePending = true;
         return;
     }
-
-    PROTO::inputCapture->frame();
-
-    if (PROTO::inputCapture->isCaptured())
-        return;
 
     m_pointerAxisFramePending = false;
     g_pSeatManager->sendPointerFrame();

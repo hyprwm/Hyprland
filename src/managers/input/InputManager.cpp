@@ -193,7 +193,7 @@ void CInputManager::sendMotionEventsToFocused() {
 
     m_emptyFocusCursorSet = false;
 
-    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), m_lastCursorPosFloored - BOX->pos());
+    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), getMouseCoordsInternal().floor() - BOX->pos());
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {

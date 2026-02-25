@@ -102,13 +102,7 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
 
     // TODO: not very OOP, is it?
     if (const auto WTARGET = dynamicPointerCast<CWindowTarget>(target); WTARGET) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-        const auto  PWINDOW  = WTARGET->window();
-        const auto  PMONITOR = WTARGET->space()->workspace()->m_monitor.lock();
-
-        if (*PXWLFORCESCALEZERO && PWINDOW->m_isX11)
-            *PWINDOW->m_realSize = PWINDOW->m_realSize->goal() / PMONITOR->m_scale;
+        const auto PWINDOW = WTARGET->window();
 
         if (PWINDOW->m_X11DoesntWantBorders || (PWINDOW->m_isX11 && PWINDOW->isX11OverrideRedirect())) {
             PWINDOW->m_realPosition->warp();

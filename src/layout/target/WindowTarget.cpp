@@ -266,6 +266,12 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         return std::unexpected(GEOMETRY_NO_DESIRED);
     }
 
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    const auto  toLogical          = [&](SGeometryRequested& req) {
+        if (m_window->m_isX11 && *PXWLFORCESCALEZERO && PMONITOR)
+            req.size /= PMONITOR->m_scale;
+    };
+
     if (DESIRED_GEOM.width <= 2 || DESIRED_GEOM.height <= 2) {
         const auto SURFACE = m_window->wlSurface()->resource();
 
@@ -273,6 +279,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
             // center on mon and call it a day
             requested.pos.reset();
             requested.size = clampSizeForDesired(SURFACE->m_current.size);
+            toLogical(requested);
             return requested;
         }
 
@@ -285,6 +292,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
             if (m_window->m_xwaylandSurface->m_geometry.x != 0 && m_window->m_xwaylandSurface->m_geometry.y != 0) {
                 requested.size = SIZE;
                 requested.pos  = g_pXWaylandManager->xwaylandToWaylandCoords(m_window->m_xwaylandSurface->m_geometry.pos());
+                toLogical(requested);
                 return requested;
             }
         }
@@ -318,6 +326,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     if (DESIRED_GEOM.w <= 2 || DESIRED_GEOM.h <= 2)
         return std::unexpected(GEOMETRY_NO_DESIRED);
 
+    toLogical(requested);
     return requested;
 }
 

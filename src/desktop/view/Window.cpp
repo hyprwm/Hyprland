@@ -2111,8 +2111,11 @@ void CWindow::mapWindow() {
     if (m_workspace)
         m_workspace->updateWindows();
 
-    if (PMONITOR && isX11OverrideRedirect())
-        m_X11SurfaceScaledBy = PMONITOR->m_scale;
+    if (PMONITOR && isX11OverrideRedirect()) {
+        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+        if (*PXWLFORCESCALEZERO)
+            m_X11SurfaceScaledBy = PMONITOR->m_scale;
+    }
 }
 
 void CWindow::unmapWindow() {
@@ -2413,21 +2416,19 @@ void CWindow::unmanagedSetGeometry() {
 
     const auto  LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos());
 
-    if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - m_xwaylandSurface->m_geometry.width) > 2 ||
-        abs(std::floor(SIZ.y) - m_xwaylandSurface->m_geometry.height) > 2) {
+    const auto  PMONITOR       = m_monitor.lock();
+    const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
+    const auto  LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;
+
+    if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - LOGICALGEOSIZE.x) > 2 ||
+        abs(std::floor(SIZ.y) - LOGICALGEOSIZE.y) > 2) {
         Log::logger->log(Log::DEBUG, "Unmanaged window {} requests geometry update to {:j} {:j}", m_self.lock(), LOGICALPOS, m_xwaylandSurface->m_geometry.size());
 
         g_pHyprRenderer->damageWindow(m_self.lock());
         m_realPosition->setValueAndWarp(Vector2D(LOGICALPOS.x, LOGICALPOS.y));
 
-        if (abs(std::floor(SIZ.x) - m_xwaylandSurface->m_geometry.w) > 2 || abs(std::floor(SIZ.y) - m_xwaylandSurface->m_geometry.h) > 2)
-            m_realSize->setValueAndWarp(m_xwaylandSurface->m_geometry.size());
-
-        if (*PXWLFORCESCALEZERO) {
-            if (const auto PMONITOR = m_monitor.lock(); PMONITOR) {
-                m_realSize->setValueAndWarp(m_realSize->goal() / PMONITOR->m_scale);
-            }
-        }
+        if (abs(std::floor(SIZ.x) - LOGICALGEOSIZE.x) > 2 || abs(std::floor(SIZ.y) - LOGICALGEOSIZE.y) > 2)
+            m_realSize->setValueAndWarp(LOGICALGEOSIZE);
 
         m_position = m_realPosition->goal();
         m_size     = m_realSize->goal();

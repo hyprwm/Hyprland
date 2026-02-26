@@ -60,6 +60,7 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
     UNSET(noVRR)
     UNSET(persistentSize)
     UNSET(stayFocused)
+    UNSET(confinePointer)
     UNSET(idleInhibitMode)
     UNSET(borderSize)
     UNSET(rounding)
@@ -434,6 +435,18 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_STAY_FOCUSED: {
                 m_stayFocused.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
                 m_stayFocused.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_CONFINE_POINTER: {
+                if (effect == "none")
+                    m_confinePointer.first.set(CONFINEPOINTER_NONE, Types::PRIORITY_WINDOW_RULE);
+                else if (effect == "always")
+                    m_confinePointer.first.set(CONFINEPOINTER_ALWAYS, Types::PRIORITY_WINDOW_RULE);
+                else if (effect == "fullscreen")
+                    m_confinePointer.first.set(CONFINEPOINTER_FULLSCREEN, Types::PRIORITY_WINDOW_RULE);
+                else
+                    Log::logger->log(Log::ERR, "Rule confine_pointer: unknown mode {}", effect);
+                m_confinePointer.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_SCROLL_MOUSE: {

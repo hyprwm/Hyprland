@@ -679,14 +679,14 @@ static bool test() {
     EXPECT(Tests::windowCount(), 3);
 
     NLog::log("{}Checking props of xeyes", Colors::YELLOW);
-    // check some window props of xeyes, try to tile them
+    // check some window props of xeyes, try to float it
     {
         auto str = getFromSocket("/clients");
-        EXPECT_CONTAINS(str, "floating: 1");
-        getFromSocket("/dispatch settiled class:XEyes");
+        EXPECT_NOT_CONTAINS(str, "floating: 1");
+        getFromSocket("/dispatch setfloating class:XEyes");
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         str = getFromSocket("/clients");
-        EXPECT_NOT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "floating: 1");
     }
 
     // kill all

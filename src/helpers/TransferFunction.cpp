@@ -1,6 +1,6 @@
 #include "TransferFunction.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../event/EventBus.hpp"
 #include <string>
 #include <unordered_map>
 #include <hyprlang.hpp>
@@ -29,7 +29,7 @@ std::string NTransferFunction::toString(eTF tf) {
 eTF NTransferFunction::fromConfig() {
     static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
     static auto sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
-    static auto P        = g_pHookSystem->hookDynamic("configReloaded", [](void* hk, SCallbackInfo& info, std::any param) { sdrEOTF = NTransferFunction::fromString(*PSDREOTF); });
+    static auto P        = Event::bus()->m_events.config.reloaded.listen([]() { sdrEOTF = NTransferFunction::fromString(*PSDREOTF); });
 
     return sdrEOTF;
 }

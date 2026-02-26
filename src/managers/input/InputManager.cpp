@@ -265,31 +265,50 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
-    if (!overridePos.has_value() && !g_pSeatManager->m_mouse.expired() && isConstrained()) {
-        const auto SURF       = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
-        const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+    auto confineToRegion = [&](const CRegion& rg, SP<Desktop::View::CWLSurface> surf) {
+        const auto CLOSEST      = rg.closestPoint(mouseCoords);
+        const auto BOX          = surf->getSurfaceBoxGlobal();
+        const auto WINDOW       = Desktop::View::CWindow::fromView(surf->view());
+        const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
 
-        if (CONSTRAINT) {
-            if (CONSTRAINT->isLocked()) {
-                const auto HINT = CONSTRAINT->logicPositionHint();
-                g_pCompositor->warpCursorTo(HINT, true);
+        g_pCompositor->warpCursorTo(CLOSEST, true);
+        g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
+        PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(time) * 1000, {}, {});
+    };
+
+    if (!g_pSeatManager->m_mouse.expired()) {
+        const auto SURF = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+
+        if (isConstrained()) {
+            const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
+
+            if (CONSTRAINT) {
+                if (CONSTRAINT->isLocked()) {
+                    const auto HINT = CONSTRAINT->logicPositionHint();
+                    g_pCompositor->warpCursorTo(HINT, true);
+                } else {
+                    confineToRegion(CONSTRAINT->logicConstraintRegion(), SURF);
+                }
+
+                return;
             } else {
-                const auto RG           = CONSTRAINT->logicConstraintRegion();
-                const auto CLOSEST      = RG.closestPoint(mouseCoords);
-                const auto BOX          = SURF->getSurfaceBoxGlobal();
-                const auto WINDOW       = Desktop::View::CWindow::fromView(SURF->view());
-                const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
-
-                g_pCompositor->warpCursorTo(CLOSEST, true);
-                g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);
-                PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(time) * 1000, {}, {});
+                Log::logger->log(Log::ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", rc<uintptr_t>(SURF.get()),
+                                 rc<uintptr_t>(CONSTRAINT.get()));
             }
-
-            return;
-
-        } else
-            Log::logger->log(Log::ERR, "BUG THIS: Null SURF/CONSTRAINT in mouse refocus. Ignoring constraints. {:x} {:x}", rc<uintptr_t>(SURF.get()),
-                             rc<uintptr_t>(CONSTRAINT.get()));
+        } else {
+            const auto WINDOW = SURF ? Desktop::View::CWindow::fromView(SURF->view()) : nullptr;
+            if (WINDOW) {
+                if (WINDOW->m_ruleApplicator->confinePointer().valueOrDefault()) {
+                    const auto BOX = SURF->getSurfaceBoxGlobal();
+                    if (BOX.has_value()) {
+                        CRegion rg;
+                        rg.set(*BOX);
+                        confineToRegion(rg, SURF);
+                    }
+                    return;
+                }
+            }
+        }
     }
 
     if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())

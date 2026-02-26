@@ -115,6 +115,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, noVRR, false, WINDOW_RULE_EFFECT_NO_VRR)
         DEFINE_PROP(bool, persistentSize, false, WINDOW_RULE_EFFECT_PERSISTENT_SIZE)
         DEFINE_PROP(bool, stayFocused, false, WINDOW_RULE_EFFECT_STAY_FOCUSED)
+        DEFINE_PROP(bool, confinePointer, false, WINDOW_RULE_EFFECT_CONFINE_POINTER)
 
         DEFINE_PROP(int, idleInhibitMode, false, WINDOW_RULE_EFFECT_IDLE_INHIBIT)
 

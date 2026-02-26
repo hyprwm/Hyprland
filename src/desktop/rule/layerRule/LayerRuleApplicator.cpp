@@ -36,9 +36,8 @@ void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> prop
 
 #undef UNSET
 
-    if (prio == Types::PRIORITY_WINDOW_RULE) {
+    if (prio == Types::PRIORITY_WINDOW_RULE)
         std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
-    }
 }
 
 void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {

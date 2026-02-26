@@ -395,83 +395,114 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         windows.emplace_back(w);
     }
 
-    // Non-floating main
-    for (auto& w : windows) {
-        if (w->m_isFloating)
-            continue; // floating are in the second pass
+    static auto PFOCUSZORDER = CConfigValue<Hyprlang::INT>("general:focus_based_zorder");
 
-        // some things may force us to ignore the special/not special disparity
-        const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
+    if (*PFOCUSZORDER) {
+        // Focus-based z-order: render all windows in focus order, regardless of tiled/floating status.
+        // Windows with higher m_focusOrder were focused more recently and render on top.
+        std::stable_sort(windows.begin(), windows.end(), [](const PHLWINDOWREF& a, const PHLWINDOWREF& b) { return a->m_focusOrder < b->m_focusOrder; });
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
-            continue;
+        // Main + popup pass for all non-pinned windows
+        for (auto& w : windows) {
+            if (w->m_pinned)
+                continue;
 
-        // render active window after all others of this pass
-        if (w == Desktop::focusState()->window()) {
-            lastWindow = w.lock();
-            continue;
+            const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
+
+            if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+                continue;
+
+            if (w->m_isFloating && pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
+                continue;
+
+            if (w->m_fadingOut) {
+                renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
+                continue;
+            }
+
+            renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
         }
+    } else {
+        // Default behavior: tiled windows first, floating on top.
 
-        // render tiled fading out after others
-        if (w->m_fadingOut) {
-            tiledFadingOut.emplace_back(w);
+        // Non-floating main
+        for (auto& w : windows) {
+            if (w->m_isFloating)
+                continue; // floating are in the second pass
+
+            // some things may force us to ignore the special/not special disparity
+            const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
+
+            if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+                continue;
+
+            // render active window after all others of this pass
+            if (w == Desktop::focusState()->window()) {
+                lastWindow = w.lock();
+                continue;
+            }
+
+            // render tiled fading out after others
+            if (w->m_fadingOut) {
+                tiledFadingOut.emplace_back(w);
+                w.reset();
+                continue;
+            }
+
+            // render the bad boy
+            renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
             w.reset();
-            continue;
         }
 
-        // render the bad boy
-        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
-        w.reset();
-    }
+        if (lastWindow)
+            renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
 
-    if (lastWindow)
-        renderWindow(lastWindow, pMonitor, time, true, RENDER_PASS_MAIN);
+        lastWindow.reset();
 
-    lastWindow.reset();
+        // render tiled windows that are fading out after other tiled to not hide them behind
+        for (auto& w : tiledFadingOut) {
+            renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
+        }
 
-    // render tiled windows that are fading out after other tiled to not hide them behind
-    for (auto& w : tiledFadingOut) {
-        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_MAIN);
-    }
+        // Non-floating popup
+        for (auto& w : windows) {
+            if (!w)
+                continue;
 
-    // Non-floating popup
-    for (auto& w : windows) {
-        if (!w)
-            continue;
+            if (w->m_isFloating)
+                continue; // floating are in the second pass
 
-        if (w->m_isFloating)
-            continue; // floating are in the second pass
+            // some things may force us to ignore the special/not special disparity
+            const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
 
-        // some things may force us to ignore the special/not special disparity
-        const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
+            if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+                continue;
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
-            continue;
+            // render the bad boy
+            renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_POPUP);
+            w.reset();
+        }
 
-        // render the bad boy
-        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_POPUP);
-        w.reset();
-    }
+        // floating on top
+        for (auto& w : windows) {
+            if (!w)
+                continue;
 
-    // floating on top
-    for (auto& w : windows) {
-        if (!w)
-            continue;
+            if (!w->m_isFloating || w->m_pinned)
+                continue;
 
-        if (!w->m_isFloating || w->m_pinned)
-            continue;
+            // some things may force us to ignore the special/not special disparity
+            const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
 
-        // some things may force us to ignore the special/not special disparity
-        const bool IGNORE_SPECIAL_CHECK = w->m_monitorMovedFrom != -1 && (w->m_workspace && !w->m_workspace->isVisible());
+            if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+                continue;
 
-        if (!IGNORE_SPECIAL_CHECK && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
-            continue;
+            if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
+                continue; // special on another are rendered as a part of the base pass
 
-        if (pWorkspace->m_isSpecialWorkspace && w->m_monitor != pWorkspace->m_monitor)
-            continue; // special on another are rendered as a part of the base pass
-
-        // render the bad boy
-        renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
+            // render the bad boy
+            renderWindow(w.lock(), pMonitor, time, true, RENDER_PASS_ALL);
+        }
     }
 }
 

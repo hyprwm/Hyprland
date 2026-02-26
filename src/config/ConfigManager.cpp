@@ -474,6 +474,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:snap:monitor_gap", Hyprlang::INT{10});
     registerConfigVar("general:snap:border_overlap", Hyprlang::INT{0});
     registerConfigVar("general:snap:respect_gaps", Hyprlang::INT{0});
+    registerConfigVar("general:focus_based_zorder", Hyprlang::INT{0});
     registerConfigVar("general:col.active_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffffff"});
     registerConfigVar("general:col.inactive_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xff444444"});
     registerConfigVar("general:col.nogroup_border", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0xffffaaff"});

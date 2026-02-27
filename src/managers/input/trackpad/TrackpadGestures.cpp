@@ -9,7 +9,7 @@
 #include <cctype>
 
 namespace {
-    staticconst std::unordered_map<std::string_view, eTrackpadGestureDirection> DIR_MAP = {
+    static const std::unordered_map<std::string_view, eTrackpadGestureDirection> DIR_MAP = {
         {"swipe",      TRACKPAD_GESTURE_DIR_SWIPE},
 
         {"left",       TRACKPAD_GESTURE_DIR_LEFT},
@@ -99,7 +99,11 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
             case TRACKPAD_GESTURE_DIR_PINCH:
             case TRACKPAD_GESTURE_DIR_PINCH_IN:
             case TRACKPAD_GESTURE_DIR_PINCH_OUT: axis = TRACKPAD_GESTURE_DIR_PINCH; break;
-            default: TRACKPAD_GESTURE_DIR_NONE; break;
+            //default: TRACKPAD_GESTURE_DIR_NONE; break;
+
+            default:
+                axis = TRACKPAD_GESTURE_DIR_NONE;
+                break;
         }
 
         if (g->direction == axis || g->direction == direction ||
@@ -123,7 +127,8 @@ std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerC
     if (IT == m_gestures.end())
         return std::unexpected("Can't remove a non-existent gesture");
 
-    std::erase(m_gestures, *IT);
+    //std::erase(m_gestures, *IT);
+    m_gestures.erase(IT);
 
     return {};
 }

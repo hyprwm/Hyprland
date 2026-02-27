@@ -10,7 +10,9 @@
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
+#include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
+#include <src/desktop/view/LayerSurface.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
 #include <src/layout/LayoutManager.hpp>
@@ -270,28 +272,63 @@ static SDispatchResult keybind(std::string in) {
     return {};
 }
 
-static Desktop::Rule::CWindowRuleEffectContainer::storageType ruleIDX = 0;
+static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
-static SDispatchResult addRule(std::string in) {
-    ruleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
+static SDispatchResult addWindowRule(std::string in) {
+    windowRuleIDX = Desktop::Rule::windowEffects()->registerEffect("plugin_rule");
 
-    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule") != ruleIDX)
+    if (Desktop::Rule::windowEffects()->registerEffect("plugin_rule") != windowRuleIDX)
         return {.success = false, .error = "re-registering returned a different id?"};
     return {};
 }
 
-static SDispatchResult checkRule(std::string in) {
+static SDispatchResult checkWindowRule(std::string in) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
 
     if (!PLASTWINDOW)
         return {.success = false, .error = "No window"};
 
-    if (!PLASTWINDOW->m_ruleApplicator->m_otherProps.props.contains(ruleIDX))
+    if (!PLASTWINDOW->m_ruleApplicator->m_otherProps.props.contains(windowRuleIDX))
         return {.success = false, .error = "No rule"};
 
-    if (PLASTWINDOW->m_ruleApplicator->m_otherProps.props[ruleIDX]->effect != "effect")
+    if (PLASTWINDOW->m_ruleApplicator->m_otherProps.props[windowRuleIDX]->effect != "effect")
         return {.success = false, .error = "Effect isn't \"effect\""};
+
+    return {};
+}
+
+static Desktop::Rule::CLayerRuleEffectContainer::storageType layerRuleIDX = 0;
+
+static SDispatchResult                                       addLayerRule(std::string in) {
+    layerRuleIDX = Desktop::Rule::layerEffects()->registerEffect("plugin_rule");
+
+    if (Desktop::Rule::layerEffects()->registerEffect("plugin_rule") != layerRuleIDX)
+        return {.success = false, .error = "re-registering returned a different id?"};
+    return {};
+}
+
+static SDispatchResult checkLayerRule(std::string in) {
+    if (g_pCompositor->m_layers.size() != 3)
+        return {.success = false, .error = "Layers under test not here"};
+
+    for (const auto& layer : g_pCompositor->m_layers) {
+        if (layer->m_namespace == "rule-waybar") {
+
+            if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
+                return {.success = false, .error = "No rule"};
+
+            if (layer->m_ruleApplicator->m_otherProps.props[layerRuleIDX]->effect != "effect")
+                return {.success = false, .error = "Effect isn't \"effect\""};
+
+        } else if (layer->m_namespace == "norule-waybar") {
+
+            if (layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
+                return {.success = false, .error = "Rule even though it shouldn't"};
+
+        } else
+            return {.success = false, .error = "Unrecognized layer"};
+    }
 
     return {};
 }
@@ -325,8 +362,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:scroll", ::scroll);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:click", ::click);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:keybind", ::keybind);
-    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_rule", ::addRule);
-    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_rule", ::checkRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_window_rule", ::addWindowRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_window_rule", ::checkWindowRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:add_layer_rule", ::addLayerRule);
+    HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:check_layer_rule", ::checkLayerRule);
     HyprlandAPI::addDispatcherV2(PHANDLE, "plugin:test:floating_focus_on_fullscreen", ::floatingFocusOnFullscreen);
 
     // init mouse

@@ -161,6 +161,7 @@ class CCompositor {
     void                                updateSuspendedStates();
     void                                onNewMonitor(SP<Aquamarine::IOutput> output);
     void                                ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensureWorkspacesOnAssignedMonitors();
     std::optional<unsigned int>         getVTNr();
     bool                                isVRRActiveOnAnyMonitor() const;
 

@@ -9,36 +9,27 @@
 #include <cctype>
 
 namespace {
-    static const std::unordered_map<std::string_view, eTrackpadGestureDirection> DIR_MAP = {
+    const std::unordered_map<std::string_view, eTrackpadGestureDirection> DIR_MAP = {
         {"swipe",      TRACKPAD_GESTURE_DIR_SWIPE},
-
         {"left",       TRACKPAD_GESTURE_DIR_LEFT},
         {"l",          TRACKPAD_GESTURE_DIR_LEFT},
-
         {"right",      TRACKPAD_GESTURE_DIR_RIGHT},
         {"r",          TRACKPAD_GESTURE_DIR_RIGHT},
-
         {"up",         TRACKPAD_GESTURE_DIR_UP},
         {"u",          TRACKPAD_GESTURE_DIR_UP},
         {"top",        TRACKPAD_GESTURE_DIR_UP},
         {"t",          TRACKPAD_GESTURE_DIR_UP},
-
         {"down",       TRACKPAD_GESTURE_DIR_DOWN},
         {"d",          TRACKPAD_GESTURE_DIR_DOWN},
         {"bottom",     TRACKPAD_GESTURE_DIR_DOWN},
         {"b",          TRACKPAD_GESTURE_DIR_DOWN},
-
         {"horizontal", TRACKPAD_GESTURE_DIR_HORIZONTAL},
         {"horiz",      TRACKPAD_GESTURE_DIR_HORIZONTAL},
-
         {"vertical",   TRACKPAD_GESTURE_DIR_VERTICAL},
         {"vert",       TRACKPAD_GESTURE_DIR_VERTICAL},
-
         {"pinch",      TRACKPAD_GESTURE_DIR_PINCH},
-
         {"pinchin",    TRACKPAD_GESTURE_DIR_PINCH_IN},
         {"zoomin",     TRACKPAD_GESTURE_DIR_PINCH_IN},
-
         {"pinchout",   TRACKPAD_GESTURE_DIR_PINCH_OUT},
         {"zoomout",    TRACKPAD_GESTURE_DIR_PINCH_OUT},
     };

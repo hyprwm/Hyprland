@@ -5,35 +5,58 @@
 #include "../../../protocols/ShortcutsInhibit.hpp"
 
 #include <ranges>
+#include <unordered_map>
+#include <cctype>
+
+namespace {
+    staticconst std::unordered_map<std::string_view, eTrackpadGestureDirection> DIR_MAP = {
+        {"swipe",      TRACKPAD_GESTURE_DIR_SWIPE},
+
+        {"left",       TRACKPAD_GESTURE_DIR_LEFT},
+        {"l",          TRACKPAD_GESTURE_DIR_LEFT},
+
+        {"right",      TRACKPAD_GESTURE_DIR_RIGHT},
+        {"r",          TRACKPAD_GESTURE_DIR_RIGHT},
+
+        {"up",         TRACKPAD_GESTURE_DIR_UP},
+        {"u",          TRACKPAD_GESTURE_DIR_UP},
+        {"top",        TRACKPAD_GESTURE_DIR_UP},
+        {"t",          TRACKPAD_GESTURE_DIR_UP},
+
+        {"down",       TRACKPAD_GESTURE_DIR_DOWN},
+        {"d",          TRACKPAD_GESTURE_DIR_DOWN},
+        {"bottom",     TRACKPAD_GESTURE_DIR_DOWN},
+        {"b",          TRACKPAD_GESTURE_DIR_DOWN},
+
+        {"horizontal", TRACKPAD_GESTURE_DIR_HORIZONTAL},
+        {"horiz",      TRACKPAD_GESTURE_DIR_HORIZONTAL},
+
+        {"vertical",   TRACKPAD_GESTURE_DIR_VERTICAL},
+        {"vert",       TRACKPAD_GESTURE_DIR_VERTICAL},
+
+        {"pinch",      TRACKPAD_GESTURE_DIR_PINCH},
+
+        {"pinchin",    TRACKPAD_GESTURE_DIR_PINCH_IN},
+        {"zoomin",     TRACKPAD_GESTURE_DIR_PINCH_IN},
+
+        {"pinchout",   TRACKPAD_GESTURE_DIR_PINCH_OUT},
+        {"zoomout",    TRACKPAD_GESTURE_DIR_PINCH_OUT},
+    };
+}
 
 void CTrackpadGestures::clearGestures() {
     m_gestures.clear();
 }
 
 eTrackpadGestureDirection CTrackpadGestures::dirForString(const std::string_view& s) {
-    std::string lc = std::string{s};
-    std::ranges::transform(lc, lc.begin(), ::tolower);
+    std::string lc{s};
 
-    if (lc == "swipe")
-        return TRACKPAD_GESTURE_DIR_SWIPE;
-    if (lc == "left" || lc == "l")
-        return TRACKPAD_GESTURE_DIR_LEFT;
-    if (lc == "right" || lc == "r")
-        return TRACKPAD_GESTURE_DIR_RIGHT;
-    if (lc == "up" || lc == "u" || lc == "top" || lc == "t")
-        return TRACKPAD_GESTURE_DIR_UP;
-    if (lc == "down" || lc == "d" || lc == "bottom" || lc == "b")
-        return TRACKPAD_GESTURE_DIR_DOWN;
-    if (lc == "horizontal" || lc == "horiz")
-        return TRACKPAD_GESTURE_DIR_HORIZONTAL;
-    if (lc == "vertical" || lc == "vert")
-        return TRACKPAD_GESTURE_DIR_VERTICAL;
-    if (lc == "pinch")
-        return TRACKPAD_GESTURE_DIR_PINCH;
-    if (lc == "pinchin" || lc == "zoomin")
-        return TRACKPAD_GESTURE_DIR_PINCH_IN;
-    if (lc == "pinchout" || lc == "zoomout")
-        return TRACKPAD_GESTURE_DIR_PINCH_OUT;
+    std::ranges::transform(lc, lc.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+
+    if (const auto it = DIR_MAP.find(lc); it != DIR_MAP.end())
+        return it->second;
 
     return TRACKPAD_GESTURE_DIR_NONE;
 }

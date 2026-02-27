@@ -23,6 +23,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
+#include "../helpers/Drm.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -1532,30 +1533,30 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
 
     auto       colorimetry = settings.getPrimaries();
     auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
-                                                                          (settings.luminances != SImageDescription::SPCLuminances{} ?
-                                                                               SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
-                                                                               SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
+                                                                    (settings.luminances != SImageDescription::SPCLuminances{} ?
+                                                                         SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
+                                                                         SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
 
     Log::logger->log(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y,
-                           colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+                     colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
     Log::logger->log(Log::TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
-              .metadata_type = 0,
-              .hdmi_metadata_type1 =
+        .metadata_type = 0,
+        .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                      .eotf          = eotf,
-                      .metadata_type = 0,
-                      .display_primaries =
-                          {
+                .eotf          = eotf,
+                .metadata_type = 0,
+                .display_primaries =
+                    {
                         {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
                         {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
                         {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
-                      .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                      .max_display_mastering_luminance = toNits(luminances.max),
-                      .min_display_mastering_luminance = toNits(luminances.min * 10000),
-                      .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
-                      .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
+                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
+                .max_display_mastering_luminance = toNits(luminances.max),
+                .min_display_mastering_luminance = toNits(luminances.min * 10000),
+                .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
+                .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
             },
     };
 }
@@ -1679,6 +1680,13 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
+
+    auto deadline =
+        pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    if (deadline) {
+        DRM::setDeadline(deadline.value(), m_currentBuffer.fence);
+        pMonitor->m_estimatedNextVblank = std::nullopt;
+    }
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
@@ -2294,16 +2302,16 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer) {
+        m_currentBuffer.buffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_currentBuffer.buffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
-        m_currentBuffer = buffer;
+        m_currentBuffer.buffer = buffer;
 
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat);
+        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer.buffer, pMonitor->m_output->state->state().drmFormat);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", pMonitor->m_name);
         return false;
@@ -2318,6 +2326,8 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);
         pMonitor->m_damage.rotate();
     }
+
+    m_currentBuffer.fence = DRM::exportFence(m_currentBuffer.buffer->dmabuf().fds[0]);
 
     m_currentRenderbuffer->bind();
     if (simple)
@@ -2338,7 +2348,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         if (m_currentRenderbuffer)
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
+        m_currentBuffer       = {};
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
@@ -2353,7 +2363,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
         return;
 
     if (m_renderMode == RENDER_MODE_NORMAL)
-        PMONITOR->m_output->state->setBuffer(m_currentBuffer);
+        PMONITOR->m_output->state->setBuffer(m_currentBuffer.buffer);
 
     if (!g_pHyprOpenGL->explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");

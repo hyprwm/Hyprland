@@ -63,5 +63,8 @@ namespace Layout {
 
         // work area is in global coords
         CBox m_workArea, m_floatingWorkArea;
+
+        // for recalc
+        CHyprSignalListener m_geomUpdateCallback;
     };
 };

@@ -6,6 +6,7 @@
 #include "../../debug/log/Logger.hpp"
 #include "../../desktop/Workspace.hpp"
 #include "../../config/ConfigManager.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Layout;
 
@@ -17,6 +18,12 @@ SP<CSpace> CSpace::create(PHLWORKSPACE w) {
 
 CSpace::CSpace(PHLWORKSPACE parent) : m_parent(parent) {
     recheckWorkArea();
+
+    // NOLINTNEXTLINE
+    m_geomUpdateCallback = Event::bus()->m_events.monitor.layoutChanged.listen([this] {
+        recheckWorkArea();
+        m_algorithm->recalculate();
+    });
 }
 
 void CSpace::add(SP<ITarget> t) {

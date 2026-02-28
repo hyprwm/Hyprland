@@ -33,6 +33,19 @@ static void swar() {
     Tests::killAllWindows();
 }
 
+// Don't crash when focus after global geometry changes
+static void testCrashOnGeomUpdate() {
+    Tests::spawnKitty();
+    Tests::spawnKitty();
+    Tests::spawnKitty();
+
+    // move the layout
+    OK(getFromSocket("/keyword monitor HEADLESS-2,1920x1080@60,1000x0,1"));
+
+    // shouldnt crash
+    OK(getFromSocket("/dispatch movefocus r"));
+}
+
 static bool test() {
     NLog::log("{}Testing layout generic", Colors::GREEN);
 
@@ -42,6 +55,8 @@ static bool test() {
     // test
     NLog::log("{}Testing `single_window_aspect_ratio`", Colors::GREEN);
     swar();
+
+    testCrashOnGeomUpdate();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

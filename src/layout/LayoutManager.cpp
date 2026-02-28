@@ -11,13 +11,7 @@
 
 using namespace Layout;
 
-CLayoutManager::CLayoutManager() {
-    static auto P = Event::bus()->m_events.monitor.layoutChanged.listen([] {
-        for (const auto& ws : g_pCompositor->getWorkspaces()) {
-            ws->m_space->recheckWorkArea();
-        }
-    });
-}
+CLayoutManager::CLayoutManager() = default;
 
 void CLayoutManager::newTarget(SP<ITarget> target, SP<CSpace> space) {
     // on a new target: remember desired pos for float, if available

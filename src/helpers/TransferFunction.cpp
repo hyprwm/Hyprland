@@ -26,7 +26,10 @@ std::string NTransferFunction::toString(eTF tf) {
     return "";
 }
 
-eTF NTransferFunction::fromConfig() {
+eTF NTransferFunction::fromConfig(bool useICC) {
+    if (useICC)
+        return TF_SRGB;
+
     static auto PSDREOTF = CConfigValue<Hyprlang::STRING>("render:cm_sdr_eotf");
     static auto sdrEOTF  = NTransferFunction::fromString(*PSDREOTF);
     static auto P        = Event::bus()->m_events.config.reloaded.listen([]() { sdrEOTF = NTransferFunction::fromString(*PSDREOTF); });

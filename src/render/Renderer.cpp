@@ -41,7 +41,6 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "../event/EventBus.hpp"
 #include "render/OpenGL.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -1260,6 +1259,79 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
     }
 }
 
+static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
+    // might be too strict
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22) &&
+        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
+         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
+}
+
+static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
+    // might be too strict
+    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
+            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
+        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
+         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+}
+
+SCMSettings CHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                         SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
+    const auto                          sdrEOTF = NTransferFunction::fromConfig();
+    NColorManagement::eTransferFunction srcTF;
+
+    auto&                               m_renderData = g_pHyprOpenGL->m_renderData;
+    if (m_renderData.surface.valid()) {
+        if (m_renderData.surface->m_colorManagement.valid()) {
+            if (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && imageDescription->value().transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB)
+                srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22;
+            else
+                srcTF = imageDescription->value().transferFunction;
+        } else if (sdrEOTF == NTransferFunction::TF_SRGB)
+            srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB;
+        else if (sdrEOTF == NTransferFunction::TF_GAMMA22 || sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22)
+            srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22;
+        else
+            srcTF = imageDescription->value().transferFunction;
+    } else
+        srcTF = imageDescription->value().transferFunction;
+
+    const bool  needsSDRmod     = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
+    const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
+    const float maxLuminance    = needsHDRmod ?
+           imageDescription->value().getTFMaxLuminance(-1) :
+           (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+    const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
+
+    auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
+    auto        toXYZ  = targetImageDescription->getPrimaries()->value().toXYZ();
+
+    const bool needsMod = (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+        targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+        ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
+         (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
+
+    return {
+        .sourceTF        = srcTF,
+        .targetTF        = targetImageDescription->value().transferFunction,
+        .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                            .max = imageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
+        .dstTFRange      = {.min = targetImageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
+                            .max = targetImageDescription->value().getTFMaxLuminance(needsSDRmod ? sdrMaxLuminance : -1)},
+        .srcRefLuminance = imageDescription->value().luminances.reference,
+        .dstRefLuminance = targetImageDescription->value().luminances.reference,
+        .convertMatrix   = matrix.mat(),
+
+        .needsTonemap            = maxLuminance >= dstMaxLuminance * 1.01,
+        .maxLuminance            = maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
+        .dstMaxLuminance         = dstMaxLuminance,
+        .dstPrimaries2XYZ        = toXYZ.mat(),
+        .needsSDRmod             = needsMod,
+        .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
+        .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
+    };
+}
+
 void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
@@ -2200,10 +2272,8 @@ std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonito
     float      maxRenderTime = 0;
     float      minRenderTime = 9999;
     for (auto const& rt : POVERLAY->m_lastRenderTimes) {
-        if (rt > maxRenderTime)
-            maxRenderTime = rt;
-        if (rt < minRenderTime)
-            minRenderTime = rt;
+        maxRenderTime = std::max(rt, maxRenderTime);
+        minRenderTime = std::min(rt, minRenderTime);
         avgRenderTime += rt;
     }
     avgRenderTime /= POVERLAY->m_lastRenderTimes.empty() ? 1 : POVERLAY->m_lastRenderTimes.size();
@@ -2728,4 +2798,8 @@ bool CHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
     static CConfigValue PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
     return *PBLURPOPUPS && *PBLUR;
+}
+
+bool CHyprRenderer::reloadShaders(const std::string& path) {
+    return g_pHyprOpenGL->initShaders(path);
 }

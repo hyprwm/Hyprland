@@ -2049,7 +2049,12 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
-    if (g_pHyprOpenGL->initShaders())
+    CVarList vars(request, 0, ' ');
+
+    if (vars.size() > 2)
+        return "too many args";
+
+    if (g_pHyprOpenGL && g_pHyprRenderer->reloadShaders(vars.size() == 2 ? vars[1] : ""))
         return format == FORMAT_JSON ? "{\"ok\": true}" : "ok";
     else
         return format == FORMAT_JSON ? "{\"ok\": false}" : "error";
@@ -2076,8 +2081,8 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
     registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
-    registerCommand(SHyprCtlCommand{.name = "reloadshaders", .exact = true, .fn = reloadShaders});
 
+    registerCommand(SHyprCtlCommand{.name = "reloadshaders", .exact = false, .fn = reloadShaders});
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
     registerCommand(SHyprCtlCommand{"reload", false, reloadRequest});
     registerCommand(SHyprCtlCommand{"plugin", false, dispatchPlugin});

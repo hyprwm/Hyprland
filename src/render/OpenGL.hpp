@@ -31,6 +31,7 @@
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
+#include "render/ShaderLoader.hpp"
 
 struct gbm_device;
 class CHyprRenderer;
@@ -87,54 +88,23 @@ enum eMonitorExtraRenderFBs : uint8_t {
     FB_MONITOR_RENDER_EXTRA_BLUR,
 };
 
-enum ePreparedFragmentShader : uint8_t {
-    SH_FRAG_QUAD = 0,
-    SH_FRAG_PASSTHRURGBA,
-    SH_FRAG_MATTE,
-    SH_FRAG_EXT,
-    SH_FRAG_BLUR1,
-    SH_FRAG_BLUR2,
-    SH_FRAG_CM_BLURPREPARE,
-    SH_FRAG_BLURPREPARE,
-    SH_FRAG_BLURFINISH,
-    SH_FRAG_SHADOW,
-    SH_FRAG_CM_BORDER1,
-    SH_FRAG_BORDER1,
-    SH_FRAG_GLITCH,
-
-    SH_FRAG_LAST,
-};
-
-enum ePreparedFragmentShaderFeature : uint8_t {
-    SH_FEAT_UNKNOWN = 0, // all features just in case
-
-    SH_FEAT_RGBA     = (1 << 0), // RGBA/RGBX texture sampling
-    SH_FEAT_DISCARD  = (1 << 1), // RGBA/RGBX texture sampling
-    SH_FEAT_TINT     = (1 << 2), // uniforms: tint; condition: applyTint
-    SH_FEAT_ROUNDING = (1 << 3), // uniforms: radius, roundingPower, topLeft, fullSize; condition: radius > 0
-    SH_FEAT_CM       = (1 << 4), // uniforms: srcTFRange, dstTFRange, srcRefLuminance, convertMatrix; condition: !skipCM
-    SH_FEAT_TONEMAP  = (1 << 5), // uniforms: maxLuminance, dstMaxLuminance, dstRefLuminance; condition: maxLuminance < dstMaxLuminance * 1.01
-    SH_FEAT_SDR_MOD  = (1 << 6), // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
-
-    // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
-};
-
 struct SFragShaderDesc {
     ePreparedFragmentShader id;
     const char*             file;
 };
 
 struct SPreparedShaders {
-    SPreparedShaders() {
-        for (auto& f : frag) {
-            f = makeShared<CShader>();
-        }
-    }
+    // SPreparedShaders() {
+    //     for (auto& f : frag) {
+    //         f = makeShared<CShader>();
+    //     }
+    // }
 
-    std::string                           TEXVERTSRC;
-    std::string                           TEXVERTSRC320;
-    std::array<SP<CShader>, SH_FRAG_LAST> frag;
-    std::map<uint8_t, SP<CShader>>        fragVariants;
+    std::string TEXVERTSRC;
+    std::string TEXVERTSRC320;
+    // std::array<SP<CShader>, SH_FRAG_LAST> frag;
+    // std::map<uint8_t, SP<CShader>>        fragVariants;
+    std::array<std::map<ShaderFeatureFlags, SP<CShader>>, SH_FRAG_LAST> fragVariants;
 };
 
 struct SMonitorRenderData {
@@ -242,6 +212,8 @@ class CHyprOpenGLImpl {
         bool                   cmBackToSRGB   = false;
         bool                   noCM           = false;
         bool                   finalMonitorCM = false;
+        SP<CMonitor>           cmBackToSRGBSource;
+        SP<CTexture>           blurredBG;
     };
 
     struct SBorderRenderData {
@@ -316,18 +288,15 @@ class CHyprOpenGLImpl {
     std::vector<uint64_t>                             getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                       createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
-    bool                                              initShaders();
+    bool                                              initShaders(const std::string& path = "");
 
     WP<CShader>                                       useShader(WP<CShader> prog);
 
-    void                                              ensureLockTexturesRendered(bool load);
-
     bool                                              explicitSyncSupported();
-    WP<CShader>                                       getSurfaceShader(uint8_t features);
+    WP<CShader>                                       getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features = 0);
 
     bool                                              m_shadersInitialized = false;
     SP<SPreparedShaders>                              m_shaders;
-    std::map<std::string, std::string>                m_includes;
 
     SCurrentRenderData                                m_renderData;
 
@@ -431,6 +400,7 @@ class CHyprOpenGLImpl {
     void                              initEGL(bool gbm);
     EGLDeviceEXT                      eglDeviceFromDRMFD(int drmFD);
     void                              initAssets();
+    void                              ensureLockTexturesRendered(bool load);
     void                              initMissingAssetTexture();
     void                              requestBackgroundResource();
 
@@ -454,6 +424,8 @@ class CHyprOpenGLImpl {
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
+    WP<CShader>   renderToOutputInternal();
+    WP<CShader>   renderToFBInternal(const STextureRenderData& data, eTextureType texType, const CBox& newBox);
     void          renderTextureInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
     void          renderTextureWithBlurInternal(SP<CTexture>, const CBox&, const STextureRenderData& data);
 

@@ -1,7 +1,10 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <hyprgraphics/color/Color.hpp>
+#include <hyprutils/math/Box.hpp>
 #include <list>
+#include <optional>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "OpenGL.hpp"
@@ -16,6 +19,14 @@ class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
+
+const std::vector<const char*> ASSET_PATHS = {
+#ifdef DATAROOTDIR
+    DATAROOTDIR,
+#endif
+    "/usr/share",
+    "/usr/local/share",
+};
 class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
@@ -46,6 +57,29 @@ enum eRenderMode : uint8_t {
 struct SRenderWorkspaceUntilData {
     PHLLS     ls;
     PHLWINDOW w;
+};
+
+struct STFRange {
+    float min = 0;
+    float max = 80;
+};
+
+struct SCMSettings {
+    NColorManagement::eTransferFunction  sourceTF = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
+    NColorManagement::eTransferFunction  targetTF = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
+    STFRange                             srcTFRange;
+    STFRange                             dstTFRange;
+    float                                srcRefLuminance = 80;
+    float                                dstRefLuminance = 80;
+    std::array<std::array<double, 3>, 3> convertMatrix;
+
+    bool                                 needsTonemap    = false;
+    float                                maxLuminance    = 80;
+    float                                dstMaxLuminance = 80;
+    std::array<std::array<double, 3>, 3> dstPrimaries2XYZ;
+    bool                                 needsSDRmod             = false;
+    float                                sdrSaturation           = 1.0;
+    float                                sdrBrightnessMultiplier = 1.0;
 };
 
 class CHyprRenderer {
@@ -120,6 +154,10 @@ class CHyprRenderer {
     } m_lastCursorData;
 
     CRenderPass m_renderPass = {};
+
+    SCMSettings getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                              SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+    bool        reloadShaders(const std::string& path = "");
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

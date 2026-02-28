@@ -11,7 +11,6 @@ class CFramebufferElement : public IPassElement {
     CFramebufferElement(const SFramebufferElementData& data_);
     virtual ~CFramebufferElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
     virtual bool        undiscardable();
@@ -20,6 +19,9 @@ class CFramebufferElement : public IPassElement {
         return "CFramebufferElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_FRAMEBUFFER;
+    };
+
     SFramebufferElementData m_data;
 };

@@ -1,5 +1,6 @@
 #pragma once
 #include "PassElement.hpp"
+#include <hyprutils/math/Region.hpp>
 
 class CRectPassElement : public IPassElement {
   public:
@@ -16,7 +17,6 @@ class CRectPassElement : public IPassElement {
     CRectPassElement(const SRectData& data);
     virtual ~CRectPassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -26,6 +26,9 @@ class CRectPassElement : public IPassElement {
         return "CRectPassElement";
     }
 
-  private:
+    virtual ePassElementKind kind() {
+        return EK_RECT;
+    };
+
     SRectData m_data;
 };

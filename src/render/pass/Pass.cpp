@@ -190,7 +190,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         }
 
         g_pHyprOpenGL->m_renderData.damage = el->elementDamage;
-        el->element->draw(el->elementDamage);
+        g_pHyprRenderer->draw(el->element, el->elementDamage);
     }
 
     if (*PDEBUGPASS) {

@@ -6,7 +6,6 @@ class CPreBlurElement : public IPassElement {
     CPreBlurElement();
     virtual ~CPreBlurElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
     virtual bool        disableSimplification();
@@ -15,4 +14,8 @@ class CPreBlurElement : public IPassElement {
     virtual const char* passName() {
         return "CPreBlurElement";
     }
+
+    virtual ePassElementKind kind() {
+        return EK_PRE_BLUR;
+    };
 };

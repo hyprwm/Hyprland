@@ -18,6 +18,7 @@
 #include "../helpers/time/Time.hpp"
 #include "../helpers/Drm.hpp"
 #include "../event/EventBus.hpp"
+#include <climits>
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>

@@ -1462,6 +1462,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
         PMWSOWNER->m_activeSpecialWorkspace.reset();
         g_layoutManager->recalculateMonitor(PMWSOWNER);
+        g_pHyprRenderer->damageMonitor(PMWSOWNER);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
 

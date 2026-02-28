@@ -17,7 +17,7 @@
 #define HDR_REF_LUMINANCE 203.0
 #define HLG_MAX_LUMINANCE 1000.0
 
-class CTexture;
+class ITexture;
 
 namespace NColorManagement {
     enum eNoShader : uint8_t {
@@ -219,7 +219,7 @@ namespace NColorManagement {
             bool                        present = false;
             size_t                      lutSize = 33;
             std::vector<float>          lutDataPacked;
-            SP<CTexture>                lutTexture;
+            SP<ITexture>                lutTexture;
             std::optional<SVCGTTable16> vcgt;
         } icc;
 

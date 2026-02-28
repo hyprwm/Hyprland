@@ -6,7 +6,7 @@ CFramebufferElement::CFramebufferElement(const CFramebufferElement::SFramebuffer
 }
 
 void CFramebufferElement::draw(const CRegion& damage) {
-    CFramebuffer* fb = nullptr;
+    SP<IFramebuffer> fb = nullptr;
 
     if (m_data.main) {
         switch (m_data.framebufferID) {
@@ -22,12 +22,12 @@ void CFramebufferElement::draw(const CRegion& damage) {
 
     } else {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = &g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offloadFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offMainFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->monitorMirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB; break;
         }
 
         if (!fb) {

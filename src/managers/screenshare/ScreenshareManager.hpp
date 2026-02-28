@@ -75,7 +75,7 @@ namespace Screenshare {
         std::vector<DRMFormat>  m_formats;
         Vector2D                m_bufferSize = Vector2D(0, 0);
 
-        CFramebuffer            m_tempFB;
+        SP<IFramebuffer>        m_tempFB;
 
         SP<CEventLoopTimer>     m_shareStopTimer;
         bool                    m_sharing = false;

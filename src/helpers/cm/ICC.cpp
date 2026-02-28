@@ -226,7 +226,7 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
     Log::logger->log(Log::DEBUG, "3D LUT constructed, size {}", image.icc.lutDataPacked.size());
 
     // upload
-    image.icc.lutTexture = makeShared<CTexture>(image.icc.lutDataPacked, image.icc.lutSize);
+    image.icc.lutTexture = g_pHyprRenderer->createTexture(image.icc.lutDataPacked, image.icc.lutSize);
 
     return {};
 }

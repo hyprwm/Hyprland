@@ -169,10 +169,10 @@ bool CCursorshareSession::copy() {
             return false;
         }
 
-        CFramebuffer outFB;
-        outFB.alloc(m_bufferSize.x, m_bufferSize.y, m_format);
+        auto outFB = g_pHyprRenderer->createFB();
+        outFB->alloc(m_bufferSize.x, m_bufferSize.y, m_format);
 
-        if (!g_pHyprRenderer->beginRender(m_pendingFrame.monitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB, true)) {
+        if (!g_pHyprRenderer->beginRender(m_pendingFrame.monitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, outFB, true)) {
             LOGM(Log::ERR, "Can't copy: failed to begin rendering to shm");
             return false;
         }
@@ -182,8 +182,8 @@ bool CCursorshareSession::copy() {
         g_pHyprRenderer->endRender();
 
         g_pHyprOpenGL->m_renderData.pMonitor = m_pendingFrame.monitor;
-        outFB.bind();
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
+        outFB->bind();
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
 
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -212,7 +212,7 @@ bool CCursorshareSession::copy() {
         g_pHyprOpenGL->m_renderData.pMonitor.reset();
 
         m_pendingFrame.buffer->endDataPtr();
-        outFB.unbind();
+        GLFB(outFB)->unbind();
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

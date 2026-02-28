@@ -3,6 +3,7 @@
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
+#include <cmath>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
@@ -29,10 +30,12 @@
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "../event/EventBus.hpp"
 #include "helpers/CursorShapes.hpp"
+#include "helpers/MainLoopExecutor.hpp"
 #include "helpers/Monitor.hpp"
-#include "helpers/cm/ColorManagement.hpp"
+#include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -42,7 +45,18 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "render/AsyncResourceGatherer.hpp"
+#include "render/Framebuffer.hpp"
 #include "render/OpenGL.hpp"
+#include "render/Texture.hpp"
+#include "render/gl/GLFramebuffer.hpp"
+#include "render/gl/GLTexture.hpp"
+#include <hyprutils/math/Mat3x3.hpp>
+#include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
+#include <hyprutils/memory/SharedPtr.hpp>
+#include <optional>
+#include <pango/pangocairo.h>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -643,13 +657,13 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            CFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB;
+            IFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB.get();
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
 
             g_pHyprOpenGL->bindBackOnMain();
-            g_pHyprOpenGL->renderOffToMain(last);
+            g_pHyprOpenGL->renderOffToMain(dc<CGLFramebuffer*>(last));
         }
     }
 
@@ -731,6 +745,36 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
 
     g_pHyprOpenGL->m_renderData.currentWindow.reset();
+}
+
+SP<ITexture> CHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
+    if (!buffer)
+        return createTexture();
+
+    auto attrs = buffer->dmabuf();
+
+    if (!attrs.success) {
+        // attempt shm
+        auto shm = buffer->shm();
+
+        if (!shm.success) {
+            Log::logger->log(Log::ERR, "Cannot create a texture: buffer has no dmabuf or shm");
+            return createTexture(buffer->opaque);
+        }
+
+        auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0);
+
+        return createTexture(fmt, pixelData, bufLen, shm.size, keepDataCopy, buffer->opaque);
+    }
+
+    auto tex = createTexture(attrs, buffer->opaque);
+
+    if (!tex) {
+        Log::logger->log(Log::ERR, "Cannot create a texture: failed to create an Image");
+        return createTexture(buffer->opaque);
+    }
+
+    return tex;
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -2313,13 +2357,13 @@ void CHyprRenderer::initiateManualCrash() {
     **PDT = 0;
 }
 
-SP<CRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
     if (it != m_renderbuffers.end())
         return *it;
 
-    auto buf = makeShared<CRenderbuffer>(buffer, fmt);
+    auto buf = makeShared<CGLRenderbuffer>(buffer, fmt);
 
     if (!buf->good())
         return nullptr;
@@ -2343,7 +2387,7 @@ void CHyprRenderer::unsetEGL() {
     eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, CFramebuffer* fb, bool simple) {
+bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
 
     makeEGLCurrent();
 
@@ -2475,11 +2519,11 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
-void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
+void CHyprRenderer::onRenderbufferDestroy(CGLRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
 
-SP<CRenderbuffer> CHyprRenderer::getCurrentRBO() {
+SP<IRenderbuffer> CHyprRenderer::getCurrentRBO() {
     return m_currentRenderbuffer;
 }
 
@@ -2532,7 +2576,10 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_windowFramebuffers[ref];
+    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
+        g_pHyprOpenGL->m_windowFramebuffers[ref] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_windowFramebuffers[ref];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2565,7 +2612,10 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_layerFramebuffers[pLayer];
+    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
+        g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_layerFramebuffers[pLayer];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2599,7 +2649,10 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     makeEGLCurrent();
 
-    const auto PFRAMEBUFFER = &g_pHyprOpenGL->m_popupFramebuffers[popup];
+    if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
+        g_pHyprOpenGL->m_popupFramebuffers[popup] = g_pHyprRenderer->createFB();
+
+    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_popupFramebuffers[popup];
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2648,7 +2701,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
         return;
 
-    const auto FBDATA = &g_pHyprOpenGL->m_windowFramebuffers.at(ref);
+    const auto FBDATA = g_pHyprOpenGL->m_windowFramebuffers.at(ref);
 
     if (!FBDATA->getTexture())
         return;
@@ -2704,7 +2757,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
         return;
 
-    const auto FBDATA = &g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
+    const auto FBDATA = g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
 
     if (!FBDATA->getTexture())
         return;
@@ -2748,7 +2801,7 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-    const auto          FBDATA = &g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto          FBDATA = g_pHyprOpenGL->m_popupFramebuffers.at(popup);
 
     if (!FBDATA->getTexture())
         return;
@@ -2813,4 +2866,89 @@ bool CHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
 
 bool CHyprRenderer::reloadShaders(const std::string& path) {
     return g_pHyprOpenGL->initShaders(path);
+}
+
+SP<ITexture> CHyprRenderer::createStencilTexture(const int width, const int height) {
+    makeEGLCurrent();
+    auto tex = makeShared<CGLTexture>();
+    tex->allocate({width, height});
+
+    return tex;
+}
+
+SP<ITexture> CHyprRenderer::createTexture(bool opaque) {
+    makeEGLCurrent();
+    return makeShared<CGLTexture>(opaque);
+}
+
+SP<ITexture> CHyprRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+    makeEGLCurrent();
+    return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
+}
+
+SP<ITexture> CHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
+    makeEGLCurrent();
+    const auto image = g_pHyprOpenGL->createEGLImage(attrs);
+    if (!image)
+        return nullptr;
+    return makeShared<CGLTexture>(attrs, image, opaque);
+}
+
+SP<ITexture> CHyprRenderer::createTexture(const int width, const int height, unsigned char* const data) {
+    makeEGLCurrent();
+    SP<ITexture> tex = makeShared<CGLTexture>();
+
+    tex->allocate({width, height});
+
+    tex->m_size = {width, height};
+    // copy the data to an OpenGL texture we have
+    const GLint glFormat = GL_RGBA;
+    const GLint glType   = GL_UNSIGNED_BYTE;
+
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, data);
+    tex->unbind();
+
+    return tex;
+}
+
+SP<ITexture> CHyprRenderer::createTexture(cairo_surface_t* cairo) {
+    makeEGLCurrent();
+    const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
+    auto       tex         = makeShared<CGLTexture>();
+
+    tex->allocate({cairo_image_surface_get_width(cairo), cairo_image_surface_get_height(cairo)});
+
+    const GLint glIFormat = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB32F : GL_RGBA;
+    const GLint glFormat  = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_RGB : GL_RGBA;
+    const GLint glType    = CAIROFORMAT == CAIRO_FORMAT_RGB96F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+
+    const auto  DATA = cairo_image_surface_get_data(cairo);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+        tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
+
+    return tex;
+}
+
+SP<ITexture> CHyprRenderer::createTexture(std::span<const float> lut3D, size_t N) {
+    makeEGLCurrent();
+    return makeShared<CGLTexture>(lut3D, N);
+}
+
+SP<IFramebuffer> CHyprRenderer::createFB(const std::string& name) {
+    makeEGLCurrent();
+    return makeShared<CGLFramebuffer>(name);
 }

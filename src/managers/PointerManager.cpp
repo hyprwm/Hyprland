@@ -8,6 +8,7 @@
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "debug/log/Logger.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -22,6 +23,8 @@
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
+#include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
@@ -407,7 +410,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     return true;
 }
 
-SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
+SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<ITexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
@@ -900,13 +903,13 @@ const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
     return m_currentCursorImage;
 }
 
-SP<CTexture> CPointerManager::getCurrentCursorTexture() {
+SP<ITexture> CPointerManager::getCurrentCursorTexture() {
     if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
         return nullptr;
 
     if (m_currentCursorImage.pBuffer) {
         if (!m_currentCursorImage.bufferTex)
-            m_currentCursorImage.bufferTex = makeShared<CTexture>(m_currentCursorImage.pBuffer, true);
+            m_currentCursorImage.bufferTex = g_pHyprRenderer->createTexture(m_currentCursorImage.pBuffer, true);
         return m_currentCursorImage.bufferTex;
     }
 

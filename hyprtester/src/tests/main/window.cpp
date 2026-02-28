@@ -93,9 +93,9 @@ static void testSwapWindow() {
     {
         getFromSocket("/dispatch focuswindow class:kitty_A");
         auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
-        NLog::log("{}Testing kitty_A {}, swapwindow with direction 'l'", Colors::YELLOW, pos);
+        NLog::log("{}Testing kitty_A {}, swapwindow with direction 'r'", Colors::YELLOW, pos);
 
-        OK(getFromSocket("/dispatch swapwindow l"));
+        OK(getFromSocket("/dispatch swapwindow r"));
         OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
 
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", pos));

@@ -18,6 +18,7 @@ nopch:
 clear:
 	rm -rf build
 	rm -f ./protocols/*.h ./protocols/*.c ./protocols/*.cpp ./protocols/*.hpp
+	rm -f ./hyprctl/hw-protocols/*.cpp ./hyprctl/hw-protocols/*.hpp
 
 all:
 	$(MAKE) clear

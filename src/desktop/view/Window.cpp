@@ -277,7 +277,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
 
     // fucker fucking fuck
     const auto  WORKAREA = m_workspace->m_space->workArea();
-    const auto& RESERVED = PMONITOR->m_reservedArea;
+    const auto& RESERVED = CReservedArea(PMONITOR->logicalBox(), WORKAREA);
 
     if (DELTALESSTHAN(POS.x, WORKAREA.x, 1)) {
         POS.x -= RESERVED.left();

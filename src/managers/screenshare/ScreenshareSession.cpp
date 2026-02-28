@@ -99,7 +99,7 @@ void CScreenshareSession::calculateConstraints() {
             m_name       = PMONITOR->m_name;
             break;
         case SHARE_WINDOW:
-            m_bufferSize = m_window->m_realSize->value().round();
+            m_bufferSize = (m_window->m_realSize->value() * PMONITOR->m_scale).round();
             m_name       = m_window->m_title;
             break;
         case SHARE_REGION:

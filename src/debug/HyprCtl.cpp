@@ -2210,16 +2210,38 @@ std::string CHyprCtl::makeDynamicCall(const std::string& input) {
 }
 
 static bool successWrite(int fd, const std::string& data, bool needLog = true) {
-    if (write(fd, data.c_str(), data.length()) > 0)
-        return true;
+    size_t                 totalWritten = 0;
+    size_t                 remaining    = data.length();
+    size_t                 waitsDone    = 0;
+    constexpr const size_t MAX_WAITS    = 20; // 2000µs = 2ms
 
-    if (errno == EAGAIN)
-        return true;
+    while (totalWritten < data.length()) {
+        ssize_t written = write(fd, data.c_str() + totalWritten, remaining);
 
-    if (needLog)
-        Log::logger->log(Log::ERR, "Couldn't write to socket. Error: " + std::string(strerror(errno)));
+        if (waitsDone > MAX_WAITS) {
+            Log::logger->log(Log::ERR, "Couldn't write to socket. Buffer was full and the client couldn't read in time.");
+            return false;
+        }
 
-    return false;
+        if (written < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // socket buffer full, wait a bit and retry
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+                waitsDone++;
+                continue;
+            }
+            if (needLog)
+                Log::logger->log(Log::ERR, "Couldn't write to socket. Error: {}", strerror(errno));
+            return false;
+        }
+
+        waitsDone = 0;
+
+        totalWritten += written;
+        remaining -= written;
+    }
+
+    return true;
 }
 
 static void runWritingDebugLogThread(const int conn) {

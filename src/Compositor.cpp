@@ -3067,6 +3067,27 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
     }
 }
 
+void CCompositor::ensureWorkspacesOnAssignedMonitors() {
+    for (auto const& ws : getWorkspacesCopy()) {
+        if (!valid(ws) || ws->m_isSpecialWorkspace)
+            continue;
+
+        const auto RULE = g_pConfigManager->getWorkspaceRuleFor(ws);
+        if (RULE.monitor.empty())
+            continue;
+
+        const auto PMONITOR = getMonitorFromString(RULE.monitor);
+        if (!PMONITOR)
+            continue;
+
+        if (ws->m_monitor == PMONITOR)
+            continue;
+
+        Log::logger->log(Log::DEBUG, "ensureWorkspacesOnAssignedMonitors: moving workspace {} to {}", ws->m_name, PMONITOR->m_name);
+        moveWorkspaceToMonitor(ws, PMONITOR, true);
+    }
+}
+
 std::optional<unsigned int> CCompositor::getVTNr() {
     if (!m_aqBackend->hasSession())
         return std::nullopt;

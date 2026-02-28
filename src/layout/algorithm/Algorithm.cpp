@@ -42,16 +42,16 @@ void CAlgorithm::removeTarget(SP<ITarget> target) {
     const bool IS_FLOATING = std::ranges::contains(m_floatingTargets, target);
 
     if (IS_FLOATING) {
-        m_floating->removeTarget(target);
         std::erase(m_floatingTargets, target);
+        m_floating->removeTarget(target);
         return;
     }
 
     const bool IS_TILED = std::ranges::contains(m_tiledTargets, target);
 
     if (IS_TILED) {
-        m_tiled->removeTarget(target);
         std::erase(m_tiledTargets, target);
+        m_tiled->removeTarget(target);
         return;
     }
 

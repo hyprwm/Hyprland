@@ -566,6 +566,53 @@ static bool testWindowRuleFocusOnActivate() {
     return true;
 }
 
+// tests if a pinned window contains the valid workspace after change
+static bool testPinnedWorkspacesValid() {
+    OK(getFromSocket("/reload"));
+    getFromSocket("/dispatch workspace 1337");
+
+    if (!spawnKitty("kitty")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    OK(getFromSocket("/dispatch setfloating class:kitty"));
+    OK(getFromSocket("/dispatch pin class:kitty"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1337"), true);
+        EXPECT(str.contains("pinned: 1"), true);
+    }
+
+    getFromSocket("/dispatch workspace 1338");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1338"), true);
+        EXPECT(str.contains("pinned: 1"), true);
+    }
+
+    OK(getFromSocket("/dispatch settiled class:kitty"))
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1338"), true);
+        EXPECT(str.contains("pinned: 0"), true);
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -1028,6 +1075,7 @@ static bool test() {
     testGroupFallbackFocus();
     testInitialFloatSize();
     testWindowRuleFocusOnActivate();
+    testPinnedWorkspacesValid();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

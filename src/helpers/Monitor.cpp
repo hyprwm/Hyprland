@@ -1343,7 +1343,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
         // move pinned windows
         for (auto const& w : g_pCompositor->m_windows) {
             if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
-                w->moveToWorkspace(pWorkspace);
+                w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
 
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&

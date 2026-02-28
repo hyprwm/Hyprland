@@ -127,6 +127,34 @@ static bool test() {
         ret = 1;
     }
 
+    // test movegroupwindow: focus should follow the moved window
+    NLog::log("{}Test movegroupwindow focus follows window", Colors::YELLOW);
+    try {
+        auto str              = getFromSocket("/activewindow");
+        auto activeBeforeMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
+        OK(getFromSocket("/dispatch movegroupwindow f"));
+        str                  = getFromSocket("/activewindow");
+        auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
+        EXPECT(activeAfterMove, activeBeforeMove);
+    } catch (...) {
+        NLog::log("{}Fail at getting prop", Colors::RED);
+        ret = 1;
+    }
+
+    // and backwards
+    NLog::log("{}Test movegroupwindow backwards", Colors::YELLOW);
+    try {
+        auto str              = getFromSocket("/activewindow");
+        auto activeBeforeMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
+        OK(getFromSocket("/dispatch movegroupwindow b"));
+        str                  = getFromSocket("/activewindow");
+        auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
+        EXPECT(activeAfterMove, activeBeforeMove);
+    } catch (...) {
+        NLog::log("{}Fail at getting prop", Colors::RED);
+        ret = 1;
+    }
+
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
     OK(getFromSocket("/keyword group:auto_group false"));
 

@@ -102,7 +102,16 @@ std::string CShaderLoader::processSource(const std::string& source, glslang_stag
         return source;
     }
 
-    return glslang_shader_get_preprocessed_code(shader);
+    std::stringstream stream(glslang_shader_get_preprocessed_code(shader));
+    std::string       code = "";
+    std::string       line;
+
+    while (std::getline(stream, line)) {
+        if (!line.starts_with("#line "))
+            code += line + "\n";
+    }
+
+    return code;
 }
 
 std::string CShaderLoader::process(const std::string& filename) {

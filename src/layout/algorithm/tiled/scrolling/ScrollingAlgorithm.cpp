@@ -190,10 +190,12 @@ size_t SColumnData::idx(SP<ITarget> t) {
 }
 
 size_t SColumnData::idxForHeight(float y) {
+    if (targetDatas.empty())
+        return 0;
     for (size_t i = 0; i < targetDatas.size(); ++i) {
         if (targetDatas[i]->target->position().y < y)
             continue;
-        return i - 1;
+        return i == 0 ? 0 : i - 1;
     }
     return targetDatas.size() - 1;
 }

@@ -1947,11 +1947,11 @@ void CWindow::mapWindow() {
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
     Event::bus()->m_events.window.openEarly.emit(m_self.lock());
 
-    if (*PAUTOGROUP                                                              // auto_group enabled
-        && Desktop::focusState()->window()                                       // focused window exists
-        && canBeGroupedInto(Desktop::focusState()->window()->m_group)            // we can group
-        && Desktop::focusState()->window()->m_workspace == m_workspace           // workspaces match, we're not opening on another ws
-        && !isModal() && !(parent() && m_isFloating) && !isX11OverrideRedirect() // not a modal, floating child or X11 OR
+    if (*PAUTOGROUP                                                                        // auto_group enabled
+        && Desktop::focusState()->window()                                                 // focused window exists
+        && canBeGroupedInto(Desktop::focusState()->window()->m_group)                      // we can group
+        && Desktop::focusState()->window()->m_workspace == m_workspace                     // workspaces match, we're not opening on another ws
+        && !g_pXWaylandManager->shouldBeFloated(m_self.lock()) && !isX11OverrideRedirect() // not a window that should float or X11
     ) {
         // add to group if we are focused on one
         Desktop::focusState()->window()->m_group->add(m_self.lock());

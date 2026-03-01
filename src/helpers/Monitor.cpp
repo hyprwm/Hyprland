@@ -1965,7 +1965,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
         auto sync = CEGLSync::create();
 
         if (sync->fd().isValid()) {
@@ -2194,6 +2194,19 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
         .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
         .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
     };
+}
+
+uint32_t CMonitor::getPreferredReadFormat() {
+    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+
+    auto              monFmt = m_output->state->state().drmFormat;
+
+    if (*PFORCE8BIT)
+        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
+            monFmt == DRM_FORMAT_XBGR2101010)
+            monFmt = DRM_FORMAT_XRGB8888;
+
+    return monFmt;
 }
 
 bool CMonitor::needsCM() {

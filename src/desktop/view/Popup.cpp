@@ -171,7 +171,7 @@ void CPopup::onDestroy() {
 void CPopup::fullyDestroy() {
     Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first == m_self; });
 
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });

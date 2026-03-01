@@ -230,66 +230,64 @@ class CHyprOpenGLImpl {
         int   outerRound    = -1; /* use round */
     };
 
-    void         begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void         beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
-    void         end();
+    void                                                  makeEGLCurrent();
+    void                                                  begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void                                                  beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+    void                                                  end();
 
-    void         renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-    void         renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
-    void         renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
-    void         renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
-    void         renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
-    void         renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
-    void         renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
+    void                                                  renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
+    void                                                  renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+    void                                                  renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
+    void                                                  renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
+    void                                                  renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
+    void                                                  renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
+    void                                                  renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
 
-    void         pushMonitorTransformEnabled(bool enabled);
-    void         popMonitorTransformEnabled();
+    void                                                  pushMonitorTransformEnabled(bool enabled);
+    void                                                  popMonitorTransformEnabled();
 
-    void         setRenderModifEnabled(bool enabled);
-    void         setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
-    void         setCapStatus(int cap, bool status);
+    void                                                  setRenderModifEnabled(bool enabled);
+    void                                                  setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void                                                  setCapStatus(int cap, bool status);
 
-    void         saveMatrix();
-    void         setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void         restoreMatrix();
+    void                                                  saveMatrix();
+    void                                                  setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
+    void                                                  restoreMatrix();
 
-    void         blend(bool enabled);
+    void                                                  blend(bool enabled);
 
-    bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    bool                                                  shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
 
-    void         clear(const CHyprColor&);
-    void         clearWithTex();
-    void         scissor(const CBox&, bool transform = true);
-    void         scissor(const pixman_box32*, bool transform = true);
-    void         scissor(const int x, const int y, const int w, const int h, bool transform = true);
+    void                                                  clear(const CHyprColor&);
+    void                                                  clearWithTex();
+    void                                                  scissor(const CBox&, bool transform = true);
+    void                                                  scissor(const pixman_box32*, bool transform = true);
+    void                                                  scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void         destroyMonitorResources(PHLMONITORREF);
+    void                                                  destroyMonitorResources(PHLMONITORREF);
 
-    void         markBlurDirtyForMonitor(PHLMONITOR);
+    void                                                  markBlurDirtyForMonitor(PHLMONITOR);
 
-    void         preWindowPass();
-    bool         preBlurQueued();
-    void         preRender(PHLMONITOR);
+    void                                                  preWindowPass();
+    bool                                                  preBlurQueued();
+    void                                                  preRender(PHLMONITOR);
 
-    void         saveBufferForMirror(const CBox&);
-    void         renderMirrored();
+    void                                                  saveBufferForMirror(const CBox&);
+    void                                                  renderMirrored();
 
-    void         applyScreenShader(const std::string& path);
+    void                                                  applyScreenShader(const std::string& path);
 
-    void         bindOffMain();
-    void         renderOffToMain(CGLFramebuffer* off);
-    void         bindBackOnMain();
+    void                                                  bindOffMain();
+    void                                                  renderOffToMain(CGLFramebuffer* off);
+    void                                                  bindBackOnMain();
 
-    bool         needsACopyFB(PHLMONITOR mon);
+    bool                                                  needsACopyFB(PHLMONITOR mon);
+    std::string                                           resolveAssetPath(const std::string& file);
+    SP<ITexture>                                          loadAsset(const std::string& file);
+    SP<ITexture>                                          texFromCairo(cairo_surface_t* cairo);
 
-    std::string  resolveAssetPath(const std::string& file);
-    SP<ITexture> loadAsset(const std::string& file);
-    SP<ITexture> texFromCairo(cairo_surface_t* cairo);
-    SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    void                                                  setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    void         setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
-
-    DRMFormat    getPreferredReadFormat(PHLMONITOR pMonitor);
     std::vector<SDRMFormat>                               getDRMFormats();
     std::vector<uint64_t>                                 getDRMFormatModifiers(DRMFormat format);
     EGLImageKHR                                           createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);

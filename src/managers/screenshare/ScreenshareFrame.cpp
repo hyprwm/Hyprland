@@ -371,7 +371,7 @@ bool CScreenshareFrame::copyShm() {
     if (done())
         return false;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     auto shm                      = m_buffer->shm();
     auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm

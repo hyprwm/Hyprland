@@ -3,6 +3,7 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
+#include "render/OpenGL.hpp"
 
 using namespace Screenshare;
 
@@ -140,7 +141,7 @@ bool CCursorshareSession::copy() {
     // FIXME: this doesn't really make sense but just to be safe
     m_pendingFrame.callback(RESULT_TIMESTAMP);
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     if (auto attrs = m_pendingFrame.buffer->dmabuf(); attrs.success) {

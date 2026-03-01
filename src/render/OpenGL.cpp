@@ -699,6 +699,14 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     pushMonitorTransformEnabled(false);
 }
 
+void CHyprOpenGLImpl::makeEGLCurrent() {
+    if (!g_pCompositor || !g_pHyprOpenGL)
+        return;
+
+    if (eglGetCurrentContext() != g_pHyprOpenGL->m_eglContext)
+        eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
+}
+
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
     m_renderData.pMonitor = pMonitor;
 
@@ -2589,85 +2597,6 @@ SP<ITexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
     return tex;
 }
 
-SP<ITexture> CHyprOpenGLImpl::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
-    SP<ITexture>          tex = makeShared<CGLTexture>();
-
-    static auto           FONT = CConfigValue<std::string>("misc:font_family");
-
-    const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
-    const auto            FONTSIZE   = pt;
-    const auto            COLOR      = col;
-
-    auto                  CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920, 1080 /* arbitrary, just for size */);
-    auto                  CAIRO        = cairo_create(CAIROSURFACE);
-
-    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
-    pango_layout_set_font_description(layoutText, pangoFD);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int textW = 0, textH = 0;
-    pango_layout_set_text(layoutText, text.c_str(), -1);
-
-    if (maxWidth > 0) {
-        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
-        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
-    }
-
-    pango_layout_get_size(layoutText, &textW, &textH);
-    textW /= PANGO_SCALE;
-    textH /= PANGO_SCALE;
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
-
-    CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
-    CAIRO        = cairo_create(CAIROSURFACE);
-
-    layoutText = pango_cairo_create_layout(CAIRO);
-    pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
-    pango_layout_set_font_description(layoutText, pangoFD);
-    pango_layout_set_text(layoutText, text.c_str(), -1);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    cairo_move_to(CAIRO, 0, 0);
-    pango_cairo_show_layout(CAIRO, layoutText);
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    tex->allocate({cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE)});
-
-    const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tex->m_size.x, tex->m_size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
-
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
-
-    return tex;
-}
-
 void CHyprOpenGLImpl::initMissingAssetTexture() {
     SP<ITexture> tex = makeShared<CGLTexture>();
     tex->allocate({512, 512});
@@ -2722,7 +2651,7 @@ WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
 void CHyprOpenGLImpl::initAssets() {
     initMissingAssetTexture();
 
-    m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
+    m_screencopyDeniedTexture = g_pHyprRenderer->renderText("Permission denied to share screen", Colors::WHITE, 20);
 }
 
 void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
@@ -2740,7 +2669,8 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
 
         const auto VT = g_pCompositor->getVTNr();
 
-        m_lockTtyTextTexture = renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+        m_lockTtyTextTexture =
+            g_pHyprRenderer->renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
     } else {
         m_lockDeadTexture.reset();
         m_lockDead2Texture.reset();
@@ -2937,7 +2867,7 @@ void CHyprOpenGLImpl::clearWithTex() {
 }
 
 void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
-    g_pHyprRenderer->makeEGLCurrent();
+    makeEGLCurrent();
 
     if (!g_pHyprOpenGL)
         return;
@@ -3054,19 +2984,6 @@ void CHyprOpenGLImpl::setCapStatus(int cap, bool status) {
         m_capStatus[idx] = status;
         GLCALL(glDisable(cap));
     }
-}
-
-DRMFormat CHyprOpenGLImpl::getPreferredReadFormat(PHLMONITOR pMonitor) {
-    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
-
-    auto              monFmt = pMonitor->m_output->state->state().drmFormat;
-
-    if (*PFORCE8BIT)
-        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
-            monFmt == DRM_FORMAT_XBGR2101010)
-            monFmt = DRM_FORMAT_XRGB8888;
-
-    return monFmt;
 }
 
 std::vector<uint64_t> CHyprOpenGLImpl::getDRMFormatModifiers(DRMFormat drmFormat) {

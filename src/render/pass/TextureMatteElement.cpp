@@ -1,5 +1,4 @@
 #include "TextureMatteElement.hpp"
-#include "../OpenGL.hpp"
 
 CTextureMatteElement::CTextureMatteElement(const CTextureMatteElement::STextureMatteData& data_) : m_data(data_) {
     ;

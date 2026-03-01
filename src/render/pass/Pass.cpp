@@ -138,9 +138,9 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         m_debugData = {false};
     else if (*PDEBUGPASS && !m_debugData.present) {
         m_debugData.present           = true;
-        m_debugData.keyboardFocusText = g_pHyprOpenGL->renderText("keyboard", Colors::WHITE, 12);
-        m_debugData.pointerFocusText  = g_pHyprOpenGL->renderText("pointer", Colors::WHITE, 12);
-        m_debugData.lastWindowText    = g_pHyprOpenGL->renderText("lastWindow", Colors::WHITE, 12);
+        m_debugData.keyboardFocusText = g_pHyprRenderer->renderText("keyboard", Colors::WHITE, 12);
+        m_debugData.pointerFocusText  = g_pHyprRenderer->renderText("pointer", Colors::WHITE, 12);
+        m_debugData.lastWindowText    = g_pHyprRenderer->renderText("lastWindow", Colors::WHITE, 12);
     }
 
     if (WILLBLUR && !*PDEBUGPASS) {
@@ -272,9 +272,9 @@ void CRenderPass::renderDebugData() {
     }
 
     const auto DISCARDED_ELEMENTS = std::ranges::count_if(m_passElements, [](const auto& e) { return e->discard; });
-    auto tex = g_pHyprOpenGL->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
-                                                     DISCARDED_ELEMENTS, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize),
-                                         Colors::WHITE, 12);
+    auto tex = g_pHyprRenderer->renderText(std::format("occlusion layers: {}\npass elements: {} ({} discarded)\nviewport: {:X0}", m_occludedRegions.size(), m_passElements.size(),
+                                                       DISCARDED_ELEMENTS, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize),
+                                           Colors::WHITE, 12);
 
     if (tex) {
         box = CBox{{0.F, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(g_pHyprOpenGL->m_renderData.pMonitor->m_scale);
@@ -292,7 +292,7 @@ void CRenderPass::renderDebugData() {
     if (!passStructure.empty())
         passStructure.pop_back();
 
-    tex = g_pHyprOpenGL->renderText(passStructure, Colors::WHITE, 12);
+    tex = g_pHyprRenderer->renderText(passStructure, Colors::WHITE, 12);
     if (tex) {
         box = CBox{{g_pHyprOpenGL->m_renderData.pMonitor->m_size.x - tex->m_size.x, g_pHyprOpenGL->m_renderData.pMonitor->m_size.y - tex->m_size.y}, tex->m_size}.scale(
             g_pHyprOpenGL->m_renderData.pMonitor->m_scale);

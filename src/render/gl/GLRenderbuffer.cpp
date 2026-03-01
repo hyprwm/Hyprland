@@ -15,7 +15,7 @@ CGLRenderbuffer::~CGLRenderbuffer() {
     if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     unbind();
     m_framebuffer->release();
@@ -62,7 +62,7 @@ CGLRenderbuffer::CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format
 }
 
 void CGLRenderbuffer::bind() {
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     m_framebuffer->bind();
 }
 

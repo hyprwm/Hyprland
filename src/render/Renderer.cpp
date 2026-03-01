@@ -1415,6 +1415,97 @@ void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 }
 
+bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
+
+    if (!g_pHyprOpenGL->m_renderData.pCurrentMonData || !g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB || !g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB->getTexture())
+        return false;
+
+    if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
+        return false;
+
+    if (pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 0)
+        return false;
+
+    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_isFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
+        return true;
+
+    if ((pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 1) || (pWindow && pWindow->m_ruleApplicator->xray().valueOrDefault()))
+        return true;
+
+    return false;
+}
+
+SP<ITexture> CHyprRenderer::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
+    static auto           FONT = CConfigValue<std::string>("misc:font_family");
+
+    const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
+    const auto            FONTSIZE   = pt;
+    const auto            COLOR      = col;
+
+    auto                  CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920, 1080 /* arbitrary, just for size */);
+    auto                  CAIRO        = cairo_create(CAIROSURFACE);
+
+    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
+    PangoFontDescription* pangoFD    = pango_font_description_new();
+
+    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
+    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
+    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
+    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
+    pango_layout_set_font_description(layoutText, pangoFD);
+
+    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
+
+    int textW = 0, textH = 0;
+    pango_layout_set_text(layoutText, text.c_str(), -1);
+
+    if (maxWidth > 0) {
+        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
+        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
+    }
+
+    pango_layout_get_size(layoutText, &textW, &textH);
+    textW /= PANGO_SCALE;
+    textH /= PANGO_SCALE;
+
+    pango_font_description_free(pangoFD);
+    g_object_unref(layoutText);
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
+
+    CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
+    CAIRO        = cairo_create(CAIROSURFACE);
+
+    layoutText = pango_cairo_create_layout(CAIRO);
+    pangoFD    = pango_font_description_new();
+
+    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
+    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
+    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
+    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
+    pango_layout_set_font_description(layoutText, pangoFD);
+    pango_layout_set_text(layoutText, text.c_str(), -1);
+
+    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
+
+    cairo_move_to(CAIRO, 0, 0);
+    pango_cairo_show_layout(CAIRO, layoutText);
+
+    pango_font_description_free(pangoFD);
+    g_object_unref(layoutText);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    auto tex = createTexture(cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE), cairo_image_surface_get_data(CAIROSURFACE));
+
+    cairo_destroy(CAIRO);
+    cairo_surface_destroy(CAIROSURFACE);
+
+    return tex;
+}
+
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
@@ -2676,24 +2767,9 @@ SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer>
     return buf;
 }
 
-void CHyprRenderer::makeEGLCurrent() {
-    if (!g_pCompositor || !g_pHyprOpenGL)
-        return;
-
-    if (eglGetCurrentContext() != g_pHyprOpenGL->m_eglContext)
-        eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
-}
-
-void CHyprRenderer::unsetEGL() {
-    if (!g_pHyprOpenGL)
-        return;
-
-    eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-}
-
 bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     m_renderPass.clear();
 
@@ -2878,7 +2954,7 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
         g_pHyprOpenGL->m_windowFramebuffers[ref] = g_pHyprRenderer->createFB();
@@ -2914,7 +2990,7 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
         g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
@@ -2951,7 +3027,7 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
         g_pHyprOpenGL->m_popupFramebuffers[popup] = g_pHyprRenderer->createFB();
@@ -3173,7 +3249,7 @@ bool CHyprRenderer::reloadShaders(const std::string& path) {
 }
 
 SP<ITexture> CHyprRenderer::createStencilTexture(const int width, const int height) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     auto tex = makeShared<CGLTexture>();
     tex->allocate({width, height});
 
@@ -3181,17 +3257,17 @@ SP<ITexture> CHyprRenderer::createStencilTexture(const int width, const int heig
 }
 
 SP<ITexture> CHyprRenderer::createTexture(bool opaque) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(opaque);
 }
 
 SP<ITexture> CHyprRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
 }
 
 SP<ITexture> CHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     const auto image = g_pHyprOpenGL->createEGLImage(attrs);
     if (!image)
         return nullptr;
@@ -3199,7 +3275,7 @@ SP<ITexture> CHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs,
 }
 
 SP<ITexture> CHyprRenderer::createTexture(const int width, const int height, unsigned char* const data) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     SP<ITexture> tex = makeShared<CGLTexture>();
 
     tex->allocate({width, height});
@@ -3222,7 +3298,7 @@ SP<ITexture> CHyprRenderer::createTexture(const int width, const int height, uns
 }
 
 SP<ITexture> CHyprRenderer::createTexture(cairo_surface_t* cairo) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
     auto       tex         = makeShared<CGLTexture>();
 
@@ -3248,11 +3324,23 @@ SP<ITexture> CHyprRenderer::createTexture(cairo_surface_t* cairo) {
 }
 
 SP<ITexture> CHyprRenderer::createTexture(std::span<const float> lut3D, size_t N) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(lut3D, N);
 }
 
 SP<IFramebuffer> CHyprRenderer::createFB(const std::string& name) {
-    makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLFramebuffer>(name);
+}
+
+bool CHyprRenderer::explicitSyncSupported() {
+    return g_pHyprOpenGL->explicitSyncSupported();
+}
+
+std::vector<SDRMFormat> CHyprRenderer::getDRMFormats() {
+    return g_pHyprOpenGL->getDRMFormats();
+}
+
+std::vector<uint64_t> CHyprRenderer::getDRMFormatModifiers(DRMFormat format) {
+    return g_pHyprOpenGL->getDRMFormatModifiers(format);
 }

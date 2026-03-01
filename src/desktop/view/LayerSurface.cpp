@@ -82,7 +82,7 @@ CLayerSurface::~CLayerSurface() {
 
     if (m_wlSurface)
         m_wlSurface->unassign();
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == m_self.lock(); });
 
     for (auto const& mon : g_pCompositor->m_realMonitors) {

@@ -127,8 +127,6 @@ class CHyprRenderer {
     bool                            isIntel();
     bool                            isSoftware();
     bool                            isMgpu();
-    void                            makeEGLCurrent();
-    void                            unsetEGL();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeSnapshot(PHLWINDOW);
     void                            makeSnapshot(PHLLS);
@@ -170,33 +168,38 @@ class CHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass      m_renderPass = {};
+    CRenderPass  m_renderPass = {};
 
-    SP<ITexture>     createStencilTexture(const int width, const int height);
-    SP<ITexture>     createTexture(bool opaque = false);
-    SP<ITexture>     createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
-    SP<ITexture>     createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false);
-    SP<ITexture>     createTexture(const int width, const int height, unsigned char* const);
-    SP<ITexture>     createTexture(cairo_surface_t* cairo);
-    SP<ITexture>     createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
-    SP<ITexture>     createTexture(std::span<const float> lut3D, size_t N);
-    SP<IFramebuffer> createFB(const std::string& name = "");
+    SP<ITexture> createStencilTexture(const int width, const int height);
+    SP<ITexture> createTexture(bool opaque = false);
+    SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+    SP<ITexture> createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false);
+    SP<ITexture> createTexture(const int width, const int height, unsigned char* const);
+    SP<ITexture> createTexture(cairo_surface_t* cairo);
+    SP<ITexture> createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    SP<ITexture> createTexture(std::span<const float> lut3D, size_t N);
+    SP<ITexture> renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    bool         shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    bool         explicitSyncSupported();
+    std::vector<SDRMFormat> getDRMFormats();
+    std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format);
+    SP<IFramebuffer>        createFB(const std::string& name = "");
 
-    SCMSettings      getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                   SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    bool             reloadShaders(const std::string& path = "");
+    SCMSettings             getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                          SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+    bool                    reloadShaders(const std::string& path = "");
 
-    void             draw(CBorderPassElement* element, const CRegion& damage);
-    void             draw(CClearPassElement* element, const CRegion& damage);
-    void             draw(CFramebufferElement* element, const CRegion& damage);
-    void             draw(CPreBlurElement* element, const CRegion& damage);
-    void             draw(CRectPassElement* element, const CRegion& damage);
-    void             draw(CRendererHintsPassElement* element, const CRegion& damage);
-    void             draw(CShadowPassElement* element, const CRegion& damage);
-    void             draw(CSurfacePassElement* element, const CRegion& damage);
-    void             draw(CTexPassElement* element, const CRegion& damage);
-    void             draw(CTextureMatteElement* element, const CRegion& damage);
-    void             draw(WP<IPassElement> element, const CRegion& damage);
+    void                    draw(CBorderPassElement* element, const CRegion& damage);
+    void                    draw(CClearPassElement* element, const CRegion& damage);
+    void                    draw(CFramebufferElement* element, const CRegion& damage);
+    void                    draw(CPreBlurElement* element, const CRegion& damage);
+    void                    draw(CRectPassElement* element, const CRegion& damage);
+    void                    draw(CRendererHintsPassElement* element, const CRegion& damage);
+    void                    draw(CShadowPassElement* element, const CRegion& damage);
+    void                    draw(CSurfacePassElement* element, const CRegion& damage);
+    void                    draw(CTexPassElement* element, const CRegion& damage);
+    void                    draw(CTextureMatteElement* element, const CRegion& damage);
+    void                    draw(WP<IPassElement> element, const CRegion& damage);
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

@@ -11,14 +11,13 @@ class CHyprError {
     CHyprError();
     ~CHyprError() = default;
 
-    void  queueCreate(std::string message, const CHyprColor& color);
-    void  draw();
-    void  destroy();
+    void         queueCreate(std::string message, const CHyprColor& color);
+    void         draw();
+    void         destroy();
 
-    bool  active();
-    float height(); // logical
+    bool         active();
+    float        height(); // logical
 
-    //
     SP<ITexture> texture();
 
   private:

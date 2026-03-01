@@ -76,7 +76,9 @@ static int cursorTicker(void* data) {
 }
 
 CHyprRenderer::CHyprRenderer() {
-    g_pHyprOpenGL->initAssets();
+    m_globalTimer.reset();
+    pushMonitorTransformEnabled(false);
+    initAssets();
 
     if (g_pCompositor->m_aqBackend->hasSession()) {
         size_t drmDevices = 0;
@@ -208,6 +210,10 @@ CHyprRenderer::CHyprRenderer() {
 CHyprRenderer::~CHyprRenderer() {
     if (m_cursorTicker)
         wl_event_source_remove(m_cursorTicker);
+}
+
+WP<CHyprOpenGLImpl> CHyprRenderer::glBackend() {
+    return g_pHyprOpenGL;
 }
 
 bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
@@ -863,7 +869,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     g_pHyprOpenGL->m_renderData.discardMode        = m_data.discardMode;
     g_pHyprOpenGL->m_renderData.discardOpacity     = m_data.discardOpacity;
     g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
-    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
+    pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[]() {
         g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
@@ -874,7 +880,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
         g_pHyprOpenGL->m_renderData.discardMode                 = 0;
         g_pHyprOpenGL->m_renderData.discardOpacity              = 0;
         g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.currentWindow.reset();
         g_pHyprOpenGL->m_renderData.surface.reset();
         g_pHyprOpenGL->m_renderData.currentLS.reset();
@@ -887,7 +893,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
 
     // this is bad, probably has been logged elsewhere. Means the texture failed
     // uploading to the GPU.
-    if (!TEXTURE->m_texID)
+    if (!TEXTURE->ok())
         return;
 
     const auto INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;
@@ -917,7 +923,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
         (!m_data.pWindow || (!m_data.pWindow->m_realSize->isBeingAnimated() && !INTERACTIVERESIZEINPROGRESS)) /* not window or not animated/resizing */ &&
         (!m_data.pLS || (!m_data.pLS->m_realSize->isBeingAnimated())); /* not LS or not animated */
 
-    g_pHyprRenderer->calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
+    calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
     auto cancelRender                      = false;
     g_pHyprOpenGL->m_renderData.clipRegion = element->visibleRegion(cancelRender);
@@ -1001,11 +1007,11 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
 
 void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
-    g_pHyprOpenGL->pushMonitorTransformEnabled(m_data.flipEndFrame);
+    pushMonitorTransformEnabled(m_data.flipEndFrame);
 
     CScopeGuard x = {[&]() {
         //
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
         g_pHyprOpenGL->m_renderData.clipBox = {};
         if (m_data.replaceProjection)
             g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprOpenGL->m_renderData.pMonitor->m_projMatrix;
@@ -1044,14 +1050,28 @@ void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
 void CHyprRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
-        g_pHyprOpenGL->pushMonitorTransformEnabled(true);
+        pushMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
         g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        popMonitorTransformEnabled();
     } else
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
 };
+
+void CHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
+    m_monitorTransformStack.push(enabled);
+    m_monitorTransformEnabled = enabled;
+}
+
+void CHyprRenderer::popMonitorTransformEnabled() {
+    m_monitorTransformStack.pop();
+    m_monitorTransformEnabled = m_monitorTransformStack.top();
+}
+
+bool CHyprRenderer::monitorTransformEnabled() {
+    return m_monitorTransformEnabled;
+}
 
 SP<ITexture> CHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
@@ -1273,7 +1293,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
 
     if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
-        g_pHyprRenderer->m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
+        m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));
 
     CScopeGuard x([&RENDERMODIFDATA] {
         if (!RENDERMODIFDATA.modifs.empty()) {
@@ -1339,7 +1359,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
             data.color = CHyprColor(0, 0, 0, *PDIMSPECIAL * (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS));
 
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(data));
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
         }
 
         if (*PBLURSPECIAL && *PBLUR) {
@@ -1349,7 +1369,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
             data.blur  = true;
             data.blurA = (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS);
 
-            g_pHyprRenderer->m_renderPass.add(makeUnique<CRectPassElement>(data));
+            m_renderPass.add(makeUnique<CRectPassElement>(data));
         }
     }
 
@@ -1417,6 +1437,103 @@ void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 }
 
+void CHyprRenderer::requestBackgroundResource() {
+    if (m_backgroundResource)
+        return;
+
+    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
+    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+
+    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
+
+    if (*PNOWALLPAPER)
+        return;
+
+    static bool        once    = true;
+    static std::string texPath = "wall";
+
+    if (once) {
+        // get the adequate tex
+        if (FORCEWALLPAPER == -1) {
+            std::mt19937_64                 engine(time(nullptr));
+            std::uniform_int_distribution<> distribution(0, 2);
+
+            texPath += std::to_string(distribution(engine));
+        } else
+            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, sc<int64_t>(0), sc<int64_t>(2)));
+
+        texPath += ".png";
+
+        texPath = resolveAssetPath(texPath);
+
+        once = false;
+    }
+
+    if (texPath.empty()) {
+        m_backgroundResourceFailed = true;
+        return;
+    }
+
+    m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
+
+    // doesn't have to be ASP as it's passed
+    SP<CMainLoopExecutor> executor = makeShared<CMainLoopExecutor>([this] {
+        for (const auto& m : g_pCompositor->m_monitors) {
+            damageMonitor(m);
+        }
+    });
+
+    m_backgroundResource->m_events.finished.listenStatic([executor] {
+        // this is in the worker thread.
+        executor->signal();
+    });
+
+    g_pAsyncResourceGatherer->enqueue(m_backgroundResource);
+}
+
+std::string CHyprRenderer::resolveAssetPath(const std::string& filename) {
+    std::string fullPath;
+    for (auto& e : ASSET_PATHS) {
+        std::string     p = std::string{e} + "/hypr/" + filename;
+        std::error_code ec;
+        if (std::filesystem::exists(p, ec)) {
+            fullPath = p;
+            break;
+        } else
+            Log::logger->log(Log::DEBUG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
+    }
+
+    if (fullPath.empty()) {
+        m_failedAssetsNo++;
+        Log::logger->log(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
+        return "";
+    }
+
+    return fullPath;
+}
+
+SP<ITexture> CHyprRenderer::loadAsset(const std::string& filename) {
+
+    const std::string fullPath = resolveAssetPath(filename);
+
+    if (fullPath.empty())
+        return m_missingAssetTexture;
+
+    const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
+
+    if (!CAIROSURFACE) {
+        m_failedAssetsNo++;
+        Log::logger->log(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
+        return m_missingAssetTexture;
+    }
+
+    auto tex = createTexture(CAIROSURFACE);
+
+    cairo_surface_destroy(CAIROSURFACE);
+
+    return tex;
+}
+
 bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
@@ -1437,6 +1554,39 @@ bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
         return true;
 
     return false;
+}
+
+void CHyprRenderer::initMissingAssetTexture() {
+
+    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
+
+    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_NONE);
+    cairo_save(CAIRO);
+    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
+    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(CAIRO);
+    cairo_set_source_rgba(CAIRO, 1, 0, 1, 1);
+    cairo_rectangle(CAIRO, 256, 0, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_rectangle(CAIRO, 0, 256, 256, 256);
+    cairo_fill(CAIRO);
+    cairo_restore(CAIRO);
+
+    cairo_surface_flush(CAIROSURFACE);
+
+    auto tex = createTexture(CAIROSURFACE);
+
+    cairo_surface_destroy(CAIROSURFACE);
+    cairo_destroy(CAIRO);
+
+    m_missingAssetTexture = tex;
+}
+
+void CHyprRenderer::initAssets() {
+    initMissingAssetTexture();
+
+    m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 }
 
 SP<ITexture> CHyprRenderer::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
@@ -1508,12 +1658,35 @@ SP<ITexture> CHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     return tex;
 }
 
+void CHyprRenderer::ensureLockTexturesRendered(bool load) {
+    static bool loaded = false;
+
+    if (loaded == load)
+        return;
+
+    loaded = load;
+
+    if (load) {
+        // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
+        m_lockDeadTexture  = loadAsset("lockdead.png");
+        m_lockDead2Texture = loadAsset("lockdead2.png");
+
+        const auto VT = g_pCompositor->getVTNr();
+
+        m_lockTtyTextTexture = renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
+    } else {
+        m_lockDeadTexture.reset();
+        m_lockDead2Texture.reset();
+        m_lockTtyTextTexture.reset();
+    }
+}
+
 void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     const bool LOCKED = g_pSessionLockManager->isSessionLocked();
     if (!LOCKED) {
-        g_pHyprOpenGL->ensureLockTexturesRendered(false);
+        ensureLockTexturesRendered(false);
         return;
     }
 
@@ -1524,7 +1697,7 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
     const auto PSLS              = g_pSessionLockManager->getSessionLockSurfaceForMonitor(pMonitor->m_id);
     const bool RENDERLOCKMISSING = (PSLS.expired() || g_pSessionLockManager->clientDenied()) && g_pSessionLockManager->shallConsiderLockMissing();
 
-    g_pHyprOpenGL->ensureLockTexturesRendered(RENDERLOCKMISSING);
+    ensureLockTexturesRendered(RENDERLOCKMISSING);
 
     if (RENDERLOCKMISSING)
         renderSessionLockMissing(pMonitor);
@@ -1555,7 +1728,7 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     data.color = CHyprColor(0, 0, 0, 1.f);
     data.box   = CBox{{}, pMonitor->m_pixelSize};
 
-    m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
+    m_renderPass.add(makeUnique<CRectPassElement>(data));
 }
 
 void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
@@ -1565,7 +1738,7 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    data.tex = (ANY_PRESENT) ? g_pHyprRenderer->m_lockDead2Texture : g_pHyprRenderer->m_lockDeadTexture;
+    data.tex = (ANY_PRESENT) ? m_lockDead2Texture : m_lockDeadTexture;
     data.box = monbox;
     data.a   = 1;
 
@@ -2747,7 +2920,7 @@ void CHyprRenderer::initiateManualCrash() {
     m_crashingInProgress = true;
     m_crashingDistort    = 0.5;
 
-    g_pHyprOpenGL->m_globalTimer.reset();
+    m_globalTimer.reset();
 
     static auto PDT = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
 
@@ -2760,7 +2933,7 @@ SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer>
     if (it != m_renderbuffers.end())
         return *it;
 
-    auto buf = makeShared<CGLRenderbuffer>(buffer, fmt);
+    auto buf = getOrCreateRenderbufferInternal(buffer, fmt);
 
     if (!buf->good())
         return nullptr;
@@ -2901,7 +3074,7 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
-void CHyprRenderer::onRenderbufferDestroy(CGLRenderbuffer* rb) {
+void CHyprRenderer::onRenderbufferDestroy(IRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
 
@@ -2956,12 +3129,10 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    g_pHyprOpenGL->makeEGLCurrent();
+    if (!ref->m_snapshotFB)
+        ref->m_snapshotFB = createFB("window snapshot");
 
-    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
-        g_pHyprOpenGL->m_windowFramebuffers[ref] = g_pHyprRenderer->createFB();
-
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_windowFramebuffers[ref];
+    const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -2985,19 +3156,17 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     if (!PMONITOR || !PMONITOR->m_output || PMONITOR->m_pixelSize.x <= 0 || PMONITOR->m_pixelSize.y <= 0)
         return;
 
-    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of {:x}", rc<uintptr_t>(pLayer.get()));
+    Log::logger->log(Log::DEBUG, "renderer: making a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
 
     // we need to "damage" the entire monitor
     // so that we render the entire window
     // this is temporary, doesn't mess with the actual damage
     CRegion fakeDamage{0, 0, sc<int>(PMONITOR->m_transformedSize.x), sc<int>(PMONITOR->m_transformedSize.y)};
 
-    g_pHyprOpenGL->makeEGLCurrent();
+    if (!pLayer->m_snapshotFB)
+        pLayer->m_snapshotFB = createFB("layer snapshot");
 
-    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
-        g_pHyprOpenGL->m_layerFramebuffers[pLayer] = g_pHyprRenderer->createFB();
-
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_layerFramebuffers[pLayer];
+    const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -3029,12 +3198,10 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     CRegion fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    g_pHyprOpenGL->makeEGLCurrent();
+    if (!popup->m_snapshotFB)
+        popup->m_snapshotFB = createFB("popup shapshot");
 
-    if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
-        g_pHyprOpenGL->m_popupFramebuffers[popup] = g_pHyprRenderer->createFB();
-
-    const auto PFRAMEBUFFER = g_pHyprOpenGL->m_popupFramebuffers[popup];
+    const auto PFRAMEBUFFER = popup->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
 
@@ -3080,10 +3247,10 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 
     PHLWINDOWREF ref{pWindow};
 
-    if (!g_pHyprOpenGL->m_windowFramebuffers.contains(ref))
+    if (!ref->m_snapshotFB)
         return;
 
-    const auto FBDATA = g_pHyprOpenGL->m_windowFramebuffers.at(ref);
+    const auto FBDATA = ref->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;
@@ -3136,10 +3303,10 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
 }
 
 void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
-    if (!g_pHyprOpenGL->m_layerFramebuffers.contains(pLayer))
+    if (!pLayer->m_snapshotFB)
         return;
 
-    const auto FBDATA = g_pHyprOpenGL->m_layerFramebuffers.at(pLayer);
+    const auto FBDATA = pLayer->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;
@@ -3178,12 +3345,12 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 }
 
 void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
-    if (!g_pHyprOpenGL->m_popupFramebuffers.contains(popup))
+    if (!popup->m_snapshotFB)
         return;
 
     static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
 
-    const auto          FBDATA = g_pHyprOpenGL->m_popupFramebuffers.at(popup);
+    const auto          FBDATA = popup->m_snapshotFB;
 
     if (!FBDATA->getTexture())
         return;
@@ -3345,4 +3512,9 @@ std::vector<SDRMFormat> CHyprRenderer::getDRMFormats() {
 
 std::vector<uint64_t> CHyprRenderer::getDRMFormatModifiers(DRMFormat format) {
     return g_pHyprOpenGL->getDRMFormatModifiers(format);
+}
+
+SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+    g_pHyprOpenGL->makeEGLCurrent();
+    return makeShared<CGLRenderbuffer>(buffer, fmt);
 }

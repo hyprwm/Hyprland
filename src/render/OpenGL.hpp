@@ -214,86 +214,78 @@ class CHyprOpenGLImpl {
         int   outerRound    = -1; /* use round */
     };
 
-    void                                                  makeEGLCurrent();
-    void                                                  begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
-    void                                                  beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
-    void                                                  end();
+    void                                      makeEGLCurrent();
+    void                                      begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+    void                                      beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+    void                                      end();
 
-    void                                                  renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-    void                                                  renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
-    void                                                  renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
-    void                                                  renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
-    void                                                  renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
-    void                                                  renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
-    void                                                  renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
+    void                                      renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
+    void                                      renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+    void                                      renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
+    void                                      renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
+    void                                      renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
+    void                                      renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
+    void                                      renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
 
-    void                                                  pushMonitorTransformEnabled(bool enabled);
-    void                                                  popMonitorTransformEnabled();
+    void                                      setRenderModifEnabled(bool enabled);
+    void                                      setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+    void                                      setCapStatus(int cap, bool status);
 
-    void                                                  setRenderModifEnabled(bool enabled);
-    void                                                  setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
-    void                                                  setCapStatus(int cap, bool status);
+    void                                      saveMatrix();
+    void                                      setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
+    void                                      restoreMatrix();
 
-    void                                                  saveMatrix();
-    void                                                  setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void                                                  restoreMatrix();
+    void                                      blend(bool enabled);
 
-    void                                                  blend(bool enabled);
+    void                                      clear(const CHyprColor&);
+    void                                      clearWithTex();
+    void                                      scissor(const CBox&, bool transform = true);
+    void                                      scissor(const pixman_box32*, bool transform = true);
+    void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-    void                                                  clear(const CHyprColor&);
-    void                                                  clearWithTex();
-    void                                                  scissor(const CBox&, bool transform = true);
-    void                                                  scissor(const pixman_box32*, bool transform = true);
-    void                                                  scissor(const int x, const int y, const int w, const int h, bool transform = true);
+    void                                      destroyMonitorResources(PHLMONITORREF);
 
-    void                                                  destroyMonitorResources(PHLMONITORREF);
+    void                                      preWindowPass();
+    bool                                      preBlurQueued();
+    void                                      preRender(PHLMONITOR);
 
-    void                                                  preWindowPass();
-    bool                                                  preBlurQueued();
-    void                                                  preRender(PHLMONITOR);
+    void                                      saveBufferForMirror(const CBox&);
+    void                                      renderMirrored();
 
-    void                                                  saveBufferForMirror(const CBox&);
-    void                                                  renderMirrored();
+    void                                      applyScreenShader(const std::string& path);
 
-    void                                                  applyScreenShader(const std::string& path);
+    void                                      bindOffMain();
+    void                                      renderOffToMain(CGLFramebuffer* off);
+    void                                      bindBackOnMain();
 
-    void                                                  bindOffMain();
-    void                                                  renderOffToMain(CGLFramebuffer* off);
-    void                                                  bindBackOnMain();
+    SP<ITexture>                              texFromCairo(cairo_surface_t* cairo);
 
-    bool                                                  needsACopyFB(PHLMONITOR mon);
-    std::string                                           resolveAssetPath(const std::string& file);
-    SP<ITexture>                                          loadAsset(const std::string& file);
-    SP<ITexture>                                          texFromCairo(cairo_surface_t* cairo);
+    bool                                      needsACopyFB(PHLMONITOR mon);
+    void                                      setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
 
-    void                                                  setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    std::vector<SDRMFormat>                   getDRMFormats();
+    std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
+    EGLImageKHR                               createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
-    std::vector<SDRMFormat>                               getDRMFormats();
-    std::vector<uint64_t>                                 getDRMFormatModifiers(DRMFormat format);
-    EGLImageKHR                                           createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+    bool                                      initShaders(const std::string& path = "");
 
-    bool                                                  initShaders(const std::string& path = "");
+    WP<CShader>                               useShader(WP<CShader> prog);
 
-    WP<CShader>                                           useShader(WP<CShader> prog);
+    bool                                      explicitSyncSupported();
+    WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
 
-    bool                                                  explicitSyncSupported();
-    WP<CShader>                                           getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
+    bool                                      m_shadersInitialized = false;
+    SP<SPreparedShaders>                      m_shaders;
 
-    bool                                                  m_shadersInitialized = false;
-    SP<SPreparedShaders>                                  m_shaders;
+    SCurrentRenderData                        m_renderData;
 
-    SCurrentRenderData                                    m_renderData;
+    Hyprutils::OS::CFileDescriptor            m_gbmFD;
+    gbm_device*                               m_gbmDevice  = nullptr;
+    EGLContext                                m_eglContext = nullptr;
+    EGLDisplay                                m_eglDisplay = nullptr;
+    EGLDeviceEXT                              m_eglDevice  = nullptr;
 
-    Hyprutils::OS::CFileDescriptor                        m_gbmFD;
-    gbm_device*                                           m_gbmDevice  = nullptr;
-    EGLContext                                            m_eglContext = nullptr;
-    EGLDisplay                                            m_eglDisplay = nullptr;
-    EGLDeviceEXT                                          m_eglDevice  = nullptr;
-
-    std::map<PHLWINDOWREF, SP<IFramebuffer>>              m_windowFramebuffers;
-    std::map<PHLLSREF, SP<IFramebuffer>>                  m_layerFramebuffers;
-    std::map<WP<Desktop::View::CPopup>, SP<IFramebuffer>> m_popupFramebuffers;
-    std::map<PHLMONITORREF, SP<IFramebuffer>>             m_monitorBGFBs;
+    std::map<PHLMONITORREF, SP<IFramebuffer>> m_monitorBGFBs;
 
     struct {
         PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES = nullptr;
@@ -323,8 +315,6 @@ class CHyprOpenGLImpl {
         bool EXT_create_context_robustness      = false;
         bool EGL_ANDROID_native_fence_sync_ext  = false;
     } m_exts;
-
-    SP<ITexture> m_screencopyDeniedTexture;
 
     enum eEGLContextVersion : uint8_t {
         EGL_CONTEXT_GLES_2_0 = 0,
@@ -363,21 +353,13 @@ class CHyprOpenGLImpl {
     bool                             m_offloadedFramebuffer = false;
     bool                             m_cmSupported          = true;
 
-    bool                             m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>                 m_monitorTransformStack;
-    SP<ITexture>                     m_missingAssetTexture;
     SP<CShader>                      m_finalScreenShader;
-    CTimer                           m_globalTimer;
     GLuint                           m_currentProgram;
 
     void                             createBGTextureForMonitor(PHLMONITOR);
     void                             initDRMFormats();
     void                             initEGL(bool gbm);
     EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
-    void                             initAssets();
-    void                             ensureLockTexturesRendered(bool load);
-    void                             initMissingAssetTexture();
-    void                             requestBackgroundResource();
 
     // for the final shader
     std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};

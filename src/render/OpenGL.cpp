@@ -393,10 +393,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     RASSERT(eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
 
-    m_globalTimer.reset();
-
-    pushMonitorTransformEnabled(false);
-
     static auto addLastPressToHistory = [this](const Vector2D& pos, bool killing, bool touch) {
         // shift the new pos and time in
         std::ranges::rotate(m_pressedHistoryPositions, m_pressedHistoryPositions.end() - 1);
@@ -690,9 +686,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
     m_renderData.mainFB = m_renderData.currentFB;
     m_renderData.outFB  = FBO;
 
-    m_renderData.simplePass = true;
-
-    pushMonitorTransformEnabled(false);
+    g_pHyprRenderer->pushMonitorTransformEnabled(false);
 }
 
 void CHyprOpenGLImpl::makeEGLCurrent() {
@@ -786,7 +780,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     m_renderData.mainFB = m_renderData.currentFB;
     m_renderData.outFB  = fb ? fb : g_pHyprRenderer->getCurrentRBO()->getFB();
 
-    pushMonitorTransformEnabled(false);
+    g_pHyprRenderer->pushMonitorTransformEnabled(false);
 }
 
 void CHyprOpenGLImpl::end() {
@@ -803,7 +797,7 @@ void CHyprOpenGLImpl::end() {
     // end the render, copy the data to the main framebuffer
     if LIKELY (m_offloadedFramebuffer) {
         m_renderData.damage = m_renderData.finalDamage;
-        pushMonitorTransformEnabled(true);
+        g_pHyprRenderer->pushMonitorTransformEnabled(true);
 
         CBox monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
 
@@ -835,7 +829,7 @@ void CHyprOpenGLImpl::end() {
 
         m_renderData.useNearestNeighbor = false;
         m_applyFinalShader              = false;
-        popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
@@ -864,7 +858,7 @@ void CHyprOpenGLImpl::end() {
     m_renderData.currentFB         = nullptr;
     m_renderData.mainFB            = nullptr;
     m_renderData.outFB             = nullptr;
-    popMonitorTransformEnabled();
+    g_pHyprRenderer->popMonitorTransformEnabled();
 
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,
@@ -961,7 +955,7 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     }
 
     if (m_finalScreenShader->getUniformLocation(SHADER_TIME) != -1)
-        m_finalScreenShader->setInitialTime(m_globalTimer.getSeconds());
+        m_finalScreenShader->setInitialTime(g_pHyprRenderer->m_globalTimer.getSeconds());
 
     static auto uniformRequireNoDamage = [this](eShaderUniform uniform, const std::string& name) {
         if (*PDT == 0)
@@ -1085,12 +1079,12 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     m_renderData.currentFB->bind();
 
     CBox MONITORBOX = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
-    pushMonitorTransformEnabled(true);
+    g_pHyprRenderer->pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF = m_renderData.renderModif;
     m_renderData.renderModif    = {}; // fix shit
     renderTexture(POUTFB->getTexture(), MONITORBOX,
                   STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
-    popMonitorTransformEnabled();
+    g_pHyprRenderer->popMonitorTransformEnabled();
     m_renderData.renderModif = SAVEDRENDERMODIF;
 
     renderRectWithDamageInternal(box, col, data);
@@ -1106,7 +1100,8 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     m_renderData.renderModif.applyToBox(newBox);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)),
+        newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     auto   shader = useShader(getShaderVariant(SH_FRAG_QUAD, data.round > 0 ? SH_FEAT_ROUNDING : 0));
@@ -1250,7 +1245,7 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
     shader = useShader(shader);
 
     if (*PDT == 0 || g_pHyprRenderer->m_crashingInProgress)
-        shader->setUniformFloat(SHADER_TIME, m_globalTimer.getSeconds() - shader->getInitialTime());
+        shader->setUniformFloat(SHADER_TIME, g_pHyprRenderer->m_globalTimer.getSeconds() - shader->getInitialTime());
     else
         shader->setUniformFloat(SHADER_TIME, 0.f);
 
@@ -1492,7 +1487,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     const auto                  MONITOR_INVERTED = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
     Hyprutils::Math::eTransform TRANSFORM        = tex->m_transform;
 
-    if (m_monitorTransformEnabled)
+    if (g_pHyprRenderer->monitorTransformEnabled())
         TRANSFORM = Math::composeTransform(MONITOR_INVERTED, TRANSFORM);
 
     Mat3x3     matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
@@ -1587,9 +1582,10 @@ void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) 
     m_renderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
-    Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
-    Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
+    const auto TRANSFORM =
+        Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
+    Mat3x3 matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
@@ -1632,11 +1628,12 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
     m_renderData.renderModif.applyToBox(newBox);
 
     // get transform
-    const auto TRANSFORM = Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
-    Mat3x3     matrix    = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
-    Mat3x3     glMatrix  = m_renderData.projection.copy().multiply(matrix);
+    const auto TRANSFORM =
+        Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform));
+    Mat3x3 matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
+    Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    auto       shader = useShader(getShaderVariant(SH_FRAG_MATTE));
+    auto   shader = useShader(getShaderVariant(SH_FRAG_MATTE));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
     shader->setUniformInt(SHADER_ALPHA_MATTE, 1);
@@ -1980,10 +1977,10 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     clear(CHyprColor(0, 0, 0, 0));
 
-    pushMonitorTransformEnabled(true);
+    g_pHyprRenderer->pushMonitorTransformEnabled(true);
     renderTextureInternal(POUTFB->getTexture(), CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
                           STextureRenderData{.damage = &fakeDamage, .a = 1, .round = 0, .roundingPower = 2.F, .discardActive = false, .allowCustomUV = false, .noAA = true});
-    popMonitorTransformEnabled();
+    g_pHyprRenderer->popMonitorTransformEnabled();
 
     m_renderData.currentFB->bind();
 
@@ -2109,7 +2106,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
 
         static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
-        pushMonitorTransformEnabled(true);
+        g_pHyprRenderer->pushMonitorTransformEnabled(true);
         bool renderModif = m_renderData.renderModif.enabled;
         if (!USENEWOPTIMIZE)
             setRenderModifEnabled(false);
@@ -2127,7 +2124,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               });
         if (!USENEWOPTIMIZE)
             setRenderModifEnabled(renderModif);
-        popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
 
         if (NEEDS_STENCIL)
             setCapStatus(GL_STENCIL_TEST, false);
@@ -2184,7 +2181,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     float  round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)),
+        newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     const auto BLEND = m_blend;
@@ -2271,7 +2269,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     float  round = data.round + (data.round == 0 ? 0 : scaledBorderSize);
 
     Mat3x3 matrix = m_renderData.monitorProjection.projectBox(
-        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)),
+        newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     const auto BLEND = m_blend;
@@ -2352,7 +2351,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     const auto  col = color;
 
     Mat3x3      matrix = m_renderData.monitorProjection.projectBox(
-        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)), newBox.rot);
+        newBox, Math::wlTransformToHyprutils(Math::invertTransform(!g_pHyprRenderer->m_monitorTransformEnabled ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform)),
+        newBox.rot);
     Mat3x3 glMatrix = m_renderData.projection.copy().multiply(matrix);
 
     blend(true);
@@ -2495,49 +2495,6 @@ void CHyprOpenGLImpl::renderSplash(cairo_t* const CAIRO, cairo_surface_t* const 
     cairo_surface_flush(CAIROSURFACE);
 }
 
-std::string CHyprOpenGLImpl::resolveAssetPath(const std::string& filename) {
-    std::string fullPath;
-    for (auto& e : ASSET_PATHS) {
-        std::string     p = std::string{e} + "/hypr/" + filename;
-        std::error_code ec;
-        if (std::filesystem::exists(p, ec)) {
-            fullPath = p;
-            break;
-        } else
-            Log::logger->log(Log::DEBUG, "resolveAssetPath: looking at {} unsuccessful: ec {}", filename, ec.message());
-    }
-
-    if (fullPath.empty()) {
-        g_pHyprRenderer->m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
-        return "";
-    }
-
-    return fullPath;
-}
-
-SP<ITexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
-
-    const std::string fullPath = resolveAssetPath(filename);
-
-    if (fullPath.empty())
-        return m_missingAssetTexture;
-
-    const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
-
-    if (!CAIROSURFACE) {
-        g_pHyprRenderer->m_failedAssetsNo++;
-        Log::logger->log(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
-        return m_missingAssetTexture;
-    }
-
-    auto tex = texFromCairo(CAIROSURFACE);
-
-    cairo_surface_destroy(CAIROSURFACE);
-
-    return tex;
-}
-
 SP<ITexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
     const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
     auto       tex         = makeShared<CGLTexture>();
@@ -2563,47 +2520,6 @@ SP<ITexture> CHyprOpenGLImpl::texFromCairo(cairo_surface_t* cairo) {
     return tex;
 }
 
-void CHyprOpenGLImpl::initMissingAssetTexture() {
-    SP<ITexture> tex = makeShared<CGLTexture>();
-    tex->allocate({512, 512});
-
-    const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
-    const auto CAIRO        = cairo_create(CAIROSURFACE);
-
-    cairo_set_antialias(CAIRO, CAIRO_ANTIALIAS_NONE);
-    cairo_save(CAIRO);
-    cairo_set_source_rgba(CAIRO, 0, 0, 0, 1);
-    cairo_set_operator(CAIRO, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(CAIRO);
-    cairo_set_source_rgba(CAIRO, 1, 0, 1, 1);
-    cairo_rectangle(CAIRO, 256, 0, 256, 256);
-    cairo_fill(CAIRO);
-    cairo_rectangle(CAIRO, 0, 256, 256, 256);
-    cairo_fill(CAIRO);
-    cairo_restore(CAIRO);
-
-    cairo_surface_flush(CAIROSURFACE);
-
-    tex->m_size = {512, 512};
-
-    // copy the data to an OpenGL texture we have
-    const GLint glFormat = GL_RGBA;
-    const GLint glType   = GL_UNSIGNED_BYTE;
-
-    const auto  DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    tex->bind();
-    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
-    glTexImage2D(GL_TEXTURE_2D, 0, glFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);
-
-    cairo_surface_destroy(CAIROSURFACE);
-    cairo_destroy(CAIRO);
-
-    m_missingAssetTexture = tex;
-}
-
 WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
     if (m_currentProgram == prog->program())
         return prog;
@@ -2612,90 +2528,6 @@ WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {
     m_currentProgram = prog->program();
 
     return prog;
-}
-
-void CHyprOpenGLImpl::initAssets() {
-    initMissingAssetTexture();
-
-    m_screencopyDeniedTexture = g_pHyprRenderer->renderText("Permission denied to share screen", Colors::WHITE, 20);
-}
-
-void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
-    static bool loaded = false;
-
-    if (loaded == load)
-        return;
-
-    loaded = load;
-
-    if (load) {
-        // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
-        g_pHyprRenderer->m_lockDeadTexture  = loadAsset("lockdead.png");
-        g_pHyprRenderer->m_lockDead2Texture = loadAsset("lockdead2.png");
-
-        const auto VT = g_pCompositor->getVTNr();
-
-        g_pHyprRenderer->m_lockTtyTextTexture =
-            g_pHyprRenderer->renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
-    } else {
-        g_pHyprRenderer->m_lockDeadTexture.reset();
-        g_pHyprRenderer->m_lockDead2Texture.reset();
-        g_pHyprRenderer->m_lockTtyTextTexture.reset();
-    }
-}
-
-void CHyprOpenGLImpl::requestBackgroundResource() {
-    if (g_pHyprRenderer->m_backgroundResource)
-        return;
-
-    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
-
-    const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
-
-    if (*PNOWALLPAPER)
-        return;
-
-    static bool        once    = true;
-    static std::string texPath = "wall";
-
-    if (once) {
-        // get the adequate tex
-        if (FORCEWALLPAPER == -1) {
-            std::mt19937_64                 engine(time(nullptr));
-            std::uniform_int_distribution<> distribution(0, 2);
-
-            texPath += std::to_string(distribution(engine));
-        } else
-            texPath += std::to_string(std::clamp(*PFORCEWALLPAPER, sc<int64_t>(0), sc<int64_t>(2)));
-
-        texPath += ".png";
-
-        texPath = resolveAssetPath(texPath);
-
-        once = false;
-    }
-
-    if (texPath.empty()) {
-        g_pHyprRenderer->m_backgroundResourceFailed = true;
-        return;
-    }
-
-    g_pHyprRenderer->m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
-
-    // doesn't have to be ASP as it's passed
-    SP<CMainLoopExecutor> executor = makeShared<CMainLoopExecutor>([] {
-        for (const auto& m : g_pCompositor->m_monitors) {
-            g_pHyprRenderer->damageMonitor(m);
-        }
-    });
-
-    g_pHyprRenderer->m_backgroundResource->m_events.finished.listenStatic([executor] {
-        // this is in the worker thread.
-        executor->signal();
-    });
-
-    g_pAsyncResourceGatherer->enqueue(g_pHyprRenderer->m_backgroundResource);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
@@ -2711,7 +2543,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
 
     if (!g_pHyprRenderer->m_backgroundResource) {
         // queue the asset to be created
-        requestBackgroundResource();
+        g_pHyprRenderer->requestBackgroundResource();
         return;
     }
 
@@ -2883,16 +2715,6 @@ void CHyprOpenGLImpl::renderOffToMain(CGLFramebuffer* off) {
 void CHyprOpenGLImpl::bindBackOnMain() {
     m_renderData.mainFB->bind();
     m_renderData.currentFB = m_renderData.mainFB;
-}
-
-void CHyprOpenGLImpl::pushMonitorTransformEnabled(bool enabled) {
-    m_monitorTransformStack.push(enabled);
-    m_monitorTransformEnabled = enabled;
-}
-
-void CHyprOpenGLImpl::popMonitorTransformEnabled() {
-    m_monitorTransformStack.pop();
-    m_monitorTransformEnabled = m_monitorTransformStack.top();
 }
 
 void CHyprOpenGLImpl::setRenderModifEnabled(bool enabled) {

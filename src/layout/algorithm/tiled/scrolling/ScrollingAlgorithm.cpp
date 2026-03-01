@@ -466,6 +466,21 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     m_scrollingData       = makeShared<SScrollingData>(this);
     m_scrollingData->self = m_scrollingData;
 
+    // Helper to parse explicit_column_widths string
+    auto parseColumnWidths = [](const std::string& dir) -> std::vector<float> {
+        auto          widthVec = std::vector<float>();
+
+        CConstVarList widths(dir, 0, ',');
+        for (auto& w : widths) {
+            try {
+                widthVec.emplace_back(std::clamp(std::stof(std::string{w}), MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH));
+            } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
+        }
+        if (widthVec.empty())
+            widthVec = {0.333, 0.5, 0.667, 1.0}; // default
+        return widthVec;
+    };
+
     // Helper to parse direction string
     auto parseDirection = [](const std::string& dir) -> eScrollDirection {
         if (dir == "left")
@@ -478,19 +493,11 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
             return SCROLL_DIR_RIGHT; // default
     };
 
-    m_configCallback = Event::bus()->m_events.config.reloaded.listen([this, parseDirection] {
+    m_configCallback = Event::bus()->m_events.config.reloaded.listen([this, parseColumnWidths, parseDirection] {
         static const auto PCONFDIRECTION = CConfigValue<Hyprlang::STRING>("scrolling:direction");
 
         m_config.configuredWidths.clear();
-
-        CConstVarList widths(*PCONFWIDTHS, 0, ',');
-        for (auto& w : widths) {
-            try {
-                m_config.configuredWidths.emplace_back(std::clamp(std::stof(std::string{w}), MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH));
-            } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
-        }
-        if (m_config.configuredWidths.empty())
-            m_config.configuredWidths = {0.333, 0.5, 0.667, 1.0};
+        m_config.configuredWidths = parseColumnWidths(*PCONFWIDTHS);
 
         // Update scroll direction
         m_scrollingData->controller->setDirection(parseDirection(*PCONFDIRECTION));
@@ -523,7 +530,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     });
 
     // Initialize default widths and direction
-    m_config.configuredWidths = {0.333, 0.5, 0.667, 1.0};
+    m_config.configuredWidths = parseColumnWidths(*PCONFWIDTHS);
     m_scrollingData->controller->setDirection(parseDirection(*PCONFDIRECTION));
 }
 

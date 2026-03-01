@@ -94,7 +94,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
         return;
     }
 
-    const auto stride   = NFormatUtils::minStride(PSHMINFO, bufSize.x);
+    const auto stride = NFormatUtils::minStride(PSHMINFO, bufSize.x);
     m_resource->sendBuffer(NFormatUtils::drmToShm(format), bufSize.x, bufSize.y, stride);
 
     if (m_resource->version() >= 3) {

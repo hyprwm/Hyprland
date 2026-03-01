@@ -1690,7 +1690,10 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
         // index starts from '1'; '0' means last window
         try {
             const int INDEX = std::stoi(args);
-            PWINDOW->m_group->setCurrent(INDEX);
+            if (INDEX <= 0)
+                PWINDOW->m_group->setCurrent(PWINDOW->m_group->size() - 1);
+            else
+                PWINDOW->m_group->setCurrent(INDEX - 1);
         } catch (...) { return {.success = false, .error = "invalid idx"}; }
 
         return {};

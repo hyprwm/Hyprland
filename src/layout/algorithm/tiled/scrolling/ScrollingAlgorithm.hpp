@@ -138,6 +138,8 @@ namespace Layout::Tiled {
         void                     moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
         void                     focusOnInput(SP<ITarget> target, eInputMode input);
 
+        float                    defaultColumnWidth();
+
         friend struct SScrollingData;
     };
 };

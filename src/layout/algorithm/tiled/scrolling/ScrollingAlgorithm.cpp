@@ -296,23 +296,21 @@ SScrollingData::SScrollingData(CScrollingAlgorithm* algo) : algorithm(algo) {
 }
 
 SP<SColumnData> SScrollingData::add() {
-    static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("scrolling:column_width");
-    auto              col       = columns.emplace_back(makeShared<SColumnData>(self.lock()));
-    col->self                   = col;
+    auto col  = columns.emplace_back(makeShared<SColumnData>(self.lock()));
+    col->self = col;
 
-    size_t stripIdx                         = controller->addStrip(*PCOLWIDTH);
+    size_t stripIdx                         = controller->addStrip(algorithm->defaultColumnWidth());
     controller->getStrip(stripIdx).userData = col;
 
     return col;
 }
 
 SP<SColumnData> SScrollingData::add(int after) {
-    static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("scrolling:column_width");
-    auto              col       = makeShared<SColumnData>(self.lock());
-    col->self                   = col;
+    auto col  = makeShared<SColumnData>(self.lock());
+    col->self = col;
     columns.insert(columns.begin() + after + 1, col);
 
-    controller->insertStrip(after, *PCOLWIDTH);
+    controller->insertStrip(after, algorithm->defaultColumnWidth());
     controller->getStrip(after + 1).userData = col;
 
     return col;
@@ -486,7 +484,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         CConstVarList widths(*PCONFWIDTHS, 0, ',');
         for (auto& w : widths) {
             try {
-                m_config.configuredWidths.emplace_back(std::stof(std::string{w}));
+                m_config.configuredWidths.emplace_back(std::clamp(std::stof(std::string{w}), MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH));
             } catch (...) { Log::logger->log(Log::ERR, "scrolling: Failed to parse width {} as float", w); }
         }
         if (m_config.configuredWidths.empty())
@@ -1423,4 +1421,9 @@ CBox CScrollingAlgorithm::usableArea() {
 
     box.translate(-m_parent->space()->workspace()->m_monitor->m_position);
     return box;
+}
+
+float CScrollingAlgorithm::defaultColumnWidth() {
+    static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("scrolling:column_width");
+    return std::clamp(*PCOLWIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 }

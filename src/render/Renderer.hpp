@@ -73,6 +73,51 @@ struct SRenderWorkspaceUntilData {
     PHLWINDOW w;
 };
 
+struct SRenderData {
+    // can be private
+    Mat3x3 targetProjection;
+
+    // ----------------------
+
+    // used by public
+    Vector2D         fbSize = {-1, -1};
+    PHLMONITORREF    pMonitor;
+
+    Mat3x3           projection;
+    Mat3x3           savedProjection;
+    Mat3x3           monitorProjection;
+
+    SP<IFramebuffer> currentFB = nullptr; // current rendering to
+    SP<IFramebuffer> mainFB    = nullptr; // main to render to
+    SP<IFramebuffer> outFB     = nullptr; // out to render to (if offloaded, etc)
+
+    CRegion          damage;
+    CRegion          finalDamage; // damage used for funal off -> main
+
+    SRenderModifData renderModif;
+    float            mouseZoomFactor    = 1.f;
+    bool             mouseZoomUseMouse  = true; // true by default
+    bool             useNearestNeighbor = false;
+    bool             blockScreenShader  = false;
+
+    Vector2D         primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D         primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+    // TODO remove and pass directly
+    CBox                   clipBox = {}; // scaled coordinates
+    CRegion                clipRegion;
+
+    uint32_t               discardMode    = DISCARD_OPAQUE;
+    float                  discardOpacity = 0.f;
+
+    PHLLSREF               currentLS;
+    PHLWINDOWREF           currentWindow;
+    WP<CWLSurfaceResource> surface;
+
+    bool                   transformDamage = true;
+    bool                   noSimplify      = false;
+};
+
 struct STFRange {
     float min = 0;
     float max = 80;
@@ -152,7 +197,9 @@ class CHyprRenderer {
     bool                            m_directScanoutBlocked = false;
 
     void                            setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor); // nullptr monitor resets
+
     void                            initiateManualCrash();
+    const SRenderData&              renderData();
 
     bool                            m_crashingInProgress = false;
     float                           m_crashingDistort    = 0.5f;
@@ -174,6 +221,7 @@ class CHyprRenderer {
     CRenderPass       m_renderPass = {};
 
     SP<IRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+    SRenderData       m_renderData;                                                          // TODO? move to protected and fix CRenderPass
     SP<ITexture>      m_screencopyDeniedTexture;                                             // TODO? make readonly
     uint              m_failedAssetsNo     = 0;                                              // TODO? make readonly
     bool              m_reloadScreenShader = true;                                           // at launch it can be set

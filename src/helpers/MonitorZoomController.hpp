@@ -2,16 +2,16 @@
 
 #include "./math/Math.hpp"
 
-struct SCurrentRenderData;
+struct SRenderData;
 
 class CMonitorZoomController {
   public:
     bool m_resetCameraState = true;
 
-    void applyZoomTransform(CBox& monbox, const SCurrentRenderData& m_renderData);
+    void applyZoomTransform(CBox& monbox, const SRenderData& m_renderData);
 
   private:
-    void  zoomWithDetachedCamera(CBox& result, const SCurrentRenderData& m_renderData);
+    void  zoomWithDetachedCamera(CBox& result, const SRenderData& m_renderData);
 
     CBox  m_camera;
     float m_lastZoomLevel = 1.0f;

@@ -152,12 +152,12 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         return; // don't draw invisible shadows
 
     g_pHyprOpenGL->scissor(nullptr);
-    g_pHyprOpenGL->m_renderData.currentWindow = m_window;
+    g_pHyprRenderer->m_renderData.currentWindow = m_window;
 
     // we'll take the liberty of using this as it should not be used rn
-    auto alphaFB     = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorFB;
-    auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorSwapFB;
-    auto LASTFB      = g_pHyprOpenGL->m_renderData.currentFB;
+    auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
+    auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
+    auto LASTFB      = g_pHyprRenderer->m_renderData.currentFB;
 
     fullBox.scale(pMonitor->m_scale).round();
 
@@ -182,11 +182,11 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         if (windowBox.width < 1 || windowBox.height < 1)
             return; // prevent assert failed
 
-        CRegion saveDamage = g_pHyprOpenGL->m_renderData.damage;
+        CRegion saveDamage = g_pHyprRenderer->m_renderData.damage;
 
-        g_pHyprOpenGL->m_renderData.damage = fullBox;
-        g_pHyprOpenGL->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
-        g_pHyprOpenGL->m_renderData.renderModif.applyToRegion(g_pHyprOpenGL->m_renderData.damage);
+        g_pHyprRenderer->m_renderData.damage = fullBox;
+        g_pHyprRenderer->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
+        g_pHyprRenderer->m_renderData.renderModif.applyToRegion(g_pHyprRenderer->m_renderData.damage);
 
         alphaFB->bind();
 
@@ -217,14 +217,14 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         g_pHyprOpenGL->setRenderModifEnabled(true);
         g_pHyprRenderer->popMonitorTransformEnabled();
 
-        g_pHyprOpenGL->m_renderData.damage = saveDamage;
+        g_pHyprRenderer->m_renderData.damage = saveDamage;
     } else
         drawShadowInternal(fullBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, *PSHADOWSIZE * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
 
     if (m_extents != m_reportedExtents)
         g_pDecorationPositioner->repositionDeco(this);
 
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    g_pHyprRenderer->m_renderData.currentWindow.reset();
 }
 
 eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {

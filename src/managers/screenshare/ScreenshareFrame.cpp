@@ -130,6 +130,13 @@ void CScreenshareFrame::copy() {
     if (done())
         return;
 
+    if (!CHyprRenderer::shouldBlackoutNoScreenShare() && (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION)) {
+        const auto PMONITOR = m_session->monitor();
+        if (const auto PTEX = g_pHyprOpenGL->getMonitorCaptureTexture(PMONITOR); !PTEX || !PTEX->m_texID) {
+            g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            return;
+        }
+    }
     // tell client to send presented timestamp
     // TODO: is this right? this is right after we commit to aq, not when page flip happens..
     m_callback(RESULT_TIMESTAMP);

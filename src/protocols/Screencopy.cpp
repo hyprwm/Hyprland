@@ -87,6 +87,13 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
     auto       bufSize = m_frame->bufferSize();
 
     const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(format);
+
+    if (!PSHMINFO) {
+        LOGM(Log::ERR, "No pixel format for drm format");
+        m_resource->sendFailed();
+        return;
+    }
+
     const auto stride   = NFormatUtils::minStride(PSHMINFO, bufSize.x);
     m_resource->sendBuffer(NFormatUtils::drmToShm(format), bufSize.x, bufSize.y, stride);
 

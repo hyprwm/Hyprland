@@ -130,11 +130,46 @@ void CScreenshareFrame::copy() {
     if (done())
         return;
 
-    if (!CHyprRenderer::shouldBlackoutNoScreenShare() && (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION)) {
+    if (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION) {
         const auto PMONITOR = m_session->monitor();
-        if (const auto PTEX = g_pHyprOpenGL->getMonitorCaptureTexture(PMONITOR); !PTEX || !PTEX->m_texID) {
-            g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-            return;
+
+        bool       requiresCaptureTexture = false;
+
+        for (const auto& w : g_pCompositor->m_windows) {
+            if (!w || !w->m_isMapped || w->isHidden())
+                continue;
+
+            if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
+
+            if (!g_pHyprRenderer->isWindowVisibleOnMonitor(w, PMONITOR))
+                continue;
+
+            requiresCaptureTexture = true;
+            break;
+        }
+
+        if (!requiresCaptureTexture) {
+            for (const auto& layer : g_pCompositor->m_layers) {
+                if (!layer || !layer->m_ruleApplicator->noScreenShare().valueOrDefault())
+                    continue;
+
+                if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
+                    continue;
+
+                if (layer->m_monitor.lock() != PMONITOR)
+                    continue;
+
+                requiresCaptureTexture = true;
+                break;
+            }
+        }
+
+        if (requiresCaptureTexture) {
+            if (const auto PTEX = g_pHyprOpenGL->getMonitorCaptureTexture(PMONITOR); !PTEX || !PTEX->m_texID) {
+                g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                return;
+            }
         }
     }
     // tell client to send presented timestamp

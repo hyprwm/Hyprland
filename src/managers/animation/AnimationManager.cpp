@@ -165,8 +165,8 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                         g_pHyprRenderer->damageWindow(w);
                 }
             } else if (PLAYER) {
-                if (PLAYER->m_layer <= 1)
-                    g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR);
+                if (PLAYER->m_layer <= 1 && PMONITOR)
+                    PMONITOR->m_blurFBDirty = true;
 
                 // some fucking layers miss 1 pixel???
                 CBox expandBox = CBox{PLAYER->m_realPosition->value(), PLAYER->m_realSize->value()};

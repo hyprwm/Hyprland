@@ -170,6 +170,9 @@ class CHyprRenderer {
 
     CRenderPass  m_renderPass = {};
 
+    uint         m_failedAssetsNo     = 0;    // TODO? make readonly
+    bool         m_reloadScreenShader = true; // at launch it can be set
+
     SP<ITexture> createStencilTexture(const int width, const int height);
     SP<ITexture> createTexture(bool opaque = false);
     SP<ITexture> createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
@@ -201,6 +204,10 @@ class CHyprRenderer {
     void                    draw(CTextureMatteElement* element, const CRegion& damage);
     void                    draw(WP<IPassElement> element, const CRegion& damage);
 
+    SP<ITexture>            m_lockDeadTexture;
+    SP<ITexture>            m_lockDead2Texture;
+    SP<ITexture>            m_lockTtyTextTexture;
+
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
@@ -219,20 +226,23 @@ class CHyprRenderer {
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    bool shouldBlur(PHLLS ls);
-    bool shouldBlur(PHLWINDOW w);
-    bool shouldBlur(WP<Desktop::View::CPopup> p);
+    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
+    bool                              m_backgroundResourceFailed = false;
 
-    bool m_cursorHidden                           = false;
-    bool m_cursorHiddenByCondition                = false;
-    bool m_cursorHasSurface                       = false;
-    SP<IRenderbuffer>       m_currentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
-    eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
-    bool                    m_nvidia              = false;
-    bool                    m_intel               = false;
-    bool                    m_software            = false;
-    bool                    m_mgpu                = false;
+    bool                              shouldBlur(PHLLS ls);
+    bool                              shouldBlur(PHLWINDOW w);
+    bool                              shouldBlur(WP<Desktop::View::CPopup> p);
+
+    bool                              m_cursorHidden            = false;
+    bool                              m_cursorHiddenByCondition = false;
+    bool                              m_cursorHasSurface        = false;
+    SP<IRenderbuffer>                 m_currentRenderbuffer     = nullptr;
+    SP<Aquamarine::IBuffer>           m_currentBuffer           = nullptr;
+    eRenderMode                       m_renderMode              = RENDER_MODE_NORMAL;
+    bool                              m_nvidia                  = false;
+    bool                              m_intel                   = false;
+    bool                              m_software                = false;
+    bool                              m_mgpu                    = false;
 
     struct {
         bool hiddenOnTouch    = false;

@@ -76,6 +76,8 @@ static int cursorTicker(void* data) {
 }
 
 CHyprRenderer::CHyprRenderer() {
+    g_pHyprOpenGL->initAssets();
+
     if (g_pCompositor->m_aqBackend->hasSession()) {
         size_t drmDevices = 0;
         for (auto const& dev : g_pCompositor->m_aqBackend->session->sessionDevices) {
@@ -623,7 +625,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             data.round = renderdata.dontRound ? 0 : renderdata.rounding - 1;
             data.blur  = true;
             data.blurA = renderdata.fadeAlpha;
-            data.xray  = g_pHyprOpenGL->shouldUseNewBlurOptimizations(nullptr, pWindow);
+            data.xray  = shouldUseNewBlurOptimizations(nullptr, pWindow);
             m_renderPass.add(makeUnique<CRectPassElement>(data));
             renderdata.blur = false;
         }
@@ -802,12 +804,12 @@ void CHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
 
     } else {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_offloadFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorSwapFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_offMainFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_monitorMirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB; break;
         }
 
         if (!fb) {
@@ -1419,7 +1421,7 @@ bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
 
-    if (!g_pHyprOpenGL->m_renderData.pCurrentMonData || !g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB || !g_pHyprOpenGL->m_renderData.pCurrentMonData->blurFB->getTexture())
+    if (!g_pHyprOpenGL->m_renderData.pMonitor || !g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB || !g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB->getTexture())
         return false;
 
     if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
@@ -1563,16 +1565,16 @@ void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     // else: render image, with instructions. Lock is gone.
     CBox                         monbox = {{}, pMonitor->m_pixelSize};
     CTexPassElement::SRenderData data;
-    data.tex = (ANY_PRESENT) ? g_pHyprOpenGL->m_lockDead2Texture : g_pHyprOpenGL->m_lockDeadTexture;
+    data.tex = (ANY_PRESENT) ? g_pHyprRenderer->m_lockDead2Texture : g_pHyprRenderer->m_lockDeadTexture;
     data.box = monbox;
     data.a   = 1;
 
     m_renderPass.add(makeUnique<CTexPassElement>(data));
 
-    if (!ANY_PRESENT && g_pHyprOpenGL->m_lockTtyTextTexture) {
+    if (!ANY_PRESENT && m_lockTtyTextTexture) {
         // also render text for the tty number
-        CBox texbox = {{}, g_pHyprOpenGL->m_lockTtyTextTexture->m_size};
-        data.tex    = g_pHyprOpenGL->m_lockTtyTextTexture;
+        CBox texbox = {{}, m_lockTtyTextTexture->m_size};
+        data.tex    = m_lockTtyTextTexture;
         data.box    = texbox;
 
         m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));

@@ -389,8 +389,6 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
 
     initDRMFormats();
 
-    initAssets();
-
     static auto P = Event::bus()->m_events.render.pre.listen([&](PHLMONITOR mon) { preRender(mon); });
 
     RASSERT(eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT), "Couldn't unset current EGL!");
@@ -676,8 +674,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
         m_renderData.monitorProjection.translate(FBO->m_size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
     }
 
-    m_renderData.pCurrentMonData = &m_monitorRenderResources[pMonitor];
-
     if (!m_shadersInitialized)
         initShaders();
 
@@ -731,11 +727,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 
     m_renderData.monitorProjection = pMonitor->m_projMatrix;
 
-    if (m_monitorRenderResources.contains(pMonitor) &&
-        (!m_monitorRenderResources.at(pMonitor).offloadFB || m_monitorRenderResources.at(pMonitor).offloadFB->m_size != pMonitor->m_pixelSize))
+    if (pMonitor && (!pMonitor->m_offloadFB || pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize))
         destroyMonitorResources(pMonitor);
-
-    m_renderData.pCurrentMonData = &m_monitorRenderResources[pMonitor];
 
     if (!m_shadersInitialized)
         initShaders();
@@ -743,30 +736,30 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
 
     // ensure a framebuffer for the monitor exists
-    if (!m_renderData.pCurrentMonData->offloadFB || m_renderData.pCurrentMonData->offloadFB->m_size != pMonitor->m_pixelSize ||
-        DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB->m_drmFormat) {
-        m_renderData.pCurrentMonData->stencilTex   = g_pHyprRenderer->createStencilTexture(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
-        m_renderData.pCurrentMonData->offloadFB    = g_pHyprRenderer->createFB();
-        m_renderData.pCurrentMonData->mirrorFB     = g_pHyprRenderer->createFB();
-        m_renderData.pCurrentMonData->mirrorSwapFB = g_pHyprRenderer->createFB();
+    if (!m_renderData.pMonitor->m_offloadFB || m_renderData.pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize ||
+        DRM_FORMAT != m_renderData.pMonitor->m_offloadFB->m_drmFormat) {
+        m_renderData.pMonitor->m_stencilTex   = g_pHyprRenderer->createStencilTexture(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y);
+        m_renderData.pMonitor->m_offloadFB    = g_pHyprRenderer->createFB();
+        m_renderData.pMonitor->m_mirrorFB     = g_pHyprRenderer->createFB();
+        m_renderData.pMonitor->m_mirrorSwapFB = g_pHyprRenderer->createFB();
 
-        m_renderData.pCurrentMonData->offloadFB->addStencil(m_renderData.pCurrentMonData->stencilTex);
-        m_renderData.pCurrentMonData->mirrorFB->addStencil(m_renderData.pCurrentMonData->stencilTex);
-        m_renderData.pCurrentMonData->mirrorSwapFB->addStencil(m_renderData.pCurrentMonData->stencilTex);
+        m_renderData.pMonitor->m_offloadFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+        m_renderData.pMonitor->m_mirrorFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+        m_renderData.pMonitor->m_mirrorSwapFB->addStencil(m_renderData.pMonitor->m_stencilTex);
 
-        m_renderData.pCurrentMonData->offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-        m_renderData.pCurrentMonData->mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-        m_renderData.pCurrentMonData->mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+        m_renderData.pMonitor->m_offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+        m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+        m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
     }
 
-    const bool HAS_MIRROR_FB = m_renderData.pCurrentMonData->monitorMirrorFB && m_renderData.pCurrentMonData->monitorMirrorFB->isAllocated();
+    const bool HAS_MIRROR_FB = m_renderData.pMonitor->m_monitorMirrorFB && m_renderData.pMonitor->m_monitorMirrorFB->isAllocated();
     const bool NEEDS_COPY_FB = needsACopyFB(m_renderData.pMonitor.lock());
 
     if (HAS_MIRROR_FB && !NEEDS_COPY_FB)
-        m_renderData.pCurrentMonData->monitorMirrorFB->release();
-    else if (!HAS_MIRROR_FB && NEEDS_COPY_FB && m_renderData.pCurrentMonData->monitorMirrorFB)
-        m_renderData.pCurrentMonData->monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                             m_renderData.pMonitor->m_output->state->state().drmFormat);
+        m_renderData.pMonitor->m_monitorMirrorFB->release();
+    else if (!HAS_MIRROR_FB && NEEDS_COPY_FB && m_renderData.pMonitor->m_monitorMirrorFB)
+        m_renderData.pMonitor->m_monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
+                                                        m_renderData.pMonitor->m_output->state->state().drmFormat);
 
     m_renderData.transformDamage = true;
     if (HAS_MIRROR_FB != NEEDS_COPY_FB) {
@@ -780,14 +773,14 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 
     m_fakeFrame = fb;
 
-    if (m_reloadScreenShader) {
-        m_reloadScreenShader = false;
-        static auto PSHADER  = CConfigValue<std::string>("decoration:screen_shader");
+    if (g_pHyprRenderer->m_reloadScreenShader) {
+        g_pHyprRenderer->m_reloadScreenShader = false;
+        static auto PSHADER                   = CConfigValue<std::string>("decoration:screen_shader");
         applyScreenShader(*PSHADER);
     }
 
-    m_renderData.pCurrentMonData->offloadFB->bind();
-    m_renderData.currentFB = m_renderData.pCurrentMonData->offloadFB;
+    m_renderData.pMonitor->m_offloadFB->bind();
+    m_renderData.currentFB = m_renderData.pMonitor->m_offloadFB;
     m_offloadedFramebuffer = true;
 
     m_renderData.mainFB = m_renderData.currentFB;
@@ -834,9 +827,9 @@ void CHyprOpenGLImpl::end() {
             m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress || m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
 
         if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
-            renderTexturePrimitive(m_renderData.pCurrentMonData->offloadFB->getTexture(), monbox);
+            renderTexturePrimitive(m_renderData.pMonitor->m_offloadFB->getTexture(), monbox);
         else // we need to use renderTexture if we do any CM whatsoever.
-            renderTexture(m_renderData.pCurrentMonData->offloadFB->getTexture(), monbox, {.finalMonitorCM = true});
+            renderTexture(m_renderData.pMonitor->m_offloadFB->getTexture(), monbox, {.finalMonitorCM = true});
 
         blend(true);
 
@@ -846,21 +839,21 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    if (m_renderData.pCurrentMonData->mirrorFB) {
-        m_renderData.pCurrentMonData->mirrorFB->bind();
-        GLFB(m_renderData.pCurrentMonData->mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (m_renderData.pMonitor->m_mirrorFB) {
+        m_renderData.pMonitor->m_mirrorFB->bind();
+        GLFB(m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
     }
-    if (m_renderData.pCurrentMonData->mirrorSwapFB) {
-        m_renderData.pCurrentMonData->mirrorSwapFB->bind();
-        GLFB(m_renderData.pCurrentMonData->mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (m_renderData.pMonitor->m_mirrorSwapFB) {
+        m_renderData.pMonitor->m_mirrorSwapFB->bind();
+        GLFB(m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
     }
-    if (m_renderData.pCurrentMonData->offloadFB) {
-        m_renderData.pCurrentMonData->offloadFB->bind();
-        GLFB(m_renderData.pCurrentMonData->offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (m_renderData.pMonitor->m_offloadFB) {
+        m_renderData.pMonitor->m_offloadFB->bind();
+        GLFB(m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
     }
-    if (m_renderData.pCurrentMonData->offMainFB) {
-        m_renderData.pCurrentMonData->offMainFB->bind();
-        GLFB(m_renderData.pCurrentMonData->offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (m_renderData.pMonitor->m_offMainFB) {
+        m_renderData.pMonitor->m_offMainFB->bind();
+        GLFB(m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
     }
 
     // reset our data
@@ -876,8 +869,8 @@ void CHyprOpenGLImpl::end() {
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,
     // but I haven't seen a single plugin yet use these, so it's better to drop a bit of vram.
-    if UNLIKELY (m_renderData.pCurrentMonData->offMainFB && m_renderData.pCurrentMonData->offMainFB->isAllocated())
-        m_renderData.pCurrentMonData->offMainFB->release();
+    if UNLIKELY (m_renderData.pMonitor && m_renderData.pMonitor->m_offMainFB && m_renderData.pMonitor->m_offMainFB->isAllocated())
+        m_renderData.pMonitor->m_offMainFB->release();
 
     static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
 
@@ -1087,7 +1080,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{m_renderData.damage};
     damage.intersect(box);
 
-    auto POUTFB = data.xray ? m_renderData.pCurrentMonData->blurFB : blurMainFramebufferWithDamage(data.blurA, &damage);
+    auto POUTFB = data.xray ? m_renderData.pMonitor->m_blurFB : blurMainFramebufferWithDamage(data.blurA, &damage);
 
     m_renderData.currentFB->bind();
 
@@ -1674,7 +1667,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
 SP<IFramebuffer> CHyprOpenGLImpl::blurMainFramebufferWithDamage(float a, CRegion* originalDamage) {
     if (!m_renderData.currentFB->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pCurrentMonData->mirrorFB; // return something to sample from at least
+        return m_renderData.pMonitor->m_mirrorFB; // return something to sample from at least
     }
 
     return blurFramebufferWithDamage(a, originalDamage, *GLFB(m_renderData.currentFB));
@@ -1708,8 +1701,8 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     damage.expand(std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, BLUR_PASSES));
 
     // helper
-    const auto PMIRRORFB     = m_renderData.pCurrentMonData->mirrorFB;
-    const auto PMIRRORSWAPFB = m_renderData.pCurrentMonData->mirrorSwapFB;
+    const auto PMIRRORFB     = m_renderData.pMonitor->m_mirrorFB;
+    const auto PMIRRORSWAPFB = m_renderData.pMonitor->m_mirrorSwapFB;
 
     auto       currentRenderToFB = PMIRRORFB;
 
@@ -1884,16 +1877,12 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     return currentRenderToFB;
 }
 
-void CHyprOpenGLImpl::markBlurDirtyForMonitor(PHLMONITOR pMonitor) {
-    m_monitorRenderResources[pMonitor].blurFBDirty = true;
-}
-
 void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    if (!*PBLURNEWOPTIMIZE || !m_monitorRenderResources[pMonitor].blurFBDirty || !*PBLUR)
+    if (!*PBLURNEWOPTIMIZE || !pMonitor->m_blurFBDirty || !*PBLUR)
         return;
 
     // ignore if solitary present, nothing to blur
@@ -1968,7 +1957,7 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         return;
 
     g_pHyprRenderer->damageMonitor(pMonitor);
-    m_monitorRenderResources[pMonitor].blurFBShouldRender = true;
+    pMonitor->m_blurFBShouldRender = true;
 }
 
 void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
@@ -1983,12 +1972,11 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
     const auto POUTFB = blurMainFramebufferWithDamage(1, &fakeDamage);
 
     // render onto blurFB
-    if (!m_renderData.pCurrentMonData->blurFB)
-        m_renderData.pCurrentMonData->blurFB = g_pHyprRenderer->createFB();
+    if (!m_renderData.pMonitor->m_blurFB)
+        m_renderData.pMonitor->m_blurFB = g_pHyprRenderer->createFB();
 
-    m_renderData.pCurrentMonData->blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                m_renderData.pMonitor->m_output->state->state().drmFormat);
-    m_renderData.pCurrentMonData->blurFB->bind();
+    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
+    m_renderData.pMonitor->m_blurFB->bind();
 
     clear(CHyprColor(0, 0, 0, 0));
 
@@ -1999,11 +1987,11 @@ void CHyprOpenGLImpl::preBlurForCurrentMonitor() {
 
     m_renderData.currentFB->bind();
 
-    m_renderData.pCurrentMonData->blurFBDirty = false;
+    m_renderData.pMonitor->m_blurFBDirty = false;
 
     m_renderData.renderModif = SAVEDRENDERMODIF;
 
-    m_monitorRenderResources[m_renderData.pMonitor].blurFBShouldRender = false;
+    m_renderData.pMonitor->m_blurFBShouldRender = false;
 }
 
 void CHyprOpenGLImpl::preWindowPass() {
@@ -2017,29 +2005,7 @@ bool CHyprOpenGLImpl::preBlurQueued() {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
-    return m_renderData.pCurrentMonData->blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pCurrentMonData->blurFBShouldRender;
-}
-
-bool CHyprOpenGLImpl::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
-
-    if (!m_renderData.pCurrentMonData->blurFB || !m_renderData.pCurrentMonData->blurFB->getTexture())
-        return false;
-
-    if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
-        return false;
-
-    if (pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 0)
-        return false;
-
-    if ((*PBLURNEWOPTIMIZE && pWindow && !pWindow->m_isFloating && !pWindow->onSpecialWorkspace()) || *PBLURXRAY)
-        return true;
-
-    if ((pLayer && pLayer->m_ruleApplicator->xray().valueOrDefault() == 1) || (pWindow && pWindow->m_ruleApplicator->xray().valueOrDefault()))
-        return true;
-
-    return false;
+    return m_renderData.pMonitor->m_blurFBDirty && *PBLURNEWOPTIMIZE && *PBLUR && m_renderData.pMonitor->m_blurFBShouldRender;
 }
 
 void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
@@ -2082,7 +2048,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     inverseOpaque.scale(m_renderData.pMonitor->m_scale);
 
     //   vvv TODO: layered blur fbs?
-    const bool       USENEWOPTIMIZE = shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
+    const bool USENEWOPTIMIZE = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_renderData.currentLS.lock(), m_renderData.currentWindow.lock()) && !data.blockBlurOptimization;
 
     SP<IFramebuffer> POUTFB = nullptr;
     if (!USENEWOPTIMIZE) {
@@ -2091,7 +2057,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         inverseOpaque.intersect(texDamage);
         POUTFB = blurMainFramebufferWithDamage(data.a, &inverseOpaque);
     } else
-        POUTFB = m_renderData.pCurrentMonData->blurFB;
+        POUTFB = m_renderData.pMonitor->m_blurFB;
 
     m_renderData.currentFB->bind();
 
@@ -2436,14 +2402,14 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
-    if (!m_renderData.pCurrentMonData->monitorMirrorFB)
-        m_renderData.pCurrentMonData->monitorMirrorFB = g_pHyprRenderer->createFB();
+    if (!m_renderData.pMonitor->m_monitorMirrorFB)
+        m_renderData.pMonitor->m_monitorMirrorFB = g_pHyprRenderer->createFB();
 
-    if (!m_renderData.pCurrentMonData->monitorMirrorFB->isAllocated())
-        m_renderData.pCurrentMonData->monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                             m_renderData.pMonitor->m_output->state->state().drmFormat);
+    if (!m_renderData.pMonitor->m_monitorMirrorFB->isAllocated())
+        m_renderData.pMonitor->m_monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
+                                                        m_renderData.pMonitor->m_output->state->state().drmFormat);
 
-    m_renderData.pCurrentMonData->monitorMirrorFB->bind();
+    m_renderData.pMonitor->m_monitorMirrorFB->bind();
 
     blend(false);
 
@@ -2476,7 +2442,7 @@ void CHyprOpenGLImpl::renderMirrored() {
     monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
 
-    auto PFB = m_monitorRenderResources[mirrored].monitorMirrorFB;
+    auto PFB = mirrored->m_monitorMirrorFB;
     if (!PFB->isAllocated() || !PFB->getTexture())
         return;
 
@@ -2542,7 +2508,7 @@ std::string CHyprOpenGLImpl::resolveAssetPath(const std::string& filename) {
     }
 
     if (fullPath.empty()) {
-        m_failedAssetsNo++;
+        g_pHyprRenderer->m_failedAssetsNo++;
         Log::logger->log(Log::ERR, "resolveAssetPath: looking for {} failed (no provider found)", filename);
         return "";
     }
@@ -2560,7 +2526,7 @@ SP<ITexture> CHyprOpenGLImpl::loadAsset(const std::string& filename) {
     const auto CAIROSURFACE = cairo_image_surface_create_from_png(fullPath.c_str());
 
     if (!CAIROSURFACE) {
-        m_failedAssetsNo++;
+        g_pHyprRenderer->m_failedAssetsNo++;
         Log::logger->log(Log::ERR, "loadAsset: failed to load {} (corrupt / inaccessible / not png)", fullPath);
         return m_missingAssetTexture;
     }
@@ -2664,22 +2630,22 @@ void CHyprOpenGLImpl::ensureLockTexturesRendered(bool load) {
 
     if (load) {
         // this will cause a small hitch. I don't think we can do much, other than wasting VRAM and having this loaded all the time.
-        m_lockDeadTexture  = loadAsset("lockdead.png");
-        m_lockDead2Texture = loadAsset("lockdead2.png");
+        g_pHyprRenderer->m_lockDeadTexture  = loadAsset("lockdead.png");
+        g_pHyprRenderer->m_lockDead2Texture = loadAsset("lockdead2.png");
 
         const auto VT = g_pCompositor->getVTNr();
 
-        m_lockTtyTextTexture =
+        g_pHyprRenderer->m_lockTtyTextTexture =
             g_pHyprRenderer->renderText(std::format("Running on tty {}", VT.has_value() ? std::to_string(*VT) : "unknown"), CHyprColor{0.9F, 0.9F, 0.9F, 0.7F}, 20, true);
     } else {
-        m_lockDeadTexture.reset();
-        m_lockDead2Texture.reset();
-        m_lockTtyTextTexture.reset();
+        g_pHyprRenderer->m_lockDeadTexture.reset();
+        g_pHyprRenderer->m_lockDead2Texture.reset();
+        g_pHyprRenderer->m_lockTtyTextTexture.reset();
     }
 }
 
 void CHyprOpenGLImpl::requestBackgroundResource() {
-    if (m_backgroundResource)
+    if (g_pHyprRenderer->m_backgroundResource)
         return;
 
     static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
@@ -2711,11 +2677,11 @@ void CHyprOpenGLImpl::requestBackgroundResource() {
     }
 
     if (texPath.empty()) {
-        m_backgroundResourceFailed = true;
+        g_pHyprRenderer->m_backgroundResourceFailed = true;
         return;
     }
 
-    m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
+    g_pHyprRenderer->m_backgroundResource = makeAtomicShared<Hyprgraphics::CImageResource>(texPath);
 
     // doesn't have to be ASP as it's passed
     SP<CMainLoopExecutor> executor = makeShared<CMainLoopExecutor>([] {
@@ -2724,12 +2690,12 @@ void CHyprOpenGLImpl::requestBackgroundResource() {
         }
     });
 
-    m_backgroundResource->m_events.finished.listenStatic([executor] {
+    g_pHyprRenderer->m_backgroundResource->m_events.finished.listenStatic([executor] {
         // this is in the worker thread.
         executor->signal();
     });
 
-    g_pAsyncResourceGatherer->enqueue(m_backgroundResource);
+    g_pAsyncResourceGatherer->enqueue(g_pHyprRenderer->m_backgroundResource);
 }
 
 void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
@@ -2740,16 +2706,16 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     static auto PRENDERTEX = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PNOSPLASH  = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
 
-    if (*PRENDERTEX || m_backgroundResourceFailed)
+    if (*PRENDERTEX || g_pHyprRenderer->m_backgroundResourceFailed)
         return;
 
-    if (!m_backgroundResource) {
+    if (!g_pHyprRenderer->m_backgroundResource) {
         // queue the asset to be created
         requestBackgroundResource();
         return;
     }
 
-    if (!m_backgroundResource->m_ready)
+    if (!g_pHyprRenderer->m_backgroundResource->m_ready)
         return;
 
     if (!m_monitorBGFBs.contains(pMonitor))
@@ -2806,7 +2772,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     blend(true);
     clear(CHyprColor{0, 0, 0, 1});
 
-    SP<ITexture> backgroundTexture = texFromCairo(m_backgroundResource->m_asset.cairoSurface->cairo());
+    SP<ITexture> backgroundTexture = texFromCairo(g_pHyprRenderer->m_backgroundResource->m_asset.cairoSurface->cairo());
 
     // first render the background
     if (backgroundTexture) {
@@ -2837,7 +2803,7 @@ void CHyprOpenGLImpl::createBGTextureForMonitor(PHLMONITOR pMonitor) {
     Log::logger->log(Log::DEBUG, "Background created for monitor {}", pMonitor->m_name);
 
     // clear the resource after we're done using it
-    g_pEventLoopManager->doLater([this] { m_backgroundResource.reset(); });
+    g_pEventLoopManager->doLater([this] { g_pHyprRenderer->m_backgroundResource.reset(); });
 
     // set the animation to start for fading this background in nicely
     pMonitor->m_backgroundOpacity->setValueAndWarp(0.F);
@@ -2872,18 +2838,6 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
     if (!g_pHyprOpenGL)
         return;
 
-    auto RESIT = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
-    if (RESIT != g_pHyprOpenGL->m_monitorRenderResources.end()) {
-        RESIT->second.mirrorFB.reset();
-        RESIT->second.offloadFB.reset();
-        RESIT->second.mirrorSwapFB.reset();
-        RESIT->second.monitorMirrorFB.reset();
-        RESIT->second.blurFB.reset();
-        RESIT->second.offMainFB.reset();
-        RESIT->second.stencilTex.reset();
-        g_pHyprOpenGL->m_monitorRenderResources.erase(RESIT);
-    }
-
     auto TEXIT = g_pHyprOpenGL->m_monitorBGFBs.find(pMonitor);
     if (TEXIT != g_pHyprOpenGL->m_monitorBGFBs.end()) {
         TEXIT->second.reset();
@@ -2907,18 +2861,18 @@ void CHyprOpenGLImpl::restoreMatrix() {
 }
 
 void CHyprOpenGLImpl::bindOffMain() {
-    if (!m_renderData.pCurrentMonData->offMainFB)
-        m_renderData.pCurrentMonData->offMainFB = g_pHyprRenderer->createFB();
+    if (!m_renderData.pMonitor->m_offMainFB)
+        m_renderData.pMonitor->m_offMainFB = g_pHyprRenderer->createFB();
 
-    if (!m_renderData.pCurrentMonData->offMainFB->isAllocated()) {
-        m_renderData.pCurrentMonData->offMainFB->addStencil(m_renderData.pCurrentMonData->stencilTex);
-        m_renderData.pCurrentMonData->offMainFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                       m_renderData.pMonitor->m_output->state->state().drmFormat);
+    if (!m_renderData.pMonitor->m_offMainFB->isAllocated()) {
+        m_renderData.pMonitor->m_offMainFB->addStencil(m_renderData.pMonitor->m_stencilTex);
+        m_renderData.pMonitor->m_offMainFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
+                                                  m_renderData.pMonitor->m_output->state->state().drmFormat);
     }
 
-    m_renderData.pCurrentMonData->offMainFB->bind();
+    m_renderData.pMonitor->m_offMainFB->bind();
     clear(CHyprColor(0, 0, 0, 0));
-    m_renderData.currentFB = m_renderData.pCurrentMonData->offMainFB;
+    m_renderData.currentFB = m_renderData.pMonitor->m_offMainFB;
 }
 
 void CHyprOpenGLImpl::renderOffToMain(CGLFramebuffer* off) {

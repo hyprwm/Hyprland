@@ -113,31 +113,15 @@ struct SPreparedShaders {
     std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
 };
 
-struct SMonitorRenderData {
-    SP<IFramebuffer> offloadFB;
-    SP<IFramebuffer> mirrorFB;     // these are used for some effects,
-    SP<IFramebuffer> mirrorSwapFB; // etc
-    SP<IFramebuffer> offMainFB;
-    SP<IFramebuffer> monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
-    SP<IFramebuffer> blurFB;
-
-    SP<ITexture>     stencilTex = makeShared<CGLTexture>();
-
-    bool             blurFBDirty        = true;
-    bool             blurFBShouldRender = false;
-};
-
 struct SCurrentRenderData {
-    PHLMONITORREF pMonitor;
-    Mat3x3        projection;
-    Mat3x3        savedProjection;
-    Mat3x3        monitorProjection;
+    PHLMONITORREF          pMonitor;
+    Mat3x3                 projection;
+    Mat3x3                 savedProjection;
+    Mat3x3                 monitorProjection;
 
-    // FIXME: raw pointer galore!
-    SMonitorRenderData*    pCurrentMonData = nullptr;
-    SP<IFramebuffer>       currentFB       = nullptr; // current rendering to
-    SP<IFramebuffer>       mainFB          = nullptr; // main to render to
-    SP<IFramebuffer>       outFB           = nullptr; // out to render to (if offloaded, etc)
+    SP<IFramebuffer>       currentFB = nullptr; // current rendering to
+    SP<IFramebuffer>       mainFB    = nullptr; // main to render to
+    SP<IFramebuffer>       outFB     = nullptr; // out to render to (if offloaded, etc)
 
     CRegion                damage;
     CRegion                finalDamage; // damage used for funal off -> main
@@ -256,8 +240,6 @@ class CHyprOpenGLImpl {
 
     void                                                  blend(bool enabled);
 
-    bool                                                  shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
-
     void                                                  clear(const CHyprColor&);
     void                                                  clearWithTex();
     void                                                  scissor(const CBox&, bool transform = true);
@@ -265,8 +247,6 @@ class CHyprOpenGLImpl {
     void                                                  scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
     void                                                  destroyMonitorResources(PHLMONITORREF);
-
-    void                                                  markBlurDirtyForMonitor(PHLMONITOR);
 
     void                                                  preWindowPass();
     bool                                                  preBlurQueued();
@@ -305,18 +285,14 @@ class CHyprOpenGLImpl {
     SCurrentRenderData                                    m_renderData;
 
     Hyprutils::OS::CFileDescriptor                        m_gbmFD;
-    gbm_device*                                           m_gbmDevice      = nullptr;
-    EGLContext                                            m_eglContext     = nullptr;
-    EGLDisplay                                            m_eglDisplay     = nullptr;
-    EGLDeviceEXT                                          m_eglDevice      = nullptr;
-    uint                                                  m_failedAssetsNo = 0;
-
-    bool                                                  m_reloadScreenShader = true; // at launch it can be set
+    gbm_device*                                           m_gbmDevice  = nullptr;
+    EGLContext                                            m_eglContext = nullptr;
+    EGLDisplay                                            m_eglDisplay = nullptr;
+    EGLDeviceEXT                                          m_eglDevice  = nullptr;
 
     std::map<PHLWINDOWREF, SP<IFramebuffer>>              m_windowFramebuffers;
     std::map<PHLLSREF, SP<IFramebuffer>>                  m_layerFramebuffers;
     std::map<WP<Desktop::View::CPopup>, SP<IFramebuffer>> m_popupFramebuffers;
-    std::map<PHLMONITORREF, SMonitorRenderData>           m_monitorRenderResources;
     std::map<PHLMONITORREF, SP<IFramebuffer>>             m_monitorBGFBs;
 
     struct {
@@ -373,40 +349,35 @@ class CHyprOpenGLImpl {
         GLsizei height = 0;
     } m_lastViewport;
 
-    std::array<bool, CAP_STATUS_END>  m_capStatus = {};
+    std::array<bool, CAP_STATUS_END> m_capStatus = {};
 
-    std::vector<SDRMFormat>           m_drmFormats;
-    bool                              m_hasModifiers = false;
+    std::vector<SDRMFormat>          m_drmFormats;
+    bool                             m_hasModifiers = false;
 
-    int                               m_drmFD = -1;
-    std::string                       m_extensions;
+    int                              m_drmFD = -1;
+    std::string                      m_extensions;
 
-    bool                              m_fakeFrame            = false;
-    bool                              m_applyFinalShader     = false;
-    bool                              m_blend                = false;
-    bool                              m_offloadedFramebuffer = false;
-    bool                              m_cmSupported          = true;
+    bool                             m_fakeFrame            = false;
+    bool                             m_applyFinalShader     = false;
+    bool                             m_blend                = false;
+    bool                             m_offloadedFramebuffer = false;
+    bool                             m_cmSupported          = true;
 
-    bool                              m_monitorTransformEnabled = false; // do not modify directly
-    std::stack<bool>                  m_monitorTransformStack;
-    SP<ITexture>                      m_missingAssetTexture;
-    SP<ITexture>                      m_lockDeadTexture;
-    SP<ITexture>                      m_lockDead2Texture;
-    SP<ITexture>                      m_lockTtyTextTexture;
-    SP<CShader>                       m_finalScreenShader;
-    CTimer                            m_globalTimer;
-    GLuint                            m_currentProgram;
-    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
-    bool                              m_backgroundResourceFailed = false;
+    bool                             m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>                 m_monitorTransformStack;
+    SP<ITexture>                     m_missingAssetTexture;
+    SP<CShader>                      m_finalScreenShader;
+    CTimer                           m_globalTimer;
+    GLuint                           m_currentProgram;
 
-    void                              createBGTextureForMonitor(PHLMONITOR);
-    void                              initDRMFormats();
-    void                              initEGL(bool gbm);
-    EGLDeviceEXT                      eglDeviceFromDRMFD(int drmFD);
-    void                              initAssets();
-    void                              ensureLockTexturesRendered(bool load);
-    void                              initMissingAssetTexture();
-    void                              requestBackgroundResource();
+    void                             createBGTextureForMonitor(PHLMONITOR);
+    void                             initDRMFormats();
+    void                             initEGL(bool gbm);
+    EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
+    void                             initAssets();
+    void                             ensureLockTexturesRendered(bool load);
+    void                             initMissingAssetTexture();
+    void                             requestBackgroundResource();
 
     // for the final shader
     std::array<CTimer, POINTER_PRESSED_HISTORY_LENGTH>   m_pressedHistoryTimers    = {};

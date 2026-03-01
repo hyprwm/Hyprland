@@ -155,8 +155,8 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprOpenGL->m_renderData.currentWindow = m_window;
 
     // we'll take the liberty of using this as it should not be used rn
-    auto alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
-    auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB;
+    auto alphaFB     = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorFB;
+    auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorSwapFB;
     auto LASTFB      = g_pHyprOpenGL->m_renderData.currentFB;
 
     fullBox.scale(pMonitor->m_scale).round();

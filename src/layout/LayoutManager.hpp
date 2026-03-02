@@ -53,6 +53,7 @@ namespace Layout {
         void                             moveMouse(const Vector2D& mousePos);
         void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                             setTargetGeom(const CBox& box, SP<ITarget> target); // floats only
         void                             endDragTarget();
 
         std::expected<void, std::string> layoutMsg(const std::string_view& sv);

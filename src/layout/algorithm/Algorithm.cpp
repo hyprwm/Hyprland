@@ -262,3 +262,10 @@ SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
     // god damn it, maybe empty?
     return nullptr;
 }
+
+void CAlgorithm::setTargetGeom(const CBox& box, SP<ITarget> target) {
+    if (!target->floating() || !std::ranges::contains(m_floatingTargets, target))
+        return;
+
+    m_floating->setTargetGeom(box, target);
+}

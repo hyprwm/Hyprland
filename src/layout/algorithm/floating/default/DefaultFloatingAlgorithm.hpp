@@ -1,5 +1,7 @@
 #include "../../FloatingAlgorithm.hpp"
 
+#include <map>
+
 namespace Layout {
     class CAlgorithm;
 }
@@ -17,10 +19,22 @@ namespace Layout::Floating {
         virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
+        virtual void setTargetGeom(const CBox& geom, SP<ITarget> target);
+
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        virtual void recenter(SP<ITarget> t);
+
       private:
         CBox fitBoxInWorkArea(const CBox& box, SP<ITarget> t);
+
+        void updateTarget(SP<ITarget>);
+
+        struct SWindowData {
+            CBox lastBox;
+        };
+
+        std::map<WP<ITarget>, SWindowData> m_datas;
     };
 };

@@ -1184,8 +1184,9 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             m_scrollingData->recalculate();
         }
     } else if (ARGS[0] == "focus") {
-        const auto        TDATA       = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-        static const auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
+        const auto        TDATA           = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        static const auto PNOFALLBACK     = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
+        static const auto PCONFWRAP_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:wrap_focus");
 
         if (!TDATA || ARGS[1].empty())
             return std::unexpected("no window to focus");
@@ -1241,7 +1242,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                         g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
                     return {};
                 } else
-                    PREV = m_scrollingData->columns.back();
+                    PREV = (*PCONFWRAP_FOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
             }
 
             auto pTargetData = findBestNeighbor(TDATA, PREV);
@@ -1263,7 +1264,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                         g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
                     return {};
                 } else
-                    NEXT = m_scrollingData->columns.front();
+                    NEXT = (*PCONFWRAP_FOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
             }
 
             auto pTargetData = findBestNeighbor(TDATA, NEXT);

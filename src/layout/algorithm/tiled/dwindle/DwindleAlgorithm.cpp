@@ -549,6 +549,8 @@ std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
 }
 
 void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
+    static auto    PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+
     const auto     PNODE       = getNodeFromTarget(t);
     const Vector2D originalPos = t->position().middle();
 
@@ -557,11 +559,14 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
 
     const auto FOCAL_POINT = focalPointForDir(t, dir);
 
+    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(FOCAL_POINT.value_or(t->position().middle()));
+
+    if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor && !*PMONITORFALLBACK)
+        return; // noop
+
     t->window()->setAnimationsToMove();
 
     removeTarget(t);
-
-    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(FOCAL_POINT.value_or(t->position().middle()));
 
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor) {
         // move with a focal point

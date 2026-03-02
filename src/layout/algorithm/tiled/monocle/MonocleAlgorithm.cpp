@@ -202,6 +202,11 @@ void CMonocleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+
+    if (!*PMONITORFALLBACK)
+        return; // noop
+
     // try to find a monitor in the specified direction, thats the logical thing
     if (!t || !t->space() || !t->space()->workspace())
         return;

@@ -1,71 +1,75 @@
-inputs: pkgs: let
+inputs: pkgs:
+let
   flake = inputs.self.packages.${pkgs.stdenv.hostPlatform.system};
   hyprland = flake.hyprland-with-tests;
-in {
+in
+{
   tests = pkgs.testers.runNixOSTest {
     name = "hyprland-tests";
 
-    nodes.machine = {pkgs, ...}: {
-      environment.systemPackages = with pkgs; [
-        # Programs needed for tests
-        jq
-        kitty
-        wl-clipboard
-        xeyes
-      ];
+    nodes.machine =
+      { pkgs, ... }:
+      {
+        environment.systemPackages = with pkgs; [
+          # Programs needed for tests
+          jq
+          kitty
+          wl-clipboard
+          xeyes
+        ];
 
-      # Enabled by default for some reason
-      services.speechd.enable = false;
+        # Enabled by default for some reason
+        services.speechd.enable = false;
 
-      environment.variables = {
-        "AQ_TRACE" = "1";
-        "HYPRLAND_TRACE" = "1";
-        "XDG_RUNTIME_DIR" = "/tmp";
-        "XDG_CACHE_HOME" = "/tmp";
-        "KITTY_CONFIG_DIRECTORY" = "/etc/kitty";
-      };
-
-      environment.etc."kitty/kitty.conf".text = ''
-        confirm_os_window_close 0
-        remember_window_size no
-        initial_window_width  640
-        initial_window_height 400
-      '';
-
-      programs.hyprland = {
-        enable = true;
-        package = hyprland;
-        # We don't need portals in this test, so we don't set portalPackage
-      };
-
-      # Test configuration
-      environment.etc."test.conf".source = "${hyprland}/share/hypr/test.conf";
-
-      # Disable portals
-      xdg.portal.enable = pkgs.lib.mkForce false;
-
-      # Autologin root into tty
-      services.getty.autologinUser = "alice";
-
-      system.stateVersion = "24.11";
-
-      users.users.alice = {
-        isNormalUser = true;
-      };
-
-      virtualisation = {
-        cores = 4;
-        # Might crash with less
-        memorySize = 8192;
-        resolution = {
-          x = 1920;
-          y = 1080;
+        environment.variables = {
+          "AQ_TRACE" = "1";
+          "HYPRLAND_TRACE" = "1";
+          "XDG_RUNTIME_DIR" = "/tmp";
+          "XDG_CACHE_HOME" = "/tmp";
+          "KITTY_CONFIG_DIRECTORY" = "/etc/kitty";
         };
 
-        # Doesn't seem to do much, thought it would fix XWayland crashing
-        qemu.options = ["-vga none -device virtio-gpu-pci"];
+        environment.etc."kitty/kitty.conf".text = ''
+          confirm_os_window_close 0
+          remember_window_size no
+          initial_window_width  640
+          initial_window_height 400
+        '';
+
+        programs.hyprland = {
+          enable = true;
+          package = hyprland;
+          # We don't need portals in this test, so we don't set portalPackage
+        };
+
+        # Test configuration
+        environment.etc."test.conf".source = "${hyprland}/share/hypr/test.conf";
+
+        # Disable portals
+        xdg.portal.enable = pkgs.lib.mkForce false;
+
+        # Autologin root into tty
+        services.getty.autologinUser = "alice";
+
+        system.stateVersion = "24.11";
+
+        users.users.alice = {
+          isNormalUser = true;
+        };
+
+        virtualisation = {
+          cores = 4;
+          # Might crash with less
+          memorySize = 8192;
+          resolution = {
+            x = 1920;
+            y = 1080;
+          };
+
+          # Doesn't seem to do much, thought it would fix XWayland crashing
+          qemu.options = [ "-vga none -device virtio-gpu-pci" ];
+        };
       };
-    };
 
     testScript = ''
       # Wait for tty to be up

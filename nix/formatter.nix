@@ -2,7 +2,7 @@
   writeShellApplication,
   deadnix,
   statix,
-  alejandra,
+  nixfmt,
   llvmPackages_19,
   fd,
 }:
@@ -11,7 +11,7 @@ writeShellApplication {
   runtimeInputs = [
     deadnix
     statix
-    alejandra
+    nixfmt
     llvmPackages_19.clang-tools
     fd
   ];
@@ -24,14 +24,14 @@ writeShellApplication {
     nix_format() {
       if [ "$*" = 0 ]; then
         fd '.*\.nix' . -E "$excludes" -x statix fix -- {} \;
-        fd '.*\.nix' . -E "$excludes" -X deadnix -e -- {} \; -X alejandra {} \;
+        fd '.*\.nix' . -E "$excludes" -X deadnix -e -- {} \; -X nixfmt {} \;
       elif [ -d "$1" ]; then
         fd '.*\.nix' "$1" -E "$excludes" -i -x statix fix -- {} \;
-        fd '.*\.nix' "$1" -E "$excludes" -i -X deadnix -e -- {} \; -X alejandra {} \;
+        fd '.*\.nix' "$1" -E "$excludes" -i -X deadnix -e -- {} \; -X nixfmt {} \;
       else
         statix fix -- "$1"
         deadnix -e "$1"
-        alejandra "$1"
+        nixfmt "$1"
       fi
     }
 

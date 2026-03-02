@@ -4,6 +4,7 @@
 #include <glslang/Include/glslang_c_interface.h>
 #include <string>
 #include <vector>
+#include <map>
 #include "../helpers/memory/Memory.hpp"
 
 namespace Render {

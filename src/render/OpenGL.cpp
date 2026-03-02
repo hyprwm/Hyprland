@@ -49,6 +49,7 @@
 #include <cstring>
 #include "ShaderLoader.hpp"
 #include "Texture.hpp"
+#include <filesystem>
 
 using namespace Hyprutils::OS;
 using namespace NColorManagement;

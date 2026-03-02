@@ -56,8 +56,8 @@ static void testPosPreserve() {
     Tests::spawnKitty();
 
     OK(getFromSocket("/dispatch setfloating class:kitty"));
-    OK(getFromSocket("/dispatch movewindowpixel exact 420 420, class:kitty"));
     OK(getFromSocket("/dispatch resizewindowpixel exact 1337 69, class:kitty"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 420 420, class:kitty"));
 
     {
         auto str = getFromSocket("/activewindow");

@@ -44,6 +44,9 @@ static void testCrashOnGeomUpdate() {
 
     // shouldnt crash
     OK(getFromSocket("/dispatch movefocus r"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
 }
 
 // Test if size + pos is preserved after fs cycle
@@ -84,6 +87,9 @@ static void testPosPreserve() {
         EXPECT_CONTAINS(str, "at: 581,586");
         EXPECT_CONTAINS(str, "size: 1337,69");
     }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
 }
 
 static bool test() {

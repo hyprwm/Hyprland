@@ -1184,9 +1184,9 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             m_scrollingData->recalculate();
         }
     } else if (ARGS[0] == "focus") {
-        const auto        TDATA           = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-        static const auto PNOFALLBACK     = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
-        static const auto PCONFWRAP_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:wrap_focus");
+        const auto        TDATA          = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        static const auto PNOFALLBACK    = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
+        static const auto PCONFWRAPFOCUS = CConfigValue<Hyprlang::INT>("scrolling:wrap_focus");
 
         if (!TDATA || ARGS[1].empty())
             return std::unexpected("no window to focus");
@@ -1242,7 +1242,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                         g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
                     return {};
                 } else
-                    PREV = (*PCONFWRAP_FOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
+                    PREV = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
             }
 
             auto pTargetData = findBestNeighbor(TDATA, PREV);
@@ -1264,7 +1264,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                         g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
                     return {};
                 } else
-                    NEXT = (*PCONFWRAP_FOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
+                    NEXT = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
             }
 
             auto pTargetData = findBestNeighbor(TDATA, NEXT);
@@ -1291,7 +1291,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->recalculate();
     } else if (ARGS[0] == "swapcol") {
-        static const auto PCONFWRAP_SWAPCOL = CConfigValue<Hyprlang::INT>("scrolling:wrap_swapcol");
+        static const auto PCONFWRAPSWAPCOL = CConfigValue<Hyprlang::INT>("scrolling:wrap_swapcol");
 
         if (ARGS.size() < 2)
             return std::unexpected("not enough args");
@@ -1318,13 +1318,13 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         // wrap around swaps
         if (direction == "l") {
-            if (*PCONFWRAP_SWAPCOL == 1) {
+            if (*PCONFWRAPSWAPCOL == 1) {
                 targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
             } else {
                 targetIdx = (currentIdx == 0) ? 0 : (currentIdx - 1);
             }
         } else if (direction == "r") {
-            if (*PCONFWRAP_SWAPCOL == 1) {
+            if (*PCONFWRAPSWAPCOL == 1) {
                 targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
             } else {
                 targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);

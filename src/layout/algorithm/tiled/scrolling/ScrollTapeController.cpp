@@ -55,11 +55,13 @@ size_t CScrollTapeController::addStrip(float size) {
     return m_strips.size() - 1;
 }
 
-void CScrollTapeController::insertStrip(size_t afterIndex, float size) {
-    if (afterIndex >= m_strips.size()) {
+void CScrollTapeController::insertStrip(ssize_t afterIndex, float size) {
+    if (afterIndex >= sc<ssize_t>(m_strips.size())) {
         addStrip(size);
         return;
     }
+
+    afterIndex = std::clamp(afterIndex, -1L, sc<ssize_t>(INT32_MAX));
 
     SStripData newStrip;
     newStrip.size = size;

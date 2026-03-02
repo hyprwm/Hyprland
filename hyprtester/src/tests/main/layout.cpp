@@ -45,6 +45,8 @@ static void testCrashOnGeomUpdate() {
     // shouldnt crash
     OK(getFromSocket("/dispatch movefocus r"));
 
+    OK(getFromSocket("/reload"));
+
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 }

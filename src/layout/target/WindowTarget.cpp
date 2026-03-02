@@ -10,6 +10,9 @@
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
 using namespace Layout;
 
 SP<ITarget> CWindowTarget::create(PHLWINDOW w) {
@@ -33,6 +36,9 @@ void CWindowTarget::setPositionGlobal(const CBox& box) {
 }
 
 void CWindowTarget::updatePos() {
+
+    g_pHyprRenderer->damageWindow(m_window.lock());
+    CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
     if (!m_space)
         return;

@@ -73,6 +73,12 @@ struct SRenderWorkspaceUntilData {
     PHLWINDOW w;
 };
 
+enum eRenderProjectionType : uint8_t {
+    RPT_MONITOR,
+    RPT_MIRROR,
+    RPT_FB,
+};
+
 struct SRenderData {
     // can be private
     Mat3x3 targetProjection;
@@ -80,28 +86,26 @@ struct SRenderData {
     // ----------------------
 
     // used by public
-    Vector2D         fbSize = {-1, -1};
-    PHLMONITORREF    pMonitor;
+    Vector2D              fbSize = {-1, -1};
+    PHLMONITORREF         pMonitor;
 
-    Mat3x3           projection;
-    Mat3x3           savedProjection;
-    Mat3x3           monitorProjection;
+    eRenderProjectionType projectionType = RPT_MONITOR;
 
-    SP<IFramebuffer> currentFB = nullptr; // current rendering to
-    SP<IFramebuffer> mainFB    = nullptr; // main to render to
-    SP<IFramebuffer> outFB     = nullptr; // out to render to (if offloaded, etc)
+    SP<IFramebuffer>      currentFB = nullptr; // current rendering to
+    SP<IFramebuffer>      mainFB    = nullptr; // main to render to
+    SP<IFramebuffer>      outFB     = nullptr; // out to render to (if offloaded, etc)
 
-    CRegion          damage;
-    CRegion          finalDamage; // damage used for funal off -> main
+    CRegion               damage;
+    CRegion               finalDamage; // damage used for funal off -> main
 
-    SRenderModifData renderModif;
-    float            mouseZoomFactor    = 1.f;
-    bool             mouseZoomUseMouse  = true; // true by default
-    bool             useNearestNeighbor = false;
-    bool             blockScreenShader  = false;
+    SRenderModifData      renderModif;
+    float                 mouseZoomFactor    = 1.f;
+    bool                  mouseZoomUseMouse  = true; // true by default
+    bool                  useNearestNeighbor = false;
+    bool                  blockScreenShader  = false;
 
-    Vector2D         primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-    Vector2D         primarySurfaceUVBottomRight = Vector2D(-1, -1);
+    Vector2D              primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+    Vector2D              primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
     // TODO remove and pass directly
     CBox                   clipBox = {}; // scaled coordinates
@@ -245,6 +249,11 @@ class CHyprRenderer {
     void                    pushMonitorTransformEnabled(bool enabled);
     void                    popMonitorTransformEnabled();
     bool                    monitorTransformEnabled();
+
+    void                    setProjectionType(const Vector2D& fbSize);
+    void                    setProjectionType(eRenderProjectionType projectionType);
+    Mat3x3                  getBoxProjection(const CBox& box, std::optional<eTransform> transform = std::nullopt);
+    Mat3x3                  projectBoxToTarget(const CBox& box, std::optional<eTransform> transform = std::nullopt);
 
     SCMSettings             getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                           SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);

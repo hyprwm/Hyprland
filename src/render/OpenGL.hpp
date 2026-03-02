@@ -231,10 +231,6 @@ class CHyprOpenGLImpl {
     void                                      setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void                                      setCapStatus(int cap, bool status);
 
-    void                                      saveMatrix();
-    void                                      setMatrixScaleTranslate(const Vector2D& translate, const float& scale);
-    void                                      restoreMatrix();
-
     void                                      blend(bool enabled);
 
     void                                      clear(const CHyprColor&);

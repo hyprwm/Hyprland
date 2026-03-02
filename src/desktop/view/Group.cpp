@@ -121,6 +121,8 @@ void CGroup::add(PHLWINDOW w) {
 }
 
 void CGroup::remove(PHLWINDOW w) {
+    static auto           DISBAND_ON_EMPTY = CConfigValue<Hyprlang::INT>("group:disband_on_empty");
+
     std::optional<size_t> idx;
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {
@@ -158,6 +160,11 @@ void CGroup::remove(PHLWINDOW w) {
     // do this here: otherwise the new current is hidden and workspace rules get wrong data
     if (!REMOVING_GROUP)
         w->m_target->assignToSpace(m_target->space());
+
+    if (*DISBAND_ON_EMPTY && m_windows.size() == 1) {
+        destroy();
+        return;
+    }
 }
 
 void CGroup::moveCurrent(bool next) {

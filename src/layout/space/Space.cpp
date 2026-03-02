@@ -183,6 +183,11 @@ void CSpace::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool sil
         m_algorithm->moveTargetInDirection(t, dir, silent);
 }
 
+void CSpace::setTargetGeom(const CBox& box, SP<ITarget> target) {
+    if (m_algorithm)
+        m_algorithm->setTargetGeom(box, target);
+}
+
 SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
     return !m_algorithm ? nullptr : m_algorithm->getNextCandidate(old);
 }

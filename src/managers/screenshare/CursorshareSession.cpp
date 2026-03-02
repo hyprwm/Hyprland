@@ -162,8 +162,7 @@ bool CCursorshareSession::copy() {
                 callback(RESULT_COPIED);
         });
     } else if (auto attrs = m_pendingFrame.buffer->shm(); attrs.success) {
-        auto [bufData, fmt, bufLen] = m_pendingFrame.buffer->beginDataPtr(0);
-        const auto PFORMAT          = NFormatUtils::getPixelFormatFromDRM(m_format);
+        const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(m_format);
 
         if (attrs.format != m_format || !PFORMAT) {
             LOGM(Log::ERR, "Can't copy: invalid format");
@@ -181,12 +180,6 @@ bool CCursorshareSession::copy() {
         render();
 
         g_pHyprRenderer->endRender();
-
-        g_pHyprRenderer->m_renderData.pMonitor = m_pendingFrame.monitor;
-        outFB->bind();
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
-
-        glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
         int glFormat = PFORMAT->glFormat;
 
@@ -208,14 +201,9 @@ bool CCursorshareSession::copy() {
             }
         }
 
-        glReadPixels(0, 0, m_bufferSize.x, m_bufferSize.y, glFormat, PFORMAT->glType, bufData);
+        outFB->readPixels(m_pendingFrame.buffer, 0, 0, m_bufferSize.x, m_bufferSize.y);
 
         g_pHyprRenderer->m_renderData.pMonitor.reset();
-
-        m_pendingFrame.buffer->endDataPtr();
-        GLFB(outFB)->unbind();
-        glPixelStorei(GL_PACK_ALIGNMENT, 4);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
         m_pendingFrame.callback(RESULT_COPIED);
     } else {

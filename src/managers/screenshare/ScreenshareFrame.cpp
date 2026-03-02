@@ -373,8 +373,7 @@ bool CScreenshareFrame::copyShm() {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
-    auto shm                      = m_buffer->shm();
-    auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm
+    auto       shm = m_buffer->shm();
 
     const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
@@ -398,53 +397,11 @@ bool CScreenshareFrame::copyShm() {
 
     g_pHyprRenderer->endRender();
 
-    g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
-    outFB->bind();
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
-
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_bufferSize.x);
-    int      glFormat   = PFORMAT->glFormat;
-
-    if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
-
-    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-        if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
-                glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
-                glFormat = GL_BGRA_EXT;
-            else {
-                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                glFormat = GL_RGBA;
-            }
-        }
-    }
-
-    // TODO: use pixel buffer object to not block cpu
-    if (packStride == sc<uint32_t>(shm.stride)) {
-        m_damage.forEachRect([&](const auto& rect) {
-            int width  = rect.x2 - rect.x1;
-            int height = rect.y2 - rect.y1;
-            glReadPixels(rect.x1, rect.y1, width, height, glFormat, PFORMAT->glType, pixelData);
-        });
-    } else {
-        m_damage.forEachRect([&](const auto& rect) {
-            size_t width  = rect.x2 - rect.x1;
-            size_t height = rect.y2 - rect.y1;
-            for (size_t i = rect.y1; i < height; ++i) {
-                glReadPixels(rect.x1, i, width, 1, glFormat, PFORMAT->glType, pixelData + (rect.x1 * PFORMAT->bytesPerBlock) + (i * shm.stride));
-            }
-        });
-    }
-
-    GLFB(outFB)->unbind();
-    glPixelStorei(GL_PACK_ALIGNMENT, 4);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    m_damage.forEachRect([&](const auto& rect) {
+        int width  = rect.x2 - rect.x1;
+        int height = rect.y2 - rect.y1;
+        outFB->readPixels(m_buffer, rect.x1, rect.y1, width, height);
+    });
 
     g_pHyprRenderer->m_renderData.pMonitor.reset();
 

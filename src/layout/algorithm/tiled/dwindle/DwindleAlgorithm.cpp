@@ -184,7 +184,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             m_overrideDirection = Math::DIRECTION_DEFAULT;
-    } else if (*PSMARTSPLIT == 1) {
+    } else if (*PSMARTSPLIT == 1 || m_overrideFocalPoint) {
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
         const auto DELTA              = MOUSECOORDS - PARENT_CENTER;

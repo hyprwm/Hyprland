@@ -239,6 +239,8 @@ void CDragStateController::dragEnd() {
 
     draggingTarget->damageEntire();
 
+    g_layoutManager->setTargetGeom(draggingTarget->position(), draggingTarget);
+
     Desktop::focusState()->fullWindowFocus(draggingTarget->window(), Desktop::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_wasDraggingWindow = false;

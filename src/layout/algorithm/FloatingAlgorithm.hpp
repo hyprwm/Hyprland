@@ -17,6 +17,9 @@ namespace Layout {
         // a target is being moved by a delta
         virtual void moveTarget(const Vector2D& Δ, SP<ITarget> target) = 0;
 
+        // a target is moved to a pos x size
+        virtual void setTargetGeom(const CBox& geom, SP<ITarget> target) = 0;
+
         virtual void recenter(SP<ITarget> t);
 
         virtual void recalculate();

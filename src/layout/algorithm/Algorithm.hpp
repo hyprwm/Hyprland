@@ -40,6 +40,8 @@ namespace Layout {
         void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
+        void                             setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
+
         void                             updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
         void                             updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
 

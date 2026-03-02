@@ -201,6 +201,59 @@ static bool test() {
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
+    // test movewindoworgroup: direction should be respected when extracting from group
+    NLog::log("{}Test movewindoworgroup respects direction out of group", Colors::YELLOW);
+    OK(getFromSocket("/keyword group:groupbar:enabled 0"));
+    {
+        auto kittyE = Tests::spawnKitty();
+        if (!kittyE) {
+            NLog::log("{}Error: kitty did not spawn", Colors::RED);
+            return false;
+        }
+
+        // group kitty, and new windows should be auto-grouped
+        OK(getFromSocket("/dispatch togglegroup"));
+
+        auto kittyF = Tests::spawnKitty();
+        if (!kittyF) {
+            NLog::log("{}Error: kitty did not spawn", Colors::RED);
+            return false;
+        }
+        EXPECT(Tests::windowCount(), 2);
+
+        // both windows should be grouped at the same position
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 2);
+        }
+
+        // move active window out of group to the right
+        NLog::log("{}Test movewindoworgroup r", Colors::YELLOW);
+        OK(getFromSocket("/dispatch movewindoworgroup r"));
+
+        // the group should stay at x=22, the extracted window should be to the right
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        }
+
+        // move it back into the group
+        OK(getFromSocket("/dispatch moveintogroup l"));
+
+        // move active window out of group downward
+        NLog::log("{}Test movewindoworgroup d", Colors::YELLOW);
+        OK(getFromSocket("/dispatch movewindoworgroup d"));
+
+        // the group should stay at y=22, the extracted window should be below
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        }
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
     return !ret;
 }
 

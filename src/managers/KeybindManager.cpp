@@ -2750,7 +2750,9 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
 
     WP<Desktop::View::CGroup> group = pWindow->m_group;
 
-    pWindow->m_group->remove(pWindow);
+    const auto                direction = !dir.empty() ? Math::fromChar(dir[0]) : Math::DIRECTION_DEFAULT;
+
+    pWindow->m_group->remove(pWindow, direction);
 
     if (*BFOCUSREMOVEDWINDOW || !group) {
         Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);

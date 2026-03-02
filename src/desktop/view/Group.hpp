@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../DesktopTypes.hpp"
+#include "../../helpers/math/Direction.hpp"
 
 #include <vector>
 
@@ -17,7 +18,7 @@ namespace Desktop::View {
         bool                             has(PHLWINDOW w) const;
 
         void                             add(PHLWINDOW w);
-        void                             remove(PHLWINDOW w);
+        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT);
         void                             moveCurrent(bool next);
         void                             setCurrent(size_t idx);
         void                             setCurrent(PHLWINDOW w);

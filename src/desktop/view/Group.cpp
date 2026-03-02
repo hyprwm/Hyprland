@@ -120,7 +120,7 @@ void CGroup::add(PHLWINDOW w) {
     m_target->recalc();
 }
 
-void CGroup::remove(PHLWINDOW w) {
+void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
     std::optional<size_t> idx;
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {
@@ -156,8 +156,20 @@ void CGroup::remove(PHLWINDOW w) {
         updateWindowVisibility();
 
     // do this here: otherwise the new current is hidden and workspace rules get wrong data
-    if (!REMOVING_GROUP)
-        w->m_target->assignToSpace(m_target->space());
+    if (!REMOVING_GROUP) {
+        std::optional<Vector2D> focalPoint;
+        if (dir != Math::DIRECTION_DEFAULT) {
+            const auto box = m_target->position();
+            switch (dir) {
+                case Math::DIRECTION_RIGHT: focalPoint = Vector2D(box.x + box.w, box.y + box.h / 2.0); break;
+                case Math::DIRECTION_LEFT: focalPoint = Vector2D(box.x, box.y + box.h / 2.0); break;
+                case Math::DIRECTION_DOWN: focalPoint = Vector2D(box.x + box.w / 2.0, box.y + box.h); break;
+                case Math::DIRECTION_UP: focalPoint = Vector2D(box.x + box.w / 2.0, box.y); break;
+                default: break;
+            }
+        }
+        w->m_target->assignToSpace(m_target->space(), focalPoint);
+    }
 }
 
 void CGroup::moveCurrent(bool next) {

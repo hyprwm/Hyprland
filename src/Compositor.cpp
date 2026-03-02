@@ -1824,6 +1824,9 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
     g_layoutManager->recalculateMonitor(pMonitorA);
     g_layoutManager->recalculateMonitor(pMonitorB);
 
+    g_pHyprRenderer->damageMonitor(pMonitorB);
+    g_pHyprRenderer->damageMonitor(pMonitorA);
+
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
         PWORKSPACEB, PWORKSPACEB->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
@@ -2033,6 +2036,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         pWorkspace->m_events.activeChanged.emit();
 
         g_layoutManager->recalculateMonitor(pMonitor);
+        g_pHyprRenderer->damageMonitor(pMonitor);
 
         g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, true, true);
         pWorkspace->m_visible = true;

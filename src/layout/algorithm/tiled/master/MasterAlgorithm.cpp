@@ -424,7 +424,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
     t->window()->setAnimationsToMove();
 
     if (t->window()->m_workspace != targetWs) {
-        t->assignToSpace(targetWs->m_space);
+        t->assignToSpace(targetWs->m_space, focalPointForDir(t, dir));
     } else if (PWINDOW2) {
         // if same monitor, switch windows
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());

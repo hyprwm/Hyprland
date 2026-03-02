@@ -44,6 +44,9 @@ namespace Layout {
         // optional: predict new window's size
         virtual std::optional<Vector2D> predictSizeForNewTarget();
 
+        // Impl'd here: focal point for dir
+        virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);
+
       protected:
         IModeAlgorithm() = default;
 

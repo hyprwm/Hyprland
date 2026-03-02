@@ -215,7 +215,7 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         if (t->window())
             t->window()->setAnimationsToMove();
 
-        t->assignToSpace(TARGETWS->m_space);
+        t->assignToSpace(TARGETWS->m_space, focalPointForDir(t, dir));
     }
 }
 

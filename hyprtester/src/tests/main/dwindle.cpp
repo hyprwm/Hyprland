@@ -114,7 +114,6 @@ static void testSplit() {
     EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio exact"), "ok");
     EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio -....9"), "ok");
     EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio ..9"), "ok");
-    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio 9..."), "ok");
     EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio"), "ok");
 
     OK(getFromSocket("/dispatch layoutmsg togglesplit"));

@@ -76,7 +76,7 @@ static int cursorTicker(void* data) {
     return 0;
 }
 
-CHyprRenderer::CHyprRenderer() {
+IHyprRenderer::IHyprRenderer() {
     m_globalTimer.reset();
     pushMonitorTransformEnabled(false);
     initAssets();
@@ -208,16 +208,16 @@ CHyprRenderer::CHyprRenderer() {
     g_pEventLoopManager->addTimer(m_renderUnfocusedTimer);
 }
 
-CHyprRenderer::~CHyprRenderer() {
+IHyprRenderer::~IHyprRenderer() {
     if (m_cursorTicker)
         wl_event_source_remove(m_cursorTicker);
 }
 
-WP<CHyprOpenGLImpl> CHyprRenderer::glBackend() {
+WP<CHyprOpenGLImpl> IHyprRenderer::glBackend() {
     return g_pHyprOpenGL;
 }
 
-bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
+bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (!pWindow->visibleOnMonitor(pMonitor))
         return false;
 
@@ -283,7 +283,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     return false;
 }
 
-bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
+bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
 
     if (!validMapped(pWindow))
         return false;
@@ -310,7 +310,7 @@ bool CHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     return false;
 }
 
-void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
@@ -401,7 +401,7 @@ void CHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 }
 
-void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW lastWindow;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
@@ -499,7 +499,7 @@ void CHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
     }
 }
 
-void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
     if (pWindow->isHidden() && !standalone)
         return;
 
@@ -757,7 +757,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     m_renderData.currentWindow.reset();
 }
 
-void CHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
+void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     if (!element)
         return;
 
@@ -776,7 +776,7 @@ void CHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     }
 }
 
-void CHyprRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.hasGrad2)
         g_pHyprOpenGL->renderBorder(
@@ -788,12 +788,12 @@ void CHyprRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
             {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
 }
 
-void CHyprRenderer::draw(CClearPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CClearPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     g_pHyprOpenGL->clear(m_data.color);
 };
 
-void CHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
     const auto&      m_data = element->m_data;
     SP<IFramebuffer> fb     = nullptr;
 
@@ -828,11 +828,11 @@ void CHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
     fb->bind();
 };
 
-void CHyprRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
     g_pHyprOpenGL->preBlurForCurrentMonitor();
 };
 
-void CHyprRenderer::draw(CRectPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.box.w <= 0 || m_data.box.h <= 0)
         return;
@@ -849,18 +849,18 @@ void CHyprRenderer::draw(CRectPassElement* element, const CRegion& damage) {
     m_renderData.clipBox = {};
 };
 
-void CHyprRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.renderModif.has_value())
         m_renderData.renderModif = *m_data.renderModif;
 };
 
-void CHyprRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     m_data.deco->render(m_renderData.pMonitor.lock(), m_data.a);
 };
 
-void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
 
     m_renderData.currentWindow      = m_data.pWindow;
@@ -1006,7 +1006,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     g_pHyprOpenGL->blend(true);
 };
 
-void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     pushMonitorTransformEnabled(m_data.flipEndFrame);
 
@@ -1048,7 +1048,7 @@ void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     }
 };
 
-void CHyprRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
+void IHyprRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.disableTransformAndModify) {
         pushMonitorTransformEnabled(true);
@@ -1060,21 +1060,21 @@ void CHyprRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
         g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
 };
 
-void CHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
+void IHyprRenderer::pushMonitorTransformEnabled(bool enabled) {
     m_monitorTransformStack.push(enabled);
     m_monitorTransformEnabled = enabled;
 }
 
-void CHyprRenderer::popMonitorTransformEnabled() {
+void IHyprRenderer::popMonitorTransformEnabled() {
     m_monitorTransformStack.pop();
     m_monitorTransformEnabled = m_monitorTransformStack.top();
 }
 
-bool CHyprRenderer::monitorTransformEnabled() {
+bool IHyprRenderer::monitorTransformEnabled() {
     return m_monitorTransformEnabled;
 }
 
-SP<ITexture> CHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
+SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy) {
     if (!buffer)
         return createTexture();
 
@@ -1104,7 +1104,7 @@ SP<ITexture> CHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
     return tex;
 }
 
-void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
+void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
     if (!pLayer)
         return;
 
@@ -1199,7 +1199,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     }
 }
 
-void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, const Time::steady_tp& time) {
+void IHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, const Time::steady_tp& time) {
     const auto                       POS = pPopup->globalBox().pos();
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, POS};
@@ -1239,7 +1239,7 @@ void CHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
         &renderdata);
 }
 
-void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, const Time::steady_tp& time) {
+void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, PHLMONITOR pMonitor, const Time::steady_tp& time) {
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time, pMonitor->m_position, pMonitor->m_position};
 
     renderdata.blur     = false;
@@ -1266,7 +1266,7 @@ void CHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
+void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
     static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
@@ -1427,7 +1427,7 @@ void CHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     //g_pHyprOpenGL->restoreMatrix();
 }
 
-void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
     static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
     static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
 
@@ -1438,7 +1438,7 @@ void CHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
         g_pHyprOpenGL->clearWithTex(); // will apply the hypr "wallpaper"
 }
 
-void CHyprRenderer::requestBackgroundResource() {
+void IHyprRenderer::requestBackgroundResource() {
     if (m_backgroundResource)
         return;
 
@@ -1492,7 +1492,7 @@ void CHyprRenderer::requestBackgroundResource() {
     g_pAsyncResourceGatherer->enqueue(m_backgroundResource);
 }
 
-std::string CHyprRenderer::resolveAssetPath(const std::string& filename) {
+std::string IHyprRenderer::resolveAssetPath(const std::string& filename) {
     std::string fullPath;
     for (auto& e : ASSET_PATHS) {
         std::string     p = std::string{e} + "/hypr/" + filename;
@@ -1513,7 +1513,7 @@ std::string CHyprRenderer::resolveAssetPath(const std::string& filename) {
     return fullPath;
 }
 
-SP<ITexture> CHyprRenderer::loadAsset(const std::string& filename) {
+SP<ITexture> IHyprRenderer::loadAsset(const std::string& filename) {
 
     const std::string fullPath = resolveAssetPath(filename);
 
@@ -1535,7 +1535,7 @@ SP<ITexture> CHyprRenderer::loadAsset(const std::string& filename) {
     return tex;
 }
 
-bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
+bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
 
@@ -1557,7 +1557,7 @@ bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     return false;
 }
 
-void CHyprRenderer::initMissingAssetTexture() {
+void IHyprRenderer::initMissingAssetTexture() {
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 512, 512);
     const auto CAIRO        = cairo_create(CAIROSURFACE);
@@ -1584,13 +1584,13 @@ void CHyprRenderer::initMissingAssetTexture() {
     m_missingAssetTexture = tex;
 }
 
-void CHyprRenderer::initAssets() {
+void IHyprRenderer::initAssets() {
     initMissingAssetTexture();
 
     m_screencopyDeniedTexture = renderText("Permission denied to share screen", Colors::WHITE, 20);
 }
 
-SP<ITexture> CHyprRenderer::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
+SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, int pt, bool italic, const std::string& fontFamily, int maxWidth, int weight) {
     static auto           FONT = CConfigValue<std::string>("misc:font_family");
 
     const auto            FONTFAMILY = fontFamily.empty() ? *FONT : fontFamily;
@@ -1659,7 +1659,7 @@ SP<ITexture> CHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     return tex;
 }
 
-void CHyprRenderer::ensureLockTexturesRendered(bool load) {
+void IHyprRenderer::ensureLockTexturesRendered(bool load) {
     static bool loaded = false;
 
     if (loaded == load)
@@ -1682,7 +1682,7 @@ void CHyprRenderer::ensureLockTexturesRendered(bool load) {
     }
 }
 
-void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
+void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry) {
     TRACY_GPU_ZONE("RenderLockscreen");
 
     const bool LOCKED = g_pSessionLockManager->isSessionLocked();
@@ -1720,7 +1720,7 @@ void CHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
     }
 }
 
-void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
     if (*PSESSIONLOCKXRAY)
         return;
@@ -1732,7 +1732,7 @@ void CHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     m_renderPass.add(makeUnique<CRectPassElement>(data));
 }
 
-void CHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
     const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
 
     // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
@@ -1774,7 +1774,7 @@ static std::optional<Vector2D> getSurfaceExpectedSize(PHLWINDOW pWindow, SP<CWLS
     return std::nullopt;
 }
 
-void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
+void IHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface, PHLMONITOR pMonitor, bool main, const Vector2D& projSize,
                                           const Vector2D& projSizeUnscaled, bool fixMisalignedFSV1) {
     if (!pWindow || !pWindow->m_isX11) {
         static auto PEXPANDEDGES = CConfigValue<Hyprlang::INT>("render:expand_undersized_textures");
@@ -1891,12 +1891,12 @@ static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
     return Mat3x3::identity().translate(size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
 }
 
-void CHyprRenderer::setProjectionType(const Vector2D& fbSize) {
+void IHyprRenderer::setProjectionType(const Vector2D& fbSize) {
     m_renderData.fbSize = fbSize;
     setProjectionType(RPT_FB);
 }
 
-void CHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
+void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
     m_renderData.projectionType = projectionType;
     switch (projectionType) {
         case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
@@ -1906,13 +1906,13 @@ void CHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
     }
 }
 
-Mat3x3 CHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
+Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
     return m_renderData.targetProjection.projectBox(
         box, transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(!monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
         box.rot);
 }
 
-Mat3x3 CHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
+Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
     return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
 }
 
@@ -1932,7 +1932,7 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 }
 
-SCMSettings CHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                          SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
@@ -1988,7 +1988,7 @@ SCMSettings CHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     };
 }
 
-void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStart        = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
@@ -2289,7 +2289,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     };
 }
 
-bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
@@ -2429,7 +2429,7 @@ bool CHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     return ok;
 }
 
-void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
+void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
 
@@ -2444,7 +2444,7 @@ void CHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
     renderAllClientsForWorkspace(pMonitor, pWorkspace, now, translate, scale);
 }
 
-void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
+void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
     for (const auto& view : Desktop::View::getViewsForWorkspace(pWorkspace)) {
         if (!view->aliveAndVisible())
             continue;
@@ -2453,7 +2453,7 @@ void CHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE
     }
 }
 
-void CHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor) {
+void IHyprRenderer::setSurfaceScanoutMode(SP<CWLSurfaceResource> surface, PHLMONITOR monitor) {
     if (!PROTO::linuxDma)
         return;
 
@@ -2520,7 +2520,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
     }
 }
 
-void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
+void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
     CBox full_area = {pMonitor->m_position.x, pMonitor->m_position.y, pMonitor->m_size.x, pMonitor->m_size.y};
 
     for (auto const& ls : layerSurfaces) {
@@ -2607,7 +2607,7 @@ void CHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
     }
 }
 
-void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
+void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
 
     if (!PMONITOR || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
@@ -2638,7 +2638,7 @@ void CHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
     g_layoutManager->invalidateMonitorGeometries(PMONITOR);
 }
 
-void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {
+void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, double y, double scale) {
     if (!pSurface)
         return; // wut?
 
@@ -2693,7 +2693,7 @@ void CHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
                          damageBox.pixman()->extents.x2 - damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y2 - damageBox.pixman()->extents.y1);
 }
 
-void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
+void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     if (g_pCompositor->m_unsafeState)
         return;
 
@@ -2720,7 +2720,7 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         Log::logger->log(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
 }
 
-void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
+void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     if (g_pCompositor->m_unsafeState || pMonitor->isMirror())
         return;
 
@@ -2733,7 +2733,7 @@ void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
         Log::logger->log(Log::DEBUG, "Damage: Monitor {}", pMonitor->m_name);
 }
 
-void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
+void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
     if (g_pCompositor->m_unsafeState)
         return;
 
@@ -2753,16 +2753,16 @@ void CHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
         Log::logger->log(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
 }
 
-void CHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
+void IHyprRenderer::damageBox(const int& x, const int& y, const int& w, const int& h) {
     CBox box = {x, y, w, h};
     damageBox(box);
 }
 
-void CHyprRenderer::damageRegion(const CRegion& rg) {
+void IHyprRenderer::damageRegion(const CRegion& rg) {
     rg.forEachRect([this](const auto& RECT) { damageBox(RECT.x1, RECT.y1, RECT.x2 - RECT.x1, RECT.y2 - RECT.y1); });
 }
 
-void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {
+void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegion) {
     for (auto const& mirror : pMonitor->m_mirrors) {
 
         // transform the damage here, so it won't get clipped by the monitor damage ring
@@ -2786,11 +2786,11 @@ void CHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
     }
 }
 
-void CHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& time) {
+void IHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& time) {
     PROTO::data->renderDND(pMonitor, time);
 }
 
-void CHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
+void IHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force) {
     m_cursorHasSurface = surf && surf->resource();
 
     m_lastCursorData.name     = "";
@@ -2804,7 +2804,7 @@ void CHyprRenderer::setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hot
     g_pCursorManager->setCursorSurface(surf, {hotspotX, hotspotY});
 }
 
-void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
+void IHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     m_cursorHasSurface = true;
 
     if (name == m_lastCursorData.name && !force)
@@ -2855,7 +2855,7 @@ void CHyprRenderer::setCursorFromName(const std::string& name, bool force) {
     g_pCursorManager->setCursorFromName(name);
 }
 
-void CHyprRenderer::ensureCursorRenderingMode() {
+void IHyprRenderer::ensureCursorRenderingMode() {
     static auto PINVISIBLE     = CConfigValue<Hyprlang::INT>("cursor:invisible");
     static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
     static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
@@ -2897,7 +2897,7 @@ void CHyprRenderer::ensureCursorRenderingMode() {
     setCursorHidden(HIDE);
 }
 
-void CHyprRenderer::setCursorHidden(bool hide) {
+void IHyprRenderer::setCursorHidden(bool hide) {
 
     if (hide == m_cursorHidden)
         return;
@@ -2917,11 +2917,11 @@ void CHyprRenderer::setCursorHidden(bool hide) {
         setCursorFromName("left_ptr", true);
 }
 
-bool CHyprRenderer::shouldRenderCursor() {
+bool IHyprRenderer::shouldRenderCursor() {
     return !m_cursorHidden && m_cursorHasSurface;
 }
 
-std::tuple<float, float, float> CHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
+std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
     const auto POVERLAY = &g_pDebugOverlay->m_monitorOverlays[pMonitor];
 
     float      avgRenderTime = 0;
@@ -2952,7 +2952,7 @@ static int handleCrashLoop(void* data) {
     return 1;
 }
 
-void CHyprRenderer::initiateManualCrash() {
+void IHyprRenderer::initiateManualCrash() {
     g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
 
     m_crashingLoop = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, handleCrashLoop, nullptr);
@@ -2968,11 +2968,11 @@ void CHyprRenderer::initiateManualCrash() {
     **PDT = 0;
 }
 
-const SRenderData& CHyprRenderer::renderData() {
+const SRenderData& IHyprRenderer::renderData() {
     return m_renderData;
 }
 
-SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<IRenderbuffer> IHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
     if (it != m_renderbuffers.end())
@@ -2987,7 +2987,7 @@ SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer>
     return buf;
 }
 
-bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
+bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
 
     g_pHyprOpenGL->makeEGLCurrent();
 
@@ -3044,7 +3044,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     return true;
 }
 
-void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
+void IHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
@@ -3119,31 +3119,31 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
-void CHyprRenderer::onRenderbufferDestroy(IRenderbuffer* rb) {
+void IHyprRenderer::onRenderbufferDestroy(IRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
 
-SP<IRenderbuffer> CHyprRenderer::getCurrentRBO() {
+SP<IRenderbuffer> IHyprRenderer::getCurrentRBO() {
     return m_currentRenderbuffer;
 }
 
-bool CHyprRenderer::isNvidia() {
+bool IHyprRenderer::isNvidia() {
     return m_nvidia;
 }
 
-bool CHyprRenderer::isIntel() {
+bool IHyprRenderer::isIntel() {
     return m_intel;
 }
 
-bool CHyprRenderer::isSoftware() {
+bool IHyprRenderer::isSoftware() {
     return m_software;
 }
 
-bool CHyprRenderer::isMgpu() {
+bool IHyprRenderer::isMgpu() {
     return m_mgpu;
 }
 
-void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
+void IHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
     static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
 
     if (std::ranges::find(m_renderUnfocused, window) != m_renderUnfocused.end())
@@ -3155,7 +3155,7 @@ void CHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
         m_renderUnfocusedTimer->updateTimeout(std::chrono::milliseconds(1000 / *PFPS));
 }
 
-void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
+void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     // we trust the window is valid.
     const auto PMONITOR = pWindow->m_monitor.lock();
 
@@ -3194,7 +3194,7 @@ void CHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     m_bRenderingSnapshot = false;
 }
 
-void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
+void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     // we trust the window is valid.
     const auto PMONITOR = pLayer->m_monitor.lock();
 
@@ -3229,7 +3229,7 @@ void CHyprRenderer::makeSnapshot(PHLLS pLayer) {
     m_bRenderingSnapshot = false;
 }
 
-void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
+void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     // we trust the window is valid.
     const auto PMONITOR = popup->getMonitor();
 
@@ -3287,7 +3287,7 @@ void CHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     m_bRenderingSnapshot = false;
 }
 
-void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
+void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     static auto  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     PHLWINDOWREF ref{pWindow};
@@ -3347,7 +3347,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
-void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
+void IHyprRenderer::renderSnapshot(PHLLS pLayer) {
     if (!pLayer->m_snapshotFB)
         return;
 
@@ -3389,7 +3389,7 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
-void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
+void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!popup->m_snapshotFB)
         return;
 
@@ -3424,7 +3424,7 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
 
-NColorManagement::PImageDescription CHyprRenderer::workBufferImageDescription() {
+NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() {
     // TODO
     // const bool  IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
     // const auto  sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
@@ -3433,7 +3433,7 @@ NColorManagement::PImageDescription CHyprRenderer::workBufferImageDescription() 
     return m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
 }
 
-bool CHyprRenderer::shouldBlur(PHLLS ls) {
+bool IHyprRenderer::shouldBlur(PHLLS ls) {
     if (m_bRenderingSnapshot)
         return false;
 
@@ -3441,7 +3441,7 @@ bool CHyprRenderer::shouldBlur(PHLLS ls) {
     return *PBLUR && ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
-bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
+bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     if (m_bRenderingSnapshot)
         return false;
 
@@ -3450,18 +3450,18 @@ bool CHyprRenderer::shouldBlur(PHLWINDOW w) {
     return *PBLUR && !DONT_BLUR;
 }
 
-bool CHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
+bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
     static CConfigValue PBLURPOPUPS = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
     static CConfigValue PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
 
     return *PBLURPOPUPS && *PBLUR;
 }
 
-bool CHyprRenderer::reloadShaders(const std::string& path) {
+bool IHyprRenderer::reloadShaders(const std::string& path) {
     return g_pHyprOpenGL->initShaders(path);
 }
 
-SP<ITexture> CHyprRenderer::createStencilTexture(const int width, const int height) {
+SP<ITexture> IHyprRenderer::createStencilTexture(const int width, const int height) {
     g_pHyprOpenGL->makeEGLCurrent();
     auto tex = makeShared<CGLTexture>();
     tex->allocate({width, height});
@@ -3469,17 +3469,17 @@ SP<ITexture> CHyprRenderer::createStencilTexture(const int width, const int heig
     return tex;
 }
 
-SP<ITexture> CHyprRenderer::createTexture(bool opaque) {
+SP<ITexture> IHyprRenderer::createTexture(bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(opaque);
 }
 
-SP<ITexture> CHyprRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
+SP<ITexture> IHyprRenderer::createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy, bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(drmFormat, pixels, stride, size, keepDataCopy, opaque);
 }
 
-SP<ITexture> CHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
+SP<ITexture> IHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs, bool opaque) {
     g_pHyprOpenGL->makeEGLCurrent();
     const auto image = g_pHyprOpenGL->createEGLImage(attrs);
     if (!image)
@@ -3487,7 +3487,7 @@ SP<ITexture> CHyprRenderer::createTexture(const Aquamarine::SDMABUFAttrs& attrs,
     return makeShared<CGLTexture>(attrs, image, opaque);
 }
 
-SP<ITexture> CHyprRenderer::createTexture(const int width, const int height, unsigned char* const data) {
+SP<ITexture> IHyprRenderer::createTexture(const int width, const int height, unsigned char* const data) {
     g_pHyprOpenGL->makeEGLCurrent();
     SP<ITexture> tex = makeShared<CGLTexture>();
 
@@ -3510,7 +3510,7 @@ SP<ITexture> CHyprRenderer::createTexture(const int width, const int height, uns
     return tex;
 }
 
-SP<ITexture> CHyprRenderer::createTexture(cairo_surface_t* cairo) {
+SP<ITexture> IHyprRenderer::createTexture(cairo_surface_t* cairo) {
     g_pHyprOpenGL->makeEGLCurrent();
     const auto CAIROFORMAT = cairo_image_surface_get_format(cairo);
     auto       tex         = makeShared<CGLTexture>();
@@ -3536,29 +3536,29 @@ SP<ITexture> CHyprRenderer::createTexture(cairo_surface_t* cairo) {
     return tex;
 }
 
-SP<ITexture> CHyprRenderer::createTexture(std::span<const float> lut3D, size_t N) {
+SP<ITexture> IHyprRenderer::createTexture(std::span<const float> lut3D, size_t N) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLTexture>(lut3D, N);
 }
 
-SP<IFramebuffer> CHyprRenderer::createFB(const std::string& name) {
+SP<IFramebuffer> IHyprRenderer::createFB(const std::string& name) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLFramebuffer>(name);
 }
 
-bool CHyprRenderer::explicitSyncSupported() {
+bool IHyprRenderer::explicitSyncSupported() {
     return g_pHyprOpenGL->explicitSyncSupported();
 }
 
-std::vector<SDRMFormat> CHyprRenderer::getDRMFormats() {
+std::vector<SDRMFormat> IHyprRenderer::getDRMFormats() {
     return g_pHyprOpenGL->getDRMFormats();
 }
 
-std::vector<uint64_t> CHyprRenderer::getDRMFormatModifiers(DRMFormat format) {
+std::vector<uint64_t> IHyprRenderer::getDRMFormatModifiers(DRMFormat format) {
     return g_pHyprOpenGL->getDRMFormatModifiers(format);
 }
 
-SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
+SP<IRenderbuffer> IHyprRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLRenderbuffer>(buffer, fmt);
 }

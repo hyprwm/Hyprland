@@ -145,10 +145,10 @@ struct SCMSettings {
     float                                sdrBrightnessMultiplier = 1.0;
 };
 
-class CHyprRenderer {
+class IHyprRenderer {
   public:
-    CHyprRenderer();
-    ~CHyprRenderer();
+    IHyprRenderer();
+    ~IHyprRenderer();
 
     WP<CHyprOpenGLImpl> glBackend();
 
@@ -341,4 +341,4 @@ class CHyprRenderer {
     friend class CMonitorFrameScheduler;
 };
 
-inline UP<CHyprRenderer> g_pHyprRenderer;
+inline UP<IHyprRenderer> g_pHyprRenderer;

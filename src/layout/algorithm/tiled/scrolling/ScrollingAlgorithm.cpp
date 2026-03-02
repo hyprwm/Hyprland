@@ -247,24 +247,28 @@ void SColumnData::remove(SP<ITarget> t) {
         scrollingData->remove(self.lock());
 }
 
-void SColumnData::up(SP<SScrollingTargetData> w) {
+bool SColumnData::up(SP<SScrollingTargetData> w) {
     for (size_t i = 1; i < targetDatas.size(); ++i) {
         if (targetDatas[i] != w)
             continue;
 
         std::swap(targetDatas[i], targetDatas[i - 1]);
-        break;
+        return true;
     }
+
+    return false;
 }
 
-void SColumnData::down(SP<SScrollingTargetData> w) {
+bool SColumnData::down(SP<SScrollingTargetData> w) {
     for (size_t i = 0; i < targetDatas.size() - 1; ++i) {
         if (targetDatas[i] != w)
             continue;
 
         std::swap(targetDatas[i], targetDatas[i + 1]);
-        break;
+        return true;
     }
+
+    return false;
 }
 
 SP<SScrollingTargetData> SColumnData::next(SP<SScrollingTargetData> w) {
@@ -845,61 +849,118 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
     if (!DATA)
         return;
 
-    const auto TAPE_DIR    = getDynamicDirection();
     const auto CURRENT_COL = DATA->column.lock();
     const auto current_idx = m_scrollingData->idx(CURRENT_COL);
 
-    if (dir == Math::DIRECTION_LEFT) {
-        const auto COL = m_scrollingData->prev(DATA->column.lock());
+    auto       rotateDir = [this](Math::eDirection dir) -> Math::eDirection {
+        switch (m_scrollingData->controller->getDirection()) {
+            case SCROLL_DIR_RIGHT: return dir;
+            case SCROLL_DIR_LEFT: {
+                if (dir == Math::DIRECTION_LEFT)
+                    return Math::DIRECTION_RIGHT;
+                if (dir == Math::DIRECTION_RIGHT)
+                    return Math::DIRECTION_LEFT;
+                return dir;
+            }
+            case SCROLL_DIR_UP: {
+                switch (dir) {
+                    case Math::DIRECTION_UP: return Math::DIRECTION_RIGHT;
+                    case Math::DIRECTION_DOWN: return Math::DIRECTION_LEFT;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    default: break;
+                }
 
-        // ignore moves to the "origin" when on first column and moving opposite to tape direction
-        if (!COL && current_idx == 0 && (TAPE_DIR == SCROLL_DIR_RIGHT || TAPE_DIR == SCROLL_DIR_DOWN))
-            return;
+                return dir;
+            }
+            case SCROLL_DIR_DOWN: {
+                switch (dir) {
+                    case Math::DIRECTION_UP: return Math::DIRECTION_LEFT;
+                    case Math::DIRECTION_DOWN: return Math::DIRECTION_RIGHT;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    default: break;
+                }
 
-        DATA->column->remove(t);
-
-        if (!COL) {
-            const auto NEWCOL = m_scrollingData->add(-1);
-            NEWCOL->add(DATA);
-            m_scrollingData->centerOrFitCol(NEWCOL);
-        } else {
-            if (COL->targetDatas.size() > 0)
-                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
-            else
-                COL->add(DATA);
-            m_scrollingData->centerOrFitCol(COL);
-        }
-    } else if (dir == Math::DIRECTION_RIGHT) {
-        const auto COL = m_scrollingData->next(DATA->column.lock());
-
-        // ignore moves to the "origin" when on last column and moving opposite to tape direction
-        if (!COL && current_idx == (int64_t)m_scrollingData->columns.size() - 1 && (TAPE_DIR == SCROLL_DIR_LEFT || TAPE_DIR == SCROLL_DIR_UP))
-            return;
-
-        DATA->column->remove(t);
-
-        if (!COL) {
-            // make a new one
-            const auto NEWCOL = m_scrollingData->add();
-            NEWCOL->add(DATA);
-            m_scrollingData->centerOrFitCol(NEWCOL);
-        } else {
-            if (COL->targetDatas.size() > 0)
-                COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
-            else
-                COL->add(DATA);
-            m_scrollingData->centerOrFitCol(COL);
+                return dir;
+            }
+            default: break;
         }
 
-    } else if (dir == Math::DIRECTION_UP)
-        DATA->column->up(DATA);
-    else if (dir == Math::DIRECTION_DOWN)
-        DATA->column->down(DATA);
+        return dir;
+    };
+
+    const auto ROTATED_DIR = rotateDir(dir);
+
+    auto       commenceDir = [&]() -> bool {
+        if (ROTATED_DIR == Math::DIRECTION_LEFT) {
+            const auto COL = m_scrollingData->prev(DATA->column.lock());
+
+            // ignore moves to the origin if we are alone
+            if (!COL && current_idx == 0 && DATA->column->targetDatas.size() == 1)
+                return false;
+
+            DATA->column->remove(t);
+
+            if (!COL) {
+                const auto NEWCOL = m_scrollingData->add(-1);
+                NEWCOL->add(DATA);
+                m_scrollingData->centerOrFitCol(NEWCOL);
+            } else {
+                if (COL->targetDatas.size() > 0)
+                    COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
+                else
+                    COL->add(DATA);
+                m_scrollingData->centerOrFitCol(COL);
+            }
+
+            return true;
+        } else if (ROTATED_DIR == Math::DIRECTION_RIGHT) {
+            const auto COL = m_scrollingData->next(DATA->column.lock());
+
+            // ignore move to the right when there is no next column and we're alone
+            if (!COL && current_idx == (int64_t)m_scrollingData->columns.size() - 1 && DATA->column->targetDatas.size() == 1)
+                return false;
+
+            DATA->column->remove(t);
+
+            if (!COL) {
+                // make a new one
+                const auto NEWCOL = m_scrollingData->add();
+                NEWCOL->add(DATA);
+                m_scrollingData->centerOrFitCol(NEWCOL);
+            } else {
+                if (COL->targetDatas.size() > 0)
+                    COL->add(DATA, COL->idxForHeight(g_pInputManager->getMouseCoordsInternal().y));
+                else
+                    COL->add(DATA);
+                m_scrollingData->centerOrFitCol(COL);
+            }
+
+            return true;
+        } else if (ROTATED_DIR == Math::DIRECTION_UP)
+            return DATA->column->up(DATA);
+        else if (ROTATED_DIR == Math::DIRECTION_DOWN)
+            return DATA->column->down(DATA);
+
+        return false;
+    };
+
+    if (!commenceDir()) {
+        // dir wasn't commenced, move to a workspace if possible
+        // with the original dir
+        const auto MONINDIR = g_pCompositor->getMonitorInDirection(m_parent->space()->workspace()->m_monitor.lock(), dir);
+        if (MONINDIR && MONINDIR != m_parent->space()->workspace()->m_monitor && MONINDIR->m_activeWorkspace) {
+            t->assignToSpace(MONINDIR->m_activeWorkspace->m_space);
+
+            m_scrollingData->recalculate();
+
+            return;
+        }
+    }
 
     m_scrollingData->recalculate();
     focusTargetUpdate(t);
-    if (t->window())
-        g_pCompositor->warpCursorTo(t->window()->middle());
 }
 
 std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {

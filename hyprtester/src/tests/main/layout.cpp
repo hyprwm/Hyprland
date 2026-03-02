@@ -46,6 +46,46 @@ static void testCrashOnGeomUpdate() {
     OK(getFromSocket("/dispatch movefocus r"));
 }
 
+// Test if size + pos is preserved after fs cycle
+static void testPosPreserve() {
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch setfloating class:kitty"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 420 420, class:kitty"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 1337 69, class:kitty"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 420,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen"));
+    OK(getFromSocket("/dispatch fullscreen"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch movewindow r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 581,586");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen"));
+    OK(getFromSocket("/dispatch fullscreen"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 581,586");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+}
+
 static bool test() {
     NLog::log("{}Testing layout generic", Colors::GREEN);
 
@@ -57,6 +97,7 @@ static bool test() {
     swar();
 
     testCrashOnGeomUpdate();
+    testPosPreserve();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

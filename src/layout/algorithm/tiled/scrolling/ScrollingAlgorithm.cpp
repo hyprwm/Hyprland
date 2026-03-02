@@ -1291,6 +1291,8 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->recalculate();
     } else if (ARGS[0] == "swapcol") {
+        static const auto PCONFWRAP_SWAPCOL = CConfigValue<Hyprlang::INT>("scrolling:wrap_swapcol");
+
         if (ARGS.size() < 2)
             return std::unexpected("not enough args");
 
@@ -1315,11 +1317,19 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         int64_t            targetIdx = -1;
 
         // wrap around swaps
-        if (direction == "l")
-            targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
-        else if (direction == "r")
-            targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
-        else
+        if (direction == "l") {
+            if (*PCONFWRAP_SWAPCOL == 1) {
+                targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
+            } else {
+                targetIdx = (currentIdx == 0) ? 0 : (currentIdx - 1);
+            }
+        } else if (direction == "r") {
+            if (*PCONFWRAP_SWAPCOL == 1) {
+                targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
+            } else {
+                targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);
+            }
+        } else
             return std::unexpected("no target (invalid direction?)");
         ;
 

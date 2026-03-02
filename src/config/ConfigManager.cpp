@@ -656,6 +656,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("scrolling:explicit_column_widths", Hyprlang::STRING{"0.333, 0.5, 0.667, 1.0"});
     registerConfigVar("scrolling:direction", Hyprlang::STRING{"right"});
     registerConfigVar("scrolling:wrap_focus", Hyprlang::INT{1});
+    registerConfigVar("scrolling:wrap_swapcol", Hyprlang::INT{1});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});

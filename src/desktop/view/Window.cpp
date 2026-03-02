@@ -809,7 +809,7 @@ void CWindow::updateWindowData() {
 void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
     m_ruleApplicator->borderSize().matchOptional(workspaceRule.borderSize, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->decorate().matchOptional(workspaceRule.decorate, Desktop::Types::PRIORITY_WORKSPACE_RULE);
-    m_ruleApplicator->borderSize().matchOptional(workspaceRule.noBorder ? std::optional<Hyprlang::INT>(0) : std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    m_ruleApplicator->noBorder().matchOptional(workspaceRule.noBorder ? std::optional<Hyprlang::INT>(0) : std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->rounding().matchOptional(workspaceRule.noRounding.value_or(false) ? std::optional<Hyprlang::INT>(0) : std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 }

@@ -89,8 +89,8 @@ enum eMonitorExtraRenderFBs : uint8_t {
 };
 
 struct SFragShaderDesc {
-    ePreparedFragmentShader id;
-    const char*             file;
+    Render::ePreparedFragmentShader id;
+    const char*                     file;
 };
 
 struct SPreparedShaders {
@@ -104,7 +104,7 @@ struct SPreparedShaders {
     std::string TEXVERTSRC320;
     // std::array<SP<CShader>, SH_FRAG_LAST> frag;
     // std::map<uint8_t, SP<CShader>>        fragVariants;
-    std::array<std::map<ShaderFeatureFlags, SP<CShader>>, SH_FRAG_LAST> fragVariants;
+    std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
 };
 
 struct SMonitorRenderData {
@@ -293,7 +293,7 @@ class CHyprOpenGLImpl {
     WP<CShader>                                       useShader(WP<CShader> prog);
 
     bool                                              explicitSyncSupported();
-    WP<CShader>                                       getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features = 0);
+    WP<CShader>                                       getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
 
     bool                                              m_shadersInitialized = false;
     SP<SPreparedShaders>                              m_shaders;

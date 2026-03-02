@@ -10,6 +10,9 @@
 #include "Renderer.hpp"
 #include <glslang/Public/resource_limits_c.h>
 #include <string>
+#include <filesystem>
+
+using namespace Render;
 
 CShaderLoader::CShaderLoader(const std::vector<std::string> includes, const std::array<std::string, SH_FRAG_LAST>& frags, const std::string shaderPath) : m_shaderPath(shaderPath) {
     m_callbacks = glsl_include_callbacks_t{

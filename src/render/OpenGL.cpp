@@ -52,6 +52,7 @@
 
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
+using namespace Render;
 
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));

@@ -200,7 +200,6 @@ class CHyprOpenGLImpl {
         bool                   blockBlurOptimization = false;
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB   = false;
-        bool                   noCM           = false;
         bool                   finalMonitorCM = false;
         SP<CMonitor>           cmBackToSRGBSource;
         SP<ITexture>           blurredBG;

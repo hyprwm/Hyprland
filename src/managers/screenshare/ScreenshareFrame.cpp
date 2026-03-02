@@ -10,6 +10,7 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "render/pass/RectPassElement.hpp"
 #include <hyprutils/math/Region.hpp>
 
 using namespace Screenshare;
@@ -194,7 +195,11 @@ void CScreenshareFrame::renderMonitor() {
                         CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
+                                                  .box   = surfBox,
+                                                  .color = Colors::BLACK,
+                                              }),
+                                              surfBox);
                 },
                 nullptr);
         };
@@ -215,7 +220,11 @@ void CScreenshareFrame::renderMonitor() {
                                           .scale(PMONITOR->m_scale)
                                           .translate(-m_session->m_captureBox.pos());
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
+                                  .box   = noScreenShareBox,
+                                  .color = Colors::BLACK,
+                              }),
+                              noScreenShareBox);
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
@@ -250,7 +259,13 @@ void CScreenshareFrame::renderMonitor() {
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
+        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
+                                  .box           = noScreenShareBox,
+                                  .color         = Colors::BLACK,
+                                  .round         = rounding,
+                                  .roundingPower = roundingPower,
+                              }),
+                              noScreenShareBox);
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -313,22 +328,32 @@ void CScreenshareFrame::renderWindow() {
 void CScreenshareFrame::render() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
+    CRegion    frameRegion = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y};
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
         return;
     }
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
+    g_pHyprRenderer->startRenderPass();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
-        g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                                  .tex = g_pHyprRenderer->m_screencopyDeniedTexture,
+                                  .box = texbox,
+                              }),
+                              texbox);
         return;
     }
 
     if (m_session->m_tempFB && m_session->m_tempFB->isAllocated()) {
         CBox texbox = {{}, m_bufferSize};
-        g_pHyprOpenGL->renderTexture(m_session->m_tempFB->getTexture(), texbox, {});
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                                  .tex = m_session->m_tempFB->getTexture(),
+                                  .box = texbox,
+                              }),
+                              texbox);
         m_session->m_tempFB->release();
         return;
     }

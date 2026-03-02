@@ -119,16 +119,21 @@ void CCursorshareSession::render() {
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     bool overlaps = g_pPointerManager->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
+    g_pHyprRenderer->startRenderPass();
     if (PERM != PERMISSION_RULE_ALLOW_MODE_ALLOW || !overlaps) {
         // render black when not allowed
-        g_pHyprOpenGL->clear(Colors::BLACK);
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
     } else if (!cursorImage.pBuffer || !cursorImage.surface || !cursorImage.bufferTex) {
         // render clear when cursor is probably hidden
-        g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
+        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
     } else {
         // render cursor
         CBox texbox = {{}, cursorImage.bufferTex->m_size};
-        g_pHyprOpenGL->renderTexture(cursorImage.bufferTex, texbox, {});
+        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+                                  .tex = cursorImage.bufferTex,
+                                  .box = texbox,
+                              }),
+                              {});
     }
 
     g_pHyprRenderer->m_renderData.blockScreenShader = true;

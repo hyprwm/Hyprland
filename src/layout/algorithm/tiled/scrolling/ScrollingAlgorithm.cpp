@@ -848,7 +848,9 @@ void CScrollingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection 
 }
 
 void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    const auto DATA = dataFor(t);
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+
+    const auto  DATA = dataFor(t);
 
     if (!DATA)
         return;
@@ -953,6 +955,10 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
     if (!commenceDir()) {
         // dir wasn't commenced, move to a workspace if possible
         // with the original dir
+
+        if (!*PMONITORFALLBACK)
+            return; // noop
+
         const auto MONINDIR = g_pCompositor->getMonitorInDirection(m_parent->space()->workspace()->m_monitor.lock(), dir);
         if (MONINDIR && MONINDIR != m_parent->space()->workspace()->m_monitor && MONINDIR->m_activeWorkspace) {
             t->assignToSpace(MONINDIR->m_activeWorkspace->m_space, focalPointForDir(t, dir));

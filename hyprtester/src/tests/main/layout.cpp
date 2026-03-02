@@ -28,6 +28,15 @@ static void swar() {
         EXPECT_CONTAINS(str, "size: 1036,1036");
     }
 
+    // don't use swar on maximized
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+    }
+
     // clean up
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

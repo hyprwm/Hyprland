@@ -110,7 +110,7 @@ void CWindowTarget::updatePos() {
 
     Vector2D          ratioPadding;
 
-    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1) {
+    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
         const Vector2D originalSize = MONITOR_WORKAREA.size();
 
         const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
@@ -137,7 +137,7 @@ void CWindowTarget::updatePos() {
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
 
-    if (isPseudo()) {
+    if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
         // Calculate pseudo
         float scale = 1;
 

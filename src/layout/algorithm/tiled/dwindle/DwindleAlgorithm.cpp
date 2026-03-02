@@ -714,6 +714,19 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
                 break;
             }
         }
+    } else if (ARGS[0] == "splitratio") {
+        auto ratio = ARGS[1];
+        bool exact = ARGS[2] == "exact";
+
+        auto delta = getPlusMinusKeywordResult(std::string{ratio}, 0.F);
+
+        if (!CURRENT_NODE || !CURRENT_NODE->pParent)
+            return std::unexpected("cannot alter split ratio on no / single node");
+
+        const float newRatio              = exact ? *delta : CURRENT_NODE->pParent->splitRatio + *delta;
+        CURRENT_NODE->pParent->splitRatio = std::clamp(newRatio, 0.1F, 1.9F);
+
+        CURRENT_NODE->pParent->recalcSizePosRecursive();
     }
 
     return {};

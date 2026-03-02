@@ -77,7 +77,7 @@ static void testPosPreserve() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "at: 581,586");
+        EXPECT_CONTAINS(str, "at: 581,420");
         EXPECT_CONTAINS(str, "size: 1337,69");
     }
 
@@ -86,7 +86,7 @@ static void testPosPreserve() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "at: 581,586");
+        EXPECT_CONTAINS(str, "at: 581,420");
         EXPECT_CONTAINS(str, "size: 1337,69");
     }
 

@@ -2,7 +2,7 @@
 #include "../OpenGL.hpp"
 #include "../Renderer.hpp"
 #include "macros.hpp"
-#include "render/Framebuffer.hpp"
+#include "../Framebuffer.hpp"
 
 CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
 CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name) {}

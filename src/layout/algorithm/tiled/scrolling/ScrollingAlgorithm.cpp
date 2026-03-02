@@ -627,16 +627,20 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column
-        const auto USABLE = usableArea();
-        m_scrollingData->controller->adjustOffset(-(USABLE.w * DATA->column->getColumnWidth()));
+        const auto   USABLE         = usableArea();
+        const bool   isPrimaryHoriz = m_scrollingData->controller->isPrimaryHorizontal();
+        const double usablePrimary  = isPrimaryHoriz ? USABLE.w : USABLE.h;
+        m_scrollingData->controller->adjustOffset(-(usablePrimary * DATA->column->getColumnWidth()));
     }
 
     DATA->column->remove(target);
 
     if (!DATA->column) {
         // column got removed, let's ensure we don't leave any cringe extra space
-        const auto USABLE    = usableArea();
-        double     newOffset = std::clamp(m_scrollingData->controller->getOffset(), 0.0, std::max(m_scrollingData->maxWidth() - USABLE.w, 1.0));
+        const auto   USABLE         = usableArea();
+        const bool   isPrimaryHoriz = m_scrollingData->controller->isPrimaryHorizontal();
+        const double usablePrimary  = isPrimaryHoriz ? USABLE.w : USABLE.h;
+        const double newOffset      = std::clamp(m_scrollingData->controller->getOffset(), 0.0, std::max(m_scrollingData->maxWidth() - usablePrimary, 1.0));
         m_scrollingData->controller->setOffset(newOffset);
     }
 

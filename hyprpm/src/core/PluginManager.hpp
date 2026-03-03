@@ -81,6 +81,7 @@ class CPluginManager {
   private:
     std::string                             headerError(const eHeadersErrors err);
     std::string                             headerErrorShort(const eHeadersErrors err);
+    bool                                    validArg(const std::string& s);
 
     std::expected<std::string, std::string> nixDevelopIfNeeded(const std::string& cmd, const SHyprlandVersion& ver);
 

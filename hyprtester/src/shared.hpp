@@ -39,6 +39,16 @@ namespace Colors {
         TESTS_PASSED++;                                                                                                                                                            \
     }
 
+#define EXPECT_NOT(expr, val)                                                                                                                                                      \
+    if (const auto RESULT = expr; RESULT == (val)) {                                                                                                                               \
+        NLog::log("{}Failed: {}{}, expected not {}, got {}. Source: {}@{}.", Colors::RED, Colors::RESET, #expr, val, RESULT, __FILE__, __LINE__);                                  \
+        ret = 1;                                                                                                                                                                   \
+        TESTS_FAILED++;                                                                                                                                                            \
+    } else {                                                                                                                                                                       \
+        NLog::log("{}Passed: {}{}. Got {}", Colors::GREEN, Colors::RESET, #expr, val);                                                                                             \
+        TESTS_PASSED++;                                                                                                                                                            \
+    }
+
 #define EXPECT_VECTOR2D(expr, val)                                                                                                                                                 \
     do {                                                                                                                                                                           \
         const auto& RESULT   = expr;                                                                                                                                               \

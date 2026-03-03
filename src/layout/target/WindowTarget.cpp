@@ -10,6 +10,9 @@
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
 using namespace Layout;
 
 SP<ITarget> CWindowTarget::create(PHLWINDOW w) {
@@ -33,6 +36,9 @@ void CWindowTarget::setPositionGlobal(const CBox& box) {
 }
 
 void CWindowTarget::updatePos() {
+
+    g_pHyprRenderer->damageWindow(m_window.lock());
+    CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
     if (!m_space)
         return;
@@ -104,7 +110,7 @@ void CWindowTarget::updatePos() {
 
     Vector2D          ratioPadding;
 
-    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1) {
+    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
         const Vector2D originalSize = MONITOR_WORKAREA.size();
 
         const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
@@ -131,7 +137,7 @@ void CWindowTarget::updatePos() {
     calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
     calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
 
-    if (isPseudo()) {
+    if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
         // Calculate pseudo
         float scale = 1;
 
@@ -162,18 +168,14 @@ void CWindowTarget::updatePos() {
     static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
 
     if (*PCLAMP_TILED) {
-        const auto borderSize       = m_window->getRealBorderSize();
-        Vector2D   monitorAvailable = MONITOR_WORKAREA.size() - Vector2D{2.0 * borderSize, 2.0 * borderSize};
-
-        Vector2D   minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}).clamp(Vector2D{0, 0}, monitorAvailable);
-        Vector2D   maxSize = m_window->isFullscreen() ? Vector2D{INFINITY, INFINITY} :
-                                                        m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY}).clamp(Vector2D{0, 0}, monitorAvailable);
-        calcSize           = calcSize.clamp(minSize, maxSize);
+        Vector2D minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
+        Vector2D maxSize = m_window->isFullscreen() ? Vector2D{INFINITY, INFINITY} : m_window->m_ruleApplicator->maxSize().valueOr(Vector2D{INFINITY, INFINITY});
+        calcSize         = calcSize.clamp(minSize, maxSize);
 
         calcPos += (availableSpace - calcSize) / 2.0;
 
-        calcPos.x = std::clamp(calcPos.x, MONITOR_WORKAREA.x + borderSize, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w - calcSize.x - borderSize);
-        calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y + borderSize, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y - borderSize);
+        calcPos.x = std::clamp(calcPos.x, MONITOR_WORKAREA.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w - calcSize.x);
+        calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y);
     }
 
     if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {

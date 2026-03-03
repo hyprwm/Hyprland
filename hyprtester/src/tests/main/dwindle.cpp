@@ -64,19 +64,74 @@ static void test13349() {
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "at: 22,547");
-        EXPECT_CONTAINS(str, "size: 931,511");
+        EXPECT_CONTAINS(str, "at: 497,22");
+        EXPECT_CONTAINS(str, "size: 456,1036");
     }
 
     OK(getFromSocket("/dispatch movewindow r"));
 
     {
         auto str = getFromSocket("/activewindow");
-        EXPECT_CONTAINS(str, "at: 967,547");
-        EXPECT_CONTAINS(str, "size: 931,511");
+        EXPECT_CONTAINS(str, "at: 967,22");
+        EXPECT_CONTAINS(str, "size: 456,1036");
     }
 
     // clean up
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
+static void testSplit() {
+    // Test various split methods
+
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+    OK(getFromSocket("/dispatch layoutmsg splitratio -0.2"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 743,1036");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg splitratio 1.6 exact"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1495,1036");
+    }
+
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio fhne exact"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio exact"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio -....9"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio ..9"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio"), "ok");
+
+    OK(getFromSocket("/dispatch layoutmsg togglesplit"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,823");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg swapsplit"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,859");
+        EXPECT_CONTAINS(str, "size: 1876,199");
+    }
+
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
 }
@@ -90,6 +145,9 @@ static bool test() {
 
     NLog::log("{}Testing #13349", Colors::GREEN);
     test13349();
+
+    NLog::log("{}Testing splits", Colors::GREEN);
+    testSplit();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

@@ -99,11 +99,13 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
         if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, ACTIVE_MON))
             OPENINGON = getClosestNode(MOUSECOORDS);
 
-    } else if (*PUSEACTIVE) {
+    } else if (*PUSEACTIVE || m_overrideFocalPoint) {
         const auto ACTIVE_WINDOW = Desktop::focusState()->window();
 
-        if (!m_overrideFocalPoint && ACTIVE_WINDOW && !ACTIVE_WINDOW->m_isFloating && ACTIVE_WINDOW != target->window() && ACTIVE_WINDOW->m_workspace == PWORKSPACE &&
-            ACTIVE_WINDOW->m_isMapped)
+        if (m_overrideFocalPoint)
+            OPENINGON = getClosestNode(*m_overrideFocalPoint);
+        else if (!m_overrideFocalPoint && ACTIVE_WINDOW && !ACTIVE_WINDOW->m_isFloating && ACTIVE_WINDOW != target->window() && ACTIVE_WINDOW->m_workspace == PWORKSPACE &&
+                 ACTIVE_WINDOW->m_isMapped)
             OPENINGON = getNodeFromWindow(ACTIVE_WINDOW);
 
         if (!OPENINGON)
@@ -182,7 +184,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             m_overrideDirection = Math::DIRECTION_DEFAULT;
-    } else if (*PSMARTSPLIT == 1) {
+    } else if (*PSMARTSPLIT == 1 || m_overrideFocalPoint) {
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
         const auto DELTA              = MOUSECOORDS - PARENT_CENTER;
@@ -214,10 +216,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
             }
         }
     } else if (*PFORCESPLIT == 0 || !newTarget) {
-        if ((SIDEBYSIDE &&
-             VECINRECT(MOUSECOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w / 2.f, NEWPARENT->box.y + NEWPARENT->box.h)) ||
-            (!SIDEBYSIDE &&
-             VECINRECT(MOUSECOORDS, NEWPARENT->box.x, NEWPARENT->box.y / *PWIDTHMULTIPLIER, NEWPARENT->box.x + NEWPARENT->box.w, NEWPARENT->box.y + NEWPARENT->box.h / 2.f))) {
+        if ((SIDEBYSIDE && MOUSECOORDS.x < NEWPARENT->box.x + (NEWPARENT->box.w / 2.F)) || (!SIDEBYSIDE && MOUSECOORDS.y < NEWPARENT->box.y + (NEWPARENT->box.h / 2.F))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;
             NEWPARENT->children[0] = PNODE;
@@ -242,11 +241,10 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
 
     // and update the previous parent if it exists
     if (OPENINGON->pParent) {
-        if (OPENINGON->pParent->children[0] == OPENINGON) {
+        if (OPENINGON->pParent->children[0] == OPENINGON)
             OPENINGON->pParent->children[0] = NEWPARENT;
-        } else {
+        else
             OPENINGON->pParent->children[1] = NEWPARENT;
-        }
     }
 
     // Update the children
@@ -551,41 +549,35 @@ std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
 }
 
 void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
+    static auto    PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+
     const auto     PNODE       = getNodeFromTarget(t);
     const Vector2D originalPos = t->position().middle();
 
     if (!PNODE || !t->window())
         return;
 
-    Vector2D   focalPoint;
+    const auto FOCAL_POINT = focalPointForDir(t, dir);
 
-    const auto WINDOWIDEALBB =
-        t->fullscreenMode() != FSMODE_NONE ? m_parent->space()->workspace()->m_monitor->logicalBox() : t->window()->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(FOCAL_POINT.value_or(t->position().middle()));
 
-    switch (dir) {
-        case Math::DIRECTION_UP: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;
-        case Math::DIRECTION_DOWN: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, WINDOWIDEALBB.size().y + 1.0}; break;
-        case Math::DIRECTION_LEFT: focalPoint = WINDOWIDEALBB.pos() + Vector2D{-1.0, WINDOWIDEALBB.size().y / 2.0}; break;
-        case Math::DIRECTION_RIGHT: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x + 1.0, WINDOWIDEALBB.size().y / 2.0}; break;
-        default: return;
-    }
+    if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor && !*PMONITORFALLBACK)
+        return; // noop
 
     t->window()->setAnimationsToMove();
 
     removeTarget(t);
 
-    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(focalPoint);
-
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor) {
         // move with a focal point
 
         if (PMONITORFOCAL->m_activeWorkspace)
-            t->assignToSpace(PMONITORFOCAL->m_activeWorkspace->m_space);
+            t->assignToSpace(PMONITORFOCAL->m_activeWorkspace->m_space, FOCAL_POINT);
 
         return;
     }
 
-    movedTarget(t, focalPoint);
+    movedTarget(t, FOCAL_POINT);
 
     // restore focus to the previous position
     if (silent) {
@@ -714,6 +706,25 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
                 break;
             }
         }
+    } else if (ARGS[0] == "splitratio") {
+        auto ratio = ARGS[1];
+        bool exact = ARGS[2].starts_with("exact");
+
+        if (ratio.empty())
+            return std::unexpected("splitratio requires an arg");
+
+        auto delta = getPlusMinusKeywordResult(std::string{ratio}, 0.F);
+
+        if (!CURRENT_NODE || !CURRENT_NODE->pParent)
+            return std::unexpected("cannot alter split ratio on no / single node");
+
+        if (!delta)
+            return std::unexpected(std::format("failed to parse \"{}\" as a delta", ratio));
+
+        const float newRatio              = exact ? *delta : CURRENT_NODE->pParent->splitRatio + *delta;
+        CURRENT_NODE->pParent->splitRatio = std::clamp(newRatio, 0.1F, 1.9F);
+
+        CURRENT_NODE->pParent->recalcSizePosRecursive();
     }
 
     return {};

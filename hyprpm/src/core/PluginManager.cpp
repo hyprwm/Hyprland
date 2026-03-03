@@ -131,8 +131,17 @@ bool CPluginManager::createSafeDirectory(const std::string& path) {
     return true;
 }
 
+bool CPluginManager::validArg(const std::string& s) {
+    return !s.contains("'") && !s.ends_with("\\") && !s.starts_with("\\");
+}
+
 bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string& rev) {
     const auto HLVER = getHyprlandVersion();
+
+    if (!validArg(url) || !validArg(rev)) {
+        std::println(stderr, "\n{}", failureString("url or rev invalid"));
+        return false;
+    }
 
     if (!hasDeps()) {
         std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. Dependencies not satisfied. Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"));
@@ -198,7 +207,7 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
     progress.printMessageAbove(infoString("Cloning {}", url));
 
-    std::string ret = execAndGet(std::format("cd {} && git clone --recursive {} {}", getTempRoot(), url, USERNAME));
+    std::string ret = execAndGet(std::format("cd {} && git clone --recursive '{}' {}", getTempRoot(), url, USERNAME));
 
     if (!std::filesystem::exists(m_szWorkingPluginDirectory + "/.git")) {
         std::println(stderr, "\n{}", failureString("Could not clone the plugin repository. shell returned:\n{}", ret));
@@ -503,11 +512,11 @@ bool CPluginManager::updateHeaders(bool force) {
         progress.printMessageAbove(verboseString("will shallow since: {}", SHALLOW_DATE));
 
     std::string ret =
-        execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}{}", getTempRoot(), HL_URL, USERNAME, (bShallow ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
+        execAndGet(std::format("cd {} && git clone --recursive '{}' hyprland-{}{}", getTempRoot(), HL_URL, USERNAME, (bShallow ? " --shallow-since='" + SHALLOW_DATE + "'" : "")));
 
     if (!std::filesystem::exists(WORKINGDIR)) {
         progress.printMessageAbove(failureString("Clone failed. Retrying without shallow."));
-        ret = execAndGet(std::format("cd {} && git clone --recursive {} hyprland-{}", getTempRoot(), HL_URL, USERNAME));
+        ret = execAndGet(std::format("cd {} && git clone --recursive '{}' hyprland-{}", getTempRoot(), HL_URL, USERNAME));
     }
 
     if (!std::filesystem::exists(WORKINGDIR + "/.git")) {
@@ -648,7 +657,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
     const auto   HLVER = getHyprlandVersion(false);
 
     CProgressBar progress;
-    progress.m_iMaxSteps        = REPOS.size() * 2 + 2;
+    progress.m_iMaxSteps        = (REPOS.size() * 2) + 2;
     progress.m_iSteps           = 0;
     progress.m_szCurrentMessage = "Updating repositories";
     progress.print();
@@ -669,7 +678,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
         progress.printMessageAbove(infoString("Cloning {}", repo.url));
 
-        std::string ret = execAndGet(std::format("cd {} && git clone --recursive {} {}", getTempRoot(), repo.url, USERNAME));
+        std::string ret = execAndGet(std::format("cd {} && git clone --recursive '{}' {}", getTempRoot(), repo.url, USERNAME));
 
         if (!std::filesystem::exists(m_szWorkingPluginDirectory + "/.git")) {
             std::println("{}", failureString("could not clone repo: shell returned: {}", ret));
@@ -679,7 +688,7 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
         if (!repo.rev.empty()) {
             progress.printMessageAbove(infoString("Plugin has revision set, resetting: {}", repo.rev));
 
-            std::string ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " reset --hard --recurse-submodules " + repo.rev);
+            std::string ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " reset --hard --recurse-submodules \'" + repo.rev + "\'");
             if (ret.compare(0, 6, "fatal:") == 0) {
                 std::println(stderr, "\n{}", failureString("could not check out revision {}: shell returned:\n{}", repo.rev, ret));
 

@@ -61,6 +61,13 @@ void CLayoutManager::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectC
     target->space()->resizeTarget(Δ, target, corner);
 }
 
+void CLayoutManager::setTargetGeom(const CBox& box, SP<ITarget> target) {
+    if (!target->floating())
+        return;
+
+    target->space()->setTargetGeom(box, target);
+}
+
 std::expected<void, std::string> CLayoutManager::layoutMsg(const std::string_view& sv) {
 
     const auto MONITOR = Desktop::focusState()->monitor();

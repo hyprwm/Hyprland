@@ -1,4 +1,5 @@
-lib: let
+lib:
+let
   inherit (lib)
     attrNames
     filterAttrs
@@ -17,7 +18,7 @@ lib: let
 
     This function takes a nested attribute set and converts it into Hyprland-compatible
     configuration syntax, supporting top, bottom, and regular command sections.
-    
+
     Commands are flattened using the `flattenAttrs` function, and attributes are formatted as
     `key = value` pairs. Lists are expanded as duplicate keys to match Hyprland's expected format.
 
@@ -81,44 +82,51 @@ lib: let
 
     :::
   */
-  toHyprlang = {
-    topCommandsPrefixes ? ["$" "bezier"],
-    bottomCommandsPrefixes ? [],
-  }: attrs: let
-    toHyprlang' = attrs: let
-      # Specially configured `toKeyValue` generator with support for duplicate keys
-      # and a legible key-value separator.
-      mkCommands = generators.toKeyValue {
-        mkKeyValue = generators.mkKeyValueDefault {} " = ";
-        listsAsDuplicateKeys = true;
-        indent = ""; # No indent, since we don't have nesting
-      };
+  toHyprlang =
+    {
+      topCommandsPrefixes ? [
+        "$"
+        "bezier"
+      ],
+      bottomCommandsPrefixes ? [ ],
+    }:
+    attrs:
+    let
+      toHyprlang' =
+        attrs:
+        let
+          # Specially configured `toKeyValue` generator with support for duplicate keys
+          # and a legible key-value separator.
+          mkCommands = generators.toKeyValue {
+            mkKeyValue = generators.mkKeyValueDefault { } " = ";
+            listsAsDuplicateKeys = true;
+            indent = ""; # No indent, since we don't have nesting
+          };
 
-      # Flatten the attrset, combining keys in a "path" like `"a:b:c" = "x"`.
-      # Uses `flattenAttrs` with a colon separator.
-      commands = flattenAttrs (p: k: "${p}:${k}") attrs;
+          # Flatten the attrset, combining keys in a "path" like `"a:b:c" = "x"`.
+          # Uses `flattenAttrs` with a colon separator.
+          commands = flattenAttrs (p: k: "${p}:${k}") attrs;
 
-      # General filtering function to check if a key starts with any prefix in a given list.
-      filterCommands = list: n:
-        foldl (acc: prefix: acc || hasPrefix prefix n) false list;
+          # General filtering function to check if a key starts with any prefix in a given list.
+          filterCommands = list: n: foldl (acc: prefix: acc || hasPrefix prefix n) false list;
 
-      # Partition keys into top commands and the rest
-      result = partition (filterCommands topCommandsPrefixes) (attrNames commands);
-      topCommands = filterAttrs (n: _: builtins.elem n result.right) commands;
-      remainingCommands = removeAttrs commands result.right;
+          # Partition keys into top commands and the rest
+          result = partition (filterCommands topCommandsPrefixes) (attrNames commands);
+          topCommands = filterAttrs (n: _: builtins.elem n result.right) commands;
+          remainingCommands = removeAttrs commands result.right;
 
-      # Partition remaining commands into bottom commands and regular commands
-      result2 = partition (filterCommands bottomCommandsPrefixes) result.wrong;
-      bottomCommands = filterAttrs (n: _: builtins.elem n result2.right) remainingCommands;
-      regularCommands = removeAttrs remainingCommands result2.right;
+          # Partition remaining commands into bottom commands and regular commands
+          result2 = partition (filterCommands bottomCommandsPrefixes) result.wrong;
+          bottomCommands = filterAttrs (n: _: builtins.elem n result2.right) remainingCommands;
+          regularCommands = removeAttrs remainingCommands result2.right;
+        in
+        # Concatenate strings from mapping `mkCommands` over top, regular, and bottom commands.
+        concatMapStrings mkCommands [
+          topCommands
+          regularCommands
+          bottomCommands
+        ];
     in
-      # Concatenate strings from mapping `mkCommands` over top, regular, and bottom commands.
-      concatMapStrings mkCommands [
-        topCommands
-        regularCommands
-        bottomCommands
-      ];
-  in
     toHyprlang' attrs;
 
   /**
@@ -131,7 +139,7 @@ lib: let
     Configuration:
 
     * `pred` - A function `(string -> string -> string)` defining how keys should be concatenated.
-    
+
     # Inputs
 
     Structured function argument:
@@ -139,7 +147,7 @@ lib: let
     : pred (required)
       : A function that determines how parent and child keys should be combined into a single key.
         It takes a `prefix` (parent key) and `key` (current key) and returns the joined key.
-    
+
     Value:
 
     : The nested attribute set to be flattened.
@@ -174,26 +182,21 @@ lib: let
     ```
 
     :::
-
   */
-  flattenAttrs = pred: attrs: let
-    flattenAttrs' = prefix: attrs:
-      builtins.foldl' (
-        acc: key: let
-          value = attrs.${key};
-          newKey =
-            if prefix == ""
-            then key
-            else pred prefix key;
-        in
-          acc
-          // (
-            if builtins.isAttrs value
-            then flattenAttrs' newKey value
-            else {"${newKey}" = value;}
-          )
-      ) {} (builtins.attrNames attrs);
-  in
+  flattenAttrs =
+    pred: attrs:
+    let
+      flattenAttrs' =
+        prefix: attrs:
+        builtins.foldl' (
+          acc: key:
+          let
+            value = attrs.${key};
+            newKey = if prefix == "" then key else pred prefix key;
+          in
+          acc // (if builtins.isAttrs value then flattenAttrs' newKey value else { "${newKey}" = value; })
+        ) { } (builtins.attrNames attrs);
+    in
     flattenAttrs' "" attrs;
 in
 {

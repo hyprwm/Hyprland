@@ -403,7 +403,9 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    const auto PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
+    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+
+    const auto  PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
 
     if (!t->window())
         return;
@@ -424,7 +426,10 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
     t->window()->setAnimationsToMove();
 
     if (t->window()->m_workspace != targetWs) {
-        t->assignToSpace(targetWs->m_space);
+        if (!*PMONITORFALLBACK)
+            return; // noop
+
+        t->assignToSpace(targetWs->m_space, focalPointForDir(t, dir));
     } else if (PWINDOW2) {
         // if same monitor, switch windows
         g_layoutManager->switchTargets(t, PWINDOW2->layoutTarget());

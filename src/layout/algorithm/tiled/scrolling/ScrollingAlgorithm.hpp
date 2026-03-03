@@ -40,8 +40,8 @@ namespace Layout::Tiled {
         // index of lowest target that is above y.
         size_t                                idxForHeight(float y);
 
-        void                                  up(SP<SScrollingTargetData> w);
-        void                                  down(SP<SScrollingTargetData> w);
+        bool                                  up(SP<SScrollingTargetData> w);
+        bool                                  down(SP<SScrollingTargetData> w);
 
         SP<SScrollingTargetData>              next(SP<SScrollingTargetData> w);
         SP<SScrollingTargetData>              prev(SP<SScrollingTargetData> w);

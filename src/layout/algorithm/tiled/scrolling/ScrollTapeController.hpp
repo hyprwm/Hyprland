@@ -40,7 +40,7 @@ namespace Layout::Tiled {
         bool              isReversed() const;
 
         size_t            addStrip(float size = 1.0F);
-        void              insertStrip(size_t afterIndex, float size = 1.0F);
+        void              insertStrip(ssize_t afterIndex, float size = 1.0F);
         void              removeStrip(size_t index);
         size_t            stripCount() const;
         SStripData&       getStrip(size_t index);

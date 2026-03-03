@@ -1468,9 +1468,10 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
-    static auto      PFULLCYCLE  = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
-    static auto      PGROUPCYCLE = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_groupfirst");
-    Math::eDirection dir         = Math::fromChar(args[0]);
+    static auto      PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
+    static auto      PGROUPCYCLE      = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_groupfirst");
+    static auto      PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    Math::eDirection dir              = Math::fromChar(args[0]);
 
     if (dir == Math::DIRECTION_DEFAULT) {
         Log::logger->log(Log::ERR, "Cannot move focus in direction {}, unsupported direction. Supported: l,r,u/t,d/b", args[0]);
@@ -1479,7 +1480,8 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
 
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW || !PLASTWINDOW->aliveAndVisible()) {
-        tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir));
+        if (*PMONITORFALLBACK)
+            tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir));
         return {};
     }
 
@@ -1509,7 +1511,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
 
     Log::logger->log(Log::DEBUG, "No window found in direction {}, looking for a monitor", Math::toString(dir));
 
-    if (tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
+    if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
         return {};
 
     static auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
@@ -2750,7 +2752,9 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
 
     WP<Desktop::View::CGroup> group = pWindow->m_group;
 
-    pWindow->m_group->remove(pWindow);
+    const auto                direction = !dir.empty() ? Math::fromChar(dir[0]) : Math::DIRECTION_DEFAULT;
+
+    pWindow->m_group->remove(pWindow, direction);
 
     if (*BFOCUSREMOVEDWINDOW || !group) {
         Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);

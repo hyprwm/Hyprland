@@ -28,6 +28,15 @@ static void swar() {
         EXPECT_CONTAINS(str, "size: 1036,1036");
     }
 
+    // don't use swar on maximized
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+    }
+
     // clean up
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
@@ -44,6 +53,54 @@ static void testCrashOnGeomUpdate() {
 
     // shouldnt crash
     OK(getFromSocket("/dispatch movefocus r"));
+
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
+// Test if size + pos is preserved after fs cycle
+static void testPosPreserve() {
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch setfloating class:kitty"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 1337 69, class:kitty"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 420 420, class:kitty"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 420,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen"));
+    OK(getFromSocket("/dispatch fullscreen"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch movewindow r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 581,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen"));
+    OK(getFromSocket("/dispatch fullscreen"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 581,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
 }
 
 static bool test() {
@@ -57,6 +114,7 @@ static bool test() {
     swar();
 
     testCrashOnGeomUpdate();
+    testPosPreserve();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

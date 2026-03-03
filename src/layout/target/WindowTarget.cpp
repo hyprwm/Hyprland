@@ -88,6 +88,9 @@ void CWindowTarget::updatePos() {
     if (fullscreenMode() == FSMODE_FULLSCREEN)
         return;
 
+    if (fullscreenMode() == FSMODE_MAXIMIZED)
+        m_box = m_space->workArea(floating());
+
     g_pHyprRenderer->damageWindow(window());
 
     static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");

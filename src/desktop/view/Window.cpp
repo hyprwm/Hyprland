@@ -1952,6 +1952,7 @@ void CWindow::mapWindow() {
         && canBeGroupedInto(Desktop::focusState()->window()->m_group)                      // we can group
         && Desktop::focusState()->window()->m_workspace == m_workspace                     // workspaces match, we're not opening on another ws
         && !g_pXWaylandManager->shouldBeFloated(m_self.lock()) && !isX11OverrideRedirect() // not a window that should float or X11
+        && !(m_isFloating && !Desktop::focusState()->window()->m_isFloating)               // do not auto-group a floated window into a tiled group
     ) {
         // add to group if we are focused on one
         Desktop::focusState()->window()->m_group->add(m_self.lock());

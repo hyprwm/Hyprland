@@ -2197,6 +2197,15 @@ std::string CHyprCtl::getReply(std::string request) {
             Desktop::Rule::ruleEngine()->updateAllRules();
         }
 
+        for (const auto& ws : g_pCompositor->getWorkspaces()) {
+            if (!ws)
+                continue;
+
+            ws->updateWindows();
+            ws->updateWindowData();
+            ws->updateWindowDecos();
+        }
+
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
         }

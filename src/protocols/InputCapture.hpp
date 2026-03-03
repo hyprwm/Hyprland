@@ -65,7 +65,7 @@ class CInputCaptureResource {
 
     uint32_t                    m_activationId = 0;
     eClientStatus               m_status       = eClientStatus::CLIENT_STATUS_CREATED;
-    CHyprSignalListener        m_monitorCallback;
+    CHyprSignalListener         m_monitorCallback;
 };
 
 class CInputCaptureProtocol : public IWaylandProtocol {

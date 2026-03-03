@@ -346,7 +346,7 @@ static void testMultimonFocus() {
     OK(getFromSocket("/keyword general:no_focus_fallback true"));
     OK(getFromSocket("/keyword binds:window_direction_monitor_fallback false"));
 
-    OK(getFromSocket("/dispatch movefocus l"));
+    EXPECT_NOT(getFromSocket("/dispatch movefocus l"), "ok");
 
     {
         auto str = getFromSocket("/activewindow");

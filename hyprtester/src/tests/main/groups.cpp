@@ -259,7 +259,7 @@ static bool test() {
 
     OK(getFromSocket("/keyword windowrule[kitty-tiled]:match:class kitty_tiled"));
     OK(getFromSocket("/keyword windowrule[kitty-tiled]:tile yes"));
-    auto kittyProcE = Tests::spawnKitty(kitty_tiled);
+    auto kittyProcE = Tests::spawnKitty("kitty_tiled");
     if (!kittyProcE) {
         NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;

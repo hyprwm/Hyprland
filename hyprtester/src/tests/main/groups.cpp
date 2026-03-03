@@ -254,6 +254,44 @@ static bool test() {
         EXPECT(Tests::windowCount(), 0);
     }
 
+    // test that a floated window don't get auto-grouped into a tiled group.
+    NLog::log("{}test that a floated window don't get auto-grouped into a tiled group.", Colors::GREEN);
+    auto kittyProcE = Tests::spawnKitty();
+    if (!kittyProcE) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/keyword windowrule[test-dont-autogroup-floated-into-tiled]:match:class kitty_float"));
+    OK(getFromSocket("/keyword windowrule[test-dont-autogroup-floated-into-tiled]:float yes"));
+
+    auto kittyProcF = Tests::spawnKitty("kitty_float");
+    if (!kittyProcF) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    EXPECT(Tests::windowCount(), 2);
+
+    {
+        auto clients  = getFromSocket("/clients");
+        auto classPos = clients.find("class: kitty_float");
+        if (classPos == std::string::npos) {
+            NLog::log("{}Could not find kitty_float in clients output", Colors::RED);
+            ret = 1;
+        } else {
+            auto entryStart  = clients.rfind("Window ", classPos);
+            auto entryEnd    = clients.find("\n\n", classPos);
+            auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_CONTAINS(windowEntry, "grouped: 0");
+        }
+    }
+
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+
     return !ret;
 }
 

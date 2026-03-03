@@ -372,5 +372,6 @@ void CWindowTarget::onUpdateSpace() {
     m_window->m_monitor = space()->workspace()->m_monitor;
     m_window->moveToWorkspace(space()->workspace());
     m_window->updateToplevel();
+    m_window->updateWindowData();
     m_window->updateWindowDecos();
 }

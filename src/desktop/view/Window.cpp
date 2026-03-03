@@ -510,12 +510,6 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     setAnimationsToMove();
 
-    OLDWORKSPACE->updateWindows();
-    OLDWORKSPACE->updateWindowData();
-
-    pWorkspace->updateWindows();
-    pWorkspace->updateWindowData();
-
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
 
     if (valid(pWorkspace)) {
@@ -807,10 +801,12 @@ void CWindow::updateWindowData() {
 }
 
 void CWindow::updateWindowData(const SWorkspaceRule& workspaceRule) {
-    if (workspaceRule.noBorder)
-        m_ruleApplicator->borderSize().matchOptional(*workspaceRule.noBorder ? std::optional<Hyprlang::INT>(0) : std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    if (workspaceRule.noBorder.value_or(false))
+        m_ruleApplicator->borderSize().matchOptional(std::optional<Hyprlang::INT>(0), Desktop::Types::PRIORITY_WORKSPACE_RULE);
     else if (workspaceRule.borderSize)
         m_ruleApplicator->borderSize().matchOptional(workspaceRule.borderSize, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+    else
+        m_ruleApplicator->borderSize().matchOptional(std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->decorate().matchOptional(workspaceRule.decorate, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->rounding().matchOptional(workspaceRule.noRounding.value_or(false) ? std::optional<Hyprlang::INT>(0) : std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);

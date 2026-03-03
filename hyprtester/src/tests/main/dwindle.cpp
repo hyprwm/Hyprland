@@ -87,8 +87,8 @@ static void testSplit() {
     Tests::spawnKitty("a");
 
     // these must not crash
-    OK(getFromSocket("/dispatch layoutmsg swapsplit"));
-    OK(getFromSocket("/dispatch layoutmsg splitratio 1 exact"));
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg swapsplit"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio 1 exact"), "ok");
 
     Tests::spawnKitty("b");
 

@@ -743,7 +743,7 @@ void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
 }
 
 void CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
-    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE || !x->pParent)
         return;
 
     std::swap(x->pParent->children[0], x->pParent->children[1]);

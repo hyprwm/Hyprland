@@ -657,11 +657,15 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
     const auto CURRENT_NODE = getNodeFromWindow(Desktop::focusState()->window());
 
     if (ARGS[0] == "togglesplit") {
-        if (CURRENT_NODE)
-            toggleSplit(CURRENT_NODE);
+        if (CURRENT_NODE) {
+            if (!toggleSplit(CURRENT_NODE))
+                return std::unexpected("can't togglesplit in the current workspace");
+        }
     } else if (ARGS[0] == "swapsplit") {
-        if (CURRENT_NODE)
-            swapSplit(CURRENT_NODE);
+        if (CURRENT_NODE) {
+            if (!swapSplit(CURRENT_NODE))
+                return std::unexpected("can't swapsplit in the current workspace");
+        }
     } else if (ARGS[0] == "movetoroot") {
         auto node = CURRENT_NODE;
         if (!ARGS[1].empty()) {
@@ -671,7 +675,8 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
         }
 
         const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
-        moveToRoot(node, STABLE);
+        if (!moveToRoot(node, STABLE))
+            return std::unexpected("can't movetoroot in the current workspace");
     } else if (ARGS[0] == "preselect") {
         auto direction = ARGS[1];
 
@@ -730,37 +735,41 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
     return {};
 }
 
-void CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
+bool CDwindleAlgorithm::toggleSplit(SP<SDwindleNodeData> x) {
     if (!x || !x->pParent)
-        return;
+        return false;
 
     if (x->pTarget->fullscreenMode() != FSMODE_NONE)
-        return;
+        return false;
 
     x->pParent->splitTop = !x->pParent->splitTop;
 
     x->pParent->recalcSizePosRecursive();
+
+    return true;
 }
 
-void CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
-    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
-        return;
+bool CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE || !x->pParent)
+        return false;
 
     std::swap(x->pParent->children[0], x->pParent->children[1]);
 
     x->pParent->recalcSizePosRecursive();
+
+    return true;
 }
 
-void CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {
+bool CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {
     if (!x || !x->pParent)
-        return;
+        return false;
 
     if (x->pTarget->fullscreenMode() != FSMODE_NONE)
-        return;
+        return false;
 
     // already at root
     if (!x->pParent->pParent)
-        return;
+        return false;
 
     auto& pNode = x->pParent->children[0] == x ? x->pParent->children[0] : x->pParent->children[1];
 
@@ -781,4 +790,6 @@ void CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {
         std::swap(pRoot->children[0], pRoot->children[1]);
 
     pRoot->recalcSizePosRecursive();
+
+    return true;
 }

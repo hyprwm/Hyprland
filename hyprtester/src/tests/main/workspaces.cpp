@@ -375,6 +375,24 @@ static void testMultimonFocus() {
     Tests::killAllWindows();
 }
 
+static void testDynamicWsEffects() {
+    // test dynamic workspace effects, they shouldn't lag
+
+    OK(getFromSocket("/dispatch workspace 69"));
+
+    Tests::spawnKitty("bitch");
+
+    OK(getFromSocket("r/keyword workspace 69,bordersize:20"));
+    OK(getFromSocket("r/keyword workspace 69,rounding:false"));
+
+    EXPECT(getFromSocket("/getprop class:bitch border_size"), "20");
+    EXPECT(getFromSocket("/getprop class:bitch rounding"), "0");
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
@@ -720,8 +738,8 @@ static bool test() {
     OK(getFromSocket("/output remove HEADLESS-3"));
 
     testSpecialWorkspaceFullscreen();
-
     testAsymmetricGaps();
+    testDynamicWsEffects();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

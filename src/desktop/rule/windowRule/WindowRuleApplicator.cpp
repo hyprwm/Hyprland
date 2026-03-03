@@ -630,6 +630,8 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         needsRelayout  = needsRelayout || RES.needsRelayout;
     }
 
+    m_window->updateWindowData();
+    m_window->updateWindowDecos();
     m_window->updateDecorationValues();
 
     if (needsRelayout)

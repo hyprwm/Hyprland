@@ -253,7 +253,7 @@ static bool test() {
         Tests::killAllWindows();
         EXPECT(Tests::windowCount(), 0);
     }
-    
+
     // test that we deny a floated window getting auto-grouped into a tiled group.
     NLog::log("{}Test that we deny a floated window getting auto-grouped into a tiled group.", Colors::GREEN);
 

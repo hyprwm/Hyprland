@@ -253,20 +253,22 @@ static bool test() {
         Tests::killAllWindows();
         EXPECT(Tests::windowCount(), 0);
     }
+    
+    // test that we deny a floated window getting auto-grouped into a tiled group.
+    NLog::log("{}Test that we deny a floated window getting auto-grouped into a tiled group.", Colors::GREEN);
 
-    // test that a floated window don't get auto-grouped into a tiled group.
-    NLog::log("{}test that a floated window don't get auto-grouped into a tiled group.", Colors::GREEN);
-    auto kittyProcE = Tests::spawnKitty();
+    OK(getFromSocket("/keyword windowrule[kitty-tiled]:match:class kitty_tiled"));
+    OK(getFromSocket("/keyword windowrule[kitty-tiled]:tile yes"));
+    auto kittyProcE = Tests::spawnKitty(kitty_tiled);
     if (!kittyProcE) {
         NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
-
     OK(getFromSocket("/dispatch togglegroup"));
-    OK(getFromSocket("/keyword windowrule[test-dont-autogroup-floated-into-tiled]:match:class kitty_float"));
-    OK(getFromSocket("/keyword windowrule[test-dont-autogroup-floated-into-tiled]:float yes"));
 
-    auto kittyProcF = Tests::spawnKitty("kitty_float");
+    OK(getFromSocket("/keyword windowrule[kitty-floated]:match:class kitty_floated"));
+    OK(getFromSocket("/keyword windowrule[kitty-floated]:float yes"));
+    auto kittyProcF = Tests::spawnKitty("kitty_floated");
     if (!kittyProcF) {
         NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
@@ -276,9 +278,9 @@ static bool test() {
 
     {
         auto clients  = getFromSocket("/clients");
-        auto classPos = clients.find("class: kitty_float");
+        auto classPos = clients.find("class: kitty_floated");
         if (classPos == std::string::npos) {
-            NLog::log("{}Could not find kitty_float in clients output", Colors::RED);
+            NLog::log("{}Could not find kitty_floated in clients output", Colors::RED);
             ret = 1;
         } else {
             auto entryStart  = clients.rfind("Window ", classPos);

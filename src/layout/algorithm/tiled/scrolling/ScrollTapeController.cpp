@@ -61,7 +61,7 @@ void CScrollTapeController::insertStrip(ssize_t afterIndex, float size) {
         return;
     }
 
-    afterIndex = std::clamp(afterIndex, -1L, sc<ssize_t>(INT32_MAX));
+    afterIndex = std::clamp(afterIndex, sc<ssize_t>(-1L), sc<ssize_t>(INT32_MAX));
 
     SStripData newStrip;
     newStrip.size = size;

@@ -1496,7 +1496,7 @@ CBox CScrollingAlgorithm::usableArea() {
     CBox box = m_parent->space()->workArea();
 
     // doesn't matter, this happens when this algo is about to be destroyed
-    if (!m_parent->space()->workspace())
+    if (!m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
         return box;
 
     box.translate(-m_parent->space()->workspace()->m_monitor->m_position);

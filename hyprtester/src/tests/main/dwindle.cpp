@@ -84,14 +84,13 @@ static void test13349() {
 static void testSplit() {
     // Test various split methods
 
-    for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
-        }
-    }
+    Tests::spawnKitty("a");
+
+    // these must not crash
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg swapsplit"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio 1 exact"), "ok");
+
+    Tests::spawnKitty("b");
 
     OK(getFromSocket("/dispatch focuswindow class:a"));
     OK(getFromSocket("/dispatch layoutmsg splitratio -0.2"));

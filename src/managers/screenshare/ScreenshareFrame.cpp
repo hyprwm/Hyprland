@@ -293,8 +293,11 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
+    if (!pointerSurface)
+        return;
 
-    if (!pointerSurface || pointerSurface->getSurfaceBoxGlobal()->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
+    auto box = pointerSurface->getSurfaceBoxGlobal();
+    if (!box.has_value() || box->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
         return;
 
     if (Desktop::focusState()->window() != m_session->m_window)

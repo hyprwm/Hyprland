@@ -159,9 +159,11 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = makeShared<CTexture>(PMONITOR->m_output->state->state().buffer);
+    if (!g_pHyprOpenGL->m_monitorRenderResources.contains(PMONITOR))
+        return; // wtf?
 
-    const bool IS_CM_AWARE                      = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    auto TEXTURE = g_pHyprOpenGL->m_monitorRenderResources[PMONITOR].monitorMirrorFB.getTexture();
+
     g_pHyprOpenGL->m_renderData.transformDamage = false;
     g_pHyprOpenGL->m_renderData.noSimplify      = true;
 
@@ -171,11 +173,7 @@ void CScreenshareFrame::renderMonitor() {
                       .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
-                                 {
-                                     .cmBackToSRGB       = !IS_CM_AWARE,
-                                     .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
-                                 });
+    g_pHyprOpenGL->renderTexturePrimitive(TEXTURE, monbox);
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 

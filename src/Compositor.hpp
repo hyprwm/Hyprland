@@ -9,7 +9,7 @@
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
 #include "desktop/view/Window.hpp"
-#include "protocols/types/ColorManagement.hpp"
+#include "helpers/cm/ColorManagement.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>

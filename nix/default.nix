@@ -21,6 +21,7 @@
   hyprutils,
   hyprwayland-scanner,
   hyprwire,
+  lcms2,
   libGL,
   libdrm,
   libexecinfo,
@@ -179,6 +180,7 @@ customStdenv.mkDerivation (finalAttrs: {
       hyprlang
       hyprutils
       hyprwire
+      lcms2
       libdrm
       libgbm
       libGL

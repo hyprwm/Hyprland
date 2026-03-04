@@ -156,6 +156,14 @@ void CScreenshareManager::destroyClientSessions(wl_client* client) {
     std::erase_if(m_managedSessions, [&](const auto& session) { return !session || session->m_session->m_client == client; });
 }
 
+bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
+    return std::ranges::any_of(m_pendingFrames, [monitor](const auto& f) {
+        if (!f || !f->m_session)
+            return false;
+        return (f->m_session->m_type == SHARE_MONITOR || f->m_session->m_type == SHARE_REGION) && f->m_session->m_monitor == monitor;
+    });
+}
+
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {
     ;
 }

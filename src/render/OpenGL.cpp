@@ -28,6 +28,7 @@
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../i18n/Engine.hpp"
 #include "../event/EventBus.hpp"
+#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "pass/TexPassElement.hpp"
@@ -747,12 +748,24 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
         m_renderData.pCurrentMonData->mirrorSwapFB.addStencil(m_renderData.pCurrentMonData->stencilTex);
     }
 
-    if (m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated() && m_renderData.pMonitor->m_mirrors.empty())
+    const bool HAS_MIRROR_FB = m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated();
+    const bool NEEDS_COPY_FB = needsACopyFB(m_renderData.pMonitor.lock());
+
+    if (HAS_MIRROR_FB && !NEEDS_COPY_FB)
         m_renderData.pCurrentMonData->monitorMirrorFB.release();
+    else if (!HAS_MIRROR_FB && NEEDS_COPY_FB)
+        m_renderData.pCurrentMonData->monitorMirrorFB.alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
+                                                            m_renderData.pMonitor->m_output->state->state().drmFormat);
 
     m_renderData.transformDamage = true;
-    m_renderData.damage.set(damage_);
-    m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+    if (HAS_MIRROR_FB != NEEDS_COPY_FB) {
+        // force full damage because the mirror fb will be empty
+        m_renderData.damage.set({0, 0, INT32_MAX, INT32_MAX});
+        m_renderData.finalDamage.set(m_renderData.damage);
+    } else {
+        m_renderData.damage.set(damage_);
+        m_renderData.finalDamage.set(finalDamage.value_or(damage_));
+    }
 
     m_fakeFrame = fb;
 
@@ -799,8 +812,8 @@ void CHyprOpenGLImpl::end() {
             m_renderData.useNearestNeighbor = true;
 
         // copy the damaged areas into the mirror buffer
-        // we can't use the offloadFB for mirroring, as it contains artifacts from blurring
-        if UNLIKELY (!m_renderData.pMonitor->m_mirrors.empty() && !m_fakeFrame)
+        // we can't use the offloadFB for mirroring / ss, as it contains artifacts from blurring
+        if UNLIKELY (needsACopyFB(m_renderData.pMonitor.lock()) && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
         m_renderData.outFB->bind();
@@ -856,6 +869,10 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
             RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
     }
+}
+
+bool CHyprOpenGLImpl::needsACopyFB(PHLMONITOR mon) {
+    return !mon->m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(mon);
 }
 
 void CHyprOpenGLImpl::setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage) {
@@ -1417,21 +1434,60 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     const bool isHDRSurface      = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ? m_renderData.surface->m_colorManagement->isHDR() : false;
     const bool canPassHDRSurface = isHDRSurface && !m_renderData.surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
 
-    const auto imageDescription = m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid() ?
-        CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription()) :
-        (data.cmBackToSRGB ? data.cmBackToSRGBSource->m_imageDescription : DEFAULT_IMAGE_DESCRIPTION);
+    // Color pipeline:
+    // Client ---> sRGB chosen EOTF (render buf) ---> Monitor (target)
+    //
 
-    const auto sdrEOTF        = NTransferFunction::fromConfig();
-    const bool IS_MONITOR_ICC = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
-    const auto chosenSdrEotf  = IS_MONITOR_ICC ? NColorManagement::CM_TRANSFER_FUNCTION_SRGB : // if the monitor is ICC'd, use SRGB for best ΔE.
-        (sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB); // otherwise use configured
-    const auto targetImageDescription =
-        !data.finalMonitorCM ? CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}) : m_renderData.pMonitor->m_imageDescription;
+    const auto CONFIG_SDR_EOTF = NTransferFunction::fromConfig();
+    const bool IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
+    const auto CHOSEN_SDR_EOTF = [&] {
+        // if the monitor is ICC'd, use SRGB for best ΔE.
+        if (IS_MONITOR_ICC)
+            return CM_TRANSFER_FUNCTION_SRGB;
+
+        // otherwise use configured
+        if (CONFIG_SDR_EOTF != NTransferFunction::TF_SRGB)
+            return CM_TRANSFER_FUNCTION_GAMMA22;
+        return CM_TRANSFER_FUNCTION_SRGB;
+    }();
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
+
+    // chosenSdrEotf contains the valid eotf for this display
+
+    const auto SOURCE_IMAGE_DESCRIPTION = [&] {
+        // if valid CM surface, use that as a source
+        if (m_renderData.surface.valid() && m_renderData.surface->m_colorManagement.valid())
+            return CImageDescription::from(m_renderData.surface->m_colorManagement->imageDescription());
+
+        // otherwise, if we are CM'ing back into source, use chosen, because that's what our work buffer is in
+        // the same applies to the final monitor CM
+        if (data.cmBackToSRGB || data.finalMonitorCM) // NOLINTNEXTLINE
+            return WORK_BUFFER_IMAGE_DESCRIPTION;
+
+        // otherwise, default
+        return DEFAULT_IMAGE_DESCRIPTION;
+    }();
+
+    const auto TARGET_IMAGE_DESCRIPTION = [&] {
+        // if we are CM'ing back, use default sRGB
+        if (data.cmBackToSRGB)
+            return DEFAULT_IMAGE_DESCRIPTION;
+
+        // for final CM, use the target description
+        if (data.finalMonitorCM)
+            return m_renderData.pMonitor->m_imageDescription;
+
+        // otherwise, use chosen, we're drawing into the work buffer
+        // NOLINTNEXTLINE
+        return WORK_BUFFER_IMAGE_DESCRIPTION;
+    }();
+
     const bool CANT_CHECK_CM_EQUALITY = data.cmBackToSRGB || data.finalMonitorCM || (!m_renderData.surface || !m_renderData.surface->m_colorManagement);
 
-    const bool skipCM = !*PENABLECM || !m_cmSupported                                          /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                                             /* no shader needed */
-        || (imageDescription->id() == targetImageDescription->id() && !CANT_CHECK_CM_EQUALITY) /* Source and target have the same image description */
+    const bool skipCM = data.noCM                                                                        /* manual CM disable */
+        || !*PENABLECM || !m_cmSupported                                                                 /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                                                       /* no shader needed */
+        || (SOURCE_IMAGE_DESCRIPTION->id() == TARGET_IMAGE_DESCRIPTION->id() && !CANT_CHECK_CM_EQUALITY) /* Source and target have the same image description */
         || (((*PPASS && canPassHDRSurface) ||
              (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
             m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
@@ -1450,19 +1506,20 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     if (!skipCM) {
         shaderFeatures |= SH_FEAT_CM;
 
-        const bool  needsSDRmod     = isSDR2HDR(imageDescription->value(), targetImageDescription->value());
-        const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
+        const bool  needsSDRmod     = isSDR2HDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
+        const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
         const float maxLuminance    = needsHDRmod ?
-               imageDescription->value().getTFMaxLuminance(-1) :
-               (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
-        const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
+               SOURCE_IMAGE_DESCRIPTION->value().getTFMaxLuminance(-1) :
+               (SOURCE_IMAGE_DESCRIPTION->value().luminances.max > 0 ? SOURCE_IMAGE_DESCRIPTION->value().luminances.max : SOURCE_IMAGE_DESCRIPTION->value().luminances.reference);
+        const auto  dstMaxLuminance = TARGET_IMAGE_DESCRIPTION->value().luminances.max > 0 ? TARGET_IMAGE_DESCRIPTION->value().luminances.max : 10000;
 
         if (maxLuminance >= dstMaxLuminance * 1.01)
             shaderFeatures |= SH_FEAT_TONEMAP;
 
-        if (!data.cmBackToSRGB &&
-            (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
-            targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+        if (data.finalMonitorCM &&
+            (SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB ||
+             SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+            TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
             ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
              (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
             shaderFeatures |= SH_FEAT_SDR_MOD;
@@ -1473,11 +1530,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     shader = useShader(shader);
 
-    if (!skipCM && !usingFinalShader) {
-        if (data.cmBackToSRGB)
-            passCMUniforms(shader, imageDescription, targetImageDescription, true, -1, -1);
+    if (!skipCM) {
+        if (data.finalMonitorCM)
+            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
         else
-            passCMUniforms(shader, imageDescription);
+            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, -1, -1);
     }
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
@@ -2446,21 +2503,17 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
-
-    if (!m_renderData.pCurrentMonData->monitorMirrorFB.isAllocated())
-        m_renderData.pCurrentMonData->monitorMirrorFB.alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                            m_renderData.pMonitor->m_output->state->state().drmFormat);
-
     m_renderData.pCurrentMonData->monitorMirrorFB.bind();
 
     blend(false);
 
     renderTexture(m_renderData.currentFB->getTexture(), box,
                   STextureRenderData{
-                      .a             = 1.f,
+                      .a             = 1.F,
                       .round         = 0,
                       .discardActive = false,
                       .allowCustomUV = false,
+                      .cmBackToSRGB  = true,
                   });
 
     blend(true);

@@ -142,7 +142,7 @@ struct SMonitorRenderData {
     CFramebuffer mirrorFB;     // these are used for some effects,
     CFramebuffer mirrorSwapFB; // etc
     CFramebuffer offMainFB;
-    CFramebuffer monitorMirrorFB; // used for mirroring outputs, does not contain artifacts like offloadFB
+    CFramebuffer monitorMirrorFB; // used for mirroring outputs / screencopy, does not contain artifacts like offloadFB and is in sRGB
     CFramebuffer blurFB;
 
     SP<CTexture> stencilTex = makeShared<CTexture>();
@@ -239,8 +239,8 @@ class CHyprOpenGLImpl {
         bool                   noAA                  = false;
         bool                   blockBlurOptimization = false;
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
-        bool                   cmBackToSRGB = false;
-        SP<CMonitor>           cmBackToSRGBSource;
+        bool                   cmBackToSRGB   = false;
+        bool                   noCM           = false;
         bool                   finalMonitorCM = false;
     };
 
@@ -262,6 +262,7 @@ class CHyprOpenGLImpl {
     void         renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
     void         renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
     void         renderTextureMatte(SP<CTexture> tex, const CBox& pBox, CFramebuffer& matte);
+    void         renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
 
     void         pushMonitorTransformEnabled(bool enabled);
     void         popMonitorTransformEnabled();
@@ -300,6 +301,8 @@ class CHyprOpenGLImpl {
     void         bindOffMain();
     void         renderOffToMain(CFramebuffer* off);
     void         bindBackOnMain();
+
+    bool         needsACopyFB(PHLMONITOR mon);
 
     std::string  resolveAssetPath(const std::string& file);
     SP<CTexture> loadAsset(const std::string& file);
@@ -447,7 +450,6 @@ class CHyprOpenGLImpl {
     void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                  bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
     void          passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-    void          renderTexturePrimitive(SP<CTexture> tex, const CBox& box);
     void          renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void          renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void          renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

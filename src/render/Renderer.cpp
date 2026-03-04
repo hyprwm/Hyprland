@@ -41,7 +41,6 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "../event/EventBus.hpp"
 #include "render/OpenGL.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -49,6 +48,11 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+
+bool CHyprRenderer::shouldBlackoutNoScreenShare() {
+    static const auto PVISIBILITY = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+    return std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+}
 
 extern "C" {
 #include <xf86drm.h>
@@ -540,9 +544,10 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         renderdata.alpha = 1.f;
 
     renderdata.pWindow = pWindow;
-
-    // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+    if (pWindow->m_ruleApplicator->noScreenShare().valueOrDefault())
+        renderdata.captureWrites = !isWindowVisibleOnMonitor(pWindow, pMonitor);
+    else
+        renderdata.captureWrites = true;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
 
@@ -729,8 +734,6 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     }
 
     Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
-
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
 }
 
 void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
@@ -771,6 +774,10 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.h                                = REALSIZ.y;
     renderdata.pLS                              = pLayer;
     renderdata.blockBlurOptimization            = pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
+
+    const auto layerMonitor  = pLayer->m_monitor.lock();
+    const bool blocksCapture = pLayer->m_ruleApplicator->noScreenShare().valueOrDefault() && layerMonitor && layerMonitor == pMonitor;
+    renderdata.captureWrites = !blocksCapture;
 
     renderdata.clipBox = CBox{0, 0, pMonitor->m_size.x, pMonitor->m_size.y}.scale(pMonitor->m_scale);
 
@@ -1383,6 +1390,9 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
     }
 
+    if (g_pHyprOpenGL->m_renderData.forcedFullDamageForCapture)
+        damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
+
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
         damage = {0, 0, sc<int>(pMonitor->m_transformedSize.x) * 10, sc<int>(pMonitor->m_transformedSize.y) * 10};
@@ -1976,7 +1986,8 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     windowBox.translate(pWindow->m_floatingOffset);
 
     for (auto const& m : g_pCompositor->m_monitors) {
-        if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor
+        const bool rendersHere = forceFull || shouldRenderWindow(pWindow, m);
+        if (rendersHere) { // only damage if window is rendered on monitor
             CBox fixedDamageBox = {windowBox.x - m->m_position.x, windowBox.y - m->m_position.y, windowBox.width, windowBox.height};
             fixedDamageBox.scale(m->m_scale);
             m->addDamage(fixedDamageBox);
@@ -1990,6 +2001,19 @@ void CHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     if (*PLOGDAMAGE)
         Log::logger->log(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
+}
+
+void CHyprRenderer::handleLayerNoScreenShareChanged(PHLLS pLayer) {
+    if (!pLayer)
+        return;
+
+    if (!pLayer->m_mapped)
+        return;
+
+    if (!pLayer->wlSurface() || !pLayer->wlSurface()->resource())
+        return;
+
+    damageSurface(pLayer->wlSurface()->resource(), pLayer->m_position.x, pLayer->m_position.y);
 }
 
 void CHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
@@ -2404,6 +2428,58 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     }
 }
 
+bool CHyprRenderer::shouldEnableCaptureMRTForMonitor(PHLMONITOR pMonitor) {
+    if (!pMonitor)
+        return false;
+    auto it = g_pHyprOpenGL->m_monitorRenderResources.find(pMonitor);
+    if (it == g_pHyprOpenGL->m_monitorRenderResources.end())
+        return false;
+
+    auto& data = it->second;
+
+    if (!data.screencopyPending)
+        return false;
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!w || !w->m_isMapped || w->isHidden())
+            continue;
+        if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
+            continue;
+        if (isWindowVisibleOnMonitor(w, pMonitor)) {
+            return true;
+        }
+    }
+
+    for (const auto& layer : g_pCompositor->m_layers) {
+        if (!layer || !layer->m_ruleApplicator->noScreenShare().valueOrDefault())
+            continue;
+        if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
+            continue;
+
+        const auto layerMonitor = layer->m_monitor.lock();
+        if (layerMonitor != pMonitor)
+            continue;
+
+        return true;
+    }
+
+    return true;
+}
+
+void CHyprRenderer::setScreencopyPendingForMonitor(PHLMONITOR pMonitor, bool pending) {
+    if (!pMonitor)
+        return;
+
+    auto& data = g_pHyprOpenGL->m_monitorRenderResources[pMonitor];
+    if (pending && !data.screencopyPending)
+        data.forceFullCaptureFrame = true;
+
+    data.screencopyPending = pending;
+
+    if (!pending)
+        data.forceFullCaptureFrame = false;
+}
+
 void CHyprRenderer::onRenderbufferDestroy(CRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
 }
@@ -2422,6 +2498,26 @@ bool CHyprRenderer::isIntel() {
 
 bool CHyprRenderer::isSoftware() {
     return m_software;
+}
+
+bool CHyprRenderer::isWindowVisibleOnMonitor(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
+    if (!pWindow || !pMonitor)
+        return false;
+
+    if (!pWindow->m_isMapped || pWindow->isHidden())
+        return false;
+
+    bool visibleHere = shouldRenderWindow(pWindow, pMonitor);
+    if (visibleHere)
+        return true;
+
+    CBox windowBox = pWindow->getFullWindowBoundingBox();
+    if (const auto ws = pWindow->m_workspace; ws && ws->m_renderOffset->isBeingAnimated())
+        windowBox.translate(ws->m_renderOffset->value());
+    windowBox.translate(pWindow->m_floatingOffset);
+
+    const CBox monitorBox = {pMonitor->m_position, pMonitor->m_size};
+    return !windowBox.intersection(monitorBox).empty();
 }
 
 bool CHyprRenderer::isMgpu() {
@@ -2619,12 +2715,20 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
         m_renderPass.add(makeUnique<CRectPassElement>(std::move(data)));
     }
 
+    const bool                   windowNoShare = pWindow->m_ruleApplicator->noScreenShare().valueOrDefault();
+
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = windowBox;
-    data.a            = pWindow->m_alpha->value();
-    data.damage       = fakeDamage;
+    data.flipEndFrame    = true;
+    data.tex             = FBDATA->getTexture();
+    data.box             = windowBox;
+    data.a               = pWindow->m_alpha->value();
+    data.damage          = fakeDamage;
+    data.captureWrites   = !windowNoShare;
+    const bool blackoutM = windowNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutM) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2655,18 +2759,26 @@ void CHyprRenderer::renderSnapshot(PHLLS pLayer) {
 
     CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(pLayer);
+    const bool                   SHOULD_BLUR  = shouldBlur(pLayer);
+    const bool                   layerNoShare = pLayer->m_ruleApplicator->noScreenShare().valueOrDefault();
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = layerBox;
-    data.a            = pLayer->m_alpha->value();
-    data.damage       = fakeDamage;
-    data.blur         = SHOULD_BLUR;
-    data.blurA        = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.flipEndFrame  = true;
+    data.tex           = FBDATA->getTexture();
+    data.box           = layerBox;
+    data.a             = pLayer->m_alpha->value();
+    data.damage        = fakeDamage;
+    data.blur          = SHOULD_BLUR;
+    data.blurA         = sqrt(pLayer->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
+    data.captureWrites = !layerNoShare;
     if (SHOULD_BLUR)
         data.ignoreAlpha = pLayer->m_ruleApplicator->ignoreAlpha().valueOr(0.01F) /* ignore the alpha 0 regions */;
+
+    const bool blackoutL = layerNoShare && CHyprRenderer::shouldBlackoutNoScreenShare() && g_pHyprOpenGL->captureMRTActiveForCurrentMonitor();
+    if (blackoutL) {
+        data.captureWrites   = true;
+        data.captureBlackout = true;
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }
@@ -2687,9 +2799,13 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!PMONITOR)
         return;
 
-    CRegion                      fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
+    CRegion    fakeDamage{0, 0, PMONITOR->m_transformedSize.x, PMONITOR->m_transformedSize.y};
 
-    const bool                   SHOULD_BLUR = shouldBlur(popup);
+    const bool SHOULD_BLUR = shouldBlur(popup);
+
+    if (popup->m_fadingOut) {
+        return;
+    }
 
     CTexPassElement::SRenderData data;
     data.flipEndFrame          = true;

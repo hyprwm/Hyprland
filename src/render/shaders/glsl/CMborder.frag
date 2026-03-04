@@ -25,6 +25,7 @@ uniform float alpha;
 #include "rounding.glsl"
 #include "CM.glsl"
 #include "border.glsl"
+#include "capture.glsl"
 
 layout(location = 0) out vec4 fragColor;
 void main() {
@@ -95,4 +96,5 @@ void main() {
     pixColor *= alpha * additionalAlpha;
 
     fragColor = pixColor;
+    CAPTURE_WRITE(fragColor);
 }

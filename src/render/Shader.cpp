@@ -143,6 +143,7 @@ void CShader::getUniformLocations() {
     //
     m_uniformLocations[SHADER_TEX]                 = getUniform("tex");
     m_uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
+    m_uniformLocations[SHADER_CAPTURE]             = getUniform("capture");
     m_uniformLocations[SHADER_POS_ATTRIB]          = getAttrib("pos");
     m_uniformLocations[SHADER_TEX_ATTRIB]          = getAttrib("texcoord");
     m_uniformLocations[SHADER_MATTE_TEX_ATTRIB]    = getAttrib("texcoordMatte");

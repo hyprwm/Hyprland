@@ -61,7 +61,9 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     if UNLIKELY (done())
         return ERROR_STOPPED;
 
-    if UNLIKELY (!m_session->monitor() || !g_pCompositor->monitorExists(m_session->monitor())) {
+    const auto MONITOR = m_session->monitor();
+
+    if UNLIKELY (!MONITOR || !g_pCompositor->monitorExists(MONITOR)) {
         LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
         m_failed = true;
         return ERROR_STOPPED;
@@ -102,10 +104,12 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     m_callback = callback;
     m_shared   = true;
 
+    g_pHyprRenderer->setScreencopyPendingForMonitor(MONITOR, true);
+
     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
     if (m_isFirst) {
-        g_pCompositor->scheduleFrameForMonitor(m_session->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-        g_pHyprRenderer->damageMonitor(m_session->monitor());
+        g_pCompositor->scheduleFrameForMonitor(MONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+        g_pHyprRenderer->damageMonitor(MONITOR);
     }
 
     // TODO: add a damage ring for output damage since last shared frame
@@ -126,6 +130,48 @@ void CScreenshareFrame::copy() {
     if (done())
         return;
 
+    if (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION) {
+        const auto PMONITOR = m_session->monitor();
+
+        bool       requiresCaptureTexture = false;
+
+        for (const auto& w : g_pCompositor->m_windows) {
+            if (!w || !w->m_isMapped || w->isHidden())
+                continue;
+
+            if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
+
+            if (!g_pHyprRenderer->isWindowVisibleOnMonitor(w, PMONITOR))
+                continue;
+
+            requiresCaptureTexture = true;
+            break;
+        }
+
+        if (!requiresCaptureTexture) {
+            for (const auto& layer : g_pCompositor->m_layers) {
+                if (!layer || !layer->m_ruleApplicator->noScreenShare().valueOrDefault())
+                    continue;
+
+                if ((!layer->m_mapped && !layer->m_fadingOut) || layer->m_alpha->value() == 0.f)
+                    continue;
+
+                if (layer->m_monitor.lock() != PMONITOR)
+                    continue;
+
+                requiresCaptureTexture = true;
+                break;
+            }
+        }
+
+        if (requiresCaptureTexture) {
+            if (const auto PTEX = g_pHyprOpenGL->getMonitorCaptureTexture(PMONITOR); !PTEX || !PTEX->m_texID) {
+                g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                return;
+            }
+        }
+    }
     // tell client to send presented timestamp
     // TODO: is this right? this is right after we commit to aq, not when page flip happens..
     m_callback(RESULT_TIMESTAMP);
@@ -157,9 +203,18 @@ void CScreenshareFrame::renderMonitor() {
     if ((m_session->m_type != SHARE_MONITOR && m_session->m_type != SHARE_REGION) || done())
         return;
 
-    const auto PMONITOR = m_session->monitor();
+    const auto        PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = makeShared<CTexture>(PMONITOR->m_output->state->state().buffer);
+    auto              monitorTexture = makeShared<CTexture>(PMONITOR->m_output->state->state().buffer);
+
+    static const auto PVISIBILITY       = CConfigValue<Hyprlang::INT>("misc:screencopy_noscreenshare_visibility");
+    const bool        blackoutRequested = std::clamp<int>(*PVISIBILITY, 0, 1) == 1;
+
+    SP<CTexture>      sourceTexture = monitorTexture;
+    if (auto captureTexture = g_pHyprOpenGL->getMonitorCaptureTexture(PMONITOR); captureTexture && captureTexture->m_texID)
+        sourceTexture = captureTexture;
+
+    const bool drawNoScreenShareBlackout = blackoutRequested && sourceTexture == monitorTexture;
 
     const bool IS_CM_AWARE                      = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprOpenGL->m_renderData.transformDamage = false;
@@ -171,7 +226,7 @@ void CScreenshareFrame::renderMonitor() {
                       .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
     g_pHyprOpenGL->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
-    g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
+    g_pHyprOpenGL->renderTexture(sourceTexture, monbox,
                                  {
                                      .cmBackToSRGB       = !IS_CM_AWARE,
                                      .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
@@ -179,85 +234,87 @@ void CScreenshareFrame::renderMonitor() {
     g_pHyprOpenGL->setRenderModifEnabled(true);
     g_pHyprOpenGL->popMonitorTransformEnabled();
 
-    // render black boxes for noscreenshare
-    auto hidePopups = [&](Vector2D popupBaseOffset) {
-        return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
-            if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
-                return;
+    if (drawNoScreenShareBlackout) {
+        // render black boxes for noscreenshare
+        auto hidePopups = [&](Vector2D popupBaseOffset) {
+            return [&, popupBaseOffset](WP<Desktop::View::CPopup> popup, void*) {
+                if (!popup->wlSurface() || !popup->wlSurface()->resource() || !popup->visible())
+                    return;
 
-            const auto popRel = popup->coordsRelativeToParent();
-            popup->wlSurface()->resource()->breadthfirst(
-                [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
-                    const auto size = surf->m_current.size;
-                    const auto surfBox =
-                        CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
+                const auto popRel = popup->coordsRelativeToParent();
+                popup->wlSurface()->resource()->breadthfirst(
+                    [&](SP<CWLSurfaceResource> surf, const Vector2D& localOff, void*) {
+                        const auto size = surf->m_current.size;
+                        const auto surfBox =
+                            CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
-                    if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
-                },
-                nullptr);
+                        if LIKELY (surfBox.w > 0 && surfBox.h > 0)
+                            g_pHyprOpenGL->renderRect(surfBox, Colors::BLACK, {});
+                    },
+                    nullptr);
+            };
         };
-    };
 
-    for (auto const& l : g_pCompositor->m_layers) {
-        if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
-            continue;
+        for (auto const& l : g_pCompositor->m_layers) {
+            if (!l->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
 
-        if UNLIKELY (!l->visible())
-            continue;
+            if UNLIKELY (!l->visible())
+                continue;
 
-        const auto REALPOS  = l->m_realPosition->value();
-        const auto REALSIZE = l->m_realSize->value();
+            const auto REALPOS  = l->m_realPosition->value();
+            const auto REALSIZE = l->m_realSize->value();
 
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
-                                          .translate(-PMONITOR->m_position)
-                                          .scale(PMONITOR->m_scale)
-                                          .translate(-m_session->m_captureBox.pos());
+            const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(REALSIZE.x, 5.0), std::max(REALSIZE.y, 5.0)}
+                                              .translate(-PMONITOR->m_position)
+                                              .scale(PMONITOR->m_scale)
+                                              .translate(-m_session->m_captureBox.pos());
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
+            g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {});
 
-        const auto     geom            = l->m_geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
-        if (l->m_popupHead)
-            l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
-    }
+            const auto     geom            = l->m_geometry;
+            const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+            if (l->m_popupHead)
+                l->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        }
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
-            continue;
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (!w->m_ruleApplicator->noScreenShare().valueOrDefault())
+                continue;
 
-        if (!g_pHyprRenderer->shouldRenderWindow(w, PMONITOR))
-            continue;
+            if (!g_pHyprRenderer->shouldRenderWindow(w, PMONITOR))
+                continue;
 
-        if (w->isHidden())
-            continue;
+            if (w->isHidden())
+                continue;
 
-        const auto PWORKSPACE = w->m_workspace;
+            const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
-            continue;
+            if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
+                continue;
 
-        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
-        const auto REALPOS          = w->m_realPosition->value() + renderOffset;
-        const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
-                                          .translate(-PMONITOR->m_position)
-                                          .scale(PMONITOR->m_scale)
-                                          .translate(-m_session->m_captureBox.pos());
+            const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+            const auto REALPOS          = w->m_realPosition->value() + renderOffset;
+            const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
+                                              .translate(-PMONITOR->m_position)
+                                              .scale(PMONITOR->m_scale)
+                                              .translate(-m_session->m_captureBox.pos());
 
-        // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
-        const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-        const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
-        const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
+            // seems like rounding doesn't play well with how we manipulate the box position to render regions causing the window to leak through
+            const auto dontRound     = m_session->m_captureBox.pos() != Vector2D() || w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+            const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
+            const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
+            g_pHyprOpenGL->renderRect(noScreenShareBox, Colors::BLACK, {.round = rounding, .roundingPower = roundingPower});
 
-        if (w->m_isX11 || !w->m_popupHead)
-            continue;
+            if (w->m_isX11 || !w->m_popupHead)
+                continue;
 
-        const auto     geom            = w->m_xdgSurface->m_current.geometry;
-        const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
+            const auto     geom            = w->m_xdgSurface->m_current.geometry;
+            const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
 
-        w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+            w->m_popupHead->breadthfirst(hidePopups(popupBaseOffset), nullptr);
+        }
     }
 
     if (m_overlayCursor) {

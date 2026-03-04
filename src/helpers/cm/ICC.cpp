@@ -14,9 +14,6 @@ using namespace Hyprutils::Utils;
 
 using namespace NColorManagement;
 
-// IMPORTANT: this needs to match LUT_SIZE in CM.glsl
-constexpr const size_t      LUT_SIZE = 2048;
-
 static std::vector<uint8_t> readBinary(const std::filesystem::path& file) {
     std::ifstream ifs(file, std::ios::binary);
     if (!ifs.good())
@@ -36,19 +33,6 @@ static std::vector<uint8_t> readBinary(const std::filesystem::path& file) {
     return buf;
 }
 
-static Hyprgraphics::CColor::xy fromXYZ(double X, double Y, double Z) {
-    const double s = X + Y + Z;
-
-    if (s <= 0.0)
-        return {.x = 0, .y = 0};
-
-    return {.x = sc<float>(X / s), .y = sc<float>(Y / s)};
-}
-
-static inline int32_t bigEndianI32(const uint8_t* p) {
-    return (int32_t)((uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | (uint32_t)p[3]);
-}
-
 static uint16_t bigEndianU16(const uint8_t* p) {
     return (uint16_t)((uint16_t)p[0] << 8 | (uint16_t)p[1]);
 }
@@ -56,111 +40,6 @@ static uint16_t bigEndianU16(const uint8_t* p) {
 static uint32_t bigEndianU32(const uint8_t* p) {
     return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | (uint32_t)p[3];
 }
-
-static uint16_t littleEndianU16(const uint8_t* p) {
-    return (uint16_t)((uint16_t)p[1] << 8 | (uint16_t)p[0]);
-}
-
-static inline double s15Fixed16ToDouble(int32_t v) {
-    return (double)v / 65536.0;
-}
-
-static std::optional<Mat3x3> chadToMat3(cmsHPROFILE prof) {
-    if (!cmsIsTag(prof, cmsSigChromaticAdaptationTag))
-        return std::nullopt;
-
-    cmsUInt32Number n = cmsReadRawTag(prof, cmsSigChromaticAdaptationTag, nullptr, 0);
-    if (n < 8 + (9 * 4))
-        return std::nullopt;
-
-    std::vector<uint8_t> raw(n);
-    if (cmsReadRawTag(prof, cmsSigChromaticAdaptationTag, raw.data(), n) != n)
-        return std::nullopt;
-
-    // raw[0 ... 3] type signature. For chad it's typically sf32
-    // raw[4 ... 7] reserved. Then 9 * s15Fixed16 numbers.
-    std::array<float, 9> mat;
-    const uint8_t*       p = raw.data() + 8;
-    for (int k = 0; k < 9; ++k) {
-        int32_t v = bigEndianI32(p + sc<ptrdiff_t>(4 * k));
-        double  d = s15Fixed16ToDouble(v);
-        mat[k]    = d;
-    }
-
-    return Mat3x3{mat};
-}
-
-// FIXME: move this to hu
-static std::array<double, 3> matVec(const Mat3x3& m, const std::array<double, 3>& v) {
-    const auto ARR = m.getMatrix();
-    return {
-        ARR[0] * v[0] + ARR[1] * v[1] + ARR[2] * v[2],
-        ARR[3] * v[0] + ARR[4] * v[1] + ARR[5] * v[2],
-        ARR[6] * v[0] + ARR[7] * v[1] + ARR[8] * v[2],
-    };
-}
-
-static std::optional<Mat3x3> invertMat3(const Mat3x3& m) {
-    const auto   ARR = m.getMatrix();
-    const double a = ARR[0], b = ARR[1], c = ARR[2];
-    const double d = ARR[3], e = ARR[4], f = ARR[5];
-    const double g = ARR[6], h = ARR[7], i = ARR[8];
-
-    const double A = (e * i - f * h);
-    const double B = -(d * i - f * g);
-    const double C = (d * h - e * g);
-    const double D = -(b * i - c * h);
-    const double E = (a * i - c * g);
-    const double F = -(a * h - b * g);
-    const double G = (b * f - c * e);
-    const double H = -(a * f - c * d);
-    const double I = (a * e - b * d);
-
-    const double det = a * A + b * B + c * C;
-    if (std::abs(det) < 1e-18)
-        return std::nullopt;
-
-    const double invDet = 1.0 / det;
-    Mat3x3       inv{std::array<float, 9>{
-        A * invDet,
-        D * invDet,
-        G * invDet, //
-        B * invDet,
-        E * invDet,
-        H * invDet, //
-        C * invDet,
-        F * invDet,
-        I * invDet, //
-    }};
-    return inv;
-}
-
-static std::string dumpToneCurve(cmsToneCurve* c) {
-    if (!c)
-        return "";
-
-    std::string res = "[";
-
-    for (int i = 0; i <= 256; ++i) {
-        double x = (double)i / 256.0;
-        double y = cmsEvalToneCurveFloat(c, x);
-        res += std::format("{}, ", y);
-    }
-
-    res.pop_back();
-    res.pop_back();
-    res += "]";
-
-    return res;
-}
-
-// static SP<CTexture> uploadRamp(std::span<const float> data) {
-//     g_pHyprRenderer->makeEGLCurrent();
-
-//   //  SP<CTexture> tex = makeShared<CTexture>(data);
-
-//     return tex;
-// }
 
 static constexpr cmsTagSignature makeSig(char a, char b, char c, char d) {
     return sc<cmsTagSignature>(sc<uint32_t>(a) << 24 | sc<uint32_t>(b) << 16 | sc<uint32_t>(c) << 8 | sc<uint32_t>(d));

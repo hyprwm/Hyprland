@@ -1387,23 +1387,19 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
 
     WP<CShader> shader;
 
-    bool        usingFinalShader = false;
-
-    const bool  CRASHING = m_applyFinalShader && g_pHyprRenderer->m_crashingInProgress;
+    const bool  CRASHING            = m_applyFinalShader && g_pHyprRenderer->m_crashingInProgress;
+    const bool  CUSTOM_FINAL_SHADER = !CRASHING && m_applyFinalShader && m_finalScreenShader->program();
 
     uint8_t     shaderFeatures = 0;
 
-    if (CRASHING) {
-        shader           = m_shaders->frag[SH_FRAG_GLITCH];
-        usingFinalShader = true;
-    } else if (m_applyFinalShader && m_finalScreenShader->program()) {
-        shader           = m_finalScreenShader;
-        usingFinalShader = true;
-    } else {
-        if (m_applyFinalShader) {
-            shader           = m_shaders->frag[SH_FRAG_PASSTHRURGBA];
-            usingFinalShader = true;
-        } else {
+    if (CRASHING)
+        shader = m_shaders->frag[SH_FRAG_GLITCH];
+    else if (CUSTOM_FINAL_SHADER)
+        shader = m_finalScreenShader;
+    else {
+        if (m_applyFinalShader)
+            shaderFeatures &= ~SH_FEAT_RGBA;
+        else {
             switch (tex->m_type) {
                 case TEXTURE_RGBA: shaderFeatures |= SH_FEAT_RGBA; break;
                 case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
@@ -1495,13 +1491,11 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     if (data.discardActive)
         shaderFeatures |= SH_FEAT_DISCARD;
 
-    if (!usingFinalShader) {
-        if (data.allowDim && m_renderData.currentWindow && (m_renderData.currentWindow->m_notRespondingTint->value() > 0 || m_renderData.currentWindow->m_dimPercent->value() > 0))
-            shaderFeatures |= SH_FEAT_TINT;
+    if (data.allowDim && m_renderData.currentWindow && (m_renderData.currentWindow->m_notRespondingTint->value() > 0 || m_renderData.currentWindow->m_dimPercent->value() > 0))
+        shaderFeatures |= SH_FEAT_TINT;
 
-        if (data.round > 0)
-            shaderFeatures |= SH_FEAT_ROUNDING;
-    }
+    if (data.round > 0)
+        shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
         shaderFeatures |= SH_FEAT_CM;
@@ -1540,12 +1534,12 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
 
-    if ((usingFinalShader && *PDT == 0) || CRASHING)
+    if ((CUSTOM_FINAL_SHADER && *PDT == 0) || CRASHING)
         shader->setUniformFloat(SHADER_TIME, m_globalTimer.getSeconds() - shader->getInitialTime());
-    else if (usingFinalShader)
-        shader->setUniformFloat(SHADER_TIME, 0.f);
+    else if (CUSTOM_FINAL_SHADER)
+        shader->setUniformFloat(SHADER_TIME, 0.F);
 
-    if (usingFinalShader) {
+    if (CUSTOM_FINAL_SHADER) {
         shader->setUniformInt(SHADER_WL_OUTPUT, m_renderData.pMonitor->m_id);
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
         shader->setUniformFloat(SHADER_POINTER_INACTIVE_TIMEOUT, *PCURSORTIMEOUT);
@@ -1556,7 +1550,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader->setUniformFloat(SHADER_POINTER_SIZE, g_pCursorManager->getScaledSize());
     }
 
-    if (usingFinalShader && *PDT == 0) {
+    if (CUSTOM_FINAL_SHADER && *PDT == 0) {
         PHLMONITORREF pMonitor = m_renderData.pMonitor;
         Vector2D      p        = ((g_pInputManager->getMouseCoordsInternal() - pMonitor->m_position) * pMonitor->m_scale);
         p                      = p.transform(Math::wlTransformToHyprutils(pMonitor->m_transform), pMonitor->m_pixelSize);
@@ -1582,7 +1576,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader->setUniformFloat(SHADER_POINTER_LAST_ACTIVE, g_pInputManager->m_lastCursorMovement.getSeconds());
         shader->setUniformFloat(SHADER_POINTER_SWITCH_TIME, g_pHyprRenderer->m_lastCursorData.switchedTimer.getSeconds());
 
-    } else if (usingFinalShader) {
+    } else if (CUSTOM_FINAL_SHADER) {
         shader->setUniformFloat2(SHADER_POINTER, 0.f, 0.f);
 
         static const std::vector<float> pressedPosDefault(POINTER_PRESSED_HISTORY_LENGTH * 2uz, 0.f);
@@ -1601,17 +1595,15 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
         shader->setUniformFloat2(SHADER_FULL_SIZE, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
     }
 
-    if (!usingFinalShader) {
-        shader->setUniformFloat(SHADER_ALPHA, alpha);
+    shader->setUniformFloat(SHADER_ALPHA, alpha);
 
-        if (data.discardActive) {
-            shader->setUniformInt(SHADER_DISCARD_OPAQUE, !!(m_renderData.discardMode & DISCARD_OPAQUE));
-            shader->setUniformInt(SHADER_DISCARD_ALPHA, !!(m_renderData.discardMode & DISCARD_ALPHA));
-            shader->setUniformFloat(SHADER_DISCARD_ALPHA_VALUE, m_renderData.discardOpacity);
-        } else {
-            shader->setUniformInt(SHADER_DISCARD_OPAQUE, 0);
-            shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
-        }
+    if (data.discardActive) {
+        shader->setUniformInt(SHADER_DISCARD_OPAQUE, !!(m_renderData.discardMode & DISCARD_OPAQUE));
+        shader->setUniformInt(SHADER_DISCARD_ALPHA, !!(m_renderData.discardMode & DISCARD_ALPHA));
+        shader->setUniformFloat(SHADER_DISCARD_ALPHA_VALUE, m_renderData.discardOpacity);
+    } else {
+        shader->setUniformInt(SHADER_DISCARD_OPAQUE, 0);
+        shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
     }
 
     CBox transformedBox = newBox;
@@ -1621,27 +1613,25 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     const auto TOPLEFT  = Vector2D(transformedBox.x, transformedBox.y);
     const auto FULLSIZE = Vector2D(transformedBox.width, transformedBox.height);
 
-    if (!usingFinalShader) {
-        // Rounded corners
-        shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
-        shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
-        shader->setUniformFloat(SHADER_RADIUS, data.round);
-        shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
+    // Rounded corners
+    shader->setUniformFloat2(SHADER_TOP_LEFT, TOPLEFT.x, TOPLEFT.y);
+    shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
+    shader->setUniformFloat(SHADER_RADIUS, data.round);
+    shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
 
-        if (data.allowDim && m_renderData.currentWindow) {
-            if (m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
-                const auto DIM = m_renderData.currentWindow->m_notRespondingTint->value();
-                shader->setUniformInt(SHADER_APPLY_TINT, 1);
-                shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-            } else if (m_renderData.currentWindow->m_dimPercent->value() > 0) {
-                shader->setUniformInt(SHADER_APPLY_TINT, 1);
-                const auto DIM = m_renderData.currentWindow->m_dimPercent->value();
-                shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
-            } else
-                shader->setUniformInt(SHADER_APPLY_TINT, 0);
+    if (data.allowDim && m_renderData.currentWindow) {
+        if (m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
+            const auto DIM = m_renderData.currentWindow->m_notRespondingTint->value();
+            shader->setUniformInt(SHADER_APPLY_TINT, 1);
+            shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
+        } else if (m_renderData.currentWindow->m_dimPercent->value() > 0) {
+            shader->setUniformInt(SHADER_APPLY_TINT, 1);
+            const auto DIM = m_renderData.currentWindow->m_dimPercent->value();
+            shader->setUniformFloat3(SHADER_TINT, 1.f - DIM, 1.f - DIM, 1.f - DIM);
         } else
             shader->setUniformInt(SHADER_APPLY_TINT, 0);
-    }
+    } else
+        shader->setUniformInt(SHADER_APPLY_TINT, 0);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
     glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO));

@@ -74,7 +74,6 @@ namespace NColorManagement {
     using SPCPRimaries = Hyprgraphics::SPCPRimaries;
 
     namespace NColorPrimaries {
-        static const auto DEFAULT_PRIMARIES = SPCPRimaries{};
 
         static const auto BT709 = SPCPRimaries{
             .red   = {.x = 0.64, .y = 0.33},
@@ -82,6 +81,8 @@ namespace NColorManagement {
             .blue  = {.x = 0.15, .y = 0.06},
             .white = {.x = 0.3127, .y = 0.3290},
         };
+
+        static const auto DEFAULT_PRIMARIES = BT709;
 
         static const auto PAL_M = SPCPRimaries{
             .red   = {.x = 0.67, .y = 0.33},

@@ -1317,19 +1317,17 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         int64_t            targetIdx = -1;
 
         // wrap around swaps
-        if (direction == "l") {
-            if (*PCONFWRAPSWAPCOL == 1) {
+        if (direction == "l")
+            if (*PCONFWRAPSWAPCOL == 1)
                 targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
-            } else {
+            else
                 targetIdx = (currentIdx == 0) ? 0 : (currentIdx - 1);
-            }
-        } else if (direction == "r") {
-            if (*PCONFWRAPSWAPCOL == 1) {
+        else if (direction == "r")
+            if (*PCONFWRAPSWAPCOL == 1)
                 targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
-            } else {
+            else
                 targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);
-            }
-        } else
+        else
             return std::unexpected("no target (invalid direction?)");
         ;
 

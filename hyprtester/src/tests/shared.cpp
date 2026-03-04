@@ -40,27 +40,25 @@ CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std:
     return kitty;
 }
 
-CUniquePointer<CProcess> Tests::spawnWaybar(const std::string& namespace_) {
-    std::vector<std::string> programArgs;
-
+CUniquePointer<CProcess> Tests::spawnLayerKitty(const std::string& namespace_, const std::vector<std::string> args) {
+    std::vector<std::string> programArgs = args;
     if (!namespace_.empty()) {
-        std::string config = std::format("/tmp/{}-waybar.jsonc", namespace_);
-        if (!writeFile(config, std::format(R"({{ "name": "{}", "modules-right": ["clock"] }})", namespace_)))
-            return nullptr;
-
-        programArgs.insert(programArgs.begin(), "--config");
-        programArgs.insert(programArgs.begin() + 1, config);
+        programArgs.insert(programArgs.begin(), "--class");
+        programArgs.insert(programArgs.begin() + 1, namespace_);
     }
 
-    CUniquePointer<CProcess> waybar = makeUnique<CProcess>("waybar", programArgs);
-    waybar->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
-    waybar->runAsync();
+    programArgs.insert(programArgs.begin(), "+kitten");
+    programArgs.insert(programArgs.begin() + 1, "panel");
+
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", programArgs);
+    kitty->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
+    kitty->runAsync();
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-    // wait while waybar spawns
+    // wait while the layer spawns
     int counter = 0;
-    while (processAlive(waybar->pid()) && countOccurrences(getFromSocket("/layers"), std::format("pid: {}", waybar->pid())) == 0) {
+    while (processAlive(kitty->pid()) && countOccurrences(getFromSocket("/layers"), std::format("pid: {}", kitty->pid())) == 0) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -68,10 +66,10 @@ CUniquePointer<CProcess> Tests::spawnWaybar(const std::string& namespace_) {
             return nullptr;
     }
 
-    if (!processAlive(waybar->pid()))
+    if (!processAlive(kitty->pid()))
         return nullptr;
 
-    return waybar;
+    return kitty;
 }
 
 bool Tests::processAlive(pid_t pid) {

@@ -313,7 +313,7 @@ static SDispatchResult checkLayerRule(std::string in) {
         return {.success = false, .error = "Layers under test not here"};
 
     for (const auto& layer : g_pCompositor->m_layers) {
-        if (layer->m_namespace == "rule-waybar") {
+        if (layer->m_namespace == "rule-layer") {
 
             if (!layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
                 return {.success = false, .error = "No rule"};
@@ -321,7 +321,7 @@ static SDispatchResult checkLayerRule(std::string in) {
             if (layer->m_ruleApplicator->m_otherProps.props[layerRuleIDX]->effect != "effect")
                 return {.success = false, .error = "Effect isn't \"effect\""};
 
-        } else if (layer->m_namespace == "norule-waybar") {
+        } else if (layer->m_namespace == "norule-layer") {
 
             if (layer->m_ruleApplicator->m_otherProps.props.contains(layerRuleIDX))
                 return {.success = false, .error = "Rule even though it shouldn't"};

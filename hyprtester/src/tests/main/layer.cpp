@@ -11,9 +11,9 @@ static int ret = 0;
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
-static bool spawnWaybar(const std::string& namespace_) {
-    NLog::log("{}Spawning waybar layer {}", Colors::YELLOW, namespace_);
-    if (!Tests::spawnWaybar(namespace_)) {
+static bool spawnLayer(const std::string& namespace_) {
+    NLog::log("{}Spawning kitty layer {}", Colors::YELLOW, namespace_);
+    if (!Tests::spawnLayerKitty(namespace_)) {
         NLog::log("{}Error: {} layer did not spawn", Colors::RED, namespace_);
         return false;
     }
@@ -23,18 +23,18 @@ static bool spawnWaybar(const std::string& namespace_) {
 static bool test() {
     NLog::log("{}Testing plugin layerrules", Colors::GREEN);
 
-    if (!spawnWaybar("rule-waybar"))
+    if (!spawnLayer("rule-layer"))
         return false;
 
     OK(getFromSocket("/dispatch plugin:test:add_layer_rule"));
     OK(getFromSocket("/reload"));
 
-    OK(getFromSocket("/keyword layerrule match:namespace rule-waybar, plugin_rule effect"));
+    OK(getFromSocket("/keyword layerrule match:namespace rule-layer, plugin_rule effect"));
 
-    if (!spawnWaybar("rule-waybar"))
+    if (!spawnLayer("rule-layer"))
         return false;
 
-    if (!spawnWaybar("norule-waybar"))
+    if (!spawnLayer("norule-layer"))
         return false;
 
     OK(getFromSocket("/dispatch plugin:test:check_layer_rule"));

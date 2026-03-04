@@ -12,7 +12,6 @@ in {
         kitty
         wl-clipboard
         xeyes
-        waybar
       ];
 
       # Enabled by default for some reason

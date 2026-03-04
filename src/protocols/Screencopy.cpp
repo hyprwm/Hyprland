@@ -13,20 +13,13 @@ CScreencopyClient::CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_) : m
         return;
 
     m_resource->setDestroy([this](CZwlrScreencopyManagerV1* pMgr) { PROTO::screencopy->destroyResource(this); });
-    m_resource->setOnDestroy([this](CZwlrScreencopyManagerV1* pMgr) {
-        Screenshare::mgr()->destroyClientSessions(m_savedClient);
-        PROTO::screencopy->destroyResource(this);
-    });
+    m_resource->setOnDestroy([this](CZwlrScreencopyManagerV1* pMgr) { PROTO::screencopy->destroyResource(this); });
     m_resource->setCaptureOutput(
         [this](CZwlrScreencopyManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, wl_resource* output) { captureOutput(frame, overlayCursor, output, {}); });
     m_resource->setCaptureOutputRegion([this](CZwlrScreencopyManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, wl_resource* output, int32_t x, int32_t y, int32_t w,
                                               int32_t h) { captureOutput(frame, overlayCursor, output, {x, y, w, h}); });
 
     m_savedClient = m_resource->client();
-}
-
-CScreencopyClient::~CScreencopyClient() {
-    Screenshare::mgr()->destroyClientSessions(m_savedClient);
 }
 
 void CScreencopyClient::captureOutput(uint32_t frame, int32_t overlayCursor_, wl_resource* output, CBox box) {
@@ -69,11 +62,6 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
     m_resource->setCopy([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, false); });
     m_resource->setCopyWithDamage([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, true); });
 
-    m_listeners.stopped = m_session->m_events.stopped.listen([this]() {
-        if (good())
-            m_resource->sendFailed();
-    });
-
     m_frame = m_session->nextFrame(overlayCursor);
 
     auto formats = m_session->allowedFormats();
@@ -108,6 +96,12 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
 void CScreencopyFrame::shareFrame(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer, bool withDamage) {
     if UNLIKELY (!good()) {
         LOGM(Log::ERR, "No frame in shareFrame??");
+        return;
+    }
+
+    if UNLIKELY (m_session.expired() || !m_session->monitor()) {
+        LOGM(Log::ERR, "Session stopped for frame {:x}", (uintptr_t)this);
+        m_resource->sendFailed();
         return;
     }
 

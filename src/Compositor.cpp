@@ -588,7 +588,7 @@ void CCompositor::cleanup() {
     g_pProtocolManager.reset();
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
-    g_pShaderLoader.reset();
+    Render::g_pShaderLoader.reset();
     g_pConfigManager.reset();
     g_layoutManager.reset();
     g_pHyprError.reset();

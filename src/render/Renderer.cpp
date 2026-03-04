@@ -60,6 +60,7 @@
 #include <pango/pangocairo.h>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <random>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;

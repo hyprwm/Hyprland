@@ -6,7 +6,7 @@
 #include "View.hpp"
 #include "../rule/layerRule/LayerRuleApplicator.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
-#include "render/Framebuffer.hpp"
+#include "../../render/Framebuffer.hpp"
 
 class CLayerShellResource;
 

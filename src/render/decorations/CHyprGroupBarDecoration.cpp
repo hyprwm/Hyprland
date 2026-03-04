@@ -368,7 +368,7 @@ void refreshGroupBarGradients() {
     auto* const GROUPCOLACTIVELOCKED    = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
     auto* const GROUPCOLINACTIVELOCKED  = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
 
-    if (m_tGradientActive->ok()) {
+    if (m_tGradientActive && m_tGradientActive->ok()) {
         m_tGradientActive.reset();
         m_tGradientInactive.reset();
         m_tGradientLockedActive.reset();

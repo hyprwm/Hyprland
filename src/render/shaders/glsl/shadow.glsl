@@ -29,7 +29,7 @@ vec4 getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower
                int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
                ,
-               sampler3D iccLut3D, float iccLutSize
+               highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
                ,

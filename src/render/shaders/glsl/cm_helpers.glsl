@@ -18,7 +18,7 @@ vec4 saturate(vec4 color, mat3 primaries, float saturation) {
 }
 #endif
 
-vec3 applyIcc3DLut(vec3 linearRgb01, sampler3D iccLut3D, float iccLutSize) {
+vec3 applyIcc3DLut(vec3 linearRgb01, highp sampler3D iccLut3D, float iccLutSize) {
     vec3 x = clamp(linearRgb01, 0.0, 1.0);
 
     // Map [0..1] to texel centers to avoid edge issues
@@ -207,7 +207,7 @@ vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
 vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
                        ,
-                       sampler3D iccLut3D, float iccLutSize
+                       highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
                        ,

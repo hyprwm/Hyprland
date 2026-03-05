@@ -114,7 +114,7 @@ SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
     // TODO: make this ID-based, string comparison is slow
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
-        if (!ws)
+        if (!ws || ws->inert())
             continue;
 
         const auto& TILED_ALGO = ws->m_space->algorithm()->tiledAlgo();
@@ -124,7 +124,11 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
 
-        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
+        // Resolve to the actual registered algo name to handle unknown/fallback names
+        // (e.g., "default" is not a tiled algo and falls back to dwindle)
+        const auto RESOLVED_NAME = m_tiledAlgos.contains(LAYOUT_TO_USE) ? LAYOUT_TO_USE : std::string(DEFAULT_TILED_ALGO);
+
+        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == RESOLVED_NAME)
             continue;
 
         // needs a switchup

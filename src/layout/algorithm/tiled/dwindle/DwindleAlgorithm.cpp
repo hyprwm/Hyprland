@@ -77,8 +77,13 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
     const auto PNODE = m_dwindleNodesData.emplace_back(makeShared<SDwindleNodeData>());
     PNODE->self      = PNODE;
 
-    const auto  PMONITOR   = m_parent->space()->workspace()->m_monitor;
-    const auto  PWORKSPACE = m_parent->space()->workspace();
+    const auto PWORKSPACE = m_parent->space()->workspace();
+    if (!PWORKSPACE || !PWORKSPACE->m_monitor) {
+        std::erase(m_dwindleNodesData, PNODE);
+        return;
+    }
+
+    const auto  PMONITOR = PWORKSPACE->m_monitor;
 
     static auto PUSEACTIVE    = CConfigValue<Hyprlang::INT>("dwindle:use_active_for_splits");
     static auto PDEFAULTSPLIT = CConfigValue<Hyprlang::FLOAT>("dwindle:default_split_ratio");
@@ -92,7 +97,9 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
     const auto           MOUSECOORDS = m_overrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
     const auto           ACTIVE_MON  = Desktop::focusState()->monitor();
 
-    if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
+    if (!ACTIVE_MON) {
+        OPENINGON = getFirstNode();
+    } else if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
         OPENINGON = getNodeFromWindow(
             g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
 

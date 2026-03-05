@@ -32,6 +32,7 @@
 #include "../event/EventBus.hpp"
 #include "helpers/CursorShapes.hpp"
 #include "helpers/Monitor.hpp"
+#include "helpers/cm/ColorManagement.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -2774,6 +2775,18 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
         data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+}
+
+NColorManagement::PImageDescription CHyprRenderer::workBufferImageDescription() {
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+
+    const auto&       m_renderData    = g_pHyprOpenGL->m_renderData;
+    const bool        IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
+    const auto        sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
+    const auto        CHOSEN_SDR_EOTF = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
+
+    return *PFP16 ? LINEAR_IMAGE_DESCRIPTION :
+                    m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
 }
 
 bool CHyprRenderer::shouldBlur(PHLLS ls) {

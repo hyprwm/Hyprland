@@ -700,6 +700,10 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_renderData.pMonitor = pMonitor;
 
+    //
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    //
+
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
         std::string errStr = "";
@@ -729,7 +733,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     if (!m_shadersInitialized)
         initShaders();
 
-    const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
+    const auto DRM_FORMAT = *PFP16 ? DRM_FORMAT_ABGR16161616F : (fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat);
 
     // ensure a framebuffer for the monitor exists
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {
@@ -1220,7 +1224,8 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription) {
-    passCMUniforms(shader, imageDescription, m_renderData.pMonitor->m_imageDescription, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
+    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, m_renderData.pMonitor->m_sdrMinLuminance,
+                   m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
 WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
@@ -1295,14 +1300,14 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
 }
 
 WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, eTextureType texType, const CBox& newBox) {
-    static const auto PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
-    static auto       PBLEND    = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
+    static const auto  PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
+    static const auto  PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static auto        PBLEND    = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
 
-    float             alpha = std::clamp(data.a, 0.f, 1.f);
+    float              alpha = std::clamp(data.a, 0.f, 1.f);
 
-    WP<CShader>       shader;
-    uint8_t           shaderFeatures = 0;
+    WP<CShader>        shader;
+    ShaderFeatureFlags shaderFeatures = 0;
 
     switch (texType) {
         case TEXTURE_RGBA: shaderFeatures |= SH_FEAT_RGBA; break;
@@ -1320,11 +1325,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
     const bool isHDRSurface      = surface.valid() && surface->m_colorManagement.valid() ? surface->m_colorManagement->isHDR() : false;
     const bool canPassHDRSurface = isHDRSurface && !surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
 
-    const bool IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
-    const auto sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
-    const auto CHOSEN_SDR_EOTF = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
-
-    const auto WORK_BUFFER_IMAGE_DESCRIPTION = CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->workBufferImageDescription();
 
     // chosenSdrEotf contains the valid eotf for this display
 
@@ -1485,7 +1486,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
     Mat3x3     matrix   = m_renderData.monitorProjection.projectBox(newBox, TRANSFORM, newBox.rot);
     Mat3x3     glMatrix = m_renderData.projection.copy().multiply(matrix);
 
-    const bool renderToOutput = m_applyFinalShader;
+    const bool renderToOutput = m_applyFinalShader && g_pHyprRenderer->workBufferImageDescription()->id() == m_renderData.pMonitor->m_imageDescription->id();
 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
@@ -1712,8 +1713,7 @@ CFramebuffer* CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* origi
         WP<CShader> shader;
 
         // From FB to sRGB
-        const bool IS_ICC = m_renderData.pMonitor->m_imageDescription->value().icc.present;
-        const bool skipCM = !m_cmSupported || m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id() || IS_ICC;
+        const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
             passCMUniforms(shader, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
@@ -2204,10 +2204,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     WP<CShader> shader;
 
-    const bool  IS_ICC = m_renderData.pMonitor->m_imageDescription->value().icc.present;
-    const bool  skipCM = !m_cmSupported || (m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id() && !IS_ICC);
+    const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
@@ -2290,10 +2289,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(true);
 
     WP<CShader> shader;
-    const bool  IS_ICC = m_renderData.pMonitor->m_imageDescription->value().icc.present;
-    const bool  skipCM = !m_cmSupported || (m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id() && !IS_ICC);
+    const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
@@ -2369,9 +2367,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    const bool IS_ICC = m_renderData.pMonitor->m_imageDescription->value().icc.present;
-    const bool skipCM = !m_cmSupported || (m_renderData.pMonitor->m_imageDescription->id() == DEFAULT_IMAGE_DESCRIPTION->id() && !IS_ICC);
-    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
     if (!skipCM)
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
 

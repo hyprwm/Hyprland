@@ -13,6 +13,7 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "helpers/cm/ColorManagement.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -122,6 +123,9 @@ class CHyprRenderer {
     void                            renderSnapshot(PHLWINDOW);
     void                            renderSnapshot(PHLLS);
     void                            renderSnapshot(WP<Desktop::View::CPopup>);
+
+    //
+    NColorManagement::PImageDescription workBufferImageDescription();
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.

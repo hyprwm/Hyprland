@@ -50,6 +50,7 @@ namespace Layout::Tiled {
 
         bool                    toggleSplit(SP<SDwindleNodeData>);
         bool                    swapSplit(SP<SDwindleNodeData>);
+        void                    rotateSplit(SP<SDwindleNodeData>, int angle = 90);
         bool                    moveToRoot(SP<SDwindleNodeData>, bool stable = true);
 
         Math::eDirection        m_overrideDirection = Math::DIRECTION_DEFAULT;

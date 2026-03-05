@@ -2499,6 +2499,7 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
 
     renderTexture(m_renderData.currentFB->getTexture(), box,
                   STextureRenderData{
+                      .damage        = &m_renderData.finalDamage,
                       .a             = 1.F,
                       .round         = 0,
                       .discardActive = false,

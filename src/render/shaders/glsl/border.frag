@@ -38,6 +38,10 @@ void main() {
 #if USE_CM
                           ,
                           sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#if USE_ICC
+                          ,
+                          iccLut3D, iccLutSize
+#else
 #if USE_TONEMAP || USE_SDR_MOD
                           ,
                           targetPrimariesXYZ
@@ -49,6 +53,7 @@ void main() {
 #if USE_SDR_MOD
                           ,
                           sdrSaturation, sdrBrightnessMultiplier
+#endif
 #endif
 #endif
     );

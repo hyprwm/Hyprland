@@ -613,6 +613,51 @@ static bool testPinnedWorkspacesValid() {
     return true;
 }
 
+static bool testWindowRuleWorkspaceEmpty() {
+    NLog::log("{}Testing windowrule workspace empty", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule match:class kitty_A, workspace empty"));
+    OK(getFromSocket("/keyword windowrule match:class kitty_B, workspace emptyn"));
+
+    getFromSocket("/dispatch workspace 3");
+
+    if (!spawnKitty("kitty")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 3"), true);
+    }
+
+    if (!spawnKitty("kitty_A")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1"), true);
+    }
+
+    getFromSocket("/dispatch workspace 3");
+    if (!spawnKitty("kitty_B")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 4"), true);
+    }
+
+    Tests::killAllWindows();
+
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -1076,6 +1121,7 @@ static bool test() {
     testInitialFloatSize();
     testWindowRuleFocusOnActivate();
     testPinnedWorkspacesValid();
+    testWindowRuleWorkspaceEmpty();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

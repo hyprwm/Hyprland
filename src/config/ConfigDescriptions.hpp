@@ -2093,6 +2093,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "right,left,down,up"},
     },
+    SConfigOptionDescription{
+        .value       = "scrolling:wrap_focus",
+        .description = "Determines if column focus wraps around when going before the first column or past the last column",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:wrap_swapcol",
+        .description = "Determines if column movement wraps around when moving to before the first column or past the last column",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
+    },
 
     /*
      * Quirks

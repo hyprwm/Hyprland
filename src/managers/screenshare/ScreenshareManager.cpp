@@ -157,10 +157,10 @@ void CScreenshareManager::destroyClientSessions(wl_client* client) {
 }
 
 bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
-    return std::ranges::any_of(m_pendingFrames, [monitor](const auto& f) {
-        if (!f || !f->m_session)
+    return std::ranges::any_of(m_sessions, [monitor](const auto& s) {
+        if (!s)
             return false;
-        return (f->m_session->m_type == SHARE_MONITOR || f->m_session->m_type == SHARE_REGION) && f->m_session->m_monitor == monitor;
+        return (s->m_type == SHARE_MONITOR || s->m_type == SHARE_REGION) && s->m_monitor == monitor;
     });
 }
 

@@ -1871,11 +1871,12 @@ void CWindow::mapWindow() {
         if (WORKSPACEARGS.contains("silent"))
             workspaceSilent = true;
 
-        if (WORKSPACEARGS.contains("empty") && PWORKSPACE->getWindows() <= 1) {
+        auto joined = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
+        if (joined.starts_with("empty") && PWORKSPACE->getWindows() == 0) {
             requestedWorkspaceID   = PWORKSPACE->m_id;
             requestedWorkspaceName = PWORKSPACE->m_name;
         } else {
-            auto result            = getWorkspaceIDNameFromString(WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0));
+            auto result            = getWorkspaceIDNameFromString(joined);
             requestedWorkspaceID   = result.id;
             requestedWorkspaceName = result.name;
         }

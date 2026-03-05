@@ -39,7 +39,8 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion,
 
 CScreenshareSession::~CScreenshareSession() {
     stop();
-    LOGM(Log::TRACE, "Destroyed screenshare session for ({}): {}", m_type, m_name);
+    uintptr_t ptr = m_type == SHARE_WINDOW && !m_window.expired() ? (uintptr_t)m_window.get() : (m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get());
+    LOGM(Log::TRACE, "Destroyed screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);
 }
 
 void CScreenshareSession::stop() {
@@ -52,6 +53,9 @@ void CScreenshareSession::stop() {
 }
 
 void CScreenshareSession::init() {
+    uintptr_t ptr = m_type == SHARE_WINDOW && !m_window.expired() ? (uintptr_t)m_window.get() : (m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get());
+    LOGM(Log::TRACE, "Created screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);
+
     m_shareStopTimer = makeShared<CEventLoopTimer>(
         std::chrono::milliseconds(500),
         [this](SP<CEventLoopTimer> self, void* data) {
@@ -121,7 +125,7 @@ void CScreenshareSession::screenshareEvents(bool startSharing) {
         m_sharing = true;
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("1,{}", m_type)});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencastv2", .data = std::format("1,{},{}", m_type, m_name)});
-        LOGM(Log::INFO, "New screenshare session for ({}): {}", m_type, m_name);
+        LOGM(Log::INFO, "Started screenshare session for ({}): {}", m_type, m_name);
 
         Event::bus()->m_events.screenshare.state.emit(true, m_type, m_name);
     } else if (!startSharing && m_sharing) {

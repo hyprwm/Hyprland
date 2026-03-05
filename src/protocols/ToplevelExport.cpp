@@ -13,10 +13,7 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) {
-        Screenshare::mgr()->destroyClientSessions(m_savedClient);
-        PROTO::toplevelExport->destroyResource(this);
-    });
+    m_resource->setOnDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setDestroy([this](CHyprlandToplevelExportManagerV1* pMgr) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCaptureToplevel([this](CHyprlandToplevelExportManagerV1* pMgr, uint32_t frame, int32_t overlayCursor, uint32_t handle) {
         captureToplevel(frame, overlayCursor, g_pCompositor->getWindowFromHandle(handle));
@@ -26,10 +23,6 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
     });
 
     m_savedClient = m_resource->client();
-}
-
-CToplevelExportClient::~CToplevelExportClient() {
-    Screenshare::mgr()->destroyClientSessions(m_savedClient);
 }
 
 void CToplevelExportClient::captureToplevel(uint32_t frame, int32_t overlayCursor_, PHLWINDOW handle) {
@@ -63,11 +56,6 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     m_resource->setDestroy([this](CHyprlandToplevelExportFrameV1* pFrame) { PROTO::toplevelExport->destroyResource(this); });
     m_resource->setCopy([this](CHyprlandToplevelExportFrameV1* pFrame, wl_resource* res, int32_t ignoreDamage) { shareFrame(res, !!ignoreDamage); });
 
-    m_listeners.stopped = m_session->m_events.stopped.listen([this]() {
-        if (good())
-            m_resource->sendFailed();
-    });
-
     m_frame = m_session->nextFrame(overlayCursor);
 
     auto formats = m_session->allowedFormats();
@@ -97,6 +85,12 @@ bool CToplevelExportFrame::good() {
 void CToplevelExportFrame::shareFrame(wl_resource* buffer, bool ignoreDamage) {
     if UNLIKELY (!good()) {
         LOGM(Log::ERR, "No frame in shareFrame??");
+        return;
+    }
+
+    if UNLIKELY (m_session.expired() || !m_session->monitor()) {
+        LOGM(Log::ERR, "Session stopped for frame {:x}", (uintptr_t)this);
+        m_resource->sendFailed();
         return;
     }
 

@@ -19,7 +19,6 @@ namespace Screenshare {
 class CScreencopyClient {
   public:
     CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_);
-    ~CScreencopyClient();
 
     bool good();
 
@@ -52,10 +51,7 @@ class CScreencopyFrame {
     Time::steady_tp                      m_timestamp;
     bool                                 m_overlayCursor = true;
 
-    struct {
-        CHyprSignalListener stopped;
-    } m_listeners;
-
+    //
     void shareFrame(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer, bool withDamage);
 
     friend class CScreencopyProtocol;

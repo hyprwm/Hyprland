@@ -666,6 +666,19 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
             if (!swapSplit(CURRENT_NODE))
                 return std::unexpected("can't swapsplit in the current workspace");
         }
+    } else if (ARGS[0] == "rotatesplit") {
+        if (CURRENT_NODE) {
+            int angle = 90;
+            if (!ARGS[1].empty()) {
+                try {
+                    angle = std::stoi(std::string{ARGS[1]});
+                } catch (const std::exception& e) {
+                    Log::logger->log(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
+                    return std::unexpected("Invalid angle argument");
+                }
+            }
+            rotateSplit(CURRENT_NODE, angle);
+        }
     } else if (ARGS[0] == "movetoroot") {
         auto node = CURRENT_NODE;
         if (!ARGS[1].empty()) {
@@ -758,6 +771,43 @@ bool CDwindleAlgorithm::swapSplit(SP<SDwindleNodeData> x) {
     x->pParent->recalcSizePosRecursive();
 
     return true;
+}
+
+void CDwindleAlgorithm::rotateSplit(SP<SDwindleNodeData> x, int angle) {
+    if (!x || !x->pParent)
+        return;
+
+    if (x->pTarget->fullscreenMode() != FSMODE_NONE)
+        return;
+
+    // normalize the angle to multiples of 90 degrees
+    int  normalizedAngle = ((sc<int>(angle / 90) % 4) + 4) % 4; // ensures positive modulo
+
+    auto pParent = x->pParent;
+
+    bool shouldSwap = false;
+
+    switch (normalizedAngle) {
+        case 0: // 0 degrees - no change
+            break;
+        case 1:
+            if (pParent->splitTop)
+                shouldSwap = true;
+            pParent->splitTop = !pParent->splitTop;
+            break;
+        case 2: shouldSwap = true; break;
+        case 3:
+            if (!pParent->splitTop)
+                shouldSwap = true;
+            pParent->splitTop = !pParent->splitTop;
+            break;
+        default: break; // should never happen
+    }
+
+    if (shouldSwap)
+        std::swap(pParent->children[0], pParent->children[1]);
+
+    pParent->recalcSizePosRecursive();
 }
 
 bool CDwindleAlgorithm::moveToRoot(SP<SDwindleNodeData> x, bool stable) {

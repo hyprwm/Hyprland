@@ -752,7 +752,7 @@ void CHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
     if (!element)
         return;
 
-    switch (element->kind()) {
+    switch (element->type()) {
         case EK_BORDER: draw(dc<CBorderPassElement*>(element.get()), damage); break;
         case EK_CLEAR: draw(dc<CClearPassElement*>(element.get()), damage); break;
         case EK_FRAMEBUFFER: draw(dc<CFramebufferElement*>(element.get()), damage); break;

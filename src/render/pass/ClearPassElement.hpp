@@ -19,7 +19,7 @@ class CClearPassElement : public IPassElement {
         return "CClearPassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_CLEAR;
     };
 

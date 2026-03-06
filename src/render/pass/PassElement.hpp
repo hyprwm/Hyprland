@@ -2,7 +2,7 @@
 
 #include "../../defines.hpp"
 
-enum ePassElementKind : uint8_t {
+enum ePassElementType : uint8_t {
     EK_UNKNOWN = 0,
     EK_BORDER,
     EK_CLEAR,
@@ -23,7 +23,7 @@ class IPassElement {
     virtual bool                needsLiveBlur()       = 0;
     virtual bool                needsPrecomputeBlur() = 0;
     virtual const char*         passName()            = 0;
-    virtual ePassElementKind    kind()                = 0;
+    virtual ePassElementType    type()                = 0;
     virtual void                discard();
     virtual bool                undiscardable();
     virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates

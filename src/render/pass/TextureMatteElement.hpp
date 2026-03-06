@@ -23,7 +23,7 @@ class CTextureMatteElement : public IPassElement {
         return "CTextureMatteElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_TEXTURE_MATTE;
     };
 

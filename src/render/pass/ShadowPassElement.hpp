@@ -20,7 +20,7 @@ class CShadowPassElement : public IPassElement {
         return "CShadowPassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_SHADOW;
     };
 

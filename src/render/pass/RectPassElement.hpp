@@ -26,7 +26,7 @@ class CRectPassElement : public IPassElement {
         return "CRectPassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_RECT;
     };
 

@@ -15,7 +15,7 @@ class CPreBlurElement : public IPassElement {
         return "CPreBlurElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_PRE_BLUR;
     };
 };

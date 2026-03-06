@@ -63,7 +63,7 @@ class CSurfacePassElement : public IPassElement {
         return "CSurfacePassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_SURFACE;
     };
 

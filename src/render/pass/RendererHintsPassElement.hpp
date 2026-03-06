@@ -20,7 +20,7 @@ class CRendererHintsPassElement : public IPassElement {
         return "CRendererHintsPassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_HINTS;
     };
 

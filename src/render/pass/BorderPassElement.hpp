@@ -25,7 +25,7 @@ class CBorderPassElement : public IPassElement {
         return "CBorderPassElement";
     }
 
-    virtual ePassElementKind kind() {
+    virtual ePassElementType type() {
         return EK_BORDER;
     };
 

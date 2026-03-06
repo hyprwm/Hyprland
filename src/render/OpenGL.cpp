@@ -1404,7 +1404,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
     shader = useShader(shader);
 
     if (!skipCM) {
-        if (data.finalMonitorCM)
+        if (data.finalMonitorCM || data.cmBackToSRGB)
             passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, m_renderData.pMonitor->m_sdrMinLuminance, m_renderData.pMonitor->m_sdrMaxLuminance);
         else
             passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION);

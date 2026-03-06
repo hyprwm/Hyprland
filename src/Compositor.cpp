@@ -2113,13 +2113,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     state.internal = std::clamp(state.internal, sc<eFullscreenMode>(0), FSMODE_MAX);
     state.client   = std::clamp(state.client, sc<eFullscreenMode>(0), FSMODE_MAX);
 
-    const auto            PMONITOR   = PWINDOW->m_monitor.lock();
-    const auto            PWORKSPACE = PWINDOW->m_workspace;
+    const auto PMONITOR   = PWINDOW->m_monitor.lock();
+    const auto PWORKSPACE = PWINDOW->m_workspace;
 
-    const eFullscreenMode CURRENT_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
-    const eFullscreenMode EFFECTIVE_MODE         = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
-
-    if (PWINDOW->m_isFloating && CURRENT_EFFECTIVE_MODE == FSMODE_NONE && EFFECTIVE_MODE != FSMODE_NONE)
+    if (PWINDOW->m_isFloating && PWINDOW->m_fullscreenState.internal == FSMODE_NONE && state.internal != FSMODE_NONE)
         g_pHyprRenderer->damageWindow(PWINDOW);
 
     if (*PALLOWPINFULLSCREEN && !PWINDOW->m_pinFullscreened && !PWINDOW->isFullscreen() && PWINDOW->m_pinned) {
@@ -2130,7 +2127,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     if (PWORKSPACE->m_hasFullscreenWindow && !PWINDOW->isFullscreen())
         setWindowFullscreenInternal(PWORKSPACE->getFullscreenWindow(), FSMODE_NONE);
 
-    const bool CHANGEINTERNAL = !PWINDOW->m_pinned && CURRENT_EFFECTIVE_MODE != EFFECTIVE_MODE;
+    const bool CHANGEINTERNAL = !PWINDOW->m_pinned && PWINDOW->m_fullscreenState.internal != state.internal;
 
     if (*PALLOWPINFULLSCREEN && PWINDOW->m_pinFullscreened && PWINDOW->isFullscreen() && !PWINDOW->m_pinned && state.internal == FSMODE_NONE) {
         PWINDOW->m_pinned          = true;
@@ -2152,14 +2149,23 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         return;
     }
 
-    PWORKSPACE->m_fullscreenMode      = EFFECTIVE_MODE;
-    PWORKSPACE->m_hasFullscreenWindow = EFFECTIVE_MODE != FSMODE_NONE;
+    // "Effective mode" is the fullscreen mode according to which a window is rendered.
+    // For fullscreen modes `FSMODE_NONE` (0), `FSMODE_MAXIMIZED` (1), and `FSMODE_FULLSCREEN` (2),
+    // the effective mode is the same as the fullscreen mode;
+    // for fullscreen mode `FSMODE_MAXIMIZED|FSMODE_FULLSCREEN` (a window is maximized then fullscreened),
+    // the effective mode is `FSMODE_FULLSCREEN` (2), since the window is rendered as a fullscreen window.
+    // But when the latter window exists fullscreen, it will return to `FSMODE_MAXIMIZED`, rather than `FSMODE_NONE`.
+    const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
+    const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
 
-    g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), CURRENT_EFFECTIVE_MODE, EFFECTIVE_MODE);
+    PWORKSPACE->m_fullscreenMode      = NEW_EFFECTIVE_MODE;
+    PWORKSPACE->m_hasFullscreenWindow = NEW_EFFECTIVE_MODE != FSMODE_NONE;
+
+    g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
 
     PWINDOW->m_fullscreenState.internal = state.internal;
 
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(EFFECTIVE_MODE) != FSMODE_NONE)});
+    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
 
     PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
@@ -2196,7 +2202,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME)) {
         auto surf = PWINDOW->getSolitaryResource();
         if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
     }
 
     g_pConfigManager->ensureVRR(PMONITOR);

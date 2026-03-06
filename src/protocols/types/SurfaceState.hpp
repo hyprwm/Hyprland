@@ -6,7 +6,7 @@
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
 
-class CTexture;
+class ITexture;
 class CDRMSyncPointState;
 class CWLCallbackResource;
 
@@ -88,8 +88,8 @@ struct SSurfaceState {
     eLockReason        lockMask = LOCK_REASON_NONE;
 
     // texture of surface content, used for rendering
-    SP<CTexture> texture;
-    void         updateSynchronousTexture(SP<CTexture> lastTexture);
+    SP<ITexture> texture;
+    void         updateSynchronousTexture(SP<ITexture> lastTexture);
 
     // fifo
     bool barrierSet    = false;

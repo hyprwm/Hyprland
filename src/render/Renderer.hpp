@@ -13,7 +13,8 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
-#include "helpers/cm/ColorManagement.hpp"
+#include "render/Framebuffer.hpp"
+#include "render/Texture.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -108,8 +109,8 @@ class CHyprRenderer {
     void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
     void                            setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
-    void                            onRenderbufferDestroy(CRenderbuffer* rb);
-    SP<CRenderbuffer>               getCurrentRBO();
+    void                            onRenderbufferDestroy(CGLRenderbuffer* rb);
+    SP<IRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
     bool                            isIntel();
     bool                            isSoftware();
@@ -129,7 +130,7 @@ class CHyprRenderer {
 
     // if RENDER_MODE_NORMAL, provided damage will be written to.
     // otherwise, it will be the one used.
-    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, CFramebuffer* fb = nullptr, bool simple = false);
+    bool beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode = RENDER_MODE_NORMAL, SP<IHLBuffer> buffer = {}, SP<IFramebuffer> fb = nullptr, bool simple = false);
     void endRender(const std::function<void()>& renderingDoneCallback = {});
 
     bool m_bBlockSurfaceFeedback = false;
@@ -157,11 +158,21 @@ class CHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass m_renderPass = {};
+    CRenderPass      m_renderPass = {};
 
-    SCMSettings getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                              SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    bool        reloadShaders(const std::string& path = "");
+    SP<ITexture>     createStencilTexture(const int width, const int height);
+    SP<ITexture>     createTexture(bool opaque = false);
+    SP<ITexture>     createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+    SP<ITexture>     createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false);
+    SP<ITexture>     createTexture(const int width, const int height, unsigned char* const);
+    SP<ITexture>     createTexture(cairo_surface_t* cairo);
+    SP<ITexture>     createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    SP<ITexture>     createTexture(std::span<const float> lut3D, size_t N);
+    SP<IFramebuffer> createFB(const std::string& name = "");
+
+    SCMSettings      getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                   SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+    bool             reloadShaders(const std::string& path = "");
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
@@ -188,7 +199,7 @@ class CHyprRenderer {
     bool m_cursorHidden                           = false;
     bool m_cursorHiddenByCondition                = false;
     bool m_cursorHasSurface                       = false;
-    SP<CRenderbuffer>       m_currentRenderbuffer = nullptr;
+    SP<IRenderbuffer>       m_currentRenderbuffer = nullptr;
     SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
     eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
     bool                    m_nvidia              = false;
@@ -203,8 +214,8 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_cursorHiddenConditions;
 
-    SP<CRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
-    std::vector<SP<CRenderbuffer>> m_renderbuffers;
+    SP<IRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
+    std::vector<SP<IRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 

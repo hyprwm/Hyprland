@@ -2200,9 +2200,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
 
     WP<CShader> shader;
 
+    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
@@ -2285,9 +2286,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(true);
 
     WP<CShader> shader;
+    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
@@ -2363,8 +2365,9 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
+    const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD));
+    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
     if (!skipCM)
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
 

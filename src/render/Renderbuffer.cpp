@@ -41,6 +41,7 @@ CRenderbuffer::CRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : 
     glGenFramebuffers(1, &m_framebuffer.m_fb);
     m_framebuffer.m_fbAllocated = true;
     m_framebuffer.m_size        = buffer->size;
+    m_framebuffer.m_drmFormat   = dma.format;
     m_framebuffer.bind();
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_rbo);
 

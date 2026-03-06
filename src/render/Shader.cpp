@@ -139,11 +139,13 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_SDR_SATURATION]       = getUniform("sdrSaturation");
     m_uniformLocations[SHADER_SDR_BRIGHTNESS]       = getUniform("sdrBrightnessMultiplier");
     m_uniformLocations[SHADER_CONVERT_MATRIX]       = getUniform("convertMatrix");
-    m_uniformLocations[SHADER_USE_ICC]              = getUniform("useIcc");
     m_uniformLocations[SHADER_LUT_3D]               = getUniform("iccLut3D");
     m_uniformLocations[SHADER_LUT_SIZE]             = getUniform("iccLutSize");
     //
     m_uniformLocations[SHADER_TEX]                 = getUniform("tex");
+    m_uniformLocations[SHADER_BLURRED_BG]          = getUniform("blurredBG");
+    m_uniformLocations[SHADER_UV_SIZE]             = getUniform("uvSize");
+    m_uniformLocations[SHADER_UV_OFFSET]           = getUniform("uvOffset");
     m_uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
     m_uniformLocations[SHADER_POS_ATTRIB]          = getAttrib("pos");
     m_uniformLocations[SHADER_TEX_ATTRIB]          = getAttrib("texcoord");

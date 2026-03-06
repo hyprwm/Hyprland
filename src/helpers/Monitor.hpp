@@ -127,7 +127,7 @@ class CMonitor {
     bool                        m_scheduledRecalc = false;
     wl_output_transform         m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       m_xwaylandScale   = 1.f;
-    Mat3x3                      m_projMatrix;
+
     std::optional<Vector2D>     m_forceSize;
     SP<Aquamarine::SOutputMode> m_currentMode;
     SP<Aquamarine::CSwapchain>  m_cursorSwapchain;
@@ -303,7 +303,6 @@ class CMonitor {
     void        setSpecialWorkspace(const WORKSPACEID& id);
     void        moveTo(const Vector2D& pos);
     Vector2D    middle();
-    void        updateMatrix();
     WORKSPACEID activeWorkspaceID();
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
@@ -335,6 +334,10 @@ class CMonitor {
     bool        inHDR();
     bool        gammaRampsInUse();
 
+    //
+    const Mat3x3& getTransformMatrix();
+    const Mat3x3& getScaleMatrix();
+
     /// Has an active workspace with a real fullscreen window (includes special workspace)
     bool inFullscreenMode();
     /// Get fullscreen window from active or special workspace
@@ -364,7 +367,12 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
+    Mat3x3 m_projMatrix;
+
   private:
+    void                    updateMatrix();
+    Mat3x3                  m_projOutputMatrix;
+
     void                    setupDefaultWS(const SMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
     void                    commitDPMSState(bool state);

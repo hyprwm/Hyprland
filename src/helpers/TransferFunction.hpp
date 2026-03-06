@@ -15,5 +15,5 @@ namespace NTransferFunction {
     eTF         fromString(const std::string tfName);
     std::string toString(eTF tf);
 
-    eTF         fromConfig();
+    eTF         fromConfig(bool useICC = false);
 }

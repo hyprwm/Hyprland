@@ -700,10 +700,6 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFramebuffer* fb, std::optional<CRegion> finalDamage) {
     m_renderData.pMonitor = pMonitor;
 
-    //
-    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
-    //
-
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
         std::string errStr = "";
@@ -733,7 +729,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, CFrameb
     if (!m_shadersInitialized)
         initShaders();
 
-    const auto DRM_FORMAT = *PFP16 ? DRM_FORMAT_ABGR16161616F : (fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat);
+    const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
 
     // ensure a framebuffer for the monitor exists
     if (m_renderData.pCurrentMonData->offloadFB.m_size != pMonitor->m_pixelSize || DRM_FORMAT != m_renderData.pCurrentMonData->offloadFB.m_drmFormat) {

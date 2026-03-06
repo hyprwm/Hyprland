@@ -109,9 +109,6 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["togglegroup"]                    = toggleGroup;
     m_dispatchers["changegroupactive"]              = changeGroupActive;
     m_dispatchers["movegroupwindow"]                = moveGroupWindow;
-    m_dispatchers["togglesplit"]                    = toggleSplit;
-    m_dispatchers["swapsplit"]                      = swapSplit;
-    m_dispatchers["splitratio"]                     = alterSplitRatio;
     m_dispatchers["focusmonitor"]                   = focusMonitor;
     m_dispatchers["movecursortocorner"]             = moveCursorToCorner;
     m_dispatchers["movecursor"]                     = moveCursor;
@@ -1707,18 +1704,6 @@ SDispatchResult CKeybindManager::changeGroupActive(std::string args) {
         PWINDOW->m_group->moveCurrent(false);
 
     return {};
-}
-
-SDispatchResult CKeybindManager::toggleSplit(std::string args) {
-    return {.success = false, .error = "removed - use layoutmsg"};
-}
-
-SDispatchResult CKeybindManager::swapSplit(std::string args) {
-    return {.success = false, .error = "removed - use layoutmsg"};
-}
-
-SDispatchResult CKeybindManager::alterSplitRatio(std::string args) {
-    return {.success = false, .error = "removed - use layoutmsg"};
 }
 
 SDispatchResult CKeybindManager::focusMonitor(std::string arg) {

@@ -47,6 +47,7 @@
 #include "protocols/core/Compositor.hpp"
 #include "protocols/core/Subcompositor.hpp"
 #include "desktop/view/LayerSurface.hpp"
+#include "layout/space/Space.hpp"
 #include "render/Renderer.hpp"
 #include "xwayland/XWayland.hpp"
 #include "helpers/ByteOperations.hpp"
@@ -1981,6 +1982,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
     // move the workspace
     pWorkspace->m_monitor = pMonitor;
+    pWorkspace->m_space->recheckWorkArea();
     pWorkspace->m_events.monitorChanged.emit();
 
     for (auto const& w : m_windows) {

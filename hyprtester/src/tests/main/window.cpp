@@ -1086,7 +1086,7 @@ static bool test() {
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
-    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/dispatch plugin:test:add_window_rule"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/keyword windowrule match:class plugin_kitty, plugin_rule effect"));
@@ -1094,12 +1094,12 @@ static bool test() {
     if (!spawnKitty("plugin_kitty"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+    OK(getFromSocket("/dispatch plugin:test:check_window_rule"));
 
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
-    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/dispatch plugin:test:add_window_rule"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/keyword windowrule[test-plugin-rule]:match:class plugin_kitty"));
@@ -1108,7 +1108,7 @@ static bool test() {
     if (!spawnKitty("plugin_kitty"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+    OK(getFromSocket("/dispatch plugin:test:check_window_rule"));
 
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();

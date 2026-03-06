@@ -538,6 +538,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:height", Hyprlang::INT{14});
     registerConfigVar("group:groupbar:indicator_gap", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:indicator_height", Hyprlang::INT{3});
+    registerConfigVar("group:groupbar:border_size", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:priority", Hyprlang::INT{3});
     registerConfigVar("group:groupbar:render_titles", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:scrolling", Hyprlang::INT{1});
@@ -786,6 +787,10 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:groupbar:col.inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66777700"});
     registerConfigVar("group:groupbar:col.locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66ff5500"});
     registerConfigVar("group:groupbar:col.locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x66775500"});
+    registerConfigVar("group:groupbar:col.border_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x00000000"});
+    registerConfigVar("group:groupbar:col.border_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x00000000"});
+    registerConfigVar("group:groupbar:col.border_locked_active", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x00000000"});
+    registerConfigVar("group:groupbar:col.border_locked_inactive", Hyprlang::CConfigCustomValueType{&configHandleGradientSet, configHandleGradientDestroy, "0x00000000"});
 
     registerConfigVar("render:direct_scanout", Hyprlang::INT{0});
     registerConfigVar("render:expand_undersized_textures", Hyprlang::INT{1});

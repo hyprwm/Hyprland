@@ -984,6 +984,12 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{3, 1, 64},
     },
     SConfigOptionDescription{
+        .value       = "group:groupbar:border_size",
+        .description = "thickness of the groupbar border",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 64},
+    },
+    SConfigOptionDescription{
         .value       = "group:groupbar:stacked",
         .description = "render the groupbar as a vertical stack",
         .type        = CONFIG_OPTION_BOOL,
@@ -1090,6 +1096,30 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "controls the group bar text color",
         .type        = CONFIG_OPTION_COLOR,
         .data        = SConfigOptionDescription::SColorData{0x66775500},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_active",
+        .description = "border color for active tab",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0x00000000},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_inactive",
+        .description = "border color for inactive tabs",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0x00000000},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_locked_active",
+        .description = "border color for active locked tab",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0x00000000},
+    },
+    SConfigOptionDescription{
+        .value       = "group:groupbar:col.border_locked_inactive",
+        .description = "border color for inactive locked tabs",
+        .type        = CONFIG_OPTION_COLOR,
+        .data        = SConfigOptionDescription::SColorData{0x00000000},
     },
     SConfigOptionDescription{
         .value       = "group:groupbar:gaps_out",

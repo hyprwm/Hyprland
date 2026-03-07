@@ -124,7 +124,7 @@ void CMonitorFrameScheduler::onFrame() {
 }
 
 void CMonitorFrameScheduler::onFinishRender() {
-    m_sync = CEGLSync::create(); // this destroys the old sync
+    m_sync = g_pHyprRenderer->createSyncFDManager(); // this destroys the old sync
     g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
         if (!self) // might've gotten destroyed
             return;

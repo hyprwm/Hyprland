@@ -16,6 +16,7 @@
 
 #include <cairo/cairo.h>
 
+#include "render/SyncFDManager.hpp"
 #include "types.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
@@ -134,22 +135,17 @@ namespace Render::GL {
         WP<CWLSurfaceResource>   surface;
     };
 
-    class CEGLSync {
+    class CEGLSync : public ISyncFDManager {
       public:
         static UP<CEGLSync> create();
+        ~CEGLSync() override;
 
-        ~CEGLSync();
-
-        Hyprutils::OS::CFileDescriptor&  fd();
-        Hyprutils::OS::CFileDescriptor&& takeFd();
-        bool                             isValid();
+        bool isValid() override;
 
       private:
-        CEGLSync() = default;
+        CEGLSync() : ISyncFDManager() {};
 
-        Hyprutils::OS::CFileDescriptor m_fd;
-        EGLSyncKHR                     m_sync  = EGL_NO_SYNC_KHR;
-        bool                           m_valid = false;
+        EGLSyncKHR m_sync = EGL_NO_SYNC_KHR;
 
         friend class CHyprOpenGLImpl;
     };

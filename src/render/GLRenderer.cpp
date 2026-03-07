@@ -36,13 +36,7 @@ extern "C" {
 #include <xf86drm.h>
 }
 
-CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer() {
-    m_elementRenderer = makeUnique<CGLElementRenderer>();
-}
-
-CHyprGLRenderer::~CHyprGLRenderer() {
-    m_elementRenderer.reset();
-}
+CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {}
 
 void CHyprGLRenderer::initRender() {
     g_pHyprOpenGL->makeEGLCurrent();
@@ -126,7 +120,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         return;
     }
 
-    UP<CEGLSync> eglSync = CEGLSync::create();
+    auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
         for (auto const& buf : m_usedAsyncBuffers) {
             for (const auto& releaser : buf->m_syncReleasers) {
@@ -165,6 +159,10 @@ void CHyprGLRenderer::renderOffToMain(IFramebuffer* off) {
 SP<IRenderbuffer> CHyprGLRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLRenderbuffer>(buffer, fmt);
+}
+
+UP<ISyncFDManager> CHyprGLRenderer::createSyncFDManager() {
+    return CEGLSync::create();
 }
 
 SP<ITexture> CHyprGLRenderer::createStencilTexture(const int width, const int height) {

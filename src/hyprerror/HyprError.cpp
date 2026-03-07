@@ -240,7 +240,7 @@ float CHyprError::height() {
     return m_lastHeight;
 }
 
-SP<ITexture> CHyprError::texture() {
+SP<Render::ITexture> CHyprError::texture() {
     if (!m_texture)
         m_texture = g_pHyprRenderer->createTexture();
     return m_texture;

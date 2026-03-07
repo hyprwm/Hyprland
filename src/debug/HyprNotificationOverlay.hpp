@@ -57,7 +57,7 @@ class CHyprNotificationOverlay {
     PHLMONITORREF                  m_lastMonitor;
     Vector2D                       m_lastSize = Vector2D(-1, -1);
 
-    SP<ITexture>                   m_texture;
+    SP<Render::ITexture>           m_texture;
 };
 
 inline UP<CHyprNotificationOverlay> g_pHyprNotificationOverlay;

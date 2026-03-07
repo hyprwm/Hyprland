@@ -1,5 +1,7 @@
 #include "Framebuffer.hpp"
 
+using namespace Render;
+
 IFramebuffer::IFramebuffer(const std::string& name) : m_name(name) {}
 
 bool IFramebuffer::alloc(int w, int h, uint32_t format) {

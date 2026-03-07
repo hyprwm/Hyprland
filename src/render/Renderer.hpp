@@ -33,7 +33,6 @@ class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
-class CRenderPass;
 class CToplevelExportProtocolManager;
 class CInputManager;
 struct SSessionLockSurface;
@@ -43,6 +42,7 @@ namespace Screenshare {
 
 namespace Render {
     class IElementRenderer;
+    class CRenderPass;
 
     class IHyprRenderer {
       public:

@@ -61,24 +61,24 @@ namespace Screenshare {
         CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client);
         CScreenshareSession(PHLWINDOW window, wl_client* client);
 
-        WP<CScreenshareSession> m_self;
-        bool                    m_stopped = false;
+        WP<CScreenshareSession>  m_self;
+        bool                     m_stopped = false;
 
-        eScreenshareType        m_type = SHARE_NONE;
-        PHLMONITORREF           m_monitor;
-        PHLWINDOWREF            m_window;
-        CBox                    m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
+        eScreenshareType         m_type = SHARE_NONE;
+        PHLMONITORREF            m_monitor;
+        PHLWINDOWREF             m_window;
+        CBox                     m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
 
-        wl_client*              m_client = nullptr;
-        std::string             m_name   = "";
+        wl_client*               m_client = nullptr;
+        std::string              m_name   = "";
 
-        std::vector<DRMFormat>  m_formats;
-        Vector2D                m_bufferSize = Vector2D(0, 0);
+        std::vector<DRMFormat>   m_formats;
+        Vector2D                 m_bufferSize = Vector2D(0, 0);
 
-        SP<IFramebuffer>        m_tempFB;
+        SP<Render::IFramebuffer> m_tempFB;
 
-        SP<CEventLoopTimer>     m_shareStopTimer;
-        bool                    m_sharing = false;
+        SP<CEventLoopTimer>      m_shareStopTimer;
+        bool                     m_sharing = false;
 
         struct {
             CHyprSignalListener monitorDestroyed;

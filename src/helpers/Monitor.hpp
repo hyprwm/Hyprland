@@ -164,8 +164,8 @@ class CMonitor {
 
     SMonitorRule                m_activeMonitorRule;
 
-    SP<ITexture>                m_splash;
-    SP<ITexture>                m_background;
+    SP<Render::ITexture>        m_splash;
+    SP<Render::ITexture>        m_background;
 
     // explicit sync
     Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor
@@ -177,15 +177,15 @@ class CMonitor {
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
-    SP<IFramebuffer>           m_monitorMirrorFB;
+    SP<Render::IFramebuffer>   m_monitorMirrorFB;
 
     // rendering fb
-    SP<IFramebuffer> m_offloadFB;
-    SP<IFramebuffer> m_mirrorFB;     // these are used for some effects,
-    SP<IFramebuffer> m_mirrorSwapFB; // etc
-    SP<IFramebuffer> m_offMainFB;
-    SP<IFramebuffer> m_blurFB;
-    SP<ITexture>     m_stencilTex;
+    SP<Render::IFramebuffer> m_offloadFB;
+    SP<Render::IFramebuffer> m_mirrorFB;     // these are used for some effects,
+    SP<Render::IFramebuffer> m_mirrorSwapFB; // etc
+    SP<Render::IFramebuffer> m_offMainFB;
+    SP<Render::IFramebuffer> m_blurFB;
+    SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
 
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();

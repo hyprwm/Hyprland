@@ -38,7 +38,8 @@ void CWindowGroupTarget::updatePos() {
 void CWindowGroupTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
     ITarget::assignToSpace(space, focalPoint);
 
-    m_group->updateWorkspace(space->workspace());
+    if (space)
+        m_group->updateWorkspace(space->workspace());
 }
 
 bool CWindowGroupTarget::floating() {

@@ -204,7 +204,7 @@ void CHyprError::draw() {
         }
     }
 
-    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR = g_pHyprRenderer->m_renderData.pMonitor;
 
     CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 

@@ -3,7 +3,7 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "render/OpenGL.hpp"
+#include "render/pass/TexPassElement.hpp"
 
 using namespace Screenshare;
 
@@ -115,7 +115,7 @@ void CCursorshareSession::render() {
     const auto& cursorImage = g_pPointerManager->currentCursorImage();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprOpenGL->m_renderData.transformDamage = false;
+    g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     bool overlaps = g_pPointerManager->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
@@ -131,7 +131,7 @@ void CCursorshareSession::render() {
         g_pHyprOpenGL->renderTexture(cursorImage.bufferTex, texbox, {});
     }
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 }
 
 bool CCursorshareSession::copy() {
@@ -182,7 +182,7 @@ bool CCursorshareSession::copy() {
 
         g_pHyprRenderer->endRender();
 
-        g_pHyprOpenGL->m_renderData.pMonitor = m_pendingFrame.monitor;
+        g_pHyprRenderer->m_renderData.pMonitor = m_pendingFrame.monitor;
         outFB->bind();
         glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
 
@@ -210,7 +210,7 @@ bool CCursorshareSession::copy() {
 
         glReadPixels(0, 0, m_bufferSize.x, m_bufferSize.y, glFormat, PFORMAT->glType, bufData);
 
-        g_pHyprOpenGL->m_renderData.pMonitor.reset();
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
 
         m_pendingFrame.buffer->endDataPtr();
         GLFB(outFB)->unbind();

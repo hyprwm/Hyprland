@@ -162,9 +162,9 @@ void CScreenshareFrame::renderMonitor() {
 
     auto       TEXTURE = g_pHyprRenderer->createTexture(PMONITOR->m_output->state->state().buffer);
 
-    const bool IS_CM_AWARE                      = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    g_pHyprOpenGL->m_renderData.transformDamage = false;
-    g_pHyprOpenGL->m_renderData.noSimplify      = true;
+    const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->m_renderData.noSimplify      = true;
 
     // render monitor texture
     CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
@@ -278,9 +278,9 @@ void CScreenshareFrame::renderWindow() {
     const auto NOW = Time::steadyNow();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprOpenGL->m_renderData.monitorProjection = Mat3x3::identity();
-    g_pHyprOpenGL->m_renderData.projection        = Mat3x3::outputProjection(m_bufferSize, HYPRUTILS_TRANSFORM_NORMAL);
-    g_pHyprOpenGL->m_renderData.transformDamage   = false;
+    g_pHyprRenderer->m_renderData.monitorProjection = Mat3x3::identity();
+    g_pHyprRenderer->m_renderData.projection        = Mat3x3::outputProjection(m_bufferSize, HYPRUTILS_TRANSFORM_NORMAL);
+    g_pHyprRenderer->m_renderData.transformDamage   = false;
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
@@ -353,7 +353,7 @@ bool CScreenshareFrame::copyDmabuf() {
 
     render();
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([self = m_self]() {
         if (!self || self.expired() || self->m_copied)
@@ -394,11 +394,11 @@ bool CScreenshareFrame::copyShm() {
 
     render();
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender();
 
-    g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
+    g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
     outFB->bind();
     glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
 
@@ -446,7 +446,7 @@ bool CScreenshareFrame::copyShm() {
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");

@@ -566,14 +566,14 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pWindow = pWindow;
 
     // for plugins
-    g_pHyprOpenGL->m_renderData.currentWindow = pWindow;
+    m_renderData.currentWindow = pWindow;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOW);
 
     const auto fullAlpha = renderdata.alpha * renderdata.fadeAlpha;
 
     if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && mode != RENDER_PASS_POPUP) {
-        CBox                        monbox = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
+        CBox                        monbox = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
         CRectPassElement::SRectData data;
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
         data.box   = monbox;
@@ -667,7 +667,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            IFramebuffer* last = g_pHyprOpenGL->m_renderData.currentFB.get();
+            IFramebuffer* last = m_renderData.currentFB.get();
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
@@ -677,7 +677,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
     }
 
-    g_pHyprOpenGL->m_renderData.clipBox = CBox();
+    m_renderData.clipBox = CBox();
 
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_POPUP) {
         if (!pWindow->m_isX11) {
@@ -754,7 +754,7 @@ void CHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     Event::bus()->m_events.render.stage.emit(RENDER_POST_WINDOW);
 
-    g_pHyprOpenGL->m_renderData.currentWindow.reset();
+    m_renderData.currentWindow.reset();
 }
 
 void CHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
@@ -799,9 +799,9 @@ void CHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
 
     if (m_data.main) {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_MAIN: fb = g_pHyprOpenGL->m_renderData.mainFB; break;
-            case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprOpenGL->m_renderData.currentFB; break;
-            case FB_MONITOR_RENDER_OUT: fb = g_pHyprOpenGL->m_renderData.outFB; break;
+            case FB_MONITOR_RENDER_MAIN: fb = m_renderData.mainFB; break;
+            case FB_MONITOR_RENDER_CURRENT: fb = m_renderData.currentFB; break;
+            case FB_MONITOR_RENDER_OUT: fb = m_renderData.outFB; break;
         }
 
         if (!fb) {
@@ -811,12 +811,12 @@ void CHyprRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
 
     } else {
         switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = m_renderData.pMonitor->m_offloadFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = m_renderData.pMonitor->m_mirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = m_renderData.pMonitor->m_mirrorSwapFB; break;
+            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = m_renderData.pMonitor->m_offMainFB; break;
+            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = m_renderData.pMonitor->m_monitorMirrorFB; break;
+            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = m_renderData.pMonitor->m_blurFB; break;
         }
 
         if (!fb) {
@@ -838,7 +838,7 @@ void CHyprRenderer::draw(CRectPassElement* element, const CRegion& damage) {
         return;
 
     if (!m_data.clipBox.empty())
-        g_pHyprOpenGL->m_renderData.clipBox = m_data.clipBox;
+        m_renderData.clipBox = m_data.clipBox;
 
     if (m_data.color.a == 1.F || !m_data.blur)
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
@@ -846,45 +846,45 @@ void CHyprRenderer::draw(CRectPassElement* element, const CRegion& damage) {
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
                                   {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
 
-    g_pHyprOpenGL->m_renderData.clipBox = {};
+    m_renderData.clipBox = {};
 };
 
 void CHyprRenderer::draw(CRendererHintsPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
     if (m_data.renderModif.has_value())
-        g_pHyprOpenGL->m_renderData.renderModif = *m_data.renderModif;
+        m_renderData.renderModif = *m_data.renderModif;
 };
 
 void CHyprRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
-    m_data.deco->render(g_pHyprOpenGL->m_renderData.pMonitor.lock(), m_data.a);
+    m_data.deco->render(m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     const auto& m_data = element->m_data;
 
-    g_pHyprOpenGL->m_renderData.currentWindow      = m_data.pWindow;
-    g_pHyprOpenGL->m_renderData.surface            = m_data.surface;
-    g_pHyprOpenGL->m_renderData.currentLS          = m_data.pLS;
-    g_pHyprOpenGL->m_renderData.clipBox            = m_data.clipBox;
-    g_pHyprOpenGL->m_renderData.discardMode        = m_data.discardMode;
-    g_pHyprOpenGL->m_renderData.discardOpacity     = m_data.discardOpacity;
-    g_pHyprOpenGL->m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
+    m_renderData.currentWindow      = m_data.pWindow;
+    m_renderData.surface            = m_data.surface;
+    m_renderData.currentLS          = m_data.pLS;
+    m_renderData.clipBox            = m_data.clipBox;
+    m_renderData.discardMode        = m_data.discardMode;
+    m_renderData.discardOpacity     = m_data.discardOpacity;
+    m_renderData.useNearestNeighbor = m_data.useNearestNeighbor;
     pushMonitorTransformEnabled(m_data.flipEndFrame);
 
-    CScopeGuard x = {[]() {
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
-        g_pHyprOpenGL->m_renderData.clipBox                     = {};
-        g_pHyprOpenGL->m_renderData.clipRegion                  = {};
-        g_pHyprOpenGL->m_renderData.discardMode                 = 0;
-        g_pHyprOpenGL->m_renderData.discardOpacity              = 0;
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor          = false;
+    CScopeGuard x = {[&]() {
+        m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        m_renderData.useNearestNeighbor          = false;
+        m_renderData.clipBox                     = {};
+        m_renderData.clipRegion                  = {};
+        m_renderData.discardMode                 = 0;
+        m_renderData.discardOpacity              = 0;
+        m_renderData.useNearestNeighbor          = false;
         g_pHyprRenderer->popMonitorTransformEnabled();
-        g_pHyprOpenGL->m_renderData.currentWindow.reset();
-        g_pHyprOpenGL->m_renderData.surface.reset();
-        g_pHyprOpenGL->m_renderData.currentLS.reset();
+        m_renderData.currentWindow.reset();
+        m_renderData.surface.reset();
+        m_renderData.currentLS.reset();
     }};
 
     if (!m_data.texture)
@@ -926,8 +926,8 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
 
     calculateUVForSurface(m_data.pWindow, m_data.surface, m_data.pMonitor->m_self.lock(), m_data.mainSurface, windowBox.size(), PROJSIZEUNSCALED, MISALIGNEDFSV1);
 
-    auto cancelRender                      = false;
-    g_pHyprOpenGL->m_renderData.clipRegion = element->visibleRegion(cancelRender);
+    auto cancelRender       = false;
+    m_renderData.clipRegion = element->visibleRegion(cancelRender);
     if (cancelRender)
         return;
 
@@ -936,7 +936,7 @@ void CHyprRenderer::draw(CSurfacePassElement* element, const CRegion& damage) {
     // as long as the window is not animated. During those it'd look weird.
     // UV will fixup it as well
     if (MISALIGNEDFSV1)
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor = true;
+        m_renderData.useNearestNeighbor = true;
 
     float rounding      = m_data.rounding;
     float roundingPower = m_data.roundingPower;
@@ -1013,22 +1013,22 @@ void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     CScopeGuard x = {[&]() {
         //
         g_pHyprRenderer->popMonitorTransformEnabled();
-        g_pHyprOpenGL->m_renderData.clipBox = {};
+        m_renderData.clipBox = {};
         if (m_data.replaceProjection)
-            g_pHyprOpenGL->m_renderData.monitorProjection = g_pHyprOpenGL->m_renderData.pMonitor->m_projMatrix;
+            m_renderData.monitorProjection = m_renderData.pMonitor->m_projMatrix;
         if (m_data.ignoreAlpha.has_value())
-            g_pHyprOpenGL->m_renderData.discardMode = 0;
+            m_renderData.discardMode = 0;
     }};
 
     if (!m_data.clipBox.empty())
-        g_pHyprOpenGL->m_renderData.clipBox = m_data.clipBox;
+        m_renderData.clipBox = m_data.clipBox;
 
     if (m_data.replaceProjection)
-        g_pHyprOpenGL->m_renderData.monitorProjection = *m_data.replaceProjection;
+        m_renderData.monitorProjection = *m_data.replaceProjection;
 
     if (m_data.ignoreAlpha.has_value()) {
-        g_pHyprOpenGL->m_renderData.discardMode    = DISCARD_ALPHA;
-        g_pHyprOpenGL->m_renderData.discardOpacity = *m_data.ignoreAlpha;
+        m_renderData.discardMode    = DISCARD_ALPHA;
+        m_renderData.discardOpacity = *m_data.ignoreAlpha;
     }
 
     if (m_data.blur) {
@@ -1117,7 +1117,7 @@ void CHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
 
     if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
-        data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_transformedSize.y};
+        data.box   = {0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pLayer->m_alpha->value());
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
@@ -1539,7 +1539,7 @@ bool CHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindo
     static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
     static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
 
-    if (!g_pHyprOpenGL->m_renderData.pMonitor || !g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB || !g_pHyprOpenGL->m_renderData.pMonitor->m_blurFB->getTexture())
+    if (!m_renderData.pMonitor || !m_renderData.pMonitor->m_blurFB || !m_renderData.pMonitor->m_blurFB->getTexture())
         return false;
 
     if (pWindow && pWindow->m_ruleApplicator->xray().hasValue() && !pWindow->m_ruleApplicator->xray().valueOrDefault())
@@ -1833,13 +1833,13 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
             }
         }
 
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;
+        m_renderData.primarySurfaceUVTopLeft     = uvTL;
+        m_renderData.primarySurfaceUVBottomRight = uvBR;
 
-        if (g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+        if (m_renderData.primarySurfaceUVTopLeft == Vector2D() && m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
 
         if (!main || !pWindow)
@@ -1861,17 +1861,17 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         //     uvTL               = uvTL + TOADDTL;
         // }
 
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = uvTL;
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = uvBR;
+        m_renderData.primarySurfaceUVTopLeft     = uvTL;
+        m_renderData.primarySurfaceUVBottomRight = uvBR;
 
-        if (g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft == Vector2D() && g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
+        if (m_renderData.primarySurfaceUVTopLeft == Vector2D() && m_renderData.primarySurfaceUVBottomRight == Vector2D(1, 1)) {
             // No special UV mods needed
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-            g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+            m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
         }
     } else {
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
-        g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
+        m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
 }
 
@@ -1896,7 +1896,6 @@ SCMSettings CHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
 
-    auto&                               m_renderData = g_pHyprOpenGL->m_renderData;
     if (m_renderData.surface.valid()) {
         if (m_renderData.surface->m_colorManagement.valid()) {
             if (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && imageDescription->value().transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB)
@@ -2055,14 +2054,14 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     }
 
     if (pMonitor == g_pCompositor->getMonitorFromCursor())
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
+        m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
     else
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor = 1.f;
+        m_renderData.mouseZoomFactor = 1.f;
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
-        g_pHyprOpenGL->m_renderData.mouseZoomUseMouse  = false;
-        g_pHyprOpenGL->m_renderData.useNearestNeighbor = false;
+        m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
+        m_renderData.mouseZoomUseMouse  = false;
+        m_renderData.useNearestNeighbor = false;
     }
 
     CRegion damage, finalDamage;
@@ -2139,7 +2138,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (renderCursor) {
         TRACY_GPU_ZONE("RenderCursor");
-        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, g_pHyprOpenGL->m_renderData.damage);
+        g_pPointerManager->renderSoftwareCursorsFor(pMonitor->m_self.lock(), NOW, m_renderData.damage);
     }
 
     if (pMonitor->m_dpmsBlackOpacity->value() != 0.F) {
@@ -2156,7 +2155,7 @@ void CHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     TRACY_GPU_COLLECT;
 
-    CRegion    frameDamage{g_pHyprOpenGL->m_renderData.damage};
+    CRegion    frameDamage{m_renderData.damage};
 
     const auto TRANSFORM = Math::invertTransform(pMonitor->m_transform);
     frameDamage.transform(Math::wlTransformToHyprutils(TRANSFORM), pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y);
@@ -2928,6 +2927,10 @@ void CHyprRenderer::initiateManualCrash() {
     **PDT = 0;
 }
 
+const SRenderData& CHyprRenderer::renderData() {
+    return m_renderData;
+}
+
 SP<IRenderbuffer> CHyprRenderer::getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     auto it = std::ranges::find_if(m_renderbuffers, [&](const auto& other) { return other->m_hlBuffer == buffer; });
 
@@ -2951,7 +2954,7 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 
     m_renderMode = mode;
 
-    g_pHyprOpenGL->m_renderData.pMonitor = pMonitor; // has to be set cuz allocs
+    m_renderData.pMonitor = pMonitor; // has to be set cuz allocs
 
     if (mode == RENDER_MODE_FULL_FAKE) {
         RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
@@ -3001,10 +3004,10 @@ bool CHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 }
 
 void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
-    const auto  PMONITOR           = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR           = m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
-    g_pHyprOpenGL->m_renderData.damage = m_renderPass.render(g_pHyprOpenGL->m_renderData.damage);
+    m_renderData.damage = m_renderPass.render(m_renderData.damage);
 
     auto cleanup = CScopeGuard([this]() {
         if (m_currentRenderbuffer)
@@ -3016,9 +3019,9 @@ void CHyprRenderer::endRender(const std::function<void()>& renderingDoneCallback
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
         g_pHyprOpenGL->end();
     else {
-        g_pHyprOpenGL->m_renderData.pMonitor.reset();
-        g_pHyprOpenGL->m_renderData.mouseZoomFactor   = 1.f;
-        g_pHyprOpenGL->m_renderData.mouseZoomUseMouse = true;
+        m_renderData.pMonitor.reset();
+        m_renderData.mouseZoomFactor   = 1.f;
+        m_renderData.mouseZoomUseMouse = true;
     }
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
@@ -3274,7 +3277,7 @@ void CHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     if (*PDIMAROUND && pWindow->m_ruleApplicator->dimAround().valueOrDefault()) {
         CRectPassElement::SRectData data;
 
-        data.box   = {0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y};
+        data.box   = {0, 0, m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y};
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * pWindow->m_alpha->value());
 
         m_renderPass.add(makeUnique<CRectPassElement>(data));
@@ -3381,7 +3384,6 @@ void CHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
 }
 
 NColorManagement::PImageDescription CHyprRenderer::workBufferImageDescription() {
-    const auto& m_renderData = g_pHyprOpenGL->m_renderData;
     // TODO
     // const bool  IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
     // const auto  sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);

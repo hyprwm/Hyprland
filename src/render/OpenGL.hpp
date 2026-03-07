@@ -277,8 +277,6 @@ class CHyprOpenGLImpl {
     bool                                      m_shadersInitialized = false;
     SP<SPreparedShaders>                      m_shaders;
 
-    SCurrentRenderData                        m_renderData;
-
     Hyprutils::OS::CFileDescriptor            m_gbmFD;
     gbm_device*                               m_gbmDevice  = nullptr;
     EGLContext                                m_eglContext = nullptr;

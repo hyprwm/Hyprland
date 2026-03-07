@@ -97,7 +97,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_CONTENT:
-                if (!engine->match(w->getContentType()) && !engine->match(NContentType::toString(w->getContentType())))
+                if (!engine->match(std::format("{}", sc<size_t>(w->getContentType()))) && !engine->match(NContentType::toString(w->getContentType())))
                     return false;
                 break;
             case RULE_PROP_XDG_TAG:

@@ -658,6 +658,33 @@ static bool testWindowRuleWorkspaceEmpty() {
     return true;
 }
 
+static void testContentRules() {
+    NLog::log("{}Testing content window rules", Colors::YELLOW);
+
+    // kill me PLEASE
+
+    OK(getFromSocket("/keyword windowrule match:class kitty_bitch, content game"));
+    OK(getFromSocket("/keyword windowrule match:content game, border_size 10"));
+    OK(getFromSocket("/keyword windowrule match:content 3, opacity 0.5"));
+
+    getFromSocket("/dispatch workspace 420");
+
+    if (!spawnKitty("kitty_bitch")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return;
+    }
+
+    {
+        auto res = getFromSocket("/getprop active border_size");
+        EXPECT_CONTAINS(res, "10");
+    }
+
+    {
+        auto res = getFromSocket("/getprop active opacity");
+        EXPECT_CONTAINS(res, "0.5");
+    }
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -1122,6 +1149,7 @@ static bool test() {
     testWindowRuleFocusOnActivate();
     testPinnedWorkspacesValid();
     testWindowRuleWorkspaceEmpty();
+    testContentRules();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

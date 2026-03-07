@@ -4,6 +4,8 @@
 #include "../render/Renderer.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
+using namespace Render::GL;
+
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
 }

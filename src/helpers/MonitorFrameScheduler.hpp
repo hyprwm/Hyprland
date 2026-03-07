@@ -4,7 +4,9 @@
 
 #include <chrono>
 
-class CEGLSync;
+namespace Render::GL {
+    class CEGLSync;
+}
 
 class CMonitorFrameScheduler {
   public:
@@ -32,7 +34,7 @@ class CMonitorFrameScheduler {
 
     PHLMONITORREF              m_monitor;
 
-    UP<CEGLSync>               m_sync;
+    UP<Render::GL::CEGLSync>   m_sync;
 
     WP<CMonitorFrameScheduler> m_self;
 

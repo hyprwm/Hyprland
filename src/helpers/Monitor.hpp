@@ -31,7 +31,9 @@
 class CMonitorFrameScheduler;
 class CMonitor;
 class CSyncTimeline;
-class CEGLSync;
+namespace Render::GL {
+    class CEGLSync;
+}
 class CEventLoopTimer;
 
 class CMonitorState {

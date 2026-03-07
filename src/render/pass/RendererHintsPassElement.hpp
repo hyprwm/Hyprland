@@ -1,12 +1,11 @@
 #pragma once
 #include "PassElement.hpp"
-#include <optional>
-#include "../OpenGL.hpp"
+#include "../types.hpp"
 
 class CRendererHintsPassElement : public IPassElement {
   public:
     struct SData {
-        std::optional<SRenderModifData> renderModif;
+        std::optional<Render::SRenderModifData> renderModif;
     };
 
     CRendererHintsPassElement(const SData& data);

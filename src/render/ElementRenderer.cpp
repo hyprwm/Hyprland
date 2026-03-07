@@ -3,6 +3,7 @@
 #include "../layout/LayoutManager.hpp"
 #include "../desktop/view/Window.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Render;

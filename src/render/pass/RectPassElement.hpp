@@ -12,6 +12,12 @@ class CRectPassElement : public IPassElement {
         bool       blur = false, xray = false;
         float      blurA = 1.F;
         CBox       clipBox;
+
+        // internal
+        CBox    modifiedBox;
+        float   TOPLEFT[2];
+        float   FULLSIZE[2];
+        CRegion drawRegion;
     };
 
     CRectPassElement(const SRectData& data);

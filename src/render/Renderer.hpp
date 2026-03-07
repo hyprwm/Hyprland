@@ -7,20 +7,32 @@
 #include <optional>
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
-#include "OpenGL.hpp"
+#include "./pass/Pass.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
+#include "desktop/view/Popup.hpp"
 #include "render/Framebuffer.hpp"
 #include "render/Texture.hpp"
+#include "render/pass/BorderPassElement.hpp"
+#include "render/pass/ClearPassElement.hpp"
+#include "render/pass/FramebufferElement.hpp"
+#include "render/pass/PreBlurElement.hpp"
+#include "render/pass/RectPassElement.hpp"
+#include "render/pass/RendererHintsPassElement.hpp"
+#include "render/pass/ShadowPassElement.hpp"
+#include "render/pass/SurfacePassElement.hpp"
+#include "render/pass/TexPassElement.hpp"
+#include "render/pass/TextureMatteElement.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
 class CInputPopup;
 class IHLBuffer;
 class CEventLoopTimer;
+class CRenderPass;
 
 const std::vector<const char*> ASSET_PATHS = {
 #ifdef DATAROOTDIR
@@ -174,6 +186,18 @@ class CHyprRenderer {
                                    SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
     bool             reloadShaders(const std::string& path = "");
 
+    void             draw(CBorderPassElement* element, const CRegion& damage);
+    void             draw(CClearPassElement* element, const CRegion& damage);
+    void             draw(CFramebufferElement* element, const CRegion& damage);
+    void             draw(CPreBlurElement* element, const CRegion& damage);
+    void             draw(CRectPassElement* element, const CRegion& damage);
+    void             draw(CRendererHintsPassElement* element, const CRegion& damage);
+    void             draw(CShadowPassElement* element, const CRegion& damage);
+    void             draw(CSurfacePassElement* element, const CRegion& damage);
+    void             draw(CTexPassElement* element, const CRegion& damage);
+    void             draw(CTextureMatteElement* element, const CRegion& damage);
+    void             draw(WP<IPassElement> element, const CRegion& damage);
+
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
     void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
@@ -219,6 +243,7 @@ class CHyprRenderer {
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;
 
+    friend class CRenderPass;
     friend class CHyprOpenGLImpl;
     friend class CToplevelExportFrame;
     friend class Screenshare::CScreenshareFrame;

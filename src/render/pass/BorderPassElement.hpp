@@ -18,7 +18,6 @@ class CBorderPassElement : public IPassElement {
     CBorderPassElement(const SBorderData& data_);
     virtual ~CBorderPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
 
@@ -26,6 +25,9 @@ class CBorderPassElement : public IPassElement {
         return "CBorderPassElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_BORDER;
+    };
+
     SBorderData m_data;
 };

@@ -16,7 +16,6 @@ class CTextureMatteElement : public IPassElement {
     CTextureMatteElement(const STextureMatteData& data_);
     virtual ~CTextureMatteElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
 
@@ -24,6 +23,9 @@ class CTextureMatteElement : public IPassElement {
         return "CTextureMatteElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_TEXTURE_MATTE;
+    };
+
     STextureMatteData m_data;
 };

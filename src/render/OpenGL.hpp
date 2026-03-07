@@ -20,7 +20,7 @@
 #include "Texture.hpp"
 #include "Framebuffer.hpp"
 #include "Renderbuffer.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "pass/Pass.hpp"
 
 #include <EGL/egl.h>
@@ -32,10 +32,10 @@
 
 #include "../debug/TracyDefines.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "render/ShaderLoader.hpp"
-#include "render/gl/GLFramebuffer.hpp"
-#include "render/gl/GLRenderbuffer.hpp"
-#include "render/gl/GLTexture.hpp"
+#include "ShaderLoader.hpp"
+#include "gl/GLFramebuffer.hpp"
+#include "gl/GLRenderbuffer.hpp"
+#include "gl/GLTexture.hpp"
 
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 

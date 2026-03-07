@@ -1014,8 +1014,8 @@ void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
         //
         g_pHyprRenderer->popMonitorTransformEnabled();
         m_renderData.clipBox = {};
-        if (m_data.replaceProjection)
-            m_renderData.monitorProjection = m_renderData.pMonitor->m_projMatrix;
+        if (m_data.useMirrorProjection)
+            setProjectionType(RPT_MONITOR);
         if (m_data.ignoreAlpha.has_value())
             m_renderData.discardMode = 0;
     }};
@@ -1023,8 +1023,8 @@ void CHyprRenderer::draw(CTexPassElement* element, const CRegion& damage) {
     if (!m_data.clipBox.empty())
         m_renderData.clipBox = m_data.clipBox;
 
-    if (m_data.replaceProjection)
-        m_renderData.monitorProjection = *m_data.replaceProjection;
+    if (m_data.useMirrorProjection)
+        setProjectionType(RPT_MIRROR);
 
     if (m_data.ignoreAlpha.has_value()) {
         m_renderData.discardMode    = DISCARD_ALPHA;
@@ -1873,6 +1873,47 @@ void CHyprRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceResour
         m_renderData.primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         m_renderData.primarySurfaceUVBottomRight = Vector2D(-1, -1);
     }
+}
+
+static Mat3x3 getMirrorProjection(PHLMONITORREF monitor) {
+    return Mat3x3::identity()
+        .translate(monitor->m_pixelSize / 2.0)
+        .transform(Math::wlTransformToHyprutils(monitor->m_transform))
+        .transform(Math::wlTransformToHyprutils(Math::invertTransform(monitor->m_mirrorOf->m_transform)))
+        .translate(-monitor->m_transformedSize / 2.0);
+}
+
+static Mat3x3 getFBProjection(PHLMONITORREF pMonitor, const Vector2D& size) {
+    if (pMonitor->m_transform == WL_OUTPUT_TRANSFORM_NORMAL)
+        return Mat3x3::identity();
+
+    const Vector2D tfmd = pMonitor->m_transform % 2 == 1 ? Vector2D{size.y, size.x} : size;
+    return Mat3x3::identity().translate(size / 2.0).transform(Math::wlTransformToHyprutils(pMonitor->m_transform)).translate(-tfmd / 2.0);
+}
+
+void CHyprRenderer::setProjectionType(const Vector2D& fbSize) {
+    m_renderData.fbSize = fbSize;
+    setProjectionType(RPT_FB);
+}
+
+void CHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
+    m_renderData.projectionType = projectionType;
+    switch (projectionType) {
+        case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
+        case RPT_MIRROR: m_renderData.targetProjection = getMirrorProjection(m_renderData.pMonitor); break;
+        case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        default: UNREACHABLE();
+    }
+}
+
+Mat3x3 CHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform> transform) {
+    return m_renderData.targetProjection.projectBox(
+        box, transform.value_or(Math::wlTransformToHyprutils(Math::invertTransform(!monitorTransformEnabled() ? WL_OUTPUT_TRANSFORM_NORMAL : m_renderData.pMonitor->m_transform))),
+        box.rot);
+}
+
+Mat3x3 CHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
+    return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
 }
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {

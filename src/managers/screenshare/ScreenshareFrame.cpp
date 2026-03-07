@@ -278,9 +278,9 @@ void CScreenshareFrame::renderWindow() {
     const auto NOW = Time::steadyNow();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprRenderer->m_renderData.monitorProjection = Mat3x3::identity();
-    g_pHyprRenderer->m_renderData.projection        = Mat3x3::outputProjection(m_bufferSize, HYPRUTILS_TRANSFORM_NORMAL);
-    g_pHyprRenderer->m_renderData.transformDamage   = false;
+    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(RPT_FB);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible

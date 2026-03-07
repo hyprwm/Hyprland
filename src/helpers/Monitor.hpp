@@ -386,10 +386,9 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
-    Mat3x3 m_projMatrix;
-
   private:
     void                    updateMatrix();
+    Mat3x3                  m_projMatrix;
     Mat3x3                  m_projOutputMatrix;
 
     void                    setupDefaultWS(const SMonitorRule&);

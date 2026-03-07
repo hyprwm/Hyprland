@@ -1409,7 +1409,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
             if (maxLuminance >= dstMaxLuminance * 1.01)
                 shaderFeatures |= SH_FEAT_TONEMAP;
 
-            if (data.finalMonitorCM &&
+            if (!data.finalMonitorCM &&
                 (SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB ||
                  SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
                 TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&

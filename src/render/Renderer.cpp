@@ -503,7 +503,7 @@ void IHyprRenderer::bindOffMain() {
     RASSERT(m_renderData.pMonitor->m_offMainFB->isAllocated(), "IHyprRenderer::beginRender should allocate monitor FBs")
 
     m_renderData.pMonitor->m_offMainFB->bind();
-    draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
+    draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
     m_renderData.currentFB = m_renderData.pMonitor->m_offMainFB;
 }
 
@@ -776,6 +776,42 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         return;
 
     elementRenderer()->drawElement(element, damage);
+}
+
+void IHyprRenderer::draw(const CBorderPassElement::SBorderData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CBorderPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CClearPassElement::SClearData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CClearPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CFramebufferElement::SFramebufferElementData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CFramebufferElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CRectPassElement::SRectData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CRectPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CRendererHintsPassElement::SData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CRendererHintsPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CShadowPassElement::SShadowData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CShadowPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CSurfacePassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CTexPassElement::SRenderData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CTexPassElement>(data), damage);
+}
+
+void IHyprRenderer::draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage) {
+    elementRenderer()->drawElement(makeUnique<CTextureMatteElement>(data), damage);
 }
 
 bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
@@ -1711,16 +1747,17 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
     m_renderData.pMonitor->m_blurFB->bind();
 
-    draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
+    draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 
     pushMonitorTransformEnabled(true);
 
-    draw(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-             .tex    = blurredTex,
-             .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-             .damage = *fakeDamage,
-         }),
-         *fakeDamage); // .noAA = true
+    draw(
+        CTexPassElement::SRenderData{
+            .tex    = blurredTex,
+            .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
+            .damage = *fakeDamage,
+        },
+        *fakeDamage); // .noAA = true
 
     popMonitorTransformEnabled();
 
@@ -2898,7 +2935,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
 
     m_bRenderingSnapshot = true;
 
-    draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
 
     Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of {:x}", rc<uintptr_t>(pWindow.get()));
@@ -2939,7 +2976,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
 
     m_bRenderingSnapshot = true;
 
-    draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
     startRenderPass();
 
     Log::logger->log(Log::DEBUG, "renderer: cleared a snapshot of layer {:x}", rc<uintptr_t>(pLayer.get()));
@@ -2981,7 +3018,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 
     m_bRenderingSnapshot = true;
 
-    draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}), {});
+    draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
 
     CSurfacePassElement::SRenderData renderdata;
     renderdata.pos             = popup->coordsGlobal();

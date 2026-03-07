@@ -246,38 +246,39 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
         // first, clear region of interest with black (fully transparent)
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{.box = data.fullBox, .color = CHyprColor(0, 0, 0, 1), .round = 0}), monbox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = CHyprColor(0, 0, 0, 1), .round = 0}, monbox);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
         drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale,
                            CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
 
         // render black window box ("clip")
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = data.windowBox,
-                                  .color         = CHyprColor(0, 0, 0, 1),
-                                  .round         = (data.rounding + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale,
-                                  .roundingPower = data.roundingPower,
-                              }),
-                              monbox);
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = data.windowBox,
+                .color         = CHyprColor(0, 0, 0, 1),
+                .round         = (data.rounding + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale,
+                .roundingPower = data.roundingPower,
+            },
+            monbox);
 
         alphaSwapFB->bind();
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}),
-                              monbox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}, monbox);
 
         LASTFB->bind();
 
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
 
-        g_pHyprRenderer->draw(makeShared<CTextureMatteElement>(CTextureMatteElement::STextureMatteData{
-                                  .box = monbox,
-                                  .tex = alphaSwapFB->getTexture(),
-                                  .fb  = alphaFB,
-                              }),
-                              {});
+        g_pHyprRenderer->draw(
+            CTextureMatteElement::STextureMatteData{
+                .box = monbox,
+                .tex = alphaSwapFB->getTexture(),
+                .fb  = alphaFB,
+            },
+            {});
 
         g_pHyprRenderer->m_renderData.renderModif.enabled = true;
         g_pHyprRenderer->popMonitorTransformEnabled();
@@ -304,13 +305,12 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     color.a *= a;
 
     if (*PSHADOWSHARP)
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = box,
-                                  .color         = color,
-                                  .round         = round,
-                                  .roundingPower = roundingPower,
-                              }),
-                              {});
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{
+            .box           = box,
+            .color         = color,
+            .round         = round,
+            .roundingPower = roundingPower,
+        });
     else
         g_pHyprRenderer->drawShadow(box, round, roundingPower, range, color, 1.F);
 }

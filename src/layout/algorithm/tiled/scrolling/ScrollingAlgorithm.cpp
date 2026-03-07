@@ -260,6 +260,9 @@ bool SColumnData::up(SP<SScrollingTargetData> w) {
 }
 
 bool SColumnData::down(SP<SScrollingTargetData> w) {
+    if (targetDatas.empty())
+        return false;
+
     for (size_t i = 0; i < targetDatas.size() - 1; ++i) {
         if (targetDatas[i] != w)
             continue;

@@ -13,7 +13,7 @@ namespace Layout {
 
         virtual eTargetType                                         type();
 
-        virtual void                                                setPositionGlobal(const CBox& box);
+        virtual void                                                setPositionGlobal(const STargetBox& box);
         virtual void                                                assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual PHLWINDOW                                           window() const;
 

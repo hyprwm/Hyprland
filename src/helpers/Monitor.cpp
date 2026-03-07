@@ -1978,7 +1978,7 @@ bool CMonitor::attemptDirectScanout() {
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
     if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
-        auto sync = CEGLSync::create();
+        auto sync = g_pHyprRenderer->createSyncFDManager();
 
         if (sync->fd().isValid()) {
             m_inFence = sync->takeFd();

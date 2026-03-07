@@ -5,6 +5,8 @@
 #include "../Texture.hpp"
 #include <cstring>
 
+using namespace Render::GL;
+
 CGLTexture::CGLTexture(bool opaque) {
     m_opaque = opaque;
 }

@@ -63,6 +63,8 @@ using namespace Hyprutils::OS;
 #include "../layout/algorithm/TiledAlgorithm.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
+using namespace Render::GL;
+
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/ucred.h>
 #define CRED_T   xucred

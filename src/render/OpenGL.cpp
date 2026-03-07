@@ -60,6 +60,7 @@
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
 using namespace Render;
+using namespace Render::GL;
 
 static inline void loadGLProc(void* pProc, const char* name) {
     void* proc = rc<void*>(eglGetProcAddress(name));
@@ -940,21 +941,6 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     uniformRequireNoDamage(SHADER_POINTER_SHAPE_PREVIOUS, "pointer_shape_previous");
 }
 
-void CHyprOpenGLImpl::clear(const CHyprColor& color) {
-    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render without begin()!");
-
-    TRACY_GPU_ZONE("RenderClear");
-
-    GLCALL(glClearColor(color.r, color.g, color.b, color.a));
-
-    if (!g_pHyprRenderer->m_renderData.damage.empty()) {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
-            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
-            glClear(GL_COLOR_BUFFER_BIT);
-        });
-    }
-}
-
 void CHyprOpenGLImpl::blend(bool enabled) {
     if (enabled) {
         setCapStatus(GL_BLEND, true);
@@ -1435,7 +1421,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
 
 void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
+    RASSERT((tex && tex->ok()), "Attempted to draw nullptr texture!");
 
     TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 

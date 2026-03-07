@@ -4,6 +4,8 @@
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
 
+using namespace Render::GL;
+
 CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
 CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name) {}
 

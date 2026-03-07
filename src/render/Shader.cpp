@@ -4,6 +4,8 @@
 
 #define EPSILON(x, y) (std::abs((x) - (y)) < 1e-5f)
 
+using namespace Render::GL;
+
 static bool compareFloat(auto a, auto b) {
     if (a.size() != b.size())
         return false;

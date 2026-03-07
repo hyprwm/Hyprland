@@ -93,6 +93,7 @@ using namespace Hyprutils::String;
 using namespace Aquamarine;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Render::GL;
 
 static int handleCritSignal(int signo, void* data) {
     Log::logger->log(Log::DEBUG, "Hyprland received signal {}", signo);

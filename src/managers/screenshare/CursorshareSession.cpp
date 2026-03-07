@@ -3,7 +3,8 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "render/pass/TexPassElement.hpp"
+#include "../../render/pass/ClearPassElement.hpp"
+#include "../../render/pass/TexPassElement.hpp"
 
 using namespace Screenshare;
 
@@ -122,14 +123,14 @@ void CCursorshareSession::render() {
     g_pHyprRenderer->startRenderPass();
     if (PERM != PERMISSION_RULE_ALLOW_MODE_ALLOW || !overlaps) {
         // render black when not allowed
-        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
+        g_pHyprRenderer->draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{Colors::BLACK}), {});
     } else if (!cursorImage.pBuffer || !cursorImage.surface || !cursorImage.bufferTex) {
         // render clear when cursor is probably hidden
-        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
+        g_pHyprRenderer->draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
     } else {
         // render cursor
         CBox texbox = {{}, cursorImage.bufferTex->m_size};
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
+        g_pHyprRenderer->draw(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
                                   .tex = cursorImage.bufferTex,
                                   .box = texbox,
                               }),

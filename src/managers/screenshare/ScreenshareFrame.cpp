@@ -170,7 +170,7 @@ void CScreenshareFrame::renderMonitor() {
     CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
                       .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
                       .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-    g_pHyprOpenGL->pushMonitorTransformEnabled(true);
+    g_pHyprRenderer->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
                                  {
@@ -178,7 +178,7 @@ void CScreenshareFrame::renderMonitor() {
                                      .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
                                  });
     g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->popMonitorTransformEnabled();
+    g_pHyprRenderer->popMonitorTransformEnabled();
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
@@ -321,8 +321,8 @@ void CScreenshareFrame::render() {
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
         g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
-        CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
         return;
     }
 
@@ -371,7 +371,7 @@ bool CScreenshareFrame::copyShm() {
     if (done())
         return false;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     auto shm                      = m_buffer->shm();
     auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm

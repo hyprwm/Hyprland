@@ -101,34 +101,35 @@ class CHyprRenderer {
     CHyprRenderer();
     ~CHyprRenderer();
 
-    void renderMonitor(PHLMONITOR pMonitor, bool commit = true);
-    void arrangeLayersForMonitor(const MONITORID&);
-    void damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
-    void damageWindow(PHLWINDOW, bool forceFull = false);
-    void damageBox(const CBox&, bool skipFrameSchedule = false);
-    void damageBox(const int& x, const int& y, const int& w, const int& h);
-    void damageRegion(const CRegion&);
-    void damageMonitor(PHLMONITOR);
-    void damageMirrorsWith(PHLMONITOR, const CRegion&);
-    bool shouldRenderWindow(PHLWINDOW, PHLMONITOR);
-    bool shouldRenderWindow(PHLWINDOW);
-    void ensureCursorRenderingMode();
-    bool shouldRenderCursor();
-    void setCursorHidden(bool hide);
+    WP<CHyprOpenGLImpl> glBackend();
+
+    void                renderMonitor(PHLMONITOR pMonitor, bool commit = true);
+    void                arrangeLayersForMonitor(const MONITORID&);
+    void                damageSurface(SP<CWLSurfaceResource>, double, double, double scale = 1.0);
+    void                damageWindow(PHLWINDOW, bool forceFull = false);
+    void                damageBox(const CBox&, bool skipFrameSchedule = false);
+    void                damageBox(const int& x, const int& y, const int& w, const int& h);
+    void                damageRegion(const CRegion&);
+    void                damageMonitor(PHLMONITOR);
+    void                damageMirrorsWith(PHLMONITOR, const CRegion&);
+    bool                shouldRenderWindow(PHLWINDOW, PHLMONITOR);
+    bool                shouldRenderWindow(PHLWINDOW);
+    void                ensureCursorRenderingMode();
+    bool                shouldRenderCursor();
+    void                setCursorHidden(bool hide);
     void calculateUVForSurface(PHLWINDOW, SP<CWLSurfaceResource>, PHLMONITOR pMonitor, bool main = false, const Vector2D& projSize = {}, const Vector2D& projSizeUnscaled = {},
                                bool fixMisalignedFSV1 = false);
     std::tuple<float, float, float> getRenderTimes(PHLMONITOR pMonitor); // avg max min
+    void                            ensureLockTexturesRendered(bool load);
     void                            renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp& now, const CBox& geometry);
     void                            setCursorSurface(SP<Desktop::View::CWLSurface> surf, int hotspotX, int hotspotY, bool force = false);
     void                            setCursorFromName(const std::string& name, bool force = false);
-    void                            onRenderbufferDestroy(CGLRenderbuffer* rb);
+    void                            onRenderbufferDestroy(IRenderbuffer* rb);
     SP<IRenderbuffer>               getCurrentRBO();
     bool                            isNvidia();
     bool                            isIntel();
     bool                            isSoftware();
     bool                            isMgpu();
-    void                            makeEGLCurrent();
-    void                            unsetEGL();
     void                            addWindowToRenderUnfocused(PHLWINDOW window);
     void                            makeSnapshot(PHLWINDOW);
     void                            makeSnapshot(PHLLS);
@@ -170,33 +171,54 @@ class CHyprRenderer {
         std::string                                  name;
     } m_lastCursorData;
 
-    CRenderPass      m_renderPass = {};
+    CRenderPass       m_renderPass = {};
 
-    SP<ITexture>     createStencilTexture(const int width, const int height);
-    SP<ITexture>     createTexture(bool opaque = false);
-    SP<ITexture>     createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
-    SP<ITexture>     createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false);
-    SP<ITexture>     createTexture(const int width, const int height, unsigned char* const);
-    SP<ITexture>     createTexture(cairo_surface_t* cairo);
-    SP<ITexture>     createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
-    SP<ITexture>     createTexture(std::span<const float> lut3D, size_t N);
-    SP<IFramebuffer> createFB(const std::string& name = "");
+    SP<IRenderbuffer> getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+    SP<ITexture>      m_screencopyDeniedTexture;                                             // TODO? make readonly
+    uint              m_failedAssetsNo     = 0;                                              // TODO? make readonly
+    bool              m_reloadScreenShader = true;                                           // at launch it can be set
+    CTimer            m_globalTimer;
 
-    SCMSettings      getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                   SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
-    bool             reloadShaders(const std::string& path = "");
+    SP<ITexture>      createStencilTexture(const int width, const int height);
+    SP<ITexture>      createTexture(bool opaque = false);
+    SP<ITexture>      createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+    SP<ITexture>      createTexture(const Aquamarine::SDMABUFAttrs&, bool opaque = false);
+    SP<ITexture>      createTexture(const int width, const int height, unsigned char* const);
+    SP<ITexture>      createTexture(cairo_surface_t* cairo);
+    SP<ITexture>      createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
+    SP<ITexture>      createTexture(std::span<const float> lut3D, size_t N);
+    SP<ITexture>      renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0, int weight = 400);
+    SP<ITexture>      loadAsset(const std::string& filename);
+    bool              shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
+    bool              explicitSyncSupported();
+    std::vector<SDRMFormat> getDRMFormats();
+    std::vector<uint64_t>   getDRMFormatModifiers(DRMFormat format);
+    SP<IFramebuffer>        createFB(const std::string& name = "");
+    void                    pushMonitorTransformEnabled(bool enabled);
+    void                    popMonitorTransformEnabled();
+    bool                    monitorTransformEnabled();
 
-    void             draw(CBorderPassElement* element, const CRegion& damage);
-    void             draw(CClearPassElement* element, const CRegion& damage);
-    void             draw(CFramebufferElement* element, const CRegion& damage);
-    void             draw(CPreBlurElement* element, const CRegion& damage);
-    void             draw(CRectPassElement* element, const CRegion& damage);
-    void             draw(CRendererHintsPassElement* element, const CRegion& damage);
-    void             draw(CShadowPassElement* element, const CRegion& damage);
-    void             draw(CSurfacePassElement* element, const CRegion& damage);
-    void             draw(CTexPassElement* element, const CRegion& damage);
-    void             draw(CTextureMatteElement* element, const CRegion& damage);
-    void             draw(WP<IPassElement> element, const CRegion& damage);
+    SCMSettings             getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                          SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+    bool                    reloadShaders(const std::string& path = "");
+
+    void                    draw(CBorderPassElement* element, const CRegion& damage);
+    void                    draw(CClearPassElement* element, const CRegion& damage);
+    void                    draw(CFramebufferElement* element, const CRegion& damage);
+    void                    draw(CPreBlurElement* element, const CRegion& damage);
+    void                    draw(CRectPassElement* element, const CRegion& damage);
+    void                    draw(CRendererHintsPassElement* element, const CRegion& damage);
+    void                    draw(CShadowPassElement* element, const CRegion& damage);
+    void                    draw(CSurfacePassElement* element, const CRegion& damage);
+    void                    draw(CTexPassElement* element, const CRegion& damage);
+    void                    draw(CTextureMatteElement* element, const CRegion& damage);
+    void                    draw(WP<IPassElement> element, const CRegion& damage);
+
+    SP<ITexture>            m_lockDeadTexture;
+    SP<ITexture>            m_lockDead2Texture;
+    SP<ITexture>            m_lockTtyTextTexture;
+    bool                    m_monitorTransformEnabled = false; // do not modify directly
+    std::stack<bool>        m_monitorTransformStack;
 
   private:
     void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
@@ -216,20 +238,30 @@ class CHyprRenderer {
 
     bool commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);
 
-    bool shouldBlur(PHLLS ls);
-    bool shouldBlur(PHLWINDOW w);
-    bool shouldBlur(WP<Desktop::View::CPopup> p);
+    void requestBackgroundResource();
+    //
+    SP<IRenderbuffer>                 getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
+    std::string                       resolveAssetPath(const std::string& file);
+    void                              initMissingAssetTexture();
+    void                              initAssets();
+    SP<ITexture>                      m_missingAssetTexture;
+    ASP<Hyprgraphics::CImageResource> m_backgroundResource;
+    bool                              m_backgroundResourceFailed = false;
 
-    bool m_cursorHidden                           = false;
-    bool m_cursorHiddenByCondition                = false;
-    bool m_cursorHasSurface                       = false;
-    SP<IRenderbuffer>       m_currentRenderbuffer = nullptr;
-    SP<Aquamarine::IBuffer> m_currentBuffer       = nullptr;
-    eRenderMode             m_renderMode          = RENDER_MODE_NORMAL;
-    bool                    m_nvidia              = false;
-    bool                    m_intel               = false;
-    bool                    m_software            = false;
-    bool                    m_mgpu                = false;
+    bool                              shouldBlur(PHLLS ls);
+    bool                              shouldBlur(PHLWINDOW w);
+    bool                              shouldBlur(WP<Desktop::View::CPopup> p);
+
+    bool                              m_cursorHidden            = false;
+    bool                              m_cursorHiddenByCondition = false;
+    bool                              m_cursorHasSurface        = false;
+    SP<IRenderbuffer>                 m_currentRenderbuffer     = nullptr;
+    SP<Aquamarine::IBuffer>           m_currentBuffer           = nullptr;
+    eRenderMode                       m_renderMode              = RENDER_MODE_NORMAL;
+    bool                              m_nvidia                  = false;
+    bool                              m_intel                   = false;
+    bool                              m_software                = false;
+    bool                              m_mgpu                    = false;
 
     struct {
         bool hiddenOnTouch    = false;
@@ -238,7 +270,6 @@ class CHyprRenderer {
         bool hiddenOnKeyboard = false;
     } m_cursorHiddenConditions;
 
-    SP<IRenderbuffer>              getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt);
     std::vector<SP<IRenderbuffer>> m_renderbuffers;
     std::vector<PHLWINDOWREF>      m_renderUnfocused;
     SP<CEventLoopTimer>            m_renderUnfocusedTimer;

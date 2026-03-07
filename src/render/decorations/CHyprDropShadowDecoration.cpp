@@ -155,8 +155,8 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprOpenGL->m_renderData.currentWindow = m_window;
 
     // we'll take the liberty of using this as it should not be used rn
-    auto alphaFB     = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorFB;
-    auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pCurrentMonData->mirrorSwapFB;
+    auto alphaFB     = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorFB;
+    auto alphaSwapFB = g_pHyprOpenGL->m_renderData.pMonitor->m_mirrorSwapFB;
     auto LASTFB      = g_pHyprOpenGL->m_renderData.currentFB;
 
     fullBox.scale(pMonitor->m_scale).round();
@@ -211,11 +211,11 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
         CBox monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        g_pHyprOpenGL->pushMonitorTransformEnabled(true);
+        g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprOpenGL->setRenderModifEnabled(false);
         g_pHyprOpenGL->renderTextureMatte(alphaSwapFB->getTexture(), monbox, alphaFB);
         g_pHyprOpenGL->setRenderModifEnabled(true);
-        g_pHyprOpenGL->popMonitorTransformEnabled();
+        g_pHyprRenderer->popMonitorTransformEnabled();
 
         g_pHyprOpenGL->m_renderData.damage = saveDamage;
     } else

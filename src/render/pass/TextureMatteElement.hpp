@@ -2,15 +2,17 @@
 #include "PassElement.hpp"
 #include "../Framebuffer.hpp"
 
-class ITexture;
+namespace Render {
+    class ITexture;
+}
 
 class CTextureMatteElement : public IPassElement {
   public:
     struct STextureMatteData {
-        CBox             box;
-        SP<ITexture>     tex;
-        SP<IFramebuffer> fb;
-        bool             disableTransformAndModify = false;
+        CBox                     box;
+        SP<Render::ITexture>     tex;
+        SP<Render::IFramebuffer> fb;
+        bool                     disableTransformAndModify = false;
     };
 
     CTextureMatteElement(const STextureMatteData& data_);

@@ -6,6 +6,12 @@
 #include <list>
 #include <optional>
 #include "OpenGL.hpp"
+#include "render/pass/BorderPassElement.hpp"
+#include "render/pass/ClearPassElement.hpp"
+#include "render/pass/FramebufferElement.hpp"
+#include "render/pass/RectPassElement.hpp"
+#include "render/pass/RendererHintsPassElement.hpp"
+#include "render/pass/ShadowPassElement.hpp"
 #include "types.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -122,7 +128,16 @@ namespace Render {
         bool                         m_reloadScreenShader = true;                                           // at launch it can be set
         CTimer                       m_globalTimer;
 
-        void                         draw(WP<IPassElement> element, const CRegion& damage);
+        void                         draw(WP<IPassElement> element, const CRegion& damage = {});
+        void                         draw(const CBorderPassElement::SBorderData& data, const CRegion& damage = {});
+        void                         draw(const CClearPassElement::SClearData& data, const CRegion& damage = {});
+        void                         draw(const CFramebufferElement::SFramebufferElementData& data, const CRegion& damage = {});
+        void                         draw(const CRectPassElement::SRectData& data, const CRegion& damage = {});
+        void                         draw(const CRendererHintsPassElement::SData& data, const CRegion& damage = {});
+        void                         draw(const CShadowPassElement::SShadowData& data, const CRegion& damage = {});
+        void                         draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage = {});
+        void                         draw(const CTexPassElement::SRenderData& data, const CRegion& damage = {});
+        void                         draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
         virtual WP<IElementRenderer> elementRenderer()                                                                                                                         = 0;
         virtual SP<ITexture>         createStencilTexture(const int width, const int height)                                                                                   = 0;
         virtual SP<ITexture>         createTexture(bool opaque = false)                                                                                                        = 0;

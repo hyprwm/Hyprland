@@ -176,14 +176,15 @@ void CScreenshareFrame::renderMonitor() {
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;
     g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-                              .tex                = TEXTURE,
-                              .box                = monbox,
-                              .flipEndFrame       = true,
-                              .cmBackToSRGB       = !IS_CM_AWARE,
-                              .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
-                          }),
-                          monbox);
+    g_pHyprRenderer->draw(
+        CTexPassElement::SRenderData{
+            .tex                = TEXTURE,
+            .box                = monbox,
+            .flipEndFrame       = true,
+            .cmBackToSRGB       = !IS_CM_AWARE,
+            .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
+        },
+        monbox);
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare
@@ -200,11 +201,7 @@ void CScreenshareFrame::renderMonitor() {
                         CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{
-                                                  .box   = surfBox,
-                                                  .color = Colors::BLACK,
-                                              }),
-                                              surfBox);
+                        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = surfBox, .color = Colors::BLACK}, surfBox);
                 },
                 nullptr);
         };
@@ -225,11 +222,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .scale(PMONITOR->m_scale)
                                           .translate(-m_session->m_captureBox.pos());
 
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box   = noScreenShareBox,
-                                  .color = Colors::BLACK,
-                              }),
-                              noScreenShareBox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = noScreenShareBox, .color = Colors::BLACK}, noScreenShareBox);
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
@@ -264,13 +257,14 @@ void CScreenshareFrame::renderMonitor() {
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprRenderer->draw(makeShared<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = noScreenShareBox,
-                                  .color         = Colors::BLACK,
-                                  .round         = rounding,
-                                  .roundingPower = roundingPower,
-                              }),
-                              noScreenShareBox);
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = noScreenShareBox,
+                .color         = Colors::BLACK,
+                .round         = rounding,
+                .roundingPower = roundingPower,
+            },
+            noScreenShareBox);
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -335,30 +329,22 @@ void CScreenshareFrame::render() {
 
     CRegion    frameRegion = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y};
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        g_pHyprRenderer->draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
+        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
         return;
     }
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     g_pHyprRenderer->startRenderPass();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
-        g_pHyprRenderer->draw(makeShared<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
+        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprRenderer->draw(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-                                  .tex = g_pHyprRenderer->m_screencopyDeniedTexture,
-                                  .box = texbox,
-                              }),
-                              texbox);
+        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = g_pHyprRenderer->m_screencopyDeniedTexture, .box = texbox}, texbox);
         return;
     }
 
     if (m_session->m_tempFB && m_session->m_tempFB->isAllocated()) {
         CBox texbox = {{}, m_bufferSize};
-        g_pHyprRenderer->draw(makeShared<CTexPassElement>(CTexPassElement::SRenderData{
-                                  .tex = m_session->m_tempFB->getTexture(),
-                                  .box = texbox,
-                              }),
-                              texbox);
+        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = m_session->m_tempFB->getTexture(), .box = texbox}, texbox);
         m_session->m_tempFB->release();
         return;
     }

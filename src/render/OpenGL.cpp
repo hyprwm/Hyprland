@@ -2490,14 +2490,6 @@ CEGLSync::~CEGLSync() {
         Log::logger->log(Log::ERR, "eglDestroySyncKHR failed");
 }
 
-CFileDescriptor& CEGLSync::fd() {
-    return m_fd;
-}
-
-CFileDescriptor&& CEGLSync::takeFd() {
-    return std::move(m_fd);
-}
-
 bool CEGLSync::isValid() {
     return m_valid && m_sync != EGL_NO_SYNC_KHR && m_fd.isValid();
 }

@@ -7,9 +7,10 @@ namespace Render::GL {
     class CHyprGLRenderer : public Render::IHyprRenderer {
       public:
         CHyprGLRenderer();
-        ~CHyprGLRenderer();
+        ~CHyprGLRenderer() = default;
 
         void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
+        UP<ISyncFDManager>      createSyncFDManager() override;
         SP<ITexture>            createStencilTexture(const int width, const int height) override;
         SP<ITexture>            createTexture(bool opaque = false) override;
         SP<ITexture>            createTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false) override;

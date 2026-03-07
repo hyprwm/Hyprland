@@ -6,6 +6,7 @@
 #include <list>
 #include <optional>
 #include "OpenGL.hpp"
+#include "render/SyncFDManager.hpp"
 #include "render/pass/BorderPassElement.hpp"
 #include "render/pass/ClearPassElement.hpp"
 #include "render/pass/FramebufferElement.hpp"
@@ -139,6 +140,7 @@ namespace Render {
         void                         draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage = {});
         void                         draw(const CTexPassElement::SRenderData& data, const CRegion& damage = {});
         void                         draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
+        virtual UP<ISyncFDManager>   createSyncFDManager()                                                                                                                     = 0;
         virtual WP<IElementRenderer> elementRenderer()                                                                                                                         = 0;
         virtual SP<ITexture>         createStencilTexture(const int width, const int height)                                                                                   = 0;
         virtual SP<ITexture>         createTexture(bool opaque = false)                                                                                                        = 0;

@@ -11,6 +11,8 @@
 
 #include <dlfcn.h>
 
+using namespace Render::GL;
+
 CGLRenderbuffer::~CGLRenderbuffer() {
     if (!g_pCompositor || g_pCompositor->m_isShuttingDown || !g_pHyprRenderer)
         return;

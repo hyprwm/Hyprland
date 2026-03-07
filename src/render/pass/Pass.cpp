@@ -10,6 +10,11 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "RectPassElement.hpp"
+#include "macros.hpp"
+#include "render/pass/ClearPassElement.hpp"
+
+using namespace Render;
 
 bool CRenderPass::empty() const {
     return false;
@@ -216,12 +221,12 @@ void CRenderPass::renderDebugData() {
         CRectPassElement::SRectData data;
         data.box   = box;
         data.color = Colors::RED.modifyA(0.1F);
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), rg);
+        g_pHyprRenderer->draw(makeShared<CRectPassElement>(data), rg);
     }
     CRectPassElement::SRectData data;
     data.box   = box;
     data.color = Colors::GREEN.modifyA(0.1F);
-    g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), m_totalLiveBlurRegion);
+    g_pHyprRenderer->draw(makeShared<CRectPassElement>(data), m_totalLiveBlurRegion);
 
     std::unordered_map<CWLSurfaceResource*, float> offsets;
 
@@ -249,7 +254,7 @@ void CRenderPass::renderDebugData() {
         CRectPassElement::SRectData data;
         data.box   = box;
         data.color = color;
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), FULL_REGION);
+        g_pHyprRenderer->draw(makeShared<CRectPassElement>(data), FULL_REGION);
 
         if (offsets.contains(surface.get()))
             box.translate(Vector2D{0.F, offsets[surface.get()]});
@@ -261,12 +266,12 @@ void CRenderPass::renderDebugData() {
         data.box   = box;
         data.color = color;
         data.round = std::min(5.0, box.size().y);
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data2), FULL_REGION);
+        g_pHyprRenderer->draw(makeShared<CRectPassElement>(data2), FULL_REGION);
 
         CTexPassElement::SRenderData texData;
         texData.tex = texture;
         texData.box = box;
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
+        g_pHyprRenderer->draw(makeShared<CTexPassElement>(texData), {});
 
         offsets[surface.get()] += texture->m_size.y;
     };
@@ -287,7 +292,7 @@ void CRenderPass::renderDebugData() {
                     CRectPassElement::SRectData data;
                     data.box   = box;
                     data.color = CHyprColor{0.8F, 0.8F, 0.2F, 0.4F};
-                    g_pHyprRenderer->draw(makeUnique<CRectPassElement>(data), region);
+                    g_pHyprRenderer->draw(makeShared<CRectPassElement>(data), region);
                 }
             }
         }
@@ -303,7 +308,7 @@ void CRenderPass::renderDebugData() {
         CTexPassElement::SRenderData texData;
         texData.tex = tex;
         texData.box = box;
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
+        g_pHyprRenderer->draw(makeShared<CTexPassElement>(texData), {});
     }
 
     std::string passStructure;
@@ -323,7 +328,7 @@ void CRenderPass::renderDebugData() {
         CTexPassElement::SRenderData texData;
         texData.tex = tex;
         texData.box = box;
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(texData), {});
+        g_pHyprRenderer->draw(makeShared<CTexPassElement>(texData), {});
     }
 }
 

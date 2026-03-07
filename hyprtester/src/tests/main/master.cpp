@@ -97,6 +97,67 @@ static void focusMasterPrevious() {
     Tests::killAllWindows();
 }
 
+static void testFsBehavior() {
+    // Master will re-send data to fullscreen / maximized windows, which can interfere with misc:on_focus_under_fullscreen
+    // check that it doesn't.
+
+    for (auto const& win : {"master", "slave1", "slave2"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:master"));
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: master");
+    }
+
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 1"));
+
+    Tests::spawnKitty("new_master");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: new_master");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 0"));
+
+    Tests::spawnKitty("ignored");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: new_master");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/keyword misc:on_focus_under_fullscreen 2"));
+
+    Tests::spawnKitty("vaxwashere");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: vaxwashere");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing Master layout", Colors::GREEN);
 
@@ -107,6 +168,9 @@ static bool test() {
     // test
     NLog::log("{}Testing `focusmaster previous` layoutmsg", Colors::GREEN);
     focusMasterPrevious();
+
+    NLog::log("{}Testing fs behavior", Colors::GREEN);
+    testFsBehavior();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

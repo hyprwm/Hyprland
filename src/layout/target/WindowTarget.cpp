@@ -61,6 +61,11 @@ void CWindowTarget::updatePos() {
 
     // Tiled is more complicated.
 
+    // if we are in maximized, force the box to be max work area.
+    // TODO: this shouldn't be here.
+    if (fullscreenMode() == FSMODE_MAXIMIZED)
+        ITarget::setPositionGlobal(m_space->workArea(floating()));
+
     const auto PMONITOR   = m_space->workspace()->m_monitor;
     const auto PWORKSPACE = m_space->workspace();
 
@@ -372,5 +377,6 @@ void CWindowTarget::onUpdateSpace() {
     m_window->m_monitor = space()->workspace()->m_monitor;
     m_window->moveToWorkspace(space()->workspace());
     m_window->updateToplevel();
+    m_window->updateWindowData();
     m_window->updateWindowDecos();
 }

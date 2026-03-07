@@ -4,7 +4,7 @@
 #include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
-class CTexture;
+class ITexture;
 class CSyncTimeline;
 
 class CSurfacePassElement : public IPassElement {
@@ -16,7 +16,7 @@ class CSurfacePassElement : public IPassElement {
 
         void*                  data        = nullptr;
         SP<CWLSurfaceResource> surface     = nullptr;
-        SP<CTexture>           texture     = nullptr;
+        SP<ITexture>           texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
         int                    rounding      = 0;
@@ -52,7 +52,6 @@ class CSurfacePassElement : public IPassElement {
     CSurfacePassElement(const SRenderData& data);
     virtual ~CSurfacePassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -64,7 +63,10 @@ class CSurfacePassElement : public IPassElement {
         return "CSurfacePassElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_SURFACE;
+    };
+
     SRenderData m_data;
 
     CBox        getTexBox();

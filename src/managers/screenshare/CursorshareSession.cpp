@@ -3,6 +3,7 @@
 #include "../../protocols/core/Seat.hpp"
 #include "../permissions/DynamicPermissionManager.hpp"
 #include "../../render/Renderer.hpp"
+#include "render/pass/TexPassElement.hpp"
 
 using namespace Screenshare;
 
@@ -114,7 +115,7 @@ void CCursorshareSession::render() {
     const auto& cursorImage = g_pPointerManager->currentCursorImage();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprOpenGL->m_renderData.transformDamage = false;
+    g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     bool overlaps = g_pPointerManager->getCursorBoxGlobal().overlaps(m_pendingFrame.sourceBoxCallback());
@@ -130,7 +131,7 @@ void CCursorshareSession::render() {
         g_pHyprOpenGL->renderTexture(cursorImage.bufferTex, texbox, {});
     }
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 }
 
 bool CCursorshareSession::copy() {
@@ -140,7 +141,7 @@ bool CCursorshareSession::copy() {
     // FIXME: this doesn't really make sense but just to be safe
     m_pendingFrame.callback(RESULT_TIMESTAMP);
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
     if (auto attrs = m_pendingFrame.buffer->dmabuf(); attrs.success) {
@@ -169,10 +170,10 @@ bool CCursorshareSession::copy() {
             return false;
         }
 
-        CFramebuffer outFB;
-        outFB.alloc(m_bufferSize.x, m_bufferSize.y, m_format);
+        auto outFB = g_pHyprRenderer->createFB();
+        outFB->alloc(m_bufferSize.x, m_bufferSize.y, m_format);
 
-        if (!g_pHyprRenderer->beginRender(m_pendingFrame.monitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &outFB, true)) {
+        if (!g_pHyprRenderer->beginRender(m_pendingFrame.monitor, fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, outFB, true)) {
             LOGM(Log::ERR, "Can't copy: failed to begin rendering to shm");
             return false;
         }
@@ -181,9 +182,9 @@ bool CCursorshareSession::copy() {
 
         g_pHyprRenderer->endRender();
 
-        g_pHyprOpenGL->m_renderData.pMonitor = m_pendingFrame.monitor;
-        outFB.bind();
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
+        g_pHyprRenderer->m_renderData.pMonitor = m_pendingFrame.monitor;
+        outFB->bind();
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
 
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -209,10 +210,10 @@ bool CCursorshareSession::copy() {
 
         glReadPixels(0, 0, m_bufferSize.x, m_bufferSize.y, glFormat, PFORMAT->glType, bufData);
 
-        g_pHyprOpenGL->m_renderData.pMonitor.reset();
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
 
         m_pendingFrame.buffer->endDataPtr();
-        outFB.unbind();
+        GLFB(outFB)->unbind();
         glPixelStorei(GL_PACK_ALIGNMENT, 4);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 

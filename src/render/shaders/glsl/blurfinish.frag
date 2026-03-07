@@ -1,30 +1,19 @@
 #version 300 es
+#define ALLOW_INCLUDES
 #extension GL_ARB_shading_language_include : enable
 
-precision highp float;
-in vec2 v_texcoord; // is in 0-1
+precision         highp float;
+in vec2           v_texcoord; // is in 0-1
 uniform sampler2D tex;
 
-uniform float noise;
-uniform float brightness;
+uniform float     noise;
+uniform float     brightness;
 
-float hash(vec2 p) {
-    vec3 p3 = fract(vec3(p.xyx) * 1689.1984);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
-}
+#include "blurFinish.glsl"
 
 layout(location = 0) out vec4 fragColor;
 void main() {
     vec4 pixColor = texture(tex, v_texcoord);
 
-    // noise
-    float noiseHash   = hash(v_texcoord);
-    float noiseAmount = noiseHash - 0.5;
-    pixColor.rgb += noiseAmount * noise;
-
-    // brightness
-    pixColor.rgb *= min(1.0, brightness);
-
-    fragColor = pixColor;
+    fragColor = blurFinish(pixColor, v_texcoord, noise, brightness);
 }

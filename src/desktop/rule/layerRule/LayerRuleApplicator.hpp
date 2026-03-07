@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LayerRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
@@ -20,6 +21,17 @@ namespace Desktop::Rule {
 
         void propertiesChanged(std::underlying_type_t<eRuleProperty> props);
         void resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio = Types::PRIORITY_WINDOW_RULE);
+
+        struct SCustomPropContainer {
+            CLayerRuleEffectContainer::storageType idx      = LAYER_RULE_EFFECT_NONE;
+            std::underlying_type_t<eRuleProperty>  propMask = RULE_PROP_NONE;
+            std::string                            effect;
+        };
+
+        // This struct holds props that were dynamically registered. Plugins may read this.
+        struct {
+            std::unordered_map<CLayerRuleEffectContainer::storageType, UP<SCustomPropContainer>> props;
+        } m_otherProps;
 
 #define COMMA ,
 #define DEFINE_PROP(type, name, def)                                                                                                                                               \

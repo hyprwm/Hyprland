@@ -30,7 +30,7 @@
 #include "../hyprerror/HyprError.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
-#include "../protocols/types/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -71,8 +71,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
 
 CMonitor::~CMonitor() {
     m_events.destroy.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -380,8 +380,8 @@ void CMonitor::onDisconnect(bool destroy) {
     Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_output->name);
 
     m_events.disconnect.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
@@ -933,28 +933,45 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
     m_supportsWideColor = RULE->supportsHDR;
     m_supportsHDR       = RULE->supportsHDR;
 
-    m_cmType = RULE->cmType;
-    switch (m_cmType) {
-        case NCMType::CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? NCMType::CM_WIDE : NCMType::CM_SRGB; break;
-        case NCMType::CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? NCMType::CM_EDID : NCMType::CM_SRGB; break;
-        case NCMType::CM_HDR:
-        case NCMType::CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : NCMType::CM_SRGB; break;
-        default: break;
+    if (RULE->iccFile.empty()) {
+        // only apply explicit cm settings if we have no icc file
+
+        m_cmType = RULE->cmType;
+        switch (m_cmType) {
+            case NCMType::CM_AUTO: m_cmType = m_enabled10bit && supportsWideColor() ? NCMType::CM_WIDE : NCMType::CM_SRGB; break;
+            case NCMType::CM_EDID: m_cmType = m_output->parsedEDID.chromaticityCoords.has_value() ? NCMType::CM_EDID : NCMType::CM_SRGB; break;
+            case NCMType::CM_HDR:
+            case NCMType::CM_HDR_EDID: m_cmType = supportsHDR() ? m_cmType : NCMType::CM_SRGB; break;
+            default: break;
+        }
+
+        m_sdrEotf = RULE->sdrEotf;
+
+        m_sdrMinLuminance = RULE->sdrMinLuminance;
+        m_sdrMaxLuminance = RULE->sdrMaxLuminance;
+
+        m_minLuminance    = RULE->minLuminance;
+        m_maxLuminance    = RULE->maxLuminance;
+        m_maxAvgLuminance = RULE->maxAvgLuminance;
+
+        applyCMType(m_cmType, m_sdrEotf);
+
+        m_sdrSaturation = RULE->sdrSaturation;
+        m_sdrBrightness = RULE->sdrBrightness;
+    } else {
+        auto image = NColorManagement::SImageDescription::fromICC(RULE->iccFile);
+        if (!image) {
+            Log::logger->log(Log::ERR, "icc for {} ({}) failed: {}", m_name, RULE->iccFile, image.error());
+            g_pConfigManager->addParseError(std::format("failed to apply icc {} to {}: {}", RULE->iccFile, m_name, image.error()));
+        } else {
+            m_imageDescription = CImageDescription::from(*image);
+            if (!m_imageDescription) {
+                Log::logger->log(Log::ERR, "icc for {} ({}) failed 2: {}", m_name, RULE->iccFile, image.error());
+                g_pConfigManager->addParseError(std::format("failed to apply icc {} to {}: {}", RULE->iccFile, m_name, image.error()));
+                m_imageDescription = CImageDescription::from(SImageDescription{});
+            }
+        }
     }
-
-    m_sdrEotf = RULE->sdrEotf;
-
-    m_sdrMinLuminance = RULE->sdrMinLuminance;
-    m_sdrMaxLuminance = RULE->sdrMaxLuminance;
-
-    m_minLuminance    = RULE->minLuminance;
-    m_maxLuminance    = RULE->maxLuminance;
-    m_maxAvgLuminance = RULE->maxAvgLuminance;
-
-    applyCMType(m_cmType, m_sdrEotf);
-
-    m_sdrSaturation = RULE->sdrSaturation;
-    m_sdrBrightness = RULE->sdrBrightness;
 
     Vector2D logicalSize = m_pixelSize / m_scale;
     if (!*PDISABLESCALECHECKS && (logicalSize.x != std::round(logicalSize.x) || logicalSize.y != std::round(logicalSize.y))) {
@@ -1030,12 +1047,23 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     updateMatrix();
 
-    if (WAS10B != m_enabled10bit || OLDRES != m_pixelSize)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
+        m_mirrorFB.reset();
+        m_offloadFB.reset();
+        m_mirrorSwapFB.reset();
+        m_blurFB.reset();
+        m_offMainFB.reset();
+        m_stencilTex.reset();
+
+        if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+            g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+    }
 
     g_pCompositor->scheduleMonitorStateRecheck();
 
     m_damage.setSize(m_transformedSize);
+
+    updateVCGTRamps();
 
     // Set scale for all surfaces on this monitor, needed for some clients
     // but not on unsafe state to avoid crashes
@@ -1560,10 +1588,20 @@ Vector2D CMonitor::middle() {
     return m_position + m_size / 2.f;
 }
 
+const Mat3x3& CMonitor::getTransformMatrix() {
+    return m_projMatrix;
+}
+
+const Mat3x3& CMonitor::getScaleMatrix() {
+    return m_projOutputMatrix;
+}
+
 void CMonitor::updateMatrix() {
     m_projMatrix = Mat3x3::identity();
     if (m_transform != WL_OUTPUT_TRANSFORM_NORMAL)
         m_projMatrix.translate(m_pixelSize / 2.0).transform(Math::wlTransformToHyprutils(m_transform)).translate(-m_transformedSize / 2.0);
+
+    m_projOutputMatrix = Mat3x3::outputProjection(m_pixelSize, HYPRUTILS_TRANSFORM_NORMAL);
 }
 
 WORKSPACEID CMonitor::activeWorkspaceID() {
@@ -1751,7 +1789,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
-    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+    if (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
             Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
@@ -1850,7 +1888,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     // we can't scanout shm buffers.
     const auto params = PSURFACE->m_current.buffer->dmabuf();
-    if (!params.success || !PSURFACE->m_current.texture->m_eglImage /* dmabuf */) {
+    if (!params.success || !PSURFACE->m_current.texture->isDMA() /* dmabuf */) {
         reasons |= DS_BLOCK_DMA;
         if (!full)
             return reasons;
@@ -1936,7 +1974,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
         auto sync = CEGLSync::create();
 
         if (sync->fd().isValid()) {
@@ -2167,6 +2205,19 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
     };
 }
 
+uint32_t CMonitor::getPreferredReadFormat() {
+    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+
+    auto              monFmt = m_output->state->state().drmFormat;
+
+    if (*PFORCE8BIT)
+        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
+            monFmt == DRM_FORMAT_XBGR2101010)
+            monFmt = DRM_FORMAT_XRGB8888;
+
+    return monFmt;
+}
+
 bool CMonitor::needsCM() {
     const auto SRC_DESC = getFSImageDescription();
     return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;
@@ -2187,8 +2238,8 @@ bool CMonitor::canNoShaderCM() {
 
     const auto SRC_DESC_VALUE = SRC_DESC.value()->value();
 
-    if (SRC_DESC_VALUE.icc.fd >= 0 || m_imageDescription->value().icc.fd >= 0)
-        return false; // no ICC support
+    if (m_imageDescription->value().icc.present)
+        return false;
 
     const auto sdrEOTF = NTransferFunction::fromConfig();
     // only primaries differ
@@ -2205,6 +2256,71 @@ bool CMonitor::canNoShaderCM() {
 
 bool CMonitor::doesNoShaderCM() {
     return m_noShaderCTM;
+}
+
+static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, size_t gammaSize) {
+    std::vector<uint16_t> out;
+    out.resize(gammaSize * 3);
+
+    //
+    auto sample = [&](int c, float x) -> uint16_t {
+        const float maxX = t.entries - 1;
+        x                = std::clamp(x, 0.F, maxX);
+
+        const size_t i0 = (size_t)std::floor(x);
+        const size_t i1 = std::min(i0 + 1, (size_t)t.entries - 1);
+        const float  f  = x - sc<float>(i0);
+
+        const float  v0 = sc<float>(t.ch[c][i0]);
+        const float  v1 = sc<float>(t.ch[c][i1]);
+        const float  v  = v0 + ((v1 - v0) * f);
+
+        int64_t      vi = std::round(v);
+        vi              = std::clamp(vi, sc<int64_t>(0), sc<int64_t>(65535));
+        return sc<uint16_t>(vi);
+    };
+
+    for (size_t i = 0; i < gammaSize; ++i) {
+        float          x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
+
+        const uint16_t r = sample(0, x);
+        const uint16_t g = sample(1, x);
+        const uint16_t b = sample(2, x);
+
+        out[i * 3 + 0] = r;
+        out[i * 3 + 1] = g;
+        out[i * 3 + 2] = b;
+    }
+
+    return out;
+}
+
+void CMonitor::updateVCGTRamps() {
+    auto gammaSize = m_output->getGammaSize();
+
+    if (gammaSize <= 10) {
+        Log::logger->log(Log::DEBUG, "CMonitor::updateVCGTRamps: skipping, no gamma ramp for output");
+        return;
+    }
+
+    if (!m_imageDescription->value().icc.vcgt) {
+        if (m_vcgtRampsSet)
+            m_output->state->setGammaLut({});
+
+        m_vcgtRampsSet = false;
+        return;
+    }
+
+    // build table
+    auto table = resampleInterleavedToKms(*m_imageDescription->value().icc.vcgt, gammaSize);
+
+    m_output->state->setGammaLut(table);
+
+    m_vcgtRampsSet = true;
+}
+
+bool CMonitor::gammaRampsInUse() {
+    return m_vcgtRampsSet;
 }
 
 CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {

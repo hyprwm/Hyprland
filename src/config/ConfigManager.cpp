@@ -655,6 +655,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("scrolling:follow_min_visible", Hyprlang::FLOAT{0.4});
     registerConfigVar("scrolling:explicit_column_widths", Hyprlang::STRING{"0.333, 0.5, 0.667, 1.0"});
     registerConfigVar("scrolling:direction", Hyprlang::STRING{"right"});
+    registerConfigVar("scrolling:wrap_focus", Hyprlang::INT{1});
+    registerConfigVar("scrolling:wrap_swapcol", Hyprlang::INT{1});
 
     registerConfigVar("animations:enabled", Hyprlang::INT{1});
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});
@@ -797,6 +799,8 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
     registerConfigVar("render:cm_sdr_eotf", {"default"});
     registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
+    registerConfigVar("render:icc_vcgt_enabled", Hyprlang::INT{1});
+    registerConfigVar("render:use_shader_blur_blend", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});
@@ -871,6 +875,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "min_luminance", Hyprlang::FLOAT{-1.0});
     m_config->addSpecialConfigValue("monitorv2", "max_luminance", Hyprlang::INT{-1});
     m_config->addSpecialConfigValue("monitorv2", "max_avg_luminance", Hyprlang::INT{-1});
+    m_config->addSpecialConfigValue("monitorv2", "icc", Hyprlang::STRING{""});
 
     // windowrule v3
     m_config->addSpecialCategory("windowrule", {.key = "name"});
@@ -1257,6 +1262,10 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     if (VAL && VAL->m_bSetByUser)
         parser.rule().maxAvgLuminance = std::any_cast<Hyprlang::INT>(VAL->getValue());
 
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "icc", output.c_str());
+    if (VAL && VAL->m_bSetByUser)
+        parser.rule().iccFile = std::any_cast<Hyprlang::STRING>(VAL->getValue());
+
     auto newrule = parser.rule();
 
     std::erase_if(m_monitorRules, [&](const auto& other) { return other.name == newrule.name; });
@@ -1370,7 +1379,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pInputManager->setTouchDeviceConfigs();
         g_pInputManager->setTabletConfigs();
 
-        g_pHyprOpenGL->m_reloadScreenShader = true;
+        g_pHyprRenderer->m_reloadScreenShader = true;
     }
 
     // parseError will be displayed next frame
@@ -1444,7 +1453,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty
-        g_pHyprOpenGL->markBlurDirtyForMonitor(m);
+        m->m_blurFBDirty = true;
 
         g_pCompositor->scheduleFrameForMonitor(m);
 
@@ -2275,6 +2284,15 @@ bool CMonitorRuleParser::parseVRR(const std::string& value) {
     return true;
 }
 
+bool CMonitorRuleParser::parseICC(const std::string& val) {
+    if (val.empty()) {
+        m_error += "invalid icc ";
+        return false;
+    }
+    m_rule.iccFile = val;
+    return true;
+}
+
 void CMonitorRuleParser::setDisabled() {
     m_rule.disabled = true;
 }
@@ -2368,6 +2386,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             argno++;
         } else if (ARGS[argno] == "vrr") {
             parser.parseVRR(std::string(ARGS[argno + 1]));
+            argno++;
+        } else if (ARGS[argno] == "icc") {
+            parser.parseICC(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "workspace") {
             const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(std::string(ARGS[argno + 1]));

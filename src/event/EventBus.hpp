@@ -41,6 +41,7 @@ namespace Event {
                 Event<PHLWINDOW>                        openEarly;
                 Event<PHLWINDOW>                        destroy;
                 Event<PHLWINDOW>                        close;
+                Event<PHLWINDOW>                        kill;
                 Event<PHLWINDOW, Desktop::eFocusReason> active;
                 Event<PHLWINDOW>                        urgent;
                 Event<PHLWINDOW>                        title;
@@ -54,6 +55,7 @@ namespace Event {
             struct {
                 Event<PHLLS> opened;
                 Event<PHLLS> closed;
+                Event<PHLLS> updateRules;
             } layer;
 
             struct {

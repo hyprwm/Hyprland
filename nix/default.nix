@@ -12,6 +12,7 @@
   epoll-shim,
   git,
   glaze-hyprland,
+  glslang,
   gtest,
   hyprcursor,
   hyprgraphics,
@@ -21,6 +22,7 @@
   hyprutils,
   hyprwayland-scanner,
   hyprwire,
+  lcms2,
   libGL,
   libdrm,
   libexecinfo,
@@ -172,6 +174,7 @@ customStdenv.mkDerivation (finalAttrs: {
       cairo
       git
       glaze-hyprland
+      glslang
       gtest
       hyprcursor
       hyprgraphics
@@ -179,6 +182,7 @@ customStdenv.mkDerivation (finalAttrs: {
       hyprlang
       hyprutils
       hyprwire
+      lcms2
       libdrm
       libgbm
       libGL

@@ -125,6 +125,7 @@ find_package(Threads REQUIRED)
 
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
+find_package(glslang CONFIG REQUIRED)
 
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
@@ -266,7 +267,8 @@ pkg_check_modules(
   gbm
   gio-2.0
   re2
-  muparser)
+  muparser
+  lcms2)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -478,9 +480,9 @@ function(protocolWayland)
 endfunction()
 
 if(TARGET OpenGL::GL)
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 else()
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)

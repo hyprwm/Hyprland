@@ -10,6 +10,7 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include <hyprutils/math/Region.hpp>
 
 using namespace Screenshare;
 
@@ -133,7 +134,7 @@ void CScreenshareFrame::copy() {
     // store a snapshot before the permission popup so we don't break screenshots
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        if (!m_session->m_tempFB.isAllocated())
+        if (!m_session->m_tempFB || !m_session->m_tempFB->isAllocated())
             storeTempFB();
 
         // don't copy a frame while allow is pending because screenshot tools will only take the first frame we give, which is empty
@@ -159,17 +160,17 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = makeShared<CTexture>(PMONITOR->m_output->state->state().buffer);
+    auto       TEXTURE = g_pHyprRenderer->createTexture(PMONITOR->m_output->state->state().buffer);
 
-    const bool IS_CM_AWARE                      = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
-    g_pHyprOpenGL->m_renderData.transformDamage = false;
-    g_pHyprOpenGL->m_renderData.noSimplify      = true;
+    const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->m_renderData.noSimplify      = true;
 
     // render monitor texture
     CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
                       .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
                       .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
-    g_pHyprOpenGL->pushMonitorTransformEnabled(true);
+    g_pHyprRenderer->pushMonitorTransformEnabled(true);
     g_pHyprOpenGL->setRenderModifEnabled(false);
     g_pHyprOpenGL->renderTexture(TEXTURE, monbox,
                                  {
@@ -177,7 +178,7 @@ void CScreenshareFrame::renderMonitor() {
                                      .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
                                  });
     g_pHyprOpenGL->setRenderModifEnabled(true);
-    g_pHyprOpenGL->popMonitorTransformEnabled();
+    g_pHyprRenderer->popMonitorTransformEnabled();
 
     // render black boxes for noscreenshare
     auto hidePopups = [&](Vector2D popupBaseOffset) {
@@ -277,9 +278,9 @@ void CScreenshareFrame::renderWindow() {
     const auto NOW = Time::steadyNow();
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
-    g_pHyprOpenGL->m_renderData.monitorProjection = Mat3x3::identity();
-    g_pHyprOpenGL->m_renderData.projection        = Mat3x3::outputProjection(m_bufferSize, HYPRUTILS_TRANSFORM_NORMAL);
-    g_pHyprOpenGL->m_renderData.transformDamage   = false;
+    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(RPT_FB);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprOpenGL->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
@@ -295,8 +296,11 @@ void CScreenshareFrame::renderWindow() {
         return;
 
     auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
+    if (!pointerSurface)
+        return;
 
-    if (!pointerSurface || pointerSurface->getSurfaceBoxGlobal()->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
+    auto box = pointerSurface->getSurfaceBoxGlobal();
+    if (!box.has_value() || box->intersection(m_session->m_window->getFullWindowBoundingBox()).empty())
         return;
 
     if (Desktop::focusState()->window() != m_session->m_window)
@@ -317,15 +321,15 @@ void CScreenshareFrame::render() {
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
         g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 0));
-        CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprOpenGL->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprOpenGL->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprOpenGL->renderTexture(g_pHyprOpenGL->m_screencopyDeniedTexture, texbox, {});
+        CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
+        g_pHyprOpenGL->renderTexture(g_pHyprRenderer->m_screencopyDeniedTexture, texbox, {});
         return;
     }
 
-    if (m_session->m_tempFB.isAllocated()) {
+    if (m_session->m_tempFB && m_session->m_tempFB->isAllocated()) {
         CBox texbox = {{}, m_bufferSize};
-        g_pHyprOpenGL->renderTexture(m_session->m_tempFB.getTexture(), texbox, {});
-        m_session->m_tempFB.release();
+        g_pHyprOpenGL->renderTexture(m_session->m_tempFB->getTexture(), texbox, {});
+        m_session->m_tempFB->release();
         return;
     }
 
@@ -349,7 +353,7 @@ bool CScreenshareFrame::copyDmabuf() {
 
     render();
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender([self = m_self]() {
         if (!self || self.expired() || self->m_copied)
@@ -367,7 +371,7 @@ bool CScreenshareFrame::copyShm() {
     if (done())
         return false;
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     auto shm                      = m_buffer->shm();
     auto [pixelData, fmt, bufLen] = m_buffer->beginDataPtr(0); // no need for end, cuz it's shm
@@ -378,25 +382,25 @@ bool CScreenshareFrame::copyShm() {
         return false;
     }
 
-    const auto   PMONITOR = m_session->monitor();
+    const auto PMONITOR = m_session->monitor();
 
-    CFramebuffer outFB;
-    outFB.alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
+    auto       outFB = g_pHyprRenderer->createFB();
+    outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
 
-    if (!g_pHyprRenderer->beginRender(PMONITOR, m_damage, RENDER_MODE_FULL_FAKE, nullptr, &outFB, true)) {
+    if (!g_pHyprRenderer->beginRender(PMONITOR, m_damage, RENDER_MODE_FULL_FAKE, nullptr, outFB, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
         return false;
     }
 
     render();
 
-    g_pHyprOpenGL->m_renderData.blockScreenShader = true;
+    g_pHyprRenderer->m_renderData.blockScreenShader = true;
 
     g_pHyprRenderer->endRender();
 
-    g_pHyprOpenGL->m_renderData.pMonitor = PMONITOR;
-    outFB.bind();
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, outFB.getFBID());
+    g_pHyprRenderer->m_renderData.pMonitor = PMONITOR;
+    outFB->bind();
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, GLFB(outFB)->getFBID());
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -438,11 +442,11 @@ bool CScreenshareFrame::copyShm() {
         });
     }
 
-    outFB.unbind();
+    GLFB(outFB)->unbind();
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");
@@ -453,13 +457,13 @@ bool CScreenshareFrame::copyShm() {
 }
 
 void CScreenshareFrame::storeTempFB() {
-    g_pHyprRenderer->makeEGLCurrent();
-
-    m_session->m_tempFB.alloc(m_bufferSize.x, m_bufferSize.y);
+    if (!m_session->m_tempFB)
+        m_session->m_tempFB = g_pHyprRenderer->createFB();
+    m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 
-    if (!g_pHyprRenderer->beginRender(m_session->monitor(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, &m_session->m_tempFB, true)) {
+    if (!g_pHyprRenderer->beginRender(m_session->monitor(), fakeDamage, RENDER_MODE_FULL_FAKE, nullptr, m_session->m_tempFB, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to temp fb");
         return;
     }

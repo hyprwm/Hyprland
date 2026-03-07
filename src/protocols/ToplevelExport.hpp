@@ -18,7 +18,6 @@ namespace Screenshare {
 class CToplevelExportClient {
   public:
     CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_);
-    ~CToplevelExportClient();
 
     bool good();
 
@@ -50,10 +49,7 @@ class CToplevelExportFrame {
     CHLBufferReference                   m_buffer;
     Time::steady_tp                      m_timestamp;
 
-    struct {
-        CHyprSignalListener stopped;
-    } m_listeners;
-
+    //
     void shareFrame(wl_resource* buffer, bool ignoreDamage);
 
     friend class CToplevelExportProtocol;

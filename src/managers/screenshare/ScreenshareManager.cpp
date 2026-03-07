@@ -145,15 +145,19 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
     auto& session = *it;
 
     session->stoppedListener = session->m_session->m_events.stopped.listen([session = WP<SManagedSession>(session)]() {
-        std::erase_if(Screenshare::mgr()->m_managedSessions, [&](const auto& s) { return !s || session.expired() || s->m_session == session->m_session; });
+        if (!session.expired())
+            std::erase_if(Screenshare::mgr()->m_managedSessions, [&](const auto& s) { return s && s->m_session.get() == session->m_session.get(); });
     });
 
     return session->m_session;
 }
 
-void CScreenshareManager::destroyClientSessions(wl_client* client) {
-    LOGM(Log::TRACE, "Destroy client sessions for {:x}", (uintptr_t)client);
-    std::erase_if(m_managedSessions, [&](const auto& session) { return !session || session->m_session->m_client == client; });
+bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
+    return std::ranges::any_of(m_sessions, [monitor](const auto& s) {
+        if (!s)
+            return false;
+        return (s->m_type == SHARE_MONITOR || s->m_type == SHARE_REGION) && s->m_monitor == monitor;
+    });
 }
 
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {

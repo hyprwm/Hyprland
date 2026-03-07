@@ -1579,6 +1579,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{true},
     },
+    SConfigOptionDescription{
+        .value       = "render:icc_vcgt_enabled",
+        .description = "Enable sending VCGT ramps to KMS with ICC profiles",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{true},
+    },
+    {
+        .value       = "render:use_shader_blur_blend",
+        .description = "Use experimental blurred bg blending",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{false},
+    },
 
     /*
      * cursor:
@@ -2092,6 +2104,18 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .description = "Direction in which new windows appear and the layout scrolls",
         .type        = CONFIG_OPTION_CHOICE,
         .data        = SConfigOptionDescription::SChoiceData{.firstIndex = 0, .choices = "right,left,down,up"},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:wrap_focus",
+        .description = "Determines if column focus wraps around when going before the first column or past the last column",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
+    },
+    SConfigOptionDescription{
+        .value       = "scrolling:wrap_swapcol",
+        .description = "Determines if column movement wraps around when moving to before the first column or past the last column",
+        .type        = CONFIG_OPTION_BOOL,
+        .data        = SConfigOptionDescription::SBoolData{.value = true},
     },
 
     /*

@@ -6,6 +6,7 @@
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
+#include "../../render/Framebuffer.hpp"
 
 class CXDGPopupResource;
 
@@ -59,6 +60,8 @@ namespace Desktop::View {
         // fade in-out
         PHLANIMVAR<float> m_alpha;
         bool              m_fadingOut = false;
+
+        SP<IFramebuffer>  m_snapshotFB;
 
       private:
         CPopup();

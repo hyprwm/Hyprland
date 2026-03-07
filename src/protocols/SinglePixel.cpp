@@ -8,15 +8,13 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_color = col_.getAsHex();
 
-    g_pHyprRenderer->makeEGLCurrent();
-
     m_opaque = col_.a >= 1.F;
 
-    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
+    m_texture = g_pHyprRenderer->createTexture(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    m_success = m_texture->m_texID;
+    m_success = m_texture->ok();
 
     size = {1, 1};
 

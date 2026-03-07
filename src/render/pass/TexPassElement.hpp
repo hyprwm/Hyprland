@@ -3,32 +3,31 @@
 #include <optional>
 
 class CWLSurfaceResource;
-class CTexture;
+class ITexture;
 class CSyncTimeline;
 
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<CTexture>          tex;
-        CBox                  box;
-        float                 a     = 1.F;
-        float                 blurA = 1.F;
-        CRegion               damage;
-        int                   round         = 0;
-        float                 roundingPower = 2.0f;
-        bool                  flipEndFrame  = false;
-        std::optional<Mat3x3> replaceProjection;
-        CBox                  clipBox;
-        bool                  blur = false;
-        std::optional<float>  ignoreAlpha;
-        std::optional<bool>   blockBlurOptimization;
+        SP<ITexture>         tex;
+        CBox                 box;
+        float                a     = 1.F;
+        float                blurA = 1.F;
+        CRegion              damage;
+        int                  round               = 0;
+        float                roundingPower       = 2.0f;
+        bool                 flipEndFrame        = false;
+        bool                 useMirrorProjection = false;
+        CBox                 clipBox;
+        bool                 blur = false;
+        std::optional<float> ignoreAlpha;
+        std::optional<bool>  blockBlurOptimization;
     };
 
     CTexPassElement(const SRenderData& data);
     CTexPassElement(SRenderData&& data);
     virtual ~CTexPassElement() = default;
 
-    virtual void                draw(const CRegion& damage);
     virtual bool                needsLiveBlur();
     virtual bool                needsPrecomputeBlur();
     virtual std::optional<CBox> boundingBox();
@@ -39,6 +38,9 @@ class CTexPassElement : public IPassElement {
         return "CTexPassElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_TEXTURE;
+    };
+
     SRenderData m_data;
 };

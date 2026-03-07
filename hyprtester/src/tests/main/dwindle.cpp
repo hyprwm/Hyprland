@@ -84,14 +84,13 @@ static void test13349() {
 static void testSplit() {
     // Test various split methods
 
-    for (auto const& win : {"a", "b"}) {
-        if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
-        }
-    }
+    Tests::spawnKitty("a");
+
+    // these must not crash
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg swapsplit"), "ok");
+    EXPECT_NOT(getFromSocket("/dispatch layoutmsg splitratio 1 exact"), "ok");
+
+    Tests::spawnKitty("b");
 
     OK(getFromSocket("/dispatch focuswindow class:a"));
     OK(getFromSocket("/dispatch layoutmsg splitratio -0.2"));
@@ -136,6 +135,98 @@ static void testSplit() {
     Tests::killAllWindows();
 }
 
+static void testRotatesplit() {
+    OK(getFromSocket("r/keyword general:gaps_in 0"));
+    OK(getFromSocket("r/keyword general:gaps_out 0"));
+    OK(getFromSocket("r/keyword general:border_size 0"));
+
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    // test 4 repeated rotations by 90 degrees
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "size: 1920,540");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 960,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,540");
+        EXPECT_CONTAINS(str, "size: 1920,540");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    // test different angles
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit 180"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 960,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit 270"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,540");
+        EXPECT_CONTAINS(str, "size: 1920,540");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit 360"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "size: 1920,540");
+    }
+
+    // test negative angles
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit -90"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 0,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    OK(getFromSocket("/dispatch layoutmsg rotatesplit -180"));
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 960,0");
+        EXPECT_CONTAINS(str, "size: 960,1080");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/reload"));
+}
+
 static bool test() {
     NLog::log("{}Testing Dwindle layout", Colors::GREEN);
 
@@ -148,6 +239,9 @@ static bool test() {
 
     NLog::log("{}Testing splits", Colors::GREEN);
     testSplit();
+
+    NLog::log("{}Testing rotatesplit", Colors::GREEN);
+    testRotatesplit();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

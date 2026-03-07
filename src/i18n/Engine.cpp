@@ -1605,6 +1605,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Ứng dụng <b>{app}</b> đang yêu cầu một quyền không xác định.");
     huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Ứng dụng <b>{app}</b> đang cố gắng ghi hình màn hình của bạn.\n\nBạn muốn cho phép không?");
+    huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "Ứng dụng <b>{app}</b> đang cố gắng đọc vị trí chuột của bạn.\n\nBạn muốn cho phép không?");
     huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Ứng dụng <b>{app}</b> đang cố gắng tải plugin: <b>{plugin}</b>.\n\nBạn muốn cho phép không?");
     huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Phát hiện bàn phím mới: <b>{keyboard}</b>.\n\nBạn muốn cho phép bàn phím này hoạt động không?");
     huEngine->registerEntry("vi_VN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(không xác định)");

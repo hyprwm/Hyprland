@@ -8,6 +8,7 @@
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "debug/log/Logger.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -22,6 +23,8 @@
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
+#include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
@@ -407,7 +410,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     return true;
 }
 
-SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
+SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<ITexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
@@ -540,24 +543,23 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
         const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
-        cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
+        const auto SX = SCALE.x, SY = SCALE.y;
+        const auto BW = sc<double>(DMABUF.size.x), BH = sc<double>(DMABUF.size.y);
 
-        if (TR) {
-            cairo_matrix_rotate(&matrixPre, M_PI_2 * sc<double>(TR));
-
-            // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
-            // cba to do it rn, does anyone fucking use that??
-            if (TR >= WL_OUTPUT_TRANSFORM_FLIPPED) {
-                cairo_matrix_scale(&matrixPre, -1, 1);
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
-            }
-
-            if (TR == 3 || TR == 7)
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
-            else if (TR == 2 || TR == 6)
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, -DMABUF.size.y);
-            else if (TR == 1 || TR == 5)
-                cairo_matrix_translate(&matrixPre, 0, -DMABUF.size.y);
+        // Cairo pattern matrix maps destination coords to source coords (inverse of visual transform).
+        // x_src = xx * x_dst + xy * y_dst + x0
+        // y_src = yx * x_dst + yy * y_dst + y0
+        // cairo_matrix_init(&m, xx, yx, xy, yy, x0, y0)
+        switch (TR) {
+            case WL_OUTPUT_TRANSFORM_NORMAL:
+            default: cairo_matrix_init(&matrixPre, SX, 0, 0, SY, 0, 0); break;
+            case WL_OUTPUT_TRANSFORM_90: cairo_matrix_init(&matrixPre, 0, SY, -SX, 0, SX * BW, 0); break;
+            case WL_OUTPUT_TRANSFORM_180: cairo_matrix_init(&matrixPre, -SX, 0, 0, -SY, SX * BW, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_270: cairo_matrix_init(&matrixPre, 0, -SY, SX, 0, 0, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED: cairo_matrix_init(&matrixPre, -SX, 0, 0, SY, SX * BW, 0); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_90: cairo_matrix_init(&matrixPre, 0, SY, SX, 0, 0, 0); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_180: cairo_matrix_init(&matrixPre, SX, 0, 0, -SY, 0, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_270: cairo_matrix_init(&matrixPre, 0, -SY, -SX, 0, SX * BW, SY * BH); break;
         }
 
         cairo_pattern_set_matrix(PATTERNPRE, &matrixPre);
@@ -579,8 +581,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return buf;
     }
 
-    g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = state->monitor;
+    g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
@@ -597,10 +598,10 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    g_pHyprOpenGL->renderTexture(texture, xbox, {});
+    g_pHyprOpenGL->renderTexture(texture, xbox, {.noCM = true});
 
     g_pHyprOpenGL->end();
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     return buf;
 }
@@ -901,13 +902,13 @@ const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
     return m_currentCursorImage;
 }
 
-SP<CTexture> CPointerManager::getCurrentCursorTexture() {
+SP<ITexture> CPointerManager::getCurrentCursorTexture() {
     if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
         return nullptr;
 
     if (m_currentCursorImage.pBuffer) {
         if (!m_currentCursorImage.bufferTex)
-            m_currentCursorImage.bufferTex = makeShared<CTexture>(m_currentCursorImage.pBuffer, true);
+            m_currentCursorImage.bufferTex = g_pHyprRenderer->createTexture(m_currentCursorImage.pBuffer, true);
         return m_currentCursorImage.bufferTex;
     }
 

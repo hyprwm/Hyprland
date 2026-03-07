@@ -22,6 +22,7 @@
 #include "render/gl/GLTexture.hpp"
 #include "decorations/CHyprDropShadowDecoration.hpp"
 
+#include <cstdint>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
@@ -376,7 +377,7 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
             .allowCustomUV      = m_data.allowCustomUV,
             .cmBackToSRGB       = m_data.cmBackToSRGB,
             .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
-            .discardMode        = m_data.ignoreAlpha.has_value() ? DISCARD_ALPHA : m_data.discardMode,
+            .discardMode        = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,
             .discardOpacity     = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
             .clipRegion         = m_data.clipRegion,
             .currentLS          = m_data.currentLS,

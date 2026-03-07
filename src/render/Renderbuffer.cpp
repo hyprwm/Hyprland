@@ -7,6 +7,8 @@
 
 #include <dlfcn.h>
 
+using namespace Render;
+
 IRenderbuffer::IRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : m_hlBuffer(buffer) {
     m_listeners.destroyBuffer = buffer->events.destroy.listen([this] { g_pHyprRenderer->onRenderbufferDestroy(this); });
 }

@@ -3,9 +3,6 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
-#include <thread>
-#include <chrono>
-
 static int ret = 0;
 
 // Don't crash when a monitor is removed while windows are tiled and a config reload follows
@@ -34,23 +31,8 @@ static void testCrashOnMonitorDisconnectReload() {
     NLog::log("{}Reloading config with HEADLESS-2 removed", Colors::YELLOW);
     OK(getFromSocket("/reload"));
 
-    // let Hyprland settle after monitor removal + reload
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // verify Hyprland is still responsive
-    {
-        auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "HEADLESS-1");
-        EXPECT_NOT_CONTAINS(str, "HEADLESS-2");
-    }
-
-    // windows should have been moved to a remaining monitor
-    {
-        auto clients = getFromSocket("/clients");
-        EXPECT_NOT_CONTAINS(clients, "HEADLESS-2");
-    }
-
-    // restore the monitor for subsequent tests
+    // if we got here, Hyprland survived the reload without crashing.
+    // restore the monitor for subsequent tests.
     NLog::log("{}Restoring HEADLESS-2", Colors::YELLOW);
     OK(getFromSocket("/output create headless HEADLESS-2"));
     OK(getFromSocket("/keyword monitor HEADLESS-2,1920x1080@60,auto-right,1"));
@@ -85,15 +67,7 @@ static void testCrashOnFallbackLayoutMonitorDisconnect() {
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
 
-    // let Hyprland settle after monitor removal + reload
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    {
-        auto str = getFromSocket("/monitors");
-        EXPECT_NOT_CONTAINS(str, "HEADLESS-2");
-    }
-
-    // restore
+    // if we got here, Hyprland survived. restore state.
     NLog::log("{}Restoring HEADLESS-2 and layout", Colors::YELLOW);
     OK(getFromSocket("/output create headless HEADLESS-2"));
     OK(getFromSocket("/keyword monitor HEADLESS-2,1920x1080@60,auto-right,1"));

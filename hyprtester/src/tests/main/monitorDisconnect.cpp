@@ -3,6 +3,9 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
+#include <thread>
+#include <chrono>
+
 static int ret = 0;
 
 // Don't crash when a monitor is removed while windows are tiled and a config reload follows
@@ -30,6 +33,9 @@ static void testCrashOnMonitorDisconnectReload() {
     // in CDwindleAlgorithm::newTarget() during updateWorkspaceLayouts()
     NLog::log("{}Reloading config with HEADLESS-2 removed", Colors::YELLOW);
     OK(getFromSocket("/reload"));
+
+    // let Hyprland settle after monitor removal + reload
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // verify Hyprland is still responsive
     {
@@ -78,6 +84,9 @@ static void testCrashOnFallbackLayoutMonitorDisconnect() {
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
+
+    // let Hyprland settle after monitor removal + reload
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     {
         auto str = getFromSocket("/monitors");

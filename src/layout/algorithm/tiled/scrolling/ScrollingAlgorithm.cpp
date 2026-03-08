@@ -875,8 +875,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_RIGHT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_LEFT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 
@@ -886,8 +886,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_LEFT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_RIGHT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 

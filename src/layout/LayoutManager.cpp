@@ -125,6 +125,9 @@ void CLayoutManager::moveInDirection(SP<ITarget> target, const std::string& dire
         return;
     }
 
+    if (!target->space())
+        return;
+
     target->space()->moveTargetInDirection(target, dir, silent);
 }
 

@@ -4,7 +4,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
-#include "render/pass/TextureMatteElement.hpp"
+#include "../pass/TextureMatteElement.hpp"
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;

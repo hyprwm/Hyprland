@@ -1,6 +1,6 @@
 #include "Renderbuffer.hpp"
 #include "Framebuffer.hpp"
-#include "render/Renderer.hpp"
+#include "Renderer.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/signal/Listener.hpp>
 #include <hyprutils/signal/Signal.hpp>

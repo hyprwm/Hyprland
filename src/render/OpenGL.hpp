@@ -35,7 +35,7 @@
 #include "render/ShaderLoader.hpp"
 #include "render/gl/GLFramebuffer.hpp"
 #include "render/gl/GLRenderbuffer.hpp"
-#include "render/gl/GLTexture.hpp"
+#include "render/pass/TexPassElement.hpp"
 
 #define GLFB(ifb) dc<CGLFramebuffer*>(ifb.get())
 
@@ -55,11 +55,6 @@ constexpr std::array<SVertex, 4> fullVerts = {{
 }};
 
 inline const float               fanVertsFull[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
-
-enum eDiscardMode : uint8_t {
-    DISCARD_OPAQUE = 1,
-    DISCARD_ALPHA  = 1 << 1
-};
 
 struct SRenderModifData {
     enum eRenderModifType : uint8_t {
@@ -186,24 +181,33 @@ class CHyprOpenGLImpl {
     };
 
     struct STextureRenderData {
-        const CRegion*         damage  = nullptr;
-        SP<CWLSurfaceResource> surface = nullptr;
-        float                  a       = 1.F;
-        bool                   blur    = false;
+        bool                   blur  = false;
         float                  blurA = 1.F, overallA = 1.F;
-        int                    round                 = 0;
-        float                  roundingPower         = 2.F;
-        bool                   discardActive         = false;
-        bool                   allowCustomUV         = false;
-        bool                   allowDim              = true;
-        bool                   noAA                  = false;
         bool                   blockBlurOptimization = false;
+        SP<ITexture>           blurredBG;
+
+        const CRegion*         damage        = nullptr;
+        SP<CWLSurfaceResource> surface       = nullptr;
+        float                  a             = 1.F;
+        int                    round         = 0;
+        float                  roundingPower = 2.F;
+        bool                   discardActive = false;
+        bool                   allowCustomUV = false;
+        bool                   allowDim      = true;
+        bool                   noAA          = false; // unused
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
         bool                   cmBackToSRGB   = false;
-        bool                   noCM           = false;
         bool                   finalMonitorCM = false;
         SP<CMonitor>           cmBackToSRGBSource;
-        SP<ITexture>           blurredBG;
+
+        uint32_t               discardMode    = DISCARD_OPAQUE;
+        float                  discardOpacity = 0.f;
+
+        CRegion                clipRegion;
+        PHLLSREF               currentLS;
+
+        Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+        Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
     };
 
     struct SBorderRenderData {
@@ -227,37 +231,25 @@ class CHyprOpenGLImpl {
     void                                      renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
     void                                      renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
 
-    void                                      setRenderModifEnabled(bool enabled);
     void                                      setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
     void                                      setCapStatus(int cap, bool status);
 
     void                                      blend(bool enabled);
 
     void                                      clear(const CHyprColor&);
-    void                                      clearWithTex();
     void                                      scissor(const CBox&, bool transform = true);
     void                                      scissor(const pixman_box32*, bool transform = true);
     void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
     void                                      destroyMonitorResources(PHLMONITORREF);
 
-    void                                      preWindowPass();
-    bool                                      preBlurQueued();
     void                                      preRender(PHLMONITOR);
 
     void                                      saveBufferForMirror(const CBox&);
-    void                                      renderMirrored();
 
     void                                      applyScreenShader(const std::string& path);
 
-    void                                      bindOffMain();
-    void                                      renderOffToMain(CGLFramebuffer* off);
-    void                                      bindBackOnMain();
-
-    SP<ITexture>                              texFromCairo(cairo_surface_t* cairo);
-
-    bool                                      needsACopyFB(PHLMONITOR mon);
-    void                                      setDamage(const CRegion& damage, std::optional<CRegion> finalDamage = {});
+    void                                      renderOffToMain(IFramebuffer* off);
 
     std::vector<SDRMFormat>                   getDRMFormats();
     std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
@@ -350,7 +342,6 @@ class CHyprOpenGLImpl {
     SP<CShader>                      m_finalScreenShader;
     GLuint                           m_currentProgram;
 
-    void                             createBGTextureForMonitor(PHLMONITOR);
     void                             initDRMFormats();
     void                             initEGL(bool gbm);
     EGLDeviceEXT                     eglDeviceFromDRMFD(int drmFD);
@@ -365,13 +356,11 @@ class CHyprOpenGLImpl {
     std::optional<std::vector<uint64_t>> getModsForFormat(EGLint format);
 
     // returns the out FB, can be either Mirror or MirrorSwap
-    SP<IFramebuffer> blurMainFramebufferWithDamage(float a, CRegion* damage);
     SP<IFramebuffer> blurFramebufferWithDamage(float a, CRegion* damage, CGLFramebuffer& source);
 
     void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                     bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
     void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
-    void             renderSplash(cairo_t* const, cairo_surface_t* const, double offset, const Vector2D& size);
     void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
     void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
@@ -380,9 +369,8 @@ class CHyprOpenGLImpl {
     void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
     void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 
-    void             preBlurForCurrentMonitor();
-
-    friend class CHyprRenderer;
+    friend class IHyprRenderer;
+    friend class CHyprGLRenderer;
     friend class CTexPassElement;
     friend class CPreBlurElement;
     friend class CSurfacePassElement;

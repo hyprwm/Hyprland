@@ -105,7 +105,10 @@ void CAlgorithm::recalculate() {
     m_floating->recalculate();
 
     const auto PWORKSPACE = m_space->workspace();
-    const auto PMONITOR   = PWORKSPACE->m_monitor;
+    if (!PWORKSPACE)
+        return;
+
+    const auto PMONITOR = PWORKSPACE->m_monitor;
 
     if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
         // massive hack from the fullscreen func

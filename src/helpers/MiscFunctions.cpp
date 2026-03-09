@@ -732,18 +732,10 @@ Vector2D configStringToVector2D(const std::string& VALUE) {
 }
 
 double normalizeAngleRad(double ang) {
-    if (ang > M_PI * 2) {
-        while (ang > M_PI * 2)
-            ang -= M_PI * 2;
-        return ang;
-    }
-
-    if (ang < 0.0) {
-        while (ang < 0.0)
-            ang += M_PI * 2;
-        return ang;
-    }
-
+    constexpr double TAU = M_PI * 2.0;
+    ang                  = std::fmod(ang, TAU);
+    if (ang < 0.0)
+        ang += TAU;
     return ang;
 }
 

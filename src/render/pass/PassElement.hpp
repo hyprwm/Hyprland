@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../defines.hpp"
+#include <vector>
 
 enum ePassElementType : uint8_t {
     EK_UNKNOWN = 0,
@@ -14,13 +15,16 @@ enum ePassElementType : uint8_t {
     EK_SURFACE,
     EK_TEXTURE,
     EK_TEXTURE_MATTE,
-    EK_INNER_GLOW
+    EK_INNER_GLOW,
+    EK_CUSTOM,
 };
 
 class IPassElement {
   public:
     virtual ~IPassElement() = default;
 
+    virtual std::vector<UP<IPassElement>> draw();
+    //
     virtual bool                needsLiveBlur()       = 0;
     virtual bool                needsPrecomputeBlur() = 0;
     virtual const char*         passName()            = 0;

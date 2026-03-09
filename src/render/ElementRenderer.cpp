@@ -24,6 +24,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
         case EK_SURFACE: preDrawSurface(dynamicPointerCast<CSurfacePassElement>(element), damage); break;
         case EK_TEXTURE: drawTex(dynamicPointerCast<CTexPassElement>(element), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dynamicPointerCast<CTextureMatteElement>(element), damage); break;
+        case EK_CUSTOM: drawCustom(element, damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
 }
@@ -477,4 +478,11 @@ void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CReg
         g_pHyprRenderer->popMonitorTransformEnabled();
     } else
         draw(element, damage);
+}
+
+void IElementRenderer::drawCustom(WP<IPassElement> element, const CRegion& damage) {
+    const auto& elements = element->draw();
+    for (const auto& el : elements) {
+        drawElement(el, damage);
+    }
 }

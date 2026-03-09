@@ -43,5 +43,6 @@ namespace Render {
         void preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
         void drawTex(WP<CTexPassElement> element, const CRegion& damage);
         void drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage);
+        void drawCustom(WP<IPassElement> element, const CRegion& damage);
     };
 }

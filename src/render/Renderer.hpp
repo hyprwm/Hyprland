@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <cstdint>
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Box.hpp>
 #include <list>
@@ -49,6 +50,12 @@ namespace Render {
         IHyprRenderer();
         virtual ~IHyprRenderer();
 
+        enum eType : uint8_t {
+            RT_GL = 1,
+            RT_VK = 2,
+        };
+
+        virtual eType                       type() = 0;
         WP<Render::GL::CHyprOpenGLImpl>     glBackend();
 
         void                                renderMonitor(PHLMONITOR pMonitor, bool commit = true);

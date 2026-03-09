@@ -1029,7 +1029,8 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto POUTFB = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
+    auto POUTFB = data.xray ? (g_pHyprRenderer->m_renderData.pMonitor->m_blurFB ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : nullptr) :
+                              g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
     g_pHyprRenderer->m_renderData.currentFB->bind();
 

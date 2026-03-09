@@ -31,9 +31,8 @@ std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eD
         return WS->m_monitor->logicalBox();
     };
 
-    const auto WINDOWIDEALBB =
-        t->fullscreenMode() != FSMODE_NONE ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
-                                             t->window()->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = t->fullscreenMode() != FSMODE_NONE ? getFullscreenBB().value_or(t->window()->getWindowIdealBoundingBoxIgnoreReserved()) :
+                                                                    t->window()->getWindowIdealBoundingBoxIgnoreReserved();
 
     switch (dir) {
         case Math::DIRECTION_UP: focalPoint = WINDOWIDEALBB.pos() + Vector2D{WINDOWIDEALBB.size().x / 2.0, -1.0}; break;

@@ -9,7 +9,9 @@
 #include "../config/ConfigManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
+#include <charconv>
 #include <cstring>
+#include <cctype>
 #include <climits>
 #include <cmath>
 #include <filesystem>
@@ -706,26 +708,52 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {
-    std::istringstream iss(VALUE);
-    std::string        token;
+    auto view = std::string_view{VALUE};
 
-    if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
+    auto skipSpaces = [](std::string_view& v) {
+        while (!v.empty() && std::isspace(static_cast<unsigned char>(v.front())))
+            v.remove_prefix(1);
+    };
+
+    auto parseInt = [&](std::string_view& v, const char* error) -> long long {
+        skipSpaces(v);
+        if (v.empty())
+            throw std::invalid_argument("Invalid string format");
+
+        long long out = 0;
+        const auto [ptr, ec] = std::from_chars(v.data(), v.data() + v.size(), out);
+        if (ec != std::errc())
+            throw std::invalid_argument(error);
+
+        const auto used = static_cast<size_t>(ptr - v.data());
+        if (used == 0)
+            throw std::invalid_argument(error);
+
+        v.remove_prefix(used);
+        return out;
+    };
+
+    const long long x = parseInt(view, "Invalid x value");
+
+    if (view.empty())
         throw std::invalid_argument("Invalid string format");
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid x value");
-
-    long long x = std::stoll(token);
-
-    if (!std::getline(iss, token))
+    if (view.front() == ',') {
+        view.remove_prefix(1);
+    } else if (std::isspace(static_cast<unsigned char>(view.front()))) {
+        skipSpaces(view);
+        if (!view.empty() && view.front() == ',') {
+            view.remove_prefix(1);
+            skipSpaces(view);
+        }
+    } else {
         throw std::invalid_argument("Invalid string format");
+    }
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid y value");
+    const long long y = parseInt(view, "Invalid y value");
 
-    long long y = std::stoll(token);
-
-    if (std::getline(iss, token))
+    skipSpaces(view);
+    if (!view.empty())
         throw std::invalid_argument("Invalid string format");
 
     return Vector2D(sc<double>(x), sc<double>(y));

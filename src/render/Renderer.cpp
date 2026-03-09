@@ -56,6 +56,7 @@
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <hyprutils/memory/UniquePtr.hpp>
 #include <optional>
 #include <pango/pangocairo.h>
 
@@ -502,14 +503,12 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 void IHyprRenderer::bindOffMain() {
     RASSERT(m_renderData.pMonitor->m_offMainFB->isAllocated(), "IHyprRenderer::beginRender should allocate monitor FBs")
 
-    m_renderData.pMonitor->m_offMainFB->bind();
+    bindFB(m_renderData.pMonitor->m_offMainFB);
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
-    m_renderData.currentFB = m_renderData.pMonitor->m_offMainFB;
 }
 
 void IHyprRenderer::bindBackOnMain() {
-    m_renderData.mainFB->bind();
-    m_renderData.currentFB = m_renderData.mainFB;
+    bindFB(m_renderData.mainFB);
 }
 
 void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
@@ -812,6 +811,17 @@ void IHyprRenderer::draw(const CTexPassElement::SRenderData& data, const CRegion
 
 void IHyprRenderer::draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage) {
     elementRenderer()->drawElement(makeUnique<CTextureMatteElement>(data), damage);
+}
+
+void IHyprRenderer::bindFB(SP<IFramebuffer> fb) {
+    fb->bind();
+    m_renderData.currentFB = fb;
+}
+
+UP<CScopeGuard> IHyprRenderer::bindTempFB(SP<IFramebuffer> fb) {
+    const auto oldFB = m_renderData.currentFB;
+    bindFB(fb);
+    return makeUnique<CScopeGuard>([this, oldFB] { bindFB(oldFB); });
 }
 
 bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
@@ -1735,6 +1745,7 @@ SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage
         return m_renderData.pMonitor->m_mirrorFB->getTexture(); // return something to sample from at least
     }
 
+    auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
     return blurFramebuffer(m_renderData.currentFB, a, originalDamage);
 }
 
@@ -1746,7 +1757,7 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     if (!m_renderData.pMonitor->m_blurFB)
         return;
     m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
-    m_renderData.pMonitor->m_blurFB->bind();
+    auto guard = bindTempFB(m_renderData.pMonitor->m_blurFB);
 
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 
@@ -1761,8 +1772,6 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
         *fakeDamage); // .noAA = true
 
     popMonitorTransformEnabled();
-
-    m_renderData.currentFB->bind();
 }
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {

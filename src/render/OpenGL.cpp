@@ -676,8 +676,7 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
 
     m_fakeFrame = true;
 
-    g_pHyprRenderer->m_renderData.currentFB = FBO;
-    FBO->bind();
+    g_pHyprRenderer->bindFB(FBO);
     m_offloadedFramebuffer = false;
 
     g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
@@ -738,9 +737,8 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
         applyScreenShader(*PSHADER);
     }
 
-    g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
-    g_pHyprRenderer->m_renderData.currentFB = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB;
-    m_offloadedFramebuffer                  = true;
+    g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB);
+    m_offloadedFramebuffer = true;
 
     g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
     g_pHyprRenderer->m_renderData.outFB  = fb ? fb : dc<CHyprGLRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer->getFB();
@@ -777,7 +775,7 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock()) && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
-        g_pHyprRenderer->m_renderData.outFB->bind();
+        g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
         blend(false);
 
         const auto PRIMITIVE_BLOCKED = m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress ||
@@ -1026,16 +1024,14 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto POUTFB = data.xray ? (g_pHyprRenderer->m_renderData.pMonitor->m_blurFB ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : nullptr) :
-                              g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
-
-    g_pHyprRenderer->m_renderData.currentFB->bind();
+    auto blurredBG = data.xray ? (g_pHyprRenderer->m_renderData.pMonitor->m_blurFB ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : nullptr) :
+                                 g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
     CBox MONITORBOX = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
-    renderTexture(POUTFB, MONITORBOX,
+    renderTexture(blurredBG, MONITORBOX,
                   STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
     g_pHyprRenderer->popMonitorTransformEnabled();
     g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
@@ -1261,7 +1257,7 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
     return shader;
 }
 
-WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, eTextureType texType, const CBox& newBox) {
+WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox) {
     static const auto  PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static const auto  PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     static auto        PBLEND    = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
@@ -1294,13 +1290,19 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
     // chosenSdrEotf contains the valid eotf for this display
 
     const auto SOURCE_IMAGE_DESCRIPTION = [&] {
+        if (tex->m_imageDescription)
+            return tex->m_imageDescription;
+
         // if valid CM surface, use that as a source
         if (g_pHyprRenderer->m_renderData.surface.valid() && g_pHyprRenderer->m_renderData.surface->m_colorManagement.valid())
             return CImageDescription::from(g_pHyprRenderer->m_renderData.surface->m_colorManagement->imageDescription());
 
+        if (data.cmBackToSRGB)
+            return g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription;
+
         // otherwise, if we are CM'ing back into source, use chosen, because that's what our work buffer is in
         // the same applies to the final monitor CM
-        if (data.cmBackToSRGB || data.finalMonitorCM) // NOLINTNEXTLINE
+        if (data.finalMonitorCM) // NOLINTNEXTLINE
             return WORK_BUFFER_IMAGE_DESCRIPTION;
 
         // otherwise, default
@@ -1308,6 +1310,9 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
     }();
 
     const auto TARGET_IMAGE_DESCRIPTION = [&] {
+        if (g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription)
+            return g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription;
+
         // if we are CM'ing back, use default sRGB
         if (data.cmBackToSRGB)
             return DEFAULT_IMAGE_DESCRIPTION;
@@ -1467,7 +1472,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
         tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
     }
 
-    auto shader = renderToOutput ? renderToOutputInternal() : renderToFBInternal(data, tex->m_type, newBox);
+    auto shader = renderToOutput ? renderToOutputInternal() : renderToFBInternal(tex, data, tex->m_type, newBox);
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
@@ -2280,7 +2285,7 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
         g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
                                                                          m_renderData.pMonitor->m_output->state->state().drmFormat);
 
-    g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->bind();
+    auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB);
 
     blend(false);
 
@@ -2295,8 +2300,6 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
                   });
 
     blend(true);
-
-    g_pHyprRenderer->m_renderData.currentFB->bind();
 }
 
 WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {

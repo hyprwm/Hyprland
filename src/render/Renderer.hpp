@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Box.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <list>
 #include <optional>
 #include "OpenGL.hpp"
@@ -43,6 +44,8 @@ namespace Screenshare {
 };
 
 namespace Render {
+    using CScopeGuard = Hyprutils::Utils::CScopeGuard;
+
     class IElementRenderer;
     class CRenderPass;
 
@@ -147,6 +150,8 @@ namespace Render {
         void                         draw(const CSurfacePassElement::SRenderData& data, const CRegion& damage = {});
         void                         draw(const CTexPassElement::SRenderData& data, const CRegion& damage = {});
         void                         draw(const CTextureMatteElement::STextureMatteData& data, const CRegion& damage = {});
+        virtual void                 bindFB(SP<IFramebuffer> fb);
+        UP<CScopeGuard>              bindTempFB(SP<IFramebuffer> fb);
         virtual UP<ISyncFDManager>   createSyncFDManager()                                                                                                                     = 0;
         virtual WP<IElementRenderer> elementRenderer()                                                                                                                         = 0;
         virtual SP<ITexture>         createStencilTexture(const int width, const int height)                                                                                   = 0;

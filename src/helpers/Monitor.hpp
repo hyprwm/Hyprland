@@ -14,6 +14,7 @@
 #include "MonitorZoomController.hpp"
 #include "../render/Texture.hpp"
 #include "../render/Framebuffer.hpp"
+#include "MonitorResources.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -28,6 +29,9 @@
 #include "../helpers/TransferFunction.hpp"
 
 class CMonitorFrameScheduler;
+namespace Monitor {
+    class CMonitorResources;
+}
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {
@@ -174,15 +178,6 @@ class CMonitor {
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
-    SP<Render::IFramebuffer>   m_monitorMirrorFB;
-
-    // rendering fb
-    SP<Render::IFramebuffer> m_offloadFB;
-    SP<Render::IFramebuffer> m_mirrorFB;     // these are used for some effects,
-    SP<Render::IFramebuffer> m_mirrorSwapFB; // etc
-    SP<Render::IFramebuffer> m_offMainFB;
-    SP<Render::IFramebuffer> m_blurFB;
-    SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
 
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();
@@ -385,6 +380,8 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
+    WP<Monitor::CMonitorResources> resources();
+
   private:
     void                    updateMatrix();
     Mat3x3                  m_projMatrix;
@@ -398,6 +395,9 @@ class CMonitor {
     bool                    m_doneScheduled = false;
     bool                    m_vcgtRampsSet  = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
+
+    // Resources
+    UP<Monitor::CMonitorResources> m_resources;
 
     struct {
         CHyprSignalListener frame;

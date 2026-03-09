@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "helpers/cm/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
 #include <span>

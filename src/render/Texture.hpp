@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "helpers/cm/ColorManagement.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
 #include <span>
@@ -43,6 +44,9 @@ namespace Render {
 
         uint32_t                    m_drmFormat     = 0; // for shm
         bool                        m_isSynchronous = false;
+
+        // CM
+        NColorManagement::PImageDescription m_imageDescription;
 
         // TODO move to GLTexture
         GLuint m_texID   = 0;

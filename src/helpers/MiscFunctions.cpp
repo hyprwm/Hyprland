@@ -10,6 +10,7 @@
 #include "fs/FsUtils.hpp"
 #include <optional>
 #include <charconv>
+#include <string_view>
 #include <cstring>
 #include <cctype>
 #include <climits>
@@ -621,14 +622,21 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
-    auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {
-        try {
-            size_t position;
-            auto   result = stoll(value, &position, 16);
-            if (position == value.size())
-                return result;
-        } catch (const std::exception&) {}
-        return std::unexpected("invalid hex " + value);
+    auto parseHex = [](std::string_view value) -> std::expected<int64_t, std::string> {
+        const auto original = value;
+
+        if (value.size() >= 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))
+            value.remove_prefix(2);
+
+        if (value.empty())
+            return std::unexpected("invalid hex " + std::string{original});
+
+        int64_t result = 0;
+        const auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), result, 16);
+        if (ec == std::errc() && ptr == value.data() + value.size())
+            return result;
+
+        return std::unexpected("invalid hex " + std::string{original});
     };
     if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
@@ -699,10 +707,10 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
     if (VALUE.empty() || !isNumber(VALUE, false))
         return std::unexpected("cannot parse \"" + VALUE + "\" as an int.");
 
-    try {
-        const auto RES = std::stoll(VALUE);
-        return RES;
-    } catch (std::exception& e) { return std::unexpected(std::string{"stoll threw: "} + e.what()); }
+    int64_t result = 0;
+    const auto [ptr, ec] = std::from_chars(VALUE.data(), VALUE.data() + VALUE.size(), result, 10);
+    if (ec == std::errc() && ptr == VALUE.data() + VALUE.size())
+        return result;
 
     return std::unexpected("parse error");
 }

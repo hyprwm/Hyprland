@@ -195,7 +195,7 @@ namespace Render {
         bool                            needsACopyFB(PHLMONITOR mon);
 
       protected:
-        virtual void              renderOffToMain(IFramebuffer* off)                                            = 0;
+        virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;
         virtual SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) = 0;
         void                      renderMirrored();
         void                      setDamage(const CRegion& damage_, std::optional<CRegion> finalDamage);

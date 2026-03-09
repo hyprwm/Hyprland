@@ -234,14 +234,14 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprRenderer->disableScissor();
 
     if (data.ignoreWindow) {
-        // we'll take the liberty of using this as it should not be used rn
-        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
-        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
+        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
 
         CBox       monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        auto       guard = g_pHyprRenderer->bindTempFB(alphaFB);
+        auto       guard = g_pHyprRenderer->bindTempFB(alphaFB); // store current FB inside guard
 
+        // TODO not needed for 8bpc and 16fp?
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
         // first, clear region of interest with black (fully transparent)
@@ -266,7 +266,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         // alpha swap just has the shadow color. It will be the "texture" to render.
         g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}, monbox);
 
-        guard.reset();
+        guard.reset(); // restore FB
 
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;

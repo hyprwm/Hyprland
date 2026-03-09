@@ -36,40 +36,41 @@ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
 };
 
 void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {
-    const auto       m_data = element->m_data;
-    SP<IFramebuffer> fb     = nullptr;
+    Log::logger->log(Log::ERR, "Deprecated CFramebufferElement. Use g_pHyprRenderer->m_renderData and CTexPassElement instead");
+    // const auto       m_data = element->m_data;
+    // SP<IFramebuffer> fb     = nullptr;
 
-    if (m_data.main) {
-        switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->m_renderData.mainFB; break;
-            case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
-            case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->m_renderData.outFB; break;
-            default: fb = nullptr;
-        }
+    // if (m_data.main) {
+    //     switch (m_data.framebufferID) {
+    //         case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->m_renderData.mainFB; break;
+    //         case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
+    //         case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->m_renderData.outFB; break;
+    //         default: fb = nullptr;
+    //     }
 
-        if (!fb) {
-            Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: main but null");
-            return;
-        }
+    //     if (!fb) {
+    //         Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: main but null");
+    //         return;
+    //     }
 
-    } else {
-        switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB; break;
-            default: fb = nullptr;
-        }
+    // } else {
+    //     switch (m_data.framebufferID) {
+    //         case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB; break;
+    //         case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB; break;
+    //         default: fb = nullptr;
+    //     }
 
-        if (!fb) {
-            Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
-            return;
-        }
-    }
+    //     if (!fb) {
+    //         Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
+    //         return;
+    //     }
+    // }
 
-    g_pHyprRenderer->bindFB(fb);
+    // g_pHyprRenderer->bindFB(fb);
 };
 
 void CGLElementRenderer::draw(WP<CPreBlurElement> element, const CRegion& damage) {

@@ -501,9 +501,7 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
 }
 
 void IHyprRenderer::bindOffMain() {
-    RASSERT(m_renderData.pMonitor->m_offMainFB->isAllocated(), "IHyprRenderer::beginRender should allocate monitor FBs")
-
-    bindFB(m_renderData.pMonitor->m_offMainFB);
+    bindFB(m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 }
 
@@ -679,7 +677,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         }
 
         if (TRANSFORMERSPRESENT) {
-            IFramebuffer* last = m_renderData.currentFB.get();
+            SP<IFramebuffer> last = m_renderData.currentFB;
             for (auto const& t : pWindow->m_transformers) {
                 last = t->transform(last);
             }
@@ -1379,9 +1377,7 @@ SP<ITexture> IHyprRenderer::loadAsset(const std::string& filename) {
 }
 
 SP<ITexture> IHyprRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
-    if (!pMonitor->m_blurFB)
-        return nullptr;
-    return pMonitor->m_blurFB->getTexture();
+    return pMonitor->resources()->m_blurFB->getTexture();
 }
 
 bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
@@ -1614,45 +1610,11 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     else
         setProjectionType(RPT_MONITOR);
 
-    if (!simple) {
-        static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
-        const auto        DRM_FORMAT = *PFP16 ? DRM_FORMAT_ABGR16161616F : (fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat);
-
-        // ensure a framebuffer for the monitor exists
-        if (!m_renderData.pMonitor->m_offloadFB || m_renderData.pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize ||
-            DRM_FORMAT != m_renderData.pMonitor->m_offloadFB->m_drmFormat) {
-            if (!m_renderData.pMonitor->m_stencilTex || m_renderData.pMonitor->m_stencilTex->m_size != pMonitor->m_pixelSize)
-                m_renderData.pMonitor->m_stencilTex = createStencilTexture(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
-
-            m_renderData.pMonitor->m_offloadFB       = createFB("offload");
-            m_renderData.pMonitor->m_mirrorFB        = createFB("mirror");
-            m_renderData.pMonitor->m_mirrorSwapFB    = createFB("mirrorSwap");
-            m_renderData.pMonitor->m_offMainFB       = createFB("offMain");
-            m_renderData.pMonitor->m_monitorMirrorFB = createFB("monitorMirror");
-            m_renderData.pMonitor->m_blurFB          = createFB("blur");
-
-            // add stencil before FB allocation to avoid reallocs
-            m_renderData.pMonitor->m_offloadFB->addStencil(m_renderData.pMonitor->m_stencilTex);
-            m_renderData.pMonitor->m_mirrorFB->addStencil(m_renderData.pMonitor->m_stencilTex);
-            m_renderData.pMonitor->m_mirrorSwapFB->addStencil(m_renderData.pMonitor->m_stencilTex);
-            m_renderData.pMonitor->m_offMainFB->addStencil(m_renderData.pMonitor->m_stencilTex);
-
-            m_renderData.pMonitor->m_offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-            m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-            m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-            m_renderData.pMonitor->m_offMainFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-        }
-    }
-
-    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB && g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->isAllocated();
+    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB();
     const bool NEEDS_COPY_FB = needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock());
 
     if (HAS_MIRROR_FB && !NEEDS_COPY_FB)
-        g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->release();
-    else if (!HAS_MIRROR_FB && NEEDS_COPY_FB && g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB)
-        g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->alloc(g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x,
-                                                                         g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y,
-                                                                         g_pHyprRenderer->m_renderData.pMonitor->m_output->state->state().drmFormat);
+        g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB()->release();
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
@@ -1742,7 +1704,7 @@ Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransfo
 SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
     if (!m_renderData.currentFB->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pMonitor->m_mirrorFB->getTexture(); // return something to sample from at least
+        return m_renderData.pMonitor->resources()->m_blurFB->getTexture(); // return something to sample from at least
     }
 
     auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
@@ -1754,10 +1716,7 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
 
     // render onto blurFB
-    if (!m_renderData.pMonitor->m_blurFB)
-        return;
-    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
-    auto guard = bindTempFB(m_renderData.pMonitor->m_blurFB);
+    auto guard = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
 
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 
@@ -1847,8 +1806,12 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
 }
 
 void IHyprRenderer::renderMirrored() {
-    auto         monitor  = m_renderData.pMonitor;
-    auto         mirrored = monitor->m_mirrorOf;
+    auto monitor  = m_renderData.pMonitor;
+    auto mirrored = monitor->m_mirrorOf;
+
+    // saveBufferForMirror should create it
+    if (!mirrored->resources()->hasMirrorFB())
+        return;
 
     const double scale  = std::min(monitor->m_transformedSize.x / mirrored->m_transformedSize.x, monitor->m_transformedSize.y / mirrored->m_transformedSize.y);
     CBox         monbox = {0, 0, mirrored->m_transformedSize.x * scale, mirrored->m_transformedSize.y * scale};
@@ -1859,12 +1822,7 @@ void IHyprRenderer::renderMirrored() {
     monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
 
-    if (!monitor->m_monitorMirrorFB)
-        monitor->m_monitorMirrorFB = createFB("monitorMirror");
-
-    const auto PFB = mirrored->m_monitorMirrorFB;
-    if (!PFB || !PFB->isAllocated() || !PFB->getTexture())
-        return;
+    const auto PFB = mirrored->resources()->mirrorFB();
 
     m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 

@@ -233,7 +233,7 @@ namespace Render::GL {
 
         void                           applyScreenShader(const std::string& path);
 
-        void                           renderOffToMain(IFramebuffer* off);
+        void                           renderOffToMain(SP<IFramebuffer> off);
 
         std::vector<SDRMFormat>        getDRMFormats();
         std::vector<uint64_t>          getDRMFormatModifiers(DRMFormat format);

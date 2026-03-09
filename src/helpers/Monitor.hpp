@@ -14,6 +14,7 @@
 #include "MonitorZoomController.hpp"
 #include "../render/Texture.hpp"
 #include "../render/Framebuffer.hpp"
+#include "MonitorResources.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
 #include "../desktop/reserved/ReservedArea.hpp"
@@ -29,6 +30,55 @@
 #include "../config/shared/monitor/MonitorRule.hpp"
 
 class CMonitorFrameScheduler;
+namespace Monitor {
+    class CMonitorResources;
+}
+
+// Enum for the different types of auto directions, e.g. auto-left, auto-up.
+enum eAutoDirs : uint8_t {
+    DIR_AUTO_NONE = 0, /* None will be treated as right. */
+    DIR_AUTO_UP,
+    DIR_AUTO_DOWN,
+    DIR_AUTO_LEFT,
+    DIR_AUTO_RIGHT,
+    DIR_AUTO_CENTER_UP,
+    DIR_AUTO_CENTER_DOWN,
+    DIR_AUTO_CENTER_LEFT,
+    DIR_AUTO_CENTER_RIGHT
+};
+
+struct SMonitorRule {
+    eAutoDirs              autoDir       = DIR_AUTO_NONE;
+    std::string            name          = "";
+    Vector2D               resolution    = Vector2D(1280, 720);
+    Vector2D               offset        = Vector2D(0, 0);
+    float                  scale         = 1;
+    float                  refreshRate   = 60; // Hz
+    bool                   disabled      = false;
+    wl_output_transform    transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string            mirrorOf      = "";
+    bool                   enable10bit   = false;
+    NCMType::eCMType       cmType        = NCMType::CM_SRGB;
+    NTransferFunction::eTF sdrEotf       = NTransferFunction::TF_DEFAULT;
+    float                  sdrSaturation = 1.0f; // SDR -> HDR
+    float                  sdrBrightness = 1.0f; // SDR -> HDR
+    Desktop::CReservedArea reservedArea;
+    std::string            iccFile;
+
+    int                    supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    int                    supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    float                  sdrMinLuminance   = 0.2f; // SDR -> HDR
+    int                    sdrMaxLuminance   = 80;   // SDR -> HDR
+
+    // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
+    float              minLuminance    = -1.0f; // >= 0 overrides EDID
+    int                maxLuminance    = -1;    // >= 0 overrides EDID
+    int                maxAvgLuminance = -1;    // >= 0 overrides EDID
+
+    drmModeModeInfo    drmMode = {};
+    std::optional<int> vrr;
+};
+
 class CMonitor;
 class CSyncTimeline;
 class CEventLoopTimer;
@@ -129,15 +179,6 @@ class CMonitor {
     // mirroring
     PHLMONITORREF              m_mirrorOf;
     std::vector<PHLMONITORREF> m_mirrors;
-    SP<Render::IFramebuffer>   m_monitorMirrorFB;
-
-    // rendering fb
-    SP<Render::IFramebuffer> m_offloadFB;
-    SP<Render::IFramebuffer> m_mirrorFB;     // these are used for some effects,
-    SP<Render::IFramebuffer> m_mirrorSwapFB; // etc
-    SP<Render::IFramebuffer> m_offMainFB;
-    SP<Render::IFramebuffer> m_blurFB;
-    SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
 
     // ctm
     Mat3x3 m_ctm        = Mat3x3::identity();
@@ -341,6 +382,8 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
+    WP<Monitor::CMonitorResources> resources();
+
   private:
     void                    updateMatrix();
     Mat3x3                  m_projMatrix;
@@ -354,6 +397,9 @@ class CMonitor {
     bool                    m_doneScheduled = false;
     bool                    m_vcgtRampsSet  = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
+
+    // Resources
+    UP<Monitor::CMonitorResources> m_resources;
 
     struct {
         CHyprSignalListener frame;

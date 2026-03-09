@@ -10,7 +10,7 @@
 namespace Monitor {
     class CMonitorResources {
       public:
-        CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vector2D size);
+        CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vector2D size, NColorManagement::PImageDescription imageDescription);
 
         SP<Render::IFramebuffer> getUnusedWorkBuffer();
         void                     forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback);
@@ -26,12 +26,13 @@ namespace Monitor {
             CTimer                   lastUsed;
         };
 
-        SP<Render::IFramebuffer> m_monitorMirrorFB;
-        WP<CMonitor>             m_monitor;
-        DRMFormat                m_drmFormat;
-        Vector2D                 m_size;
+        SP<Render::IFramebuffer>            m_monitorMirrorFB;
+        WP<CMonitor>                        m_monitor;
+        DRMFormat                           m_drmFormat;
+        Vector2D                            m_size;
+        NColorManagement::PImageDescription m_imageDescription;
 
-        std::vector<SResource>   m_workBuffers;
+        std::vector<SResource>              m_workBuffers;
 
         friend class ::CMonitor;
     };

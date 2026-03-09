@@ -349,5 +349,11 @@ namespace NColorManagement {
         .luminances       = {.reference = 203},
     });
 
-    static const auto LINEAR_IMAGE_DESCRIPTION = SCRGB_IMAGE_DESCRIPTION; // TODO any reason to use something different?
+    static const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
+        .luminances       = {.min = 0, .max = 10000, .reference = 80},
+    });
 }

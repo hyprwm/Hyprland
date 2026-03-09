@@ -775,7 +775,7 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock()) && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
-        auto offloadFB = g_pHyprRenderer->m_renderData.currentFB;
+        g_pHyprRenderer->m_renderData.prevFB = g_pHyprRenderer->m_renderData.currentFB;
         g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
         blend(false);
 
@@ -783,9 +783,9 @@ void CHyprOpenGLImpl::end() {
             g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
 
         if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
-            renderTexturePrimitive(offloadFB->getTexture(), monbox);
+            renderTexturePrimitive(g_pHyprRenderer->m_renderData.prevFB->getTexture(), monbox);
         else // we need to use renderTexture if we do any CM whatsoever.
-            renderTexture(offloadFB->getTexture(), monbox, {.finalMonitorCM = true});
+            renderTexture(g_pHyprRenderer->m_renderData.prevFB->getTexture(), monbox, {.finalMonitorCM = true});
 
         blend(true);
 

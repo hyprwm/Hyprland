@@ -1707,6 +1707,12 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
         },
+        {
+            .value       = "render:use_fp16",
+            .description = "Use experimental internal FP16 buffer",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
 
         /*
      * cursor:

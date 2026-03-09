@@ -155,7 +155,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     }
 }
 
-void CHyprGLRenderer::renderOffToMain(IFramebuffer* off) {
+void CHyprGLRenderer::renderOffToMain(SP<IFramebuffer> off) {
     g_pHyprOpenGL->renderOffToMain(off);
 }
 
@@ -291,9 +291,7 @@ bool CHyprGLRenderer::reloadShaders(const std::string& path) {
 }
 
 SP<ITexture> CHyprGLRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
-    if (!pMonitor->m_blurFB)
-        return nullptr;
-    return pMonitor->m_blurFB->getTexture();
+    return pMonitor->resources()->m_blurFB->getTexture();
 }
 
 void CHyprGLRenderer::unsetEGL() {

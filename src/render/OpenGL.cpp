@@ -716,7 +716,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     if (!m_shadersInitialized)
         initShaders();
 
-    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB && g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->isAllocated();
+    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB();
     const bool NEEDS_COPY_FB = g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock());
 
     g_pHyprRenderer->m_renderData.transformDamage = true;
@@ -737,7 +737,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
         applyScreenShader(*PSHADER);
     }
 
-    g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB);
+    g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
     m_offloadedFramebuffer = true;
 
     g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
@@ -775,6 +775,7 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock()) && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
+        auto offloadFB = g_pHyprRenderer->m_renderData.currentFB;
         g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
         blend(false);
 
@@ -782,9 +783,9 @@ void CHyprOpenGLImpl::end() {
             g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
 
         if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
-            renderTexturePrimitive(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->getTexture(), monbox);
+            renderTexturePrimitive(offloadFB->getTexture(), monbox);
         else // we need to use renderTexture if we do any CM whatsoever.
-            renderTexture(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->getTexture(), monbox, {.finalMonitorCM = true});
+            renderTexture(offloadFB->getTexture(), monbox, {.finalMonitorCM = true});
 
         blend(true);
 
@@ -794,22 +795,10 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB) {
-        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB->bind();
-        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    }
-    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB) {
-        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB->bind();
-        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    }
-    if (g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB) {
-        g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
-        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    }
-    if (g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB) {
-        g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
-        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    }
+    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB([](const auto& fb) {
+        fb->bind();
+        GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    });
 
     // reset our data
     m_renderData.pMonitor.reset();
@@ -820,13 +809,6 @@ void CHyprOpenGLImpl::end() {
     g_pHyprRenderer->m_renderData.mainFB            = nullptr;
     g_pHyprRenderer->m_renderData.outFB             = nullptr;
     g_pHyprRenderer->popMonitorTransformEnabled();
-
-    // if we dropped to offMain, release it now.
-    // if there is a plugin constantly using it, this might be a bit slow,
-    // but I haven't seen a single plugin yet use these, so it's better to drop a bit of vram.
-    if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB &&
-                 g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->isAllocated())
-        g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->release();
 
     static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
 
@@ -1024,8 +1006,7 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto blurredBG = data.xray ? (g_pHyprRenderer->m_renderData.pMonitor->m_blurFB ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : nullptr) :
-                                 g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
+    auto blurredBG = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
     CBox MONITORBOX = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
@@ -1310,8 +1291,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     }();
 
     const auto TARGET_IMAGE_DESCRIPTION = [&] {
-        if (g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription)
-            return g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription;
+        if (g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+            return g_pHyprRenderer->m_renderData.currentFB->imageDescription();
 
         // if we are CM'ing back, use default sRGB
         if (data.cmBackToSRGB)
@@ -1644,8 +1625,8 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     damage.expand(std::clamp(*PBLURSIZE, sc<int64_t>(1), sc<int64_t>(40)) * pow(2, BLUR_PASSES));
 
     // helper
-    const auto PMIRRORFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
-    const auto PMIRRORSWAPFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
+    const auto PMIRRORFB     = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+    const auto PMIRRORSWAPFB = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
 
     auto       currentRenderToFB = PMIRRORFB;
 
@@ -2280,16 +2261,12 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
-    auto& m_renderData = g_pHyprRenderer->m_renderData;
-    if (!g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->isAllocated())
-        g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y,
-                                                                         m_renderData.pMonitor->m_output->state->state().drmFormat);
-
-    auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB);
+    const auto TEX   = g_pHyprRenderer->m_renderData.currentFB->getTexture();
+    auto       guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
 
     blend(false);
 
-    renderTexture(g_pHyprRenderer->m_renderData.currentFB->getTexture(), box,
+    renderTexture(TEX, box,
                   STextureRenderData{
                       .damage        = &g_pHyprRenderer->m_renderData.finalDamage,
                       .a             = 1.F,
@@ -2328,7 +2305,7 @@ void CHyprOpenGLImpl::destroyMonitorResources(PHLMONITORREF pMonitor) {
         Log::logger->log(Log::DEBUG, "Monitor {} -> destroyed all render data", pMonitor->m_name);
 }
 
-void CHyprOpenGLImpl::renderOffToMain(IFramebuffer* off) {
+void CHyprOpenGLImpl::renderOffToMain(SP<IFramebuffer> off) {
     CBox monbox = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     renderTexturePrimitive(off->getTexture(), monbox);
 }

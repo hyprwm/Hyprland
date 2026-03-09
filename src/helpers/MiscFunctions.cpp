@@ -83,25 +83,36 @@ std::string absolutePath(const std::string& rawpath, const std::string& currentP
 }
 
 std::string escapeJSONStrings(const std::string& str) {
-    std::ostringstream oss;
-    for (auto const& c : str) {
+    std::string out;
+    out.reserve(str.size());
+
+    const auto appendUnicodeEscape = [&out](unsigned char c) {
+        constexpr std::string_view HEX = "0123456789abcdef";
+        out.append("\\u00");
+        out.push_back(HEX[(c >> 4U) & 0xFU]);
+        out.push_back(HEX[c & 0xFU]);
+    };
+
+    for (const auto c : str) {
+        const auto uc = static_cast<unsigned char>(c);
+
         switch (c) {
-            case '"': oss << "\\\""; break;
-            case '\\': oss << "\\\\"; break;
-            case '\b': oss << "\\b"; break;
-            case '\f': oss << "\\f"; break;
-            case '\n': oss << "\\n"; break;
-            case '\r': oss << "\\r"; break;
-            case '\t': oss << "\\t"; break;
+            case '"': out.append("\\\""); break;
+            case '\\': out.append("\\\\"); break;
+            case '\b': out.append("\\b"); break;
+            case '\f': out.append("\\f"); break;
+            case '\n': out.append("\\n"); break;
+            case '\r': out.append("\\r"); break;
+            case '\t': out.append("\\t"); break;
             default:
-                if ('\x00' <= c && c <= '\x1f') {
-                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << sc<int>(c);
-                } else {
-                    oss << c;
-                }
+                if (uc <= 0x1FU)
+                    appendUnicodeEscape(uc);
+                else
+                    out.push_back(c);
         }
     }
-    return oss.str();
+
+    return out;
 }
 
 std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {

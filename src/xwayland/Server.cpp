@@ -3,6 +3,7 @@
 
 #include <format>
 #include <string>
+#include <charconv>
 #include <cerrno>
 #include <fcntl.h>
 #include <cstdio>
@@ -220,9 +221,10 @@ bool CXWaylandServer::tryOpenSockets() {
         read(fd.get(), pidstr, sizeof(pidstr) - 1);
 
         int32_t pid = 0;
-        try {
-            pid = std::stoi(std::string{pidstr, 11});
-        } catch (...) { continue; }
+        const auto [ptr, ec] = std::from_chars(pidstr, pidstr + 11, pid);
+        (void)ptr;
+        if (ec != std::errc())
+            continue;
 
         if (kill(pid, 0) != 0 && errno == ESRCH) {
             if (!safeRemove(lockPath))

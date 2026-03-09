@@ -349,7 +349,7 @@ namespace Render::GL {
         void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         WP<CShader>      renderToOutputInternal();
-        WP<CShader>      renderToFBInternal(const STextureRenderData& data, eTextureType texType, const CBox& newBox);
+        WP<CShader>      renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox);
         void             renderTextureInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
         void             renderTextureWithBlurInternal(SP<ITexture>, const CBox&, const STextureRenderData& data);
 

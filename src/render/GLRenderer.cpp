@@ -62,7 +62,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
     initRender();
 
     RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
-    fb->bind();
+    bindFB(fb);
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
     else

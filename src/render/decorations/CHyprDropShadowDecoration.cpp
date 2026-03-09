@@ -237,11 +237,10 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
         // we'll take the liberty of using this as it should not be used rn
         const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
         const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
-        const auto LASTFB      = g_pHyprRenderer->m_renderData.currentFB;
 
         CBox       monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        alphaFB->bind();
+        auto       guard = g_pHyprRenderer->bindTempFB(alphaFB);
 
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
@@ -262,12 +261,12 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
             },
             monbox);
 
-        alphaSwapFB->bind();
+        g_pHyprRenderer->bindFB(alphaSwapFB);
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
         g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}, monbox);
 
-        LASTFB->bind();
+        guard.reset();
 
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;

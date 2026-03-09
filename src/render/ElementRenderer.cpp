@@ -454,7 +454,6 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
             m_renderData.renderModif.applyToRegion(inverseOpaque);
             inverseOpaque.intersect(element->m_data.damage);
             element->m_data.blurredBG = g_pHyprRenderer->blurMainFramebuffer(element->m_data.a, &inverseOpaque);
-            m_renderData.currentFB->bind();
         } else
             element->m_data.blurredBG = m_renderData.pMonitor->m_blurFB ? m_renderData.pMonitor->m_blurFB->getTexture() : nullptr;
 

@@ -69,7 +69,7 @@ void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& da
         }
     }
 
-    fb->bind();
+    g_pHyprRenderer->bindFB(fb);
 };
 
 void CGLElementRenderer::draw(WP<CPreBlurElement> element, const CRegion& damage) {

@@ -25,6 +25,11 @@ namespace Layout {
         std::optional<Vector2D> pos;
     };
 
+    struct STargetBox {
+        CBox logicalBox;
+        CBox visualBox;
+    };
+
     class ITarget {
       public:
         virtual ~ITarget() = default;
@@ -32,7 +37,8 @@ namespace Layout {
         virtual eTargetType type() = 0;
 
         // position is within its space
-        virtual void         setPositionGlobal(const CBox& box);
+        virtual void         setPositionGlobal(const STargetBox& box);
+        void                 setPositionGlobal(const CBox& box);
         virtual CBox         position() const;
         virtual void         assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void         setSpaceGhost(const SP<CSpace>& space);
@@ -67,7 +73,7 @@ namespace Layout {
       protected:
         ITarget() = default;
 
-        CBox        m_box;
+        STargetBox  m_box;
         SP<CSpace>  m_space;
         WP<ITarget> m_self;
         Vector2D    m_floatingSize;

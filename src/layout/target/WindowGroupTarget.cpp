@@ -23,7 +23,7 @@ eTargetType CWindowGroupTarget::type() {
     return TARGET_TYPE_GROUP;
 }
 
-void CWindowGroupTarget::setPositionGlobal(const CBox& box) {
+void CWindowGroupTarget::setPositionGlobal(const STargetBox& box) {
     ITarget::setPositionGlobal(box);
 
     updatePos();

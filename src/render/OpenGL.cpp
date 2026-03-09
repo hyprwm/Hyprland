@@ -795,14 +795,22 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
 
     // reset our data
     m_renderData.pMonitor.reset();

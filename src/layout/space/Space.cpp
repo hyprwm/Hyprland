@@ -21,8 +21,16 @@ CSpace::CSpace(PHLWORKSPACE parent) : m_parent(parent) {
 
     // NOLINTNEXTLINE
     m_geomUpdateCallback = Event::bus()->m_events.monitor.layoutChanged.listen([this] {
+        // During monitor disconnect/reconnect (e.g. sleep/wake), some workspaces
+        // may have stale or null monitors. Guard against that to avoid crashing
+        // when recalculating layout for workspaces mid-migration.
+        if (!m_parent || !m_parent->m_monitor)
+            return;
+
         recheckWorkArea();
-        m_algorithm->recalculate();
+
+        if (m_algorithm)
+            m_algorithm->recalculate();
     });
 }
 

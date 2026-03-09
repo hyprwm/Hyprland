@@ -59,27 +59,44 @@ using namespace Hyprutils::OS;
 #endif
 
 std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
+    if (rawpath.empty())
+        return rawpath;
+
     auto value = rawpath;
 
-    if (value[0] == '~') {
+    if (value.front() == '~') {
         static const char* const ENVHOME = getenv("HOME");
-        value.replace(0, 1, std::string(ENVHOME));
-    } else if (value[0] != '/') {
-        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
-
-        if (value[0] == '.') {
-            if (value[1] == '.' && value[2] == '/') {
-                auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-                value.replace(0, 2 + currentPath.empty(), parentDir);
-            } else if (value[1] == '/')
-                value.replace(0, 1 + currentPath.empty(), currentDir);
-            else
-                value = currentDir + '/' + value;
-        } else
-            value = currentDir + '/' + value;
+        if (ENVHOME)
+            value.replace(0, 1, ENVHOME);
+        return value;
     }
 
-    return value;
+    if (value.front() == '/')
+        return value;
+
+    const auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
+
+    if (value.front() != '.')
+        return currentDir + '/' + value;
+
+    if (value == ".")
+        return currentDir;
+
+    if (value == "..")
+        return currentDir.substr(0, currentDir.find_last_of('/'));
+
+    if (value.starts_with("../")) {
+        const auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+        value.replace(0, currentPath.empty() ? 3 : 2, parentDir);
+        return value;
+    }
+
+    if (value.starts_with("./")) {
+        value.replace(0, currentPath.empty() ? 2 : 1, currentDir);
+        return value;
+    }
+
+    return currentDir + '/' + value;
 }
 
 std::string escapeJSONStrings(const std::string& str) {

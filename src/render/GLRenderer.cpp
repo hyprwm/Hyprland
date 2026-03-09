@@ -37,6 +37,10 @@ extern "C" {
 
 CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {}
 
+IHyprRenderer::eType CHyprGLRenderer::type() {
+    return RT_GL;
+}
+
 void CHyprGLRenderer::initRender() {
     g_pHyprOpenGL->makeEGLCurrent();
     g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;

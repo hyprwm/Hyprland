@@ -9,6 +9,7 @@ namespace Render::GL {
         CHyprGLRenderer();
         ~CHyprGLRenderer() = default;
 
+        eType                   type() override;
         void                    endRender(const std::function<void()>& renderingDoneCallback = {}) override;
         UP<ISyncFDManager>      createSyncFDManager() override;
         SP<ITexture>            createStencilTexture(const int width, const int height) override;

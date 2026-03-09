@@ -1605,7 +1605,8 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         setProjectionType(RPT_MONITOR);
 
     if (!simple) {
-        const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
+        static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
+        const auto        DRM_FORMAT = *PFP16 ? DRM_FORMAT_ABGR16161616F : (fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat);
 
         // ensure a framebuffer for the monitor exists
         if (!m_renderData.pMonitor->m_offloadFB || m_renderData.pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize ||
@@ -3189,12 +3190,14 @@ void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() {
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
     // TODO
     // const bool  IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
     // const auto  sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
     // const auto  CHOSEN_SDR_EOTF = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
 
-    return m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
+    return *PFP16 ? LINEAR_IMAGE_DESCRIPTION :
+                    m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
 }
 
 bool IHyprRenderer::shouldBlur(PHLLS ls) {

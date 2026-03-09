@@ -1666,15 +1666,15 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
-            passCMUniforms(shader, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
+            passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), DEFAULT_IMAGE_DESCRIPTION);
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                         m_renderData.pMonitor->m_sdrSaturation :
                                         1.0f);
             shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
                                     m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
                                         m_renderData.pMonitor->m_sdrBrightness :
                                         1.0f);
         } else
@@ -1782,7 +1782,24 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
 
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        auto shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH));
+        // From FB to sRGB
+        const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+        if (!skipCM) {
+            shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM));
+            passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+            shader->setUniformFloat(SHADER_SDR_SATURATION,
+                                    m_renderData.pMonitor->m_sdrSaturation > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        m_renderData.pMonitor->m_sdrSaturation :
+                                        1.0f);
+            shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
+                                    m_renderData.pMonitor->m_sdrBrightness > 0 &&
+                                            g_pHyprRenderer->workBufferImageDescription()->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
+                                        m_renderData.pMonitor->m_sdrBrightness :
+                                        1.0f);
+        } else
+            shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH));
+
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
         shader->setUniformFloat(SHADER_NOISE, *PBLURNOISE);
         shader->setUniformFloat(SHADER_BRIGHTNESS, *PBLURBRIGHTNESS);

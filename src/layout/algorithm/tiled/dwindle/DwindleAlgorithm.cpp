@@ -71,7 +71,7 @@ void CDwindleAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target);
 }
 
-void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
+void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     const auto WORK_AREA = m_parent->space()->workArea();
 
     const auto PNODE = m_dwindleNodesData.emplace_back(makeShared<SDwindleNodeData>());
@@ -215,7 +215,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
                 NEWPARENT->children[1] = OPENINGON;
             }
         }
-    } else if (*PFORCESPLIT == 0 || !newTarget || m_overrideFocalPoint) {
+    } else if (*PFORCESPLIT == 0 || m_overrideFocalPoint) {
         if ((SIDEBYSIDE && MOUSECOORDS.x < NEWPARENT->box.x + (NEWPARENT->box.w / 2.F)) || (!SIDEBYSIDE && MOUSECOORDS.y < NEWPARENT->box.y + (NEWPARENT->box.h / 2.F))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;
@@ -225,14 +225,12 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
             NEWPARENT->children[0] = OPENINGON;
             NEWPARENT->children[1] = PNODE;
         }
+    } else if (*PFORCESPLIT == 1) {
+        NEWPARENT->children[1] = OPENINGON;
+        NEWPARENT->children[0] = PNODE;
     } else {
-        if (*PFORCESPLIT == 1) {
-            NEWPARENT->children[1] = OPENINGON;
-            NEWPARENT->children[0] = PNODE;
-        } else {
-            NEWPARENT->children[0] = OPENINGON;
-            NEWPARENT->children[1] = PNODE;
-        }
+        NEWPARENT->children[0] = OPENINGON;
+        NEWPARENT->children[1] = PNODE;
     }
 
     // split in favor of a specific window
@@ -268,7 +266,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
 
 void CDwindleAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
     m_overrideFocalPoint = focalPoint;
-    addTarget(target, false);
+    addTarget(target);
     m_overrideFocalPoint.reset();
 }
 

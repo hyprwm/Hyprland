@@ -227,6 +227,28 @@ static void testRotatesplit() {
     OK(getFromSocket("/reload"));
 }
 
+static void testForceSplitOnMoveToWorkspace() {
+    OK(getFromSocket("/dispatch workspace 2"));
+    EXPECT(!!Tests::spawnKitty("kitty"), true);
+
+    OK(getFromSocket("/dispatch workspace 1"));
+    EXPECT(!!Tests::spawnKitty("kitty"), true);
+    std::string posBefore = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+
+    OK(getFromSocket("/keyword dwindle:force_split 2"));
+    OK(getFromSocket("/dispatch movecursortocorner 3")); // top left
+    OK(getFromSocket("/dispatch movetoworkspace 2"));
+
+    // Should be moved to the right, so the position should change
+    std::string activeWindow = getFromSocket("/activewindow");
+    EXPECT(activeWindow.contains(posBefore), false);
+
+    // clean up
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+    Tests::waitUntilWindowsN(0);
+}
+
 static bool test() {
     NLog::log("{}Testing Dwindle layout", Colors::GREEN);
 
@@ -242,6 +264,9 @@ static bool test() {
 
     NLog::log("{}Testing rotatesplit", Colors::GREEN);
     testRotatesplit();
+
+    NLog::log("{}Testing force_split on move to workspace", Colors::GREEN);
+    testForceSplitOnMoveToWorkspace();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

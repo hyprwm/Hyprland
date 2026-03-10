@@ -13,7 +13,7 @@ namespace Monitor {
         CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vector2D size, NColorManagement::PImageDescription imageDescription);
 
         SP<Render::IFramebuffer> getUnusedWorkBuffer();
-        void                     forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback);
+        void                     forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed = false);
         bool                     hasMirrorFB();
         SP<Render::IFramebuffer> mirrorFB();
 

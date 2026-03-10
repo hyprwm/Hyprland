@@ -795,14 +795,22 @@ void CHyprOpenGLImpl::end() {
     }
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
-    GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
+    if (g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
 
     // reset our data
     m_renderData.pMonitor.reset();
@@ -1021,7 +1029,8 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto POUTFB = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
+    auto POUTFB = data.xray ? (g_pHyprRenderer->m_renderData.pMonitor->m_blurFB ? g_pHyprRenderer->m_renderData.pMonitor->m_blurFB->getTexture() : nullptr) :
+                              g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
 
     g_pHyprRenderer->m_renderData.currentFB->bind();
 

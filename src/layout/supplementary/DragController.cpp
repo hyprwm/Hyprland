@@ -58,15 +58,15 @@ bool CDragStateController::updateDragWindow() {
     m_draggingTiled                   = false;
     m_draggingWindowOriginalFloatSize = DRAGGINGTARGET->lastFloatingSize();
 
-    if (WAS_FULLSCREEN && DRAGGINGTARGET->floating()) {
+    if (WAS_FULLSCREEN && DRAGGINGTARGET->floating() && m_dragThresholdReached) {
         const auto MOUSECOORDS = g_pInputManager->getMouseCoordsInternal();
         DRAGGINGTARGET->setPositionGlobal(CBox{MOUSECOORDS - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
     } else if (!DRAGGINGTARGET->floating() && m_dragMode == MBIND_MOVE) {
         Vector2D MINSIZE = DRAGGINGTARGET->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
         DRAGGINGTARGET->rememberFloatingSize((DRAGGINGTARGET->position().size() * 0.8489).clamp(MINSIZE, Vector2D{}).floor());
-        DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
 
         if (m_dragThresholdReached) {
+            DRAGGINGTARGET->setPositionGlobal(CBox{g_pInputManager->getMouseCoordsInternal() - DRAGGINGTARGET->position().size() / 2.F, DRAGGINGTARGET->position().size()});
             g_layoutManager->changeFloatingMode(DRAGGINGTARGET);
             m_draggingTiled = true;
         }

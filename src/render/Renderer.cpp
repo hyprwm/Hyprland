@@ -1069,7 +1069,7 @@ void IHyprRenderer::drawTex(CTexPassElement* element, const CRegion& damage) {
             element->m_data.blurredBG = blurMainFramebuffer(element->m_data.a, &inverseOpaque);
             m_renderData.currentFB->bind();
         } else
-            element->m_data.blurredBG = m_renderData.pMonitor->m_blurFB->getTexture();
+            element->m_data.blurredBG = m_renderData.pMonitor->m_blurFB ? m_renderData.pMonitor->m_blurFB->getTexture() : nullptr;
 
         draw(element, damage);
     } else
@@ -1667,6 +1667,8 @@ SP<ITexture> IHyprRenderer::loadAsset(const std::string& filename) {
 }
 
 SP<ITexture> IHyprRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
+    if (!pMonitor->m_blurFB)
+        return nullptr;
     return pMonitor->m_blurFB->getTexture();
 }
 
@@ -2155,6 +2157,8 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
 
     // render onto blurFB
+    if (!m_renderData.pMonitor->m_blurFB)
+        return;
     m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
     m_renderData.pMonitor->m_blurFB->bind();
 

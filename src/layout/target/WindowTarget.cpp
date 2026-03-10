@@ -29,14 +29,13 @@ eTargetType CWindowTarget::type() {
     return TARGET_TYPE_WINDOW;
 }
 
-void CWindowTarget::setPositionGlobal(const CBox& box) {
+void CWindowTarget::setPositionGlobal(const STargetBox& box) {
     ITarget::setPositionGlobal(box);
 
     updatePos();
 }
 
 void CWindowTarget::updatePos() {
-
     g_pHyprRenderer->damageWindow(m_window.lock());
     CScopeGuard x([this] { g_pHyprRenderer->damageWindow(m_window.lock()); });
 
@@ -47,11 +46,11 @@ void CWindowTarget::updatePos() {
         return;
 
     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
-        m_window->m_position = m_box.pos();
-        m_window->m_size     = m_box.size();
+        m_window->m_position = m_box.logicalBox.pos();
+        m_window->m_size     = m_box.logicalBox.size();
 
-        *m_window->m_realPosition = m_box.pos();
-        *m_window->m_realSize     = m_box.size();
+        *m_window->m_realPosition = m_box.logicalBox.pos();
+        *m_window->m_realSize     = m_box.logicalBox.size();
 
         m_window->sendWindowSize();
         m_window->updateWindowDecos();
@@ -64,21 +63,11 @@ void CWindowTarget::updatePos() {
     // if we are in maximized, force the box to be max work area.
     // TODO: this shouldn't be here.
     if (fullscreenMode() == FSMODE_MAXIMIZED)
-        ITarget::setPositionGlobal(m_space->workArea(floating()));
+        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
-    const auto PMONITOR   = m_space->workspace()->m_monitor;
-    const auto PWORKSPACE = m_space->workspace();
-
-    // for gaps outer
+    const auto PMONITOR         = m_space->workspace()->m_monitor;
+    const auto PWORKSPACE       = m_space->workspace();
     const auto MONITOR_WORKAREA = m_space->workArea();
-    const bool DISPLAYLEFT      = STICKS(m_box.x, MONITOR_WORKAREA.x);
-    const bool DISPLAYRIGHT     = STICKS(m_box.x + m_box.w, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
-    const bool DISPLAYTOP       = STICKS(m_box.y, MONITOR_WORKAREA.y);
-    const bool DISPLAYBOTTOM    = STICKS(m_box.y + m_box.h, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
-
-    // this is used for scrolling, so that the gaps are correct when a window is the full width and has neighbors
-    const bool DISPLAYINVERSELEFT  = STICKS(m_box.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
-    const bool DISPLAYINVERSERIGHT = STICKS(m_box.x + m_box.w, MONITOR_WORKAREA.x);
 
     // get specific gaps and rules for this workspace,
     // if user specified them in config
@@ -95,52 +84,64 @@ void CWindowTarget::updatePos() {
 
     g_pHyprRenderer->damageWindow(window());
 
-    static auto PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    auto* const PGAPSIN     = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
-
-    auto        gapsIn  = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
-    CBox        nodeBox = m_box;
+    CBox nodeBox = m_box.logicalBox;
     nodeBox.round();
 
     m_window->m_size     = nodeBox.size();
     m_window->m_position = nodeBox.pos();
 
-    m_window->updateWindowDecos();
+    auto calcPos  = m_box.visualBox.pos();
+    auto calcSize = m_box.visualBox.size();
 
-    auto              calcPos  = m_window->m_position;
-    auto              calcSize = m_window->m_size;
+    if (m_box.visualBox.empty()) {
+        calcPos  = nodeBox.pos();
+        calcSize = nodeBox.size();
+        // for gaps outer
+        const bool DISPLAYLEFT   = STICKS(m_box.logicalBox.x, MONITOR_WORKAREA.x);
+        const bool DISPLAYRIGHT  = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+        const bool DISPLAYTOP    = STICKS(m_box.logicalBox.y, MONITOR_WORKAREA.y);
+        const bool DISPLAYBOTTOM = STICKS(m_box.logicalBox.y + m_box.logicalBox.h, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h);
 
-    const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("layout:single_window_aspect_ratio");
-    const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("layout:single_window_aspect_ratio_tolerance");
+        // this is used for scrolling, so that the gaps are correct when a window is the full width and has neighbors
+        const bool        DISPLAYINVERSELEFT  = STICKS(m_box.logicalBox.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
+        const bool        DISPLAYINVERSERIGHT = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x);
 
-    Vector2D          ratioPadding;
+        static auto       PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
+        auto* const       PGAPSIN     = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
+        auto              gapsIn      = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
 
-    if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
-        const Vector2D originalSize = MONITOR_WORKAREA.size();
+        const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("layout:single_window_aspect_ratio");
+        const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("layout:single_window_aspect_ratio_tolerance");
 
-        const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
-        const double   originalRatio  = originalSize.x / originalSize.y;
+        Vector2D          ratioPadding;
 
-        if (requestedRatio > originalRatio) {
-            double padding = originalSize.y - (originalSize.x / requestedRatio);
+        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
+            const Vector2D originalSize = MONITOR_WORKAREA.size();
 
-            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.y)
-                ratioPadding = Vector2D{0., padding};
-        } else if (requestedRatio < originalRatio) {
-            double padding = originalSize.x - (originalSize.y * requestedRatio);
+            const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
+            const double   originalRatio  = originalSize.x / originalSize.y;
 
-            if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.x)
-                ratioPadding = Vector2D{padding, 0.};
+            if (requestedRatio > originalRatio) {
+                double padding = originalSize.y - (originalSize.x / requestedRatio);
+
+                if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.y)
+                    ratioPadding = Vector2D{0., padding};
+            } else if (requestedRatio < originalRatio) {
+                double padding = originalSize.x - (originalSize.y * requestedRatio);
+
+                if (padding / 2 > (*REQUESTEDRATIOTOLERANCE) * originalSize.x)
+                    ratioPadding = Vector2D{padding, 0.};
+            }
         }
+
+        const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? 0 : (DISPLAYINVERSELEFT ? 2 * gapsIn.m_left : gapsIn.m_left)), sc<double>(DISPLAYTOP ? 0 : gapsIn.m_top));
+
+        const auto GAPOFFSETBOTTOMRIGHT =
+            Vector2D(sc<double>(DISPLAYRIGHT ? 0 : (DISPLAYINVERSERIGHT ? 2 * gapsIn.m_right : gapsIn.m_right)), sc<double>(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
+
+        calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
+        calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
     }
-
-    const auto GAPOFFSETTOPLEFT = Vector2D(sc<double>(DISPLAYLEFT ? 0 : (DISPLAYINVERSELEFT ? 2 * gapsIn.m_left : gapsIn.m_left)), sc<double>(DISPLAYTOP ? 0 : gapsIn.m_top));
-
-    const auto GAPOFFSETBOTTOMRIGHT =
-        Vector2D(sc<double>(DISPLAYRIGHT ? 0 : (DISPLAYINVERSERIGHT ? 2 * gapsIn.m_right : gapsIn.m_right)), sc<double>(DISPLAYBOTTOM ? 0 : gapsIn.m_bottom));
-
-    calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
-    calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
 
     if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
         // Calculate pseudo
@@ -347,7 +348,7 @@ eFullscreenMode CWindowTarget::fullscreenMode() {
 
 void CWindowTarget::setFullscreenMode(eFullscreenMode mode) {
     if (floating() && m_window->m_fullscreenState.internal == FSMODE_NONE)
-        rememberFloatingSize(m_box.size());
+        rememberFloatingSize(m_box.logicalBox.size());
 
     m_window->m_fullscreenState.internal = mode;
 }

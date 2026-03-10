@@ -394,6 +394,8 @@ void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage)
 };
 
 SP<ITexture> CHyprGLRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
+    if (!pMonitor->m_blurFB)
+        return nullptr;
     return pMonitor->m_blurFB->getTexture();
 }
 

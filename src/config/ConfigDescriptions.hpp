@@ -1964,7 +1964,7 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
     },
     SConfigOptionDescription{
         .value       = "dwindle:precise_mouse_move",
-        .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is.",
+        .description = "if enabled, bindm movewindow will drop the window more precisely depending on where your mouse is. This feature also turns on preserve_split.",
         .type        = CONFIG_OPTION_BOOL,
         .data        = SConfigOptionDescription::SBoolData{false},
     },

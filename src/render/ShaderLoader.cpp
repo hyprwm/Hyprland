@@ -116,6 +116,7 @@ std::string CShaderLoader::processSource(const std::string& source, glslang_stag
             code += line + "\n";
     }
 
+    glslang_shader_delete(shader);
     return code;
 }
 

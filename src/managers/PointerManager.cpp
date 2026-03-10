@@ -603,7 +603,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     CTexPassElement::SRenderData data;
     data.tex = texture;
     data.box = xbox;
-    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), {});
+    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), damageRegion);
 
     g_pHyprRenderer->endRender();
     g_pHyprRenderer->m_renderData.pMonitor.reset();

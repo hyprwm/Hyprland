@@ -15,4 +15,6 @@ namespace Tests {
     bool                                                       killAllWindows();
     void                                                       waitUntilWindowsN(int n);
     std::string                                                execAndGet(const std::string& cmd);
+    bool                                                       writeFile(const std::string& name, const std::string& contents);
+    std::string                                                getWindowAttribute(const std::string& winInfo, const std::string& attr);
 };

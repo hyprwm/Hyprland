@@ -39,7 +39,7 @@ namespace Layout::Tiled {
 
         std::optional<Vector2D> m_overrideFocalPoint; // for onWindowCreatedTiling.
 
-        void                    addTarget(SP<ITarget> target, bool newTarget = true);
+        void                    addTarget(SP<ITarget> target);
         void                    calculateWorkspace();
         SP<SDwindleNodeData>    getNodeFromTarget(SP<ITarget>);
         SP<SDwindleNodeData>    getNodeFromWindow(PHLWINDOW w);

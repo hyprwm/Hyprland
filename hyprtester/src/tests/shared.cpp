@@ -1,5 +1,6 @@
 #include "shared.hpp"
 #include <csignal>
+#include <fstream>
 #include <cerrno>
 #include <thread>
 #include <print>
@@ -104,4 +105,25 @@ std::string Tests::execAndGet(const std::string& cmd) {
     }
 
     return proc.stdOut();
+}
+
+bool Tests::writeFile(const std::string& name, const std::string& contents) {
+    std::ofstream of(name, std::ios::trunc);
+    if (!of.good())
+        return false;
+
+    of << contents;
+    of.close();
+
+    return true;
+}
+
+std::string Tests::getWindowAttribute(const std::string& winInfo, const std::string& attr) {
+    auto pos = winInfo.find(attr);
+    if (pos == std::string::npos) {
+        NLog::log("{}Window attribute not found: '{}'", Colors::RED, attr);
+        return "Wrong window attribute";
+    }
+    auto pos2 = winInfo.find('\n', pos);
+    return winInfo.substr(pos, pos2 - pos);
 }

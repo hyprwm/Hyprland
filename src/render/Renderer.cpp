@@ -2048,6 +2048,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
             m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
             m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
             m_renderData.pMonitor->m_offMainFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+            m_renderData.pMonitor->m_blurFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
         }
     }
 
@@ -2159,7 +2160,7 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     // render onto blurFB
     if (!m_renderData.pMonitor->m_blurFB)
         return;
-    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
+
     m_renderData.pMonitor->m_blurFB->bind();
 
     draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});

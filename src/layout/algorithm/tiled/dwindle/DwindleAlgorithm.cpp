@@ -9,9 +9,7 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../Compositor.hpp"
-#include "debug/log/Logger.hpp"
 
-#include <hyprlang.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Layout;

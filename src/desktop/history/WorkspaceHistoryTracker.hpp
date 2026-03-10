@@ -5,7 +5,7 @@
 #include "../../macros.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
-#include <list>
+#include <deque>
 
 namespace Desktop::History {
     class CWorkspaceHistoryTracker {
@@ -38,7 +38,7 @@ namespace Desktop::History {
             WORKSPACEID     workspaceID   = WORKSPACE_INVALID;
         } m_lastWorkspaceData;
 
-        std::list<SHistoryEntry> m_history;
+        std::deque<SHistoryEntry> m_history;
 
         void                     track(PHLWORKSPACE w);
         void                     gc();

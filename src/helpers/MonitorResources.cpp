@@ -35,12 +35,18 @@ SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
     return res.buffer;
 }
 
-void CMonitorResources::forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback) {
+void CMonitorResources::forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed) {
     for (const auto& res : m_workBuffers) {
         if (res.buffer.strongRef() > 1)
             continue;
 
         callback(res.buffer);
+    }
+    if (includeNamed) {
+        if (m_blurFB && m_blurFB->isAllocated() && m_blurFB.strongRef() < 2)
+            callback(m_blurFB);
+        if (hasMirrorFB() && m_monitorMirrorFB.strongRef() < 2)
+            callback(m_monitorMirrorFB);
     }
 }
 

@@ -807,25 +807,24 @@ void CHyprOpenGLImpl::end() {
         g_pHyprRenderer->popMonitorTransformEnabled();
     }
 
-    // invalidate our render FBs to signal to the driver we don't need them anymore
-    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB([](const auto& fb) {
-        fb->bind();
-        GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    });
-    if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB) {
-        g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB->bind();
-        GLFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-    }
-
     // reset our data
-    m_renderData.pMonitor.reset();
     g_pHyprRenderer->m_renderData.mouseZoomFactor   = 1.f;
     g_pHyprRenderer->m_renderData.mouseZoomUseMouse = true;
     g_pHyprRenderer->m_renderData.blockScreenShader = false;
-    g_pHyprRenderer->m_renderData.currentFB         = nullptr;
-    g_pHyprRenderer->m_renderData.mainFB            = nullptr;
-    g_pHyprRenderer->m_renderData.outFB             = nullptr;
+    g_pHyprRenderer->m_renderData.currentFB.reset();
+    g_pHyprRenderer->m_renderData.mainFB.reset();
+    g_pHyprRenderer->m_renderData.outFB.reset();
     g_pHyprRenderer->popMonitorTransformEnabled();
+
+    // invalidate our render FBs to signal to the driver we don't need them anymore
+    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
+        [](const auto& fb) {
+            fb->bind();
+            GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+        },
+        false);
+
+    m_renderData.pMonitor.reset();
 
     static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
 

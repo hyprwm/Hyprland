@@ -2,13 +2,13 @@
 #include "../OpenGL.hpp"
 #include "../Renderer.hpp"
 #include "macros.hpp"
-#include "render/Framebuffer.hpp"
+#include "../Framebuffer.hpp"
 
 CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
 CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name) {}
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
 
     bool firstAlloc = false;
 
@@ -71,9 +71,10 @@ void CGLFramebuffer::addStencil(SP<ITexture> tex) {
 void CGLFramebuffer::bind() {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fb);
 
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->setViewport(0, 0, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.x, g_pHyprOpenGL->m_renderData.pMonitor->m_pixelSize.y);
-    else
+    if (g_pHyprOpenGL) {
+        const auto& size = g_pHyprRenderer->m_renderData.pMonitor ? g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize : m_size;
+        g_pHyprOpenGL->setViewport(0, 0, size.x, size.y);
+    } else
         glViewport(0, 0, m_size.x, m_size.y);
 }
 
@@ -108,7 +109,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
         return false;
     }
 
-    g_pHyprRenderer->makeEGLCurrent();
+    g_pHyprOpenGL->makeEGLCurrent();
     glBindFramebuffer(GL_READ_FRAMEBUFFER, getFBID());
     bind();
 

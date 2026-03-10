@@ -7,9 +7,14 @@
 using namespace Layout;
 using namespace Hyprutils::Utils;
 
-void ITarget::setPositionGlobal(const CBox& box) {
+void ITarget::setPositionGlobal(const STargetBox& box) {
     m_box = box;
-    m_box.round();
+    m_box.logicalBox.round();
+    m_box.visualBox.round();
+}
+
+void ITarget::setPositionGlobal(const CBox& box) {
+    setPositionGlobal({.logicalBox = box});
 }
 
 void ITarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
@@ -57,7 +62,7 @@ PHLWORKSPACE ITarget::workspace() const {
 }
 
 CBox ITarget::position() const {
-    return m_box;
+    return m_box.logicalBox;
 }
 
 void ITarget::rememberFloatingSize(const Vector2D& size) {

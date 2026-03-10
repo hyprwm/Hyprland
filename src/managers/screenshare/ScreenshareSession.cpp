@@ -88,8 +88,8 @@ void CScreenshareSession::calculateConstraints() {
 
     // TODO: maybe support more that just monitor format in the future?
     m_formats.clear();
-    m_formats.push_back(NFormatUtils::alphaFormat(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR)));
-    m_formats.push_back(g_pHyprOpenGL->getPreferredReadFormat(PMONITOR)); // some clients don't like alpha formats
+    m_formats.push_back(NFormatUtils::alphaFormat(PMONITOR->getPreferredReadFormat()));
+    m_formats.push_back(PMONITOR->getPreferredReadFormat()); // some clients don't like alpha formats
 
     // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT won't work here
     for (auto& format : m_formats) {

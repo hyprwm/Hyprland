@@ -71,8 +71,8 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
 
 CMonitor::~CMonitor() {
     m_events.destroy.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 }
 
 void CMonitor::onConnect(bool noRule) {
@@ -380,8 +380,8 @@ void CMonitor::onDisconnect(bool destroy) {
     Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_output->name);
 
     m_events.disconnect.emit();
-    if (g_pHyprOpenGL)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
@@ -1047,8 +1047,17 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     updateMatrix();
 
-    if (WAS10B != m_enabled10bit || OLDRES != m_pixelSize)
-        g_pHyprOpenGL->destroyMonitorResources(m_self);
+    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
+        m_mirrorFB.reset();
+        m_offloadFB.reset();
+        m_mirrorSwapFB.reset();
+        m_blurFB.reset();
+        m_offMainFB.reset();
+        m_stencilTex.reset();
+
+        if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+            g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+    }
 
     g_pCompositor->scheduleMonitorStateRecheck();
 
@@ -1780,7 +1789,7 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         }
     }
 
-    if (g_pHyprOpenGL->m_renderData.mouseZoomFactor != 1.0) {
+    if (g_pHyprRenderer->m_renderData.mouseZoomFactor != 1.0) {
         reasons |= TC_ZOOM;
         if (!full) {
             Log::logger->log(Log::WARN, "Tearing commit requested but scale factor is not 1, ignoring");
@@ -1965,7 +1974,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprOpenGL->explicitSyncSupported()) {
+    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
         auto sync = CEGLSync::create();
 
         if (sync->fd().isValid()) {
@@ -2194,6 +2203,19 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
         .min = m_minLuminance >= 0 ? m_minLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMinLuminance : 0),
         .max = m_maxLuminance >= 0 ? m_maxLuminance : (m_output->parsedEDID.hdrMetadata.has_value() ? m_output->parsedEDID.hdrMetadata->desiredContentMaxLuminance : 0),
     };
+}
+
+uint32_t CMonitor::getPreferredReadFormat() {
+    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+
+    auto              monFmt = m_output->state->state().drmFormat;
+
+    if (*PFORCE8BIT)
+        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
+            monFmt == DRM_FORMAT_XBGR2101010)
+            monFmt = DRM_FORMAT_XRGB8888;
+
+    return monFmt;
 }
 
 bool CMonitor::needsCM() {

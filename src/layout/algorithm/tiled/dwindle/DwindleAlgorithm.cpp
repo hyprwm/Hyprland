@@ -188,7 +188,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             m_overrideDirection = Math::DIRECTION_DEFAULT;
-    } else if (*PSMARTSPLIT == 1 || m_overrideFocalPoint || (*PPRECISEMOUSEMOVE == 1 && g_layoutManager->dragController()->wasDraggingWindow())) {
+    } else if (*PSMARTSPLIT == 1 || (*PPRECISEMOUSEMOVE == 1 && g_layoutManager->dragController()->wasDraggingWindow())) {
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
         const auto DELTA              = MOUSECOORDS - PARENT_CENTER;
@@ -219,7 +219,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target, bool newTarget) {
                 NEWPARENT->children[1] = OPENINGON;
             }
         }
-    } else if (*PFORCESPLIT == 0 || !newTarget) {
+    } else if (*PFORCESPLIT == 0 || !newTarget || m_overrideFocalPoint) {
         if ((SIDEBYSIDE && MOUSECOORDS.x < NEWPARENT->box.x + (NEWPARENT->box.w / 2.F)) || (!SIDEBYSIDE && MOUSECOORDS.y < NEWPARENT->box.y + (NEWPARENT->box.h / 2.F))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;

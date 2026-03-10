@@ -7,6 +7,7 @@
 #include "../desktop/view/Window.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "render/Renderer.hpp"
 #include <cstring>
 
 using namespace Screenshare;
@@ -72,7 +73,7 @@ void CImageCopyCaptureSession::sendConstraints() {
     for (DRMFormat format : formats) {
         m_resource->sendShmFormat(NFormatUtils::drmToShm(format));
 
-        auto     modifiers = g_pHyprOpenGL->getDRMFormatModifiers(format);
+        auto     modifiers = g_pHyprRenderer->getDRMFormatModifiers(format);
 
         wl_array modsArr;
         wl_array_init(&modsArr);
@@ -287,7 +288,7 @@ void CImageCopyCaptureCursorSession::sendConstraints() {
 
     m_sessionResource->sendShmFormat(NFormatUtils::drmToShm(format));
 
-    auto     modifiers = g_pHyprOpenGL->getDRMFormatModifiers(format);
+    auto     modifiers = g_pHyprRenderer->getDRMFormatModifiers(format);
 
     wl_array modsArr;
     wl_array_init(&modsArr);

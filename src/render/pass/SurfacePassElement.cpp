@@ -84,7 +84,7 @@ bool CSurfacePassElement::needsLiveBlur() {
     if (m_data.popup)
         return BLUR;
 
-    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
+    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
     return BLUR && !NEWOPTIM;
 }
@@ -101,7 +101,7 @@ bool CSurfacePassElement::needsPrecomputeBlur() {
     if (m_data.popup)
         return false;
 
-    const bool NEWOPTIM = g_pHyprOpenGL->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
+    const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
     return BLUR && NEWOPTIM;
 }
@@ -149,8 +149,8 @@ CRegion CSurfacePassElement::visibleRegion(bool& cancel) {
     // deal with any rounding errors that might come from scaling
     visibleRegion.expand(1);
 
-    auto uvTL = g_pHyprOpenGL->m_renderData.primarySurfaceUVTopLeft;
-    auto uvBR = g_pHyprOpenGL->m_renderData.primarySurfaceUVBottomRight;
+    auto uvTL = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft;
+    auto uvBR = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight;
 
     if (uvTL == Vector2D(-1, -1))
         uvTL = Vector2D(0, 0);

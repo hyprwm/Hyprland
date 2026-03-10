@@ -1062,7 +1062,7 @@ void IHyprRenderer::drawTex(CTexPassElement* element, const CRegion& damage) {
             element->m_data.blockBlurOptimization.value_or(false) || !shouldUseNewBlurOptimizations(element->m_data.currentLS.lock(), m_renderData.currentWindow.lock());
 
         //   vvv TODO: layered blur fbs?
-        if (element->m_data.blockBlurOptimization) {
+        if (element->m_data.blockBlurOptimization.value_or(false)) {
             inverseOpaque.translate(box.pos());
             m_renderData.renderModif.applyToRegion(inverseOpaque);
             inverseOpaque.intersect(element->m_data.damage);

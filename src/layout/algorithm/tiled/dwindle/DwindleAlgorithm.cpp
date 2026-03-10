@@ -34,11 +34,12 @@ struct Layout::Tiled::SDwindleNodeData {
 
     void recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false) {
         if (children[0]) {
-            static auto PSMARTSPLIT    = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
-            static auto PPRESERVESPLIT = CConfigValue<Hyprlang::INT>("dwindle:preserve_split");
-            static auto PFLMULT        = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+            static auto PSMARTSPLIT       = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
+            static auto PPRESERVESPLIT    = CConfigValue<Hyprlang::INT>("dwindle:preserve_split");
+            static auto PFLMULT           = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+            static auto PPRECISEMOUSEMOVE = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
 
-            if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0)
+            if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0 && *PPRECISEMOUSEMOVE == 0)
                 splitTop = box.h * *PFLMULT > box.w;
 
             if (verticalOverride)
@@ -159,6 +160,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     static auto PERMANENTDIRECTIONOVERRIDE = CConfigValue<Hyprlang::INT>("dwindle:permanent_direction_override");
     static auto PSMARTSPLIT                = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
     static auto PSPLITBIAS                 = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
+    static auto PPRECISEMOUSEMOVE          = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
 
     bool        horizontalOverride = false;
     bool        verticalOverride   = false;
@@ -184,7 +186,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
         // whether or not the override persists after opening one window
         if (*PERMANENTDIRECTIONOVERRIDE == 0)
             m_overrideDirection = Math::DIRECTION_DEFAULT;
-    } else if (*PSMARTSPLIT == 1) {
+    } else if (*PSMARTSPLIT == 1 || (*PPRECISEMOUSEMOVE == 1 && g_layoutManager->dragController()->wasDraggingWindow())) {
         const auto PARENT_CENTER      = NEWPARENT->box.pos() + NEWPARENT->box.size() / 2;
         const auto PARENT_PROPORTIONS = NEWPARENT->box.h / NEWPARENT->box.w;
         const auto DELTA              = MOUSECOORDS - PARENT_CENTER;

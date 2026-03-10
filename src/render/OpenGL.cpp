@@ -799,6 +799,10 @@ void CHyprOpenGLImpl::end() {
         fb->bind();
         GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
     });
+    if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB) {
+        g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB->bind();
+        GLFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+    }
 
     // reset our data
     m_renderData.pMonitor.reset();

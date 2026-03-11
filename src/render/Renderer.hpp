@@ -77,6 +77,7 @@ enum eRenderProjectionType : uint8_t {
     RPT_MONITOR,
     RPT_MIRROR,
     RPT_FB,
+    RPT_EXPORT,
 };
 
 struct SRenderData {

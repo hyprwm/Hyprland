@@ -199,15 +199,8 @@ void CInputManager::sendMotionEventsToFocused() {
 
     auto local = getMouseCoordsInternal().floor() - BOX->pos();
 
-    if (const auto PWINDOW = Desktop::View::CWindow::fromView(VIEW); PWINDOW && PWINDOW->m_isX11) {
+    if (const auto PWINDOW = Desktop::View::CWindow::fromView(VIEW); PWINDOW && PWINDOW->m_isX11)
         local = local * PWINDOW->m_X11SurfaceScaledBy;
-
-        const auto PMON = PWINDOW->m_monitor.lock();
-        Log::logger->log(Log::ERR,
-                         "[x11-focus-debug] title='{}' class='{}' monitor='{}' mouse={} boxPos={} boxSize={} local={} scale={}",
-                         PWINDOW->m_title, PWINDOW->m_class, PMON ? PMON->m_name : "null", getMouseCoordsInternal().floor(), BOX->pos(), BOX->size(), local,
-                         PWINDOW->m_X11SurfaceScaledBy);
-    }
 
     g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), local);
 }
@@ -562,16 +555,6 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
         surfaceLocal = surfaceLocal * pFoundWindow->m_X11SurfaceScaledBy;
-
-    if (pFoundWindow && pFoundWindow->m_isX11 && foundSurface == pFoundWindow->wlSurface()->resource()) {
-        const auto MAINBOX = pFoundWindow->getWindowMainSurfaceBox();
-        const auto PMON    = pFoundWindow->m_monitor.lock();
-        Log::logger->log(Log::ERR,
-                         "[x11-hover-debug] title='{}' class='{}' monitor='{}' mouse={} surfacePos={} surfaceLocal={} mainBoxPos={} mainBoxSize={} realPos={} realSize={} rootSize={} scale={}",
-                         pFoundWindow->m_title, pFoundWindow->m_class, PMON ? PMON->m_name : "null", mouseCoords, surfacePos, surfaceLocal, MAINBOX.pos(),
-                         MAINBOX.size(), pFoundWindow->m_realPosition->goal(), pFoundWindow->m_realSize->goal(), pFoundWindow->wlSurface()->resource()->m_current.size,
-                         pFoundWindow->m_X11SurfaceScaledBy);
-    }
 
     bool allowKeyboardRefocus = true;
 

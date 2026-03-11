@@ -747,6 +747,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 }
 
 void CHyprOpenGLImpl::end() {
+    static auto PFP16          = CConfigValue<Hyprlang::INT>("render:use_fp16");
     static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
     auto&       m_renderData   = g_pHyprRenderer->m_renderData;
     TRACY_GPU_ZONE("RenderEnd");
@@ -804,12 +805,14 @@ void CHyprOpenGLImpl::end() {
     g_pHyprRenderer->popMonitorTransformEnabled();
 
     // invalidate our render FBs to signal to the driver we don't need them anymore
-    g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
-        [](const auto& fb) {
-            fb->bind();
-            GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
-        },
-        false);
+    if (!*PFP16) { // FIXME wtf?
+        g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
+            [](const auto& fb) {
+                fb->bind();
+                GLFB(fb)->invalidate({GL_STENCIL_ATTACHMENT, GL_COLOR_ATTACHMENT0});
+            },
+            false);
+    }
 
     m_renderData.pMonitor.reset();
 

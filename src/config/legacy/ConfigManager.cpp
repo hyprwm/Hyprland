@@ -321,6 +321,18 @@ static Hyprlang::CParseResult handleUnbind(const char* c, const char* v) {
     return result;
 }
 
+static Hyprlang::CParseResult handleDevicemap(const char* c, const char* v) {
+    const std::string      VALUE   = v;
+    const std::string      COMMAND = c;
+
+    const auto             RESULT = Config::Legacy::mgr()->handleDevicemap(COMMAND, VALUE);
+
+    Hyprlang::CParseResult result;
+    if (RESULT.has_value())
+        result.setError(RESULT.value().c_str());
+    return result;
+}
+
 static Hyprlang::CParseResult handleWorkspaceRules(const char* c, const char* v) {
     const std::string      VALUE   = v;
     const std::string      COMMAND = c;
@@ -934,6 +946,7 @@ CConfigManager::CConfigManager() {
     m_config->registerHandler(&::handlePermission, "permission", {false});
     m_config->registerHandler(&::handleGesture, "gesture", {true});
     m_config->registerHandler(&::handleEnv, "env", {true});
+    m_config->registerHandler(&::handleDevicemap, "devicemap", {false});
 
     // windowrulev2 and layerrulev2 errors
     m_config->registerHandler(&::handleWindowrulev2, "windowrulev2", {false});
@@ -1913,7 +1926,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
         g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
                                                COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
                                                mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag,         submapUniversal,   deviceInclusive,    devices});
+                                               click,         drag,         submapUniversal,   m_currentDevicemap});
     }
 
     return {};
@@ -1934,6 +1947,21 @@ std::optional<std::string> CConfigManager::handleUnbind(const std::string& comma
     const auto KEY = parseKey(ARGS[1]);
 
     g_pKeybindManager->removeKeybind(MOD, KEY);
+
+    return {};
+}
+
+std::optional<std::string> CConfigManager::handleDevicemap(const std::string& command, const std::string& value) {
+    if (value == "reset") {
+        m_currentDevicemap = {};
+        return {};
+    }
+
+    m_currentDevicemap.inclusive = !value.starts_with('!');
+
+    m_currentDevicemap.devices.clear();
+    for (const auto d : CVarList2(value.substr(m_currentDevicemap.inclusive ? 0 : 1)))
+        m_currentDevicemap.devices.emplace(d);
 
     return {};
 }

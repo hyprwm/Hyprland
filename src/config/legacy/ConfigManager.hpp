@@ -88,6 +88,7 @@ namespace Config::Legacy {
         std::optional<std::string> handleAnimation(const std::string&, const std::string&);
         std::optional<std::string> handleSource(const std::string&, const std::string&);
         std::optional<std::string> handleSubmap(const std::string&, const std::string&);
+        std::optional<std::string> handleDevicemap(const std::string&, const std::string&);
         std::optional<std::string> handleBindWS(const std::string&, const std::string&);
         std::optional<std::string> handleEnv(const std::string&, const std::string&);
         std::optional<std::string> handlePlugin(const std::string&, const std::string&);
@@ -128,6 +129,7 @@ namespace Config::Legacy {
         std::string                                      m_mainConfigPath;
 
         SSubmap                                          m_currentSubmap;
+        SDevicemap                                       m_currentDevicemap = {{}, false};
 
         std::vector<std::string>                         m_declaredPlugins;
         std::vector<SPluginKeyword>                      m_pluginKeywords;

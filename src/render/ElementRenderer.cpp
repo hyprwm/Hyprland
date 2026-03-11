@@ -405,6 +405,7 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
         if (useMirrorProjection)
             g_pHyprRenderer->setProjectionType(RPT_MONITOR);
         g_pHyprRenderer->m_renderData.surface.reset();
+        g_pHyprRenderer->m_renderData.clipBox = {};
     }};
 
     if (element->m_data.blur) {
@@ -437,7 +438,6 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
             if (inverseOpaque.empty()) {
                 element->m_data.blur = false;
                 draw(element, damage);
-                m_renderData.clipBox = {};
                 return;
             }
         } else
@@ -459,8 +459,6 @@ void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damag
         draw(element, damage);
     } else
         draw(element, damage);
-
-    m_renderData.clipBox = {};
 }
 
 void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage) {

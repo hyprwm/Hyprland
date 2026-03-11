@@ -52,6 +52,7 @@
 #include "OpenGL.hpp"
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
+#include "types.hpp"
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>

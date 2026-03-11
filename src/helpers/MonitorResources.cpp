@@ -12,8 +12,13 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
     m_stencilTex(g_pHyprRenderer->createStencilTexture(monitor->m_pixelSize.x, monitor->m_pixelSize.y)),
     m_blurFB(g_pHyprRenderer->createFB(std::format("Monitor {} blur FB", monitor->m_name))), m_monitor(monitor), m_drmFormat(format), m_size(size),
     m_imageDescription(imageDescription) {
-    m_blurFB->addStencil(m_stencilTex);
-    m_blurFB->alloc(m_size.x, m_size.y, m_drmFormat);
+    initFB(m_blurFB);
+}
+
+void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
+    fb->addStencil(m_stencilTex);
+    fb->alloc(m_size.x, m_size.y, m_drmFormat);
+    fb->getTexture()->m_imageDescription = m_imageDescription;
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
@@ -28,9 +33,7 @@ SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
         return nullptr;
 
     auto& res = m_workBuffers.emplace_back(g_pHyprRenderer->createFB(std::format("Monitor {} workbuffer", m_monitor->m_name)));
-    res.buffer->addStencil(m_stencilTex);
-    res.buffer->alloc(m_size.x, m_size.y, m_drmFormat);
-    res.buffer->getTexture()->m_imageDescription = m_imageDescription;
+    initFB(res.buffer);
     res.lastUsed.reset();
     return res.buffer;
 }

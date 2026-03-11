@@ -1784,6 +1784,9 @@ Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::str
     if (name.starts_with("plugin:"))
         return m_config->getSpecialConfigValuePtr("plugin", name.substr(7).c_str(), nullptr);
 
+    if (const auto OPEN = name.find('['), CLOSE = name.find("]:"); OPEN != std::string::npos && CLOSE != std::string::npos)
+        return m_config->getSpecialConfigValuePtr(name.substr(0, OPEN).c_str(), name.substr(CLOSE + 2).c_str(), name.substr(OPEN + 1, CLOSE - OPEN - 1).c_str());
+
     return m_config->getConfigValuePtr(name.c_str());
 }
 

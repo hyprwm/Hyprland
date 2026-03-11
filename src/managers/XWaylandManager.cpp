@@ -182,19 +182,18 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    std::vector<SXWaylandMonitorDesc> monitors;
-    monitors.reserve(g_pCompositor->m_monitors.size());
-    std::optional<size_t> preferredIndex;
+    if (g_pCompositor->m_monitors.empty())
+        return {};
+
+    std::optional<size_t> preferredIndex  = preferredMonitor ? std::optional<size_t>{} : std::nullopt;
 
     for (size_t i = 0; i < g_pCompositor->m_monitors.size(); ++i) {
         const auto& m = g_pCompositor->m_monitors[i];
-        monitors.emplace_back(m->m_position, m->m_xwaylandPosition, m->m_size, m->m_transformedSize, m->m_scale);
-
         if (preferredMonitor && m == preferredMonitor)
             preferredIndex = i;
     }
 
-    return ::waylandToXWaylandCoords(monitors, coord, *PXWLFORCESCALEZERO, preferredIndex);
+    return ::waylandToXWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
@@ -205,17 +204,16 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PH
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    std::vector<SXWaylandMonitorDesc> monitors;
-    monitors.reserve(g_pCompositor->m_monitors.size());
-    std::optional<size_t> preferredIndex;
+    if (g_pCompositor->m_monitors.empty())
+        return {};
+
+    std::optional<size_t> preferredIndex = preferredMonitor ? std::optional<size_t>{} : std::nullopt;
 
     for (size_t i = 0; i < g_pCompositor->m_monitors.size(); ++i) {
         const auto& m = g_pCompositor->m_monitors[i];
-        monitors.emplace_back(m->m_position, m->m_xwaylandPosition, m->m_size, m->m_transformedSize, m->m_scale);
-
         if (preferredMonitor && m == preferredMonitor)
             preferredIndex = i;
     }
 
-    return ::xwaylandToWaylandCoords(monitors, coord, *PXWLFORCESCALEZERO, preferredIndex);
+    return ::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }

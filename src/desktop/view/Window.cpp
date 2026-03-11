@@ -1356,7 +1356,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 }
 
 Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
-    return g_pXWaylandManager->xwaylandToWaylandCoords(pos);
+    return g_pXWaylandManager->xwaylandToWaylandCoords(pos, m_monitor.lock());
 }
 
 void CWindow::updateX11SurfaceScale() {

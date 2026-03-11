@@ -2129,6 +2129,7 @@ void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
         case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
         case RPT_MIRROR: m_renderData.targetProjection = getMirrorProjection(m_renderData.pMonitor); break;
         case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        case RPT_EXPORT: m_renderData.targetProjection = Mat3x3::identity(); break;
         default: UNREACHABLE();
     }
 }
@@ -2140,7 +2141,9 @@ Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform
 }
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
-    return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
+    return (m_renderData.projectionType == RPT_EXPORT ? Mat3x3::outputProjection(m_renderData.fbSize, HYPRUTILS_TRANSFORM_NORMAL) : m_renderData.pMonitor->getScaleMatrix())
+        .copy()
+        .multiply(getBoxProjection(box, transform));
 }
 
 SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {

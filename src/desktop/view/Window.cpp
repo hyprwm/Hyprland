@@ -1263,6 +1263,9 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     const auto monitorByRequestedPosition = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f);
     const auto currentMonitor             = m_workspace->m_monitor.lock();
 
+    if (monitorByRequestedPosition)
+        m_monitor = monitorByRequestedPosition;
+
     Log::logger->log(
         Log::DEBUG,
         "onX11ConfigureRequest: window '{}' ({:#x}) - workspace '{}' (special={}), currentMonitor='{}', monitorByRequestedPosition='{}', pos={:.0f},{:.0f}, size={:.0f},{:.0f}",

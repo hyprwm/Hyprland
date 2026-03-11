@@ -23,44 +23,36 @@ static float distanceToRectCenter(const Vector2D& point, const Vector2D& positio
 template <typename ValidFn, typename DistPosFn, typename DistSizeFn>
 static std::optional<size_t> selectMonitorGeneric(std::span<const SXWaylandMonitorDesc> monitors, const Vector2D& point, ValidFn valid, DistPosFn distPos,
                                                   DistSizeFn distSize) {
-    std::vector<size_t> validMonitors;
-    validMonitors.reserve(monitors.size());
+    if (monitors.empty())
+        return std::nullopt;
 
-    for (size_t i = 0; i < monitors.size(); ++i) {
-        if (valid(monitors[i]))
-            validMonitors.push_back(i);
-    }
+    if (monitors.size() == 1)
+        return 0;
 
-    if (validMonitors.size() == 1)
-        return validMonitors.front();
-
-    if (!validMonitors.empty()) {
-        auto  bestMonitor = validMonitors.front();
-        float bestDist    = distanceToRect(point, distPos(monitors[bestMonitor]), distSize(monitors[bestMonitor]));
-        float bestCenter  = distanceToRectCenter(point, distPos(monitors[bestMonitor]), distSize(monitors[bestMonitor]));
-
-        for (size_t idx = 1; idx < validMonitors.size(); ++idx) {
-            const auto monitor = validMonitors[idx];
-            const auto dist    = distanceToRect(point, distPos(monitors[monitor]), distSize(monitors[monitor]));
-            const auto center  = distanceToRectCenter(point, distPos(monitors[monitor]), distSize(monitors[monitor]));
-
-            if (dist < bestDist || (dist == bestDist && center < bestCenter)) {
-                bestMonitor = monitor;
-                bestDist    = dist;
-                bestCenter  = center;
-            }
-        }
-
-        return bestMonitor;
-    }
+    std::optional<size_t> bestValidMonitor;
+    auto                  bestValidDist   = std::numeric_limits<float>::max();
+    auto                  bestValidCenter = std::numeric_limits<float>::max();
+    size_t                validCount      = 0;
 
     std::optional<size_t> bestMonitor;
     auto                  bestDist   = std::numeric_limits<float>::max();
     auto                  bestCenter = std::numeric_limits<float>::max();
 
     for (size_t i = 0; i < monitors.size(); ++i) {
-        const auto dist   = distanceToRect(point, distPos(monitors[i]), distSize(monitors[i]));
-        const auto center = distanceToRectCenter(point, distPos(monitors[i]), distSize(monitors[i]));
+        const auto pos    = distPos(monitors[i]);
+        const auto size   = distSize(monitors[i]);
+        const auto dist   = distanceToRect(point, pos, size);
+        const auto center = distanceToRectCenter(point, pos, size);
+
+        if (valid(monitors[i])) {
+            validCount++;
+
+            if (!bestValidMonitor || dist < bestValidDist || (dist == bestValidDist && center < bestValidCenter)) {
+                bestValidMonitor = i;
+                bestValidDist    = dist;
+                bestValidCenter  = center;
+            }
+        }
 
         if (dist < bestDist || (dist == bestDist && center < bestCenter)) {
             bestMonitor = i;
@@ -68,6 +60,9 @@ static std::optional<size_t> selectMonitorGeneric(std::span<const SXWaylandMonit
             bestCenter  = center;
         }
     }
+
+    if (validCount > 0)
+        return bestValidMonitor;
 
     return bestMonitor;
 }

@@ -206,6 +206,11 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PH
     // add pos
     result += pMonitor->m_xwaylandPosition;
 
+    Log::logger->log(Log::ERR,
+                     "[xwl-coord-debug] waylandToXWayland monitor='{}' in={} monPos={} monSize={} monXwlPos={} monXwlSize={} out={} scale={}",
+                     pMonitor->m_name, coord, pMonitor->m_position, pMonitor->m_size, pMonitor->m_xwaylandPosition, pMonitor->m_transformedSize, result,
+                     pMonitor->m_scale);
+
     return result;
 }
 
@@ -243,6 +248,11 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PH
         result /= pMonitor->m_scale;
     // add pos
     result += pMonitor->m_position;
+
+    Log::logger->log(Log::ERR,
+                     "[xwl-coord-debug] xwaylandToWayland monitor='{}' in={} monPos={} monSize={} monXwlPos={} monXwlSize={} out={} scale={}",
+                     pMonitor->m_name, coord, pMonitor->m_position, pMonitor->m_size, pMonitor->m_xwaylandPosition, pMonitor->m_transformedSize, result,
+                     pMonitor->m_scale);
 
     return result;
 }

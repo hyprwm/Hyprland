@@ -2483,14 +2483,18 @@ void CWindow::unmanagedSetGeometry() {
         m_position = m_realPosition->goal();
         m_size     = m_realSize->goal();
 
-        m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->value() + m_realSize->value() / 2.f)->m_activeWorkspace;
+        const auto PMONITORBYGEOMETRY = g_pCompositor->getMonitorFromVector(m_realPosition->value() + m_realSize->value() / 2.f);
+        if (PMONITORBYGEOMETRY) {
+            m_monitor   = PMONITORBYGEOMETRY;
+            m_workspace = PMONITORBYGEOMETRY->m_activeWorkspace;
+        }
 
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
         updateWindowDecos();
         g_pHyprRenderer->damageWindow(m_self.lock());
 
-        m_reportedPosition    = m_realPosition->goal();
-        m_pendingReportedSize = m_realSize->goal();
+        m_reportedPosition    = realToReportPosition();
+        m_pendingReportedSize = realToReportSize();
     }
 }
 

@@ -1356,8 +1356,15 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         if (!TDATA)
             return std::unexpected("no window focused");
 
-        auto idx = m_scrollingData->idx(TDATA->column.lock());
-        auto col = idx == -1 ? m_scrollingData->add() : m_scrollingData->add(idx);
+        const bool PROMOTE_LEFT = ARGS.size() >= 2 && ARGS[1] == "l";
+
+        auto            idx = m_scrollingData->idx(TDATA->column.lock());
+        SP<SColumnData> col;
+
+        if (PROMOTE_LEFT)
+            col = m_scrollingData->add(idx == -1 ? -1 : idx - 1);
+        else
+            col = idx == -1 ? m_scrollingData->add() : m_scrollingData->add(idx);
 
         TDATA->column->remove(TDATA->target.lock());
 

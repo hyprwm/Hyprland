@@ -1,4 +1,6 @@
 #include "XWaylandManager.hpp"
+
+#include "XWaylandMonitorSelection.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../config/ConfigValue.hpp"
@@ -180,33 +182,19 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    PHLMONITOR pMonitor = preferredMonitor;
-    if (!pMonitor) {
-        double bestDistance = __FLT_MAX__;
-        for (const auto& m : g_pCompositor->m_monitors) {
-            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
+    std::vector<SXWaylandMonitorDesc> monitors;
+    monitors.reserve(g_pCompositor->m_monitors.size());
+    std::optional<size_t> preferredIndex;
 
-            double     distance = vecToRectDistanceSquared(coord, {m->m_position.x, m->m_position.y}, {m->m_position.x + SIZ.x - 1, m->m_position.y + SIZ.y - 1});
+    for (size_t i = 0; i < g_pCompositor->m_monitors.size(); ++i) {
+        const auto& m = g_pCompositor->m_monitors[i];
+        monitors.emplace_back(m->m_position, m->m_xwaylandPosition, m->m_size, m->m_transformedSize, m->m_scale);
 
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                pMonitor     = m;
-            }
-        }
+        if (preferredMonitor && m == preferredMonitor)
+            preferredIndex = i;
     }
 
-    if (!pMonitor)
-        return Vector2D{};
-
-    // get local coords
-    Vector2D result = coord - pMonitor->m_position;
-    // if scaled, scale
-    if (*PXWLFORCESCALEZERO)
-        result *= pMonitor->m_scale;
-    // add pos
-    result += pMonitor->m_xwaylandPosition;
-
-    return result;
+    return ::waylandToXWaylandCoords(monitors, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
@@ -217,32 +205,17 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PH
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    PHLMONITOR pMonitor = preferredMonitor;
-    if (!pMonitor) {
-        double bestDistance = __FLT_MAX__;
-        for (const auto& m : g_pCompositor->m_monitors) {
-            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
+    std::vector<SXWaylandMonitorDesc> monitors;
+    monitors.reserve(g_pCompositor->m_monitors.size());
+    std::optional<size_t> preferredIndex;
 
-            double     distance =
-                vecToRectDistanceSquared(coord, {m->m_xwaylandPosition.x, m->m_xwaylandPosition.y}, {m->m_xwaylandPosition.x + SIZ.x - 1, m->m_xwaylandPosition.y + SIZ.y - 1});
+    for (size_t i = 0; i < g_pCompositor->m_monitors.size(); ++i) {
+        const auto& m = g_pCompositor->m_monitors[i];
+        monitors.emplace_back(m->m_position, m->m_xwaylandPosition, m->m_size, m->m_transformedSize, m->m_scale);
 
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                pMonitor     = m;
-            }
-        }
+        if (preferredMonitor && m == preferredMonitor)
+            preferredIndex = i;
     }
 
-    if (!pMonitor)
-        return Vector2D{};
-
-    // get local coords
-    Vector2D result = coord - pMonitor->m_xwaylandPosition;
-    // if scaled, unscale
-    if (*PXWLFORCESCALEZERO)
-        result /= pMonitor->m_scale;
-    // add pos
-    result += pMonitor->m_position;
-
-    return result;
+    return ::xwaylandToWaylandCoords(monitors, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }

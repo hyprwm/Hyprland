@@ -2462,9 +2462,8 @@ void CWindow::unmanagedSetGeometry() {
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos());
-
     const auto  PMONITOR       = m_monitor.lock();
+    const auto  LOGICALPOS     = g_pXWaylandManager->xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos(), PMONITOR);
     const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
     const auto  LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;
 

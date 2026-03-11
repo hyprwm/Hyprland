@@ -21,6 +21,8 @@ namespace Monitor {
         SP<Render::IFramebuffer> m_blurFB;
 
       private:
+        void initFB(SP<Render::IFramebuffer> fb);
+
         struct SResource {
             SP<Render::IFramebuffer> buffer;
             CTimer                   lastUsed;

@@ -554,9 +554,10 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
 
-    if (pFoundWindow && pFoundWindow->m_isX11 && foundSurface == pFoundWindow->wlSurface()->resource()) {
+    if (pFoundWindow && pFoundWindow->m_isX11) {
         const auto MAINBOX = pFoundWindow->getWindowMainSurfaceBox();
-        surfaceLocal       = mouseCoords - MAINBOX.pos();
+        if (foundSurface == pFoundWindow->wlSurface()->resource())
+            surfaceLocal = mouseCoords - MAINBOX.pos();
     }
 
     if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero

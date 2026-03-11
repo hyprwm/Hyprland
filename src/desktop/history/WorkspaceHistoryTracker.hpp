@@ -40,9 +40,9 @@ namespace Desktop::History {
 
         std::deque<SHistoryEntry> m_history;
 
-        void                     track(PHLWORKSPACE w);
-        void                     gc();
-        void                     setLastWorkspaceData(PHLWORKSPACE w);
+        void                      track(PHLWORKSPACE w);
+        void                      gc();
+        void                      setLastWorkspaceData(PHLWORKSPACE w);
     };
 
     SP<CWorkspaceHistoryTracker> workspaceTracker();

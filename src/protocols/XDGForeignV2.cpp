@@ -81,13 +81,11 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
 }
 
 SP<CXDGExportedResourceV2> CXDGForeignExporterProtocolV2::getExported(const std::string& handle) {
-    if (!m_exported.contains(handle))
-        return nullptr;
-    return m_exported.at(handle);
+    return m_exported.contains(handle) ? m_exported.at(handle) : nullptr;
 }
 
 void CXDGForeignExporterProtocolV2::onExporterDestroyed(CZxdgExporterV2* exporter) {
-    std::erase_if(m_exporters, [exporter](const auto& other) { return other->resource() == exporter->resource(); });
+    std::erase_if(m_exporters, [exporter](const auto& other) { return exporter == other.get(); });
 }
 
 void CXDGForeignExporterProtocolV2::destroyExported(CXDGExportedResourceV2* r) {
@@ -155,9 +153,9 @@ void CXDGForeignImporterProtocolV2::bindManager(wl_client* client, void* data, u
 }
 
 void CXDGForeignImporterProtocolV2::onImporterDestroyed(CZxdgImporterV2* importer) {
-    std::erase_if(m_importers, [importer](const auto& other) { return other->resource() == importer->resource(); });
+    std::erase_if(m_importers, [importer](const auto& other) { return importer == other.get(); });
 }
 
-void CXDGForeignImporterProtocolV2::destroyImported(CXDGImportedResourceV2* r) {
-    std::erase_if(m_imports, [r](const auto& other) { return other->m_resource->resource() == r->m_resource->resource(); });
+void CXDGForeignImporterProtocolV2::destroyImported(CXDGImportedResourceV2* imported) {
+    std::erase_if(m_imports, [imported](const auto& other) { return imported == other.get(); });
 }

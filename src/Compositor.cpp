@@ -894,7 +894,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
     static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
     static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
-    static auto PMODALPARENTBLOCKING  = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
     static auto PFOLLOWMOUSESHRINK   = CConfigValue<Hyprlang::INT>("input:follow_mouse_shrink");
     const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
     const bool  ONLY_PRIORITY        = properties & Desktop::View::FOCUS_PRIORITY;

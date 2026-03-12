@@ -304,6 +304,8 @@ CProtocolManager::~CProtocolManager() {
     PROTO::extDataDevice.reset();
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
+    PROTO::xdgForeignExporter.reset();
+    PROTO::xdgForeignImporter.reset();
     PROTO::commitTiming.reset();
     PROTO::imageCaptureSource.reset();
 

@@ -97,7 +97,6 @@ class CXDGToplevelResource {
     PHLWINDOWREF                    m_window;
 
     bool                            good();
-
     Vector2D                        layoutMinSize();
     Vector2D                        layoutMaxSize();
 
@@ -107,6 +106,7 @@ class CXDGToplevelResource {
     uint32_t setFullscreen(bool fullscreen);
     uint32_t setActive(bool active);
     uint32_t setSuspeneded(bool sus);
+    void     setNewParent(SP<CXDGToplevelResource> newParent);
 
     void     close();
 

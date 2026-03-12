@@ -196,6 +196,7 @@ class CHyprOpenGLImpl {
         bool                   allowDim      = true;
         bool                   noAA          = false; // unused
         GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
+        bool                   sourceIsWorkBufferCM = false;
         bool                   cmBackToSRGB   = false;
         bool                   finalMonitorCM = false;
         SP<CMonitor>           cmBackToSRGBSource;

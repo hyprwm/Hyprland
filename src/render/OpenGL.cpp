@@ -1038,8 +1038,8 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     g_pHyprRenderer->pushMonitorTransformEnabled(true);
     const auto SAVEDRENDERMODIF               = g_pHyprRenderer->m_renderData.renderModif;
     g_pHyprRenderer->m_renderData.renderModif = {}; // fix shit
-    renderTexture(POUTFB, MONITORBOX,
-                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false});
+    renderTexture( POUTFB, MONITORBOX,
+                  STextureRenderData{.damage = &damage, .a = data.blurA, .round = data.round, .roundingPower = 2.F, .allowCustomUV = false, .allowDim = false, .noAA = false, .sourceIsWorkBufferCM = true});
     g_pHyprRenderer->popMonitorTransformEnabled();
     g_pHyprRenderer->m_renderData.renderModif = SAVEDRENDERMODIF;
 
@@ -1135,6 +1135,10 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
             imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+}
+
+static bool isHDRTransferFunction(uint32_t tf) {
+    return tf == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ || tf == NColorManagement::CM_TRANSFER_FUNCTION_HLG || tf == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
@@ -1303,7 +1307,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
 
         // otherwise, if we are CM'ing back into source, use chosen, because that's what our work buffer is in
         // the same applies to the final monitor CM
-        if (data.cmBackToSRGB || data.finalMonitorCM) // NOLINTNEXTLINE
+        if (data.sourceIsWorkBufferCM || data.cmBackToSRGB || data.finalMonitorCM) // NOLINTNEXTLINE
             return WORK_BUFFER_IMAGE_DESCRIPTION;
 
         // otherwise, default
@@ -1634,6 +1638,8 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     static auto PBLURVIBRANCYDARKNESS = CConfigValue<Hyprlang::FLOAT>("decoration:blur:vibrancy_darkness");
 
     const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
+    const auto  TF          = g_pHyprRenderer->workBufferImageDescription()->value().transferFunction;
+    const auto  IS_HDR      = isHDRTransferFunction(TF);
 
     // prep damage
     CRegion damage{*originalDamage};
@@ -1646,6 +1652,25 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     const auto PMIRRORSWAPFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
 
     auto       currentRenderToFB = PMIRRORFB;
+
+    if (IS_HDR) {
+        const auto BLEND_BEFORE_CLEAR  = m_blend;
+        const auto SCISSOR_WAS_ENABLED = glIsEnabled(GL_SCISSOR_TEST);
+
+        setCapStatus(GL_SCISSOR_TEST, false);
+        blend(false);
+        glClearColor(0.F, 0.F, 0.F, 0.F);
+
+        PMIRRORFB->bind();
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        PMIRRORSWAPFB->bind();
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        if (SCISSOR_WAS_ENABLED)
+            setCapStatus(GL_SCISSOR_TEST, true);
+        blend(BLEND_BEFORE_CLEAR);
+    }
 
     // Begin with base color adjustments - global brightness and contrast
     // TODO: make this a part of the first pass maybe to save on a drawcall?
@@ -1663,25 +1688,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         currentTex->bind();
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        WP<CShader> shader;
-
-        // From FB to sRGB
-        const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-        if (!skipCM) {
-            shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
-            passCMUniforms(shader, m_renderData.pMonitor->m_imageDescription, DEFAULT_IMAGE_DESCRIPTION);
-            shader->setUniformFloat(SHADER_SDR_SATURATION,
-                                    m_renderData.pMonitor->m_sdrSaturation > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrSaturation :
-                                        1.0f);
-            shader->setUniformFloat(SHADER_SDR_BRIGHTNESS,
-                                    m_renderData.pMonitor->m_sdrBrightness > 0 &&
-                                            m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ?
-                                        m_renderData.pMonitor->m_sdrBrightness :
-                                        1.0f);
-        } else
-            shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE));
+        WP<CShader> shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE));
 
         const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(MONITORBOX, *PBLEND ? HYPRUTILS_TRANSFORM_NORMAL : TRANSFORM);
         shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
@@ -1965,19 +1972,20 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         renderTextureInternal(data.blurredBG, box,
                               STextureRenderData{
-                                  .damage         = data.damage,
-                                  .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
-                                  .round          = data.round,
-                                  .roundingPower  = data.roundingPower,
-                                  .discardActive  = false,
-                                  .allowCustomUV  = true,
-                                  .noAA           = false,
-                                  .wrapX          = data.wrapX,
-                                  .wrapY          = data.wrapY,
-                                  .discardMode    = data.discardMode,
-                                  .discardOpacity = data.discardOpacity,
-                                  .clipRegion     = data.clipRegion,
-                                  .currentLS      = data.currentLS,
+                                  .damage               = data.damage,
+                                  .a                    = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
+                                  .round                = data.round,
+                                  .roundingPower        = data.roundingPower,
+                                  .discardActive        = false,
+                                  .allowCustomUV        = true,
+                                  .noAA                 = false,
+                                  .wrapX                = data.wrapX,
+                                  .wrapY                = data.wrapY,
+                                  .sourceIsWorkBufferCM = true,
+                                  .discardMode          = data.discardMode,
+                                  .discardOpacity       = data.discardOpacity,
+                                  .clipRegion           = data.clipRegion,
+                                  .currentLS            = data.currentLS,
 
                                   .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
                                   .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,

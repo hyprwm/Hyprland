@@ -375,6 +375,7 @@ void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
             .roundingPower      = m_data.roundingPower,
             .discardActive      = m_data.discardActive,
             .allowCustomUV      = m_data.allowCustomUV,
+            .sourceIsWorkBufferCM = m_data.sourceIsWorkBufferCM,
             .cmBackToSRGB       = m_data.cmBackToSRGB,
             .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
             .discardMode        = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,

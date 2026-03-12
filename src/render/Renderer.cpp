@@ -70,6 +70,9 @@ extern "C" {
 #include <xf86drm.h>
 }
 
+static bool     isHDRTransferFunction(uint32_t tf);
+static uint32_t blurIntermediateFormat(const NColorManagement::PImageDescription& imageDescription, uint32_t fallback);
+
 static int cursorTicker(void* data) {
     g_pHyprRenderer->ensureCursorRenderingMode();
     wl_event_source_timer_update(g_pHyprRenderer->m_cursorTicker, 500);
@@ -2023,11 +2026,15 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         setProjectionType(RPT_MONITOR);
 
     if (!simple) {
-        const auto DRM_FORMAT = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
+        const auto DRM_FORMAT      = fb ? fb->m_drmFormat : pMonitor->m_output->state->state().drmFormat;
+        const auto BLUR_DRM_FORMAT = blurIntermediateFormat(pMonitor->m_imageDescription, DRM_FORMAT);
 
         // ensure a framebuffer for the monitor exists
         if (!m_renderData.pMonitor->m_offloadFB || m_renderData.pMonitor->m_offloadFB->m_size != pMonitor->m_pixelSize ||
-            DRM_FORMAT != m_renderData.pMonitor->m_offloadFB->m_drmFormat) {
+            DRM_FORMAT != m_renderData.pMonitor->m_offloadFB->m_drmFormat || !m_renderData.pMonitor->m_mirrorFB ||
+            BLUR_DRM_FORMAT != m_renderData.pMonitor->m_mirrorFB->m_drmFormat || !m_renderData.pMonitor->m_mirrorSwapFB ||
+            BLUR_DRM_FORMAT != m_renderData.pMonitor->m_mirrorSwapFB->m_drmFormat || !m_renderData.pMonitor->m_blurFB ||
+            BLUR_DRM_FORMAT != m_renderData.pMonitor->m_blurFB->m_drmFormat) {
             if (!m_renderData.pMonitor->m_stencilTex || m_renderData.pMonitor->m_stencilTex->m_size != pMonitor->m_pixelSize)
                 m_renderData.pMonitor->m_stencilTex = createStencilTexture(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y);
 
@@ -2045,8 +2052,8 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
             m_renderData.pMonitor->m_offMainFB->addStencil(m_renderData.pMonitor->m_stencilTex);
 
             m_renderData.pMonitor->m_offloadFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-            m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
-            m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
+            m_renderData.pMonitor->m_mirrorFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, BLUR_DRM_FORMAT);
+            m_renderData.pMonitor->m_mirrorSwapFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, BLUR_DRM_FORMAT);
             m_renderData.pMonitor->m_offMainFB->alloc(pMonitor->m_pixelSize.x, pMonitor->m_pixelSize.y, DRM_FORMAT);
         }
     }
@@ -2162,7 +2169,7 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     // render onto blurFB
     if (!m_renderData.pMonitor->m_blurFB)
         return;
-    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, m_renderData.pMonitor->m_output->state->state().drmFormat);
+    m_renderData.pMonitor->m_blurFB->alloc(m_renderData.pMonitor->m_pixelSize.x, m_renderData.pMonitor->m_pixelSize.y, blurIntermediateFormat(m_renderData.pMonitor->m_imageDescription, m_renderData.pMonitor->m_output->state->state().drmFormat));
     m_renderData.pMonitor->m_blurFB->bind();
 
     draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), {});
@@ -2170,9 +2177,10 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     pushMonitorTransformEnabled(true);
 
     draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
-             .tex    = blurredTex,
-             .box    = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
-             .damage = *fakeDamage,
+             .tex                  = blurredTex,
+             .box                  = CBox{0, 0, m_renderData.pMonitor->m_transformedSize.x, m_renderData.pMonitor->m_transformedSize.y},
+             .damage               = *fakeDamage,
+             .sourceIsWorkBufferCM = true,
          }),
          *fakeDamage); // .noAA = true
 
@@ -2195,6 +2203,15 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
             imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
+}
+
+static bool isHDRTransferFunction(uint32_t tf) {
+    return tf == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ || tf == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
+        tf == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR;
+}
+
+static uint32_t blurIntermediateFormat(const NColorManagement::PImageDescription& imageDescription, uint32_t fallback) {
+    return imageDescription && isHDRTransferFunction(imageDescription->value().transferFunction) ? DRM_FORMAT_XBGR16161616F : fallback;
 }
 
 SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,

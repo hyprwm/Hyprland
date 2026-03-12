@@ -47,7 +47,7 @@ CImageCopyCaptureSession::CImageCopyCaptureSession(SP<CExtImageCopyCaptureSessio
     sendConstraints();
 
     m_listeners.constraintsChanged = m_session->m_events.constraintsChanged.listen([this]() { sendConstraints(); });
-    m_listeners.stopped            = m_session->m_events.stopped.listen([this]() { PROTO::imageCopyCapture->destroyResource(this); });
+    m_listeners.stopped            = m_session->m_events.stopped.listen([this]() { m_resource->sendStopped(); });
 }
 
 CImageCopyCaptureSession::~CImageCopyCaptureSession() {

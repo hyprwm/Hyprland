@@ -61,20 +61,19 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
 
         auto xdgSurfResource = sc<CXDGSurfaceRole*>(wlSurf->m_role.get())->m_xdgSurface.lock();
         if (xdgSurfResource->m_toplevel.expired())
-            return; // ??
+            return;
 
         auto xdgSurf = xdgSurfResource->m_toplevel.lock();
         uuid_generate_random(uuid);
         uuid_unparse_lower(uuid, uuidStr.data());
         const std::string handle = std::string{std::begin(uuidStr), std::end(uuidStr)};
 
-        auto [r, t] =
+        const auto [ELM, EMPLACED] =
             this->m_exported.emplace(handle, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), RESOURCE->version(), id), xdgSurf, handle));
 
-        if (!t) {
+        // This would only happen if we have handle collision
+        if UNLIKELY (!EMPLACED)
             wl_client_post_no_memory(exporter->client());
-            return;
-        }
     });
 
     RESOURCE->setDestroy([this](CZxdgExporterV2* e) { onExporterDestroyed(e); });
@@ -112,7 +111,7 @@ CXDGImportedResourceV2::CXDGImportedResourceV2(SP<CZxdgImportedV2> imported, SP<
 
         const auto CHILDXDGSURF = sc<CXDGSurfaceRole*>(CHILDSURF->m_role.get())->m_xdgSurface.lock();
         if (!CHILDXDGSURF->m_toplevel)
-            return; // ??
+            return;
 
         auto childTopLevel    = CHILDXDGSURF->m_toplevel.lock();
         auto exportedTopLevel = PROTO::xdgForeignExporter->getExported(this->m_handle)->xdgSurf().lock();
@@ -147,7 +146,7 @@ void CXDGForeignImporterProtocolV2::bindManager(wl_client* client, void* data, u
             return;
 
         auto imported = m_imports.emplace_back(makeShared<CXDGImportedResourceV2>(makeShared<CZxdgImportedV2>(importer->client(), RESOURCE->version(), id), exported, handle));
-        if (!imported->m_resource->resource())
+        if UNLIKELY (!imported->m_resource->resource())
             wl_client_post_no_memory(importer->client());
     });
 

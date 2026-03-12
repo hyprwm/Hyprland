@@ -406,7 +406,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // then, we check if the workspace doesn't have a fullscreen window
     const auto PWORKSPACE   = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+    const auto PWINDOWIDEAL = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
     if (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
         const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
             (pFoundLayerSurface->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP ||
@@ -446,7 +446,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                 if (PMONITOR->m_activeSpecialWorkspace) {
                     if (pFoundWindow != PWINDOWIDEAL)
                         pFoundWindow =
-                            g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+                            g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
 
                     if (pFoundWindow && !pFoundWindow->onSpecialWorkspace()) {
                         pFoundWindow = PWORKSPACE->getFullscreenWindow();
@@ -461,7 +461,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                     if (!foundSurface) {
                         if (pFoundWindow != PWINDOWIDEAL)
                             pFoundWindow =
-                                g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+                                g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
 
                         if (!(pFoundWindow && (pFoundWindow->m_isFloating && (pFoundWindow->m_createdOverFullscreen || pFoundWindow->m_pinned))))
                             pFoundWindow = PWORKSPACE->getFullscreenWindow();
@@ -471,7 +471,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
         } else {
             if (pFoundWindow != PWINDOWIDEAL)
-                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+                pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
         }
 
         if (pFoundWindow) {

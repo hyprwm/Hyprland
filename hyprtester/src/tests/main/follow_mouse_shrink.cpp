@@ -1,7 +1,22 @@
-#include "tests.hpp"
-#include <hyprutils/string/String.hpp>
+#include <chrono>
+#include <cstring>
+#include <thread>
 
-using namespace Hyprutils::String;
+#include "../../shared.hpp"
+#include "../../hyprctlCompat.hpp"
+#include "../shared.hpp"
+#include "tests.hpp"
+
+static int  ret = 0;
+
+static bool spawnKitty(const std::string& class_) {
+    NLog::log("{}Spawning {}", Colors::YELLOW, class_);
+    if (!Tests::spawnKitty(class_)) {
+        NLog::log("{}Error: {} did not spawn", Colors::RED, class_);
+        return false;
+    }
+    return true;
+}
 
 static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
@@ -28,20 +43,26 @@ static bool waitForActiveWindow(const std::string& class_, char fullscreen = '0'
     return true;
 }
 
-static void test() {
+static bool test() {
+    NLog::log("{}Testing follow_mouse_shrink", Colors::GREEN);
+
+    getFromSocket("/dispatch workspace name:follow_mouse_shrink");
+
     // Setup: follow_mouse 1 so cursor movement changes focus, float_switch_override_focus 1
     OK(getFromSocket("/keyword input:follow_mouse 1"));
     OK(getFromSocket("/keyword input:float_switch_override_focus 1"));
 
     // Spawn two floating windows with a 20px gap
     // fms_a: position (100,100), size 400x400 -> hitbox [100,499] x [100,499]
-    EXPECT(spawnKitty("fms_a"), true);
+    if (!spawnKitty("fms_a"))
+        return false;
     OK(getFromSocket("/dispatch setfloating"));
     OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
     OK(getFromSocket("/dispatch movewindowpixel exact 100 100,activewindow"));
 
     // fms_b: position (520,100), size 400x400 -> hitbox [520,919] x [100,499]
-    EXPECT(spawnKitty("fms_b"), true);
+    if (!spawnKitty("fms_b"))
+        return false;
     OK(getFromSocket("/dispatch setfloating"));
     OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
     OK(getFromSocket("/dispatch movewindowpixel exact 520 100,activewindow"));
@@ -93,6 +114,8 @@ static void test() {
     // Cleanup
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
+
+    return ret == 0;
 }
 
 REGISTER_TEST_FN(test)

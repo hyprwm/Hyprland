@@ -50,7 +50,7 @@ static bool test() {
 
     // Setup: follow_mouse 1 so cursor movement changes focus, float_switch_override_focus 1
     OK(getFromSocket("/keyword input:follow_mouse 1"));
-    OK(getFromSocket("/keyword input:float_switch_override_focus 1"));
+    OK(getFromSocket("/keyword input:float_switch_override_focus 2"));
 
     // Spawn two floating windows with a 20px gap
     // fms_a: position (100,100), size 400x400 -> hitbox [100,499] x [100,499]

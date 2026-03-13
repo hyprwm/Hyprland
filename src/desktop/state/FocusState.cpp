@@ -193,6 +193,10 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
     pWindow->onFocusAnimUpdate();
     pWindow->updateDecorationValues();
 
+    // Update focus order for focus-based z-ordering
+    static uint64_t focusOrderCounter = 0;
+    pWindow->m_focusOrder             = ++focusOrderCounter;
+
     if (pWindow->m_isUrgent)
         pWindow->m_isUrgent = false;
 

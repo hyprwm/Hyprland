@@ -540,6 +540,13 @@ inline static const std::vector<SConfigOptionDescription> CONFIG_OPTIONS = {
         .data        = SConfigOptionDescription::SRangeData{1, 0, 3},
     },
     SConfigOptionDescription{
+        .value       = "input:follow_mouse_shrink",
+        .description = "Shrinks the inactive window hitboxes used for focus detection by the specified number of pixels. This creates a dead zone in gaps between windows where "
+                       "moving the cursor will not change focus. Works only with follow_mouse = 1.",
+        .type        = CONFIG_OPTION_INT,
+        .data        = SConfigOptionDescription::SRangeData{0, 0, 300},
+    },
+    SConfigOptionDescription{
         .value       = "input:follow_mouse_threshold",
         .description = "The smallest distance in logical pixels the mouse needs to travel for the window under it to get focused. Works only with follow_mouse = 1.",
         .type        = CONFIG_OPTION_FLOAT,

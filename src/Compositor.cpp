@@ -738,8 +738,7 @@ void CCompositor::removeLockFile() {
         std::filesystem::remove(PATH);
 }
 
-void CCompositor::prepareFallbackOutput() {
-    // create a backup monitor
+void CCompositor::prepareFallbackOutputs() {
     SP<Aquamarine::IBackendImplementation> headless;
     for (auto const& impl : m_aqBackend->getImplementations()) {
         if (impl->type() == Aquamarine::AQ_BACKEND_HEADLESS) {
@@ -749,14 +748,29 @@ void CCompositor::prepareFallbackOutput() {
     }
 
     if (!headless) {
-        Log::logger->log(Log::WARN, "No headless in prepareFallbackOutput?!");
+        Log::logger->log(Log::WARN, "No headless in prepareFallbackOutputs?!");
         return;
     }
 
+    // create a backup monitor
     headless->createOutput();
 
     if (m_monitors.empty())
         enterUnsafeState();
+
+    // create a headless monitor if no card support kms.
+    bool supportsKMS = false;
+    if (m_aqBackend->hasSession()) {
+        for (SP<CSessionDevice> dev : m_aqBackend->session->sessionDevices) {
+            supportsKMS |= dev->supportsKMS();
+        }
+    }
+
+    if (supportsKMS)
+        return;
+
+    Log::logger->log(Log::DEBUG, "Running on DRM-only gpu. Creating initial HEADLESS-0 output.");
+    headless->createOutput("HEADLESS-0");
 }
 
 void CCompositor::startCompositor() {
@@ -778,7 +792,7 @@ void CCompositor::startCompositor() {
 
     Log::logger->log(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);
 
-    prepareFallbackOutput();
+    prepareFallbackOutputs();
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 

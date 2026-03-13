@@ -18,13 +18,17 @@ CXDGExportedResourceV2::CXDGExportedResourceV2(SP<CZxdgExportedV2> resource, SP<
 
     m_resource->setData(this);
     m_resource->sendHandle(handle.c_str());
-    m_listeners.topLevelDestroyed = toplevel->m_events.destroy.listen([this] { PROTO::xdgForeignExporter->destroyExported(this); });
+    m_listeners.topLevelDestroyed = toplevel->m_events.destroy.listen([this] {
+        m_topLevelDestroyed = true;
+        m_events.destroy.emit();
+    });
     m_resource->setOnDestroy([this](CZxdgExportedV2*) { PROTO::xdgForeignExporter->destroyExported(this); });
     m_resource->setDestroy([this](CZxdgExportedV2*) { PROTO::xdgForeignExporter->destroyExported(this); });
 }
 
 CXDGExportedResourceV2::~CXDGExportedResourceV2() {
-    m_events.destroy.emit();
+    if (!m_topLevelDestroyed)
+        m_events.destroy.emit();
 }
 
 bool CXDGExportedResourceV2::good() {
@@ -46,6 +50,7 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
 
     if UNLIKELY (!RESOURCE->resource()) {
         wl_client_post_no_memory(client);
+        m_exporters.pop_back();
         return;
     }
 
@@ -103,17 +108,16 @@ CXDGImportedResourceV2::CXDGImportedResourceV2(SP<CZxdgImportedV2> imported, SP<
         const auto CHILDSURF = CWLSurfaceResource::fromResource(surf);
 
         if (CHILDSURF->m_role != SURFACE_ROLE_XDG_SHELL) {
-            m_resource->error(zxdgExporterV2Error::ZXDG_EXPORTER_V2_ERROR_INVALID_SURFACE, "surface must be an xdg_toplevel");
+            m_resource->error(zxdgImportedV2Error::ZXDG_IMPORTED_V2_ERROR_INVALID_SURFACE, "surface must be an xdg_toplevel");
             return;
         }
 
         const auto CHILDXDGSURF = sc<CXDGSurfaceRole*>(CHILDSURF->m_role.get())->m_xdgSurface.lock();
-        if (!CHILDXDGSURF->m_toplevel)
+        if (CHILDXDGSURF->m_toplevel.expired())
             return;
 
-        auto childTopLevel    = CHILDXDGSURF->m_toplevel.lock();
-        auto exportedTopLevel = PROTO::xdgForeignExporter->getExported(this->m_handle)->xdgSurf().lock();
-        childTopLevel->setNewParent(exportedTopLevel);
+        if (auto exportedTopLevel = PROTO::xdgForeignExporter->getExported(this->m_handle)->xdgSurf(); !exportedTopLevel.expired())
+            CHILDXDGSURF->m_toplevel->setNewParent(exportedTopLevel.lock());
     });
 
     auto handleDestroy            = [this]() { PROTO::xdgForeignImporter->destroyImported(this); };
@@ -135,6 +139,7 @@ void CXDGForeignImporterProtocolV2::bindManager(wl_client* client, void* data, u
 
     if UNLIKELY (!RESOURCE->resource()) {
         wl_client_post_no_memory(client);
+        m_importers.pop_back();
         return;
     }
 
@@ -144,8 +149,10 @@ void CXDGForeignImporterProtocolV2::bindManager(wl_client* client, void* data, u
             return;
 
         auto imported = m_imports.emplace_back(makeShared<CXDGImportedResourceV2>(makeShared<CZxdgImportedV2>(importer->client(), RESOURCE->version(), id), exported, handle));
-        if UNLIKELY (!imported->m_resource->resource())
+        if UNLIKELY (!imported->m_resource->resource()) {
             wl_client_post_no_memory(importer->client());
+            m_imports.pop_back();
+        }
     });
 
     RESOURCE->setDestroy([this](CZxdgImporterV2* r) { onImporterDestroyed(r); });

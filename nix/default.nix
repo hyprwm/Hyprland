@@ -48,7 +48,7 @@
   wayland-scanner,
   xwayland,
   debug ? false,
-  withTests ? false,
+  withTests ? debug,
   enableXWayland ? true,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,

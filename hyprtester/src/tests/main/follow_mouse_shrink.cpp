@@ -70,9 +70,11 @@ static bool test() {
     // --- Test 1: Baseline shrink=0, edge focus works ---
     NLog::log("{}Test 1: shrink=0, cursor at B's left edge focuses B", Colors::GREEN);
     OK(getFromSocket("/keyword input:follow_mouse_shrink 0"));
-    // Focus A first
-    OK(getFromSocket("/dispatch movecursor 300 300"));
+    // Focus A explicitly, then move cursor inside A so follow_mouse tracks it
+    OK(getFromSocket("/dispatch focuswindow class:fms_a"));
     EXPECT(waitForActiveWindow("fms_a"), true);
+    OK(getFromSocket("/dispatch movecursor 300 300"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     // Move to just inside B's left edge
     OK(getFromSocket("/dispatch movecursor 521 300"));
     EXPECT(waitForActiveWindow("fms_b"), true);
@@ -80,9 +82,11 @@ static bool test() {
     // --- Test 2: Shrink=20, cursor in dead zone does NOT change focus ---
     NLog::log("{}Test 2: shrink=20, cursor in B's dead zone stays on A", Colors::GREEN);
     OK(getFromSocket("/keyword input:follow_mouse_shrink 20"));
-    // Focus A
-    OK(getFromSocket("/dispatch movecursor 300 300"));
+    // Focus A explicitly
+    OK(getFromSocket("/dispatch focuswindow class:fms_a"));
     EXPECT(waitForActiveWindow("fms_a"), true);
+    OK(getFromSocket("/dispatch movecursor 300 300"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     // Move to 530,300 -- 10px inside B, within 20px shrink zone (B's shrunk hitbox starts at 540)
     OK(getFromSocket("/dispatch movecursor 530 300"));
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -96,17 +100,21 @@ static bool test() {
 
     // --- Test 4: Focused window's hitbox is NOT shrunk ---
     NLog::log("{}Test 4a: focused window hitbox is not shrunk", Colors::GREEN);
-    // Focus A, move near A's right edge (490,300). A's shrunk box would end at 479, but A is focused so not shrunk.
-    OK(getFromSocket("/dispatch movecursor 300 300"));
+    // Focus A explicitly, move cursor inside A, then move near A's right edge
+    OK(getFromSocket("/dispatch focuswindow class:fms_a"));
     EXPECT(waitForActiveWindow("fms_a"), true);
+    OK(getFromSocket("/dispatch movecursor 300 300"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     OK(getFromSocket("/dispatch movecursor 490 300"));
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     EXPECT(isActiveWindow("fms_a"), true);
 
     NLog::log("{}Test 4b: inactive window hitbox IS shrunk at same position", Colors::GREEN);
-    // Focus B first, then move to (490,300). Now A is inactive with shrunk box ending at 479, so 490 is outside A.
-    OK(getFromSocket("/dispatch movecursor 720 300"));
+    // Focus B explicitly, then move to (490,300). Now A is inactive with shrunk box ending at 479, so 490 is outside A.
+    OK(getFromSocket("/dispatch focuswindow class:fms_b"));
     EXPECT(waitForActiveWindow("fms_b"), true);
+    OK(getFromSocket("/dispatch movecursor 720 300"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     OK(getFromSocket("/dispatch movecursor 490 300"));
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     EXPECT(isActiveWindow("fms_b"), true);

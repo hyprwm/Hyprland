@@ -547,9 +547,12 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
     return SRuleResult{};
 }
 
-void CWindowRuleApplicator::readStaticRules(bool preRead) {
+static std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
+
+//
+bool CWindowRuleApplicator::readStaticRules(bool preRead) {
     if (!m_window)
-        return;
+        return false;
 
     static_ = {};
 
@@ -575,35 +578,35 @@ void CWindowRuleApplicator::readStaticRules(bool preRead) {
         tagsWereChanged = tagsWereChanged || RES.tagsChanged;
     }
 
-    // recheck some props people might wanna use for static rules.
-    std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
+    // set a recheck for some props people might wanna use for static rules.
     if (tagsWereChanged)
         propsToRecheck |= RULE_PROP_TAG;
     if (static_.content != NContentType::CONTENT_TYPE_NONE)
         propsToRecheck |= RULE_PROP_CONTENT;
-
-    if (propsToRecheck != RULE_PROP_NONE) {
-        for (const auto& r : ruleEngine()->rules()) {
-            if (r->type() != RULE_TYPE_WINDOW)
-                continue;
-
-            if (!(r->getPropertiesMask() & propsToRecheck))
-                continue;
-
-            auto wr = reinterpretPointerCast<CWindowRule>(r);
-
-            if (!wr->matches(m_window.lock(), true))
-                continue;
-
-            applyStaticRule(wr);
-        }
-    }
 
     for (const auto& wr : execRules) {
         applyStaticRule(wr);
         applyDynamicRule(wr);
         if (!preRead)
             ruleEngine()->unregisterRule(wr);
+    }
+    return (propsToRecheck != RULE_PROP_NONE);
+}
+
+void CWindowRuleApplicator::recheckStaticRules() {
+    for (const auto& r : ruleEngine()->rules()) {
+        if (r->type() != RULE_TYPE_WINDOW)
+            continue;
+
+        if (!(r->getPropertiesMask() & propsToRecheck))
+            continue;
+
+        auto wr = reinterpretPointerCast<CWindowRule>(r);
+
+        if (!wr->matches(m_window.lock(), true))
+            continue;
+
+        applyStaticRule(wr);
     }
 }
 

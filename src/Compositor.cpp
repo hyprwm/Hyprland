@@ -1036,8 +1036,23 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
-                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect())
-                    box.expand(BORDER_GRAB_AREA);
+                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
+                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_LEFT) == nullptr) {
+                        box.x -= BORDER_GRAB_AREA;
+                        box.width += BORDER_GRAB_AREA;
+                    }
+                    
+                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_RIGHT) == nullptr) 
+                        box.width += BORDER_GRAB_AREA;
+                    
+                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_UP) == nullptr) {
+                        box.y -= BORDER_GRAB_AREA;
+                        box.height += BORDER_GRAB_AREA;
+                    }
+
+                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_DOWN) == nullptr)
+                        box.height += BORDER_GRAB_AREA;
+                }
                 if (box.containsPoint(pos))
                     return w;
             }

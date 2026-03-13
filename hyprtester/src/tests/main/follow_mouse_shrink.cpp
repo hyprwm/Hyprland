@@ -48,8 +48,10 @@ static bool test() {
 
     getFromSocket("/dispatch workspace name:follow_mouse_shrink");
 
-    // Setup: follow_mouse 1 so cursor movement changes focus, float_switch_override_focus 1
-    OK(getFromSocket("/keyword input:follow_mouse 1"));
+    // follow_mouse 2 so cursor position determines focus (mode 1's delta threshold
+    // is unreliable with movecursor/simulateMouseMovement). float_switch_override_focus 2
+    // enables focus switching between floating windows.
+    OK(getFromSocket("/keyword input:follow_mouse 2"));
     OK(getFromSocket("/keyword input:float_switch_override_focus 2"));
 
     // Spawn two floating windows with a 20px gap

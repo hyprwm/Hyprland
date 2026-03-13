@@ -46,6 +46,7 @@ void CGroup::init() {
     for (const auto& w : m_windows) {
         RASSERT(!w->m_group, "CGroup: windows cannot contain grouped in init, this will explode");
         w->m_group = m_self.lock();
+        m_groupPolicyFlags |= w->m_groupRules;
     }
 
     g_layoutManager->switchTargets(m_windows.at(0)->m_target, m_target);
@@ -104,6 +105,7 @@ void CGroup::add(PHLWINDOW w) {
     }
 
     w->m_group = m_self.lock();
+    m_groupPolicyFlags |= w->m_groupRules;
     w->m_target->setSpaceGhost(m_target->space());
     w->m_target->setFloating(m_target->floating());
 
@@ -296,19 +298,25 @@ size_t CGroup::size() const {
 }
 
 bool CGroup::locked() const {
-    return m_locked;
+    return m_groupPolicyFlags & GROUP_LOCK;
 }
 
 void CGroup::setLocked(bool x) {
-    m_locked = x;
+    if (x)
+        m_groupPolicyFlags |= GROUP_LOCK;
+    else
+        m_groupPolicyFlags &= ~GROUP_LOCK;
 }
 
 bool CGroup::denied() const {
-    return m_deny;
+    return m_groupPolicyFlags & GROUP_DENY;
 }
 
 void CGroup::setDenied(bool x) {
-    m_deny = x;
+    if (x)
+        m_groupPolicyFlags |= GROUP_DENY;
+    else
+        m_groupPolicyFlags &= ~GROUP_DENY;
 }
 
 void CGroup::updateWorkspace(PHLWORKSPACE ws) {

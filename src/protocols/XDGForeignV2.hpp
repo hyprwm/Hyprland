@@ -25,6 +25,7 @@ class CXDGExportedResourceV2 {
     WP<CXDGToplevelResource> xdgSurf();
 
   private:
+    bool m_topLevelDestroyed = false;
     struct {
         CHyprSignalListener topLevelDestroyed;
     } m_listeners;

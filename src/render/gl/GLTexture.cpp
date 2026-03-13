@@ -2,7 +2,7 @@
 #include "../Renderer.hpp"
 #include "../../Compositor.hpp"
 #include "../../helpers/Format.hpp"
-#include "render/Texture.hpp"
+#include "../Texture.hpp"
 #include <cstring>
 
 CGLTexture::CGLTexture(bool opaque) {

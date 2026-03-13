@@ -4,7 +4,7 @@
 #include "../../Compositor.hpp"
 #include "../Framebuffer.hpp"
 #include "GLFramebuffer.hpp"
-#include "render/Renderbuffer.hpp"
+#include "../Renderbuffer.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/signal/Listener.hpp>
 #include <hyprutils/signal/Signal.hpp>

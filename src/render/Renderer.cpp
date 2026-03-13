@@ -30,11 +30,11 @@
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
-#include "desktop/DesktopTypes.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "../event/EventBus.hpp"
-#include "helpers/CursorShapes.hpp"
-#include "helpers/MainLoopExecutor.hpp"
-#include "helpers/Monitor.hpp"
+#include "../helpers/CursorShapes.hpp"
+#include "../helpers/MainLoopExecutor.hpp"
+#include "../helpers/Monitor.hpp"
 #include "macros.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "pass/TexPassElement.hpp"
@@ -42,16 +42,16 @@
 #include "pass/RectPassElement.hpp"
 #include "pass/RendererHintsPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
-#include "debug/log/Logger.hpp"
+#include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "render/AsyncResourceGatherer.hpp"
-#include "render/Framebuffer.hpp"
-#include "render/OpenGL.hpp"
-#include "render/Texture.hpp"
-#include "render/pass/BorderPassElement.hpp"
-#include "render/pass/PreBlurElement.hpp"
+#include "AsyncResourceGatherer.hpp"
+#include "Framebuffer.hpp"
+#include "OpenGL.hpp"
+#include "Texture.hpp"
+#include "pass/BorderPassElement.hpp"
+#include "pass/PreBlurElement.hpp"
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -2129,6 +2129,7 @@ void IHyprRenderer::setProjectionType(eRenderProjectionType projectionType) {
         case RPT_MONITOR: m_renderData.targetProjection = m_renderData.pMonitor->getTransformMatrix(); break;
         case RPT_MIRROR: m_renderData.targetProjection = getMirrorProjection(m_renderData.pMonitor); break;
         case RPT_FB: m_renderData.targetProjection = getFBProjection(m_renderData.pMonitor, m_renderData.fbSize); break;
+        case RPT_EXPORT: m_renderData.targetProjection = Mat3x3::identity(); break;
         default: UNREACHABLE();
     }
 }
@@ -2140,7 +2141,9 @@ Mat3x3 IHyprRenderer::getBoxProjection(const CBox& box, std::optional<eTransform
 }
 
 Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransform> transform) {
-    return m_renderData.pMonitor->getScaleMatrix().copy().multiply(getBoxProjection(box, transform));
+    return (m_renderData.projectionType == RPT_EXPORT ? Mat3x3::outputProjection(m_renderData.fbSize, HYPRUTILS_TRANSFORM_NORMAL) : m_renderData.pMonitor->getScaleMatrix())
+        .copy()
+        .multiply(getBoxProjection(box, transform));
 }
 
 SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {

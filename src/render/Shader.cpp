@@ -1,6 +1,6 @@
 #include "Shader.hpp"
 #include "../config/ConfigManager.hpp"
-#include "render/OpenGL.hpp"
+#include "OpenGL.hpp"
 
 #define EPSILON(x, y) (std::abs((x) - (y)) < 1e-5f)
 

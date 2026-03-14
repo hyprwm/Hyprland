@@ -1739,7 +1739,9 @@ static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescriptio
     return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
             imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22) &&
         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
-         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
+         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG ||
+         (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR &&
+          g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ));
 }
 
 static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
@@ -1780,8 +1782,7 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
     auto        toXYZ  = targetImageDescription->getPrimaries()->value().toXYZ();
 
-    const bool needsMod = (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
-        targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+    const bool  needsMod = needsSDRmod &&
         ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
          (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
 

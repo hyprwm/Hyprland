@@ -343,6 +343,8 @@ namespace Render::GL {
         SP<IFramebuffer> blurFramebufferWithDamage(float a, CRegion* damage, CGLFramebuffer& source);
 
         void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
+                                        bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, const SCMSettings& settings);
+        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                         bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
         void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

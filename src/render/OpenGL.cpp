@@ -1114,28 +1114,9 @@ void CHyprOpenGLImpl::renderTexture(SP<ITexture> tex, const CBox& box, STextureR
 
 static std::map<std::pair<uint32_t, uint32_t>, std::array<GLfloat, 9>> primariesConversionCache;
 
-static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
-    // might be too strict
-    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
-            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22) &&
-        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
-         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG);
-}
-
-static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {
-    // might be too strict
-    return (imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ ||
-            imageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_HLG) &&
-        (targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB ||
-         targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
-}
-
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
-                                     const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
-    const auto settings = g_pHyprRenderer->getCMSettings(imageDescription, targetImageDescription,
-                                                         g_pHyprRenderer->m_renderData.surface.valid() ? g_pHyprRenderer->m_renderData.surface.lock() : nullptr, modifySDR,
-                                                         sdrMinLuminance, sdrMaxLuminance);
-
+                                     const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance,
+                                     const SCMSettings& settings) {
     shader->setUniformInt(SHADER_SOURCE_TF, settings.sourceTF);
     shader->setUniformInt(SHADER_TARGET_TF, settings.targetTF);
     shader->setUniformFloat2(SHADER_SRC_TF_RANGE, settings.srcTFRange.min, settings.srcTFRange.max);
@@ -1177,6 +1158,14 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
 
         GLCALL(glActiveTexture(GL_TEXTURE0));
     }
+}
+
+void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement::PImageDescription imageDescription,
+                                     const NColorManagement::PImageDescription targetImageDescription, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
+    const auto settings = g_pHyprRenderer->getCMSettings(imageDescription, targetImageDescription,
+                                                         g_pHyprRenderer->m_renderData.surface.valid() ? g_pHyprRenderer->m_renderData.surface.lock() : nullptr, modifySDR,
+                                                         sdrMinLuminance, sdrMaxLuminance);
+    passCMUniforms(shader, imageDescription, targetImageDescription, modifySDR, sdrMinLuminance, sdrMaxLuminance, settings);
 }
 
 void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription) {
@@ -1349,41 +1338,36 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
+        const auto settings = g_pHyprRenderer->getCMSettings(SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION,
+                                                             g_pHyprRenderer->m_renderData.surface.valid() ? g_pHyprRenderer->m_renderData.surface.lock() : nullptr, true,
+                                                             g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+
         shaderFeatures |= SH_FEAT_CM;
 
         if (TARGET_IMAGE_DESCRIPTION->value().icc.present)
             shaderFeatures |= SH_FEAT_ICC;
         else {
-            const bool  needsSDRmod     = isSDR2HDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
-            const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
-            const float maxLuminance    = needsHDRmod ?
-                   SOURCE_IMAGE_DESCRIPTION->value().getTFMaxLuminance(-1) :
-                   (SOURCE_IMAGE_DESCRIPTION->value().luminances.max > 0 ? SOURCE_IMAGE_DESCRIPTION->value().luminances.max : SOURCE_IMAGE_DESCRIPTION->value().luminances.reference);
-            const auto  dstMaxLuminance = TARGET_IMAGE_DESCRIPTION->value().luminances.max > 0 ? TARGET_IMAGE_DESCRIPTION->value().luminances.max : 10000;
-
-            if (maxLuminance >= dstMaxLuminance * 1.01)
+            if (settings.needsTonemap)
                 shaderFeatures |= SH_FEAT_TONEMAP;
 
-            if (!data.finalMonitorCM &&
-                (SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB ||
-                 SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
-                TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
-                ((g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
-                 (g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
+            if (!data.finalMonitorCM && settings.needsSDRmod)
                 shaderFeatures |= SH_FEAT_SDR_MOD;
         }
-    }
 
-    if (!shader)
-        shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
-    shader = useShader(shader);
+        if (!shader)
+            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
+        shader = useShader(shader);
 
-    if (!skipCM) {
         if (data.finalMonitorCM || data.cmBackToSRGB)
             passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
         else
-            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION);
+            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
+                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
+    } else {
+        if (!shader)
+            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
+        shader = useShader(shader);
     }
 
     shader->setUniformFloat(SHADER_ALPHA, alpha);

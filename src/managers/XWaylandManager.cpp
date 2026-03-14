@@ -1,6 +1,6 @@
 #include "XWaylandManager.hpp"
 
-#include "XWaylandMonitorSelection.hpp"
+#include "../xwayland/MonitorSelection.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../config/ConfigValue.hpp"
@@ -193,7 +193,7 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PH
             preferredIndex = i;
     }
 
-    return ::waylandToXWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
+    return XWayland::waylandToXWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
@@ -215,5 +215,5 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PH
             preferredIndex = i;
     }
 
-    return ::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
+    return XWayland::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, coord, *PXWLFORCESCALEZERO, preferredIndex);
 }

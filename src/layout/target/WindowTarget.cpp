@@ -258,8 +258,10 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     requested.size = clampSizeForDesired(DESIRED_GEOM.size());
 
     if (m_window->m_isX11) {
+        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
         Vector2D xy    = {DESIRED_GEOM.x, DESIRED_GEOM.y};
-        xy             = XWayland::xwaylandToWaylandCoords(xy);
+        xy             = XWayland::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, xy, *PXWLFORCESCALEZERO);
         requested.pos  = xy;
         DESIRED_GEOM.x = xy.x;
         DESIRED_GEOM.y = xy.y;
@@ -300,7 +302,8 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 
             if (m_window->m_xwaylandSurface->m_geometry.x != 0 && m_window->m_xwaylandSurface->m_geometry.y != 0) {
                 requested.size = SIZE;
-                requested.pos  = XWayland::xwaylandToWaylandCoords(m_window->m_xwaylandSurface->m_geometry.pos());
+                requested.pos  = XWayland::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, m_window->m_xwaylandSurface->m_geometry.pos(),
+                                                                   *PXWLFORCESCALEZERO);
                 toLogical(requested);
                 return requested;
             }

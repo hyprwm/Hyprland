@@ -1386,17 +1386,7 @@ Vector2D CWindow::realToReportPosition() {
 
     const auto  PMONITOR       = m_monitor.lock();
     const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
-    const auto  preferredIndex = [&]() -> std::optional<size_t> {
-        if (!PMONITOR)
-            return std::nullopt;
-
-        for (size_t i = 0; i < MONITORS.size(); ++i) {
-            if (MONITORS[i] == PMONITOR)
-                return i;
-        }
-
-        return std::nullopt;
-    }();
+    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::waylandToXWaylandCoords(MONITORS, m_realPosition->goal(), *PXWLFORCESCALEZERO, preferredIndex);
 }
@@ -1416,17 +1406,7 @@ Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
 
     const auto  PMONITOR       = m_monitor.lock();
     const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
-    const auto  preferredIndex = [&]() -> std::optional<size_t> {
-        if (!PMONITOR)
-            return std::nullopt;
-
-        for (size_t i = 0; i < MONITORS.size(); ++i) {
-            if (MONITORS[i] == PMONITOR)
-                return i;
-        }
-
-        return std::nullopt;
-    }();
+    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::xwaylandToWaylandCoords(MONITORS, pos, *PXWLFORCESCALEZERO, preferredIndex);
 }
@@ -2500,17 +2480,7 @@ void CWindow::unmanagedSetGeometry() {
 
     const auto  PMONITOR       = m_monitor.lock();
     const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
-    const auto  preferredIndex = [&]() -> std::optional<size_t> {
-        if (!PMONITOR)
-            return std::nullopt;
-
-        for (size_t i = 0; i < MONITORS.size(); ++i) {
-            if (MONITORS[i] == PMONITOR)
-                return i;
-        }
-
-        return std::nullopt;
-    }();
+    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
     const auto  LOGICALPOS     = XWayland::xwaylandToWaylandCoords(MONITORS, m_xwaylandSurface->m_geometry.pos(), *PXWLFORCESCALEZERO, preferredIndex);
     const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
     const auto  LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;

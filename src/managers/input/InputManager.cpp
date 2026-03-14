@@ -193,12 +193,7 @@ void CInputManager::sendMotionEventsToFocused() {
 
     m_emptyFocusCursorSet = false;
 
-    auto local = getMouseCoordsInternal().floor() - BOX->pos();
-
-    if (const auto PWINDOW = Desktop::View::CWindow::fromView(VIEW); PWINDOW && PWINDOW->m_isX11)
-        local = local * PWINDOW->m_X11SurfaceScaledBy;
-
-    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), local);
+    g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), getMouseCoordsInternal().floor() - BOX->pos());
 }
 
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {

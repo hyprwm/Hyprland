@@ -38,6 +38,7 @@
 #include "../../helpers/Color.hpp"
 #include "../../helpers/math/Expression.hpp"
 #include "../../managers/XWaylandManager.hpp"
+#include "../../xwayland/MonitorSelection.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -1342,7 +1343,7 @@ Vector2D CWindow::realToReportPosition() {
     if (!m_isX11)
         return m_realPosition->goal();
 
-    return g_pXWaylandManager->waylandToXWaylandCoords(m_realPosition->goal(), m_monitor.lock());
+    return XWayland::waylandToXWaylandCoords(m_realPosition->goal(), m_monitor.lock());
 }
 
 Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
@@ -1356,7 +1357,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 }
 
 Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
-    return g_pXWaylandManager->xwaylandToWaylandCoords(pos, m_monitor.lock());
+    return XWayland::xwaylandToWaylandCoords(pos, m_monitor.lock());
 }
 
 void CWindow::updateX11SurfaceScale() {
@@ -2410,7 +2411,7 @@ void CWindow::unmanagedSetGeometry() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR       = m_monitor.lock();
-    const auto  LOGICALPOS     = g_pXWaylandManager->xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos(), PMONITOR);
+    const auto  LOGICALPOS     = XWayland::xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos(), PMONITOR);
     const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
     const auto  LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;
 

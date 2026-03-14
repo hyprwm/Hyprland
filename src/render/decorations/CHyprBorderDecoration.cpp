@@ -40,7 +40,8 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_window->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const WORKSPACEID  ACTIVEWSID     = m_window->m_monitor.lock() ? m_window->m_monitor.lock()->activeWorkspaceID() : WORKSPACE_INVALID;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_window->isPinnedOnWorkspace(ACTIVEWSID) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }
 

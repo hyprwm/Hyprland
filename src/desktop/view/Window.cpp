@@ -865,7 +865,8 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_isFloating || m_pinned || isFullscreen()) {
+    const auto POFFSETMON = m_monitor.lock();
+    if (!m_isFloating || (POFFSETMON && isPinnedOnWorkspace(POFFSETMON->activeWorkspaceID())) || isFullscreen()) {
         m_floatingOffset = Vector2D(0, 0);
         return;
     }
@@ -1467,6 +1468,14 @@ bool CWindow::priorityFocus() {
     return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
 }
 
+bool CWindow::isPinnedOnWorkspace(WORKSPACEID id) const {
+    if (!m_pinned)
+        return false;
+    if (m_pinnedWorkspaces.empty())
+        return true;
+    return m_pinnedWorkspaces.contains(id);
+}
+
 SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
     if (!m_wlSurface || !m_wlSurface->resource())
         return nullptr;
@@ -1767,6 +1776,9 @@ void CWindow::mapWindow() {
         m_target->setPseudo(m_ruleApplicator->static_.pseudo.value_or(m_target->isPseudo()));
         m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
+        m_pinnedWorkspaces.clear();
+        if (m_ruleApplicator->static_.pinnedWorkspaces.has_value())
+            m_pinnedWorkspaces = *m_ruleApplicator->static_.pinnedWorkspaces;
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
@@ -1860,8 +1872,10 @@ void CWindow::mapWindow() {
         m_closeableSince = Time::steadyNow() + std::chrono::years(10 /* Should be enough, no? */);
 
     // disallow tiled pinned
-    if (m_pinned && !m_isFloating)
+    if (m_pinned && !m_isFloating) {
         m_pinned = false;
+        m_pinnedWorkspaces.clear();
+    }
 
     CVarList2 WORKSPACEARGS = CVarList2(std::move(requestedWorkspace), 0, ' ', false, false);
 

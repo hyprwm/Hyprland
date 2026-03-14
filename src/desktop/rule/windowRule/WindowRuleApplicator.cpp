@@ -518,6 +518,41 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
             case WINDOW_RULE_EFFECT_PIN: {
                 static_.pin = truthy(effect);
+                // Parse workspace IDs from the effect string.
+                // Syntax: "pin = 1 2 3" or "pin = 1-4" pins to specific workspaces.
+                // "pin = 1" or "pin = true" (single truthy token) pins to all workspaces.
+                static_.pinnedWorkspaces = std::nullopt;
+                CVarList2 pinVars(std::string{effect}, 0, ' ');
+                std::set<WORKSPACEID> wsSet;
+                bool                  hasRangeOrMultiple = false;
+                for (const auto& token : pinVars) {
+                    // Check if this token is a range like "1-4"
+                    const auto dashPos = token.find('-', 1); // skip leading minus
+                    if (dashPos != std::string_view::npos) {
+                        // range token
+                        try {
+                            WORKSPACEID from = std::stoll(std::string{token.substr(0, dashPos)});
+                            WORKSPACEID to   = std::stoll(std::string{token.substr(dashPos + 1)});
+                            if (from > to)
+                                std::swap(from, to);
+                            for (WORKSPACEID id = from; id <= to; ++id)
+                                wsSet.insert(id);
+                            hasRangeOrMultiple = true;
+                        } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid pin workspace range {}", token); }
+                    } else {
+                        // single token - try to parse as integer workspace ID
+                        try {
+                            WORKSPACEID id = std::stoll(std::string{token});
+                            wsSet.insert(id);
+                        } catch (...) {
+                            // not a number (e.g. "true"/"false"/"1") - skip
+                        }
+                    }
+                }
+                // If we have 2+ workspace IDs, or any range, use workspace-scoped pin
+                // If there is exactly one integer "1", it could be the boolean truthy value - treat as pin to all
+                if (!wsSet.empty() && (hasRangeOrMultiple || wsSet.size() > 1 || (wsSet.size() == 1 && *wsSet.begin() != 1)))
+                    static_.pinnedWorkspaces = wsSet;
                 break;
             }
             case WINDOW_RULE_EFFECT_GROUP: {

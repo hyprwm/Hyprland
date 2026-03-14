@@ -465,7 +465,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == ws) {
 
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
+            if (w->m_fadingOut || w->isPinnedOnWorkspace(ws->m_id) || w->isFullscreen())
                 continue;
 
             if (!FULLSCREEN)
@@ -501,7 +501,7 @@ void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, flo
             continue;
 
         if (w->m_workspace == ws) {
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
+            if (w->m_fadingOut || w->isPinnedOnWorkspace(ws->m_id) || w->isFullscreen())
                 continue;
 
             *w->m_alpha = fade;

@@ -1,10 +1,12 @@
 #pragma once
 
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
 #include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
+#include "../../../SharedDefs.hpp"
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
@@ -40,12 +42,13 @@ namespace Desktop::Rule {
         struct {
             std::string              monitor, workspace, group;
 
-            std::optional<bool>      floating;
-            std::optional<bool>      fullscreen;
-            std::optional<bool>      maximize;
-            std::optional<bool>      pseudo;
-            std::optional<bool>      pin;
-            std::optional<bool>      noInitialFocus;
+            std::optional<bool>                  floating;
+            std::optional<bool>                  fullscreen;
+            std::optional<bool>                  maximize;
+            std::optional<bool>                  pseudo;
+            std::optional<bool>                  pin;
+            std::optional<std::set<WORKSPACEID>> pinnedWorkspaces;
+            std::optional<bool>                  noInitialFocus;
             std::optional<bool>      center;
 
             std::optional<int>       fullscreenStateClient;

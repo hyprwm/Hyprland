@@ -5,12 +5,12 @@
 #include <helpers/memory/Memory.hpp>
 
 static PHLMONITOR makeMonitor(const Vector2D& waylandPosition, const Vector2D& xwaylandPosition, const Vector2D& size, const Vector2D& transformedSize, float scale) {
-    auto monitor               = makeShared<CMonitor>(nullptr);
-    monitor->m_position        = waylandPosition;
+    auto monitor                = makeShared<CMonitor>(nullptr);
+    monitor->m_position         = waylandPosition;
     monitor->m_xwaylandPosition = xwaylandPosition;
-    monitor->m_size            = size;
-    monitor->m_transformedSize = transformedSize;
-    monitor->m_scale           = scale;
+    monitor->m_size             = size;
+    monitor->m_transformedSize  = transformedSize;
+    monitor->m_scale            = scale;
     return monitor;
 }
 

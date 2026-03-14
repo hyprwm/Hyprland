@@ -5,12 +5,12 @@
 #include "../config/ConfigManager.hpp"
 
 static const auto RULES = std::unordered_set<std::string>{
-    "float", "fullscreen", "maximize", "noinitialfocus", "pin", "stayfocused", "tile", "renderunfocused", "persistentsize",
+    "float", "fullscreen", "maximize", "noinitialfocus", "stayfocused", "tile", "renderunfocused", "persistentsize",
 };
 static const auto RULES_PREFIX = std::unordered_set<std::string>{
     "animation",     "bordercolor", "bordersize", "center",  "content", "fullscreenstate", "group",    "idleinhibit",   "maxsize",     "minsize",        "monitor",
-    "move",          "noclosefor",  "opacity",    "plugin:", "prop",    "pseudo",          "rounding", "roundingpower", "scrollmouse", "scrolltouchpad", "size",
-    "suppressevent", "tag",         "workspace",  "xray",    "novrr",
+    "move",          "noclosefor",  "opacity",    "pin",     "plugin:", "prop",            "pseudo",   "rounding",      "roundingpower", "scrollmouse", "scrolltouchpad",
+    "size",          "suppressevent", "tag",       "workspace", "xray", "novrr",
 };
 
 CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool isV2, bool isExecRule) : m_value(value), m_rule(rule), m_v2(isV2), m_execRule(isExecRule) {
@@ -30,7 +30,7 @@ CWindowRule::CWindowRule(const std::string& rule, const std::string& value, bool
         m_ruleType = RULE_MAXIMIZE;
     else if (rule == "noinitialfocus")
         m_ruleType = RULE_NOINITIALFOCUS;
-    else if (rule == "pin")
+    else if (rule == "pin" || rule.starts_with("pin "))
         m_ruleType = RULE_PIN;
     else if (rule == "stayfocused")
         m_ruleType = RULE_STAYFOCUSED;

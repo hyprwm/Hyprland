@@ -246,6 +246,30 @@ void Events::listener_mapWindow(void* owner, void* data) {
             }
             case CWindowRule::RULE_PIN: {
                 PWINDOW->m_pinned = true;
+                PWINDOW->m_pinnedWorkspaces.clear();
+                const CVarList VARS(r->m_rule, 0, ' ');
+                for (size_t i = 1; i < VARS.size(); ++i) {
+                    const std::string token = VARS[i];
+                    if (token.empty())
+                        continue;
+                    const auto DASHPOS = token.find('-');
+                    if (DASHPOS != std::string::npos) {
+                        try {
+                            const int64_t rangeStart = std::stoll(token.substr(0, DASHPOS));
+                            const int64_t rangeEnd   = std::stoll(token.substr(DASHPOS + 1));
+                            for (int64_t ws = rangeStart; ws <= rangeEnd; ++ws)
+                                PWINDOW->m_pinnedWorkspaces.insert(ws);
+                        } catch (std::exception& e) {
+                            Debug::log(ERR, "Error parsing pin workspace range: {}", token);
+                        }
+                    } else {
+                        try {
+                            PWINDOW->m_pinnedWorkspaces.insert(std::stoll(token));
+                        } catch (std::exception& e) {
+                            Debug::log(ERR, "Error parsing pin workspace id: {}", token);
+                        }
+                    }
+                }
                 break;
             }
             case CWindowRule::RULE_FULLSCREEN: {
@@ -335,8 +359,10 @@ void Events::listener_mapWindow(void* owner, void* data) {
         PWINDOW->m_closeableSince = Time::steadyNow() + std::chrono::years(10 /* Should be enough, no? */);
 
     // disallow tiled pinned
-    if (PWINDOW->m_pinned && !PWINDOW->m_isFloating)
+    if (PWINDOW->m_pinned && !PWINDOW->m_isFloating) {
         PWINDOW->m_pinned = false;
+        PWINDOW->m_pinnedWorkspaces.clear();
+    }
 
     CVarList WORKSPACEARGS = CVarList(requestedWorkspace, 0, ' ');
 

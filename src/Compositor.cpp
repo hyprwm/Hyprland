@@ -889,7 +889,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
 
-            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
+            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->isPinnedOnWorkspace(PMONITOR->activeWorkspaceID()) &&
+                !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -926,8 +927,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         continue;
                 }
 
-                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_windowData.noFocus.valueOrDefault() &&
-                    w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen)) {
+                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->isPinnedOnWorkspace(PMONITOR->activeWorkspaceID()) &&
+                    !w->m_windowData.noFocus.valueOrDefault() && w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
@@ -1161,7 +1162,7 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
     if (m_lastWindow.lock() == pWindow && g_pSeatManager->m_state.keyboardFocus == pSurface && g_pSeatManager->m_state.keyboardFocus)
         return;
 
-    if (pWindow->m_pinned)
+    if (pWindow->isPinnedOnWorkspace(m_lastMonitor->activeWorkspaceID()))
         pWindow->m_workspace = m_lastMonitor->m_activeWorkspace;
 
     const auto PMONITOR = pWindow->m_monitor.lock();
@@ -1185,7 +1186,8 @@ void CCompositor::focusWindow(PHLWINDOW pWindow, SP<CWLSurfaceResource> pSurface
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
-    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !pWindow->m_pinned && !*PSPECIALFALLTHROUGH)
+    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace != pWindow->m_workspace && !pWindow->isPinnedOnWorkspace(PMONITOR->activeWorkspaceID()) &&
+        !*PSPECIALFALLTHROUGH)
         PMONITOR->setSpecialWorkspace(nullptr);
 
     // we need to make the PLASTWINDOW not equal to m_pLastWindow so that RENDERDATA is correct for an unfocused window
@@ -2289,7 +2291,7 @@ void CCompositor::updateFullscreenFadeOnWorkspace(PHLWORKSPACE pWorkspace) {
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == pWorkspace) {
 
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
+            if (w->m_fadingOut || w->isPinnedOnWorkspace(pWorkspace->m_id) || w->isFullscreen())
                 continue;
 
             if (!FULLSCREEN)
@@ -2392,7 +2394,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, SFullscreenS
 
     // make all windows on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+        if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->isPinnedOnWorkspace(PWORKSPACE->m_id))
             w->m_createdOverFullscreen = false;
     }
 

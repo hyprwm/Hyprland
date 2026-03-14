@@ -113,7 +113,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
             if (!w->m_isMapped || w->isHidden() || w->m_workspace != PWORKSPACE)
                 continue;
 
-            if (w->m_isFloating && !w->m_pinned) {
+            if (w->m_isFloating && !w->isPinnedOnWorkspace(PWORKSPACE->m_id)) {
                 // still doing the full damage hack for floating because sometimes when the window
                 // goes through multiple monitors the last rendered frame is missing damage somehow??
                 const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
@@ -128,7 +128,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
 
         // damage any workspace window that is on any monitor
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!validMapped(w) || w->m_workspace != PWORKSPACE || w->m_pinned)
+            if (!validMapped(w) || w->m_workspace != PWORKSPACE || w->isPinnedOnWorkspace(PWORKSPACE->m_id))
                 continue;
 
             g_pHyprRenderer->damageWindow(w);
@@ -170,7 +170,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
                     w->updateWindowDecos();
 
                     // damage any workspace window that is on any monitor
-                    if (!w->m_pinned)
+                    if (!w->isPinnedOnWorkspace(PWORKSPACE->m_id))
                         g_pHyprRenderer->damageWindow(w);
                 }
             } else if (PLAYER) {

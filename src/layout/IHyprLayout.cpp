@@ -739,6 +739,7 @@ void IHyprLayout::changeWindowFloatingMode(PHLWINDOW pWindow) {
     }
 
     pWindow->m_pinned = false;
+    pWindow->m_pinnedWorkspaces.clear();
 
     g_pHyprRenderer->damageWindow(pWindow, true);
 
@@ -998,7 +999,7 @@ bool IHyprLayout::updateDragWindow() {
 
         const auto PWORKSPACE = DRAGGINGWINDOW->m_workspace;
 
-        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGWINDOW->m_isFloating || (!DRAGGINGWINDOW->m_createdOverFullscreen && !DRAGGINGWINDOW->m_pinned))) {
+        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGWINDOW->m_isFloating || (!DRAGGINGWINDOW->m_createdOverFullscreen && !DRAGGINGWINDOW->isPinnedOnWorkspace(PWORKSPACE->m_id)))) {
             Debug::log(LOG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             g_pKeybindManager->changeMouseBindMode(MBIND_INVALID);
             return true;

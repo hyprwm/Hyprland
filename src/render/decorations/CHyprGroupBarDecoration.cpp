@@ -600,7 +600,8 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
     const auto PWORKSPACE = m_window->m_workspace;
 
-    if (PWORKSPACE && !m_window->m_pinned)
+    const auto PGROUPMONITOR = m_window->m_monitor.lock();
+    if (PWORKSPACE && !(PGROUPMONITOR && m_window->isPinnedOnWorkspace(PGROUPMONITOR->activeWorkspaceID())))
         box.translate(PWORKSPACE->m_renderOffset->value());
 
     return box.round();

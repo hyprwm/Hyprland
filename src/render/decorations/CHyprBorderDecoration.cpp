@@ -41,7 +41,9 @@ CBox CHyprBorderDecoration::assignedBoxGlobal() {
     if (!PWORKSPACE)
         return box;
 
-    const auto WORKSPACEOFFSET = PWORKSPACE && !m_window->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto PWINDOWMONITOR  = m_window->m_monitor.lock();
+    const auto ACTIVEWSID      = PWINDOWMONITOR ? PWINDOWMONITOR->activeWorkspaceID() : WORKSPACE_INVALID;
+    const auto WORKSPACEOFFSET = PWORKSPACE && !m_window->isPinnedOnWorkspace(ACTIVEWSID) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
     return box.translate(WORKSPACEOFFSET);
 }
 
@@ -120,7 +122,9 @@ void CHyprBorderDecoration::damageEntire() {
     const auto BORDERSIZE   = m_window->getRealBorderSize() + 1;
 
     const auto PWINDOWWORKSPACE = m_window->m_workspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !m_window->m_pinned)
+    const auto PBORDERMONITOR = m_window->m_monitor.lock();
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() &&
+        !(PBORDERMONITOR && m_window->isPinnedOnWorkspace(PBORDERMONITOR->activeWorkspaceID())))
         surfaceBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
     surfaceBox.translate(m_window->m_floatingOffset);
 

@@ -1281,7 +1281,8 @@ void CWindow::setAnimationsToMove() {
 
 void CWindow::onWorkspaceAnimUpdate() {
     // clip box for animated offsets
-    if (!m_isFloating || m_pinned || isFullscreen() || m_draggingTiled) {
+    const auto POFFSETMON = m_monitor.lock();
+    if (!m_isFloating || (POFFSETMON && isPinnedOnWorkspace(POFFSETMON->activeWorkspaceID())) || isFullscreen() || m_draggingTiled) {
         m_floatingOffset = Vector2D(0, 0);
         return;
     }
@@ -1871,6 +1872,14 @@ PHLWINDOW CWindow::parent() {
 
 bool CWindow::priorityFocus() {
     return !m_isX11 && CAsyncDialogBox::isPriorityDialogBox(getPID());
+}
+
+bool CWindow::isPinnedOnWorkspace(WORKSPACEID id) const {
+    if (!m_pinned)
+        return false;
+    if (m_pinnedWorkspaces.empty())
+        return true;
+    return m_pinnedWorkspaces.contains(id);
 }
 
 SP<CWLSurfaceResource> CWindow::getSolitaryResource() {

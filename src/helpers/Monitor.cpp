@@ -1238,14 +1238,16 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
             POLDWORKSPACE->startAnim(false, ANIMTOLEFT);
         pWorkspace->startAnim(true, ANIMTOLEFT);
 
-        // move pinned windows
+        // move pinned windows to the new workspace if they should be visible on it
         for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
+            if (!w->m_pinned || w->m_workspace == pWorkspace)
+                continue;
+            if (w->isPinnedOnWorkspace(pWorkspace->m_id))
                 w->moveToWorkspace(pWorkspace);
         }
 
         if (!noFocus && !g_pCompositor->m_lastMonitor->m_activeSpecialWorkspace &&
-            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+            !(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->isPinnedOnWorkspace(pWorkspace->m_id) && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
@@ -1317,7 +1319,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+        if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->isPinnedOnWorkspace(activeWorkspaceID()) && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 g_pCompositor->focusWindow(PLAST);
             else
@@ -1396,7 +1398,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pLayoutManager->getCurrentLayout()->recalculateMonitor(m_id);
 
-    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->m_pinned && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
+    if (!(g_pCompositor->m_lastWindow.lock() && g_pCompositor->m_lastWindow->isPinnedOnWorkspace(activeWorkspaceID()) && g_pCompositor->m_lastWindow->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             g_pCompositor->focusWindow(PLAST);
         else

@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <optional>
+#include <set>
 
 #include "../config/ConfigDataValues.hpp"
 #include "../helpers/AnimatedVariable.hpp"
@@ -239,7 +240,8 @@ class CWindow {
     bool              m_animatingIn = false;
 
     // For pinned (sticky) windows
-    bool m_pinned = false;
+    bool                  m_pinned = false;
+    std::set<WORKSPACEID> m_pinnedWorkspaces; // empty = pinned to all workspaces
 
     // For preserving pinned state when fullscreening a pinned window
     bool m_pinFullscreened = false;
@@ -413,6 +415,7 @@ class CWindow {
     std::optional<std::string> xdgDescription();
     PHLWINDOW                  parent();
     bool                       priorityFocus();
+    bool                       isPinnedOnWorkspace(WORKSPACEID id) const;
     SP<CWLSurfaceResource>     getSolitaryResource();
 
     CBox                       getWindowMainSurfaceBox() const {

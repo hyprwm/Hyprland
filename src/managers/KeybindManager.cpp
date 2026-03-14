@@ -393,12 +393,12 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveF
         const auto PWORKSPACE = PLASTWINDOW->m_workspace;
         const auto MODE       = PWORKSPACE->m_fullscreenMode;
 
-        if (!PWINDOWTOCHANGETO->m_pinned)
+        if (!PWINDOWTOCHANGETO->isPinnedOnWorkspace(PWORKSPACE->m_id))
             g_pCompositor->setWindowFullscreenInternal(PLASTWINDOW, FSMODE_NONE);
 
         g_pCompositor->focusWindow(PWINDOWTOCHANGETO, nullptr, preserveFocusHistory);
 
-        if (!PWINDOWTOCHANGETO->m_pinned)
+        if (!PWINDOWTOCHANGETO->isPinnedOnWorkspace(PWORKSPACE->m_id))
             g_pCompositor->setWindowFullscreenInternal(PWINDOWTOCHANGETO, MODE);
 
         // warp the position + size animation, otherwise it looks weird.
@@ -2332,12 +2332,12 @@ SDispatchResult CKeybindManager::focusWindow(std::string regexp) {
 
             g_pCompositor->focusWindow(PWINDOW);
         } else {
-            if (FSWINDOW != PWINDOW && !PWINDOW->m_pinned)
+            if (FSWINDOW != PWINDOW && !PWINDOW->isPinnedOnWorkspace(PWORKSPACE->m_id))
                 g_pCompositor->setWindowFullscreenClient(FSWINDOW, FSMODE_NONE);
 
             g_pCompositor->focusWindow(PWINDOW);
 
-            if (FSWINDOW != PWINDOW && !PWINDOW->m_pinned)
+            if (FSWINDOW != PWINDOW && !PWINDOW->isPinnedOnWorkspace(PWORKSPACE->m_id))
                 g_pCompositor->setWindowFullscreenClient(PWINDOW, FSMODE);
 
             // warp the position + size animation, otherwise it looks weird.
@@ -2746,6 +2746,8 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
         return {.success = false, .error = "Window does not qualify to be pinned"};
 
     PWINDOW->m_pinned = !PWINDOW->m_pinned;
+    if (!PWINDOW->m_pinned)
+        PWINDOW->m_pinnedWorkspaces.clear();
 
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 

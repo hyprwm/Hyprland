@@ -47,8 +47,10 @@ void CHyprDropShadowDecoration::damageEntire() {
                             PWINDOW->m_realSize->value().x + m_extents.topLeft.x + m_extents.bottomRight.x,
                             PWINDOW->m_realSize->value().y + m_extents.topLeft.y + m_extents.bottomRight.y};
 
-    const auto PWORKSPACE = PWINDOW->m_workspace;
-    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+    const auto PWORKSPACE     = PWINDOW->m_workspace;
+    const auto PSHADOWMON     = PWINDOW->m_monitor.lock();
+    const auto SHADOWACTIVEWS = PSHADOWMON ? PSHADOWMON->activeWorkspaceID() : WORKSPACE_INVALID;
+    if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->isPinnedOnWorkspace(SHADOWACTIVEWS))
         shadowBox.translate(PWORKSPACE->m_renderOffset->value());
     shadowBox.translate(PWINDOW->m_floatingOffset);
 
@@ -59,7 +61,7 @@ void CHyprDropShadowDecoration::damageEntire() {
     CRegion     shadowRegion(shadowBox);
     if (*PSHADOWIGNOREWINDOW) {
         CBox surfaceBox = PWINDOW->getWindowMainSurfaceBox();
-        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->isPinnedOnWorkspace(SHADOWACTIVEWS))
             surfaceBox.translate(PWORKSPACE->m_renderOffset->value());
         surfaceBox.translate(PWINDOW->m_floatingOffset);
         surfaceBox.expand(-ROUNDINGSIZE);
@@ -121,7 +123,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     const auto ROUNDINGPOWER   = PWINDOW->roundingPower();
     const auto ROUNDING        = ROUNDINGBASE > 0 ? ROUNDINGBASE + PWINDOW->getRealBorderSize() : 0;
     const auto PWORKSPACE      = PWINDOW->m_workspace;
-    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const auto WORKSPACEOFFSET = PWORKSPACE && !PWINDOW->isPinnedOnWorkspace(pMonitor->activeWorkspaceID()) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;

@@ -139,7 +139,8 @@ namespace Desktop::Rule {
 #undef DEFINE_PROP
 
       private:
-        PHLWINDOWREF m_window;
+        PHLWINDOWREF                          m_window;
+        std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
 
         struct SRuleResult {
             bool needsRelayout = false;

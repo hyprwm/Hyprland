@@ -547,8 +547,6 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
     return SRuleResult{};
 }
 
-static std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
-
 //
 bool CWindowRuleApplicator::readStaticRules(bool preRead) {
     if (!m_window)

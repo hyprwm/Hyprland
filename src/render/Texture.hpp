@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
 #include <span>
@@ -8,51 +9,56 @@
 class IHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
 
-enum eTextureType : int8_t {
-    TEXTURE_INVALID = -1, // Invalid
-    TEXTURE_RGBA    = 0,  // 4 channels
-    TEXTURE_RGBX,         // discard A
-    TEXTURE_3D_LUT,       // 3D LUT
-    TEXTURE_EXTERNAL,     // EGLImage
-};
+namespace Render {
+    enum eTextureType : int8_t {
+        TEXTURE_INVALID = -1, // Invalid
+        TEXTURE_RGBA    = 0,  // 4 channels
+        TEXTURE_RGBX,         // discard A
+        TEXTURE_3D_LUT,       // 3D LUT
+        TEXTURE_EXTERNAL,     // EGLImage
+    };
 
-class ITexture {
-  public:
-    ITexture(ITexture&)        = delete;
-    ITexture(ITexture&&)       = delete;
-    ITexture(const ITexture&&) = delete;
-    ITexture(const ITexture&)  = delete;
+    class ITexture {
+      public:
+        ITexture(ITexture&)        = delete;
+        ITexture(ITexture&&)       = delete;
+        ITexture(const ITexture&&) = delete;
+        ITexture(const ITexture&)  = delete;
 
-    virtual ~ITexture() = default;
+        virtual ~ITexture() = default;
 
-    virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
-    virtual void                allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
-    virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
-    virtual void                bind() {};
-    virtual void                unbind() {};
-    virtual bool                ok();
-    virtual bool                isDMA();
+        virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
+        virtual void                allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
+        virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
+        virtual void                bind() {};
+        virtual void                unbind() {};
+        virtual bool                ok();
+        virtual bool                isDMA();
 
-    const std::vector<uint8_t>& dataCopy();
+        const std::vector<uint8_t>& dataCopy();
 
-    eTextureType                m_type      = TEXTURE_RGBA;
-    Vector2D                    m_size      = {};
-    eTransform                  m_transform = HYPRUTILS_TRANSFORM_NORMAL;
-    bool                        m_opaque    = false;
+        eTextureType                m_type      = TEXTURE_RGBA;
+        Vector2D                    m_size      = {};
+        eTransform                  m_transform = HYPRUTILS_TRANSFORM_NORMAL;
+        bool                        m_opaque    = false;
 
-    uint32_t                    m_drmFormat     = 0; // for shm
-    bool                        m_isSynchronous = false;
+        uint32_t                    m_drmFormat     = 0; // for shm
+        bool                        m_isSynchronous = false;
 
-    // TODO move to GLTexture
-    GLuint m_texID   = 0;
-    GLenum magFilter = GL_LINEAR; // useNearestNeighbor overwrites these
-    GLenum minFilter = GL_LINEAR;
+        // CM
+        NColorManagement::PImageDescription m_imageDescription;
 
-  protected:
-    ITexture() = default;
-    ITexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
-    ITexture(std::span<const float> lut3D, size_t N);
+        // TODO move to GLTexture
+        GLuint m_texID   = 0;
+        GLenum magFilter = GL_LINEAR; // useNearestNeighbor overwrites these
+        GLenum minFilter = GL_LINEAR;
 
-    bool                 m_keepDataCopy = false;
-    std::vector<uint8_t> m_dataCopy;
-};
+      protected:
+        ITexture() = default;
+        ITexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+        ITexture(std::span<const float> lut3D, size_t N);
+
+        bool                 m_keepDataCopy = false;
+        std::vector<uint8_t> m_dataCopy;
+    };
+}

@@ -12,6 +12,8 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
+using namespace Render;
+
 // shared things to conserve VRAM
 static SP<ITexture> m_tGradientActive;
 static SP<ITexture> m_tGradientInactive;

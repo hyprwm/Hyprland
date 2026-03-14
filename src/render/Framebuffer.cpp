@@ -1,4 +1,7 @@
 #include "Framebuffer.hpp"
+#include "helpers/cm/ColorManagement.hpp"
+
+using namespace Render;
 
 IFramebuffer::IFramebuffer(const std::string& name) : m_name(name) {}
 
@@ -27,4 +30,8 @@ SP<ITexture> IFramebuffer::getTexture() {
 
 SP<ITexture> IFramebuffer::getStencilTex() {
     return m_stencilTex;
+}
+
+NColorManagement::PImageDescription IFramebuffer::imageDescription() {
+    return m_tex ? m_tex->m_imageDescription : NColorManagement::PImageDescription(nullptr);
 }

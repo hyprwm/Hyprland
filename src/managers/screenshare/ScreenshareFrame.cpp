@@ -10,7 +10,8 @@
 #include "../../helpers/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
-#include "render/pass/RectPassElement.hpp"
+#include "../../render/pass/ClearPassElement.hpp"
+#include "../../render/pass/RectPassElement.hpp"
 #include <hyprutils/math/Region.hpp>
 
 using namespace Screenshare;
@@ -161,7 +162,7 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = g_pHyprRenderer->createTexture(PMONITOR->m_output->state->state().buffer);
+    auto       TEXTURE = g_pHyprRenderer->m_renderData.prevFB->getTexture();
 
     const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.transformDamage = false;
@@ -175,14 +176,15 @@ void CScreenshareFrame::renderMonitor() {
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;
     g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
-                              .tex                = TEXTURE,
-                              .box                = monbox,
-                              .flipEndFrame       = true,
-                              .cmBackToSRGB       = !IS_CM_AWARE,
-                              .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
-                          }),
-                          monbox);
+    g_pHyprRenderer->draw(
+        CTexPassElement::SRenderData{
+            .tex                = TEXTURE,
+            .box                = monbox,
+            .flipEndFrame       = true,
+            .cmBackToSRGB       = !IS_CM_AWARE,
+            .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
+        },
+        monbox);
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare
@@ -199,11 +201,7 @@ void CScreenshareFrame::renderMonitor() {
                         CBox{popupBaseOffset + popRel + localOff, size}.translate(PMONITOR->m_position).scale(PMONITOR->m_scale).translate(-m_session->m_captureBox.pos());
 
                     if LIKELY (surfBox.w > 0 && surfBox.h > 0)
-                        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
-                                                  .box   = surfBox,
-                                                  .color = Colors::BLACK,
-                                              }),
-                                              surfBox);
+                        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = surfBox, .color = Colors::BLACK}, surfBox);
                 },
                 nullptr);
         };
@@ -224,11 +222,7 @@ void CScreenshareFrame::renderMonitor() {
                                           .scale(PMONITOR->m_scale)
                                           .translate(-m_session->m_captureBox.pos());
 
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box   = noScreenShareBox,
-                                  .color = Colors::BLACK,
-                              }),
-                              noScreenShareBox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = noScreenShareBox, .color = Colors::BLACK}, noScreenShareBox);
 
         const auto     geom            = l->m_geometry;
         const Vector2D popupBaseOffset = REALPOS - Vector2D{geom.pos().x, geom.pos().y};
@@ -263,13 +257,14 @@ void CScreenshareFrame::renderMonitor() {
         const auto rounding      = dontRound ? 0 : w->rounding() * PMONITOR->m_scale;
         const auto roundingPower = dontRound ? 2.0f : w->roundingPower();
 
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = noScreenShareBox,
-                                  .color         = Colors::BLACK,
-                                  .round         = rounding,
-                                  .roundingPower = roundingPower,
-                              }),
-                              noScreenShareBox);
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = noScreenShareBox,
+                .color         = Colors::BLACK,
+                .round         = rounding,
+                .roundingPower = roundingPower,
+            },
+            noScreenShareBox);
 
         if (w->m_isX11 || !w->m_popupHead)
             continue;
@@ -298,12 +293,12 @@ void CScreenshareFrame::renderWindow() {
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
     g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
-    g_pHyprRenderer->setProjectionType(RPT_EXPORT);
+    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = g_pHyprRenderer->shouldRenderWindow(PWINDOW); // block the feedback to avoid spamming the surface if it's visible
-    g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, RENDER_PASS_ALL, true, true);
+    g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, Render::RENDER_PASS_ALL, true, true);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
     if (!m_overlayCursor)
@@ -334,30 +329,22 @@ void CScreenshareFrame::render() {
 
     CRegion    frameRegion = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y};
     if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
+        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
         return;
     }
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     g_pHyprRenderer->startRenderPass();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
-        g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0, 0, 0, 0}}), frameRegion);
+        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
-                                  .tex = g_pHyprRenderer->m_screencopyDeniedTexture,
-                                  .box = texbox,
-                              }),
-                              texbox);
+        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = g_pHyprRenderer->m_screencopyDeniedTexture, .box = texbox}, texbox);
         return;
     }
 
     if (m_session->m_tempFB && m_session->m_tempFB->isAllocated()) {
         CBox texbox = {{}, m_bufferSize};
-        g_pHyprRenderer->draw(makeUnique<CTexPassElement>(CTexPassElement::SRenderData{
-                                  .tex = m_session->m_tempFB->getTexture(),
-                                  .box = texbox,
-                              }),
-                              texbox);
+        g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = m_session->m_tempFB->getTexture(), .box = texbox}, texbox);
         m_session->m_tempFB->release();
         return;
     }
@@ -375,7 +362,7 @@ bool CScreenshareFrame::copyDmabuf() {
     if (done())
         return false;
 
-    if (!g_pHyprRenderer->beginRender(m_session->monitor(), m_damage, RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
+    if (!g_pHyprRenderer->beginRender(m_session->monitor(), m_damage, Render::RENDER_MODE_TO_BUFFER, m_buffer, nullptr, true)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }

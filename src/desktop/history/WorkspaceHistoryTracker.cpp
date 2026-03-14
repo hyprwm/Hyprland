@@ -84,11 +84,10 @@ const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previous
     auto it = std::find_if(m_history.begin(), m_history.end(), [&](const auto& entry) { return entry.workspace == ws; });
 
     // Start looking from the element immediately following `ws` in the list
-    if (it != m_history.end()) {
+    if (it != m_history.end())
         it++;
-    } else {
+    else
         it = m_history.begin();
-    }
 
     // Scan down the timeline until we hit a workspace mapped to the restricted monitor
     while (it != m_history.end()) {

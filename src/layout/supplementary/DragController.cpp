@@ -48,7 +48,7 @@ bool CDragStateController::updateDragWindow() {
         const auto PWORKSPACE     = DRAGGINGTARGET->workspace();
         const auto DRAGGINGWINDOW = DRAGGINGTARGET->window();
 
-        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGTARGET->floating() || (!DRAGGINGWINDOW->m_createdOverFullscreen && !DRAGGINGWINDOW->m_pinned))) {
+        if (PWORKSPACE->m_hasFullscreenWindow && (!DRAGGINGTARGET->floating() || (!DRAGGINGWINDOW->m_createdOverFullscreen && !DRAGGINGWINDOW->isPinnedOnWorkspace(PWORKSPACE->m_id)))) {
             Log::logger->log(Log::DEBUG, "Rejecting drag on a fullscreen workspace. (window under fullscreen)");
             CKeybindManager::changeMouseBindMode(MBIND_INVALID);
             return true;

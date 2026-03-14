@@ -1372,12 +1372,14 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         // move pinned windows
         for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == POLDWORKSPACE && w->m_pinned)
+            if (!w->m_pinned || w->m_workspace == pWorkspace)
+                continue;
+            if (w->isPinnedOnWorkspace(pWorkspace->m_id))
                 w->layoutTarget()->assignToSpace(pWorkspace->m_space);
         }
 
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
-            !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+            !(Desktop::focusState()->window() && Desktop::focusState()->window()->isPinnedOnWorkspace(pWorkspace->m_id) && Desktop::focusState()->window()->m_monitor == m_self)) {
             static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
@@ -1464,7 +1466,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_layoutManager->recalculateMonitor(m_self.lock());
 
-        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+        if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->isPinnedOnWorkspace(m_activeWorkspace->m_id) && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
                 Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
             else
@@ -1558,7 +1560,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_layoutManager->recalculateMonitor(m_self.lock());
 
-    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
+    if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->isPinnedOnWorkspace(pWorkspace->m_id) && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
             Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
         else

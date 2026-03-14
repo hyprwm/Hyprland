@@ -251,7 +251,7 @@ void CScreenshareFrame::renderMonitor() {
         if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
             continue;
 
-        const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
+        const auto renderOffset     = PWORKSPACE && !w->isPinnedOnWorkspace(PMONITOR->activeWorkspaceID()) ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
         const auto REALPOS          = w->m_realPosition->value() + renderOffset;
         const auto noScreenShareBox = CBox{REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)}
                                           .translate(-PMONITOR->m_position)

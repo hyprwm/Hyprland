@@ -14,6 +14,4 @@ namespace XWayland {
     Vector2D              xwaylandToWaylandCoords(std::span<const PHLMONITOR> monitors, const Vector2D& point, bool forceZeroScaling,
                                                   std::optional<size_t> preferred = {});
 
-    Vector2D              waylandToXWaylandCoords(const Vector2D& point, PHLMONITOR preferred = nullptr);
-    Vector2D              xwaylandToWaylandCoords(const Vector2D& point, PHLMONITOR preferred = nullptr);
 }

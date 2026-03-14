@@ -1,24 +1,8 @@
 #include "MonitorSelection.hpp"
 
-#include "../Compositor.hpp"
-#include "../config/ConfigValue.hpp"
 #include "../helpers/MiscFunctions.hpp"
 
 namespace XWayland {
-    static std::optional<size_t> preferredMonitorIndex(std::span<const PHLMONITOR> monitors, PHLMONITOR preferredMonitor) {
-        if (!preferredMonitor)
-            return std::nullopt;
-
-        std::optional<size_t> preferredIndex = {};
-
-        for (size_t i = 0; i < monitors.size(); ++i) {
-            if (monitors[i] == preferredMonitor)
-                preferredIndex = i;
-        }
-
-        return preferredIndex;
-    }
-
     static Vector2D effectiveMonitorSize(const PHLMONITOR& monitor, bool forceZeroScaling) {
         return forceZeroScaling ? monitor->m_transformedSize : monitor->m_size;
     }
@@ -132,23 +116,4 @@ namespace XWayland {
         return result;
     }
 
-    Vector2D waylandToXWaylandCoords(const Vector2D& point, PHLMONITOR preferred) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-        if (g_pCompositor->m_monitors.empty())
-            return {};
-
-        const auto monitors = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
-        return waylandToXWaylandCoords(monitors, point, *PXWLFORCESCALEZERO, preferredMonitorIndex(monitors, preferred));
-    }
-
-    Vector2D xwaylandToWaylandCoords(const Vector2D& point, PHLMONITOR preferred) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-        if (g_pCompositor->m_monitors.empty())
-            return {};
-
-        const auto monitors = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
-        return xwaylandToWaylandCoords(monitors, point, *PXWLFORCESCALEZERO, preferredMonitorIndex(monitors, preferred));
-    }
 }

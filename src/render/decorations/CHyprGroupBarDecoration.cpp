@@ -527,7 +527,8 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 
     const auto PWORKSPACE = m_window->m_workspace;
 
-    if (PWORKSPACE && !m_window->m_pinned)
+    const WORKSPACEID GROUPBARWSID = m_window->m_monitor.lock() ? m_window->m_monitor.lock()->activeWorkspaceID() : WORKSPACE_INVALID;
+    if (PWORKSPACE && !m_window->isPinnedOnWorkspace(GROUPBARWSID))
         box.translate(PWORKSPACE->m_renderOffset->value());
 
     return box.round();

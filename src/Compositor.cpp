@@ -908,8 +908,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
 
-            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                w != pIgnoreWindow && !isShadowedByModal(w)) {
+            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->isPinnedOnWorkspace(PMONITOR->activeWorkspaceID()) &&
+                !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
                 if (box.containsPoint(g_pPointerManager->position()))
@@ -946,8 +946,9 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         continue;
                 }
 
-                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                    w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
+                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() &&
+                    !w->isPinnedOnWorkspace(PWINDOWMONITOR ? PWINDOWMONITOR->activeWorkspaceID() : WORKSPACE_INVALID) &&
+                    !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
@@ -2184,7 +2185,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+        if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->isPinnedOnWorkspace(PWORKSPACE->m_id))
             w->m_createdOverFullscreen = false;
     }
     for (auto const& ls : m_layers) {

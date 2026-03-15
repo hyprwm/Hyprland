@@ -60,7 +60,7 @@ namespace Desktop::View {
         std::string                             m_namespace = "";
         SP<Desktop::View::CPopup>               m_popupHead;
 
-        SP<IFramebuffer>                        m_snapshotFB;
+        SP<Render::IFramebuffer>                m_snapshotFB;
 
         pid_t                                   getPID();
 

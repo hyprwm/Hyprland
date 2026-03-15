@@ -63,6 +63,8 @@ using namespace Hyprutils::OS;
 #include "../layout/algorithm/TiledAlgorithm.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
+using namespace Render::GL;
+
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/ucred.h>
 #define CRED_T   xucred
@@ -1203,9 +1205,12 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     } else
         result += "\tunknown: not runtime\n";
 
-    if (g_pHyprOpenGL) {
-        result += std::format("\nExplicit sync: {}", g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
-        result += std::format("\nGL ver: {}", g_pHyprOpenGL->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+    if (g_pHyprRenderer) {
+        const auto gl = g_pHyprRenderer->glBackend();
+        if (gl) {
+            result += std::format("\nExplicit sync: {}", gl->m_exts.EGL_ANDROID_native_fence_sync_ext ? "supported" : "missing");
+            result += std::format("\nGL ver: {}", gl->m_eglContextVersion == CHyprOpenGLImpl::EGL_CONTEXT_GLES_3_2 ? "3.2" : "3.0");
+        }
     }
 
     if (g_pCompositor) {

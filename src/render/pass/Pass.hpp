@@ -4,40 +4,43 @@
 #include "PassElement.hpp"
 
 class CGradientValueData;
-class ITexture;
 
-class CRenderPass {
-  public:
-    bool    empty() const;
-    bool    single() const;
+namespace Render {
+    class ITexture;
 
-    void    add(UP<IPassElement>&& elem);
-    void    clear();
-    void    removeAllOfType(const std::string& type);
+    class CRenderPass {
+      public:
+        bool    empty() const;
+        bool    single() const;
 
-    CRegion render(const CRegion& damage_);
+        void    add(UP<IPassElement>&& elem);
+        void    clear();
+        void    removeAllOfType(const std::string& type);
 
-  private:
-    CRegion              m_damage;
-    std::vector<CRegion> m_occludedRegions;
-    CRegion              m_totalLiveBlurRegion;
+        CRegion render(const CRegion& damage_);
 
-    struct SPassElementData {
-        CRegion          elementDamage;
-        UP<IPassElement> element;
-        bool             discard = false;
+      private:
+        CRegion              m_damage;
+        std::vector<CRegion> m_occludedRegions;
+        CRegion              m_totalLiveBlurRegion;
+
+        struct SPassElementData {
+            CRegion          elementDamage;
+            UP<IPassElement> element;
+            bool             discard = false;
+        };
+
+        std::vector<UP<SPassElementData>> m_passElements;
+
+        void                              simplify();
+        float                             oneBlurRadius();
+        void                              renderDebugData();
+
+        struct {
+            bool         present = false;
+            SP<ITexture> keyboardFocusText, pointerFocusText, lastWindowText;
+        } m_debugData;
+
+        friend class CHyprOpenGLImpl;
     };
-
-    std::vector<UP<SPassElementData>> m_passElements;
-
-    void                              simplify();
-    float                             oneBlurRadius();
-    void                              renderDebugData();
-
-    struct {
-        bool         present = false;
-        SP<ITexture> keyboardFocusText, pointerFocusText, lastWindowText;
-    } m_debugData;
-
-    friend class CHyprOpenGLImpl;
-};
+}

@@ -11,27 +11,27 @@ class CHyprError {
     CHyprError();
     ~CHyprError() = default;
 
-    void         queueCreate(std::string message, const CHyprColor& color);
-    void         draw();
-    void         destroy();
+    void                 queueCreate(std::string message, const CHyprColor& color);
+    void                 draw();
+    void                 destroy();
 
-    bool         active();
-    float        height(); // logical
+    bool                 active();
+    float                height(); // logical
 
-    SP<ITexture> texture();
+    SP<Render::ITexture> texture();
 
   private:
-    void              createQueued();
-    std::string       m_queued = "";
-    CHyprColor        m_queuedColor;
-    bool              m_queuedDestroy = false;
-    bool              m_isCreated     = false;
-    SP<ITexture>      m_texture;
-    PHLANIMVAR<float> m_fadeOpacity;
-    CBox              m_damageBox  = {0, 0, 0, 0};
-    float             m_lastHeight = 0.F;
+    void                 createQueued();
+    std::string          m_queued = "";
+    CHyprColor           m_queuedColor;
+    bool                 m_queuedDestroy = false;
+    bool                 m_isCreated     = false;
+    SP<Render::ITexture> m_texture;
+    PHLANIMVAR<float>    m_fadeOpacity;
+    CBox                 m_damageBox  = {0, 0, 0, 0};
+    float                m_lastHeight = 0.F;
 
-    bool              m_monitorChanged = false;
+    bool                 m_monitorChanged = false;
 };
 
 inline UP<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.

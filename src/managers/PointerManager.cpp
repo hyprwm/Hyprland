@@ -10,6 +10,7 @@
 #include "../protocols/core/Seat.hpp"
 #include "debug/log/Logger.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../render/pass/ClearPassElement.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
@@ -410,7 +411,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     return true;
 }
 
-SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<ITexture> texture) {
+SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<Render::ITexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
@@ -594,16 +595,13 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
     g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, RBO->getFB());
     g_pHyprRenderer->startRenderPass();
-    g_pHyprRenderer->draw(makeUnique<CClearPassElement>(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}}), {});
+    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    CTexPassElement::SRenderData data;
-    data.tex = texture;
-    data.box = xbox;
-    g_pHyprRenderer->draw(makeUnique<CTexPassElement>(std::move(data)), damageRegion);
+    g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
     g_pHyprRenderer->endRender();
     g_pHyprRenderer->m_renderData.pMonitor.reset();
@@ -907,7 +905,7 @@ const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
     return m_currentCursorImage;
 }
 
-SP<ITexture> CPointerManager::getCurrentCursorTexture() {
+SP<Render::ITexture> CPointerManager::getCurrentCursorTexture() {
     if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
         return nullptr;
 

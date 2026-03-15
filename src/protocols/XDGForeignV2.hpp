@@ -20,9 +20,9 @@ class CXDGExportedResourceV2 {
         CSignalT<> destroy;
     } m_events;
 
-    bool                     good();
-    std::string_view         handle();
-    WP<CXDGToplevelResource> xdgSurf();
+    bool                     good() const;
+    std::string_view         handle() const;
+    WP<CXDGToplevelResource> xdgSurf() const;
 
   private:
     bool m_topLevelDestroyed = false;
@@ -48,9 +48,9 @@ class CXDGImportedResourceV2 {
     std::string                m_handle;
 
     struct {
-        CHyprSignalListener exportedDestoryed;
+        CHyprSignalListener exportedDestroyed;
     } m_listeners;
-    void onSetParentOf(SP<CWLSurface> child);
+
     friend class CXDGForeignImporterProtocolV2;
 };
 
@@ -60,7 +60,7 @@ class CXDGForeignExporterProtocolV2 : public IWaylandProtocol {
 
     virtual void               bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) override;
 
-    SP<CXDGExportedResourceV2> getExported(const std::string& handle);
+    SP<CXDGExportedResourceV2> getExported(const std::string& handle) const;
 
   private:
     void                                                        destroyExported(CXDGExportedResourceV2*);
@@ -81,7 +81,7 @@ class CXDGForeignImporterProtocolV2 : public IWaylandProtocol {
     void                                    destroyImported(CXDGImportedResourceV2*);
     void                                    onImporterDestroyed(CZxdgImporterV2*);
     std::vector<UP<CZxdgImporterV2>>        m_importers;
-    std::vector<SP<CXDGImportedResourceV2>> m_imports;
+    std::vector<UP<CXDGImportedResourceV2>> m_imports;
 
     friend class CXDGImportedResourceV2;
 };

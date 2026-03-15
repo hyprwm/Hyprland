@@ -37,6 +37,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
     // since we don't know which fired,
     // plus it doesn't matter that much, these ops are done rarely and fast anyways.
 
+
     // cleanup old paths
     for (auto& watch : m_watches) {
         inotify_rm_watch(m_inotifyFd.get(), watch.wd);

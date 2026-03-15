@@ -61,13 +61,15 @@ void CInputManager::recheckIdleInhibitorStatus() {
 }
 
 bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
-    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_ALWAYS)
+    const auto mode = w->m_ruleApplicator->idleInhibitMode().valueOrDefault();
+
+    if (mode == Desktop::Rule::IDLEINHIBIT_ALWAYS)
         return true;
 
-    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w))
+    if (mode == Desktop::Rule::IDLEINHIBIT_FOCUS && g_pCompositor->isWindowActive(w))
         return true;
 
-    if (w->m_ruleApplicator->idleInhibitMode().valueOrDefault() == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && w->m_workspace && w->m_workspace->isVisible())
+    if (mode == Desktop::Rule::IDLEINHIBIT_FULLSCREEN && w->isFullscreen() && w->m_workspace && w->m_workspace->isVisible())
         return true;
 
     if (onlyHl)
@@ -78,6 +80,7 @@ bool CInputManager::isWindowInhibiting(const PHLWINDOW& w, bool onlyHl) {
             continue;
 
         bool isInhibiting = false;
+
         w->wlSurface()->resource()->breadthfirst(
             [&ii](SP<CWLSurfaceResource> surf, const Vector2D& pos, void* data) {
                 if (ii->inhibitor->m_surface != surf)

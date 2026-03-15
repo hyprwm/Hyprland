@@ -128,14 +128,11 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         CVarList args(ANIMSTYLE, 0, 's');
         if (args.size() > 1) {
             const auto ARG2 = args[1];
-            if (ARG2 == "top")
-                force = 0;
-            else if (ARG2 == "bottom")
-                force = 1;
-            else if (ARG2 == "left")
-                force = 2;
-            else if (ARG2 == "right")
-                force = 3;
+
+            if      (ARG2 == "top")    force = 0;
+            else if (ARG2 == "bottom") force = 1;
+            else if (ARG2 == "left")   force = 2;
+            else if (ARG2 == "right")  force = 3;
         }
 
         const std::array<Vector2D, 4> edgePoints = {
@@ -266,19 +263,11 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     CVarList args(ANIMSTYLE, 0, 's');
     if (args.size() > 1) {
         const auto ARG2 = args[1];
-        if (ARG2 == "top") {
-            left = false;
-            vert = true;
-        } else if (ARG2 == "bottom") {
-            left = true;
-            vert = true;
-        } else if (ARG2 == "left") {
-            left = false;
-            vert = false;
-        } else if (ARG2 == "right") {
-            left = true;
-            vert = false;
-        }
+
+        if (ARG2 == "top") { left = false; vert = true; }
+        else if (ARG2 == "bottom") { left = true; vert = true; }
+        else if (ARG2 == "left") { left = false; vert = false; }
+        else if (ARG2 == "right") { left = true; vert = false; }
     }
 
     const auto percstr = args[args.size() - 1];

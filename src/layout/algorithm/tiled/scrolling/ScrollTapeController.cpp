@@ -240,7 +240,17 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
     const double stripStart    = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
 
-    m_offset = std::clamp(m_offset, stripStart - usablePrimary + stripSize, stripStart);
+    const double lo = stripStart - usablePrimary + stripSize;
+    const double hi = stripStart;
+
+    if (lo > hi) {
+        // strip is wider than viewport (e.g. during monitor reconnection after suspend),
+        // center the strip instead of hitting the std::clamp assertion
+        m_offset = stripStart - (usablePrimary - stripSize) / 2.0;
+        return;
+    }
+
+    m_offset = std::clamp(m_offset, lo, hi);
 }
 
 bool CScrollTapeController::isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne, bool full) const {

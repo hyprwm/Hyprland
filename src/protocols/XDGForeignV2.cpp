@@ -1,4 +1,5 @@
 #include "protocols/XDGForeignV2.hpp"
+#include "managers/TokenManager.hpp"
 #include "protocols/XDGShell.hpp"
 #include "xdg-foreign-unstable-v2.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
@@ -6,7 +7,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-#include <uuid.h>
 #include <wayland-server.h>
 #include "protocols/core/Compositor.hpp"
 
@@ -56,9 +56,7 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
     }
 
     RESOURCE->setExportToplevel([this](CZxdgExporterV2* exporter, uint32_t id, wl_resource* surface) {
-        std::array<char, 37> uuidStr;
-        uuid_t               uuid;
-        auto                 wlSurf = CWLSurfaceResource::fromResource(surface);
+        auto wlSurf = CWLSurfaceResource::fromResource(surface);
 
         if (wlSurf->m_role != SURFACE_ROLE_XDG_SHELL) {
             exporter->error(zxdgExporterV2Error::ZXDG_EXPORTER_V2_ERROR_INVALID_SURFACE, "surface must be an xdg_toplevel");
@@ -69,10 +67,8 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
         if (xdgSurfResource->m_toplevel.expired())
             return;
 
-        auto xdgSurf = xdgSurfResource->m_toplevel.lock();
-        uuid_generate_random(uuid);
-        uuid_unparse_lower(uuid, uuidStr.data());
-        const std::string HANDLE = std::string{std::begin(uuidStr), std::end(uuidStr)};
+        auto              xdgSurf = xdgSurfResource->m_toplevel.lock();
+        const std::string HANDLE  = g_pTokenManager->getRandomUUID();
         const auto [ELM, EMPLACED] =
             this->m_exported.emplace(HANDLE, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), exporter->version(), id), xdgSurf, HANDLE));
 

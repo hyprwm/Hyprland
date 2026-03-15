@@ -35,7 +35,7 @@ Vector2D                                configStringToVector2D(const std::string
 std::optional<float>                    getPlusMinusKeywordResult(std::string in, float relative);
 double                                  normalizeAngleRad(double ang);
 std::vector<SCallstackFrameInfo>        getBacktrace();
-void                                    throwError(const std::string& err);
+[[noreturn]] void                       throwError(const std::string& err);
 Hyprutils::OS::CFileDescriptor          allocateSHMFile(size_t len);
 bool                                    allocateSHMFilePair(size_t size, Hyprutils::OS::CFileDescriptor& rw_fd_ptr, Hyprutils::OS::CFileDescriptor& ro_fd_ptr);
 float                                   stringToPercentage(const std::string& VALUE, const float REL);

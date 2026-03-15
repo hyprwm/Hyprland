@@ -158,6 +158,132 @@ static void testFsBehavior() {
     Tests::killAllWindows();
 }
 
+static void testMfact() {
+    OK(getFromSocket("r/keyword general:gaps_in 0"));
+    OK(getFromSocket("r/keyword general:gaps_out 0"));
+    OK(getFromSocket("r/keyword general:border_size 0"));
+    OK(getFromSocket("/keyword master:orientation left"));
+    OK(getFromSocket("/keyword master:mfact 0.7"));
+
+    OK(getFromSocket("/dispatch workspace 849"));
+
+    for (auto const& win : {"mf_slave", "mf_master"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    // master should take 70% of 1920 = 1344
+    OK(getFromSocket("/dispatch focuswindow class:mf_master"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 1344,1080");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    // now test with mfact 0.3 on a fresh workspace
+    OK(getFromSocket("/keyword master:mfact 0.3"));
+    OK(getFromSocket("/dispatch workspace 848"));
+
+    for (auto const& win : {"mf2_slave", "mf2_master"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:mf2_master"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 576,1080");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}
+
+static void testNewStatusSlave() {
+    // use a fresh workspace to avoid stale layout state
+    OK(getFromSocket("/dispatch workspace 850"));
+    OK(getFromSocket("/keyword general:layout master"));
+    OK(getFromSocket("/keyword master:new_status slave"));
+
+    if (!Tests::spawnKitty("nss_a")) {
+        ++TESTS_FAILED;
+        ret = 1;
+        return;
+    }
+
+    // first window always becomes master regardless of new_status
+    OK(getFromSocket("/dispatch layoutmsg focusmaster master"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: nss_a");
+
+    for (auto const& win : {"nss_b", "nss_c"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    // nss_a should still be the master
+    OK(getFromSocket("/dispatch layoutmsg focusmaster master"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: nss_a");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword master:new_status master"));
+}
+
+static void testCenterMaster() {
+    // use fresh workspace to avoid stale layout state
+    OK(getFromSocket("/dispatch workspace 851"));
+    OK(getFromSocket("/keyword general:layout master"));
+    OK(getFromSocket("r/keyword general:gaps_in 0"));
+    OK(getFromSocket("r/keyword general:gaps_out 0"));
+    OK(getFromSocket("r/keyword general:border_size 0"));
+    OK(getFromSocket("/keyword master:orientation center"));
+    OK(getFromSocket("/keyword master:slave_count_for_center_master 2"));
+
+    // with new_status=master, last spawned is master
+    for (auto const& win : {"cm_slave1", "cm_slave2", "cm_master"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    // with center orientation and 2 slaves, master should be in the center
+    OK(getFromSocket("/dispatch layoutmsg focusmaster master"));
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: cm_master");
+        // master should not be at x=0 (left edge), it should be centered
+        EXPECT_NOT_CONTAINS(str, "at: 0,0");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}
+
 static bool test() {
     NLog::log("{}Testing Master layout", Colors::GREEN);
 
@@ -171,6 +297,15 @@ static bool test() {
 
     NLog::log("{}Testing fs behavior", Colors::GREEN);
     testFsBehavior();
+
+    NLog::log("{}Testing mfact", Colors::GREEN);
+    testMfact();
+
+    NLog::log("{}Testing new_status slave", Colors::GREEN);
+    testNewStatusSlave();
+
+    NLog::log("{}Testing center_master orientation", Colors::GREEN);
+    testCenterMaster();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

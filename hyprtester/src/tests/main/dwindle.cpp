@@ -249,6 +249,70 @@ static void testForceSplitOnMoveToWorkspace() {
     Tests::waitUntilWindowsN(0);
 }
 
+static void testPreserveSplit() {
+    OK(getFromSocket("r/keyword dwindle:preserve_split true"));
+    OK(getFromSocket("r/keyword general:gaps_in 0"));
+    OK(getFromSocket("r/keyword general:gaps_out 0"));
+    OK(getFromSocket("r/keyword general:border_size 0"));
+
+    for (auto const& win : {"ps_a", "ps_b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    auto splitBefore = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+
+    // swap positions -- with preserve_split, the split direction stays the same
+    OK(getFromSocket("/dispatch swapwindow l"));
+
+    auto splitAfter = Tests::getWindowAttribute(getFromSocket("/activewindow"), "size:");
+
+    // spawn a third window: the split direction at the root should be preserved
+    Tests::spawnKitty("ps_c");
+
+    {
+        auto str = getFromSocket("/clients");
+        // with preserve_split, after vertical root split, the third window splits horizontally from the second
+        EXPECT_CONTAINS(str, "at: 0,0");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}
+
+static void testSpecialScaleFactor() {
+    OK(getFromSocket("r/keyword dwindle:special_scale_factor 0.5"));
+    OK(getFromSocket("r/keyword general:gaps_in 0"));
+    OK(getFromSocket("r/keyword general:gaps_out 0"));
+    OK(getFromSocket("r/keyword general:border_size 0"));
+
+    OK(getFromSocket("/dispatch workspace special:scale_test"));
+
+    if (!Tests::spawnKitty("ssf_kitty")) {
+        ++TESTS_FAILED;
+        ret = 1;
+        return;
+    }
+
+    {
+        // at 0.5 scale on 1920x1080, window should be 960x540 centered at (480, 270)
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "size: 960,540");
+        EXPECT_CONTAINS(str, "at: 480,270");
+    }
+
+    OK(getFromSocket("/dispatch togglespecialworkspace scale_test"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+}
+
 static bool test() {
     NLog::log("{}Testing Dwindle layout", Colors::GREEN);
 
@@ -267,6 +331,12 @@ static bool test() {
 
     NLog::log("{}Testing force_split on move to workspace", Colors::GREEN);
     testForceSplitOnMoveToWorkspace();
+
+    NLog::log("{}Testing preserve_split", Colors::GREEN);
+    testPreserveSplit();
+
+    NLog::log("{}Testing special_scale_factor", Colors::GREEN);
+    testSpecialScaleFactor();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

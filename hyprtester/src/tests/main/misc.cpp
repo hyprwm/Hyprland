@@ -362,6 +362,31 @@ static bool test() {
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);
 
+    NLog::log("{}Testing focus_on_close", Colors::YELLOW);
+
+    // mode 0: focus next layout candidate (not necessarily under cursor)
+    OK(getFromSocket("/keyword input:focus_on_close 0"));
+
+    Tests::spawnKitty("foc_A");
+    Tests::spawnKitty("foc_B");
+    Tests::spawnKitty("foc_C");
+
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: foc_C");
+
+    // focus A, then kill it -- layout should pick the next candidate, not cursor-based
+    OK(getFromSocket("/dispatch focuswindow class:foc_A"));
+    OK(getFromSocket("/dispatch killactive"));
+    Tests::waitUntilWindowsN(2);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        // should focus something (the exact candidate depends on layout), not crash
+        EXPECT_NOT_CONTAINS(str, "class: foc_A");
+    }
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword input:focus_on_close 0"));
+
     return !ret;
 }
 

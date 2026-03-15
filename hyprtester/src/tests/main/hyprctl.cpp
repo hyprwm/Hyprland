@@ -157,6 +157,73 @@ static bool testGetprop() {
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power"), "1.25");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power -j"), R"({"rounding_power": 1.25})");
 
+    // bool properties: no_shadow, no_blur, no_dim, no_focus
+    NLog::log("{}Testing bool setprop properties", Colors::YELLOW);
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_shadow"), "false");
+    getFromSocket("/dispatch setprop class:kitty no_shadow 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_shadow"), "true");
+    getFromSocket("/dispatch setprop class:kitty no_shadow -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_blur"), "false");
+    getFromSocket("/dispatch setprop class:kitty no_blur 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_blur"), "true");
+    getFromSocket("/dispatch setprop class:kitty no_blur -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_dim"), "false");
+    getFromSocket("/dispatch setprop class:kitty no_dim 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_dim"), "true");
+    getFromSocket("/dispatch setprop class:kitty no_dim -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_focus"), "false");
+    getFromSocket("/dispatch setprop class:kitty no_focus 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_focus"), "true");
+    getFromSocket("/dispatch setprop class:kitty no_focus -1");
+
+    // keep_aspect_ratio, dim_around
+    NLog::log("{}Testing keep_aspect_ratio and dim_around setprop", Colors::YELLOW);
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty keep_aspect_ratio"), "false");
+    getFromSocket("/dispatch setprop class:kitty keep_aspect_ratio 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty keep_aspect_ratio"), "true");
+    getFromSocket("/dispatch setprop class:kitty keep_aspect_ratio -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty dim_around"), "false");
+    getFromSocket("/dispatch setprop class:kitty dim_around 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty dim_around"), "true");
+    getFromSocket("/dispatch setprop class:kitty dim_around -1");
+
+    // border_size setprop
+    NLog::log("{}Testing border_size setprop", Colors::YELLOW);
+    getFromSocket("/dispatch setprop class:kitty border_size 5");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty border_size"), "5");
+    getFromSocket("/dispatch setprop class:kitty border_size -1");
+
+    // idle_inhibit
+    NLog::log("{}Testing idle_inhibit setprop", Colors::YELLOW);
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty idle_inhibit"), "0");
+    getFromSocket("/dispatch setprop class:kitty idle_inhibit 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty idle_inhibit"), "1");
+    getFromSocket("/dispatch setprop class:kitty idle_inhibit -1");
+
+    // xray, immediate, no_anim
+    NLog::log("{}Testing xray, immediate, no_anim setprop", Colors::YELLOW);
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty xray"), "false");
+    getFromSocket("/dispatch setprop class:kitty xray 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty xray"), "true");
+    getFromSocket("/dispatch setprop class:kitty xray -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty immediate"), "false");
+    getFromSocket("/dispatch setprop class:kitty immediate 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty immediate"), "true");
+    getFromSocket("/dispatch setprop class:kitty immediate -1");
+
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_anim"), "false");
+    getFromSocket("/dispatch setprop class:kitty no_anim 1");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty no_anim"), "true");
+    getFromSocket("/dispatch setprop class:kitty no_anim -1");
+
     // errors
     EXPECT(getCommandStdOut("hyprctl getprop"), "not enough args");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty"), "not enough args");

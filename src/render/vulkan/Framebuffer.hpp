@@ -17,8 +17,8 @@ namespace Render::VK {
 
     class CHyprVkFramebuffer : public IDeviceUser {
       public:
-        CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, int w, int h, uint32_t format, SP<ITexture> stencilTex = nullptr);
-        CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass);
+        CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, int w, int h, uint32_t format, SP<ITexture> stencilTex = nullptr);
+        CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer);
         ~CHyprVkFramebuffer();
 
         bool           m_initialized = false;
@@ -30,7 +30,6 @@ namespace Render::VK {
       private:
         void           initImage(SVkFormatProps props, int w, int h);
         void           initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs);
-        void           initFB(VkRenderPass renderPass, int w, int h);
 
         VkFramebuffer  m_framebuffer = VK_NULL_HANDLE;
         SP<CVKTexture> m_tex;

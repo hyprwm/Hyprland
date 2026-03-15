@@ -26,7 +26,6 @@ namespace Render::VK {
         };
 
         void            begin();
-        void            endRenderPass();
         void            end(uint64_t signalPoint);
         VkCommandBuffer vk();
         void            changeLayout(VkImage img, const SImageLayoutSettings& src, const SImageLayoutSettings& dst);

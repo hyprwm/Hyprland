@@ -1,7 +1,6 @@
 #include "Vulkan.hpp"
 #include "debug/log/Logger.hpp"
 #include "render/Renderer.hpp"
-#include "render/VKRenderer.hpp"
 #include "render/vulkan/CommandBuffer.hpp"
 #include "render/vulkan/DescriptorPool.hpp"
 #include "render/vulkan/MemoryBuffer.hpp"
@@ -11,6 +10,7 @@
 #include "../../macros.hpp"
 #include <algorithm>
 #include <drm_fourcc.h>
+#include <format>
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <sys/stat.h>
 #include <cstdint>
@@ -21,6 +21,8 @@
 
 // DEBUG
 #include "Compositor.hpp"
+
+#define TARGET_VULKAN_VERSION VK_API_VERSION_1_4
 
 using namespace Render::VK;
 
@@ -38,29 +40,35 @@ static VKAPI_ATTR VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
 
     Hyprutils::CLI::eLogLevel level;
     switch (severity) {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: level = Log::WARN; break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: level = Log::ERR; break;
         default:
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: level = Log::INFO; break;
     }
 
-    Log::logger->log(level, "{} ({})", debugData->pMessage, debugData->pMessageIdName);
-    if (debugData->queueLabelCount > 0) {
-        const char* name = debugData->pQueueLabels[0].pLabelName;
-        if (name)
-            Log::logger->log(level, "    last queue label '{}'", name);
-    }
+    std::string message = std::format("{} ({})", debugData->pMessage, debugData->pMessageIdName);
+
+    // if (debugData->queueLabelCount > 0) {
+    //     const char* name = debugData->pQueueLabels[0].pLabelName;
+    //     if (name)
+    //         Log::logger->log(level, "    last queue label '{}'", name);
+    // }
 
     if (debugData->cmdBufLabelCount > 0) {
-        const char* name = debugData->pCmdBufLabels[0].pLabelName;
-        if (name)
-            Log::logger->log(level, "    last cb label '{}'", name);
+        message += "\n\tOccured in ";
+        for (int i = debugData->cmdBufLabelCount - 1; i >= 0; i--) {
+            const char* name = debugData->pCmdBufLabels[i].pLabelName;
+            if (name)
+                message += std::format("{}{}", name, i > 0 ? " -> " : "");
+        }
     }
 
     for (uint32_t i = 0; i < debugData->objectCount; ++i) {
         if (debugData->pObjects[i].pObjectName)
-            Log::logger->log(level, "    involving '{}'", debugData->pObjects[i].pObjectName);
+            message += std::format("\n\tinvolving '{}'", debugData->pObjects[i].pObjectName);
     }
+
+    Log::logger->log(level, message);
 
     return false;
 }
@@ -95,14 +103,14 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
     loadVulkanProc(&m_proc.pfEnumInstanceVersion, "vkEnumerateInstanceVersion");
 
     uint32_t version;
-    if (m_proc.pfEnumInstanceVersion(&version) != VK_SUCCESS || version < VK_API_VERSION_1_3) {
-        CRIT("[VULKAN] Version is {}, required is {}", version, VK_API_VERSION_1_3);
+    if (m_proc.pfEnumInstanceVersion(&version) != VK_SUCCESS || version < TARGET_VULKAN_VERSION) {
+        CRIT("[VULKAN] Version is {}, required is {}", version, TARGET_VULKAN_VERSION);
     }
 
     uint32_t extensionCount = 0;
     auto     res            = vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     if (res != VK_SUCCESS || extensionCount == 0) {
-        CRIT("[VULKAN] Could not get extention count", version, VK_API_VERSION_1_3);
+        CRIT("[VULKAN] Could not get extention count", version, TARGET_VULKAN_VERSION);
     }
 
     std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -124,7 +132,7 @@ CHyprVulkanImpl::CHyprVulkanImpl() {
         .sType         = VK_STRUCTURE_TYPE_APPLICATION_INFO,
         .pEngineName   = "hyprland",
         .engineVersion = HYPRLAND_VERSION_MAJOR * 10000 + HYPRLAND_VERSION_MINOR * 100 + HYPRLAND_VERSION_PATCH,
-        .apiVersion    = VK_API_VERSION_1_3,
+        .apiVersion    = TARGET_VULKAN_VERSION,
     };
 
     VkDebugUtilsMessengerCreateInfoEXT debugInfo = {
@@ -201,7 +209,7 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
 
         logDeviceInfo(devProps);
 
-        if (devProps.apiVersion < VK_API_VERSION_1_3)
+        if (devProps.apiVersion < TARGET_VULKAN_VERSION)
             continue;
 
         uint32_t extCount = 0;
@@ -264,7 +272,7 @@ SP<CHyprVulkanDevice> CHyprVulkanImpl::getDevice(int drmFd) {
 }
 
 bool CHyprVulkanImpl::waitCommandBuffer(WP<CHyprVkCommandBuffer> cb) {
-    ASSERT(cb && (cb->vk() != VK_NULL_HANDLE) && !cb->busy());
+    ASSERT((cb && (cb->vk() != VK_NULL_HANDLE) && !cb->busy()));
 
     const auto             semaphore = m_device->timelineSemaphore();
     VkSemaphoreWaitInfoKHR waitInfo  = {
@@ -303,7 +311,8 @@ SP<CHyprVkCommandBuffer> CHyprVulkanImpl::acquireCB() {
         commandBuffer = wait;
 
     commandBuffer->begin();
-    commandBuffer->useFB(dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer);
+    if (g_pHyprRenderer->m_renderData.currentFB)
+        commandBuffer->useFB(VKFB(g_pHyprRenderer->m_renderData.currentFB)->fb());
     return commandBuffer;
 }
 

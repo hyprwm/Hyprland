@@ -18,19 +18,16 @@
 
 using namespace Render::VK;
 
-CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, int w, int h, uint32_t fmt, SP<ITexture> stencilTex) :
-    IDeviceUser(device), m_stencilTex(stencilTex) {
+CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, int w, int h, uint32_t fmt, SP<ITexture> stencilTex) : IDeviceUser(device), m_stencilTex(stencilTex) {
     const auto format = m_device->getFormat(fmt).value();
 
     initImage(format, w, h);
-    initFB(renderPass, w, h);
 }
 
-CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer, VkRenderPass renderPass) : IDeviceUser(device) {
+CHyprVkFramebuffer::CHyprVkFramebuffer(WP<CHyprVulkanDevice> device, SP<Aquamarine::IBuffer> buffer) : IDeviceUser(device) {
     const auto format = m_device->getFormat(buffer->dmabuf().format).value();
 
     initImage(format, buffer->dmabuf());
-    initFB(renderPass, buffer->dmabuf().size.x, buffer->dmabuf().size.y);
 }
 
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
@@ -43,25 +40,6 @@ void CHyprVkFramebuffer::initImage(SVkFormatProps props, int w, int h) {
 void CHyprVkFramebuffer::initImage(SVkFormatProps props, const Aquamarine::SDMABUFAttrs& attrs) {
     m_tex = makeShared<CVKTexture>(attrs, false,
                                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-}
-
-void CHyprVkFramebuffer::initFB(VkRenderPass renderPass, int w, int h) {
-    VkImageView             attachments[1] = {m_tex->vkView()};
-
-    VkFramebufferCreateInfo fbInfo = {
-        .sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        .flags           = 0,
-        .renderPass      = renderPass,
-        .attachmentCount = 1,
-        .pAttachments    = attachments,
-        .width           = w,
-        .height          = h,
-        .layers          = 1,
-    };
-
-    if (vkCreateFramebuffer(vkDevice(), &fbInfo, nullptr, &m_framebuffer) != VK_SUCCESS) {
-        CRIT("vkCreateFramebuffer failed");
-    }
 }
 
 VkFramebuffer CHyprVkFramebuffer::vk() {
@@ -82,10 +60,10 @@ CHyprVkFramebuffer::~CHyprVkFramebuffer() {
 }
 
 CVKRenderBuffer::CVKRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format) : IRenderbuffer(buffer, format) {
-    m_framebuffer              = makeShared<CVKFramebuffer>();
-    m_framebuffer->m_drmFormat = format;
-    m_framebuffer->m_size      = buffer->size;
-    auto fb = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer, dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(format)->m_vkRenderPass);
+    m_framebuffer                                  = makeShared<CVKFramebuffer>();
+    m_framebuffer->m_drmFormat                     = format;
+    m_framebuffer->m_size                          = buffer->size;
+    auto fb                                        = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), buffer);
     dc<CVKFramebuffer*>(m_framebuffer.get())->m_FB = fb;
     dc<CVKFramebuffer*>(m_framebuffer.get())->setTexture(fb->texture());
     m_good = true;
@@ -109,7 +87,7 @@ CVKFramebuffer::~CVKFramebuffer() {
 }
 
 void CVKFramebuffer::bind() {
-    dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->bindFB(m_FB);
+    LOGM(Log::TRACE, "CVKFramebuffer::bind() is a noop. should be called only from IHyprRenderer::bindFB");
 }
 
 bool CVKFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uint32_t offsetY, uint32_t width, uint32_t height) {
@@ -148,7 +126,7 @@ void CVKFramebuffer::addStencil(SP<ITexture> tex) {
 bool CVKFramebuffer::internalAlloc(int w, int h, uint32_t fmt) {
     m_drmFormat = fmt;
     m_size      = {w, h};
-    m_FB        = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), dc<CHyprVKRenderer*>(g_pHyprRenderer.get())->getRenderPass(fmt)->m_vkRenderPass, w, h, fmt, m_stencilTex);
+    m_FB        = makeShared<CHyprVkFramebuffer>(g_pHyprVulkan->device(), w, h, fmt, m_stencilTex);
     if (m_FB)
         m_tex = m_FB->texture();
     if (m_tex && m_tex->ok()) {

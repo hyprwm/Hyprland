@@ -23,8 +23,10 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
     }
 
     std::vector<const char*> enabledExtensions = {
-        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,   VK_KHR_IMAGE_FORMAT_LIST_EXTENSION_NAME,         VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
-        VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME, VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+        VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
+        VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME,
+        VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME,
     };
 
     for (const auto& ext : enabledExtensions) {
@@ -85,33 +87,28 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
         .pQueuePriorities = &prio,
     };
 
-    const bool                               hasGlobalPriority = hasExtension(m_extensions, VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME);
-    VkDeviceQueueGlobalPriorityCreateInfoKHR globalPriority;
-    if (hasGlobalPriority) {
-        // If global priorities are supported, request a high-priority context
-        globalPriority = VkDeviceQueueGlobalPriorityCreateInfoKHR{
-            .sType          = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR,
-            .globalPriority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR,
-        };
-        qinfo.pNext = &globalPriority;
-        enabledExtensions.push_back(VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME);
-        Log::logger->log(Log::DEBUG, "Requesting a high-priority device queue");
-    } else
-        Log::logger->log(Log::DEBUG, "Requesting a regular device queue");
-
-    VkPhysicalDeviceSynchronization2FeaturesKHR sync2Features = {
-        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
-        .pNext            = &YCCfeature,
-        .synchronization2 = VK_TRUE,
+    VkDeviceQueueGlobalPriorityCreateInfoKHR globalPriority = {
+        .sType          = VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR,
+        .globalPriority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR,
     };
+    qinfo.pNext = &globalPriority;
+
     VkPhysicalDeviceTimelineSemaphoreFeaturesKHR timelineFeatures = {
         .sType             = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
-        .pNext             = &sync2Features,
+        .pNext             = &YCCfeature,
         .timelineSemaphore = VK_TRUE,
     };
+
+    VkPhysicalDeviceVulkan13Features vulkan13Features = {
+        .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext            = &timelineFeatures,
+        .synchronization2 = VK_TRUE,
+        .dynamicRendering = VK_TRUE,
+    };
+
     VkDeviceCreateInfo devInfo = {
         .sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-        .pNext                   = &timelineFeatures,
+        .pNext                   = &vulkan13Features,
         .queueCreateInfoCount    = 1,
         .pQueueCreateInfos       = &qinfo,
         .enabledExtensionCount   = enabledExtensions.size(),
@@ -120,7 +117,7 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
 
     VkResult res = vkCreateDevice(m_physicalDevice, &devInfo, nullptr, &m_device);
 
-    if (hasGlobalPriority && (res == VK_ERROR_NOT_PERMITTED_EXT || res == VK_ERROR_INITIALIZATION_FAILED)) {
+    if (res == VK_ERROR_NOT_PERMITTED_EXT || res == VK_ERROR_INITIALIZATION_FAILED) {
         // Try to recover from the driver denying a global priority queue
         Log::logger->log(Log::DEBUG, "Failed to obtain a high-priority device queue, falling back to regular queue");
         qinfo.pNext = nullptr;
@@ -135,8 +132,6 @@ CHyprVulkanDevice::CHyprVulkanDevice(VkPhysicalDevice device, std::vector<VkExte
     vkGetDeviceQueue(m_device, m_queueFamilyIndex, 0, &m_queue);
 
     loadVulkanProc(&m_proc.vkGetMemoryFdPropertiesKHR, "vkGetMemoryFdPropertiesKHR");
-    loadVulkanProc(&m_proc.vkWaitSemaphoresKHR, "vkWaitSemaphoresKHR");
-    loadVulkanProc(&m_proc.vkGetSemaphoreCounterValueKHR, "vkGetSemaphoreCounterValueKHR");
 
     if (m_canExplicitSync) {
         loadVulkanProc(&m_proc.vkGetSemaphoreFdKHR, "vkGetSemaphoreFdKHR");

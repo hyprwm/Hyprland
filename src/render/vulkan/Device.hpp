@@ -14,8 +14,6 @@ namespace Render::VK {
 
         struct {
             PFN_vkGetMemoryFdPropertiesKHR     vkGetMemoryFdPropertiesKHR     = nullptr;
-            PFN_vkWaitSemaphoresKHR            vkWaitSemaphoresKHR            = nullptr;
-            PFN_vkGetSemaphoreCounterValueKHR  vkGetSemaphoreCounterValueKHR  = nullptr;
             PFN_vkGetSemaphoreFdKHR            vkGetSemaphoreFdKHR            = nullptr;
             PFN_vkImportSemaphoreFdKHR         vkImportSemaphoreFdKHR         = nullptr;
             PFN_vkSetDebugUtilsObjectNameEXT   vkSetDebugUtilsObjectNameEXT   = nullptr;

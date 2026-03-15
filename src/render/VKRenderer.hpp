@@ -51,46 +51,43 @@ namespace Render::VK {
         SP<CVkRenderPass>     getRenderPass(uint32_t fmt);
         SP<CVKBlurPass>       getBlurPass(uint32_t fmt);
         void                  bindFB(SP<IFramebuffer> fb) override;
-        void                  bindFB(SP<CHyprVkFramebuffer> fb);
         UP<ISyncFDManager>    createSyncFDManager() override;
         WP<IElementRenderer>  elementRenderer() override;
 
       private:
-        void                               startRenderPassHelper(VkRenderPass renderPass, VkFramebuffer fb, const Vector2D& size, VkCommandBuffer cb, int x = 0, int y = 0);
-        SP<ITexture>                       blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
-        void                               renderOffToMain(SP<IFramebuffer> off) override;
-        SP<IRenderbuffer>                  getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
-        bool                               beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
-        bool                               beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
-        void                               initRender() override;
-        bool                               initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
+        SP<ITexture>                                     blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
+        void                                             renderOffToMain(SP<IFramebuffer> off) override;
+        SP<IRenderbuffer>                                getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
+        bool                                             beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple = false) override;
+        bool                                             beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple = false) override;
+        void                                             initRender() override;
+        bool                                             initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) override;
 
-        void                               bindPipeline(WP<CVkPipeline> pipeline);
-        Vector2D                           currentRBSize();
-        SP<CVKBorderGradientUBO>           getGradientForWindow(PHLWINDOWREF window);
+        void                                             bindPipeline(WP<CVkPipeline> pipeline);
+        Vector2D                                         currentRBSize();
+        SP<CVKBorderGradientUBO>                         getGradientForWindow(PHLWINDOWREF window);
 
-        void                               setTexBarriers(SP<ITexture> tex);
+        void                                             setTexBarriers(SP<ITexture> tex);
 
-        UP<IElementRenderer>               m_elementRenderer;
+        UP<IElementRenderer>                             m_elementRenderer;
 
-        bool                               m_busy         = false;
-        bool                               m_inRenderPass = false;
-        SP<CHyprVkFramebuffer>             m_hasBoundFB;
-        CBox                               m_viewport;
+        bool                                             m_busy         = false;
+        bool                                             m_inRenderPass = false;
+        SP<CVKFramebuffer>                               m_hasBoundFB;
+        CBox                                             m_viewport;
 
-        SP<CHyprVkFramebuffer>             m_currentRenderbuffer;
-        Vector2D                           m_currentRenderbufferSize;
+        Vector2D                                         m_currentRenderbufferSize;
 
-        std::vector<SP<CVkRenderPass>>     m_renderPassList;
-        std::vector<SP<CVKBlurPass>>       m_blurPassList;
-        SP<CVkRenderPass>                  m_currentRenderPass;
-        SP<CVkShaders>                     m_shaders;
-        DRMFormat                          m_currentDrmFormat = DRM_FORMAT_INVALID;
+        std::vector<SP<CVkRenderPass>>                   m_renderPassList;
+        std::vector<SP<CVKBlurPass>>                     m_blurPassList;
+        SP<CVkRenderPass>                                m_currentRenderPass;
+        SP<CVkShaders>                                   m_shaders;
+        DRMFormat                                        m_currentDrmFormat = DRM_FORMAT_INVALID;
 
-        std::vector<SP<CVkPipelineLayout>> m_pipelineLayouts;
+        std::vector<SP<CVkPipelineLayout>>               m_pipelineLayouts;
 
-        WP<CVkPipeline>                    m_currentPipeline;
-        WP<CHyprVkCommandBuffer>           m_currentCommandBuffer;
+        WP<CVkPipeline>                                  m_currentPipeline;
+        WP<CHyprVkCommandBuffer>                         m_currentCommandBuffer;
 
         std::map<PHLWINDOWREF, SP<CVKBorderGradientUBO>> m_borderGradients;
 

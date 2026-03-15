@@ -195,7 +195,7 @@ void CVKElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
         .layerCount     = VK_REMAINING_ARRAY_LAYERS,
     };
 
-    vkCmdClearColorImage(g_pHyprVulkan->renderCB()->vk(), m_renderer->m_currentRenderbuffer->vkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+    vkCmdClearColorImage(g_pHyprVulkan->renderCB()->vk(), VKFB(m_renderData.currentFB)->fb()->vkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 };
 
 void CVKElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {
@@ -248,7 +248,7 @@ void CVKElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& dam
         mirrorFB     = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
         mirrorSwapFB = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
         if (m_renderer->m_hasBoundFB)
-            m_renderer->m_currentCommandBuffer->endRenderPass();
+            m_renderer->m_currentRenderPass->endRendering();
         m_renderer->m_currentCommandBuffer->changeLayout(
             VKTEX(mirrorFB->getTexture())->m_image, //
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -259,15 +259,14 @@ void CVKElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& dam
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
         if (m_renderer->m_hasBoundFB)
-            m_renderer->startRenderPassHelper(m_renderer->m_currentRenderPass->m_vkRenderPass, m_renderer->m_hasBoundFB->vk(), m_renderer->m_hasBoundFB->texture()->m_size,
-                                              m_renderer->m_currentCommandBuffer->vk());
+            m_renderer->m_currentRenderPass->beginRendering(m_renderer->m_currentCommandBuffer.lock(), m_renderer->m_hasBoundFB);
     }
 
     element->m_data.deco->render(m_renderData.pMonitor.lock(), element->m_data.a);
 
     if (*PSHADOWIGNOREWINDOW) {
         if (m_renderer->m_hasBoundFB)
-            m_renderer->m_currentCommandBuffer->endRenderPass();
+            m_renderer->m_currentRenderPass->endRendering();
         m_renderer->m_currentCommandBuffer->changeLayout(
             VKTEX(mirrorFB->getTexture())->m_image, //
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -278,8 +277,7 @@ void CVKElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& dam
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
         if (m_renderer->m_hasBoundFB)
-            m_renderer->startRenderPassHelper(m_renderer->m_currentRenderPass->m_vkRenderPass, m_renderer->m_hasBoundFB->vk(), m_renderer->m_hasBoundFB->texture()->m_size,
-                                              m_renderer->m_currentCommandBuffer->vk());
+            m_renderer->m_currentRenderPass->beginRendering(m_renderer->m_currentCommandBuffer.lock(), m_renderer->m_hasBoundFB);
     }
 };
 
@@ -492,7 +490,7 @@ void CVKElementRenderer::draw(WP<CTextureMatteElement> element, const CRegion& d
         mirrorFB     = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
         mirrorSwapFB = m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
         if (m_renderer->m_hasBoundFB)
-            m_renderer->m_currentCommandBuffer->endRenderPass();
+            m_renderer->m_currentRenderPass->endRendering();
         m_renderer->m_currentCommandBuffer->changeLayout(
             VKTEX(mirrorFB->getTexture())->m_image, //
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -503,8 +501,7 @@ void CVKElementRenderer::draw(WP<CTextureMatteElement> element, const CRegion& d
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
         if (m_renderer->m_hasBoundFB)
-            m_renderer->startRenderPassHelper(m_renderer->m_currentRenderPass->m_vkRenderPass, m_renderer->m_hasBoundFB->vk(), m_renderer->m_hasBoundFB->texture()->m_size,
-                                              m_renderer->m_currentCommandBuffer->vk());
+            m_renderer->m_currentRenderPass->beginRendering(m_renderer->m_currentCommandBuffer.lock(), m_renderer->m_hasBoundFB);
     }
 
     const auto cb       = g_pHyprVulkan->renderCB();
@@ -543,7 +540,7 @@ void CVKElementRenderer::draw(WP<CTextureMatteElement> element, const CRegion& d
 
     if (*PSHADOWIGNOREWINDOW) {
         if (m_renderer->m_hasBoundFB)
-            m_renderer->m_currentCommandBuffer->endRenderPass();
+            m_renderer->m_currentRenderPass->endRendering();
         m_renderer->m_currentCommandBuffer->changeLayout(
             VKTEX(mirrorFB->getTexture())->m_image, //
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -554,7 +551,6 @@ void CVKElementRenderer::draw(WP<CTextureMatteElement> element, const CRegion& d
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
         if (m_renderer->m_hasBoundFB)
-            m_renderer->startRenderPassHelper(m_renderer->m_currentRenderPass->m_vkRenderPass, m_renderer->m_hasBoundFB->vk(), m_renderer->m_hasBoundFB->texture()->m_size,
-                                              m_renderer->m_currentCommandBuffer->vk());
+            m_renderer->m_currentRenderPass->beginRendering(m_renderer->m_currentCommandBuffer.lock(), m_renderer->m_hasBoundFB);
     }
 };

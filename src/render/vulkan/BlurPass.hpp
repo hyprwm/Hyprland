@@ -19,13 +19,15 @@ namespace Render::VK {
         SP<ITexture> blurTexture(SP<ITexture> texture, SP<IFramebuffer> first, SP<IFramebuffer> second, float a, const CRegion& damage);
 
       private:
-        SP<CVkPipeline>              m_preparePipeline;
-        SP<CVkPipeline>              m_prepareCMPipeline;
-        std::vector<SP<CVkPipeline>> m_pipelines;
+        SP<CVkPipeline> m_preparePipeline;
+        SP<CVkPipeline> m_prepareCMPipeline;
+        SP<CVkPipeline> m_blur1Pipeline;
+        SP<CVkPipeline> m_blur2Pipeline;
+        SP<CVkPipeline> m_finishPipeline;
+        SP<CVkPipeline> m_finishCMPipeline;
 
-        DRMFormat                    m_drmFormat;
-        SP<CVkShaders>               m_shaders;
-        int                          m_passes = 1;
-        VkRenderPass                 m_vkRenderPass;
+        DRMFormat       m_drmFormat;
+        SP<CVkShaders>  m_shaders;
+        int             m_passes = 1;
     };
 }

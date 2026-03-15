@@ -2,6 +2,7 @@
 #include "../VKRenderer.hpp"
 #include "utils.hpp"
 #include <format>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 using namespace Render::VK;
@@ -11,8 +12,7 @@ static CHyprVKRenderer* getRenderer() {
     return dc<CHyprVKRenderer*>(g_pHyprRenderer.get());
 }
 
-CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) :
-    IDeviceUser(device), m_key({vert->module(), frag->module()}) {
+void CVkPipeline::init(VkRenderPass renderPass, const void* pNext, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) {
     m_layout = getRenderer()->ensurePipelineLayout(vert->pushSize(), frag->pushSize(), settings.texCount, settings.uboCount);
 
     VkSpecializationMapEntry specEntry = {
@@ -106,6 +106,7 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, 
 
     VkGraphicsPipelineCreateInfo pinfo = {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext               = pNext,
         .stageCount          = sizeof(stages) / sizeof(stages[0]),
         .pStages             = stages,
         .pVertexInputState   = &vertex,
@@ -125,6 +126,21 @@ CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, 
         CRIT("failed to create vulkan pipelines");
     }
     SET_VK_PIPELINE_NAME(m_vkPipeline, std::format("Pipeline {}", frag->m_name))
+}
+
+CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkRenderPass renderPass, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) :
+    IDeviceUser(device), m_key({vert->module(), frag->module()}) {
+    init(renderPass, nullptr, vert, frag, settings);
+}
+
+CVkPipeline::CVkPipeline(WP<CHyprVulkanDevice> device, VkFormat format, WP<CVkShader> vert, WP<CVkShader> frag, const SSettings& settings) :
+    IDeviceUser(device), m_key({vert->module(), frag->module()}) {
+    VkPipelineRenderingCreateInfo info = {
+        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        .colorAttachmentCount    = 1,
+        .pColorAttachmentFormats = &format,
+    };
+    init(VK_NULL_HANDLE, &info, vert, frag, settings);
 }
 
 CVkPipeline::~CVkPipeline() {

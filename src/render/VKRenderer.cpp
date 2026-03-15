@@ -89,10 +89,10 @@ bool CHyprVKRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 };
 
 SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
-    const auto bp = getBlurPass(m_currentRenderbuffer->texture()->m_drmFormat);
+    const auto bp = getBlurPass(VKFB(m_renderData.currentFB)->fb()->texture()->m_drmFormat);
     m_currentCommandBuffer->useBlurPass(bp);
     if (m_hasBoundFB)
-        m_currentCommandBuffer->endRenderPass();
+        m_currentRenderPass->endRendering();
 
     m_currentCommandBuffer->changeLayout(VKTEX(source->getTexture())->m_image, //
                                          {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
@@ -116,7 +116,8 @@ SP<ITexture> CHyprVKRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, 
         {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
 
     if (m_hasBoundFB)
-        startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, m_hasBoundFB->vk(), m_hasBoundFB->texture()->m_size, m_currentCommandBuffer->vk());
+        m_currentRenderPass->beginRendering(m_currentCommandBuffer.lock(), m_hasBoundFB);
+
     return tex;
 }
 
@@ -176,11 +177,12 @@ SP<IRenderbuffer> CHyprVKRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine
 bool CHyprVKRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
     m_renderData.mainFB       = simple ? m_renderData.outFB : pMonitor->resources()->getUnusedWorkBuffer();
     m_renderData.currentFB    = m_renderData.mainFB;
-    m_currentRenderbuffer     = dc<CVKFramebuffer*>(m_renderData.currentFB.get())->fb();
     m_currentRenderbufferSize = m_renderData.currentFB->m_size;
     m_currentRenderPass       = getRenderPass(m_currentDrmFormat);
 
     m_currentCommandBuffer = g_pHyprVulkan->begin();
+    VK_CB_LABEL_BEGIN(m_currentCommandBuffer->vk(), "Main render");
+
     return true;
 }
 
@@ -190,12 +192,12 @@ IHyprRenderer::eType CHyprVKRenderer::type() {
 
 void CHyprVKRenderer::startRenderPass() {
     m_currentCommandBuffer->useRenderPass(m_currentRenderPass);
-    bindFB(m_currentRenderbuffer);
+    bindFB(m_renderData.currentFB);
 
     m_inRenderPass = true;
 }
 
-void CHyprVKRenderer::bindFB(SP<CHyprVkFramebuffer> fb) {
+void CHyprVKRenderer::bindFB(SP<IFramebuffer> fb) {
     if (m_hasBoundFB == fb)
         return;
 
@@ -203,23 +205,19 @@ void CHyprVKRenderer::bindFB(SP<CHyprVkFramebuffer> fb) {
         return;
 
     if (m_hasBoundFB) {
-        m_currentCommandBuffer->endRenderPass();
+        m_currentRenderPass->endRendering();
         if (m_hasBoundFB == dc<CVKFramebuffer*>(m_renderData.pMonitor->resources()->m_blurFB.get())->fb())
-            m_currentCommandBuffer->changeLayout(m_hasBoundFB->texture()->m_image, //
+            m_currentCommandBuffer->changeLayout(m_hasBoundFB->fb()->texture()->m_image, //
                                                  {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                                                  {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
     }
+    m_hasBoundFB = dynamicPointerCast<CVKFramebuffer>(fb);
 
-    if (m_currentRenderPass->m_drmFormat != fb->texture()->m_drmFormat)
-        m_currentRenderPass = getRenderPass(fb->texture()->m_drmFormat);
+    if (m_currentRenderPass->m_drmFormat != m_hasBoundFB->fb()->texture()->m_drmFormat)
+        m_currentRenderPass = getRenderPass(m_hasBoundFB->fb()->texture()->m_drmFormat);
 
-    startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, fb->vk(), fb->texture()->m_size, m_currentCommandBuffer->vk());
-    m_currentCommandBuffer->useTexture(fb->texture());
-    m_hasBoundFB = fb;
-}
-
-void CHyprVKRenderer::bindFB(SP<IFramebuffer> fb) {
-    bindFB(VKFB(fb)->fb());
+    m_currentRenderPass->beginRendering(m_currentCommandBuffer.lock(), m_hasBoundFB);
+    m_currentCommandBuffer->useTexture(m_hasBoundFB->fb()->texture());
 }
 
 UP<ISyncFDManager> CHyprVKRenderer::createSyncFDManager() {
@@ -245,11 +243,14 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     }
     m_renderData.damage = m_renderPass.render(m_renderData.damage);
 
-    g_pHyprVulkan->renderCB()->endRenderPass();
+    m_currentRenderPass->endRendering();
+    VK_CB_LABEL_END(m_currentCommandBuffer->vk())
+
     m_inRenderPass = false;
     m_hasBoundFB.reset();
 
     if (m_renderData.outFB != m_renderData.mainFB) {
+        VK_CB_LABEL_BEGIN(m_currentCommandBuffer->vk(), "Offload to output");
         m_currentCommandBuffer->changeLayout(VKFB(m_renderData.mainFB)->fb()->texture()->m_image, //
                                              {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
                                              {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
@@ -257,7 +258,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
             VKFB(m_renderData.outFB)->fb()->texture()->m_image, //
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
-        m_renderData.outFB->bind();
+        bindFB(m_renderData.outFB);
         m_renderData.mainFB->getTexture()->m_transform = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
         draw(
             CTexPassElement::SRenderData{
@@ -267,13 +268,14 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
                 .clipRegion = CBox{{0, 0}, m_renderData.pMonitor->m_transformedSize},
             },
             CBox{{0, 0}, m_renderData.mainFB->getTexture()->m_size});
-        g_pHyprVulkan->renderCB()->endRenderPass();
+        m_currentRenderPass->endRendering();
         m_hasBoundFB.reset();
-        m_currentRenderbuffer = VKFB(m_renderData.outFB)->fb();
+        m_renderData.currentFB = m_renderData.outFB;
         m_currentCommandBuffer->changeLayout(
             VKFB(m_renderData.mainFB)->fb()->texture()->m_image, //
             {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = VK_ACCESS_TRANSFER_WRITE_BIT},
             {.layout = VK_IMAGE_LAYOUT_GENERAL, .stageMask = VK_PIPELINE_STAGE_TRANSFER_BIT, .accessMask = 0});
+        VK_CB_LABEL_END(m_currentCommandBuffer->vk());
     }
 
     std::vector<VkImageMemoryBarrier> acquireBarriers;
@@ -322,9 +324,9 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
     // TODO handle SHM tex sync
 
     VkImageLayout srcLayout = VK_IMAGE_LAYOUT_GENERAL;
-    if (!m_currentRenderbuffer->m_initialized) {
-        m_currentRenderbuffer->m_initialized = true;
-        srcLayout                            = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    if (!VKFB(m_renderData.currentFB)->fb()->m_initialized) {
+        VKFB(m_renderData.currentFB)->fb()->m_initialized = true;
+        srcLayout                                         = VK_IMAGE_LAYOUT_PREINITIALIZED;
     }
 
     acquireBarriers.push_back({
@@ -335,7 +337,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
         .newLayout           = VK_IMAGE_LAYOUT_GENERAL,
         .srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT,
         .dstQueueFamilyIndex = g_pHyprVulkan->m_device->queueFamilyIndex(),
-        .image               = m_currentRenderbuffer->vkImage(),
+        .image               = VKFB(m_renderData.currentFB)->fb()->vkImage(),
         .subresourceRange =
             {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -352,7 +354,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
         .newLayout           = VK_IMAGE_LAYOUT_GENERAL,
         .srcQueueFamilyIndex = g_pHyprVulkan->m_device->queueFamilyIndex(),
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT,
-        .image               = m_currentRenderbuffer->vkImage(),
+        .image               = VKFB(m_renderData.currentFB)->fb()->vkImage(),
         .subresourceRange =
             {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -368,7 +370,7 @@ void CHyprVKRenderer::endRender(const std::function<void()>& renderingDoneCallba
                          releaseBarriers.size(), releaseBarriers.data());
 
     if (m_renderMode != RENDER_MODE_NORMAL)
-        m_currentCommandBuffer->changeLayout(m_currentRenderbuffer->vkImage(),
+        m_currentCommandBuffer->changeLayout(VKFB(m_renderData.currentFB)->fb()->vkImage(),
                                              {
                                                  .layout     = VK_IMAGE_LAYOUT_GENERAL,
                                                  .stageMask  = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
@@ -636,49 +638,16 @@ void CHyprVKRenderer::drawShadow(const CBox& box, int round, float roundingPower
     drawRegionRects(clipBox, cb->vk());
 }
 
-void CHyprVKRenderer::startRenderPassHelper(VkRenderPass renderPass, VkFramebuffer fb, const Vector2D& size, VkCommandBuffer cb, int x, int y) {
-    VkClearValue          clear[2] = {{}, {.depthStencil = {0, 0}}};
-    VkRenderPassBeginInfo info     = {
-            .sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass  = renderPass,
-            .framebuffer = fb,
-            .renderArea =
-            {
-                    .offset = {x, y},
-                    .extent = {size.x, size.y},
-            },
-            .clearValueCount = 2,
-            .pClearValues    = clear,
-    };
-    VkSubpassBeginInfo subInfo = {
-        .sType    = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
-        .contents = VK_SUBPASS_CONTENTS_INLINE,
-    };
-
-    vkCmdBeginRenderPass2(cb, &info, &subInfo);
-
-    VkViewport viewport = {
-        .x        = x,
-        .y        = y,
-        .width    = size.x,
-        .height   = size.y,
-        .maxDepth = 1,
-    };
-    vkCmdSetViewport(cb, 0, 1, &viewport);
-
-    m_viewport = {x, y, size.x, size.y};
-}
-
 void CHyprVKRenderer::setViewport(int x, int y, int width, int height) {
     if (m_hasBoundFB && m_viewport.x == x && m_viewport.y == y && m_viewport.width == width && m_viewport.height == height)
         return;
 
     if (m_hasBoundFB)
-        m_currentCommandBuffer->endRenderPass();
+        m_currentRenderPass->endRendering();
     else
-        m_hasBoundFB = m_currentRenderbuffer;
+        m_hasBoundFB = dynamicPointerCast<CVKFramebuffer>(m_renderData.currentFB);
 
-    startRenderPassHelper(m_currentRenderPass->m_vkRenderPass, m_hasBoundFB->vk(), {width, height}, m_currentCommandBuffer->vk(), x, y);
+    m_currentRenderPass->beginRendering(m_currentCommandBuffer.lock(), m_hasBoundFB);
 }
 
 bool CHyprVKRenderer::reloadShaders(const std::string& path) {

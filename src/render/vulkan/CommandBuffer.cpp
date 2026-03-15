@@ -73,11 +73,6 @@ void CHyprVkCommandBuffer::begin() {
     }
 }
 
-void CHyprVkCommandBuffer::endRenderPass() {
-    VkSubpassEndInfo end = {.sType = VK_STRUCTURE_TYPE_SUBPASS_END_INFO};
-    vkCmdEndRenderPass2(m_cmdBuffer, &end);
-}
-
 void CHyprVkCommandBuffer::end(uint64_t signalPoint) {
     ASSERT(m_recording);
     m_timelinePoint = signalPoint;
@@ -95,9 +90,11 @@ VkCommandBuffer CHyprVkCommandBuffer::vk() {
 }
 
 void CHyprVkCommandBuffer::changeLayout(VkImage img, const SImageLayoutSettings& src, const SImageLayoutSettings& dst) {
-    VkImageMemoryBarrier barrier = {
-        .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    VkImageMemoryBarrier2 barrier = {
+        .sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .srcStageMask        = src.stageMask,
         .srcAccessMask       = src.accessMask,
+        .dstStageMask        = dst.stageMask,
         .dstAccessMask       = dst.accessMask,
         .oldLayout           = src.layout,
         .newLayout           = dst.layout,
@@ -111,7 +108,14 @@ void CHyprVkCommandBuffer::changeLayout(VkImage img, const SImageLayoutSettings&
                 .layerCount = 1,
             },
     };
-    vkCmdPipelineBarrier(m_cmdBuffer, src.stageMask, dst.stageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+    VkDependencyInfo dep = {
+        .sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers    = &barrier,
+    };
+
+    vkCmdPipelineBarrier2(m_cmdBuffer, &dep);
 }
 
 bool CHyprVkCommandBuffer::busy() {

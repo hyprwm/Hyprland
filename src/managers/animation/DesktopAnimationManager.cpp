@@ -1,6 +1,7 @@
 #include "DesktopAnimationManager.hpp"
 
 #include <algorithm>
+#include <optional>
 
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/view/Window.hpp"
@@ -232,7 +233,7 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
     }
 }
 
-void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left, bool instant) {
+void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left, bool instant, std::optional<std::string> style) {
     const bool IN = type == ANIMATION_TYPE_IN;
 
     if (!instant) {
@@ -243,8 +244,9 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     }
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
     const auto  PMONITOR      = ws->m_monitor.lock();
-    const auto  ANIMSTYLE     = ws->m_alpha->getStyle();
-    float       movePerc      = 100.f;
+    const auto  ANIMSTYLE     = style.value_or(ws->m_alpha->getStyle());
+
+    float       movePerc = 100.f;
     // inverted for some reason. TODO: fix the cause
     bool vert = ANIMSTYLE.starts_with("slidevert") || ANIMSTYLE.starts_with("slidefadevert");
 

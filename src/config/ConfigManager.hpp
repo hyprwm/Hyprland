@@ -48,6 +48,7 @@ struct SWorkspaceRule {
     std::optional<std::string>         defaultName;
     std::optional<std::string>         layout;
     std::map<std::string, std::string> layoutopts;
+    std::optional<std::string>         animationStyle;
 };
 
 struct SPluginKeyword {

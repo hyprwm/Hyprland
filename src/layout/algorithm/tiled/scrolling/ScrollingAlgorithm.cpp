@@ -795,6 +795,11 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
 }
 
 void CScrollingAlgorithm::recalculate() {
+    // guard against recalculation during transitional monitor states
+    // (e.g. monitor reconnecting after suspend where workspace/monitor may not be ready)
+    if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+        return;
+
     if (Desktop::focusState()->window()) {
         const auto TARGET = Desktop::focusState()->window()->layoutTarget();
 
@@ -876,8 +881,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_RIGHT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_LEFT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 
@@ -887,8 +892,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_LEFT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_RIGHT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 
@@ -1516,6 +1521,12 @@ CBox CScrollingAlgorithm::usableArea() {
         return box;
 
     box.translate(-m_parent->space()->workspace()->m_monitor->m_position);
+
+    // ensure dimensions are never zero or negative, which can happen during
+    // monitor transitions (e.g. reconnection after suspend with stale reserved areas)
+    box.w = std::max(box.w, 1.0);
+    box.h = std::max(box.h, 1.0);
+
     return box;
 }
 

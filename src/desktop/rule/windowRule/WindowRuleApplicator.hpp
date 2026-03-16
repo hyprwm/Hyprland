@@ -33,7 +33,8 @@ namespace Desktop::Rule {
         void                                                        propertiesChanged(std::underlying_type_t<eRuleProperty> props);
         std::unordered_set<CWindowRuleEffectContainer::storageType> resetProps(std::underlying_type_t<eRuleProperty> props,
                                                                                Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
-        void                                                        readStaticRules(bool preRead = false);
+        bool                                                        readStaticRules(bool preRead = false);
+        void                                                        recheckStaticRules();
 
         // static props
         struct {
@@ -138,7 +139,8 @@ namespace Desktop::Rule {
 #undef DEFINE_PROP
 
       private:
-        PHLWINDOWREF m_window;
+        PHLWINDOWREF                          m_window;
+        std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
 
         struct SRuleResult {
             bool needsRelayout = false;

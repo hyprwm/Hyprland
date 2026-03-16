@@ -13,19 +13,19 @@
 #include "../helpers/math/Math.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../../protocols/cursor-shape-v1.hpp"
-#include "desktop/view/Popup.hpp"
-#include "render/Framebuffer.hpp"
-#include "render/Texture.hpp"
-#include "render/pass/BorderPassElement.hpp"
-#include "render/pass/ClearPassElement.hpp"
-#include "render/pass/FramebufferElement.hpp"
-#include "render/pass/PreBlurElement.hpp"
-#include "render/pass/RectPassElement.hpp"
-#include "render/pass/RendererHintsPassElement.hpp"
-#include "render/pass/ShadowPassElement.hpp"
-#include "render/pass/SurfacePassElement.hpp"
-#include "render/pass/TexPassElement.hpp"
-#include "render/pass/TextureMatteElement.hpp"
+#include "../desktop/view/Popup.hpp"
+#include "Framebuffer.hpp"
+#include "Texture.hpp"
+#include "pass/BorderPassElement.hpp"
+#include "pass/ClearPassElement.hpp"
+#include "pass/FramebufferElement.hpp"
+#include "pass/PreBlurElement.hpp"
+#include "pass/RectPassElement.hpp"
+#include "pass/RendererHintsPassElement.hpp"
+#include "pass/ShadowPassElement.hpp"
+#include "pass/SurfacePassElement.hpp"
+#include "pass/TexPassElement.hpp"
+#include "pass/TextureMatteElement.hpp"
 
 struct SMonitorRule;
 class CWorkspace;
@@ -77,6 +77,7 @@ enum eRenderProjectionType : uint8_t {
     RPT_MONITOR,
     RPT_MIRROR,
     RPT_FB,
+    RPT_EXPORT,
 };
 
 struct SRenderData {

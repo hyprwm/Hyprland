@@ -168,9 +168,9 @@ void CScreenshareFrame::renderMonitor() {
     g_pHyprRenderer->m_renderData.noSimplify      = true;
 
     // render monitor texture
-    CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
-                      .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
-                      .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+    CBox       monbox = CBox{{}, PMONITOR->m_pixelSize}
+                            .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
+                            .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
 
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;
@@ -298,7 +298,7 @@ void CScreenshareFrame::renderWindow() {
 
     // TODO: implement a monitor independent render mode to buffer that does this in CHyprRenderer::begin() or something like that
     g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
-    g_pHyprRenderer->setProjectionType(RPT_FB);
+    g_pHyprRenderer->setProjectionType(RPT_EXPORT);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 

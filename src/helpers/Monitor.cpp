@@ -447,8 +447,9 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // Preserve ownership across cascaded monitor disconnects.
     // The first disconnected monitor "owns" where a workspace should return.
+    // Only track non-empty workspaces; empty ones don't need to be returned.
     for (auto const& w : wspToMove) {
-        if (w && w->m_lastMonitor.empty())
+        if (w && w->m_lastMonitor.empty() && w->getWindows() > 0)
             w->m_lastMonitor = m_name;
     }
 

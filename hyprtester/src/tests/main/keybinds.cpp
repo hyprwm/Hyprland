@@ -527,22 +527,26 @@ static void testPerDeviceKeybind() {
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,31"));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,31"));
+
+    // Inclusive inline
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindk{test-keyboard-1} SUPER,Y,exec,touch " + flagFile), "ok");
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 
-    // Exclusive
+    // Exclusive inline
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/keyword bindk SUPER,Y,!test-keyboard-1,exec,touch " + flagFile), "ok");
+    EXPECT(getFromSocket("/keyword bindk{!test-keyboard-1} SUPER,Y,exec,touch " + flagFile), "ok");
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 
-    // With description
+    // With other flags
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/keyword binddk SUPER,Y,test-keyboard-1,test description,exec,touch " + flagFile), "ok");
+    EXPECT(getFromSocket("/keyword bindk{test-keyboard-1}u SUPER,Y,exec,touch " + flagFile), "ok");
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
@@ -550,7 +554,7 @@ static void testPerDeviceKeybind() {
 
     // Tags
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/keyword bindk SUPER,Y,test-tag,exec,touch " + flagFile), "ok");
+    EXPECT(getFromSocket("/keyword bindk{test-tag} SUPER,Y,exec,touch " + flagFile), "ok");
     OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));

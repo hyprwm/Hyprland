@@ -596,11 +596,6 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
     const auto               width          = target->window()->m_ruleApplicator->static_.scrolling_width;
 
-    if (width.has_value())
-        Log::logger->log(Log::ERR, "Scrolling found width: {}", width.value());
-    else
-        Log::logger->log(Log::ERR, "Scrolling found no width");
-
     if (!droppingColumn) {
         auto col = m_scrollingData->add(width);
         col->add(target);

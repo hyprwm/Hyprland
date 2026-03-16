@@ -58,9 +58,8 @@ const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previous
     auto it = std::find_if(m_history.begin(), m_history.end(), [&](const auto& entry) { return entry.workspace == ws; });
 
     // If the workspace is found in history, the previous one is simply the next element down the timeline
-    if (it != m_history.end() && std::next(it) != m_history.end()) {
+    if (it != m_history.end() && std::next(it) != m_history.end())
         return *std::next(it);
-    }
 
     // No prior history found
     return SHistoryEntry{.id = WORKSPACE_INVALID};
@@ -91,9 +90,9 @@ const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previous
 
     // Scan down the timeline until we hit a workspace mapped to the restricted monitor
     while (it != m_history.end()) {
-        if (it->monitor == restrict) {
+        if (it->monitor == restrict)
             return *it;
-        }
+
         it++;
     }
 

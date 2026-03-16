@@ -45,6 +45,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
 #include <climits>
+#include <optional>
 #include <ranges>
 #include <vector>
 #include <algorithm>
@@ -1364,9 +1365,10 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (!internal) {
         const auto ANIMTOLEFT = POLDWORKSPACE && (shouldWraparound(pWorkspace->m_id, POLDWORKSPACE->m_id) ^ (pWorkspace->m_id > POLDWORKSPACE->m_id));
+        const auto ANIMSTYLE  = pWorkspace->m_animationStyle;
         if (POLDWORKSPACE)
-            g_pDesktopAnimationManager->startAnimation(POLDWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, ANIMTOLEFT);
-        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, ANIMTOLEFT);
+            g_pDesktopAnimationManager->startAnimation(POLDWORKSPACE, CDesktopAnimationManager::ANIMATION_TYPE_OUT, ANIMTOLEFT, false, ANIMSTYLE);
+        g_pDesktopAnimationManager->startAnimation(pWorkspace, CDesktopAnimationManager::ANIMATION_TYPE_IN, ANIMTOLEFT, false, ANIMSTYLE);
 
         // move pinned windows
         for (auto const& w : g_pCompositor->m_windows) {

@@ -1355,8 +1355,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
             const bool  needsSDRmod     = isSDR2HDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
             const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
             const float maxLuminance    = needsHDRmod ?
-                   SOURCE_IMAGE_DESCRIPTION->value().getTFMaxLuminance(-1) :
-                   (SOURCE_IMAGE_DESCRIPTION->value().luminances.max > 0 ? SOURCE_IMAGE_DESCRIPTION->value().luminances.max : SOURCE_IMAGE_DESCRIPTION->value().luminances.reference);
+                SOURCE_IMAGE_DESCRIPTION->value().getTFMaxLuminance(-1) :
+                (SOURCE_IMAGE_DESCRIPTION->value().luminances.max > 0 ? SOURCE_IMAGE_DESCRIPTION->value().luminances.max : SOURCE_IMAGE_DESCRIPTION->value().luminances.reference);
             const auto  dstMaxLuminance = TARGET_IMAGE_DESCRIPTION->value().luminances.max > 0 ? TARGET_IMAGE_DESCRIPTION->value().luminances.max : 10000;
 
             if (maxLuminance >= dstMaxLuminance * 1.01)

@@ -491,11 +491,11 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
         const std::string default_    = sc<bool>(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
         const std::string persistent  = sc<bool>(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
         const std::string gapsIn      = sc<bool>(r.gapsIn) ?
-                 std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().m_top, r.gapsIn.value().m_right, r.gapsIn.value().m_bottom, r.gapsIn.value().m_left) :
-                 "";
+            std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().m_top, r.gapsIn.value().m_right, r.gapsIn.value().m_bottom, r.gapsIn.value().m_left) :
+            "";
         const std::string gapsOut     = sc<bool>(r.gapsOut) ?
-                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().m_top, r.gapsOut.value().m_right, r.gapsOut.value().m_bottom, r.gapsOut.value().m_left) :
-                "";
+            std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().m_top, r.gapsOut.value().m_right, r.gapsOut.value().m_bottom, r.gapsOut.value().m_left) :
+            "";
         const std::string borderSize  = sc<bool>(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
         const std::string border      = sc<bool>(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
         const std::string rounding    = sc<bool>(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
@@ -518,9 +518,9 @@ static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputF
                                                                         std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
                                                             std::format("\tgapsIn: <unset>\n");
         const std::string gapsOut    = sc<bool>(r.gapsOut) ?
-               std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right), std::to_string(r.gapsOut.value().m_bottom),
-                           std::to_string(r.gapsOut.value().m_left)) :
-               std::format("\tgapsOut: <unset>\n");
+            std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right), std::to_string(r.gapsOut.value().m_bottom),
+                        std::to_string(r.gapsOut.value().m_left)) :
+            std::format("\tgapsOut: <unset>\n");
         const std::string borderSize = std::format("\tborderSize: {}\n", sc<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
         const std::string border     = std::format("\tborder: {}\n", sc<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
         const std::string rounding   = std::format("\trounding: {}\n", sc<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");

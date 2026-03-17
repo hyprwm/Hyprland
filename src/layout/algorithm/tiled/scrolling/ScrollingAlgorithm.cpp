@@ -594,7 +594,7 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
 
     SP<SScrollingTargetData> droppingData   = droppingOn ? dataFor(droppingOn->layoutTarget()) : nullptr;
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
-    const auto               width          = target->window()->m_ruleApplicator->static_.scrolling_width;
+    const auto               width          = target->window()->m_ruleApplicator->static_.scrollingWidth;
 
     if (!droppingColumn) {
         auto col = m_scrollingData->add(width);

@@ -543,7 +543,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
             case WINDOW_RULE_EFFECT_SCROLLING_WIDTH: {
                 try {
-                    static_.scrolling_width = std::stof(effect);
+                    static_.scrollingWidth = std::stof(effect);
                 } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid scrolling width {}", effect); }
                 break;
             }

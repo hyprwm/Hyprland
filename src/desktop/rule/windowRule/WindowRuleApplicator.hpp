@@ -54,7 +54,7 @@ namespace Desktop::Rule {
             std::optional<int>       noCloseFor;
 
             std::string              size, position;
-            std::optional<float>     scrolling_width;
+            std::optional<float>     scrollingWidth;
 
             std::vector<std::string> suppressEvent;
         } static_;

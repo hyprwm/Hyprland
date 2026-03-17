@@ -50,7 +50,18 @@ void CWorkspaceHistoryTracker::track(PHLWORKSPACE ws) {
 }
 
 void CWorkspaceHistoryTracker::gc() {
-    std::erase_if(m_history, [](const auto& entry) { return !entry.workspace; });
+    std::vector<PHLMONITORREF> monitorCounts;
+    std::erase_if(m_history, [&](const auto& entry) {
+        // Search if the monitor has been seen already
+        for (auto& mon : monitorCounts | std::views::drop(1)) {
+            // Remove entry
+            if (mon == entry.monitor)
+                return !entry.workspace;
+        }
+        // Add monitor to seen monitors
+        monitorCounts.emplace_back(entry.monitor);
+        return false;
+    });
 }
 
 const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws) {

@@ -254,8 +254,9 @@ void CPopup::onUnmap() {
     m_subsurfaceHead.reset();
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
-        mon->m_blurFBDirty = true;
+        const auto mon = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
+        if (mon)
+            mon->m_blurFBDirty = true;
     }
 
     // damage all children
@@ -321,8 +322,9 @@ void CPopup::onCommit(bool ignoreSiblings) {
     m_requestedReposition = false;
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
-        mon->m_blurFBDirty = true;
+        const auto mon = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
+        if (mon)
+            mon->m_blurFBDirty = true;
     }
 }
 

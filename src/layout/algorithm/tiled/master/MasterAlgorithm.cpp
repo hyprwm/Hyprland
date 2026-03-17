@@ -1256,7 +1256,7 @@ SP<ITarget> CMasterAlgorithm::getNextCandidate(SP<ITarget> old) {
 }
 
 SP<ITarget> CMasterAlgorithm::getNextTarget(SP<ITarget> t, bool next, bool loop) {
-    if (t->floating())
+    if (!t || t->floating())
         return nullptr;
 
     const auto PNODE = getNodeFromTarget(t);

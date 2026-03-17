@@ -304,22 +304,22 @@ SScrollingData::SScrollingData(CScrollingAlgorithm* algo) : algorithm(algo) {
     controller = makeUnique<CScrollTapeController>(SCROLL_DIR_RIGHT);
 }
 
-SP<SColumnData> SScrollingData::add() {
+SP<SColumnData> SScrollingData::add(std::optional<float> width) {
     auto col  = columns.emplace_back(makeShared<SColumnData>(self.lock()));
     col->self = col;
 
-    size_t stripIdx                         = controller->addStrip(algorithm->defaultColumnWidth());
+    size_t stripIdx                         = controller->addStrip(width.value_or(algorithm->defaultColumnWidth()));
     controller->getStrip(stripIdx).userData = col;
 
     return col;
 }
 
-SP<SColumnData> SScrollingData::add(int after) {
+SP<SColumnData> SScrollingData::add(int after, std::optional<float> width) {
     auto col  = makeShared<SColumnData>(self.lock());
     col->self = col;
     columns.insert(columns.begin() + after + 1, col);
 
-    controller->insertStrip(after, algorithm->defaultColumnWidth());
+    controller->insertStrip(after, width.value_or(algorithm->defaultColumnWidth()));
     controller->getStrip(after + 1).userData = col;
 
     return col;
@@ -594,9 +594,10 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
 
     SP<SScrollingTargetData> droppingData   = droppingOn ? dataFor(droppingOn->layoutTarget()) : nullptr;
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
+    const auto               width          = target->window()->m_ruleApplicator->static_.scrollingWidth;
 
     if (!droppingColumn) {
-        auto col = m_scrollingData->add();
+        auto col = m_scrollingData->add(width);
         col->add(target);
         m_scrollingData->fitCol(col);
     } else {
@@ -610,7 +611,7 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
             m_scrollingData->fitCol(droppingColumn);
         } else {
             auto idx = m_scrollingData->idx(droppingColumn);
-            auto col = idx == -1 ? m_scrollingData->add() : m_scrollingData->add(idx);
+            auto col = idx == -1 ? m_scrollingData->add(width) : m_scrollingData->add(idx, width);
             col->add(target);
             m_scrollingData->fitCol(col);
         }

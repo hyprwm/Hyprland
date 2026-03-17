@@ -199,9 +199,8 @@ void CPopup::onMap() {
     m_wlSurface->resource()->breadthfirst([PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PMONITOR->m_self.lock()); }, nullptr);
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        auto mon = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
-        if (mon)
-            mon->m_blurFBDirty = true;
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 
     m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
@@ -254,8 +253,8 @@ void CPopup::onUnmap() {
     m_subsurfaceHead.reset();
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
-        mon->m_blurFBDirty = true;
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 
     // damage all children
@@ -321,8 +320,8 @@ void CPopup::onCommit(bool ignoreSiblings) {
     m_requestedReposition = false;
 
     if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-        const auto mon     = g_pCompositor->getMonitorFromID(m_layerOwner->m_layer);
-        mon->m_blurFBDirty = true;
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 }
 

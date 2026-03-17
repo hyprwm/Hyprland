@@ -201,7 +201,7 @@ void CPopup::onMap() {
     sendScale();
     m_wlSurface->resource()->breadthfirst([PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PMONITOR->m_self.lock()); }, nullptr);
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP && m_layerOwner->m_monitor)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
 
     m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
@@ -253,7 +253,7 @@ void CPopup::onUnmap() {
 
     m_subsurfaceHead.reset();
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP && m_layerOwner->m_monitor)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
 
     // damage all children
@@ -318,7 +318,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     m_requestedReposition = false;
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP && m_layerOwner->m_monitor)
         g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
 }
 

@@ -1719,8 +1719,7 @@ void CWindow::mapWindow() {
         requestedClientFSMode = FSMODE_FULLSCREEN;
     MONITORID requestedFSMonitor = m_wantsInitialFullscreenMonitor;
 
-    m_ruleApplicator->readStaticRules();
-    {
+    auto      setStaticProps = [&]() {
         if (!m_ruleApplicator->static_.monitor.empty()) {
             const auto& MONITORSTR = m_ruleApplicator->static_.monitor;
             if (MONITORSTR == "unset")
@@ -1846,6 +1845,13 @@ void CWindow::mapWindow() {
 
         if (m_ruleApplicator->static_.noCloseFor)
             m_closeableSince = Time::steadyNow() + std::chrono::milliseconds(m_ruleApplicator->static_.noCloseFor.value());
+    };
+
+    const bool recheck = m_ruleApplicator->readStaticRules();
+    setStaticProps();
+    if (recheck) {
+        m_ruleApplicator->recheckStaticRules();
+        setStaticProps();
     }
 
     // make it uncloseable if it's a Hyprland dialog

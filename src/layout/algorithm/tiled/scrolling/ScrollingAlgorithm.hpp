@@ -68,8 +68,8 @@ namespace Layout::Tiled {
 
         UP<CScrollTapeController>    controller;
 
-        SP<SColumnData>              add();
-        SP<SColumnData>              add(int after);
+        SP<SColumnData>              add(std::optional<float> width = std::nullopt);
+        SP<SColumnData>              add(int after, std::optional<float> width = std::nullopt);
         int64_t                      idx(SP<SColumnData> c);
         void                         remove(SP<SColumnData> c);
         double                       maxWidth();

@@ -40,9 +40,10 @@ class CWorkspace {
     wl_array        m_wlrCoordinateArr;
 
     // for animations
-    PHLANIMVAR<Vector2D> m_renderOffset;
-    PHLANIMVAR<float>    m_alpha;
-    bool                 m_forceRendering = false;
+    PHLANIMVAR<Vector2D>       m_renderOffset;
+    PHLANIMVAR<float>          m_alpha;
+    bool                       m_forceRendering = false;
+    std::optional<std::string> m_animationStyle;
 
     // allows damage to propagate.
     bool m_visible = false;

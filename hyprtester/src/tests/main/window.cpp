@@ -647,31 +647,36 @@ static bool testWindowRuleWorkspaceEmpty() {
     return true;
 }
 
-static void testContentRules() {
+static bool testContentRules() {
     NLog::log("{}Testing content window rules", Colors::YELLOW);
 
     // kill me PLEASE
 
-    OK(getFromSocket("/keyword windowrule match:class kitty_bitch, content game"));
+    OK(getFromSocket("/keyword windowrule match:class kitty_content_string, content game"));
+    OK(getFromSocket("/keyword windowrule match:class kitty_content_numbers, content 3"));
     OK(getFromSocket("/keyword windowrule match:content game, border_size 10"));
     OK(getFromSocket("/keyword windowrule match:content 3, opacity 0.5"));
 
-    getFromSocket("/dispatch workspace 420");
+    const auto testProps = []() {
+        EXPECT_CONTAINS(getFromSocket("/getprop active border_size"), "10");
+        EXPECT_CONTAINS(getFromSocket("/getprop active opacity"), "0.5");
+    };
+    if (!spawnKitty("kitty_content_string"))
+        return false;
+    waitForActiveWindow("kitty_content_string");
+    testProps();
 
-    if (!spawnKitty("kitty_bitch")) {
-        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
-        return;
-    }
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
 
-    {
-        auto res = getFromSocket("/getprop active border_size");
-        EXPECT_CONTAINS(res, "10");
-    }
+    if (!spawnKitty("kitty_content_numbers"))
+        return false;
+    waitForActiveWindow("kitty_content_numbers");
+    testProps();
 
-    {
-        auto res = getFromSocket("/getprop active opacity");
-        EXPECT_CONTAINS(res, "0.5");
-    }
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
 }
 
 static bool test() {

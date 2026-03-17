@@ -81,8 +81,8 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     float        lastSplitPercent   = *PMFACT;
 
     auto         OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
-                getNodeFromWindow(Desktop::focusState()->window()) :
-                getMasterNode();
+        getNodeFromWindow(Desktop::focusState()->window()) :
+        getMasterNode();
 
     const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
     static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
@@ -1256,7 +1256,7 @@ SP<ITarget> CMasterAlgorithm::getNextCandidate(SP<ITarget> old) {
 }
 
 SP<ITarget> CMasterAlgorithm::getNextTarget(SP<ITarget> t, bool next, bool loop) {
-    if (t->floating())
+    if (!t || t->floating())
         return nullptr;
 
     const auto PNODE = getNodeFromTarget(t);

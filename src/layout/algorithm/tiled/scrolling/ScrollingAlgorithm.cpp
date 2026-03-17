@@ -304,22 +304,22 @@ SScrollingData::SScrollingData(CScrollingAlgorithm* algo) : algorithm(algo) {
     controller = makeUnique<CScrollTapeController>(SCROLL_DIR_RIGHT);
 }
 
-SP<SColumnData> SScrollingData::add() {
+SP<SColumnData> SScrollingData::add(std::optional<float> width) {
     auto col  = columns.emplace_back(makeShared<SColumnData>(self.lock()));
     col->self = col;
 
-    size_t stripIdx                         = controller->addStrip(algorithm->defaultColumnWidth());
+    size_t stripIdx                         = controller->addStrip(width.value_or(algorithm->defaultColumnWidth()));
     controller->getStrip(stripIdx).userData = col;
 
     return col;
 }
 
-SP<SColumnData> SScrollingData::add(int after) {
+SP<SColumnData> SScrollingData::add(int after, std::optional<float> width) {
     auto col  = makeShared<SColumnData>(self.lock());
     col->self = col;
     columns.insert(columns.begin() + after + 1, col);
 
-    controller->insertStrip(after, algorithm->defaultColumnWidth());
+    controller->insertStrip(after, width.value_or(algorithm->defaultColumnWidth()));
     controller->getStrip(after + 1).userData = col;
 
     return col;
@@ -594,9 +594,10 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
 
     SP<SScrollingTargetData> droppingData   = droppingOn ? dataFor(droppingOn->layoutTarget()) : nullptr;
     SP<SColumnData>          droppingColumn = droppingData ? droppingData->column.lock() : nullptr;
+    const auto               width          = target->window()->m_ruleApplicator->static_.scrollingWidth;
 
     if (!droppingColumn) {
-        auto col = m_scrollingData->add();
+        auto col = m_scrollingData->add(width);
         col->add(target);
         m_scrollingData->fitCol(col);
     } else {
@@ -610,7 +611,7 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
             m_scrollingData->fitCol(droppingColumn);
         } else {
             auto idx = m_scrollingData->idx(droppingColumn);
-            auto col = idx == -1 ? m_scrollingData->add() : m_scrollingData->add(idx);
+            auto col = idx == -1 ? m_scrollingData->add(width) : m_scrollingData->add(idx, width);
             col->add(target);
             m_scrollingData->fitCol(col);
         }
@@ -795,6 +796,11 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
 }
 
 void CScrollingAlgorithm::recalculate() {
+    // guard against recalculation during transitional monitor states
+    // (e.g. monitor reconnecting after suspend where workspace/monitor may not be ready)
+    if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+        return;
+
     if (Desktop::focusState()->window()) {
         const auto TARGET = Desktop::focusState()->window()->layoutTarget();
 
@@ -876,8 +882,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_RIGHT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_LEFT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 
@@ -887,8 +893,8 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
                 switch (dir) {
                     case Math::DIRECTION_UP: return Math::DIRECTION_LEFT;
                     case Math::DIRECTION_DOWN: return Math::DIRECTION_RIGHT;
-                    case Math::DIRECTION_LEFT: return Math::DIRECTION_DOWN;
-                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_LEFT: return Math::DIRECTION_UP;
+                    case Math::DIRECTION_RIGHT: return Math::DIRECTION_DOWN;
                     default: break;
                 }
 
@@ -1516,6 +1522,12 @@ CBox CScrollingAlgorithm::usableArea() {
         return box;
 
     box.translate(-m_parent->space()->workspace()->m_monitor->m_position);
+
+    // ensure dimensions are never zero or negative, which can happen during
+    // monitor transitions (e.g. reconnection after suspend with stale reserved areas)
+    box.w = std::max(box.w, 1.0);
+    box.h = std::max(box.h, 1.0);
+
     return box;
 }
 

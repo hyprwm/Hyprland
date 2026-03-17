@@ -249,7 +249,6 @@ static void testMultimonBAF() {
     }
 
     OK(getFromSocket("/dispatch workspace 4"));
-    Tests::spawnKitty();
     OK(getFromSocket("/dispatch workspace 4"));
 
     {

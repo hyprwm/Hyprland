@@ -1274,8 +1274,7 @@ void CInputManager::setPointerConfigs() {
                 m->m_connected = false;
             }
 
-            const auto DEVICETAGS = g_pConfigManager->getDeviceString(devname, "tags");
-            for (const auto tagString : std::ranges::views::split(DEVICETAGS, ',')) {
+            for (const auto tagString : CVarList2(g_pConfigManager->getDeviceString(devname, "tags"))) {
                 m->m_deviceTags.emplace(std::string_view(tagString));
             }
         }

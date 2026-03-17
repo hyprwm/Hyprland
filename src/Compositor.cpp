@@ -1037,20 +1037,52 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
-                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_LEFT) == nullptr) {
+                    const auto WORKAREA = PWORKSPACE->m_space->workArea();
+                    static auto isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
+                        constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
+                        double     aEdge = -1;
+                        double     bEdge = -1;
+
+                        switch (dir) {
+                            case Math::DIRECTION_LEFT:
+                                aEdge = WORKAREA.x;
+                                bEdge = box.x;
+                                break;
+                            case Math::DIRECTION_RIGHT:
+                                aEdge = WORKAREA.x + WORKAREA.width;
+                                bEdge = box.x + box.width;
+                                break;
+                            case Math::DIRECTION_UP:
+                                aEdge = WORKAREA.y;
+                                bEdge = box.y;
+                                break;
+                            case Math::DIRECTION_DOWN:
+                                aEdge = WORKAREA.y + WORKAREA.height;
+                                bEdge = box.y + box.height;
+                                break;
+                            default: break;
+                        }
+                        const double delta = aEdge - bEdge;
+                        if (std::abs(delta) < STICK_THRESHOLD)
+                            return true;
+                        else
+                            return false;
+                    };
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_LEFT)) {
                         box.x -= BORDER_GRAB_AREA;
                         box.width += BORDER_GRAB_AREA;
                     }
-                    
-                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_RIGHT) == nullptr) 
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_RIGHT)) 
                         box.width += BORDER_GRAB_AREA;
                     
-                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_UP) == nullptr) {
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_UP)) {
                         box.y -= BORDER_GRAB_AREA;
                         box.height += BORDER_GRAB_AREA;
                     }
 
-                    if (getWindowInDirection(w, Math::eDirection::DIRECTION_DOWN) == nullptr)
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_DOWN))
                         box.height += BORDER_GRAB_AREA;
                 }
                 if (box.containsPoint(pos))

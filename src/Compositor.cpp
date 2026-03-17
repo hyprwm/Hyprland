@@ -1037,11 +1037,11 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
-                    const auto WORKAREA = PWORKSPACE->m_space->workArea();
+                    const auto  WORKAREA                    = PWORKSPACE->m_space->workArea();
                     static auto isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
                         constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
-                        double     aEdge = -1;
-                        double     bEdge = -1;
+                        double           aEdge           = -1;
+                        double           bEdge           = -1;
 
                         switch (dir) {
                             case Math::DIRECTION_LEFT:
@@ -1074,9 +1074,9 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                         box.width += BORDER_GRAB_AREA;
                     }
 
-                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_RIGHT)) 
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_RIGHT))
                         box.width += BORDER_GRAB_AREA;
-                    
+
                     if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_UP)) {
                         box.y -= BORDER_GRAB_AREA;
                         box.height += BORDER_GRAB_AREA;
@@ -2591,10 +2591,10 @@ void CCompositor::openSafeModeBox() {
 
     auto       box = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_TITLE), I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_DESCRIPTION),
                                              {
-                                           OPT_LOAD,
-                                           OPT_OPEN,
-                                           OPT_OK,
-                                       });
+                                                 OPT_LOAD,
+                                                 OPT_OPEN,
+                                                 OPT_OK,
+                                             });
 
     box->open()->then([OPT_LOAD, OPT_OK, OPT_OPEN, this](SP<CPromiseResult<std::string>> result) {
         if (result->hasError())

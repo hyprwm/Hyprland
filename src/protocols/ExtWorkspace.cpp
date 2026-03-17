@@ -33,8 +33,13 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
     }
 
     m_listeners.outputBound = output->m_events.outputBound.listen([this](const SP<CWLOutputResource>& output) {
-        if (output->client() == m_resource->client())
-            m_resource->sendOutputEnter(output->getResource()->resource());
+        if (output->client() != m_resource->client())
+            return;
+
+        m_resource->sendOutputEnter(output->getResource()->resource());
+
+        if (m_manager)
+            m_manager->scheduleDone();
     });
 }
 

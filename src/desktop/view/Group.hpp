@@ -59,10 +59,9 @@ namespace Desktop::View {
 
         std::vector<PHLWINDOWREF> m_windows;
 
-        bool                      m_locked = false;
-        bool                      m_deny   = false;
-
         size_t                    m_current = 0;
+
+        uint32_t                  m_groupPolicyFlags = 0;
     };
 
     std::vector<WP<CGroup>>& groups();

@@ -241,7 +241,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     m_lastCursorPosFloored = MOUSECOORDSFLOORED;
 
-    const auto PMONITOR = isLocked() && Desktop::focusState()->monitor() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromCursor();
+    // use mouseCoords specifically in case touch sent overridePos, otherwise touch doesn't work on non-focused monitor
+    const auto PMONITOR = isLocked() && Desktop::focusState()->monitor() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromVector(mouseCoords);
 
     // this can happen if there are no displays hooked up to Hyprland
     if (PMONITOR == nullptr)

@@ -258,6 +258,9 @@ namespace Desktop::View {
         // ANR
         PHLANIMVAR<float> m_notRespondingTint;
 
+        // For focus-based z-order rendering
+        uint64_t m_focusOrder = 0;
+
         // For the noclosefor windowrule
         Time::steady_tp m_closeableSince = Time::steadyNow();
 

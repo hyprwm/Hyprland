@@ -975,6 +975,84 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             return nullptr;
         };
 
+        static auto PFOCUSZORDER = CConfigValue<Hyprlang::INT>("general:focus_based_zorder");
+
+        if (*PFOCUSZORDER && !(properties & Desktop::View::FLOATING_ONLY)) {
+            // Focus-based z-order: hit-test all windows by focus order (most recent first)
+            const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
+            const auto        PWORKSPACE = getWorkspaceByID(WSPID);
+
+            if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
+                const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
+
+                if (!FS_WINDOW)
+                    return nullptr;
+
+                if (FS_WINDOW->m_fullscreenState.internal != FSMODE_MAXIMIZED || FS_WINDOW->getWindowBoxUnified(properties).containsPoint(pos))
+                    return PWORKSPACE->getFullscreenWindow();
+                else
+                    return nullptr;
+            }
+
+            // Build candidate list and sort by focus order descending (most recently focused first)
+            std::vector<PHLWINDOW> candidates;
+            for (auto const& w : m_windows) {
+                if (!w->m_isMapped || w->isHidden() || w->m_pinned || !w->m_workspace || !w->m_workspace->isVisible())
+                    continue;
+                if (ONLY_PRIORITY && !w->priorityFocus())
+                    continue;
+                if (w->m_ruleApplicator->noFocus().valueOrDefault() || w == pIgnoreWindow || isShadowedByModal(w))
+                    continue;
+                if (special != w->onSpecialWorkspace())
+                    continue;
+                if (!w->m_isFloating && w->workspaceID() != WSPID)
+                    continue;
+                if (w->m_X11ShouldntFocus && !(w->m_isX11 && w->isX11OverrideRedirect()))
+                    continue;
+
+                if (w->m_isFloating) {
+                    const auto PWINDOWMONITOR = w->m_monitor.lock();
+                    if (!*PSPECIALFALLTHRU && PWINDOWMONITOR && PWINDOWMONITOR->m_activeSpecialWorkspace && w->m_workspace != PWINDOWMONITOR->m_activeSpecialWorkspace) {
+                        const auto BB = w->getWindowBoxUnified(properties);
+                        if (BB.x >= PWINDOWMONITOR->m_position.x && BB.y >= PWINDOWMONITOR->m_position.y &&
+                            BB.x + BB.width <= PWINDOWMONITOR->m_position.x + PWINDOWMONITOR->m_size.x &&
+                            BB.y + BB.height <= PWINDOWMONITOR->m_position.y + PWINDOWMONITOR->m_size.y)
+                            continue;
+                    }
+                }
+
+                candidates.push_back(w);
+            }
+
+            std::sort(candidates.begin(), candidates.end(), [](const PHLWINDOW& a, const PHLWINDOW& b) { return a->m_focusOrder > b->m_focusOrder; });
+
+            // Check popups first (in focus order)
+            for (auto const& w : candidates) {
+                if (!w->m_isX11 && w->hasPopupAt(pos))
+                    return w;
+            }
+
+            // Check window bodies (in focus order)
+            for (auto const& w : candidates) {
+                CBox box;
+                if (w->m_isFloating) {
+                    box = w->getWindowBoxUnified(properties).copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
+                } else {
+                    box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
+                    if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect())
+                        box.expand(BORDER_GRAB_AREA);
+                }
+
+                if (box.containsPoint(pos)) {
+                    if (w->m_isX11 && w->isX11OverrideRedirect() && !w->m_xwaylandSurface->wantsFocus())
+                        return Desktop::focusState()->window();
+                    return w;
+                }
+            }
+
+            return nullptr;
+        }
+
         if (properties & Desktop::View::ALLOW_FLOATING) {
             // first loop over floating cuz they're above, m_lWindows should be sorted bottom->top, for tiled it doesn't matter.
             auto found = floating(true);

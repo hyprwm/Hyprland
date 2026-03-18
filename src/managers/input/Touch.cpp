@@ -34,7 +34,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
 
-    refocus(TOUCH_COORDS);
+    refocus(TOUCH_COORDS, PMONITOR);
 
     if (PMONITOR != Desktop::focusState()->monitor())
         Desktop::focusState()->rawMonitorFocus(PMONITOR);

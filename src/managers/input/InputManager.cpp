@@ -196,7 +196,7 @@ void CInputManager::sendMotionEventsToFocused() {
     g_pSeatManager->setPointerFocus(Desktop::focusState()->surface(), getMouseCoordsInternal().floor() - BOX->pos());
 }
 
-void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {
+void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos, std::optional<PHLMONITOR> monitor) {
     m_lastInputMouse = mouse;
 
     if (!g_pCompositor->m_readyToProcess || g_pCompositor->m_isShuttingDown || g_pCompositor->m_unsafeState)
@@ -241,7 +241,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     m_lastCursorPosFloored = MOUSECOORDSFLOORED;
 
-    const auto PMONITOR = isLocked() && Desktop::focusState()->monitor() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = monitor ? monitor.value() : isLocked() && Desktop::focusState()->monitor() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromCursor();
 
     // this can happen if there are no displays hooked up to Hyprland
     if (PMONITOR == nullptr)
@@ -1606,8 +1606,8 @@ bool CInputManager::shouldIgnoreVirtualKeyboard(SP<IKeyboard> pKeyboard) {
     return DISALLOWACTION;
 }
 
-void CInputManager::refocus(std::optional<Vector2D> overridePos) {
-    mouseMoveUnified(0, true, false, overridePos);
+void CInputManager::refocus(std::optional<Vector2D> overridePos, std::optional<PHLMONITOR> monitor) {
+    mouseMoveUnified(0, true, false, overridePos, monitor);
 }
 
 bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {

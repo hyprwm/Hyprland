@@ -70,7 +70,7 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
         auto              xdgSurf = xdgSurfResource->m_toplevel.lock();
         const std::string HANDLE  = g_pTokenManager->getRandomUUID();
         const auto [ELM, EMPLACED] =
-            this->m_exported.emplace(HANDLE, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), exporter->version(), id), xdgSurf, HANDLE));
+            m_exported.emplace(HANDLE, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), exporter->version(), id), xdgSurf, HANDLE));
 
         // This should only happen if we have our generated handles collide.
         if UNLIKELY (!EMPLACED) {

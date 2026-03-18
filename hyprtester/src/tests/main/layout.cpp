@@ -103,6 +103,43 @@ static void testPosPreserve() {
     Tests::killAllWindows();
 }
 
+static bool testFocusMRUAfterClose() {
+    NLog::log("{}Testing focus after close (MRU order)", Colors::GREEN);
+
+    OK(getFromSocket("/reload"));
+    OK(getFromSocket("/keyword dwindle:default_split_ratio 1.25"));
+    OK(getFromSocket("/keyword input:focus_on_close 2"));
+
+    EXPECT(!!Tests::spawnKitty("kitty_A"), true);
+    EXPECT(!!Tests::spawnKitty("kitty_B"), true);
+    EXPECT(!!Tests::spawnKitty("kitty_C"), true);
+
+    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_C"));
+
+    OK(getFromSocket("/dispatch killactive"));
+    Tests::waitUntilWindowsN(2);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_B"), true);
+    }
+
+    OK(getFromSocket("/dispatch killactive"));
+    Tests::waitUntilWindowsN(1);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_A"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing layout generic", Colors::GREEN);
 
@@ -115,6 +152,7 @@ static bool test() {
 
     testCrashOnGeomUpdate();
     testPosPreserve();
+    testFocusMRUAfterClose();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

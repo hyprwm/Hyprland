@@ -36,6 +36,9 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     refocus(TOUCH_COORDS);
 
+    if (PMONITOR != Desktop::focusState()->monitor())
+        Desktop::focusState()->rawMonitorFocus(PMONITOR);
+
     if (m_clickBehavior == CLICKMODE_KILL) {
         IPointer::SButtonEvent e;
         e.state = WL_POINTER_BUTTON_STATE_PRESSED;

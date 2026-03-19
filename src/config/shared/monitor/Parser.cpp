@@ -6,6 +6,7 @@
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <string>
+#include <algorithm>
 
 using namespace Config;
 using namespace Hyprutils::String;

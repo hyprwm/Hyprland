@@ -7,6 +7,7 @@
 #include <vector>
 #include <format>
 #include <map>
+#include <algorithm>
 
 namespace Config {
 

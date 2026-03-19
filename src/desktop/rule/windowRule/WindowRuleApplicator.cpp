@@ -517,7 +517,20 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 break;
             }
             case WINDOW_RULE_EFFECT_PIN: {
-                static_.pin = truthy(effect);
+                static_.pin             = truthy(effect);
+                static_.pinnedSelectors = std::nullopt;
+                auto effectStr          = trim(std::string{effect});
+                if (!effectStr.empty() && effectStr != "1" && effectStr != "true" && effectStr != "0" && effectStr != "false") {
+                    CVarList2                pinVars(std::move(effectStr), 0, ',');
+                    std::vector<std::string> selectors;
+                    for (const auto& token : pinVars) {
+                        auto sel = trim(std::string{token});
+                        if (!sel.empty())
+                            selectors.emplace_back(std::move(sel));
+                    }
+                    if (!selectors.empty())
+                        static_.pinnedSelectors = std::move(selectors);
+                }
                 break;
             }
             case WINDOW_RULE_EFFECT_GROUP: {

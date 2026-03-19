@@ -196,7 +196,8 @@ namespace Desktop::View {
         bool              m_animatingIn = false;
 
         // For pinned (sticky) windows
-        bool m_pinned = false;
+        bool                     m_pinned = false;
+        std::vector<std::string> m_pinnedSelectors; // empty = pinned to all workspaces
 
         // For preserving pinned state when fullscreening a pinned window
         bool m_pinFullscreened = false;
@@ -343,6 +344,7 @@ namespace Desktop::View {
         std::optional<std::string> xdgDescription();
         PHLWINDOW                  parent();
         bool                       priorityFocus();
+        bool                       isPinnedOnWorkspace(WORKSPACEID id) const;
         SP<CWLSurfaceResource>     getSolitaryResource();
         Vector2D                   getReportedSize();
         std::optional<Vector2D>    calculateExpression(const std::string& s);

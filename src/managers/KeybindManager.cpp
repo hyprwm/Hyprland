@@ -2569,6 +2569,8 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
         return {.success = false, .error = "Window does not qualify to be pinned"};
 
     PWINDOW->m_pinned = !PWINDOW->m_pinned;
+    if (!PWINDOW->m_pinned)
+        PWINDOW->m_pinnedSelectors.clear();
 
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 

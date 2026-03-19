@@ -226,7 +226,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
     if (!pWindow->m_workspace && pWindow->m_fadingOut)
         return pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->workspaceID() == pMonitor->activeSpecialWorkspaceID();
 
-    if (pWindow->m_pinned)
+    if (pWindow->isPinnedOnWorkspace(pMonitor->activeWorkspaceID()))
         return true;
 
     // if the window is being moved to a workspace that is not invisible, and the alpha is > 0.F, render it.
@@ -292,7 +292,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     if (!pWindow->m_workspace)
         return false;
 
-    if (pWindow->m_pinned || PWORKSPACE->m_forceRendering)
+    if ((pWindow->m_pinned && pWindow->m_pinnedSelectors.empty()) || PWORKSPACE->m_forceRendering)
         return true;
 
     if (PWORKSPACE && PWORKSPACE->isVisible())
@@ -386,8 +386,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     // then render windows over fullscreen.
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || (!w->m_createdOverFullscreen && !w->m_pinned) || (!w->m_isMapped && !w->m_fadingOut) ||
-            w->isFullscreen())
+        if (w->workspaceID() != pWorkspaceWindow->workspaceID() || !w->m_isFloating || (!w->m_createdOverFullscreen && !w->isPinnedOnWorkspace(pWorkspace->m_id)) ||
+            (!w->m_isMapped && !w->m_fadingOut) || w->isFullscreen())
             continue;
 
         if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
@@ -481,7 +481,7 @@ void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWo
         if (!w)
             continue;
 
-        if (!w->m_isFloating || w->m_pinned)
+        if (!w->m_isFloating || w->isPinnedOnWorkspace(pWorkspace->m_id))
             continue;
 
         // some things may force us to ignore the special/not special disparity
@@ -526,9 +526,9 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     TRACY_GPU_ZONE("RenderWindow");
 
-    const auto                       PWORKSPACE = pWindow->m_workspace;
-    const auto                       REALPOS    = pWindow->m_realPosition->value() + (pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
-    static auto                      PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    const auto  PWORKSPACE = pWindow->m_workspace;
+    const auto  REALPOS    = pWindow->m_realPosition->value() + (pWindow->isPinnedOnWorkspace(pMonitor->activeWorkspaceID()) ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
+    static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
     CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_realSize->value().x, 5.0), std::max(pWindow->m_realSize->value().y, 5.0)};
@@ -557,7 +557,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     renderdata.surface   = pWindow->wlSurface()->resource();
     renderdata.dontRound = pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
-    renderdata.fadeAlpha = pWindow->m_alpha->value() * (pWindow->m_pinned || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
+    renderdata.fadeAlpha = pWindow->m_alpha->value() *
+        (pWindow->isPinnedOnWorkspace(pMonitor->activeWorkspaceID()) || USE_WORKSPACE_FADE_ALPHA ? 1.f : PWORKSPACE->m_alpha->value()) *
         (USE_WORKSPACE_FADE_ALPHA ? pWindow->m_movingToWorkspaceAlpha->value() : 1.F) * pWindow->m_movingFromWorkspaceAlpha->value();
     renderdata.alpha         = pWindow->m_activeInactiveAlpha->value();
     renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
@@ -596,7 +597,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     renderdata.pos.y += pWindow->m_floatingOffset.y;
 
     // if window is floating and we have a slide animation, clip it to its full bb
-    if (!ignorePosition && pWindow->m_isFloating && !pWindow->isFullscreen() && PWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned) {
+    if (!ignorePosition && pWindow->m_isFloating && !pWindow->isFullscreen() && PWORKSPACE->m_renderOffset->isBeingAnimated() &&
+        !pWindow->isPinnedOnWorkspace(pMonitor->activeWorkspaceID())) {
         CRegion rg =
             pWindow->getFullWindowBoundingBox().translate(-pMonitor->m_position + PWORKSPACE->m_renderOffset->value() + pWindow->m_floatingOffset).scale(pMonitor->m_scale);
         renderdata.clipBox = rg.getExtents();
@@ -1448,7 +1450,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         if (w->isHidden() && !w->m_isMapped && !w->m_fadingOut)
             continue;
 
-        if (!w->m_pinned || !w->m_isFloating)
+        if (!w->isPinnedOnWorkspace(pMonitor->activeWorkspaceID()) || !w->m_isFloating)
             continue;
 
         if (!shouldRenderWindow(w, pMonitor))
@@ -2220,8 +2222,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const bool  needsSDRmod     = modifySDR && isSDR2HDR(imageDescription->value(), targetImageDescription->value());
     const bool  needsHDRmod     = !needsSDRmod && isHDR2SDR(imageDescription->value(), targetImageDescription->value());
     const float maxLuminance    = needsHDRmod ?
-        imageDescription->value().getTFMaxLuminance(-1) :
-        (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
+           imageDescription->value().getTFMaxLuminance(-1) :
+           (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
     const auto  dstMaxLuminance = targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000;
 
     auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
@@ -2556,30 +2558,30 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
 
     auto       colorimetry = settings.getPrimaries();
     auto       luminances  = settings.masteringLuminances.max > 0 ? settings.masteringLuminances :
-                                                                    (settings.luminances != SImageDescription::SPCLuminances{} ?
-                                                                         SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
-                                                                         SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
+                                                                          (settings.luminances != SImageDescription::SPCLuminances{} ?
+                                                                               SImageDescription::SPCMasteringLuminances{.min = settings.luminances.min, .max = settings.luminances.max} :
+                                                                               SImageDescription::SPCMasteringLuminances{.min = monitor->minLuminance(), .max = monitor->maxLuminance(10000)});
 
     Log::logger->log(Log::TRACE, "ColorManagement primaries {},{} {},{} {},{} {},{}", colorimetry.red.x, colorimetry.red.y, colorimetry.green.x, colorimetry.green.y,
-                     colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
+                           colorimetry.blue.x, colorimetry.blue.y, colorimetry.white.x, colorimetry.white.y);
     Log::logger->log(Log::TRACE, "ColorManagement min {}, max {}, cll {}, fall {}", luminances.min, luminances.max, settings.maxCLL, settings.maxFALL);
     return hdr_output_metadata{
-        .metadata_type = 0,
-        .hdmi_metadata_type1 =
+              .metadata_type = 0,
+              .hdmi_metadata_type1 =
             hdr_metadata_infoframe{
-                .eotf          = eotf,
-                .metadata_type = 0,
-                .display_primaries =
-                    {
+                      .eotf          = eotf,
+                      .metadata_type = 0,
+                      .display_primaries =
+                          {
                         {.x = to16Bit(colorimetry.red.x), .y = to16Bit(colorimetry.red.y)},
                         {.x = to16Bit(colorimetry.green.x), .y = to16Bit(colorimetry.green.y)},
                         {.x = to16Bit(colorimetry.blue.x), .y = to16Bit(colorimetry.blue.y)},
                     },
-                .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
-                .max_display_mastering_luminance = toNits(luminances.max),
-                .min_display_mastering_luminance = toNits(luminances.min * 10000),
-                .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
-                .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
+                      .white_point                     = {.x = to16Bit(colorimetry.white.x), .y = to16Bit(colorimetry.white.y)},
+                      .max_display_mastering_luminance = toNits(luminances.max),
+                      .min_display_mastering_luminance = toNits(luminances.min * 10000),
+                      .max_cll                         = toNits(settings.maxCLL > 0 ? settings.maxCLL : monitor->maxCLL()),
+                      .max_fall                        = toNits(settings.maxFALL > 0 ? settings.maxFALL : monitor->maxFALL()),
             },
     };
 }
@@ -2994,7 +2996,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = pWindow->m_workspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned)
+    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->isPinnedOnWorkspace(PWINDOWWORKSPACE->m_id))
         windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
     windowBox.translate(pWindow->m_floatingOffset);
 

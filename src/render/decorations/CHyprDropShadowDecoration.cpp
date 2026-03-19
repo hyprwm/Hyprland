@@ -49,8 +49,9 @@ void CHyprDropShadowDecoration::damageEntire() {
     CBox       shadowBox = {pos.x - m_extents.topLeft.x, pos.y - m_extents.topLeft.y, pos.x + size.x + m_extents.bottomRight.x, pos.y + size.y + m_extents.bottomRight.y};
 
     const auto PWORKSPACE  = PWINDOW->m_workspace;
+    const WORKSPACEID SHADOWWSID    = PWINDOW->m_monitor.lock() ? PWINDOW->m_monitor.lock()->activeWorkspaceID() : WORKSPACE_INVALID;
     const auto applyOffset = [&](CBox& b) {
-        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->m_pinned)
+        if (PWORKSPACE && PWORKSPACE->m_renderOffset->isBeingAnimated() && !PWINDOW->isPinnedOnWorkspace(SHADOWWSID))
             b.translate(PWORKSPACE->m_renderOffset->value());
         b.translate(PWINDOW->m_floatingOffset);
     };
@@ -135,7 +136,8 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
     const auto  CORRECTIONOFFSET = (BORDERSIZE * (M_SQRT2 - 1) * std::max(2.0 - ROUNDINGPOWER, 0.0));
     const auto  ROUNDING         = ROUNDINGBASE > 0 ? (ROUNDINGBASE + BORDERSIZE) - CORRECTIONOFFSET : 0;
     const auto  PWORKSPACE       = PWINDOW->m_workspace;
-    const auto  WORKSPACEOFFSET  = PWORKSPACE && !PWINDOW->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D();
+    const WORKSPACEID RENDERWSID     = PWINDOW->m_monitor.lock() ? PWINDOW->m_monitor.lock()->activeWorkspaceID() : WORKSPACE_INVALID;
+    const auto  WORKSPACEOFFSET  = PWORKSPACE && !PWINDOW->isPinnedOnWorkspace(RENDERWSID) ? PWORKSPACE->m_renderOffset->value() : Vector2D();
 
     // draw the shadow
     CBox fullBox = m_lastWindowBoxWithDecos;

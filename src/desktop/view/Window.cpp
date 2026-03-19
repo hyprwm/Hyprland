@@ -2,8 +2,8 @@
 #include <ranges>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
-
 #include "Group.hpp"
+#include <iostream>
 
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
 #include <sys/types.h>
@@ -620,6 +620,7 @@ void CWindow::onMap() {
     m_movingFromWorkspaceAlpha->resetAllCallbacks();
 
     m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    std::cout << "Window mapped: " << m_title << std::endl;
 
     if (m_borderAngleAnimationProgress->enabled()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);

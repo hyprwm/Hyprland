@@ -21,6 +21,12 @@ namespace Desktop::Rule {
         IDLEINHIBIT_FOCUS
     };
 
+    enum eConfinePointerMode : uint8_t {
+        CONFINEPOINTER_NONE = 0,
+        CONFINEPOINTER_ALWAYS,
+        CONFINEPOINTER_FULLSCREEN,
+    };
+
     class CWindowRuleApplicator {
       public:
         CWindowRuleApplicator(PHLWINDOW w);
@@ -115,6 +121,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, noVRR, false, WINDOW_RULE_EFFECT_NO_VRR)
         DEFINE_PROP(bool, persistentSize, false, WINDOW_RULE_EFFECT_PERSISTENT_SIZE)
         DEFINE_PROP(bool, stayFocused, false, WINDOW_RULE_EFFECT_STAY_FOCUSED)
+        DEFINE_PROP(int, confinePointer, CONFINEPOINTER_NONE, WINDOW_RULE_EFFECT_CONFINE_POINTER)
 
         DEFINE_PROP(int, idleInhibitMode, false, WINDOW_RULE_EFFECT_IDLE_INHIBIT)
 

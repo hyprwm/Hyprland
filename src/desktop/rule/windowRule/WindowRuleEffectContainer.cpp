@@ -65,6 +65,7 @@ static const std::vector<std::string> EFFECT_STRINGS = {
     "scroll_mouse",           //
     "scroll_touchpad",        //
     "stay_focused",           //
+    "confine_pointer",        //
     "__internal_last_static", //
 };
 

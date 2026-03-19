@@ -12,6 +12,12 @@
 #include <filesystem>
 
 using namespace Hyprutils::OS;
+using namespace Config;
+
+UP<CConfigWatcher>& Config::watcher() {
+    static UP<CConfigWatcher> p = makeUnique<CConfigWatcher>();
+    return p;
+}
 
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
     if (!m_inotifyFd.isValid()) {
@@ -34,7 +40,7 @@ CFileDescriptor& CConfigWatcher::getInotifyFD() {
 
 void CConfigWatcher::update() {
     static const auto PDISABLEAUTORELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
-    g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
+    setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
 }
 
 void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {

@@ -610,7 +610,7 @@ void CCompositor::cleanup() {
     g_pDonationNagManager.reset();
     g_pWelcomeManager.reset();
     g_pANRManager.reset();
-    g_pConfigWatcher.reset();
+    Config::watcher().reset();
     g_pAsyncResourceGatherer.reset();
 
     if (m_aqBackend)

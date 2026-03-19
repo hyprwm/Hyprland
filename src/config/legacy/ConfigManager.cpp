@@ -1257,7 +1257,7 @@ Hyprlang::CParseResult CConfigManager::reloadRules() {
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
-    g_pConfigWatcher->update();
+    Config::watcher()->update();
 
     for (auto const& w : g_pCompositor->m_windows) {
         w->uncacheWindowDecos();
@@ -1379,7 +1379,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
 void CConfigManager::init() {
 
-    g_pConfigWatcher->setOnChange([this](const CConfigWatcher::SConfigWatchEvent& e) {
+    Config::watcher()->setOnChange([this](const CConfigWatcher::SConfigWatchEvent& e) {
         Log::logger->log(Log::DEBUG, "CConfigManager: file {} modified, reloading", e.file);
         reload();
     });

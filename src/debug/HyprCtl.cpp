@@ -1326,7 +1326,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     }
 
     if (COMMAND.contains("misc:disable_autoreload"))
-        g_pConfigWatcher->update();
+        Config::watcher()->update();
 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {

@@ -1471,9 +1471,16 @@ bool CWindow::priorityFocus() {
 bool CWindow::isPinnedOnWorkspace(WORKSPACEID id) const {
     if (!m_pinned)
         return false;
-    if (m_pinnedWorkspaces.empty())
+    if (m_pinnedSelectors.empty())
         return true;
-    return m_pinnedWorkspaces.contains(id);
+    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(id);
+    if (!PWORKSPACE)
+        return false;
+    for (const auto& selector : m_pinnedSelectors) {
+        if (PWORKSPACE->matchesStaticSelector(selector))
+            return true;
+    }
+    return false;
 }
 
 SP<CWLSurfaceResource> CWindow::getSolitaryResource() {
@@ -1776,14 +1783,14 @@ void CWindow::mapWindow() {
         m_target->setPseudo(m_ruleApplicator->static_.pseudo.value_or(m_target->isPseudo()));
         m_noInitialFocus = m_ruleApplicator->static_.noInitialFocus.value_or(m_noInitialFocus);
         m_pinned         = m_ruleApplicator->static_.pin.value_or(m_pinned);
-        m_pinnedWorkspaces.clear();
-        if (m_ruleApplicator->static_.pinnedWorkspaces.has_value())
-            m_pinnedWorkspaces = *m_ruleApplicator->static_.pinnedWorkspaces;
+        m_pinnedSelectors.clear();
+        if (m_ruleApplicator->static_.pinnedSelectors.has_value())
+            m_pinnedSelectors = *m_ruleApplicator->static_.pinnedSelectors;
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
-                .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
-                .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
+                     .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
+                     .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
         }
 
@@ -1874,7 +1881,7 @@ void CWindow::mapWindow() {
     // disallow tiled pinned
     if (m_pinned && !m_isFloating) {
         m_pinned = false;
-        m_pinnedWorkspaces.clear();
+        m_pinnedSelectors.clear();
     }
 
     CVarList2 WORKSPACEARGS = CVarList2(std::move(requestedWorkspace), 0, ' ', false, false);

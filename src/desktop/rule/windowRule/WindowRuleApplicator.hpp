@@ -1,6 +1,5 @@
 #pragma once
 
-#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -40,26 +39,26 @@ namespace Desktop::Rule {
 
         // static props
         struct {
-            std::string              monitor, workspace, group;
+            std::string                             monitor, workspace, group;
 
-            std::optional<bool>                  floating;
-            std::optional<bool>                  fullscreen;
-            std::optional<bool>                  maximize;
-            std::optional<bool>                  pseudo;
-            std::optional<bool>                  pin;
-            std::optional<std::set<WORKSPACEID>> pinnedWorkspaces;
-            std::optional<bool>                  noInitialFocus;
-            std::optional<bool>      center;
+            std::optional<bool>                     floating;
+            std::optional<bool>                     fullscreen;
+            std::optional<bool>                     maximize;
+            std::optional<bool>                     pseudo;
+            std::optional<bool>                     pin;
+            std::optional<std::vector<std::string>> pinnedSelectors;
+            std::optional<bool>                     noInitialFocus;
+            std::optional<bool>                     center;
 
-            std::optional<int>       fullscreenStateClient;
-            std::optional<int>       fullscreenStateInternal;
-            std::optional<int>       content;
-            std::optional<int>       noCloseFor;
+            std::optional<int>                      fullscreenStateClient;
+            std::optional<int>                      fullscreenStateInternal;
+            std::optional<int>                      content;
+            std::optional<int>                      noCloseFor;
 
-            std::string              size, position;
-            std::optional<float>     scrollingWidth;
+            std::string                             size, position;
+            std::optional<float>                    scrollingWidth;
 
-            std::vector<std::string> suppressEvent;
+            std::vector<std::string>                suppressEvent;
         } static_;
 
         struct SCustomPropContainer {

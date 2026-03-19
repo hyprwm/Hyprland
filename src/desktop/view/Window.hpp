@@ -1,6 +1,5 @@
 #pragma once
 
-#include <set>
 #include <vector>
 #include <string>
 #include <optional>
@@ -197,8 +196,8 @@ namespace Desktop::View {
         bool              m_animatingIn = false;
 
         // For pinned (sticky) windows
-        bool                  m_pinned           = false;
-        std::set<WORKSPACEID> m_pinnedWorkspaces; // empty = pinned to all workspaces
+        bool                     m_pinned = false;
+        std::vector<std::string> m_pinnedSelectors; // empty = pinned to all workspaces
 
         // For preserving pinned state when fullscreening a pinned window
         bool m_pinFullscreened = false;

@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-static int ret = 0;
+static int  ret = 0;
 
 static bool test() {
     NLog::log("{}Testing scoped pin", Colors::GREEN);
@@ -14,9 +14,9 @@ static bool test() {
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
 
-    // set up rules: float + pin to workspaces 2-3
+    // set up rules: float + pin to workspaces 2-3 using workspace selector
     OK(getFromSocket("/keyword windowrulev2 float, class:pintest"));
-    OK(getFromSocket("/keyword windowrulev2 pin 2-3, class:pintest"));
+    OK(getFromSocket("/keyword windowrulev2 pin r[2-3], class:pintest"));
 
     // spawn the window on workspace 2
     NLog::log("{}Switching to workspace 2 and spawning pintest", Colors::YELLOW);
@@ -162,17 +162,17 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "pinned: 1");
-        EXPECT_CONTAINS(str, "pinnedWorkspaces: \n");
+        EXPECT_CONTAINS(str, "pinnedSelectors: \n");
     }
     OK(getFromSocket("/dispatch pin"));
 
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
 
-    // test individual workspace IDs (not a range)
-    NLog::log("{}Testing individual workspace IDs in pin rule", Colors::YELLOW);
+    // test individual workspace selectors (comma-separated)
+    NLog::log("{}Testing individual workspace selectors in pin rule", Colors::YELLOW);
     OK(getFromSocket("/keyword windowrulev2 float, class:pinids"));
-    OK(getFromSocket("/keyword windowrulev2 pin 2 5 8, class:pinids"));
+    OK(getFromSocket("/keyword windowrulev2 pin 2,5,8, class:pinids"));
     getFromSocket("/dispatch workspace 2"); // no OK: previous workspace may not exist after cleanup
     auto kittyIds = Tests::spawnKitty("pinids");
     if (!kittyIds) {
@@ -182,7 +182,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: pinids");
-        EXPECT_CONTAINS(str, "pinnedWorkspaces: 2 5 8");
+        EXPECT_CONTAINS(str, "pinnedSelectors: 2, 5, 8");
     }
 
     // should follow to workspace 5 (in set)
@@ -221,9 +221,9 @@ static bool test() {
     // test two scoped-pinned windows with different sets
     NLog::log("{}Testing multiple scoped pins with different sets", Colors::YELLOW);
     OK(getFromSocket("/keyword windowrulev2 float, class:pinA"));
-    OK(getFromSocket("/keyword windowrulev2 pin 1-2, class:pinA"));
+    OK(getFromSocket("/keyword windowrulev2 pin r[1-2], class:pinA"));
     OK(getFromSocket("/keyword windowrulev2 float, class:pinB"));
-    OK(getFromSocket("/keyword windowrulev2 pin 3-4, class:pinB"));
+    OK(getFromSocket("/keyword windowrulev2 pin r[3-4], class:pinB"));
 
     OK(getFromSocket("/dispatch workspace 1"));
     auto kittyA = Tests::spawnKitty("pinA");

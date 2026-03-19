@@ -2570,7 +2570,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
 
     PWINDOW->m_pinned = !PWINDOW->m_pinned;
     if (!PWINDOW->m_pinned)
-        PWINDOW->m_pinnedWorkspaces.clear();
+        PWINDOW->m_pinnedSelectors.clear();
 
     const auto PMONITOR = PWINDOW->m_monitor.lock();
 

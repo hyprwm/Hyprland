@@ -2875,7 +2875,7 @@ SDispatchResult CKeybindManager::setIgnoreGroupLock(std::string args) {
     if (args == "toggle")
         **PIGNOREGROUPLOCK = !**PIGNOREGROUPLOCK;
     else
-        **PIGNOREGROUPLOCK = args == "on";
+        **PIGNOREGROUPLOCK = (args == "on" || args == "lock");
 
     g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(**PIGNOREGROUPLOCK)});
 

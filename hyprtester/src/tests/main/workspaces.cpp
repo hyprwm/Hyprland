@@ -393,6 +393,73 @@ static void testDynamicWsEffects() {
     Tests::killAllWindows();
 }
 
+static void testMultipleNamedSpecialWorkspaces() {
+    NLog::log("{}Testing multiple named special workspaces", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    OK(getFromSocket("/dispatch workspace special:alpha"));
+    Tests::spawnKitty("sp_alpha");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:alpha");
+
+    OK(getFromSocket("/dispatch togglespecialworkspace alpha"));
+    OK(getFromSocket("/dispatch workspace special:beta"));
+    Tests::spawnKitty("sp_beta");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "special:beta");
+
+    // both special workspaces should exist
+    {
+        auto str = getFromSocket("/workspaces");
+        EXPECT_CONTAINS(str, "special:alpha");
+        EXPECT_CONTAINS(str, "special:beta");
+    }
+
+    // toggle alpha -- beta should close, alpha should open
+    OK(getFromSocket("/dispatch togglespecialworkspace beta"));
+    OK(getFromSocket("/dispatch togglespecialworkspace alpha"));
+
+    {
+        auto str = getFromSocket("/monitors");
+        EXPECT_CONTAINS(str, "special:alpha");
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:sp_alpha"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: sp_alpha");
+
+    OK(getFromSocket("/dispatch togglespecialworkspace alpha"));
+
+    Tests::killAllWindows();
+}
+
+static void testMoveToFromSpecialWorkspace() {
+    NLog::log("{}Testing moving windows to/from special workspaces", Colors::YELLOW);
+
+    getFromSocket("/dispatch workspace 1");
+
+    Tests::spawnKitty("mvsp_kitty");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "workspace: 1");
+
+    // move to special workspace
+    OK(getFromSocket("/dispatch movetoworkspace special:mvtest"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: mvsp_kitty");
+        EXPECT_CONTAINS(str, "special:mvtest");
+    }
+
+    // move back to regular workspace
+    OK(getFromSocket("/dispatch movetoworkspace 1"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: mvsp_kitty");
+        EXPECT_CONTAINS(str, "workspace: 1");
+    }
+
+    Tests::killAllWindows();
+}
+
 static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
 
@@ -529,7 +596,7 @@ static bool test() {
 
     // add a new monitor
     NLog::log("{}Adding a new monitor", Colors::YELLOW);
-    EXPECT(getFromSocket("/output create headless"), "ok")
+    EXPECT(getFromSocket("/output create headless HEADLESS-3"), "ok")
 
     // should take workspace 2
     {
@@ -740,6 +807,8 @@ static bool test() {
     testSpecialWorkspaceFullscreen();
     testAsymmetricGaps();
     testDynamicWsEffects();
+    testMultipleNamedSpecialWorkspaces();
+    testMoveToFromSpecialWorkspace();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

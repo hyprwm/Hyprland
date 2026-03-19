@@ -541,6 +541,41 @@ static void testPerDeviceKeybind() {
     EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
 }
 
+static void testMouseButtonBind() {
+    NLog::log("{}Testing mouse button bind", Colors::GREEN);
+
+    EXPECT(checkFlag(), false);
+
+    // bind mouse button 272 (left click) with SUPER to exec touch
+    EXPECT(getFromSocket("/keyword bind SUPER,mouse:272,exec,touch " + flagFile), "ok");
+
+    // simulate click: button 272, state 1 (press)
+    OK(getFromSocket("/dispatch plugin:test:click 272,1"));
+    // set SUPER modifier for the keybind check
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,0"));
+    OK(getFromSocket("/dispatch plugin:test:click 272,1"));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:click 272,0"));
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,0"));
+
+    EXPECT(getFromSocket("/keyword unbind SUPER,mouse:272"), "ok");
+}
+
+static void testNonConsumingBind() {
+    NLog::log("{}Testing non-consuming bind (bindn)", Colors::GREEN);
+
+    // bindn: fires the action but also passes the key to the client.
+    // We test that the flag file is created (action fires).
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/keyword bindn SUPER,Y,exec,touch " + flagFile), "ok");
+
+    OK(getFromSocket("/dispatch plugin:test:keybind 1,7,29"));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket("/dispatch plugin:test:keybind 0,0,29"));
+
+    EXPECT(getFromSocket("/keyword unbind SUPER,Y"), "ok");
+}
+
 static bool test() {
     NLog::log("{}Testing keybinds", Colors::GREEN);
 
@@ -566,6 +601,8 @@ static bool test() {
     testSubmapUniversal();
     testBindsAfterScroll();
     testPerDeviceKeybind();
+    testMouseButtonBind();
+    testNonConsumingBind();
 
     clearFlag();
     return !ret;

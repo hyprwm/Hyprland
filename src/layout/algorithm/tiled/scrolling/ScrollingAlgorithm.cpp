@@ -579,7 +579,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
         return;
 
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
-    if (*PFITMETHOD == 1 || input == INPUT_MODE_CLICK)
+    if (*PFITMETHOD == 1)
         m_scrollingData->fitCol(TARGETDATA->column.lock());
     else
         m_scrollingData->centerCol(TARGETDATA->column.lock());

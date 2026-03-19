@@ -7,7 +7,7 @@
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/EventManager.hpp"
@@ -29,9 +29,9 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->m_popupHead      = CPopup::create(pLS);
 
-    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
 

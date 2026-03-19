@@ -1,7 +1,7 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
-#include "../../config/ConfigWatcher.hpp"
+#include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
 #include <limits>

@@ -11,9 +11,12 @@
 #include "../../../../Compositor.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 using namespace Layout;
 using namespace Layout::Tiled;
+
+using namespace Hyprutils::String;
 
 struct Layout::Tiled::SDwindleNodeData {
     WP<SDwindleNodeData>                pParent;

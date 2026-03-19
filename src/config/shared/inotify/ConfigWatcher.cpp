@@ -3,7 +3,9 @@
 #include <linux/limits.h>
 #endif
 #include <sys/inotify.h>
-#include "../debug/log/Logger.hpp"
+#include "../../../debug/log/Logger.hpp"
+#include "../../ConfigValue.hpp"
+#include "../../ConfigManager.hpp"
 #include <ranges>
 #include <fcntl.h>
 #include <unistd.h>
@@ -28,6 +30,11 @@ CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
 
 CFileDescriptor& CConfigWatcher::getInotifyFD() {
     return m_inotifyFd;
+}
+
+void CConfigWatcher::update() {
+    static const auto PDISABLEAUTORELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
+    g_pConfigWatcher->setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
 }
 
 void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {

@@ -5,16 +5,18 @@
 #include "../../../target/WindowTarget.hpp"
 
 #include "../../../../config/ConfigValue.hpp"
-#include "../../../../config/ConfigManager.hpp"
+#include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 using namespace Layout;
 using namespace Layout::Tiled;
+using namespace Hyprutils::String;
 
 struct Layout::Tiled::SMasterNodeData {
     bool        isMaster   = false;
@@ -845,10 +847,10 @@ void CMasterAlgorithm::buildOrientationCycleVectorFromEOperation(std::vector<eOr
 eOrientation CMasterAlgorithm::defaultOrientation() {
     static auto PORIENT = CConfigValue<std::string>("master:orientation");
 
-    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
+    const auto  WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent->space()->workspace());
     std::string orientationString;
-    if (WORKSPACERULE.layoutopts.contains("orientation"))
-        orientationString = WORKSPACERULE.layoutopts.at("orientation");
+    if (WORKSPACERULE && WORKSPACERULE->m_layoutopts.contains("orientation"))
+        orientationString = WORKSPACERULE->m_layoutopts.at("orientation");
     else
         orientationString = *PORIENT;
 

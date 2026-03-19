@@ -5,7 +5,7 @@
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
-#include "../../../config/ConfigDataValues.hpp"
+#include "../../../config/shared/complex/ComplexDataTypes.hpp"
 
 namespace Desktop::Rule {
     class CLayerRule;

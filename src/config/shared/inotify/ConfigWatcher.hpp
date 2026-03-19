@@ -1,5 +1,5 @@
 #pragma once
-#include "../helpers/memory/Memory.hpp"
+#include "../../../helpers/memory/Memory.hpp"
 #include <vector>
 #include <string>
 #include <functional>
@@ -13,6 +13,8 @@ class CConfigWatcher {
     struct SConfigWatchEvent {
         std::string file;
     };
+
+    void                            update();
 
     Hyprutils::OS::CFileDescriptor& getInotifyFD();
     void                            setWatchList(const std::vector<std::string>& paths);

@@ -135,10 +135,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
     static auto PTEXTPADDING               = CConfigValue<Hyprlang::INT>("group:groupbar:text_padding");
     static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
-    auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
-    auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
-    auto* const GROUPCOLACTIVELOCKED       = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
-    auto* const GROUPCOLINACTIVELOCKED     = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLACTIVE             = sc<Config::CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
+    auto* const GROUPCOLINACTIVE           = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
+    auto* const GROUPCOLACTIVELOCKED       = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLINACTIVELOCKED     = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
@@ -298,8 +298,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
     static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
 
-    const auto       FONTWEIGHTACTIVE   = sc<CFontWeightConfigValueData*>((PTITLEFONTWEIGHTACTIVE.ptr())->getData());
-    const auto       FONTWEIGHTINACTIVE = sc<CFontWeightConfigValueData*>((PTITLEFONTWEIGHTINACTIVE.ptr())->getData());
+    const auto       FONTWEIGHTACTIVE   = sc<Config::CFontWeightConfigValueData*>((PTITLEFONTWEIGHTACTIVE.ptr())->getData());
+    const auto       FONTWEIGHTINACTIVE = sc<Config::CFontWeightConfigValueData*>((PTITLEFONTWEIGHTINACTIVE.ptr())->getData());
 
     const CHyprColor COLORACTIVE         = CHyprColor(*PTEXTCOLORACTIVE);
     const CHyprColor COLORINACTIVE       = *PTEXTCOLORINACTIVE == -1 ? COLORACTIVE : CHyprColor(*PTEXTCOLORINACTIVE);
@@ -316,7 +316,7 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 #undef RENDER_TEXT
 }
 
-static void renderGradientTo(SP<ITexture> tex, CGradientValueData* grad) {
+static void renderGradientTo(SP<ITexture> tex, Config::CGradientValueData* grad) {
 
     if (!Desktop::focusState()->monitor())
         return;
@@ -363,10 +363,10 @@ void refreshGroupBarGradients() {
     static auto PGROUPCOLINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
-    auto* const GROUPCOLACTIVE          = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
-    auto* const GROUPCOLINACTIVE        = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
-    auto* const GROUPCOLACTIVELOCKED    = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
-    auto* const GROUPCOLINACTIVELOCKED  = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLACTIVE          = sc<Config::CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
+    auto* const GROUPCOLINACTIVE        = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
+    auto* const GROUPCOLACTIVELOCKED    = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLINACTIVELOCKED  = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
 
     if (m_tGradientActive && m_tGradientActive->ok()) {
         m_tGradientActive.reset();

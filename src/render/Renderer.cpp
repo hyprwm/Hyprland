@@ -6,7 +6,7 @@
 #include <cmath>
 #include <filesystem>
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../managers/input/InputManager.hpp"
@@ -2314,16 +2314,17 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (!g_pCompositor->m_sessionActive)
         return;
 
+    Event::bus()->m_events.render.preChecks.emit(pMonitor);
+
     if (g_pAnimationManager)
         g_pAnimationManager->frameTick();
 
-    if (pMonitor->m_id == m_mostHzMonitor->m_id ||
-        *PVFR == 1) { // unfortunately with VFR we don't have the guarantee mostHz is going to be updated all the time, so we have to ignore that
-
-        g_pConfigManager->dispatchExecOnce(); // We exec-once when at least one monitor starts refreshing, meaning stuff has init'd
-
-        if (g_pConfigManager->m_wantsMonitorReload)
-            g_pConfigManager->performMonitorReload();
+    {
+        static bool once = true;
+        if (once) {
+            Event::bus()->m_events.start.emit();
+            once = false;
+        }
     }
 
     if (pMonitor->m_scheduledRecalc) {
@@ -3258,9 +3259,7 @@ void IHyprRenderer::initiateManualCrash() {
 
     m_globalTimer.reset();
 
-    static auto PDT = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("debug:damage_tracking"));
-
-    **PDT = 0;
+    **rc<Config::INTEGER* const*>(Config::mgr()->getConfigValue("debug:damage_tracking").dataptr) = 0;
 }
 
 const SRenderData& IHyprRenderer::renderData() {

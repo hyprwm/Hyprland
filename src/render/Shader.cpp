@@ -1,5 +1,6 @@
 #include "Shader.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../config/ConfigValue.hpp"
 #include "OpenGL.hpp"
 
 #define EPSILON(x, y) (std::abs((x) - (y)) < 1e-5f)
@@ -42,7 +43,7 @@ void CShader::logShaderError(const GLuint& shader, bool program, bool silent) {
     Log::logger->log(Log::ERR, "Failed to link shader: {}", FULLERROR);
 
     if (!silent)
-        g_pConfigManager->addParseError(FULLERROR);
+        g_pHyprError->queueError(FULLERROR);
 }
 
 GLuint CShader::compileShader(const GLuint& type, std::string src, bool dynamic, bool silent) {

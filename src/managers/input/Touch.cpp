@@ -17,7 +17,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
 
     static auto PSWIPETOUCH  = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_touch");
     static auto PGAPSOUTDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    auto* const PGAPSOUT     = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+    auto* const PGAPSOUT     = sc<Config::CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
     // TODO: WORKSPACERULE.gapsOut.value_or()
     auto                 gapsOut     = *PGAPSOUT;
     static auto          PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");

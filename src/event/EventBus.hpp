@@ -35,6 +35,8 @@ namespace Event {
         struct {
             Event<> ready;
             Event<> tick;
+            Event<> start;
+            Event<> exit;
 
             struct {
                 Event<PHLWINDOW>                        open;
@@ -87,6 +89,7 @@ namespace Event {
             } input;
 
             struct {
+                Event<PHLMONITOR>   preChecks;
                 Event<PHLMONITOR>   pre;
                 Event<eRenderStage> stage;
             } render;

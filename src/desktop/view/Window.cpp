@@ -2,7 +2,6 @@
 #include <ranges>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
--
 #include "Group.hpp"
 #include <iostream>
 

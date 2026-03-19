@@ -12,6 +12,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
+#include "helpers/cm/ColorManagement.hpp"
 #include <hyprutils/math/Region.hpp>
 
 using namespace Screenshare;
@@ -162,7 +163,7 @@ void CScreenshareFrame::renderMonitor() {
 
     const auto PMONITOR = m_session->monitor();
 
-    auto       TEXTURE = g_pHyprRenderer->m_renderData.prevFB->getTexture();
+    auto       TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB()->getTexture();
 
     const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.transformDamage = false;
@@ -399,6 +400,7 @@ bool CScreenshareFrame::copyShm() {
 
     auto       outFB = g_pHyprRenderer->createFB();
     outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
+    outFB->getTexture()->m_imageDescription = NColorManagement::DEFAULT_IMAGE_DESCRIPTION;
 
     if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, m_damage, outFB)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
@@ -431,6 +433,7 @@ void CScreenshareFrame::storeTempFB() {
     if (!m_session->m_tempFB)
         m_session->m_tempFB = g_pHyprRenderer->createFB();
     m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
+    m_session->m_tempFB->getTexture()->m_imageDescription = NColorManagement::DEFAULT_IMAGE_DESCRIPTION;
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 

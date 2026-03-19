@@ -1,5 +1,6 @@
 #include "MonitorResources.hpp"
-#include "render/Renderer.hpp"
+#include "./cm/ColorManagement.hpp"
+#include "../render/Renderer.hpp"
 #include <algorithm>
 #include <format>
 
@@ -61,8 +62,10 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
     if (!m_monitorMirrorFB)
         m_monitorMirrorFB = g_pHyprRenderer->createFB(std::format("Monitor {} mirror FB", m_monitor->m_name));
 
-    if (!m_monitorMirrorFB->isAllocated())
-        m_monitorMirrorFB->alloc(m_size.x, m_size.y, m_drmFormat);
+    if (!m_monitorMirrorFB->isAllocated()) {
+        m_monitorMirrorFB->alloc(m_size.x, m_size.y, DRM_FORMAT_XRGB8888);
+        m_monitorMirrorFB->getTexture()->m_imageDescription = NColorManagement::DEFAULT_IMAGE_DESCRIPTION;
+    }
 
     return m_monitorMirrorFB;
 }

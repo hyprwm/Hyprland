@@ -84,7 +84,6 @@ namespace Render {
         SP<IFramebuffer>          currentFB = nullptr; // current rendering to
         SP<IFramebuffer>          mainFB    = nullptr; // main to render to
         SP<IFramebuffer>          outFB     = nullptr; // out to render to (if offloaded, etc)
-        SP<IFramebuffer>          prevFB    = nullptr; // out to render to (if offloaded, etc)
 
         CRegion                   damage;
         CRegion                   finalDamage; // damage used for funal off -> main

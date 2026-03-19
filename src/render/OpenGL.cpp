@@ -776,7 +776,7 @@ void CHyprOpenGLImpl::end() {
         if UNLIKELY (g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock()) && !m_fakeFrame)
             saveBufferForMirror(monbox);
 
-        g_pHyprRenderer->m_renderData.prevFB = g_pHyprRenderer->m_renderData.currentFB;
+        const auto TEX = g_pHyprRenderer->m_renderData.currentFB->getTexture();
         g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
         blend(false);
 
@@ -784,9 +784,9 @@ void CHyprOpenGLImpl::end() {
             g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
 
         if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
-            renderTexturePrimitive(g_pHyprRenderer->m_renderData.prevFB->getTexture(), monbox);
+            renderTexturePrimitive(TEX, monbox);
         else // we need to use renderTexture if we do any CM whatsoever.
-            renderTexture(g_pHyprRenderer->m_renderData.prevFB->getTexture(), monbox, {.finalMonitorCM = true});
+            renderTexture(TEX, monbox, {.finalMonitorCM = true});
 
         blend(true);
 
@@ -1345,12 +1345,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
         shader = useShader(shader);
 
-        if (data.finalMonitorCM || data.cmBackToSRGB)
-            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
-        else
-            passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
-                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
+        passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
+                       g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
     } else {
         if (!shader)
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
@@ -1408,7 +1404,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
 
 void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT((tex && tex->ok()), "Attempted to draw nullptr texture!");
+    RASSERT(tex, "Attempted to draw nullptr texture!");
+    RASSERT(tex->ok(), "Attempted to draw invalid texture!");
 
     TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 

@@ -975,9 +975,9 @@ void CConfigManager::reloadRuleConfigs() {
 }
 
 std::optional<std::string> CConfigManager::verifyConfigExists() {
-    std::string mainConfigPath = getMainConfigPath();
+    auto mainConfigPath = Supplementary::Jeremy::getMainConfigPath();
 
-    if (!std::filesystem::exists(mainConfigPath))
+    if (!mainConfigPath || !std::filesystem::exists(*mainConfigPath))
         return "broken config dir?";
 
     return {};

@@ -26,6 +26,11 @@ CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1
 }
 
 void CToplevelExportClient::captureToplevel(uint32_t frame, int32_t overlayCursor_, PHLWINDOW handle) {
+    if UNLIKELY (!handle) {
+        LOGM(Log::ERR, "Couldn't capture (window doesn't exist)");
+        return;
+    }
+
     auto session = Screenshare::mgr()->getManagedSession(m_resource->client(), handle);
 
     // create a frame

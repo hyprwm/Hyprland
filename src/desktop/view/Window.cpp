@@ -496,7 +496,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_spC& workspaceRuecial_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
 
     const auto  OLDWORKSPACE = m_workspace;
 

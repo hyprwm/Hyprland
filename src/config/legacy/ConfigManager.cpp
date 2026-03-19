@@ -1025,6 +1025,8 @@ static void clearHlVersionVars() {
 void CConfigManager::reload() {
     Event::bus()->m_events.config.preReload.emit();
     Config::animationTree()->reset();
+    Config::workspaceRuleMgr()->clear();
+    Config::monitorRuleMgr()->clear();
     resetHLConfig();
 
     auto oldConfigPath = m_mainConfigPath;

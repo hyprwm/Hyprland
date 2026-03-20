@@ -26,7 +26,7 @@ void CWorkspaceRuleManager::replaceOrAdd(CWorkspaceRule&& x) {
     if (it == m_rules.end())
         m_rules.emplace_back(std::move(x));
     else
-        *it = x;
+        (*it).mergeLeft(x);
 }
 
 std::optional<CWorkspaceRule> CWorkspaceRuleManager::getWorkspaceRuleFor(PHLWORKSPACE workspace) {

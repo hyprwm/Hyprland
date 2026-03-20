@@ -9,7 +9,10 @@
 #include "../config/ConfigManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
+#include <charconv>
+#include <string_view>
 #include <cstring>
+#include <cctype>
 #include <climits>
 #include <cmath>
 #include <filesystem>
@@ -56,49 +59,77 @@ using namespace Hyprutils::OS;
 #endif
 
 std::string absolutePath(const std::string& rawpath, const std::string& currentPath) {
+    if (rawpath.empty())
+        return rawpath;
+
     auto value = rawpath;
 
-    if (value[0] == '~') {
+    if (value.front() == '~') {
         static const char* const ENVHOME = getenv("HOME");
-        value.replace(0, 1, std::string(ENVHOME));
-    } else if (value[0] != '/') {
-        auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
-
-        if (value[0] == '.') {
-            if (value[1] == '.' && value[2] == '/') {
-                auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
-                value.replace(0, 2 + currentPath.empty(), parentDir);
-            } else if (value[1] == '/')
-                value.replace(0, 1 + currentPath.empty(), currentDir);
-            else
-                value = currentDir + '/' + value;
-        } else
-            value = currentDir + '/' + value;
+        if (ENVHOME)
+            value.replace(0, 1, ENVHOME);
+        return value;
     }
 
-    return value;
+    if (value.front() == '/')
+        return value;
+
+    const auto currentDir = currentPath.substr(0, currentPath.find_last_of('/'));
+
+    if (value.front() != '.')
+        return currentDir + '/' + value;
+
+    if (value == ".")
+        return currentDir;
+
+    if (value == "..")
+        return currentDir.substr(0, currentDir.find_last_of('/'));
+
+    if (value.starts_with("../")) {
+        const auto parentDir = currentDir.substr(0, currentDir.find_last_of('/'));
+        value.replace(0, currentPath.empty() ? 3 : 2, parentDir);
+        return value;
+    }
+
+    if (value.starts_with("./")) {
+        value.replace(0, currentPath.empty() ? 2 : 1, currentDir);
+        return value;
+    }
+
+    return currentDir + '/' + value;
 }
 
 std::string escapeJSONStrings(const std::string& str) {
-    std::ostringstream oss;
-    for (auto const& c : str) {
+    std::string out;
+    out.reserve(str.size());
+
+    const auto appendUnicodeEscape = [&out](unsigned char c) {
+        constexpr std::string_view HEX = "0123456789abcdef";
+        out.append("\\u00");
+        out.push_back(HEX[(c >> 4U) & 0xFU]);
+        out.push_back(HEX[c & 0xFU]);
+    };
+
+    for (const auto c : str) {
+        const auto uc = static_cast<unsigned char>(c);
+
         switch (c) {
-            case '"': oss << "\\\""; break;
-            case '\\': oss << "\\\\"; break;
-            case '\b': oss << "\\b"; break;
-            case '\f': oss << "\\f"; break;
-            case '\n': oss << "\\n"; break;
-            case '\r': oss << "\\r"; break;
-            case '\t': oss << "\\t"; break;
+            case '"': out.append("\\\""); break;
+            case '\\': out.append("\\\\"); break;
+            case '\b': out.append("\\b"); break;
+            case '\f': out.append("\\f"); break;
+            case '\n': out.append("\\n"); break;
+            case '\r': out.append("\\r"); break;
+            case '\t': out.append("\\t"); break;
             default:
-                if ('\x00' <= c && c <= '\x1f') {
-                    oss << "\\u" << std::hex << std::setw(4) << std::setfill('0') << sc<int>(c);
-                } else {
-                    oss << c;
-                }
+                if (uc <= 0x1FU)
+                    appendUnicodeEscape(uc);
+                else
+                    out.push_back(c);
         }
     }
-    return oss.str();
+
+    return out;
 }
 
 std::optional<float> getPlusMinusKeywordResult(std::string source, float relative) {
@@ -619,14 +650,21 @@ int64_t getPPIDof(int64_t pid) {
 }
 
 std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
-    auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {
-        try {
-            size_t position;
-            auto   result = stoll(value, &position, 16);
-            if (position == value.size())
-                return result;
-        } catch (const std::exception&) {}
-        return std::unexpected("invalid hex " + value);
+    auto parseHex = [](std::string_view value) -> std::expected<int64_t, std::string> {
+        const auto original = value;
+
+        if (value.size() >= 2 && value[0] == '0' && (value[1] == 'x' || value[1] == 'X'))
+            value.remove_prefix(2);
+
+        if (value.empty())
+            return std::unexpected("invalid hex " + std::string{original});
+
+        int64_t result = 0;
+        const auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), result, 16);
+        if (ec == std::errc() && ptr == value.data() + value.size())
+            return result;
+
+        return std::unexpected("invalid hex " + std::string{original});
     };
     if (VALUE.starts_with("0x")) {
         // Values with 0x are hex
@@ -697,53 +735,71 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
     if (VALUE.empty() || !isNumber(VALUE, false))
         return std::unexpected("cannot parse \"" + VALUE + "\" as an int.");
 
-    try {
-        const auto RES = std::stoll(VALUE);
-        return RES;
-    } catch (std::exception& e) { return std::unexpected(std::string{"stoll threw: "} + e.what()); }
+    int64_t result = 0;
+    const auto [ptr, ec] = std::from_chars(VALUE.data(), VALUE.data() + VALUE.size(), result, 10);
+    if (ec == std::errc() && ptr == VALUE.data() + VALUE.size())
+        return result;
 
     return std::unexpected("parse error");
 }
 
 Vector2D configStringToVector2D(const std::string& VALUE) {
-    std::istringstream iss(VALUE);
-    std::string        token;
+    auto view = std::string_view{VALUE};
 
-    if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
+    auto skipSpaces = [](std::string_view& v) {
+        while (!v.empty() && std::isspace(static_cast<unsigned char>(v.front())))
+            v.remove_prefix(1);
+    };
+
+    auto parseInt = [&](std::string_view& v, const char* error) -> long long {
+        skipSpaces(v);
+        if (v.empty())
+            throw std::invalid_argument("Invalid string format");
+
+        long long out = 0;
+        const auto [ptr, ec] = std::from_chars(v.data(), v.data() + v.size(), out);
+        if (ec != std::errc())
+            throw std::invalid_argument(error);
+
+        const auto used = static_cast<size_t>(ptr - v.data());
+        if (used == 0)
+            throw std::invalid_argument(error);
+
+        v.remove_prefix(used);
+        return out;
+    };
+
+    const long long x = parseInt(view, "Invalid x value");
+
+    if (view.empty())
         throw std::invalid_argument("Invalid string format");
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid x value");
-
-    long long x = std::stoll(token);
-
-    if (!std::getline(iss, token))
+    if (view.front() == ',') {
+        view.remove_prefix(1);
+    } else if (std::isspace(static_cast<unsigned char>(view.front()))) {
+        skipSpaces(view);
+        if (!view.empty() && view.front() == ',') {
+            view.remove_prefix(1);
+            skipSpaces(view);
+        }
+    } else {
         throw std::invalid_argument("Invalid string format");
+    }
 
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid y value");
+    const long long y = parseInt(view, "Invalid y value");
 
-    long long y = std::stoll(token);
-
-    if (std::getline(iss, token))
+    skipSpaces(view);
+    if (!view.empty())
         throw std::invalid_argument("Invalid string format");
 
     return Vector2D(sc<double>(x), sc<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
-    if (ang > M_PI * 2) {
-        while (ang > M_PI * 2)
-            ang -= M_PI * 2;
-        return ang;
-    }
-
-    if (ang < 0.0) {
-        while (ang < 0.0)
-            ang += M_PI * 2;
-        return ang;
-    }
-
+    constexpr double TAU = M_PI * 2.0;
+    ang                  = std::fmod(ang, TAU);
+    if (ang < 0.0)
+        ang += TAU;
     return ang;
 }
 
@@ -757,6 +813,8 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
 
     btSize    = backtrace(bt, 1024);
     btSymbols = backtrace_symbols(bt, btSize);
+
+    callstack.reserve(btSize);
 
     for (auto i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});

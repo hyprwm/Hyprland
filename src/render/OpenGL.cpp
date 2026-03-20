@@ -889,10 +889,21 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (path.empty() || path == STRVAL_EMPTY)
         return;
 
-    std::ifstream infile(absolutePath(path, g_pConfigManager->getMainConfigPath()));
+    std::string     absPath = absolutePath(path, g_pConfigManager->getMainConfigPath());
+
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(absPath, ec)) {
+        if (ec)
+            g_pConfigManager->addParseError("Screen shader parser: Failed to check screen shader path: " + ec.message());
+        else
+            g_pConfigManager->addParseError("Screen shader parser: Screen shader path is not a regular file");
+        return;
+    }
+
+    std::ifstream infile(absPath);
 
     if (!infile.good()) {
-        g_pConfigManager->addParseError("Screen shader parser: Screen shader path not found");
+        g_pConfigManager->addParseError("Screen shader parser: Failed to open screen shader");
         return;
     }
 

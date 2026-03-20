@@ -9,10 +9,16 @@
 using namespace Screenshare;
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
+    if UNLIKELY (!m_monitor)
+        return;
+
     init();
 }
 
 CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client) : m_type(SHARE_WINDOW), m_window(window), m_client(client) {
+    if UNLIKELY (!m_window)
+        return;
+
     m_listeners.windowDestroyed      = m_window->m_events.unmap.listen([this]() { stop(); });
     m_listeners.windowSizeChanged    = m_window->m_events.resize.listen([this]() {
         calculateConstraints();
@@ -34,6 +40,9 @@ CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client) : 
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client) :
     m_type(SHARE_REGION), m_monitor(monitor), m_captureBox(captureRegion), m_client(client) {
+    if UNLIKELY (!m_monitor)
+        return;
+
     init();
 }
 

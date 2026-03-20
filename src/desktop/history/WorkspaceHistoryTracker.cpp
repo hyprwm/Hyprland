@@ -48,7 +48,7 @@ void CWorkspaceHistoryTracker::track(PHLWORKSPACE w) {
     if (!w || !w->m_monitor || w == m_lastWorkspaceData.workspace)
         return;
 
-    static auto                   PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    static auto                   PALLOWWORKSPACECYCLES = CConfigValue<Config::INTEGER>("binds:allow_workspace_cycles");
 
     auto&                         data = dataFor(w);
 

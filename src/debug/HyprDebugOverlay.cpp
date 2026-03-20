@@ -12,7 +12,7 @@ CHyprDebugOverlay::CHyprDebugOverlay() {
 }
 
 void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -27,7 +27,7 @@ void CHyprMonitorDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs)
 }
 
 void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -42,7 +42,7 @@ void CHyprMonitorDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float du
 }
 
 void CHyprMonitorDebugOverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -208,7 +208,7 @@ int CHyprMonitorDebugOverlay::draw(int offset) {
 }
 
 void CHyprDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -217,7 +217,7 @@ void CHyprDebugOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -226,7 +226,7 @@ void CHyprDebugOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationU
 }
 
 void CHyprDebugOverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;

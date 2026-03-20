@@ -414,7 +414,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
-    static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+    static auto PCPUBUFFER = CConfigValue<Config::INTEGER>("cursor:use_cpu_buffer");
 
     const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
 
@@ -684,7 +684,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
-    static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
+    static auto PADDING = CConfigValue<Config::INTEGER>("cursor:hotspot_padding");
 
     auto        CURSOR_PADDING = std::clamp(sc<int>(*PADDING), 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
@@ -924,7 +924,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     if (!pointer)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_pointerListeners.emplace_back(makeShared<SPointerListener>());
@@ -1018,7 +1018,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     if (!touch)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_touchListeners.emplace_back(makeShared<STouchListener>());
@@ -1059,7 +1059,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     if (!tablet)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_tabletListeners.emplace_back(makeShared<STabletListener>());

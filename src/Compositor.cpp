@@ -897,11 +897,11 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     if (!PMONITOR)
         return nullptr;
 
-    static auto PRESIZEONBORDER      = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PBORDERSIZE          = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
-    static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
-    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    static auto PRESIZEONBORDER      = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto PBORDERSIZE          = CConfigValue<Config::INTEGER>("general:border_size");
+    static auto PBORDERGRABEXTEND    = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
+    static auto PSPECIALFALLTHRU     = CConfigValue<Config::INTEGER>("input:special_fallthrough");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
     const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
     const bool  ONLY_PRIORITY        = properties & Desktop::View::FOCUS_PRIORITY;
 
@@ -1408,8 +1408,8 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
         return nullptr;
 
     // 0 -> history, 1 -> shared length
-    static auto PMETHOD          = CConfigValue<Hyprlang::INT>("binds:focus_preferred_method");
-    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PMETHOD          = CConfigValue<Config::INTEGER>("binds:focus_preferred_method");
+    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     const auto  POSA  = box.pos();
     const auto  SIZEA = box.size();
@@ -1667,7 +1667,7 @@ bool CCompositor::isPointOnReservedArea(const Vector2D& point, const PHLMONITOR 
 }
 
 std::optional<CBox> CCompositor::calculateX11WorkArea() {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
     // We more than likely won't be able to calculate one
     // and even if we could this is minor
     if (m_monitors.size() > 1 || m_monitors.empty())
@@ -1945,7 +1945,7 @@ PHLMONITOR CCompositor::getMonitorFromString(const std::string& name) {
 }
 
 void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor, bool noWarpCursor) {
-    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("binds:hide_special_on_workspace_change");
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
 
     if (!pWorkspace || !pMonitor)
         return;
@@ -2119,8 +2119,8 @@ void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFull
 }
 
 void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state) {
-    static auto PDIRECTSCANOUT      = CConfigValue<Hyprlang::INT>("render:direct_scanout");
-    static auto PALLOWPINFULLSCREEN = CConfigValue<Hyprlang::INT>("binds:allow_pin_fullscreen");
+    static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
+    static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
 
     if (!validMapped(PWINDOW) || g_pCompositor->m_unsafeState)
         return;
@@ -2366,7 +2366,7 @@ void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {
     // warpCursorTo should only be used for warps that
     // should be disabled with no_warps
 
-    static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto PNOWARPS = CConfigValue<Config::INTEGER>("cursor:no_warps");
 
     if (*PNOWARPS && !force) {
         const auto PMONITORNEW = getMonitorFromVector(pos);
@@ -2514,9 +2514,9 @@ std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
 }
 
 void CCompositor::performUserChecks() {
-    static auto PNOCHECKXDG      = CConfigValue<Hyprlang::INT>("misc:disable_xdg_env_checks");
-    static auto PNOCHECKGUIUTILS = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_guiutils_check");
-    static auto PNOWATCHDOG      = CConfigValue<Hyprlang::INT>("misc:disable_watchdog_warning");
+    static auto PNOCHECKXDG      = CConfigValue<Config::INTEGER>("misc:disable_xdg_env_checks");
+    static auto PNOCHECKGUIUTILS = CConfigValue<Config::INTEGER>("misc:disable_hyprland_guiutils_check");
+    static auto PNOWATCHDOG      = CConfigValue<Config::INTEGER>("misc:disable_watchdog_warning");
 
     if (!*PNOCHECKXDG) {
         const auto CURRENT_DESKTOP_ENV = getenv("XDG_CURRENT_DESKTOP");
@@ -2612,7 +2612,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     pWindow->moveToWorkspace(pWorkspace);
     pWindow->m_monitor = pWorkspace->m_monitor;
 
-    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Hyprlang::INT>("group:group_on_movetoworkspace");
+    static auto PGROUPONMOVETOWORKSPACE = CConfigValue<Config::INTEGER>("group:group_on_movetoworkspace");
     if (*PGROUPONMOVETOWORKSPACE && visibleWindowsOnWorkspace == 1 && pFirstWindowOnWorkspace && pFirstWindowOnWorkspace != pWindow && pFirstWindowOnWorkspace->m_group &&
         pWindow->canBeGroupedInto(pFirstWindowOnWorkspace->m_group)) {
         pFirstWindowOnWorkspace->m_group->add(pWindow);
@@ -2689,7 +2689,7 @@ void CCompositor::checkMonitorOverlaps() {
 }
 
 void CCompositor::arrangeMonitors() {
-    static auto             PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto             PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     std::vector<PHLMONITOR> toArrange(m_monitors.begin(), m_monitors.end());
     std::vector<PHLMONITOR> arranged;

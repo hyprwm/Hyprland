@@ -263,7 +263,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
             case WINDOW_RULE_EFFECT_MAX_SIZE: {
                 try {
-                    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
+                    static auto PCLAMP_TILED = CConfigValue<Config::INTEGER>("misc:size_limits_tiled");
 
                     if (!m_window)
                         break;
@@ -288,7 +288,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             }
             case WINDOW_RULE_EFFECT_MIN_SIZE: {
                 try {
-                    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
+                    static auto PCLAMP_TILED = CConfigValue<Config::INTEGER>("misc:size_limits_tiled");
 
                     if (!m_window)
                         break;

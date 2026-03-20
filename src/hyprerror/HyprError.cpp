@@ -66,9 +66,9 @@ void CHyprError::createQueued() {
     cairo_paint(CAIRO);
     cairo_restore(CAIRO);
 
-    const auto   LINECOUNT    = Hyprlang::INT{1} + std::ranges::count(m_queued, '\n');
-    static auto  LINELIMIT    = CConfigValue<Hyprlang::INT>("debug:error_limit");
-    static auto  BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    const auto   LINECOUNT    = Config::INTEGER{1} + std::ranges::count(m_queued, '\n');
+    static auto  LINELIMIT    = CConfigValue<Config::INTEGER>("debug:error_limit");
+    static auto  BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
 
     const bool   TOPBAR = *BAR_POSITION == 0;
 
@@ -212,7 +212,7 @@ void CHyprError::draw() {
 
     CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
-    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    static auto BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
     m_damageBox.x            = sc<int>(PMONITOR->m_position.x);
     m_damageBox.y            = sc<int>(PMONITOR->m_position.y + (*BAR_POSITION == 0 ? 0 : PMONITOR->m_pixelSize.y - m_damageBox.height));
 

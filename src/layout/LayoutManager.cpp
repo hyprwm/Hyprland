@@ -187,13 +187,13 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (!Desktop::View::validMapped(DRAGGINGWINDOW))
         return;
 
-    static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
-    static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
-    static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
-    static auto  SNAPRESPECTGAPS   = CConfigValue<Hyprlang::INT>("general:snap:respect_gaps");
+    static auto  SNAPWINDOWGAP     = CConfigValue<Config::INTEGER>("general:snap:window_gap");
+    static auto  SNAPMONITORGAP    = CConfigValue<Config::INTEGER>("general:snap:monitor_gap");
+    static auto  SNAPBORDEROVERLAP = CConfigValue<Config::INTEGER>("general:snap:border_overlap");
+    static auto  SNAPRESPECTGAPS   = CConfigValue<Config::INTEGER>("general:snap:respect_gaps");
 
-    static auto  PGAPSIN  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    static auto  PGAPSOUT = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    static auto  PGAPSIN  = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
+    static auto  PGAPSOUT = CConfigValue<Config::IComplexConfigValue>("general:gaps_out");
     const auto   GAPSNONE = Config::CCssGapData{0, 0, 0, 0};
 
     const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
@@ -212,7 +212,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
-        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
@@ -275,7 +275,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
 
-        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSOUT.ptr()) : &GAPSNONE;
         const auto   WORK_AREA = Desktop::CReservedArea{GAPSOUT->m_top, GAPSOUT->m_right, GAPSOUT->m_bottom, GAPSOUT->m_left}.apply(MON->logicalBoxMinusReserved());
 
         SRange       monX = {WORK_AREA.x, WORK_AREA.x + WORK_AREA.w};

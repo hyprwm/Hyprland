@@ -18,25 +18,6 @@ using namespace Layout;
 using namespace Layout::Tiled;
 using namespace Hyprutils::String;
 
-struct Layout::Tiled::SMasterNodeData {
-    bool        isMaster   = false;
-    float       percMaster = 0.5f;
-
-    WP<ITarget> pTarget;
-
-    Vector2D    position;
-    Vector2D    size;
-
-    float       percSize = 1.f; // size multiplier for resizing children
-
-    bool        ignoreFullscreenChecks = false;
-
-    //
-    bool operator==(const SMasterNodeData& rhs) const {
-        return pTarget.lock() == rhs.pTarget.lock();
-    }
-};
-
 void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
 }
@@ -47,7 +28,7 @@ void CMasterAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> f
 
 void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     static auto PNEWONACTIVE = CConfigValue<std::string>("master:new_on_active");
-    static auto PNEWONTOP    = CConfigValue<Hyprlang::INT>("master:new_on_top");
+    static auto PNEWONTOP    = CConfigValue<Config::INTEGER>("master:new_on_top");
     static auto PNEWSTATUS   = CConfigValue<std::string>("master:new_status");
 
     const auto  PWORKSPACE = m_parent->space()->workspace();
@@ -79,7 +60,7 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
     PNODE->pTarget = target;
 
     const auto   WINDOWSONWORKSPACE = getNodesNo();
-    static auto  PMFACT             = CConfigValue<Hyprlang::FLOAT>("master:mfact");
+    static auto  PMFACT             = CConfigValue<Config::FLOAT>("master:mfact");
     float        lastSplitPercent   = *PMFACT;
 
     auto         OPENINGON = isWindowTiled(Desktop::focusState()->window()) && Desktop::focusState()->window()->m_workspace == PWORKSPACE ?
@@ -87,7 +68,7 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
         getMasterNode();
 
     const auto   MOUSECOORDS   = g_pInputManager->getMouseCoordsInternal();
-    static auto  PDROPATCURSOR = CConfigValue<Hyprlang::INT>("master:drop_at_cursor");
+    static auto  PDROPATCURSOR = CConfigValue<Config::INTEGER>("master:drop_at_cursor");
     eOrientation orientation   = getDynamicOrientation();
     const auto   NODEIT        = std::ranges::find(m_masterNodesData, PNODE);
 
@@ -222,7 +203,7 @@ void CMasterAlgorithm::addTarget(SP<ITarget> target, bool firstMap) {
 
 void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
     const auto  MASTERSLEFT = getMastersNo();
-    static auto SMALLSPLIT  = CConfigValue<Hyprlang::INT>("master:allow_small_split");
+    static auto SMALLSPLIT  = CConfigValue<Config::INTEGER>("master:allow_small_split");
 
     const auto  PNODE = getNodeFromTarget(target);
 
@@ -269,8 +250,8 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
         return;
 
     const auto   PMONITOR            = m_parent->space()->workspace()->m_monitor;
-    static auto  SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
-    static auto  PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+    static auto  SLAVECOUNTFORCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
+    static auto  PSMARTRESIZING      = CConfigValue<Config::INTEGER>("master:smart_resizing");
 
     const auto   WORKAREA      = PMONITOR->logicalBoxMinusReserved();
     const bool   DISPLAYBOTTOM = STICKS(PNODE->position.y + PNODE->size.y, WORKAREA.y + WORKAREA.h);
@@ -405,7 +386,7 @@ void CMasterAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     const auto  PWINDOW2 = g_pCompositor->getWindowInDirection(t->window(), dir);
 
@@ -616,7 +597,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
 
         const auto  WINDOWS    = getNodesNo();
         const auto  MASTERS    = getMastersNo();
-        static auto SMALLSPLIT = CConfigValue<Hyprlang::INT>("master:allow_small_split");
+        static auto SMALLSPLIT = CConfigValue<Config::INTEGER>("master:allow_small_split");
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
             return std::unexpected("nothing to do");
@@ -916,7 +897,7 @@ SP<SMasterNodeData> CMasterAlgorithm::getNodeFromWindow(PHLWINDOW x) {
     return x ? getNodeFromTarget(x->layoutTarget()) : nullptr;
 }
 
-SP<SMasterNodeData> CMasterAlgorithm::getNodeFromTarget(SP<ITarget> x) {
+SP<SMasterNodeData> CMasterAlgorithm::getNodeFromTarget(SP<ITarget> x) const {
     for (const auto& n : m_masterNodesData) {
         if (n->pTarget == x)
             return n;
@@ -953,10 +934,10 @@ void CMasterAlgorithm::calculateWorkspace() {
 
     eOrientation                  orientation         = getDynamicOrientation();
     bool                          centerMasterWindow  = false;
-    static auto                   SLAVECOUNTFORCENTER = CConfigValue<Hyprlang::INT>("master:slave_count_for_center_master");
+    static auto                   SLAVECOUNTFORCENTER = CConfigValue<Config::INTEGER>("master:slave_count_for_center_master");
     static auto                   CMFALLBACK          = CConfigValue<std::string>("master:center_master_fallback");
-    static auto                   PIGNORERESERVED     = CConfigValue<Hyprlang::INT>("master:center_ignores_reserved");
-    static auto                   PSMARTRESIZING      = CConfigValue<Hyprlang::INT>("master:smart_resizing");
+    static auto                   PIGNORERESERVED     = CConfigValue<Config::INTEGER>("master:center_ignores_reserved");
+    static auto                   PSMARTRESIZING      = CConfigValue<Config::INTEGER>("master:smart_resizing");
 
     const auto                    MASTERS          = getMastersNo();
     const auto                    WINDOWS          = getNodesNo();
@@ -1003,7 +984,7 @@ void CMasterAlgorithm::calculateWorkspace() {
 
     // compute placement of master window(s)
     if (WINDOWS == 1 && !centerMasterWindow) {
-        static auto PALWAYSKEEPPOSITION = CConfigValue<Hyprlang::INT>("master:always_keep_position");
+        static auto PALWAYSKEEPPOSITION = CConfigValue<Config::INTEGER>("master:always_keep_position");
         if (*PALWAYSKEEPPOSITION) {
             const float WIDTH = WORKAREA.w * PMASTERNODE->percMaster;
             float       nextX = 0;

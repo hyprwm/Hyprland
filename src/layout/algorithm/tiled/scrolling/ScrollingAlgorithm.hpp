@@ -110,6 +110,7 @@ namespace Layout::Tiled {
         virtual void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
         CBox                                     usableArea();
+        SP<SScrollingTargetData>                 dataFor(SP<ITarget> t);
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
@@ -131,7 +132,6 @@ namespace Layout::Tiled {
         eScrollDirection         getDynamicDirection();
 
         SP<SScrollingTargetData> findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
-        SP<SScrollingTargetData> dataFor(SP<ITarget> t);
         SP<SScrollingTargetData> closestNode(const Vector2D& posGlobglobgabgalab);
 
         void                     focusTargetUpdate(SP<ITarget> target);

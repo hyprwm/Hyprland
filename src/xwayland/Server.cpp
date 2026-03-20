@@ -138,24 +138,30 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
 
 #ifdef __linux__
     if (*CREATEABSTRACTSOCKET) {
-        // cursed...
-        // but is kept as an option for better compatibility
-        addr.sun_path[0] = 0;
-        path             = getSocketPath(display, true);
-        strncpy(addr.sun_path + 1, path.c_str(), path.length() + 1);
+        addr.sun_path[0] = '\0';
+        path = getSocketPath(display, true);
+
+        strncpy(addr.sun_path + 1, path.c_str(), sizeof(addr.sun_path) - 2);
     } else {
         path = getSocketPath(display, false);
-        strncpy(addr.sun_path, path.c_str(), path.length() + 1);
+
+        strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+        addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
     }
 #else
     if (*CREATEABSTRACTSOCKET) {
         Log::logger->log(Log::WARN, "The abstract XWayland Unix domain socket might be used only on Linux systems. A regular one'll be created instead.");
     }
+
     path = getSocketPath(display, false);
-    strncpy(addr.sun_path, path.c_str(), path.length() + 1);
+
+    strncpy(addr.sun_path, path.c_str(), sizeof(addr.sun_path) - 1);
+    addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 #endif
 
     sockets[0] = CFileDescriptor{createSocket(&addr, path.length())};
+
+    
     if (!sockets[0].isValid())
         return false;
 

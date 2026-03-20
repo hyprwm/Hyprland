@@ -70,6 +70,7 @@ std::string CShaderLoader::getDefines(ShaderFeatureFlags features) {
         {"USE_RGBA", features & SH_FEAT_RGBA ? "1" : "0"},         {"USE_DISCARD", features & SH_FEAT_DISCARD ? "1" : "0"}, {"USE_TINT", features & SH_FEAT_TINT ? "1" : "0"},
         {"USE_ROUNDING", features & SH_FEAT_ROUNDING ? "1" : "0"}, {"USE_CM", features & SH_FEAT_CM ? "1" : "0"},           {"USE_TONEMAP", features & SH_FEAT_TONEMAP ? "1" : "0"},
         {"USE_SDR_MOD", features & SH_FEAT_SDR_MOD ? "1" : "0"},   {"USE_BLUR", features & SH_FEAT_BLUR ? "1" : "0"},       {"USE_ICC", features & SH_FEAT_ICC ? "1" : "0"},
+        {"USE_MIRROR", features & SH_FEAT_MIRROR ? "1" : "0"},
     };
     for (const auto& [name, value] : defines) {
         res += std::format("#define {} {}\n", name, value);

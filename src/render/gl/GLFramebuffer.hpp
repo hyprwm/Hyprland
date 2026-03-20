@@ -22,7 +22,7 @@ namespace Render::GL {
         void   invalidate(const std::vector<GLenum>& attachments);
 
       protected:
-        bool internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) override;
+        bool internalAlloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888) override;
 
       private:
         GLuint m_fb = -1;

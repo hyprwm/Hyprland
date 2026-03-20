@@ -1824,12 +1824,12 @@ void IHyprRenderer::renderMirrored() {
     monbox.x = (monitor->m_transformedSize.x - monbox.w) / 2;
     monbox.y = (monitor->m_transformedSize.y - monbox.h) / 2;
 
-    const auto PFB = mirrored->resources()->mirrorFB();
+    const auto MIRROR_TEX = mirrored->resources()->getMirrorTexture();
 
     m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)}));
 
     CTexPassElement::SRenderData data;
-    data.tex                 = PFB->getTexture();
+    data.tex                 = MIRROR_TEX;
     data.box                 = monbox;
     data.useMirrorProjection = true;
 

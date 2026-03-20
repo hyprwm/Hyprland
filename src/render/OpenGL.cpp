@@ -140,6 +140,10 @@ static int openRenderNode(int drmFd) {
     return renderFD;
 }
 
+static ShaderFeatureFlags globalFeatures() {
+    return g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB() ? SH_FEAT_MIRROR : 0;
+}
+
 void CHyprOpenGLImpl::initEGL(bool gbm) {
     std::vector<EGLint> attrs;
     if (m_exts.KHR_display_reference) {
@@ -755,6 +759,22 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
     g_pHyprRenderer->m_renderData.outFB  = fb ? fb : dc<CHyprGLRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer->getFB();
 
+    if UNLIKELY (g_pHyprRenderer->needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock()) && !m_fakeFrame) {
+        if (!g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex) {
+            GLenum buffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+            glDrawBuffers(2, buffers);
+            g_pHyprRenderer->m_renderData.pMonitor->resources()->enableMirror();
+        }
+        g_pHyprRenderer->m_renderData.mainFB->enableMirror(g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex);
+    } else {
+        if (g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex) {
+            GLenum buffers[] = {GL_COLOR_ATTACHMENT0};
+            glDrawBuffers(1, buffers);
+            g_pHyprRenderer->m_renderData.pMonitor->resources()->disableMirror();
+        }
+        g_pHyprRenderer->m_renderData.mainFB->disableMirror();
+    }
+
     g_pHyprRenderer->pushMonitorTransformEnabled(false);
 }
 
@@ -1051,7 +1071,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
-    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, data.round > 0 ? SH_FEAT_ROUNDING : 0));
+    auto        shader = useShader(getShaderVariant(SH_FRAG_QUAD, (data.round > 0 ? SH_FEAT_ROUNDING : 0) | globalFeatures()));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
@@ -1263,7 +1283,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         case TEXTURE_RGBX: shaderFeatures &= ~SH_FEAT_RGBA; break;
 
         // TODO set correct features
-        case TEXTURE_EXTERNAL: shader = getShaderVariant(SH_FRAG_EXT, SH_FEAT_ROUNDING | SH_FEAT_DISCARD | SH_FEAT_TINT); break; // might be unused
+        case TEXTURE_EXTERNAL: shader = getShaderVariant(SH_FRAG_EXT, SH_FEAT_ROUNDING | SH_FEAT_DISCARD | SH_FEAT_TINT | globalFeatures()); break; // might be unused
         default: RASSERT(false, "tex->m_iTarget unsupported!");
     }
 
@@ -1355,14 +1375,14 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         }
 
         if (!shader)
-            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
+            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
         shader = useShader(shader);
 
         passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
                        g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
     } else {
         if (!shader)
-            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures);
+            shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
         shader = useShader(shader);
     }
 
@@ -1568,7 +1588,7 @@ void CHyprOpenGLImpl::renderTextureMatte(SP<ITexture> tex, const CBox& box, SP<I
     // get transform
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
 
-    auto        shader = useShader(getShaderVariant(SH_FRAG_MATTE));
+    auto        shader = useShader(getShaderVariant(SH_FRAG_MATTE, globalFeatures()));
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
     shader->setUniformInt(SHADER_ALPHA_MATTE, 1);
@@ -2055,10 +2075,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad.m_colorsOkLabA.size() / 4, grad.m_colorsOkLabA);
@@ -2140,10 +2160,10 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
     } else
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);
@@ -2217,7 +2237,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
-    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
     if (!skipCM)
         passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
 
@@ -2324,7 +2344,7 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
 }
 
 void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
-    const auto TEX   = g_pHyprRenderer->m_renderData.currentFB->getTexture();
+    const auto TEX   = g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex;
     auto       guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
 
     blend(false);

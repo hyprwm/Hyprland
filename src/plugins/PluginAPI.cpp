@@ -3,7 +3,7 @@
 #include "../debug/HyprCtl.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
@@ -103,7 +103,7 @@ APICALL bool HyprlandAPI::removeAlgo(HANDLE handle, const std::string& name) {
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
     return true;
 }
 
@@ -184,7 +184,7 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     if (!name.starts_with("plugin:"))
         return false;
 
-    g_pConfigManager->addPluginConfigVar(handle, name, value);
+    Config::Legacy::mgr()->addPluginConfigVar(handle, name, value);
     return true;
 }
 
@@ -197,7 +197,7 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
     if (!PLUGIN)
         return false;
 
-    g_pConfigManager->addPluginKeyword(handle, name, fn, opts);
+    Config::Legacy::mgr()->addPluginKeyword(handle, name, fn, opts);
     return true;
 }
 
@@ -208,9 +208,9 @@ APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const
         return nullptr;
 
     if (name.starts_with("plugin:"))
-        return g_pConfigManager->getHyprlangConfigValuePtr(name.substr(7), "plugin");
+        return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name.substr(7), "plugin");
 
-    return g_pConfigManager->getHyprlangConfigValuePtr(name);
+    return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name);
 }
 
 APICALL void* HyprlandAPI::getFunctionAddressFromSignature(HANDLE handle, const std::string& sig) {

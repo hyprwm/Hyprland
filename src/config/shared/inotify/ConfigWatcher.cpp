@@ -3,13 +3,21 @@
 #include <linux/limits.h>
 #endif
 #include <sys/inotify.h>
-#include "../debug/log/Logger.hpp"
+#include "../../../debug/log/Logger.hpp"
+#include "../../ConfigValue.hpp"
+#include "../../ConfigManager.hpp"
 #include <ranges>
 #include <fcntl.h>
 #include <unistd.h>
 #include <filesystem>
 
 using namespace Hyprutils::OS;
+using namespace Config;
+
+UP<CConfigWatcher>& Config::watcher() {
+    static UP<CConfigWatcher> p = makeUnique<CConfigWatcher>();
+    return p;
+}
 
 CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
     if (!m_inotifyFd.isValid()) {
@@ -28,6 +36,11 @@ CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
 
 CFileDescriptor& CConfigWatcher::getInotifyFD() {
     return m_inotifyFd;
+}
+
+void CConfigWatcher::update() {
+    static const auto PDISABLEAUTORELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
+    setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
 }
 
 void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {

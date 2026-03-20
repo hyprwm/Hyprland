@@ -10,6 +10,7 @@
 #include "managers/SessionLockManager.hpp"
 #include "desktop/view/Window.hpp"
 #include "helpers/cm/ColorManagement.hpp"
+#include "config/shared/workspace/WorkspaceRule.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
@@ -160,7 +161,8 @@ class CCompositor {
     void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                                updateSuspendedStates();
     void                                onNewMonitor(SP<Aquamarine::IOutput> output);
-    void                                ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace = nullptr);
     void                                ensureWorkspacesOnAssignedMonitors();
     std::optional<unsigned int>         getVTNr();
     bool                                isVRRActiveOnAnyMonitor() const;

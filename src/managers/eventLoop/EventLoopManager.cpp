@@ -1,7 +1,7 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
-#include "../../config/ConfigWatcher.hpp"
+#include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -55,7 +55,7 @@ static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
-    g_pConfigWatcher->onInotifyEvent();
+    Config::watcher()->onInotifyEvent();
     return 0;
 }
 
@@ -111,7 +111,7 @@ void CEventLoopManager::onFdReadableFail(SReadableWaiter* waiter) {
 void CEventLoopManager::enterLoop() {
     m_wayland.eventSource = wl_event_loop_add_fd(m_wayland.loop, m_timers.timerfd.get(), WL_EVENT_READABLE, timerWrite, nullptr);
 
-    if (const auto& FD = g_pConfigWatcher->getInotifyFD(); FD.isValid())
+    if (const auto& FD = Config::watcher()->getInotifyFD(); FD.isValid())
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_wayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();

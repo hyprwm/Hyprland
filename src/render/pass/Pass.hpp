@@ -3,7 +3,6 @@
 #include "../../defines.hpp"
 #include "PassElement.hpp"
 
-class CGradientValueData;
 class ITexture;
 
 class CRenderPass {

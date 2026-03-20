@@ -12,6 +12,7 @@ class CHyprError {
     ~CHyprError() = default;
 
     void         queueCreate(std::string message, const CHyprColor& color);
+    void         queueError(std::string err);
     void         draw();
     void         destroy();
 

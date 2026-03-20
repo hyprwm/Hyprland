@@ -5,8 +5,10 @@
 
 #include "../../debug/log/Logger.hpp"
 #include "../../desktop/Workspace.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../../config/ConfigValue.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../helpers/Monitor.hpp"
 
 using namespace Layout;
 
@@ -78,19 +80,19 @@ void CSpace::recheckWorkArea() {
         return;
     }
 
-    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_parent.lock());
+    const auto  WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent.lock()).value_or(Config::CWorkspaceRule{});
 
     auto        workArea = m_parent->m_monitor->logicalBoxMinusReserved();
 
     static auto PGAPSOUTDATA   = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
     static auto PFLOATGAPSDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps");
-    auto* const PGAPSOUT       = sc<CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
-    auto*       PFLOATGAPS     = sc<CCssGapData*>(PFLOATGAPSDATA.ptr()->getData());
+    auto* const PGAPSOUT       = sc<Config::CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
+    auto*       PFLOATGAPS     = sc<Config::CCssGapData*>(PFLOATGAPSDATA.ptr()->getData());
     if (PFLOATGAPS->m_bottom < 0 || PFLOATGAPS->m_left < 0 || PFLOATGAPS->m_right < 0 || PFLOATGAPS->m_top < 0)
         PFLOATGAPS = PGAPSOUT;
 
-    auto                   gapsOut   = WORKSPACERULE.gapsOut.value_or(*PGAPSOUT);
-    auto                   gapsFloat = WORKSPACERULE.gapsOut.value_or(*PFLOATGAPS);
+    auto                   gapsOut   = WORKSPACERULE.m_gapsOut.value_or(*PGAPSOUT);
+    auto                   gapsFloat = WORKSPACERULE.m_gapsOut.value_or(*PFLOATGAPS);
 
     Desktop::CReservedArea reservedGaps{gapsOut.m_top, gapsOut.m_right, gapsOut.m_bottom, gapsOut.m_left};
     Desktop::CReservedArea reservedFloatGaps{gapsFloat.m_top, gapsFloat.m_right, gapsFloat.m_bottom, gapsFloat.m_left};

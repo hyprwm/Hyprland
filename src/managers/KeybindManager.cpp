@@ -1,4 +1,6 @@
 #include "../config/ConfigValue.hpp"
+#include "../config/legacy/ConfigManager.hpp"
+#include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
@@ -32,6 +34,7 @@
 #include "../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 #include "../event/EventBus.hpp"
+#include "../config/supplementary/executor/Executor.hpp"
 
 #include <optional>
 #include <iterator>
@@ -41,6 +44,8 @@
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
+#include <hyprutils/string/VarList.hpp>
+#include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
@@ -55,31 +60,6 @@ using namespace Hyprutils::OS;
 #elif defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/consio.h>
 #endif
-
-static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
-
-    if (!*PINITIALWSTRACKING || g_pConfigManager->m_isLaunchingExecOnce)
-        return {};
-
-    const auto PMONITOR = Desktop::focusState()->monitor();
-    if (!PMONITOR || !PMONITOR->m_activeWorkspace)
-        return {};
-
-    std::vector<std::pair<std::string, std::string>> result;
-
-    if (!pInitialWorkspace) {
-        if (PMONITOR->m_activeSpecialWorkspace)
-            pInitialWorkspace = PMONITOR->m_activeSpecialWorkspace;
-        else
-            pInitialWorkspace = PMONITOR->m_activeWorkspace;
-    }
-
-    result.push_back(std::make_pair<>("HL_INITIAL_WORKSPACE_TOKEN",
-                                      g_pTokenManager->registerNewToken(Desktop::View::SInitialWorkspaceToken{{}, pInitialWorkspace->getConfigName()}, std::chrono::months(1337))));
-
-    return result;
-}
 
 CKeybindManager::CKeybindManager() {
     // initialize all dispatchers
@@ -299,7 +279,7 @@ void CKeybindManager::updateXKBTranslationState() {
 
     xkb_rule_names    rules      = {.rules = RULES.c_str(), .model = MODEL.c_str(), .layout = LAYOUT.c_str(), .variant = VARIANT.c_str(), .options = OPTIONS.c_str()};
     const auto        PCONTEXT   = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    FILE* const       KEYMAPFILE = FILEPATH.empty() ? nullptr : fopen(absolutePath(FILEPATH, g_pConfigManager->m_configCurrentPath).c_str(), "r");
+    FILE* const       KEYMAPFILE = FILEPATH.empty() ? nullptr : fopen(absolutePath(FILEPATH, Config::mgr()->currentConfigPath()).c_str(), "r");
 
     auto              PKEYMAP = KEYMAPFILE ? xkb_keymap_new_from_file(PCONTEXT, KEYMAPFILE, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS) :
                                              xkb_keymap_new_from_names2(PCONTEXT, &rules, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -917,95 +897,15 @@ bool CKeybindManager::handleInternalKeybinds(xkb_keysym_t keysym) {
 
 // Dispatchers
 SDispatchResult CKeybindManager::spawn(std::string args) {
-    const auto PROC = spawnWithRules(args, nullptr);
+    const auto PROC = Config::Supplementary::executor()->spawn(args);
     if (!PROC.has_value())
         return {.success = false, .error = std::format("Failed to start process. No closing bracket in exec rule. {}", args)};
     return {.success = PROC.value() > 0, .error = std::format("Failed to start process {}", args)};
 }
 
-std::optional<uint64_t> CKeybindManager::spawnWithRules(std::string args, PHLWORKSPACE pInitialWorkspace) {
-
-    args = trim(args);
-
-    std::string RULES = "";
-
-    if (args[0] == '[') {
-        // we have exec rules
-        const auto end = args.find_first_of(']');
-        if (end == std::string::npos)
-            return std::nullopt;
-
-        RULES = args.substr(1, end - 1);
-        args  = args.substr(end + 1);
-    }
-
-    std::string execToken = "";
-
-    if (!RULES.empty()) {
-        auto           rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
-
-        const auto     TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
-
-        const uint64_t PROC = spawnRawProc(args, pInitialWorkspace, TOKEN);
-        rule->markAsExecRule(TOKEN, PROC, false /* TODO: could be nice. */);
-        rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_TOKEN, TOKEN);
-        rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_PID, std::to_string(PROC));
-        Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
-        Log::logger->log(Log::DEBUG, "Applied rule arguments for exec.");
-        return PROC;
-    }
-    const uint64_t PROC = spawnRawProc(args, pInitialWorkspace, execToken);
-
-    return PROC;
-}
-
 SDispatchResult CKeybindManager::spawnRaw(std::string args) {
-    const uint64_t PROC = spawnRawProc(args, nullptr);
-    return {.success = PROC > 0, .error = std::format("Failed to start process {}", args)};
-}
-
-uint64_t CKeybindManager::spawnRawProc(std::string args, PHLWORKSPACE pInitialWorkspace, const std::string& execRuleToken) {
-    Log::logger->log(Log::DEBUG, "Executing {}", args);
-
-    const auto HLENV = getHyprlandLaunchEnv(pInitialWorkspace);
-
-    pid_t      child = fork();
-    if (child < 0) {
-        Log::logger->log(Log::DEBUG, "Fail to fork");
-        return 0;
-    }
-    if (child == 0) {
-        // run in child
-        g_pCompositor->restoreNofile();
-
-        sigset_t set;
-        sigemptyset(&set);
-        sigprocmask(SIG_SETMASK, &set, nullptr);
-
-        for (auto const& e : HLENV) {
-            setenv(e.first.c_str(), e.second.c_str(), 1);
-        }
-        setenv("WAYLAND_DISPLAY", g_pCompositor->m_wlDisplaySocket.c_str(), 1);
-        if (!execRuleToken.empty())
-            setenv(Desktop::Rule::EXEC_RULE_ENV_NAME, execRuleToken.c_str(), true);
-
-        int devnull = open("/dev/null", O_WRONLY | O_CLOEXEC);
-        if (devnull != -1) {
-            dup2(devnull, STDOUT_FILENO);
-            dup2(devnull, STDERR_FILENO);
-            close(devnull);
-        }
-
-        execl("/bin/sh", "/bin/sh", "-c", args.c_str(), nullptr);
-
-        // exit child
-        _exit(0);
-    }
-    // run in parent
-
-    Log::logger->log(Log::DEBUG, "Process Created with pid {}", child);
-
-    return child;
+    const auto PROC = Config::Supplementary::executor()->spawnRaw(args);
+    return {.success = PROC && *PROC > 0, .error = std::format("Failed to start process {}", args)};
 }
 
 SDispatchResult CKeybindManager::killActive(std::string args) {
@@ -1817,7 +1717,7 @@ SDispatchResult CKeybindManager::renameWorkspace(std::string args) {
 }
 
 SDispatchResult CKeybindManager::exitHyprland(std::string argz) {
-    g_pConfigManager->dispatchExecShutdown();
+    Event::bus()->m_events.exit.emit();
 
     if (g_pCompositor->m_finalRequests)
         return {}; // Exiting deferred until requests complete
@@ -1993,8 +1893,8 @@ SDispatchResult CKeybindManager::forceRendererReload(std::string args) {
         if (!m->m_output)
             continue;
 
-        auto rule = g_pConfigManager->getMonitorRuleFor(m);
-        if (!m->applyMonitorRule(&rule, true)) {
+        auto rule = Config::monitorRuleMgr()->get(m);
+        if (!m->applyMonitorRule(std::move(rule), true)) {
             overAgain = true;
             break;
         }
@@ -2870,14 +2770,15 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
 }
 
 SDispatchResult CKeybindManager::setIgnoreGroupLock(std::string args) {
-    static auto PIGNOREGROUPLOCK = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("binds:ignore_group_lock"));
+    // FIXME: this is no longer possible like this. It's redundant anyways. Can be easily scripted / lua'd
+    // static auto      PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
 
-    if (args == "toggle")
-        **PIGNOREGROUPLOCK = !**PIGNOREGROUPLOCK;
-    else
-        **PIGNOREGROUPLOCK = args == "on";
+    // if (args == "toggle")
+    //     *PIGNOREGROUPLOCK = !*PIGNOREGROUPLOCK;
+    // else
+    //     *PIGNOREGROUPLOCK = args == "on";
 
-    g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(**PIGNOREGROUPLOCK)});
+    // g_pEventManager->postEvent(SHyprIPCEvent{"ignoregrouplock", std::to_string(**PIGNOREGROUPLOCK)});
 
     return {};
 }
@@ -3011,7 +2912,7 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             PWINDOW->clampWindowSize(PWINDOW->m_ruleApplicator->minSize().value(), std::nullopt);
             PWINDOW->setHidden(false);
         } else if (PROP == "active_border_color" || PROP == "inactive_border_color") {
-            CGradientValueData colorData = {};
+            Config::CGradientValueData colorData = {};
             if (vars.size() > 4) {
                 for (int i = 3; i < sc<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
@@ -3133,7 +3034,7 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
     }
 
     if (PROP == "no_vrr")
-        g_pConfigManager->ensureVRR(PWINDOW->m_monitor.lock());
+        Config::monitorRuleMgr()->ensureVRR();
 
     for (auto const& m : g_pCompositor->m_monitors) {
         if (m->m_activeWorkspace)

@@ -34,14 +34,17 @@ std::string SConfigOptionDescription::jsonify() const {
                 else if (typeid(Config::VEC2) == std::type_index(*CONFIG_VAL.type)) {
                     const auto V = **rc<Config::VEC2* const*>(CONFIG_VAL.dataptr);
                     currentValue = std::format("\"{}, {}\"", V.x, V.y);
+                } else if (typeid(Hyprlang::VEC2) == std::type_index(*CONFIG_VAL.type)) {
+                    const auto V = **rc<Hyprlang::VEC2* const*>(CONFIG_VAL.dataptr);
+                    currentValue = std::format("\"{}, {}\"", V.x, V.y);
                 } else if (typeid(Config::IComplexConfigValue*) == std::type_index(*CONFIG_VAL.type)) {
                     const auto DATA = *rc<Config::IComplexConfigValue* const*>(CONFIG_VAL.dataptr);
                     currentValue    = std::format("\"{}\"", DATA->toString());
                 } else if (typeid(void*) == std::type_index(*CONFIG_VAL.type)) {
                     // legacy hyprlang value
-                    const auto DATA = *rc<Hyprlang::CConfigCustomValueType* const*>(CONFIG_VAL.dataptr);
+                    const auto DATA  = *rc<Hyprlang::CConfigCustomValueType* const*>(CONFIG_VAL.dataptr);
                     const auto DATA2 = rc<Config::IComplexConfigValue*>(DATA->getData());
-                    currentValue    = std::format("\"{}\"", DATA2->toString());
+                    currentValue     = std::format("\"{}\"", DATA2->toString());
                 }
 
                 try {

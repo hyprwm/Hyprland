@@ -7,7 +7,20 @@ namespace Layout {
 }
 
 namespace Layout::Tiled {
-    struct SMasterNodeData;
+
+    struct SMasterNodeData {
+        bool        isMaster   = false;
+        float       percMaster = 0.5f;
+        WP<ITarget> pTarget;
+        Vector2D    position;
+        Vector2D    size;
+        float       percSize               = 1.f;
+        bool        ignoreFullscreenChecks = false;
+
+        bool        operator==(const SMasterNodeData& rhs) const {
+            return pTarget.lock() == rhs.pTarget.lock();
+        }
+    };
 
     //orientation determines which side of the screen the master area resides
     enum eOrientation : uint8_t {
@@ -50,6 +63,8 @@ namespace Layout::Tiled {
         virtual void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        SP<SMasterNodeData>                      getNodeFromTarget(SP<ITarget>) const;
+
       private:
         std::vector<SP<SMasterNodeData>> m_masterNodesData;
         SMasterWorkspaceData             m_workspaceData;
@@ -64,7 +79,6 @@ namespace Layout::Tiled {
         eOrientation                     getDynamicOrientation();
         int                              getNodesNo();
         SP<SMasterNodeData>              getNodeFromWindow(PHLWINDOW);
-        SP<SMasterNodeData>              getNodeFromTarget(SP<ITarget>);
         SP<SMasterNodeData>              getMasterNode();
         SP<SMasterNodeData>              getClosestNode(const Vector2D&);
         void                             calculateWorkspace();

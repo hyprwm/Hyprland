@@ -141,7 +141,7 @@ eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {
 }
 
 uint64_t CHyprBorderDecoration::getDecorationFlags() {
-    static auto PPARTOFWINDOW = CConfigValue<Hyprlang::INT>("decoration:border_part_of_window");
+    static auto PPARTOFWINDOW = CConfigValue<Config::INTEGER>("decoration:border_part_of_window");
 
     return *PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
 }

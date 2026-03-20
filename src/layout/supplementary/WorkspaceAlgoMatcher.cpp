@@ -101,7 +101,7 @@ UP<IFloatingAlgorithm> CWorkspaceAlgoMatcher::algoForNameFloat(const std::string
 }
 
 std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) {
-    static auto PLAYOUT = CConfigValue<Hyprlang::STRING>("general:layout");
+    static auto PLAYOUT = CConfigValue<Config::STRING>("general:layout");
 
     auto        rule = Config::workspaceRuleMgr()->getWorkspaceRuleFor(w);
     return rule && rule->m_layout.has_value() ? rule->m_layout.value() : *PLAYOUT;

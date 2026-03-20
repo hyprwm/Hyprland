@@ -22,7 +22,7 @@ const std::vector<std::pair<CLayerRule::storageType, std::string>>& CLayerRule::
 }
 
 bool CLayerRule::matches(PHLLS ls) {
-    if (m_matchEngines.empty())
+    if (m_matchEngines.empty() || !m_enabled)
         return false;
 
     for (const auto& [prop, engine] : m_matchEngines) {
@@ -40,4 +40,12 @@ bool CLayerRule::matches(PHLLS ls) {
     }
 
     return true;
+}
+
+void CLayerRule::setEnabled(bool enable) {
+    m_enabled = enable;
+}
+
+bool CLayerRule::isEnabled() const {
+    return m_enabled;
 }

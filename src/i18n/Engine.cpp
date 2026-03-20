@@ -1354,8 +1354,8 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_TITLE, "الوضع الآمن");
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_DESCRIPTION,
                             "شُغل Hyprland في الوضع الآمن، هذا يعني أن جلستك الأخيرة قد انهارت.\nالوضع الآمن يمنع تحميل إعداداتك، "
-                            "يمكنك البحث عن وحل المشاكل في هذه البيئة، أو تحميل إعداداتك باستخدام الزر أدناه.\n اختصارات المفاتيح الافتراضية: الطرفية (Kitty) — SUPER+Q، مشغّل "
-                            "الأوامر البسيط — SUPER+R، الخروج — SUPER+M.\n"
+                            "يمكنك البحث عن وحل المشاكل في هذه البيئة، أو تحميل إعداداتك باستخدام الزر أدناه.\n اختصارات المفاتيح الافتراضية: الطرفية (Kitty) - SUPER+Q، مشغّل "
+                            "الأوامر البسيط - SUPER+R، الخروج - SUPER+M.\n"
                             "إعادة تشغيل Hyprland سيشغله في الوضع العادي");
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "حمل ملف الإعدادات");
     huEngine->registerEntry("ar", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "افتح مجلد تقرير الانهيار");

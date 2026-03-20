@@ -268,7 +268,8 @@ pkg_check_modules(
   gio-2.0
   re2
   muparser
-  lcms2)
+  lcms2
+  lua)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

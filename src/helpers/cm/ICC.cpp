@@ -232,7 +232,7 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
 }
 
 std::expected<SImageDescription, std::string> SImageDescription::fromICC(const std::filesystem::path& file) {
-    static auto     PVCGTENABLED = CConfigValue<Hyprlang::INT>("render:icc_vcgt_enabled");
+    static auto     PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
 
     std::error_code ec;
     if (!std::filesystem::exists(file, ec) || ec)

@@ -87,7 +87,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode) {
     m_dragMode = mode;
 
     const auto  DRAGGINGTARGET = m_target.lock();
-    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
+    static auto PDRAGTHRESHOLD = CConfigValue<Config::INTEGER>("binds:drag_threshold");
 
     m_mouseMoveEventCount = 1;
     m_beginDragSizeXY     = Vector2D();
@@ -112,7 +112,7 @@ void CDragStateController::dragBegin(SP<ITarget> target, eMouseBindMode mode) {
         return;
 
     // get the grab corner
-    static auto RESIZECORNER = CConfigValue<Hyprlang::INT>("general:resize_corner");
+    static auto RESIZECORNER = CConfigValue<Config::INTEGER>("general:resize_corner");
     if (*RESIZECORNER != 0 && *RESIZECORNER <= 4 && DRAGGINGTARGET->floating()) {
         switch (*RESIZECORNER) {
             case 1:
@@ -193,7 +193,7 @@ void CDragStateController::dragEnd() {
                 return;
 
             const bool  FLOATEDINTOTILED = !pWindow->m_isFloating && !m_draggingTiled;
-            static auto PDRAGINTOGROUP   = CConfigValue<Hyprlang::INT>("group:drag_into_group");
+            static auto PDRAGINTOGROUP   = CConfigValue<Config::INTEGER>("group:drag_into_group");
 
             if (pWindow->m_group && DRAGGING_WINDOW->canBeGroupedInto(pWindow->m_group) && *PDRAGINTOGROUP == 1 && !FLOATEDINTOTILED) {
                 pWindow->m_group->add(DRAGGING_WINDOW);
@@ -226,7 +226,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
         return;
 
     const auto  DRAGGINGTARGET = m_target.lock();
-    static auto PDRAGTHRESHOLD = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
+    static auto PDRAGTHRESHOLD = CConfigValue<Config::INTEGER>("binds:drag_threshold");
 
     // Window invalid or drag begin size 0,0 meaning we rejected it.
     if ((!validMapped(DRAGGINGTARGET->window()) || m_beginDragSizeXY == Vector2D())) {
@@ -248,7 +248,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     const auto  DELTA     = Vector2D(mousePos.x - m_beginDragXY.x, mousePos.y - m_beginDragXY.y);
     const auto  TICKDELTA = Vector2D(mousePos.x - m_lastDragXY.x, mousePos.y - m_lastDragXY.y);
 
-    static auto SNAPENABLED = CConfigValue<Hyprlang::INT>("general:snap:enabled");
+    static auto SNAPENABLED = CConfigValue<Config::INTEGER>("general:snap:enabled");
 
     const auto  TIMERDELTA    = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - TIMER).count();
     const auto  MSDELTA       = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - MSTIMER).count();

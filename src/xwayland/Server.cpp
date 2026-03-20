@@ -128,7 +128,7 @@ static std::string getSocketPath(int display, bool isLinux) {
 }
 
 static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
-    static auto CREATEABSTRACTSOCKET = CConfigValue<Hyprlang::INT>("xwayland:create_abstract_socket");
+    static auto CREATEABSTRACTSOCKET = CConfigValue<Config::INTEGER>("xwayland:create_abstract_socket");
 
     if (!ensureSocketDirExists())
         return false;

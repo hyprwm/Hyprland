@@ -20,6 +20,7 @@ namespace Render {
         SH_FEAT_SDR_MOD  = (1 << 6), // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
         SH_FEAT_BLUR     = (1 << 7), // condition: render:use_shader_blur_blend
         SH_FEAT_ICC      = (1 << 8), //
+        SH_FEAT_MIRROR   = (1 << 9), // condition: mirror or screenshare
 
         // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
     };

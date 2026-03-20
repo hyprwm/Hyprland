@@ -5,6 +5,7 @@
 #include <format>
 
 using namespace Monitor;
+using namespace NColorManagement;
 
 static const int MAX_WORK_BUFFERS   = 8;
 static const int MAX_UNUSED_SECONDS = 5;
@@ -68,4 +69,26 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
     }
 
     return m_monitorMirrorFB;
+}
+
+SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
+    return hasMirrorFB() ? mirrorFB()->getTexture() : nullptr;
+}
+
+void CMonitorResources::enableMirror() {
+    if (m_mirrorTex)
+        return;
+    m_mirrorTex = g_pHyprRenderer->createTexture();
+    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
+    m_mirrorTex->m_imageDescription = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
+        .primariesNameSet = m_imageDescription->value().primariesNameSet,
+        .primariesNamed   = m_imageDescription->value().primariesNamed,
+        .primaries        = m_imageDescription->value().primaries,
+        .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
+    });
+}
+
+void CMonitorResources::disableMirror() {
+    m_mirrorTex.reset();
 }

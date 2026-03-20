@@ -15,7 +15,11 @@ namespace Monitor {
         SP<Render::IFramebuffer> getUnusedWorkBuffer();
         void                     forEachUnusedFB(std::function<void(SP<Render::IFramebuffer>)> callback, bool includeNamed = false);
         bool                     hasMirrorFB();
+        void                     enableMirror();
+        void                     disableMirror();
         SP<Render::IFramebuffer> mirrorFB();
+        SP<Render::ITexture>     getMirrorTexture();
+        SP<Render::ITexture>     m_mirrorTex;
 
         SP<Render::ITexture>     m_stencilTex; // TODO fix blur ignore alpha and remove
         SP<Render::IFramebuffer> m_blurFB;

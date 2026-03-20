@@ -47,6 +47,9 @@ const mat3 targetPrimariesXYZ = mat3(0.0);
 #endif
 
 layout(location = 0) out vec4 fragColor;
+#if USE_MIRROR
+layout(location = 1) out vec4 mirrorColor;
+#endif
 void main() {
 #if USE_RGBA
     vec4 pixColor = texture(tex, v_texcoord);
@@ -63,10 +66,14 @@ void main() {
 #endif
 
 #if USE_CM
+#if USE_MIRROR
+    vec4[2] pixColors = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#else
     pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#endif
 #if USE_ICC
-                                 ,
-                                 iccLut3D, iccLutSize
+                                          ,
+                                          iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
                                  ,
@@ -82,6 +89,10 @@ void main() {
 #endif
 #endif
     );
+#endif
+#if USE_MIRROR
+    pixColor    = pixColors[0];
+    mirrorColor = pixColors[1];
 #endif
 
 #if USE_TINT
@@ -101,4 +112,23 @@ void main() {
 #endif
 
     fragColor = pixColor * alpha;
+#if USE_MIRROR
+#if USE_TINT
+    mirrorColor.rgb = mirrorColor.rgb * tint;
+#endif
+
+#if USE_ROUNDING
+    mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
+#endif
+#if USE_BLUR
+#if USE_DISCARD
+    mirrorColor = mix(mirrorColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0),
+                      discardAlpha && (mirrorColor.a <= discardAlphaValue) ? 0.0 : 1.0);
+#else
+    mirrorColor = vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0);
+#endif
+#endif
+
+    mirrorColor = mirrorColor * alpha;
+#endif
 }

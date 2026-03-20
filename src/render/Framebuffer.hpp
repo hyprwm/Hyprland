@@ -16,7 +16,7 @@ namespace Render {
         IFramebuffer(const std::string& name);
         virtual ~IFramebuffer() = default;
 
-        virtual bool                        alloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888);
+        virtual bool                        alloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888);
         virtual void                        release()                                                                                                                  = 0;
         virtual bool                        readPixels(CHLBufferReference buffer, uint32_t offsetX = 0, uint32_t offsetY = 0, uint32_t width = 0, uint32_t height = 0) = 0;
 
@@ -24,7 +24,10 @@ namespace Render {
 
         bool                                isAllocated();
         SP<ITexture>                        getTexture();
+        SP<ITexture>                        getMirrorTexture();
         SP<ITexture>                        getStencilTex();
+        void                                enableMirror(SP<ITexture> tex);
+        void                                disableMirror();
         NColorManagement::PImageDescription imageDescription();
 
         virtual void                        addStencil(SP<ITexture> tex) = 0;
@@ -33,9 +36,10 @@ namespace Render {
         DRMFormat                           m_drmFormat = DRM_FORMAT_INVALID;
 
       protected:
-        virtual bool internalAlloc(int w, int h, uint32_t format = DRM_FORMAT_ARGB8888) = 0;
+        virtual bool internalAlloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888) = 0;
 
         SP<ITexture> m_tex;
+        SP<ITexture> m_mirrorTex;
         bool         m_fbAllocated = false;
 
         SP<ITexture> m_stencilTex;

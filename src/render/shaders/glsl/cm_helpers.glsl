@@ -204,10 +204,14 @@ vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
 #include "tonemap.glsl"
 #endif
 
+#if USE_MIRROR
+vec4[2] doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+#else
 vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+#endif
 #if USE_ICC
-                       ,
-                       highp sampler3D iccLut3D, float iccLutSize
+                          ,
+                          highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
                        ,
@@ -235,6 +239,11 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, 
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);
 #endif
+#if USE_MIRROR
+    // TODO HDR -> SDR tonemap
+    vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_GAMMA22,
+                                     srcTF == CM_TRANSFER_FUNCTION_GAMMA22 || srcTF == CM_TRANSFER_FUNCTION_SRGB ? srcTFRange : vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
+#endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
 #if USE_SDR_MOD
     pixColor = saturate(pixColor, dstxyz, sdrSaturation);
@@ -242,7 +251,14 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, 
 #endif
 #endif
 
+#if USE_MIRROR
+    vec4[2] pixColors;
+    pixColors[0] = pixColor;
+    pixColors[1] = mirrorColor;
+    return pixColors;
+#else
     return pixColor;
+#endif
 }
 
 #endif

@@ -797,9 +797,8 @@ float CWindow::roundingPower() {
 
 void CWindow::updateWindowData() {
     const auto PWORKSPACE    = m_workspace;
-    const auto WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : Config::CWorkspaceRule{};
-    if (WORKSPACERULE)
-        updateWindowData(*WORKSPACERULE);
+    const auto WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
+    updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
 }
 
 void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
@@ -1945,8 +1944,6 @@ void CWindow::mapWindow() {
         m_target->setPseudo(true);
     }
 
-    updateWindowData();
-
     // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
     const auto SWALLOWER = getSwallower();
     m_swallowed          = SWALLOWER;
@@ -1972,6 +1969,8 @@ void CWindow::mapWindow() {
 
     if (!m_group && (m_groupRules & GROUP_SET))
         m_group = CGroup::create({m_self});
+
+    updateWindowData();
 
     if (m_isFloating) {
         m_createdOverFullscreen = true;

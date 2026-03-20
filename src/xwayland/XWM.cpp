@@ -1478,7 +1478,7 @@ int SXSelection::onRead(int fd, uint32_t mask) {
 
     if (bytesRead == 0) {
         if (transfer->data.empty()) {
-            Log::logger->log(Log::WARN, "[xwm] Transfer ended with zero bytes — rejecting");
+            Log::logger->log(Log::WARN, "[xwm] Transfer ended with zero bytes - rejecting");
             g_pXWayland->m_wm->selectionSendNotify(&transfer->request, false);
             transfers.erase(it);
             return 0;

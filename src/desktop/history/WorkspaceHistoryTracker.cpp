@@ -35,7 +35,7 @@ void CWorkspaceHistoryTracker::track(PHLWORKSPACE ws) {
     if (!ws || !ws->m_monitor)
         return;
 
-    static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    static auto PALLOWWORKSPACECYCLES = CConfigValue<Config::INTEGER>("binds:allow_workspace_cycles");
 
     if (!m_history.empty() && m_history.front().workspace == ws && !*PALLOWWORKSPACECYCLES)
         return;

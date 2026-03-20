@@ -105,7 +105,7 @@ CXDGOutput::CXDGOutput(SP<CZxdgOutputV1> resource_, PHLMONITOR monitor_) : m_mon
 }
 
 void CXDGOutput::sendDetails() {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     if UNLIKELY (!m_monitor || !m_outputProto || m_outputProto->isDefunct())
         return;

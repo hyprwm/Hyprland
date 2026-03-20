@@ -156,7 +156,7 @@ void CMonitorRuleManager::ensureMonitorStatus() {
 }
 
 void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
-    static auto PVRR = CConfigValue<Hyprlang::INT>("misc:vrr");
+    static auto PVRR = CConfigValue<Config::INTEGER>("misc:vrr");
 
     static auto ensureVRRForDisplay = [&](PHLMONITOR m) -> void {
         if (!m->m_output || m->m_createdByUser)

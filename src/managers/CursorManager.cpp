@@ -71,7 +71,7 @@ void CCursorBuffer::endDataPtr() {
 CCursorManager::CCursorManager() {
     m_hyprcursor               = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), hcLogger);
     m_xcursor                  = makeUnique<CXCursorManager>();
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
 
     if (m_hyprcursor->valid() && *PUSEHYPRCURSOR) {
         // find default size. First, HYPRCURSOR_SIZE then default to 24
@@ -160,7 +160,7 @@ void CCursorManager::setAnimationTimer(const int& frame, const int& delay) {
 
 void CCursorManager::setCursorFromName(const std::string& name) {
 
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
 
     auto        setXCursor = [this](auto const& name) {
         float scale = std::ceil(m_cursorScale);
@@ -272,7 +272,7 @@ SCursorImageData CCursorManager::dataFor(const std::string& name) {
 }
 
 void CCursorManager::setXWaylandCursor() {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     const auto  CURSOR         = dataFor("left_ptr");
     if (CURSOR.surface && *PUSEHYPRCURSOR)
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
@@ -286,7 +286,7 @@ void CCursorManager::setXWaylandCursor() {
 }
 
 void CCursorManager::updateTheme() {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
 
     for (auto const& m : g_pCompositor->m_monitors) {
@@ -314,7 +314,7 @@ void CCursorManager::updateTheme() {
 }
 
 bool CCursorManager::changeTheme(const std::string& name, const int size) {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     m_theme                    = name.empty() ? "" : name;
     m_size                     = size <= 0 ? 24 : size;
     auto xcursor_theme         = getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default";

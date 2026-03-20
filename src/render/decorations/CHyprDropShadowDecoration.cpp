@@ -38,7 +38,7 @@ std::string CHyprDropShadowDecoration::getDisplayName() {
 }
 
 void CHyprDropShadowDecoration::damageEntire() {
-    static auto PSHADOWS = CConfigValue<Hyprlang::INT>("decoration:shadow:enabled");
+    static auto PSHADOWS = CConfigValue<Config::INTEGER>("decoration:shadow:enabled");
 
     if (*PSHADOWS != 1)
         return; // disabled
@@ -58,7 +58,7 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     applyOffset(shadowBox);
 
-    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
+    static auto PSHADOWIGNOREWINDOW = CConfigValue<Config::INTEGER>("decoration:shadow:ignore_window");
     const auto  ROUNDING            = PWINDOW->rounding();
     const auto  ROUNDINGSIZE        = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
 
@@ -98,7 +98,7 @@ void CHyprDropShadowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
 }
 
 bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
-    static auto PSHADOWS = CConfigValue<Hyprlang::INT>("decoration:shadow:enabled");
+    static auto PSHADOWS = CConfigValue<Config::INTEGER>("decoration:shadow:enabled");
     if (*PSHADOWS != 1)
         return false; // disabled
 
@@ -125,10 +125,10 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
 
     const auto  PWINDOW = m_window.lock();
 
-    static auto PSHADOWSIZE         = CConfigValue<Hyprlang::INT>("decoration:shadow:range");
-    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
-    static auto PSHADOWSCALE        = CConfigValue<Hyprlang::FLOAT>("decoration:shadow:scale");
-    static auto PSHADOWOFFSET       = CConfigValue<Hyprlang::VEC2>("decoration:shadow:offset");
+    static auto PSHADOWSIZE         = CConfigValue<Config::INTEGER>("decoration:shadow:range");
+    static auto PSHADOWIGNOREWINDOW = CConfigValue<Config::INTEGER>("decoration:shadow:ignore_window");
+    static auto PSHADOWSCALE        = CConfigValue<Config::FLOAT>("decoration:shadow:scale");
+    static auto PSHADOWOFFSET       = CConfigValue<Config::VEC2>("decoration:shadow:offset");
 
     const auto  BORDERSIZE       = PWINDOW->getRealBorderSize();
     const auto  ROUNDINGBASE     = PWINDOW->rounding();
@@ -294,7 +294,7 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
 }
 
 void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
-    static auto PSHADOWSHARP = CConfigValue<Hyprlang::INT>("decoration:shadow:sharp");
+    static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)
         return;

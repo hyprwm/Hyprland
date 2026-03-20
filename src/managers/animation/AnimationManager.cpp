@@ -157,7 +157,7 @@ void CHyprAnimationManager::tick() {
     m_lastTickTimeMs                        = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - lastTick).count() / 1000.0;
     lastTick                                = std::chrono::high_resolution_clock::now();
 
-    static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
+    static auto PANIMENABLED = CConfigValue<Config::INTEGER>("animations:enabled");
 
     if (m_vActiveAnimatedVariables.empty()) {
         tickDone();

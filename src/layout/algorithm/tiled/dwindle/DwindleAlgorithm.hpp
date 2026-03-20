@@ -5,7 +5,25 @@ namespace Layout {
 }
 
 namespace Layout::Tiled {
-    struct SDwindleNodeData;
+    struct SDwindleNodeData {
+        WP<SDwindleNodeData>                pParent;
+        bool                                isNode = false;
+        WP<ITarget>                         pTarget;
+        std::array<WP<SDwindleNodeData>, 2> children = {};
+        WP<SDwindleNodeData>                self;
+        bool                                splitTop               = false; // for preserve_split
+        CBox                                box                    = {0};
+        float                               splitRatio             = 1.f;
+        bool                                valid                  = true;
+        bool                                ignoreFullscreenChecks = false;
+
+        // For list lookup
+        bool operator==(const SDwindleNodeData& rhs) const {
+            return pTarget.lock() == rhs.pTarget.lock() && box == rhs.box && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
+        }
+
+        void recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false);
+    };
 
     class CDwindleAlgorithm : public ITiledAlgorithm {
       public:
@@ -27,6 +45,8 @@ namespace Layout::Tiled {
         virtual void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        SP<SDwindleNodeData>                     getNodeFromWindow(PHLWINDOW w);
+
       private:
         std::vector<SP<SDwindleNodeData>> m_dwindleNodesData;
 
@@ -42,7 +62,6 @@ namespace Layout::Tiled {
         void                    addTarget(SP<ITarget> target);
         void                    calculateWorkspace();
         SP<SDwindleNodeData>    getNodeFromTarget(SP<ITarget>);
-        SP<SDwindleNodeData>    getNodeFromWindow(PHLWINDOW w);
         int                     getNodes();
         SP<SDwindleNodeData>    getFirstNode();
         SP<SDwindleNodeData>    getClosestNode(const Vector2D&, SP<ITarget> skip = nullptr);

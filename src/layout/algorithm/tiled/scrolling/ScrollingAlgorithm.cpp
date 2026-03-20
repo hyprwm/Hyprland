@@ -378,7 +378,7 @@ void SScrollingData::centerCol(SP<SColumnData> c) {
     if (!c)
         return;
 
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -390,7 +390,7 @@ void SScrollingData::fitCol(SP<SColumnData> c) {
     if (!c)
         return;
 
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -402,7 +402,7 @@ void SScrollingData::centerOrFitCol(SP<SColumnData> c) {
     if (!c)
         return;
 
-    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+    static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
 
     if (*PFITMETHOD == 1)
         fitCol(c);
@@ -411,7 +411,7 @@ void SScrollingData::centerOrFitCol(SP<SColumnData> c) {
 }
 
 SP<SColumnData> SScrollingData::atCenter() {
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
 
     size_t            centerIdx = controller->getStripAtCenter(USABLE, *PFSONONE);
@@ -427,7 +427,7 @@ void SScrollingData::recalculate(bool forceInstant) {
         algorithm->m_parent->space()->workspace()->m_hasFullscreenWindow)
         return;
 
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
 
     const CBox        USABLE   = algorithm->usableArea();
     const auto        WORKAREA = algorithm->m_parent->space()->workArea();
@@ -451,14 +451,14 @@ void SScrollingData::recalculate(bool forceInstant) {
 }
 
 double SScrollingData::maxWidth() {
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
 
     return controller->calculateMaxExtent(USABLE, *PFSONONE);
 }
 
 bool SScrollingData::visible(SP<SColumnData> c, bool full) {
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
     const auto        USABLE   = algorithm->usableArea();
     int64_t           colIdx   = idx(c);
 
@@ -469,8 +469,8 @@ bool SScrollingData::visible(SP<SColumnData> c, bool full) {
 }
 
 CScrollingAlgorithm::CScrollingAlgorithm() {
-    static const auto PCONFWIDTHS    = CConfigValue<Hyprlang::STRING>("scrolling:explicit_column_widths");
-    static const auto PCONFDIRECTION = CConfigValue<Hyprlang::STRING>("scrolling:direction");
+    static const auto PCONFWIDTHS    = CConfigValue<Config::STRING>("scrolling:explicit_column_widths");
+    static const auto PCONFDIRECTION = CConfigValue<Config::STRING>("scrolling:direction");
 
     m_scrollingData       = makeShared<SScrollingData>(this);
     m_scrollingData->self = m_scrollingData;
@@ -503,7 +503,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     };
 
     m_configCallback = Event::bus()->m_events.config.reloaded.listen([this, parseColumnWidths, parseDirection] {
-        static const auto PCONFDIRECTION = CConfigValue<Hyprlang::STRING>("scrolling:direction");
+        static const auto PCONFDIRECTION = CConfigValue<Config::STRING>("scrolling:direction");
 
         m_config.configuredWidths.clear();
         m_config.configuredWidths = parseColumnWidths(*PCONFWIDTHS);
@@ -513,7 +513,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     });
 
     m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
-        static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
+        static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
 
         if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
             focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_CLICK);
@@ -523,7 +523,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         if (!pWindow)
             return;
 
-        static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
+        static const auto PFOLLOW_FOCUS = CConfigValue<Config::INTEGER>("scrolling:follow_focus");
 
         if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))
             return;
@@ -549,7 +549,7 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
 }
 
 void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
-    static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Hyprlang::FLOAT>("scrolling:follow_min_visible");
+    static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Config::FLOAT>("scrolling:follow_min_visible");
 
     if (!target || target->space() != m_parent->space())
         return;
@@ -579,7 +579,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)
         return;
 
-    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+    static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
     if (*PFITMETHOD == 1)
         m_scrollingData->fitCol(TARGETDATA->column.lock());
     else
@@ -671,7 +671,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     if (!DATA->column || !DATA->column->scrollingData)
         return;
 
-    static const auto PFSONONE = CConfigValue<Hyprlang::INT>("scrolling:fullscreen_on_one_column");
+    static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
 
     const auto        ADJUSTED_DELTA = m_scrollingData->controller->isPrimaryHorizontal() ? delta : Vector2D{delta.y, delta.x};
     const auto        USABLE         = usableArea();
@@ -859,7 +859,7 @@ void CScrollingAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection 
 }
 
 void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     const auto  DATA = dataFor(t);
 
@@ -986,7 +986,7 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
 
 std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
     auto centerOrFit = [this](const SP<SColumnData> COL) -> void {
-        static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+        static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
         if (*PFITMETHOD == 1)
             m_scrollingData->fitCol(COL);
         else
@@ -1267,8 +1267,8 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         }
     } else if (ARGS[0] == "focus") {
         const auto        TDATA          = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-        static const auto PNOFALLBACK    = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
-        static const auto PCONFWRAPFOCUS = CConfigValue<Hyprlang::INT>("scrolling:wrap_focus");
+        static const auto PNOFALLBACK    = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
+        static const auto PCONFWRAPFOCUS = CConfigValue<Config::INTEGER>("scrolling:wrap_focus");
 
         if (!TDATA || ARGS[1].empty())
             return std::unexpected("no window to focus");
@@ -1429,7 +1429,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->recalculate();
     } else if (ARGS[0] == "swapcol") {
-        static const auto PCONFWRAPSWAPCOL = CConfigValue<Hyprlang::INT>("scrolling:wrap_swapcol");
+        static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::INTEGER>("scrolling:wrap_swapcol");
 
         if (ARGS.size() < 2)
             return std::unexpected("not enough args");
@@ -1550,7 +1550,7 @@ eScrollDirection CScrollingAlgorithm::getDynamicDirection() {
     if (WORKSPACERULE && WORKSPACERULE->m_layoutopts.contains("direction"))
         directionString = WORKSPACERULE->m_layoutopts.at("direction");
 
-    static const auto PCONFDIRECTION  = CConfigValue<Hyprlang::STRING>("scrolling:direction");
+    static const auto PCONFDIRECTION  = CConfigValue<Config::STRING>("scrolling:direction");
     std::string       configDirection = *PCONFDIRECTION;
 
     // Workspace rule overrides global config
@@ -1589,6 +1589,6 @@ CBox CScrollingAlgorithm::usableArea() {
 }
 
 float CScrollingAlgorithm::defaultColumnWidth() {
-    static const auto PCOLWIDTH = CConfigValue<Hyprlang::FLOAT>("scrolling:column_width");
+    static const auto PCOLWIDTH = CConfigValue<Config::FLOAT>("scrolling:column_width");
     return std::clamp(*PCOLWIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 }

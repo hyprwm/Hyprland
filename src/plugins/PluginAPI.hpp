@@ -25,6 +25,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../SharedDefs.hpp"
 #include "../defines.hpp"
 #include "../version.h"
+#include "../config/values/types/IValue.hpp"
 
 #include <any>
 #include <functional>
@@ -129,16 +130,20 @@ namespace HyprlandAPI {
         After you have registered ALL of your config values, you may call `getConfigValue`
 
         returns: true on success, false on fail
+
+        deprecated: please use V2
     */
-    APICALL bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
+    APICALL [[deprecated]] bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
 
     /*
         Add a config keyword.
         This method may only be called in "pluginInit"
 
         returns: true on success, false on fail
+
+        deprecated: please use V2
     */
-    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
+    APICALL [[deprecated]] bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
 
     /*
         Get a config value.
@@ -147,8 +152,10 @@ namespace HyprlandAPI {
 
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
                 nullptr on error.
+
+        Deprecated: please use V2
     */
-    APICALL Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
+    APICALL [[deprecated]] Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
         Deprecated: doesn't do anything anymore, use Event::bus()
@@ -325,6 +332,16 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
+
+    /*
+        Add a new config value. Keep the pointer, you can use it for retrieving the value.
+
+        Please note this value name must start with plugin:, e.g. plugin:my_plugin:value
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addConfigValueV2(HANDLE handle, SP<Config::Values::IValue> value);
+
 };
 
 // NOLINTBEGIN

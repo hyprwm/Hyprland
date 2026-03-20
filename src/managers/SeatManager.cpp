@@ -663,7 +663,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         if (parentLayer && parentLayer->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             Desktop::focusState()->rawSurfaceFocus(parentLayer->wlSurface()->resource());
         } else {
-            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
                 const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 

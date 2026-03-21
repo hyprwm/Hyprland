@@ -86,16 +86,8 @@ namespace Render::GL {
     };
 
     struct SPreparedShaders {
-        // SPreparedShaders() {
-        //     for (auto& f : frag) {
-        //         f = makeShared<CShader>();
-        //     }
-        // }
-
-        std::string TEXVERTSRC;
-        std::string TEXVERTSRC320;
-        // std::array<SP<CShader>, SH_FRAG_LAST> frag;
-        // std::map<uint8_t, SP<CShader>>        fragVariants;
+        std::string                                                                         TEXVERTSRC;
+        std::string                                                                         TEXVERTSRC320;
         std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
     };
 

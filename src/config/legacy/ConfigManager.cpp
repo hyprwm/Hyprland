@@ -51,6 +51,7 @@
 #include "../../event/EventBus.hpp"
 
 #include "../../protocols/types/ContentType.hpp"
+#include "render/types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
@@ -583,7 +584,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});
     registerConfigVar("debug:disable_time", Hyprlang::INT{1});
     registerConfigVar("debug:enable_stdout_logs", Hyprlang::INT{0});
-    registerConfigVar("debug:damage_tracking", {sc<Hyprlang::INT>(DAMAGE_TRACKING_FULL)});
+    registerConfigVar("debug:damage_tracking", {sc<Hyprlang::INT>(Render::DAMAGE_TRACKING_FULL)});
     registerConfigVar("debug:manual_crash", Hyprlang::INT{0});
     registerConfigVar("debug:suppress_errors", Hyprlang::INT{0});
     registerConfigVar("debug:error_limit", Hyprlang::INT{5});

@@ -341,6 +341,9 @@ void CLayerSurface::onCommit() {
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
                 g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
+
+            if (g_pSeatManager->m_state.pointerFocus == m_wlSurface->resource())
+                g_pInputManager->simulateMouseMovement();
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);

@@ -9,13 +9,13 @@
 #include <vector>
 #include <expected>
 
-#define SDR_MIN_LUMINANCE 0.2
-#define SDR_MAX_LUMINANCE 80.0
-#define SDR_REF_LUMINANCE 80.0
-#define HDR_MIN_LUMINANCE 0.005
-#define HDR_MAX_LUMINANCE 10000.0
-#define HDR_REF_LUMINANCE 203.0
-#define HLG_MAX_LUMINANCE 1000.0
+#define SDR_MIN_LUMINANCE 0.2f
+#define SDR_MAX_LUMINANCE 80.0f
+#define SDR_REF_LUMINANCE 80.0f
+#define HDR_MIN_LUMINANCE 0.005f
+#define HDR_MAX_LUMINANCE 10000.0f
+#define HDR_REF_LUMINANCE 203.0f
+#define HLG_MAX_LUMINANCE 1000.0f
 
 namespace Render {
     class ITexture;

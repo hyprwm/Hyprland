@@ -1612,7 +1612,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
         setProjectionType(RPT_MONITOR);
 
     const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB();
-    const bool NEEDS_COPY_FB = needsACopyFB(g_pHyprRenderer->m_renderData.pMonitor.lock());
+    const bool NEEDS_COPY_FB = g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB();
 
     if (HAS_MIRROR_FB && !NEEDS_COPY_FB)
         g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB()->release();
@@ -3158,14 +3158,14 @@ void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
 }
 
 NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() {
-    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
     // TODO
     // const bool  IS_MONITOR_ICC  = m_renderData.pMonitor->m_imageDescription.valid() && m_renderData.pMonitor->m_imageDescription->value().icc.present;
     // const auto  sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
     // const auto  CHOSEN_SDR_EOTF = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
 
-    return *PFP16 ? LINEAR_IMAGE_DESCRIPTION :
-                    m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
+    return m_renderData.pMonitor->useFP16() ?
+        LINEAR_IMAGE_DESCRIPTION :
+        m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});
 }
 
 bool IHyprRenderer::shouldBlur(PHLLS ls) {
@@ -3251,8 +3251,4 @@ SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const 
     cairo_surface_destroy(CAIROSURFACE);
     cairo_destroy(CAIRO);
     return tex;
-}
-
-bool IHyprRenderer::needsACopyFB(PHLMONITOR mon) {
-    return !mon->m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(mon);
 }

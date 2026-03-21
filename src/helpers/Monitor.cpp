@@ -2412,12 +2412,37 @@ bool CMonitorState::updateSwapchain() {
     return m_owner->m_output->swapchain->reconfigure(options);
 }
 
+bool CMonitor::needsACopyFB() {
+    return !m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_self.lock());
+}
+
+bool CMonitor::needsUnmodifiedCopy() {
+    static const auto PKEEP = CConfigValue<Hyprlang::INT>("render:keep_unmodified_copy");
+    if (*PKEEP == 1)
+        return true;
+
+    const bool HAS_MODS = m_sdrMinLuminance != SDR_MIN_LUMINANCE || m_sdrMaxLuminance != SDR_MAX_LUMINANCE || (m_sdrBrightness > 0 && m_sdrBrightness != 1.0) ||
+        (m_sdrSaturation > 0 && m_sdrSaturation != 1.0);
+
+    if (!HAS_MODS)
+        return false;
+
+    if (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_HLG)
+        return false;
+
+    return *PKEEP == 2 ? true : needsACopyFB();
+}
+
+bool CMonitor::useFP16() {
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    return *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+}
+
 WP<CMonitorResources> CMonitor::resources() {
-    static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
-    const auto        DRM_FORMAT = *PFP16 ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
+    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
-        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, *PFP16 ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription);
+        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription);
 
     return m_resources;
 }

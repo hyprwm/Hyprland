@@ -139,7 +139,7 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
 #ifdef __linux__
     if (*CREATEABSTRACTSOCKET) {
         addr.sun_path[0] = '\0';
-        path = getSocketPath(display, true);
+        path             = getSocketPath(display, true);
 
         strncpy(addr.sun_path + 1, path.c_str(), sizeof(addr.sun_path) - 2);
     } else {
@@ -161,7 +161,6 @@ static bool openSockets(std::array<CFileDescriptor, 2>& sockets, int display) {
 
     sockets[0] = CFileDescriptor{createSocket(&addr, path.length())};
 
-    
     if (!sockets[0].isValid())
         return false;
 

@@ -43,14 +43,14 @@ SP<ITexture> IFramebuffer::getStencilTex() {
 void IFramebuffer::enableMirror(SP<ITexture> tex) {
     if (!tex || tex == m_mirrorTex)
         return;
-    m_mirrorTex = tex;
-    internalAlloc(m_size.x, m_size.y, m_drmFormat);
+    m_mirrorTex   = tex;
+    m_fbAllocated = internalAlloc(m_size.x, m_size.y, m_drmFormat);
 }
 
 void IFramebuffer::disableMirror() {
     if (m_mirrorTex) {
         m_mirrorTex.reset();
-        internalAlloc(m_size.x, m_size.y, m_drmFormat);
+        m_fbAllocated = internalAlloc(m_size.x, m_size.y, m_drmFormat);
     }
 }
 

@@ -141,7 +141,7 @@ static int openRenderNode(int drmFd) {
 }
 
 static ShaderFeatureFlags globalFeatures() {
-    return g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB() ? SH_FEAT_MIRROR : 0;
+    return g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->needsUnmodifiedCopy() ? SH_FEAT_MIRROR : 0;
 }
 
 void CHyprOpenGLImpl::initEGL(bool gbm) {

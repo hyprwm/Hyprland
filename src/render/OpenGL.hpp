@@ -45,7 +45,9 @@ struct gbm_device;
 namespace Render {
     class IHyprRenderer;
 }
-class CGradientValueData;
+namespace Config {
+    class CGradientValueData;
+}
 
 namespace Render::GL {
 
@@ -200,57 +202,57 @@ namespace Render::GL {
             int   outerRound    = -1; /* use round */
         };
 
-        void                                      makeEGLCurrent();
-        void                                      begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
-        void                                      beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
-        void                                      end();
+        void                           makeEGLCurrent();
+        void                           begin(PHLMONITOR, const CRegion& damage, SP<IFramebuffer> fb = nullptr, std::optional<CRegion> finalDamage = {});
+        void                           beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
+        void                           end();
 
-        void                                      renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
-        void                                      renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
-        void                                      renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
-        void                                      renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
-        void                                      renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
-        void                                      renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
-        void                                      renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
+        void                           renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
+        void                           renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+        void                           renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
+        void                           renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
+        void                           renderBorder(const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
+        void                           renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
+        void                           renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
 
-        void                                      setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
-        void                                      setCapStatus(int cap, bool status);
+        void                           setViewport(GLint x, GLint y, GLsizei width, GLsizei height);
+        void                           setCapStatus(int cap, bool status);
 
-        void                                      blend(bool enabled);
+        void                           blend(bool enabled);
 
-        void                                      scissor(const CBox&, bool transform = true);
-        void                                      scissor(const pixman_box32*, bool transform = true);
-        void                                      scissor(const int x, const int y, const int w, const int h, bool transform = true);
+        void                           scissor(const CBox&, bool transform = true);
+        void                           scissor(const pixman_box32*, bool transform = true);
+        void                           scissor(const int x, const int y, const int w, const int h, bool transform = true);
 
-        void                                      destroyMonitorResources(PHLMONITORREF);
+        void                           destroyMonitorResources(PHLMONITORREF);
 
-        void                                      preRender(PHLMONITOR);
+        void                           preRender(PHLMONITOR);
 
-        void                                      saveBufferForMirror(const CBox&);
+        void                           saveBufferForMirror(const CBox&);
 
-        void                                      applyScreenShader(const std::string& path);
+        void                           applyScreenShader(const std::string& path);
 
-        void                                      renderOffToMain(SP<IFramebuffer> off);
+        void                           renderOffToMain(SP<IFramebuffer> off);
 
-        std::vector<SDRMFormat>                   getDRMFormats();
-        std::vector<uint64_t>                     getDRMFormatModifiers(DRMFormat format);
-        EGLImageKHR                               createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
+        std::vector<SDRMFormat>        getDRMFormats();
+        std::vector<uint64_t>          getDRMFormatModifiers(DRMFormat format);
+        EGLImageKHR                    createEGLImage(const Aquamarine::SDMABUFAttrs& attrs);
 
-        bool                                      initShaders(const std::string& path = "");
+        bool                           initShaders(const std::string& path = "");
 
-        WP<CShader>                               useShader(WP<CShader> prog);
+        WP<CShader>                    useShader(WP<CShader> prog);
 
-        bool                                      explicitSyncSupported();
-        WP<CShader>                               getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
+        bool                           explicitSyncSupported();
+        WP<CShader>                    getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
 
-        bool                                      m_shadersInitialized = false;
-        SP<SPreparedShaders>                      m_shaders;
+        bool                           m_shadersInitialized = false;
+        SP<SPreparedShaders>           m_shaders;
 
-        Hyprutils::OS::CFileDescriptor            m_gbmFD;
-        gbm_device*                               m_gbmDevice  = nullptr;
-        EGLContext                                m_eglContext = nullptr;
-        EGLDisplay                                m_eglDisplay = nullptr;
-        EGLDeviceEXT                              m_eglDevice  = nullptr;
+        Hyprutils::OS::CFileDescriptor m_gbmFD;
+        gbm_device*                    m_gbmDevice  = nullptr;
+        EGLContext                     m_eglContext = nullptr;
+        EGLDisplay                     m_eglDisplay = nullptr;
+        EGLDeviceEXT                   m_eglDevice  = nullptr;
 
         std::map<PHLMONITORREF, SP<IFramebuffer>> m_monitorBGFBs;
 

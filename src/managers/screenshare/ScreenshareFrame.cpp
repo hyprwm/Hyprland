@@ -164,6 +164,10 @@ void CScreenshareFrame::renderMonitor() {
     const auto PMONITOR = m_session->monitor();
 
     auto       TEXTURE = g_pHyprRenderer->m_renderData.pMonitor->resources()->getMirrorTexture();
+    if (!TEXTURE) {
+        LOGM(Log::ERR, "Invalid source texture");
+        return;
+    }
 
     const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.transformDamage = false;

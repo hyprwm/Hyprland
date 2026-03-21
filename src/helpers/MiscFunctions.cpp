@@ -927,12 +927,18 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     return fullPath;
 }
 
-std::string deviceNameToInternalString(std::string in) {
-    std::ranges::replace(in, ' ', '-');
-    std::ranges::replace(in, '\n', '-');
-    std::ranges::replace(in, ',', '-');
-    std::ranges::transform(in, in.begin(), ::tolower);
-    return in;
+std::string deviceNameToInternalString(const std::string& in) {
+    auto result = in | std::views::transform([](unsigned char ch) -> char {
+                      switch (ch) {
+                          case ' ':
+                          case '\n':
+                          case ',': return '-';
+
+                          default: return static_cast<char>(std::tolower(ch));
+                      }
+                  });
+
+    return result | std::ranges::to<std::string>();
 }
 
 static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};

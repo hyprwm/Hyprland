@@ -91,6 +91,8 @@ void CGLFramebuffer::release() {
     if (m_fbAllocated) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+        if (m_mirrorTex)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glDeleteFramebuffers(1, &m_fb);

@@ -24,32 +24,33 @@ float modifiedLength(vec2 a, float roundingPower) {
 }
 
 #if USE_MIRROR
-vec4[2] getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight
+vec4[2]
 #else
-vec4 getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight
+vec4
 #endif
+    getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight
 #if USE_CM
-                  ,
-                  int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+              ,
+              int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
-                  ,
-                  highp sampler3D iccLut3D, float iccLutSize
+              ,
+              highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                  ,
-                  mat3 targetPrimariesXYZ
+              ,
+              mat3 targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                  ,
-                  float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance
+              ,
+              float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                  ,
-                  float sdrSaturation, float sdrBrightnessMultiplier
+              ,
+              float sdrSaturation, float sdrBrightnessMultiplier
 #endif
 #endif
 #endif
-) {
+    ) {
     float originalAlpha = pixColor[3];
 
     bool  done = false;
@@ -105,28 +106,29 @@ vec4 getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower
 
 #if USE_CM
 #if USE_MIRROR
-    vec4[2] pixColors = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+    vec4[2] pixColors =
 #else
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+    pixColor =
 #endif
+        doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                                          ,
-                                          iccLut3D, iccLutSize
+                          ,
+                          iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                                 ,
-                                 targetPrimariesXYZ
+                          ,
+                          targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                                 ,
-                                 maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                          ,
+                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                                 ,
-                                 sdrSaturation, sdrBrightnessMultiplier
+                          ,
+                          sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
-    );
+        );
 #endif
 #if USE_MIRROR
     return pixColors;

@@ -34,32 +34,33 @@ layout(location = 1) out vec4 mirrorColor;
 void main() {
     vec4 pixColor = v_color;
 #if USE_MIRROR
-    vec4[2] pixColors = getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
+    vec4[2] pixColors =
 #else
-    fragColor = getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
+    fragColor =
 #endif
+        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
 #if USE_CM
-                                  ,
-                                  sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+                  ,
+                  sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                                  ,
-                                  iccLut3D, iccLutSize
+                  ,
+                  iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                                  ,
-                                  targetPrimariesXYZ
+                  ,
+                  targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                                  ,
-                                  maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                  ,
+                  maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                                  ,
-                                  sdrSaturation, sdrBrightnessMultiplier
+                  ,
+                  sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
 #endif
-    );
+        );
 #if USE_MIRROR
     fragColor   = pixColors[0];
     mirrorColor = pixColors[1];

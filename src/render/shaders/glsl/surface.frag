@@ -67,28 +67,29 @@ void main() {
 
 #if USE_CM
 #if USE_MIRROR
-    vec4[2] pixColors = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+    vec4[2] pixColors =
 #else
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+    pixColor =
 #endif
+        doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                                          ,
-                                          iccLut3D, iccLutSize
+                          ,
+                          iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                                 ,
-                                 targetPrimariesXYZ
+                          ,
+                          targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                                 ,
-                                 maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                          ,
+                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                                 ,
-                                 sdrSaturation, sdrBrightnessMultiplier
+                          ,
+                          sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
-    );
+        );
 #endif
 #if USE_MIRROR
     pixColor    = pixColors[0];

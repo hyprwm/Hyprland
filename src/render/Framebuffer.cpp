@@ -55,5 +55,11 @@ void IFramebuffer::disableMirror() {
 }
 
 NColorManagement::PImageDescription IFramebuffer::imageDescription() {
-    return m_tex ? m_tex->m_imageDescription : NColorManagement::PImageDescription(nullptr);
+    return m_tex ? m_tex->m_imageDescription : m_imageDescription;
+}
+
+void IFramebuffer::setImageDescription(NColorManagement::PImageDescription desc) {
+    m_imageDescription = desc;
+    if (m_tex)
+        m_tex->m_imageDescription = desc;
 }

@@ -29,6 +29,7 @@ namespace Render {
         void                                enableMirror(SP<ITexture> tex);
         void                                disableMirror();
         NColorManagement::PImageDescription imageDescription();
+        void                                setImageDescription(NColorManagement::PImageDescription desc);
 
         virtual void                        addStencil(SP<ITexture> tex) = 0;
 
@@ -36,13 +37,15 @@ namespace Render {
         DRMFormat                           m_drmFormat = DRM_FORMAT_INVALID;
 
       protected:
-        virtual bool internalAlloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888) = 0;
+        virtual bool                        internalAlloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888) = 0;
 
-        SP<ITexture> m_tex;
-        SP<ITexture> m_mirrorTex;
-        bool         m_fbAllocated = false;
+        SP<ITexture>                        m_tex;
+        SP<ITexture>                        m_mirrorTex;
+        bool                                m_fbAllocated = false;
 
-        SP<ITexture> m_stencilTex;
-        std::string  m_name; // name for logging
+        SP<ITexture>                        m_stencilTex;
+        std::string                         m_name; // name for logging
+
+        NColorManagement::PImageDescription m_imageDescription;
     };
 }

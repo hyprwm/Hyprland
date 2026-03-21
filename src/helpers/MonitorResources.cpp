@@ -20,7 +20,7 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
 void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
     fb->addStencil(m_stencilTex);
     fb->alloc(m_size.x, m_size.y, m_drmFormat);
-    fb->getTexture()->m_imageDescription = m_imageDescription;
+    fb->setImageDescription(m_imageDescription);
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
@@ -65,7 +65,7 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
 
     if (!m_monitorMirrorFB->isAllocated()) {
         m_monitorMirrorFB->alloc(m_size.x, m_size.y, DRM_FORMAT_XRGB8888);
-        m_monitorMirrorFB->getTexture()->m_imageDescription = NColorManagement::DEFAULT_IMAGE_DESCRIPTION;
+        m_monitorMirrorFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
     }
 
     return m_monitorMirrorFB;

@@ -205,13 +205,14 @@ vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
 #endif
 
 #if USE_MIRROR
-vec4[2] doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+vec4[2]
 #else
-vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+vec4
 #endif
+    doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
-                          ,
-                          highp sampler3D iccLut3D, float iccLutSize
+                      ,
+                      highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
                        ,
@@ -226,7 +227,7 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, 
                        float sdrSaturation, float sdrBrightnessMultiplier
 #endif
 #endif
-) {
+    ) {
     pixColor.rgb /= max(pixColor.a, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
 #if USE_ICC

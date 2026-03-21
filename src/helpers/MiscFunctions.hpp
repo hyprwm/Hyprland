@@ -42,7 +42,7 @@ float                                   stringToPercentage(const std::string& VA
 bool                                    isNvidiaDriverVersionAtLeast(int threshold);
 std::expected<std::string, std::string> binaryNameForWlClient(wl_client* client);
 std::expected<std::string, std::string> binaryNameForPid(pid_t pid);
-std::string                             deviceNameToInternalString(std::string in);
+std::string                             deviceNameToInternalString(const std::string& in);
 std::string                             getSystemLibraryVersion(const std::string& name);
 std::string                             getBuiltSystemLibraryNames();
 bool                                    truthy(const std::string& str);

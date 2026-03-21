@@ -192,8 +192,6 @@ namespace Render {
                                                       SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 
-        bool                            needsACopyFB(PHLMONITOR mon);
-
       protected:
         virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;
         virtual SP<IRenderbuffer> getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) = 0;

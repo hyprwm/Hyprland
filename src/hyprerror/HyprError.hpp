@@ -5,14 +5,16 @@
 #include "../helpers/AnimatedVariable.hpp"
 
 #include <cairo/cairo.h>
+#include <string>
 
 class CHyprError {
   public:
     CHyprError();
     ~CHyprError() = default;
 
-    void         queueCreate(std::string message, const CHyprColor& color);
-    void         queueError(std::string err);
+    // Improved: Pass strings by constant reference to prevent unnecessary copying
+    void         queueCreate(const std::string& message, const CHyprColor& color);
+    void         queueError(const std::string& err);
     void         draw();
     void         destroy();
 
@@ -23,6 +25,7 @@ class CHyprError {
 
   private:
     void              createQueued();
+
     std::string       m_queued = "";
     CHyprColor        m_queuedColor;
     bool              m_queuedDestroy = false;

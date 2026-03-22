@@ -1,12 +1,13 @@
 #include "TexPassElement.hpp"
 #include "../Renderer.hpp"
+#include "macros.hpp"
 
 CTexPassElement::CTexPassElement(const SRenderData& data) : m_data(data) {
-    ;
+    RASSERT(m_data.tex && m_data.tex->ok(), "Trying to render invalid tex");
 }
 
 CTexPassElement::CTexPassElement(CTexPassElement::SRenderData&& data) : m_data(std::move(data)) {
-    ;
+    RASSERT(m_data.tex && m_data.tex->ok(), "Trying to render invalid tex");
 }
 
 bool CTexPassElement::needsLiveBlur() {

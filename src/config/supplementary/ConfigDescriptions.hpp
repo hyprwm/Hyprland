@@ -1677,6 +1677,18 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
         },
+        {
+            .value       = "render:use_fp16",
+            .description = "Use experimental internal FP16 buffer. 0 - disabled, 1 - on, 2 - auto (enabled in HDR mode)",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
+        },
+        {
+            .value       = "render:keep_unmodified_copy",
+            .description = "Keep umodified SDR frame copy for sreensharing. 0 - disabled, 1 - on, 2 - auto (enabled in HDR with SDR modifiers)",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
+        },
 
         /*
      * cursor:

@@ -6,15 +6,17 @@
 
 class CMonitor;
 
-class CGLRenderbuffer : public IRenderbuffer {
-  public:
-    CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
-    ~CGLRenderbuffer();
+namespace Render::GL {
+    class CGLRenderbuffer : public IRenderbuffer {
+      public:
+        CGLRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t format);
+        ~CGLRenderbuffer();
 
-    void bind() override;
-    void unbind() override;
+        void bind() override;
+        void unbind() override;
 
-  private:
-    void*  m_image = nullptr;
-    GLuint m_rbo   = 0;
-};
+      private:
+        void*  m_image = nullptr;
+        GLuint m_rbo   = 0;
+    };
+}

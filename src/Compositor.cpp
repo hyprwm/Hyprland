@@ -98,6 +98,7 @@ using namespace Hyprutils::String;
 using namespace Aquamarine;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Render::GL;
 
 static int handleCritSignal(int signo, void* data) {
     Log::logger->log(Log::DEBUG, "Hyprland received signal {}", signo);
@@ -2551,10 +2552,10 @@ void CCompositor::openSafeModeBox() {
 
     auto       box = CAsyncDialogBox::create(I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_TITLE), I18n::i18nEngine()->localize(I18n::TXT_KEY_SAFE_MODE_DESCRIPTION),
                                              {
-                                                 OPT_LOAD,
-                                                 OPT_OPEN,
-                                                 OPT_OK,
-                                             });
+                                           OPT_LOAD,
+                                           OPT_OPEN,
+                                           OPT_OK,
+                                       });
 
     box->open()->then([OPT_LOAD, OPT_OK, OPT_OPEN, this](SP<CPromiseResult<std::string>> result) {
         if (result->hasError())

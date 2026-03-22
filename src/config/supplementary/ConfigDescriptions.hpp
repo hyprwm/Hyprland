@@ -1712,6 +1712,12 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_INT,
             .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
+        SConfigOptionDescription{
+            .value       = "render:use_vulkan",
+            .description = "Use experimental vulkan renderer",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
 
         /*
      * cursor:

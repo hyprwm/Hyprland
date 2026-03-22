@@ -36,6 +36,8 @@
 #include "debug/crash/CrashReporter.hpp"
 #include "render/GLRenderer.hpp"
 #include "render/ShaderLoader.hpp"
+#include "render/VKRenderer.hpp"
+#include "render/vulkan/Vulkan.hpp"
 #ifdef USES_SYSTEMD
 #include <helpers/SdDaemon.hpp> // for SdNotify
 #endif
@@ -574,8 +576,13 @@ void CCompositor::cleanup() {
     m_workspaces.clear();
     m_windows.clear();
 
-    for (auto const& m : m_monitors) {
-        g_pHyprOpenGL->destroyMonitorResources(m);
+    if (g_pHyprRenderer) {
+        const auto gl = g_pHyprRenderer->glBackend();
+        if (gl) {
+            for (auto const& m : m_monitors) {
+                gl->destroyMonitorResources(m);
+            }
+        }
     }
 
     g_pXWayland.reset();
@@ -596,6 +603,7 @@ void CCompositor::cleanup() {
     g_pSessionLockManager.reset();
     g_pHyprRenderer.reset();
     g_pProtocolManager.reset();
+    Render::VK::g_pHyprVulkan.reset();
     g_pHyprOpenGL.reset();
     Render::g_pShaderLoader.reset();
     Config::mgr().reset();
@@ -667,8 +675,17 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the CHyprOpenGLImpl!");
             g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
 
+            static auto PVKRENDERER = CConfigValue<Hyprlang::INT>("render:use_vulkan");
+            if (*PVKRENDERER) {
+                Log::logger->log(Log::DEBUG, "Creating the CHyprVulkanImpl!");
+                Render::VK::g_pHyprVulkan = makeUnique<Render::VK::CHyprVulkanImpl>();
+            }
+
             Log::logger->log(Log::DEBUG, "Creating the HyprRenderer!");
-            g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
+            if (*PVKRENDERER)
+                g_pHyprRenderer = makeUnique<Render::VK::CHyprVKRenderer>();
+            else
+                g_pHyprRenderer = makeUnique<CHyprGLRenderer>();
 
             Log::logger->log(Log::DEBUG, "Creating the ProtocolManager!");
             g_pProtocolManager = makeUnique<CProtocolManager>();

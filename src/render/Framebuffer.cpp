@@ -65,3 +65,7 @@ void IFramebuffer::setImageDescription(NColorManagement::PImageDescription desc)
     else
         Log::logger->log(Log::TRACE, "CM: FIXME no framebuffer texture");
 }
+
+void IFramebuffer::setName(const std::string& name) {
+    m_name = name;
+}

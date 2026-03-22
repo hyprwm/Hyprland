@@ -1645,12 +1645,6 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
         },
         SConfigOptionDescription{
-            .value       = "render:cm_fs_passthrough",
-            .description = "Passthrough color settings for fullscreen apps when possible",
-            .type        = CONFIG_OPTION_INT,
-            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
-        },
-        SConfigOptionDescription{
             .value       = "render:cm_enabled",
             .description = "Enable Color Management pipelines (requires restart to fully take effect)",
             .type        = CONFIG_OPTION_BOOL,
@@ -1665,7 +1659,7 @@ namespace Config::Supplementary {
         SConfigOptionDescription{
             .value = "render:cm_auto_hdr",
             .description =
-                "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid (cm_fs_passthrough can switch to hdr even when this setting is off)",
+                "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid",
             .type = CONFIG_OPTION_INT,
             .data = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
         },

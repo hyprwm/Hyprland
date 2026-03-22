@@ -2045,7 +2045,7 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
     if (submap.empty())
         submap = "default";
 
-    return format == FORMAT_JSON ? std::format("{{\"{}\"}}\n", escapeJSONStrings(submap)) : (submap + "\n");
+    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : (submap + "\n");
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {

@@ -53,6 +53,7 @@
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
 #include "types.hpp"
+#include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -2254,7 +2255,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (*PCT)
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
-    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM)) {
+    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM) || pMonitor->m_ctmUpdated) {
         if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
             (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired())) {
             if (pMonitor->m_noShaderCTM) {
@@ -2266,10 +2267,22 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             const auto FS_DESC = pMonitor->getFSImageDescription();
             if (FS_DESC.has_value()) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
-                pMonitor->m_noShaderCTM               = true;
-                auto                       conversion = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
-                const auto                 mat        = conversion.mat();
-                const std::array<float, 9> CTM        = {
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+                auto conversion         = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
+                if (pMonitor->m_ctm != Mat3x3::identity()) {
+                    const auto&                          ctm    = pMonitor->m_ctm.getMatrix();
+                    std::array<std::array<double, 3>, 3> values = {
+                        {
+                            {ctm[0], ctm[1], ctm[2]},
+                            {ctm[3], ctm[4], ctm[5]},
+                            {ctm[6], ctm[7], ctm[8]},
+                        },
+                    };
+                    conversion = conversion * Hyprgraphics::CMatrix3(values);
+                }
+                const auto                 mat = conversion.mat();
+                const std::array<float, 9> CTM = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //

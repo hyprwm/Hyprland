@@ -1366,7 +1366,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             shader = getShaderVariant(SH_FRAG_SURFACE, shaderFeatures | globalFeatures());
         shader = useShader(shader);
 
-        passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
+        passCMUniforms(shader, SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
                        g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
     } else {
         if (!shader)

@@ -4,6 +4,7 @@
 #include "../../config/ConfigValue.hpp"
 #include "../pass/ShadowPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../pass/RectPassElement.hpp"
 #include "../pass/TextureMatteElement.hpp"
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
@@ -233,50 +234,50 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     g_pHyprRenderer->disableScissor();
 
     if (data.ignoreWindow) {
-        // we'll take the liberty of using this as it should not be used rn
-        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorFB;
-        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->m_mirrorSwapFB;
-        const auto LASTFB      = g_pHyprRenderer->m_renderData.currentFB;
+        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
 
         CBox       monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
 
-        alphaFB->bind();
+        auto       guard = g_pHyprRenderer->bindTempFB(alphaFB); // store current FB inside guard
 
+        // TODO not needed for 8bpc and 16fp?
         // build the matte
         // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
         // first, clear region of interest with black (fully transparent)
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{.box = data.fullBox, .color = CHyprColor(0, 0, 0, 1), .round = 0}), monbox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = CHyprColor(0, 0, 0, 1), .round = 0}, monbox);
 
         // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
         drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale,
                            CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
 
         // render black window box ("clip")
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = data.windowBox,
-                                  .color         = CHyprColor(0, 0, 0, 1),
-                                  .round         = (data.rounding + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale,
-                                  .roundingPower = data.roundingPower,
-                              }),
-                              monbox);
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = data.windowBox,
+                .color         = CHyprColor(0, 0, 0, 1),
+                .round         = (data.rounding + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale,
+                .roundingPower = data.roundingPower,
+            },
+            monbox);
 
-        alphaSwapFB->bind();
+        g_pHyprRenderer->bindFB(alphaSwapFB);
 
         // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}),
-                              monbox);
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}, monbox);
 
-        LASTFB->bind();
+        guard.reset(); // restore FB
 
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         g_pHyprRenderer->m_renderData.renderModif.enabled = false;
 
-        g_pHyprRenderer->draw(makeUnique<CTextureMatteElement>(CTextureMatteElement::STextureMatteData{
-                                  .box = monbox,
-                                  .tex = alphaSwapFB->getTexture(),
-                                  .fb  = alphaFB,
-                              }),
-                              {});
+        g_pHyprRenderer->draw(
+            CTextureMatteElement::STextureMatteData{
+                .box = monbox,
+                .tex = alphaSwapFB->getTexture(),
+                .fb  = alphaFB,
+            },
+            {});
 
         g_pHyprRenderer->m_renderData.renderModif.enabled = true;
         g_pHyprRenderer->popMonitorTransformEnabled();
@@ -303,13 +304,12 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     color.a *= a;
 
     if (*PSHADOWSHARP)
-        g_pHyprRenderer->draw(makeUnique<CRectPassElement>(CRectPassElement::SRectData{
-                                  .box           = box,
-                                  .color         = color,
-                                  .round         = round,
-                                  .roundingPower = roundingPower,
-                              }),
-                              {});
+        g_pHyprRenderer->draw(CRectPassElement::SRectData{
+            .box           = box,
+            .color         = color,
+            .round         = round,
+            .roundingPower = roundingPower,
+        });
     else
         g_pHyprRenderer->drawShadow(box, round, roundingPower, range, color, 1.F);
 }

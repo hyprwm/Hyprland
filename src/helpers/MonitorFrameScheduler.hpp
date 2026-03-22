@@ -1,10 +1,9 @@
 #pragma once
 
 #include "Monitor.hpp"
+#include "../render/SyncFDManager.hpp"
 
 #include <chrono>
-
-class CEGLSync;
 
 class CMonitorFrameScheduler {
   public:
@@ -32,7 +31,7 @@ class CMonitorFrameScheduler {
 
     PHLMONITORREF              m_monitor;
 
-    UP<CEGLSync>               m_sync;
+    UP<Render::ISyncFDManager> m_sync;
 
     WP<CMonitorFrameScheduler> m_self;
 

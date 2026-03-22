@@ -9,7 +9,9 @@
 #include <any>
 
 class CInputManager;
-class IHyprRenderer;
+namespace Render {
+    class IHyprRenderer;
+}
 class CTextInputV1;
 class CInputMethodV2;
 
@@ -54,7 +56,7 @@ class CInputMethodRelay {
         CHyprSignalListener newPopup;
     } m_listeners;
 
-    friend class IHyprRenderer;
+    friend class Render::IHyprRenderer;
     friend class CInputManager;
     friend class CTextInputV1ProtocolManager;
     friend class CTextInput;

@@ -28,30 +28,41 @@ uniform float shadowPower;
 #include "shadow.glsl"
 
 layout(location = 0) out vec4 fragColor;
+#if USE_MIRROR
+layout(location = 1) out vec4 mirrorColor;
+#endif
 void main() {
     vec4 pixColor = v_color;
-
-    fragColor = getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
+#if USE_MIRROR
+    vec4[2] pixColors =
+#else
+    fragColor =
+#endif
+        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
 #if USE_CM
-                          ,
-                          sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+                  ,
+                  sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                          ,
-                          iccLut3D, iccLutSize
+                  ,
+                  iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                          ,
-                          targetPrimariesXYZ
+                  ,
+                  targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                          ,
-                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                  ,
+                  maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                          ,
-                          sdrSaturation, sdrBrightnessMultiplier
+                  ,
+                  sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
 #endif
-    );
+        );
+#if USE_MIRROR
+    fragColor   = pixColors[0];
+    mirrorColor = pixColors[1];
+#endif
 }

@@ -202,7 +202,7 @@ void CMonocleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     if (!*PMONITORFALLBACK)
         return; // noop

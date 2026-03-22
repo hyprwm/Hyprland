@@ -71,7 +71,7 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 }
 
 void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
-    static const auto PTIMEOUT = CConfigValue<Hyprlang::INT>("gestures:close_max_timeout");
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("gestures:close_max_timeout");
 
     if (!m_window)
         return;

@@ -468,7 +468,7 @@ void CConfigManager::registerConfigVar(const char* name, Hyprlang::CUSTOMTYPE&& 
 CConfigManager::CConfigManager() {
     const auto ERR = verifyConfigExists();
 
-    m_mainConfigPath = *Supplementary::Jeremy::getMainConfigPath();
+    m_mainConfigPath = Supplementary::Jeremy::getMainConfigPath()->path;
 
     m_configPaths.emplace_back(m_mainConfigPath);
     m_config = makeUnique<Hyprlang::CConfig>(m_configPaths.begin()->c_str(), Hyprlang::SConfigOptions{.throwAllErrors = true, .allowMissingConfig = true});
@@ -977,7 +977,7 @@ void CConfigManager::reloadRuleConfigs() {
 std::optional<std::string> CConfigManager::verifyConfigExists() {
     auto mainConfigPath = Supplementary::Jeremy::getMainConfigPath();
 
-    if (!mainConfigPath || !std::filesystem::exists(*mainConfigPath))
+    if (!mainConfigPath || !std::filesystem::exists(mainConfigPath->path))
         return "broken config dir?";
 
     return {};
@@ -1031,7 +1031,7 @@ void CConfigManager::reload() {
 
     auto oldConfigPath = m_mainConfigPath;
 
-    m_mainConfigPath    = *Supplementary::Jeremy::getMainConfigPath();
+    m_mainConfigPath    = Supplementary::Jeremy::getMainConfigPath()->path;
     m_configCurrentPath = m_mainConfigPath;
 
     if (m_mainConfigPath != oldConfigPath)
@@ -1052,7 +1052,7 @@ void CConfigManager::reload() {
 std::string CConfigManager::verify() {
     Config::animationTree()->reset();
     resetHLConfig();
-    m_configCurrentPath                   = *Supplementary::Jeremy::getMainConfigPath();
+    m_configCurrentPath                   = Supplementary::Jeremy::getMainConfigPath()->path;
     const auto ERR                        = m_config->parse();
     m_lastConfigVerificationWasSuccessful = !ERR.error;
     if (ERR.error)

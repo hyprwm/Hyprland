@@ -22,6 +22,7 @@ namespace Config {
         // merge other into us
         void                               mergeLeft(const CWorkspaceRule& other);
 
+        bool                               m_enabled         = true;
         std::string                        m_monitor         = "";
         std::string                        m_workspaceString = "";
         std::string                        m_workspaceName   = "";

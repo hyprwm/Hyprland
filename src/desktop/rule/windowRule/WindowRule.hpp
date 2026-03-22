@@ -26,10 +26,14 @@ namespace Desktop::Rule {
         const std::vector<std::pair<storageType, std::string>>& effects();
         const std::unordered_set<storageType>&                  effectsSet();
 
+        void                                                    setEnabled(bool enable);
+        bool                                                    isEnabled() const;
+
         bool                                                    matches(PHLWINDOW w, bool allowEnvLookup = false);
 
       private:
         std::vector<std::pair<storageType, std::string>> m_effects;
         std::unordered_set<storageType>                  m_effectSet;
+        bool                                             m_enabled = true;
     };
 };

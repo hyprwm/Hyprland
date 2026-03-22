@@ -49,7 +49,7 @@ CSessionLockManager::CSessionLockManager() {
 }
 
 void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
-    static auto PALLOWRELOCK = CConfigValue<Hyprlang::INT>("misc:allow_session_lock_restore");
+    static auto PALLOWRELOCK = CConfigValue<Config::INTEGER>("misc:allow_session_lock_restore");
 
     if (PROTO::sessionLock->isLocked() && !*PALLOWRELOCK) {
         LOGM(Log::DEBUG, "Cannot re-lock, misc:allow_session_lock_restore is disabled");
@@ -224,7 +224,7 @@ bool CSessionLockManager::shallConsiderLockMissing() {
     if (!m_sessionLock)
         return true;
 
-    static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Hyprlang::INT>("misc:lockdead_screen_delay");
+    static auto LOCKDEAD_SCREEN_DELAY = CConfigValue<Config::INTEGER>("misc:lockdead_screen_delay");
 
     return m_sessionLock->lockTimer.getMillis() > *LOCKDEAD_SCREEN_DELAY;
 }

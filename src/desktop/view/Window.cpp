@@ -478,7 +478,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     if (m_workspace == pWorkspace)
         return;
 
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
 
     if (!m_initialWorkspaceToken.empty()) {
         const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
@@ -496,7 +496,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
 
     const auto  OLDWORKSPACE = m_workspace;
 
@@ -561,8 +561,8 @@ PHLWINDOW CWindow::x11TransientFor() {
 }
 
 void CWindow::onUnmap() {
-    static auto PCLOSEONLASTSPECIAL = CConfigValue<Hyprlang::INT>("misc:close_special_on_empty");
-    static auto PINITIALWSTRACKING  = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
+    static auto PINITIALWSTRACKING  = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
 
     if (!m_initialWorkspaceToken.empty()) {
         const auto TOKEN = g_pTokenManager->getToken(m_initialWorkspaceToken);
@@ -780,8 +780,8 @@ bool CWindow::opaque() {
 }
 
 float CWindow::rounding() {
-    static auto PROUNDING      = CConfigValue<Hyprlang::INT>("decoration:rounding");
-    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+    static auto PROUNDING      = CConfigValue<Config::INTEGER>("decoration:rounding");
+    static auto PROUNDINGPOWER = CConfigValue<Config::FLOAT>("decoration:rounding_power");
 
     float       roundingPower = m_ruleApplicator->roundingPower().valueOr(*PROUNDINGPOWER);
     float       rounding      = m_ruleApplicator->rounding().valueOr(*PROUNDING) * (roundingPower / 2.0); /* Make perceived roundness consistent. */
@@ -790,7 +790,7 @@ float CWindow::rounding() {
 }
 
 float CWindow::roundingPower() {
-    static auto PROUNDINGPOWER = CConfigValue<Hyprlang::FLOAT>("decoration:rounding_power");
+    static auto PROUNDINGPOWER = CConfigValue<Config::FLOAT>("decoration:rounding_power");
 
     return m_ruleApplicator->roundingPower().valueOr(std::clamp(*PROUNDINGPOWER, 1.F, 10.F));
 }
@@ -803,13 +803,13 @@ void CWindow::updateWindowData() {
 
 void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
     if (workspaceRule.m_noBorder.value_or(false))
-        m_ruleApplicator->borderSize().matchOptional(std::optional<Hyprlang::INT>(0), Desktop::Types::PRIORITY_WORKSPACE_RULE);
+        m_ruleApplicator->borderSize().matchOptional(std::optional<Config::INTEGER>(0), Desktop::Types::PRIORITY_WORKSPACE_RULE);
     else if (workspaceRule.m_borderSize)
         m_ruleApplicator->borderSize().matchOptional(workspaceRule.m_borderSize, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     else
         m_ruleApplicator->borderSize().matchOptional(std::nullopt, Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->decorate().matchOptional(workspaceRule.m_decorate, Desktop::Types::PRIORITY_WORKSPACE_RULE);
-    m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Hyprlang::INT>(0) : std::nullopt,
+    m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Config::INTEGER>(0) : std::nullopt,
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
 }
@@ -818,18 +818,18 @@ int CWindow::getRealBorderSize() const {
     if ((m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_ruleApplicator->decorate().valueOrDefault())
         return 0;
 
-    static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
+    static auto PBORDERSIZE = CConfigValue<Config::INTEGER>("general:border_size");
 
     return m_ruleApplicator->borderSize().valueOr(*PBORDERSIZE);
 }
 
 float CWindow::getScrollMouse() {
-    static auto PINPUTSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
+    static auto PINPUTSCROLLFACTOR = CConfigValue<Config::FLOAT>("input:scroll_factor");
     return m_ruleApplicator->scrollMouse().valueOr(*PINPUTSCROLLFACTOR);
 }
 
 float CWindow::getScrollTouchpad() {
-    static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
+    static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Config::FLOAT>("input:touchpad:scroll_factor");
     return m_ruleApplicator->scrollTouchpad().valueOr(*PTOUCHPADSCROLLFACTOR);
 }
 
@@ -842,7 +842,7 @@ bool CWindow::isScrollTouchpadOverridden() {
 }
 
 bool CWindow::canBeTorn() {
-    static auto PTEARING = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+    static auto PTEARING = CConfigValue<Config::INTEGER>("general:allow_tearing");
     return m_ruleApplicator->tearing().valueOr(m_tearingHint) && *PTEARING;
 }
 
@@ -1032,7 +1032,7 @@ void CWindow::activate(bool force) {
     if (Desktop::focusState()->window() == m_self)
         return;
 
-    static auto PFOCUSONACTIVATE = CConfigValue<Hyprlang::INT>("misc:focus_on_activate");
+    static auto PFOCUSONACTIVATE = CConfigValue<Config::INTEGER>("misc:focus_on_activate");
 
     m_isUrgent = true;
 
@@ -1257,7 +1257,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 }
 
 void CWindow::warpCursor(bool force) {
-    static auto PERSISTENTWARPS        = CConfigValue<Hyprlang::INT>("cursor:persistent_warps");
+    static auto PERSISTENTWARPS        = CConfigValue<Config::INTEGER>("cursor:persistent_warps");
     const auto  coords                 = m_relativeCursorCoordsOnLastWarp;
     m_relativeCursorCoordsOnLastWarp.x = -1; // reset m_vRelativeCursorCoordsOnLastWarp
 
@@ -1270,7 +1270,7 @@ void CWindow::warpCursor(bool force) {
 PHLWINDOW CWindow::getSwallower() {
     static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
     static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
-    static auto PSWALLOW        = CConfigValue<Hyprlang::INT>("misc:enable_swallow");
+    static auto PSWALLOW        = CConfigValue<Config::INTEGER>("misc:enable_swallow");
 
     if (!*PSWALLOW || std::string{*PSWALLOWREGEX} == STRVAL_EMPTY || (*PSWALLOWREGEX).empty())
         return nullptr;
@@ -1334,7 +1334,7 @@ Vector2D CWindow::realToReportSize() {
     if (!m_isX11)
         return m_realSize->goal().clamp(Vector2D{0, 0}, Math::VECTOR2D_MAX);
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     const auto  REPORTSIZE = m_realSize->goal().clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
     const auto  PMONITOR   = m_monitor.lock();
@@ -1354,7 +1354,7 @@ Vector2D CWindow::realToReportPosition() {
 }
 
 Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
@@ -1368,7 +1368,7 @@ Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
 }
 
 void CWindow::updateX11SurfaceScale() {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     m_X11SurfaceScaledBy = 1.0f;
     if (m_isX11 && *PXWLFORCESCALEZERO) {
@@ -1515,31 +1515,31 @@ Vector2D CWindow::getReportedSize() {
 }
 
 void CWindow::updateDecorationValues() {
-    static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
-    static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");
-    static auto PNOGROUPACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border_active");
-    static auto PNOGROUPINACTIVECOL     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border");
-    static auto PGROUPACTIVECOL         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_active");
-    static auto PGROUPINACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_inactive");
-    static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_active");
-    static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_inactive");
-    static auto PINACTIVEALPHA          = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA            = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PFULLSCREENALPHA        = CConfigValue<Hyprlang::FLOAT>("decoration:fullscreen_opacity");
-    static auto PSHADOWCOL              = CConfigValue<Hyprlang::INT>("decoration:shadow:color");
-    static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:shadow:color_inactive");
-    static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
-    static auto PDIMMODAL               = CConfigValue<Hyprlang::INT>("decoration:dim_modal");
+    static auto PACTIVECOL              = CConfigValue<Config::IComplexConfigValue>("general:col.active_border");
+    static auto PINACTIVECOL            = CConfigValue<Config::IComplexConfigValue>("general:col.inactive_border");
+    static auto PNOGROUPACTIVECOL       = CConfigValue<Config::IComplexConfigValue>("general:col.nogroup_border_active");
+    static auto PNOGROUPINACTIVECOL     = CConfigValue<Config::IComplexConfigValue>("general:col.nogroup_border");
+    static auto PGROUPACTIVECOL         = CConfigValue<Config::IComplexConfigValue>("group:col.border_active");
+    static auto PGROUPINACTIVECOL       = CConfigValue<Config::IComplexConfigValue>("group:col.border_inactive");
+    static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Config::IComplexConfigValue>("group:col.border_locked_active");
+    static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Config::IComplexConfigValue>("group:col.border_locked_inactive");
+    static auto PINACTIVEALPHA          = CConfigValue<Config::FLOAT>("decoration:inactive_opacity");
+    static auto PACTIVEALPHA            = CConfigValue<Config::FLOAT>("decoration:active_opacity");
+    static auto PFULLSCREENALPHA        = CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity");
+    static auto PSHADOWCOL              = CConfigValue<Config::INTEGER>("decoration:shadow:color");
+    static auto PSHADOWCOLINACTIVE      = CConfigValue<Config::INTEGER>("decoration:shadow:color_inactive");
+    static auto PDIMSTRENGTH            = CConfigValue<Config::FLOAT>("decoration:dim_strength");
+    static auto PDIMENABLED             = CConfigValue<Config::INTEGER>("decoration:dim_inactive");
+    static auto PDIMMODAL               = CConfigValue<Config::INTEGER>("decoration:dim_modal");
 
-    auto* const ACTIVECOL              = sc<Config::CGradientValueData*>((PACTIVECOL.ptr())->getData());
-    auto* const INACTIVECOL            = sc<Config::CGradientValueData*>((PINACTIVECOL.ptr())->getData());
-    auto* const NOGROUPACTIVECOL       = sc<Config::CGradientValueData*>((PNOGROUPACTIVECOL.ptr())->getData());
-    auto* const NOGROUPINACTIVECOL     = sc<Config::CGradientValueData*>((PNOGROUPINACTIVECOL.ptr())->getData());
-    auto* const GROUPACTIVECOL         = sc<Config::CGradientValueData*>((PGROUPACTIVECOL.ptr())->getData());
-    auto* const GROUPINACTIVECOL       = sc<Config::CGradientValueData*>((PGROUPINACTIVECOL.ptr())->getData());
-    auto* const GROUPACTIVELOCKEDCOL   = sc<Config::CGradientValueData*>((PGROUPACTIVELOCKEDCOL.ptr())->getData());
-    auto* const GROUPINACTIVELOCKEDCOL = sc<Config::CGradientValueData*>((PGROUPINACTIVELOCKEDCOL.ptr())->getData());
+    auto* const ACTIVECOL              = sc<Config::CGradientValueData*>((PACTIVECOL.ptr()));
+    auto* const INACTIVECOL            = sc<Config::CGradientValueData*>((PINACTIVECOL.ptr()));
+    auto* const NOGROUPACTIVECOL       = sc<Config::CGradientValueData*>((PNOGROUPACTIVECOL.ptr()));
+    auto* const NOGROUPINACTIVECOL     = sc<Config::CGradientValueData*>((PNOGROUPINACTIVECOL.ptr()));
+    auto* const GROUPACTIVECOL         = sc<Config::CGradientValueData*>((PGROUPACTIVECOL.ptr()));
+    auto* const GROUPINACTIVECOL       = sc<Config::CGradientValueData*>((PGROUPINACTIVECOL.ptr()));
+    auto* const GROUPACTIVELOCKEDCOL   = sc<Config::CGradientValueData*>((PGROUPACTIVELOCKEDCOL.ptr()));
+    auto* const GROUPINACTIVELOCKEDCOL = sc<Config::CGradientValueData*>((PGROUPINACTIVELOCKEDCOL.ptr()));
 
     auto        setBorderColor = [&](Config::CGradientValueData grad) -> void {
         if (grad == m_realBorderColor)
@@ -1642,12 +1642,12 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
 }
 
 void CWindow::mapWindow() {
-    static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
-    static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
-    static auto PDIMSTRENGTH       = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
-    static auto PNEWTAKESOVERFS    = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
-    static auto PAUTOGROUP         = CConfigValue<Hyprlang::INT>("group:auto_group");
+    static auto PINACTIVEALPHA     = CConfigValue<Config::FLOAT>("decoration:inactive_opacity");
+    static auto PACTIVEALPHA       = CConfigValue<Config::FLOAT>("decoration:active_opacity");
+    static auto PDIMSTRENGTH       = CConfigValue<Config::FLOAT>("decoration:dim_strength");
+    static auto PNEWTAKESOVERFS    = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
+    static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
+    static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
 
     const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
     const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
@@ -2121,7 +2121,7 @@ void CWindow::mapWindow() {
         m_workspace->updateWindows();
 
     if (PMONITOR && isX11OverrideRedirect()) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+        static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
         if (*PXWLFORCESCALEZERO)
             m_X11SurfaceScaledBy = PMONITOR->m_scale;
     }
@@ -2130,7 +2130,7 @@ void CWindow::mapWindow() {
 void CWindow::unmapWindow() {
     Log::logger->log(Log::DEBUG, "{:c} unmapped", m_self.lock());
 
-    static auto PEXITRETAINSFS = CConfigValue<Hyprlang::INT>("misc:exit_window_retains_fullscreen");
+    static auto PEXITRETAINSFS = CConfigValue<Config::INTEGER>("misc:exit_window_retains_fullscreen");
 
     const auto  CURRENTWINDOWFSSTATE = isFullscreen();
     const auto  CURRENTFSMODE        = m_fullscreenState.internal;
@@ -2228,7 +2228,7 @@ void CWindow::unmapWindow() {
 
     // refocus on a new window if needed
     if (wasLastWindow) {
-        static auto FOCUSONCLOSE = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+        static auto FOCUSONCLOSE = CConfigValue<Config::INTEGER>("input:focus_on_close");
         PHLWINDOW   candidate    = nextInGroup;
 
         if (!candidate) {
@@ -2421,7 +2421,7 @@ void CWindow::unmanagedSetGeometry() {
         return;
     }
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
     const auto  LOGICALPOS = g_pXWaylandManager->xwaylandToWaylandCoords(m_xwaylandSurface->m_geometry.pos());
 
@@ -2503,7 +2503,7 @@ bool CWindow::canBeGroupedInto(SP<CGroup> group) {
     if (isX11OverrideRedirect())
         return false;
 
-    static auto ALLOWGROUPMERGE       = CConfigValue<Hyprlang::INT>("group:merge_groups_on_drag");
+    static auto ALLOWGROUPMERGE       = CConfigValue<Config::INTEGER>("group:merge_groups_on_drag");
     bool        isGroup               = m_group;
     bool        disallowDragIntoGroup = g_layoutManager->dragController()->wasDraggingWindow() && isGroup && !sc<bool>(*ALLOWGROUPMERGE);
     return !g_pKeybindManager->m_groupsLocked           // global group lock disengaged

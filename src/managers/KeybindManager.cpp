@@ -316,7 +316,7 @@ bool CKeybindManager::ensureMouseBindState() {
 }
 
 static void updateRelativeCursorCoords() {
-    static auto PNOWARPS = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto PNOWARPS = CConfigValue<Config::INTEGER>("cursor:no_warps");
 
     if (*PNOWARPS)
         return;
@@ -337,8 +337,8 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
         return false;
     }
 
-    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Config::INTEGER>("cursor:no_warps");
 
     const auto  PWORKSPACE        = Desktop::focusState()->monitor()->m_activeWorkspace;
     const auto  PNEWMAINWORKSPACE = monitor->m_activeWorkspace;
@@ -368,8 +368,8 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
 }
 
 void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle) {
-    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto PNOWARPS     = CConfigValue<Config::INTEGER>("cursor:no_warps");
 
     const auto  PLASTWINDOW = Desktop::focusState()->window();
 
@@ -494,7 +494,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e, SP<IPointer> pointer) {
     const auto  MODS = g_pInputManager->getModsFromAllKBs();
 
-    static auto PDELAY = CConfigValue<Hyprlang::INT>("binds:scroll_event_delay");
+    static auto PDELAY = CConfigValue<Config::INTEGER>("binds:scroll_event_delay");
 
     if (m_scrollTimer.getMillis() < *PDELAY)
         return true; // timer hasn't passed yet!
@@ -623,8 +623,8 @@ SSubmap CKeybindManager::getCurrentSubmap() {
 }
 
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, SP<IKeyboard> keyboard, SP<IHID> device) {
-    static auto     PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
-    static auto     PDRAGTHRESHOLD  = CConfigValue<Hyprlang::INT>("binds:drag_threshold");
+    static auto     PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
+    static auto     PDRAGTHRESHOLD  = CConfigValue<Config::INTEGER>("binds:drag_threshold");
 
     bool            found = false;
     SDispatchResult res;
@@ -1108,9 +1108,9 @@ static SWorkspaceIDName getWorkspaceToChangeFromArgs(std::string args, PHLWORKSP
 SDispatchResult CKeybindManager::changeworkspace(std::string args) {
     // Workspace_back_and_forth being enabled means that an attempt to switch to
     // the current workspace will instead switch to the previous.
-    static auto PBACKANDFORTH                 = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
-    static auto PWORKSPACECENTERON            = CConfigValue<Hyprlang::INT>("binds:workspace_center_on");
-    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("binds:hide_special_on_workspace_change");
+    static auto PBACKANDFORTH                 = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
+    static auto PWORKSPACECENTERON            = CConfigValue<Config::INTEGER>("binds:workspace_center_on");
+    static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
 
@@ -1186,7 +1186,7 @@ SDispatchResult CKeybindManager::changeworkspace(std::string args) {
             g_pInputManager->simulateMouseMovement();
     }
 
-    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Hyprlang::INT>("cursor:warp_on_change_workspace");
+    const static auto PWARPONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("cursor:warp_on_change_workspace");
 
     if (*PWARPONWORKSPACECHANGE > 0) {
         auto PLAST     = pWorkspaceToChangeTo->getLastFocusedWindow();
@@ -1370,9 +1370,9 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 }
 
 SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
-    static auto      PFULLCYCLE       = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_fullscreen");
-    static auto      PGROUPCYCLE      = CConfigValue<Hyprlang::INT>("binds:movefocus_cycles_groupfirst");
-    static auto      PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto      PFULLCYCLE       = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_fullscreen");
+    static auto      PGROUPCYCLE      = CConfigValue<Config::INTEGER>("binds:movefocus_cycles_groupfirst");
+    static auto      PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
     Math::eDirection dir              = Math::fromChar(args[0]);
 
     if (dir == Math::DIRECTION_DEFAULT) {
@@ -1416,7 +1416,7 @@ SDispatchResult CKeybindManager::moveFocusTo(std::string args) {
     if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
         return {};
 
-    static auto PNOFALLBACK = CConfigValue<Hyprlang::INT>("general:no_focus_fallback");
+    static auto PNOFALLBACK = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
     if (*PNOFALLBACK)
         return {.success = false, .error = std::format("Nothing to focus to in direction {}", Math::toString(dir))};
 
@@ -1802,7 +1802,7 @@ SDispatchResult CKeybindManager::focusWorkspaceOnCurrentMonitor(std::string args
         return {};
     }
 
-    static auto PBACKANDFORTH = CConfigValue<Hyprlang::INT>("binds:workspace_back_and_forth");
+    static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
     const auto  PREVWS        = Desktop::History::workspaceTracker()->previousWorkspaceIDName(pWorkspace);
 
     if (*PBACKANDFORTH && PCURRMONITOR->activeWorkspaceID() == workspaceID && PREVWS.id != -1) {
@@ -1873,7 +1873,7 @@ SDispatchResult CKeybindManager::toggleSpecialWorkspace(std::string args) {
         focusedWorkspace = PSPECIALWORKSPACE;
     }
 
-    const static auto PWARPONTOGGLESPECIAL = CConfigValue<Hyprlang::INT>("cursor:warp_on_toggle_special");
+    const static auto PWARPONTOGGLESPECIAL = CConfigValue<Config::INTEGER>("cursor:warp_on_toggle_special");
 
     if (*PWARPONTOGGLESPECIAL > 0) {
         auto PLAST     = focusedWorkspace->getLastFocusedWindow();
@@ -2635,7 +2635,7 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
 }
 
 void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir) {
-    static auto BFOCUSREMOVEDWINDOW = CConfigValue<Hyprlang::INT>("group:focus_removed_window");
+    static auto BFOCUSREMOVEDWINDOW = CConfigValue<Config::INTEGER>("group:focus_removed_window");
 
     if (!pWindow->m_group)
         return;
@@ -2658,7 +2658,7 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
 }
 
 SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
-    static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
+    static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
         return {};
@@ -2691,7 +2691,7 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
 }
 
 SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
-    static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
+    static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
         return {.success = false, .error = "Groups locked"};
@@ -2715,7 +2715,7 @@ SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
 }
 
 SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
-    static auto      PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
+    static auto      PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
     Math::eDirection dir = Math::fromChar(args[0]);
     if (dir == Math::DIRECTION_DEFAULT) {
@@ -2771,7 +2771,7 @@ SDispatchResult CKeybindManager::moveWindowOrGroup(std::string args) {
 
 SDispatchResult CKeybindManager::setIgnoreGroupLock(std::string args) {
     // FIXME: this is no longer possible like this. It's redundant anyways. Can be easily scripted / lua'd
-    // static auto      PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
+    // static auto      PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
     // if (args == "toggle")
     //     *PIGNOREGROUPLOCK = !*PIGNOREGROUPLOCK;
@@ -2844,7 +2844,7 @@ SDispatchResult CKeybindManager::event(std::string args) {
 
 template <typename T>
 static void parsePropTrivial(Desktop::Types::COverridableVar<T>& prop, const std::string& s) {
-    static_assert(std::is_same_v<T, bool> || std::is_same_v<T, Hyprlang::INT> || std::is_same_v<T, int> || std::is_same_v<T, Hyprlang::FLOAT> || std::is_same_v<T, std::string>,
+    static_assert(std::is_same_v<T, bool> || std::is_same_v<T, Config::INTEGER> || std::is_same_v<T, int> || std::is_same_v<T, Config::FLOAT> || std::is_same_v<T, std::string>,
                   "Invalid type passed to parsePropTrivial");
 
     if (s == "unset") {
@@ -2858,13 +2858,13 @@ static void parsePropTrivial(Desktop::Types::COverridableVar<T>& prop, const std
                 prop.increment(true, Desktop::Types::PRIORITY_SET_PROP);
             else
                 prop = Desktop::Types::COverridableVar<T>(truthy(s), Desktop::Types::PRIORITY_SET_PROP);
-        } else if constexpr (std::is_same_v<T, Hyprlang::INT> || std::is_same_v<T, int>) {
+        } else if constexpr (std::is_same_v<T, Config::INTEGER> || std::is_same_v<T, int>) {
             if (s.starts_with("relative")) {
                 const auto VAL = std::stoi(s.substr(s.find(' ') + 1));
                 prop.increment(VAL, Desktop::Types::PRIORITY_SET_PROP);
             } else
                 prop = Desktop::Types::COverridableVar<T>(std::stoull(s), Desktop::Types::PRIORITY_SET_PROP);
-        } else if constexpr (std::is_same_v<T, Hyprlang::FLOAT>) {
+        } else if constexpr (std::is_same_v<T, Config::FLOAT>) {
             if (s.starts_with("relative")) {
                 const auto VAL = std::stof(s.substr(s.find(' ') + 1));
                 prop.increment(VAL, Desktop::Types::PRIORITY_SET_PROP);

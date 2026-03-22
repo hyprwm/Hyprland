@@ -3,21 +3,22 @@
 #include "../defines.hpp"
 #include "../render/Texture.hpp"
 #include "../helpers/AnimatedVariable.hpp"
-
 #include <cairo/cairo.h>
+#include <string>
 
 class CHyprError {
   public:
     CHyprError();
     ~CHyprError() = default;
 
-    void         queueCreate(std::string message, const CHyprColor& color);
-    void         queueError(std::string err);
+    // Optimized: Pass strings by const reference to prevent unnecessary copying
+    void         queueCreate(const std::string& message, const CHyprColor& color);
+    void         queueError(const std::string& err);
     void         draw();
     void         destroy();
 
     bool         active();
-    float        height(); // logical
+    float        height();
 
     SP<ITexture> texture();
 
@@ -29,10 +30,9 @@ class CHyprError {
     bool              m_isCreated     = false;
     SP<ITexture>      m_texture;
     PHLANIMVAR<float> m_fadeOpacity;
-    CBox              m_damageBox  = {0, 0, 0, 0};
-    float             m_lastHeight = 0.F;
-
+    CBox              m_damageBox      = {0, 0, 0, 0};
+    float             m_lastHeight     = 0.F;
     bool              m_monitorChanged = false;
 };
 
-inline UP<CHyprError> g_pHyprError; // This is a full-screen error. Treat it with respect, and there can only be one at a time.
+inline UP<CHyprError> g_pHyprError;

@@ -8,9 +8,11 @@
 #include "../render/Renderer.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
-
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <string_view>
+
 using namespace Hyprutils::Animation;
+using namespace Hyprutils::Utils;
 
 CHyprError::CHyprError() {
     g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
@@ -32,12 +34,12 @@ CHyprError::CHyprError() {
     });
 }
 
-void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
+void CHyprError::queueCreate(const std::string& message, const CHyprColor& color) {
     m_queued      = message;
     m_queuedColor = color;
 }
 
-void CHyprError::queueError(std::string err) {
+void CHyprError::queueError(const std::string& err) {
     queueCreate(err + "\nHyprland may not work correctly.", CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
 }
 
@@ -51,16 +53,18 @@ void CHyprError::createQueued() {
     *m_fadeOpacity = 1.f;
 
     const auto PMONITOR = g_pCompositor->m_monitors.front();
-
-    const auto SCALE = PMONITOR->m_scale;
-
+    const auto SCALE    = PMONITOR->m_scale;
     const auto FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
     const auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y);
+    const auto CAIRO        = cairo_create(CAIROSURFACE);
 
-    const auto CAIRO = cairo_create(CAIROSURFACE);
+    // RAII ScopeGuard guarantees C-struct memory is freed upon function exit
+    CScopeGuard cairoGuard([&]() {
+        cairo_destroy(CAIRO);
+        cairo_surface_destroy(CAIROSURFACE);
+    });
 
-    // clear the pixmap
     cairo_save(CAIRO);
     cairo_set_operator(CAIRO, CAIRO_OPERATOR_CLEAR);
     cairo_paint(CAIRO);
@@ -76,8 +80,7 @@ void CHyprError::createQueued() {
     const auto   EXTRALINES   = (VISLINECOUNT < LINECOUNT) ? 1 : 0;
 
     const double DEGREES = M_PI / 180.0;
-
-    const double PAD = 10 * SCALE;
+    const double PAD     = 10 * SCALE;
 
     const double WIDTH  = PMONITOR->m_pixelSize.x - PAD * 2;
     const double HEIGHT = (FONTSIZE + 2 * (FONTSIZE / 10.0)) * (VISLINECOUNT + EXTRALINES) + 3;
@@ -101,13 +104,15 @@ void CHyprError::createQueued() {
     cairo_set_line_width(CAIRO, 2);
     cairo_stroke(CAIRO);
 
-    // draw the text with a common font
-    const CHyprColor textColor = CHyprColor(0.9, 0.9, 0.9, 1.0);
-    cairo_set_source_rgba(CAIRO, textColor.r, textColor.g, textColor.b, textColor.a);
-
     static auto           fontFamily = CConfigValue<std::string>("misc:font_family");
     PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
     PangoFontDescription* pangoFD    = pango_font_description_new();
+
+    // RAII ScopeGuard for Pango cleanup
+    CScopeGuard pangoGuard([&]() {
+        pango_font_description_free(pangoFD);
+        g_object_unref(layoutText);
+    });
 
     pango_font_description_set_family(pangoFD, (*fontFamily).c_str());
     pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
@@ -117,35 +122,40 @@ void CHyprError::createQueued() {
     pango_layout_set_width(layoutText, (WIDTH - 2 * (1 + RADIUS)) * PANGO_SCALE);
     pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
 
-    float yoffset     = TOPBAR ? 0 : Y - PAD;
-    int   renderedcnt = 0;
-    while (!m_queued.empty() && renderedcnt < VISLINECOUNT) {
-        std::string current = m_queued.substr(0, m_queued.find('\n'));
-        if (const auto NEWLPOS = m_queued.find('\n'); NEWLPOS != std::string::npos)
-            m_queued = m_queued.substr(NEWLPOS + 1);
-        else
-            m_queued = "";
+    cairo_set_source_rgba(CAIRO, 0.9, 0.9, 0.9, 1.0);
+
+    float            yoffset     = TOPBAR ? 0 : Y - PAD;
+    int              renderedcnt = 0;
+    std::string_view queuedView(m_queued);
+
+    // Optimized loop: Use std::string_view to eliminate heap allocations
+    while (!queuedView.empty() && renderedcnt < VISLINECOUNT) {
+        auto             newlinePos = queuedView.find('\n');
+        std::string_view current    = queuedView.substr(0, newlinePos);
+
         cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
-        pango_layout_set_text(layoutText, current.c_str(), -1);
+        pango_layout_set_text(layoutText, current.data(), current.length());
         pango_cairo_show_layout(CAIRO, layoutText);
+
         yoffset += FONTSIZE + (FONTSIZE / 10.f);
         renderedcnt++;
+
+        if (newlinePos != std::string_view::npos)
+            queuedView = queuedView.substr(newlinePos + 1);
+        else
+            queuedView = "";
     }
+
     if (VISLINECOUNT < LINECOUNT) {
         std::string moreString = std::format("({} more...)", LINECOUNT - VISLINECOUNT);
         cairo_move_to(CAIRO, PAD + 1 + RADIUS, yoffset + PAD + 1);
-        pango_layout_set_text(layoutText, moreString.c_str(), -1);
+        pango_layout_set_text(layoutText, moreString.data(), moreString.length());
         pango_cairo_show_layout(CAIRO, layoutText);
     }
 
     m_lastHeight = HEIGHT;
-
-    pango_font_description_free(pangoFD);
-    g_object_unref(layoutText);
-
     cairo_surface_flush(CAIROSURFACE);
 
-    // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
     auto       tex  = texture();
     tex->allocate(PMONITOR->m_pixelSize);
@@ -156,10 +166,6 @@ void CHyprError::createQueued() {
     tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
-
-    // delete cairo
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
 
     m_isCreated   = true;
     m_queued      = "";
@@ -209,8 +215,7 @@ void CHyprError::draw() {
     }
 
     const auto  PMONITOR = g_pHyprRenderer->m_renderData.pMonitor;
-
-    CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
+    CBox        monbox   = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
     static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
     m_damageBox.x            = sc<int>(PMONITOR->m_position.x);

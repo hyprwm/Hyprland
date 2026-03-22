@@ -63,3 +63,7 @@ void IFramebuffer::setImageDescription(NColorManagement::PImageDescription desc)
     if (m_tex)
         m_tex->m_imageDescription = desc;
 }
+
+void IFramebuffer::setName(const std::string& name) {
+    m_name = name;
+}

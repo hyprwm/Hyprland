@@ -5,6 +5,7 @@
 #include <GLES3/gl32.h>
 #include "math/Math.hpp"
 #include <aquamarine/backend/Misc.hpp>
+#include <vulkan/vulkan_core.h>
 
 using DRMFormat = uint32_t;
 using SHMFormat = uint32_t;
@@ -34,7 +35,10 @@ struct SPixelFormat {
     int                                 glInternalFormat = 0;
     int                                 glFormat         = 0;
     int                                 glType           = 0;
+    VkFormat                            vkFormat         = VK_FORMAT_UNDEFINED;
+    VkFormat                            vkSrgbFormat     = VK_FORMAT_UNDEFINED;
     bool                                withAlpha        = true;
+    bool                                isYCC            = false;
     DRMFormat                           alphaStripped    = 0; /* DRM_FORMAT_INVALID */
     uint32_t                            bytesPerBlock    = 0;
     Vector2D                            blockSize;
@@ -53,7 +57,11 @@ namespace NFormatUtils {
     bool                isFormatOpaque(DRMFormat drm);
     int                 pixelsPerBlock(const SPixelFormat* const fmt);
     int                 minStride(const SPixelFormat* const fmt, int32_t width);
+    uint32_t            drmFormatToGL(DRMFormat drm);
+    uint32_t            glFormatToType(uint32_t gl);
     std::string         drmFormatName(DRMFormat drm);
     std::string         drmModifierName(uint64_t mod);
     DRMFormat           alphaFormat(DRMFormat prevFormat);
 };
+
+extern const std::vector<SPixelFormat> KNOWN_FORMATS;

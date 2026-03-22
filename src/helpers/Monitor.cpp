@@ -1839,7 +1839,6 @@ bool CMonitor::updateTearing() {
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
-    static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
 
     if (*PDIRECTSCANOUT == 0) {
@@ -1907,9 +1906,14 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();
     const bool surfaceIsScRGB = surfaceIsHDR && PSURFACE->m_colorManagement->isWindowsScRGB();
 
-    if (needsCM() && (*PNONSHADER != CM_NS_IGNORE || surfaceIsScRGB) && !canNoShaderCM() &&
-        ((inHDR() && (*PPASS == 0 || !surfaceIsHDR || surfaceIsScRGB)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
-        reasons |= DS_BLOCK_CM;
+    if (surfaceIsScRGB)
+        reasons |= DS_BLOCK_CM; // block scRGB
+    else if (*PNONSHADER != CM_NS_IGNORE) {
+        if (!surfaceIsHDR && needsCM() && !canNoShaderCM())
+            reasons |= DS_BLOCK_CM; // block SDR that needs CM while non-shader CM isn't available
+        else if (surfaceIsHDR && !inHDR())
+            reasons |= DS_BLOCK_CM; // block HDR while monitor isn't in HDR mode
+    }
 
     return reasons;
 }

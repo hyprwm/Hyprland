@@ -2654,6 +2654,12 @@ void CKeybindManager::moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string&
         group->current()->warpCursor();
     }
 
+    if (!dir.empty()) {
+        Math::eDirection direction = Math::fromChar(dir[0]);
+        if (direction != Math::DIRECTION_DEFAULT)
+            g_layoutManager->moveInDirection(pWindow->layoutTarget(), dir);
+    }
+
     g_pEventManager->postEvent(SHyprIPCEvent{"moveoutofgroup", std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 }
 
@@ -2696,12 +2702,23 @@ SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
         return {.success = false, .error = "Groups locked"};
 
-    PHLWINDOW PWINDOW = nullptr;
+    PHLWINDOW   PWINDOW = nullptr;
+    std::string dir;
 
-    if (args != "active" && args.length() > 1)
-        PWINDOW = g_pCompositor->getWindowByRegex(args);
-    else
+    if (args.empty() || args == "active")
         PWINDOW = Desktop::focusState()->window();
+    else if (args.length() == 1 && std::string("lrutdb").find(args[0]) != std::string::npos) {
+        PWINDOW = Desktop::focusState()->window();
+        dir     = args;
+    } else {
+        size_t spacePos = args.find_last_of(' ');
+        if (spacePos != std::string::npos && std::string("lrutdb").find(args.back()) != std::string::npos) {
+            std::string windowRegex = args.substr(0, spacePos);
+            PWINDOW                 = g_pCompositor->getWindowByRegex(windowRegex);
+            dir                     = args.substr(spacePos + 1);
+        } else
+            PWINDOW = g_pCompositor->getWindowByRegex(args);
+    }
 
     if (!PWINDOW)
         return {.success = false, .error = "No window found"};
@@ -2709,7 +2726,7 @@ SDispatchResult CKeybindManager::moveOutOfGroup(std::string args) {
     if (!PWINDOW->m_group)
         return {.success = false, .error = "Window not in a group"};
 
-    moveWindowOutOfGroup(PWINDOW);
+    moveWindowOutOfGroup(PWINDOW, dir);
 
     return {};
 }

@@ -261,7 +261,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
-    if (mouse && !g_pSeatManager->m_mouse.expired() && isConstrained()) {
+    if (!overridePos.has_value() && !g_pSeatManager->m_mouse.expired() && isConstrained()) {
         const auto SURF       = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
         const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
@@ -342,8 +342,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // if we are holding a pointer button,
     // and we're not dnd-ing, don't refocus. Keep focus on last surface.
-    if (mouse && !PROTO::data->dndActive() && !m_currentlyHeldButtons.empty() && Desktop::focusState()->surface() && Desktop::focusState()->surface()->m_mapped &&
-        g_pSeatManager->m_state.pointerFocus && !m_hardInput) {
+    if (!overridePos.has_value() && !PROTO::data->dndActive() && !m_currentlyHeldButtons.empty() && Desktop::focusState()->surface() &&
+        Desktop::focusState()->surface()->m_mapped && g_pSeatManager->m_state.pointerFocus && !m_hardInput) {
         foundSurface = g_pSeatManager->m_state.pointerFocus.lock();
 
         // IME popups aren't desktop-like elements
@@ -648,7 +648,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             m_lastFocusOnLS = true;
     }
 
-    if (mouse) {
+    if (!overridePos.has_value()) {
         g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
         g_pSeatManager->sendPointerMotion(time, surfaceLocal);
     }

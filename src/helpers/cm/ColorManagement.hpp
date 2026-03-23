@@ -330,8 +330,18 @@ namespace NColorManagement {
 
     using PImageDescription = WP<const CImageDescription>;
 
-    static const auto DEFAULT_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    PImageDescription getDefaultImageDescription();
+
+    static const auto DEFAULT_GAMMA22_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB),
+        .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
+    });
+
+    static const auto DEFAULT_SRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB),

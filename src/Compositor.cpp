@@ -3024,7 +3024,7 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 PImageDescription CCompositor::getPreferredImageDescription() {
     if (!PROTO::colorManagement) {
         Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
-        return DEFAULT_IMAGE_DESCRIPTION;
+        return getDefaultImageDescription();
     }
     Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled, determine correct preferred image description");
     // should determine some common settings to avoid unnecessary transformations while keeping maximum displayable precision
@@ -3034,7 +3034,7 @@ PImageDescription CCompositor::getPreferredImageDescription() {
 PImageDescription CCompositor::getHDRImageDescription() {
     if (!PROTO::colorManagement) {
         Log::logger->log(Log::ERR, "FIXME: color management protocol is not enabled, returning empty image description");
-        return DEFAULT_IMAGE_DESCRIPTION;
+        return getDefaultImageDescription();
     }
 
     return m_monitors.size() == 1 && m_monitors[0]->m_output && m_monitors[0]->m_output->parsedEDID.hdrMetadata.has_value() ?

@@ -1021,6 +1021,58 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: breed kleurbereik is ingeschakeld maar het scherm staat niet in 10-bitmodus.");
 
+    // pa_IN (Punjabi)
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_TITLE, "ਐਪਲੀਕੇਸ਼ਨ ਜਵਾਬ ਨਹੀਂ ਦੇ ਰਹੀ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_CONTENT, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ {title} - {class} ਜਵਾਬ ਨਹੀਂ ਦੇ ਰਹੀ ਹੈ।\nਤੁਸੀਂ ਇਸ ਨਾਲ ਕੀ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_OPTION_TERMINATE, "ਬੰਦ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_OPTION_WAIT, "ਉਡੀਕ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_PROP_UNKNOWN, "(ਅਗਿਆਤ)");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਅਗਿਆਤ ਇਜਾਜ਼ਤ ਦੀ ਬੇਨਤੀ ਕਰ ਰਹੀ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਨੂੰ ਰਿਕਾਰਡ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਤੁਹਾਡੇ ਕਰਸਰ ਦੀ ਸਥਿਤੀ ਪੜ੍ਹਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਇੱਕ ਪਲੱਗਇਨ ਲੋਡ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ: <b>{plugin}</b>।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "ਇੱਕ ਨਵਾਂ ਕੀਬੋਰਡ ਲੱਭਿਆ ਗਿਆ ਹੈ: <b>{keyboard}</b>।\n\nਕੀ ਤੁਸੀਂ ਇਸਨੂੰ ਕੰਮ ਕਰਨ ਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ਅਗਿਆਤ)");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_TITLE, "ਇਜਾਜ਼ਤ ਦੀ ਬੇਨਤੀ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ਸੁਝਾਅ: ਤੁਸੀਂ ਆਪਣੀ Hyprland ਕੌਂਫਿਗਰੇਸ਼ਨ ਫਾਈਲ ਵਿੱਚ ਇਹਨਾਂ ਲਈ ਪੱਕੇ ਨਿਯਮ ਸੈੱਟ ਕਰ ਸਕਦੇ ਹੋ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW, "ਇਜਾਜ਼ਤ ਦਿਓ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "ਇਜਾਜ਼ਤ ਦਿਓ ਅਤੇ ਯਾਦ ਰੱਖੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW_ONCE, "ਇੱਕ ਵਾਰ ਇਜਾਜ਼ਤ ਦਿਓ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_DENY, "ਇਨਕਾਰ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "ਅਗਿਆਤ ਐਪਲੀਕੇਸ਼ਨ (wayland ਕਲਾਇੰਟ ID {wayland_id})");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "ਤੁਹਾਡਾ XDG_CURRENT_DESKTOP ਵਾਤਾਵਰਣ ਵੇਰੀਏਬਲ ਬਾਹਰੀ ਤੌਰ 'ਤੇ ਪ੍ਰਬੰਧਿਤ ਜਾਪਦਾ ਹੈ, ਮੌਜੂਦਾ ਮੁੱਲ: {value}।\nਜਦੋਂ ਤੱਕ ਇਹ ਜਾਣਬੁੱਝ ਕੇ ਨਾ "
+                            "ਕੀਤਾ ਗਿਆ ਹੋਵੇ, ਇਹ ਸਮੱਸਿਆਵਾਂ ਪੈਦਾ ਕਰ ਸਕਦਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_NO_GUIUTILS, "ਤੁਹਾਡੇ ਸਿਸਟਮ ਵਿੱਚ hyprland-guiutils ਇੰਸਟਾਲ ਨਹੀਂ ਹੈ। ਇਹ ਕੁਝ ਡਾਇਲਾਗਸ ਲਈ ਜ਼ਰੂਰੀ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਇਸਨੂੰ ਇੰਸਟਾਲ ਕਰਨ ਬਾਰੇ ਵਿਚਾਰ ਕਰੋ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland {count} ਜ਼ਰੂਰੀ ਸੰਪਤੀ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਿਆ, ਖਰਾਬ ਪੈਕੇਜਿੰਗ ਲਈ ਆਪਣੇ ਡਿਸਟ੍ਰੋ ਪੈਕੇਜਰਾਂ ਨੂੰ ਦੋਸ਼ੀ ਠਹਿਰਾਓ!";
+        return "Hyprland {count} ਜ਼ਰੂਰੀ ਸੰਪਤੀਆਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਿਆ, ਖਰਾਬ ਪੈਕੇਜਿੰਗ ਲਈ ਆਪਣੇ ਡਿਸਟ੍ਰੋ ਪੈਕੇਜਰਾਂ ਨੂੰ ਦੋਸ਼ੀ ਠਹਿਰਾਓ!";
+    });
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "ਤੁਹਾਡਾ ਮਾਨੀਟਰ ਲੇਆਉਟ ਗਲਤ ਤਰੀਕੇ ਨਾਲ ਕੌਂਫਿਗਰ ਕੀਤਾ ਗਿਆ ਹੈ। ਮਾਨੀਟਰ {name} ਲੇਆਉਟ ਵਿੱਚ ਦੂਜੇ ਮਾਨੀਟਰਾਂ ਨਾਲ ਓਵਰਲੈਪ ਕਰ ਰਿਹਾ ਹੈ।\nਹੋਰ "
+                            "ਜਾਣਕਾਰੀ ਲਈ ਵਿਕੀ (Monitors page) ਦੇਖੋ। ਇਹ ਸਮੱਸਿਆਵਾਂ ਪੈਦਾ <b>ਕਰੇਗਾ</b>।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "ਮਾਨੀਟਰ {name} ਕਿਸੇ ਵੀ ਬੇਨਤੀ ਕੀਤੇ ਮੋਡ ਨੂੰ ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ ਰਿਹਾ, ਵਾਪਸ ਮੋਡ {mode} 'ਤੇ ਜਾ ਰਿਹਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "ਮਾਨੀਟਰ {name} ਨੂੰ ਅਵੈਧ ਸਕੇਲ ਭੇਜਿਆ ਗਿਆ: {scale}, ਪ੍ਰਸਤਾਵਿਤ ਸਕੇਲ ਦੀ ਵਰਤੋਂ ਕਰ ਰਿਹਾ ਹੈ: {fixed_scale}");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "ਪਲੱਗਇਨ {name} ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ: {error}");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM ਸ਼ੇਡਰ ਮੁੜ-ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ, rgba/rgbx 'ਤੇ ਵਾਪਸ ਜਾ ਰਿਹਾ جا ਰਿਹਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "ਮਾਨੀਟਰ {name}: ਵਾਈਡ ਕਲਰ ਗੇਮਟ ਚਾਲੂ ਹੈ ਪਰ ਡਿਸਪਲੇ 10-ਬਿੱਟ ਮੋਡ ਵਿੱਚ ਨਹੀਂ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland ਨੂੰ start-hyprland ਤੋਂ ਬਿਨਾਂ ਸ਼ੁਰੂ ਕੀਤਾ ਗਿਆ ਸੀ। ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਡੀਬੱਗਿੰਗ ਵਾਤਾਵਰਣ ਵਿੱਚ ਨਹੀਂ ਹੋ, ਇਸਦੀ ਸਿਫਾਰਸ਼ ਨਹੀਂ ਕੀਤੀ ਜਾਂਦੀ।");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_TITLE, "ਸੁਰੱਖਿਅਤ ਮੋਡ (Safe Mode)");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland ਸੁਰੱਖਿਅਤ ਮੋਡ ਵਿੱਚ ਸ਼ੁਰੂ ਕੀਤਾ ਗਿਆ ਹੈ, ਜਿਸਦਾ ਮਤਲਬ ਹੈ ਕਿ ਤੁਹਾਡਾ ਪਿਛਲਾ ਸੈਸ਼ਨ ਕ੍ਰੈਸ਼ ਹੋ ਗਿਆ ਸੀ।\nਸੁਰੱਖਿਅਤ ਮੋਡ ਤੁਹਾਡੀ "
+                            "ਕੌਂਫਿਗਰੇਸ਼ਨ ਨੂੰ ਲੋਡ ਹੋਣ ਤੋਂ ਰੋਕਦਾ ਹੈ। ਤੁਸੀਂ ਇਸ ਵਾਤਾਵਰਣ ਵਿੱਚ ਸਮੱਸਿਆ ਦਾ ਨਿਪਟਾਰਾ ਕਰ ਸਕਦੇ ਹੋ, ਜਾਂ ਹੇਠਾਂ ਦਿੱਤੇ ਬਟਨ ਨਾਲ ਆਪਣੀ "
+                            "ਕੌਂਫਿਗਰੇਸ਼ਨ ਲੋਡ ਕਰ ਸਕਦੇ ਹੋ।\nਡਿਫੌਲਟ ਕੀਬਾਈਂਡ ਲਾਗੂ ਹੁੰਦੇ ਹਨ: kitty ਲਈ SUPER+Q, ਬੇਸਿਕ ਰਨਰ ਲਈ SUPER+R, ਬਾਹਰ ਨਿਕਲਣ ਲਈ SUPER+M।\n"
+                            "Hyprland ਨੂੰ ਦੁਬਾਰਾ ਸ਼ੁਰੂ ਕਰਨ ਨਾਲ ਇਹ ਮੁੜ ਆਮ ਮੋਡ ਵਿੱਚ ਚੱਲੇਗਾ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "ਕੌਂਫਿਗ ਲੋਡ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "ਕ੍ਰੈਸ਼ ਰਿਪੋਰਟ ਡਾਇਰੈਕਟਰੀ ਖੋਲ੍ਹੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "ਸਮਝ ਆ ਗਿਆ, ਇਸਨੂੰ ਬੰਦ ਕਰੋ");
+
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_CONTENT, "Aplikacja {title} - {class} nie odpowiada.\nCo chcesz z nią zrobić?");

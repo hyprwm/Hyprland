@@ -684,6 +684,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("animations:workspace_wraparound", Hyprlang::INT{0});
 
     registerConfigVar("input:follow_mouse", Hyprlang::INT{1});
+    registerConfigVar("input:follow_mouse_shrink", Hyprlang::INT{0});
     registerConfigVar("input:follow_mouse_threshold", Hyprlang::FLOAT{0});
     registerConfigVar("input:focus_on_close", Hyprlang::INT{0});
     registerConfigVar("input:mouse_refocus", Hyprlang::INT{1});

@@ -625,9 +625,9 @@ namespace Config::Supplementary {
             .value = "input:focus_on_close",
             .description =
                 "Controls the window focus behavior when a window is closed. When set to 0, focus will shift to the next window candidate. When set to 1, focus will shift "
-                "to the window under the cursor.",
+                "to the window under the cursor. When set to 2, focus will shift to the most recently used/active window.",
             .type = CONFIG_OPTION_CHOICE,
-            .data = SConfigOptionDescription::SChoiceData{0, "next,cursor"},
+            .data = SConfigOptionDescription::SChoiceData{0, "next,cursor,mru"},
         },
         SConfigOptionDescription{
             .value       = "input:mouse_refocus",
@@ -667,8 +667,8 @@ namespace Config::Supplementary {
         },
 
         /*
-     * input:touchpad:
-     */
+         * input:touchpad:
+         */
 
         SConfigOptionDescription{
             .value       = "input:touchpad:disable_while_typing",

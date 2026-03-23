@@ -237,7 +237,9 @@ const UP<IFloatingAlgorithm>& CAlgorithm::floatingAlgo() const {
 }
 
 SP<ITarget> CAlgorithm::getNextCandidate(SP<ITarget> old) {
-    if (old->floating()) {
+    static auto FOCUSONCLOSE = CConfigValue<Hyprlang::INT>("input:focus_on_close");
+
+    if (old->floating() || *FOCUSONCLOSE == 2) {
         // use window history to determine best target
         for (const auto& w : Desktop::History::windowTracker()->fullHistory() | std::views::reverse) {
             if (!w->m_workspace || w->m_workspace->m_space != m_space || !w->layoutTarget() || !w->layoutTarget()->space())

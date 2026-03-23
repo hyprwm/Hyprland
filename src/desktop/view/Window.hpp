@@ -55,7 +55,7 @@ namespace Desktop::View {
         GROUP_DENY        = 1 << 7, // deny
     };
 
-    enum eGetWindowProperties : uint8_t {
+    enum eGetWindowProperties : uint16_t {
         WINDOW_ONLY              = 0,
         RESERVED_EXTENTS         = 1 << 0,
         INPUT_EXTENTS            = 1 << 1,
@@ -65,6 +65,7 @@ namespace Desktop::View {
         USE_PROP_TILED           = 1 << 5,
         SKIP_FULLSCREEN_PRIORITY = 1 << 6,
         FOCUS_PRIORITY           = 1 << 7,
+        FOLLOW_MOUSE_CHECK       = 1 << 8,
     };
 
     enum eSuppressEvents : uint8_t {

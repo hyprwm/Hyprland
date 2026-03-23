@@ -65,10 +65,16 @@ namespace NColorManagement {
         return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return sc<wpColorManagerV1TransferFunction>(tf);
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            default: return sc<wpColorManagerV1TransferFunction>(tf);
+        }
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
-        return sc<eTransferFunction>(tf);
+        switch (tf) {
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4: return CM_TRANSFER_FUNCTION_SRGB;
+            default: return sc<eTransferFunction>(tf);
+        }
     }
 
     using SPCPRimaries = Hyprgraphics::SPCPRimaries;
@@ -304,19 +310,19 @@ namespace NColorManagement {
     class CImageDescription {
       public:
         static WP<const CImageDescription> from(const SImageDescription& imageDescription);
-        static WP<const CImageDescription> from(const uint32_t imageDescriptionId);
+        static WP<const CImageDescription> from(const uint64_t imageDescriptionId);
 
         WP<const CImageDescription>        with(const SImageDescription::SPCLuminances& luminances) const;
 
         const SImageDescription&           value() const;
-        uint32_t                           id() const;
+        uint64_t                           id() const;
 
         WP<const CPrimaries>               getPrimaries() const;
 
       private:
-        CImageDescription(const SImageDescription& imageDescription, const uint imageDescriptionId);
-        uint32_t          m_id          = 0;
-        uint32_t          m_primariesId = 0;
+        CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId);
+        uint64_t          m_id          = 0;
+        uint              m_primariesId = 0;
         SImageDescription m_imageDescription;
     };
 

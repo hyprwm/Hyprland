@@ -65,7 +65,7 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
 
     if (!m_monitorMirrorFB->isAllocated()) {
         m_monitorMirrorFB->alloc(m_size.x, m_size.y, DRM_FORMAT_XRGB8888);
-        m_monitorMirrorFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
     }
 
     return m_monitorMirrorFB;

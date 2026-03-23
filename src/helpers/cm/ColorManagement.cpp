@@ -1,10 +1,12 @@
 #include "ColorManagement.hpp"
 #include "../../macros.hpp"
+#include "helpers/TransferFunction.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <map>
 #include <vector>
 
 using namespace NColorManagement;
+using namespace NTransferFunction;
 
 namespace NColorManagement {
     // expected to be small
@@ -190,4 +192,16 @@ Mat3x3 NColorManagement::adaptBradford(Hyprgraphics::CColor::xy srcW, Hyprgraphi
     result.multiply(diag3(scale)).multiply(Bradford);
 
     return result;
+}
+
+PImageDescription NColorManagement::getDefaultImageDescription() {
+    const auto TF = fromConfig();
+    switch (TF) {
+        case TF_AUTO:
+        case TF_GAMMA22:
+        case TF_FORCED_GAMMA22: return DEFAULT_GAMMA22_IMAGE_DESCRIPTION;
+        case TF_DEFAULT:
+        case TF_SRGB: return DEFAULT_SRGB_IMAGE_DESCRIPTION;
+        default: UNREACHABLE();
+    }
 }

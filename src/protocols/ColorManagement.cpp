@@ -266,7 +266,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
         return;
 
     m_client           = m_resource->client();
-    m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
+    m_imageDescription = getDefaultImageDescription();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
@@ -302,7 +302,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     });
     m_resource->setUnsetImageDescription([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Unset image description for surface={}", (uintptr_t)r);
-        m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
+        m_imageDescription = getDefaultImageDescription();
         setHasImageDescription(false);
     });
 }

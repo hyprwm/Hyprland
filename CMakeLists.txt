@@ -534,6 +534,7 @@ protocolnew("unstable/keyboard-shortcuts-inhibit"
 protocolnew("unstable/text-input" "text-input-unstable-v3" false)
 protocolnew("unstable/pointer-constraints" "pointer-constraints-unstable-v1"
             false)
+protocolnew("unstable/xdg-foreign" "xdg-foreign-unstable-v2" false)
 protocolnew("staging/xdg-activation" "xdg-activation-v1" false)
 protocolnew("staging/ext-idle-notify" "ext-idle-notify-v1" false)
 protocolnew("staging/ext-session-lock" "ext-session-lock-v1" false)

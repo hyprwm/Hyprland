@@ -1,5 +1,6 @@
 #include "ScrollTapeController.hpp"
 #include "ScrollingAlgorithm.hpp"
+#include "../../../../config/ConfigValue.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -205,8 +206,9 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
     if (maxExtent < usablePrimary)
         m_offset = std::round((maxExtent - usablePrimary) / 2.0);
 
-    // if the offset is negative but we already extended, reset offset to 0
-    if (maxExtent > usablePrimary && m_offset < 0.0)
+    // if the offset is negative but we already extended and fit method is not center, reset offset to 0
+    static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
+    if (maxExtent > usablePrimary && m_offset < 0.0 && *PFITMETHOD != 0)
         m_offset = 0.0;
 
     return m_offset;

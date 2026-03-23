@@ -5,7 +5,7 @@
 #include "../../macros.hpp"
 #include "../../helpers/MiscFunctions.hpp"
 
-#include <vector>
+#include <deque>
 
 namespace Desktop::History {
     class CWorkspaceHistoryTracker {
@@ -17,19 +17,18 @@ namespace Desktop::History {
         CWorkspaceHistoryTracker(CWorkspaceHistoryTracker&)       = delete;
         CWorkspaceHistoryTracker(CWorkspaceHistoryTracker&&)      = delete;
 
-        struct SWorkspacePreviousData {
+        struct SHistoryEntry {
             PHLWORKSPACEREF workspace;
-            PHLWORKSPACEREF previous;
-            PHLMONITORREF   previousMon;
-            std::string     previousName = "";
-            WORKSPACEID     previousID   = WORKSPACE_INVALID;
+            PHLMONITORREF   monitor;
+            std::string     name = "";
+            WORKSPACEID     id   = WORKSPACE_INVALID;
         };
 
-        const SWorkspacePreviousData* previousWorkspace(PHLWORKSPACE ws);
-        SWorkspaceIDName              previousWorkspaceIDName(PHLWORKSPACE ws);
+        const SHistoryEntry previousWorkspace(PHLWORKSPACE ws);
+        SWorkspaceIDName    previousWorkspaceIDName(PHLWORKSPACE ws);
 
-        const SWorkspacePreviousData* previousWorkspace(PHLWORKSPACE ws, PHLMONITOR restrict);
-        SWorkspaceIDName              previousWorkspaceIDName(PHLWORKSPACE ws, PHLMONITOR restrict);
+        const SHistoryEntry previousWorkspace(PHLWORKSPACE ws, PHLMONITOR restrict);
+        SWorkspaceIDName    previousWorkspaceIDName(PHLWORKSPACE ws, PHLMONITOR restrict);
 
       private:
         struct SLastWorkspaceData {
@@ -39,13 +38,11 @@ namespace Desktop::History {
             WORKSPACEID     workspaceID   = WORKSPACE_INVALID;
         } m_lastWorkspaceData;
 
-        std::vector<SWorkspacePreviousData> m_datas;
+        std::deque<SHistoryEntry> m_history;
 
-        void                                track(PHLWORKSPACE w);
-        void                                gc();
-        void                                setLastWorkspaceData(PHLWORKSPACE w);
-
-        SWorkspacePreviousData&             dataFor(PHLWORKSPACE ws);
+        void                      track(PHLWORKSPACE w);
+        void                      gc();
+        void                      setLastWorkspaceData(PHLWORKSPACE w);
     };
 
     SP<CWorkspaceHistoryTracker> workspaceTracker();

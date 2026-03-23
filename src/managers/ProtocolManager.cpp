@@ -67,6 +67,7 @@
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
 #include "../protocols/CommitTiming.hpp"
+#include "../protocols/XDGForeignV2.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../event/EventBus.hpp"
@@ -194,6 +195,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::xdgForeignExporter  = makeUnique<CXDGForeignExporterProtocolV2>(&zxdg_exporter_v2_interface, 1, "XDGForeignExporter");
+    PROTO::xdgForeignImporter  = makeUnique<CXDGForeignImporterProtocolV2>(&zxdg_importer_v2_interface, 1, "XDGForeignImporter");
 
     if (*PENABLECT)
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
@@ -301,6 +304,8 @@ CProtocolManager::~CProtocolManager() {
     PROTO::extDataDevice.reset();
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
+    PROTO::xdgForeignExporter.reset();
+    PROTO::xdgForeignImporter.reset();
     PROTO::commitTiming.reset();
     PROTO::imageCaptureSource.reset();
 

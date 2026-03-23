@@ -220,52 +220,49 @@ CXDGToplevelResource::CXDGToplevelResource(SP<CXdgToplevel> resource_, SP<CXDGSu
     });
 
     m_resource->setSetParent([this](CXdgToplevel* r, wl_resource* parentR) {
-        auto oldParent = m_parent;
-
-        if (m_parent)
-            std::erase(m_parent->m_children, m_self);
-
         auto newp = parentR ? CXDGToplevelResource::fromResource(parentR) : nullptr;
-
-        if (newp) {
-            // check for protocol constraints
-            if (newp == m_self) {
-                r->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be self");
-                return;
-            }
-
-            static std::function<bool(WP<CXDGToplevelResource>, WP<CXDGToplevelResource>)> exploreChildren = [](WP<CXDGToplevelResource> tl,
-                                                                                                                WP<CXDGToplevelResource> target) -> bool {
-                bool any = false;
-                for (const auto& c : tl->m_children) {
-                    if (c == target)
-                        return true;
-
-                    any = any || exploreChildren(c, target);
-
-                    if (any)
-                        break;
-                }
-                return any;
-            };
-
-            if (exploreChildren(m_self, newp)) {
-                r->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be a descendant");
-                return;
-            }
-        }
-
-        m_parent = newp;
-
-        if (m_parent) {
-            m_parent->m_children.emplace_back(m_self);
-
-            if (m_parent->m_window && m_parent->m_window->m_pinned)
-                m_self->m_window->m_pinned = true;
-        }
-
-        LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newp.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
+        setNewParent(newp);
     });
+}
+
+void CXDGToplevelResource::setNewParent(SP<CXDGToplevelResource> newParent) {
+    auto oldParent = m_parent;
+
+    if (m_parent)
+        std::erase(m_parent->m_children, m_self);
+
+    if (newParent) {
+        if (m_self == newParent) {
+            m_resource->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be self");
+            return;
+        }
+
+        static std::function<bool(WP<CXDGToplevelResource>, WP<CXDGToplevelResource>)> exploreChildren = [](WP<CXDGToplevelResource> tl, WP<CXDGToplevelResource> target) -> bool {
+            bool any = false;
+            for (const auto& c : tl->m_children) {
+                if (c == target)
+                    return true;
+
+                any = any || exploreChildren(c, target);
+
+                if (any)
+                    break;
+            }
+            return any;
+        };
+        if (exploreChildren(m_self, newParent)) {
+            m_resource->error(XDG_TOPLEVEL_ERROR_INVALID_PARENT, "Parent cannot be a descendant of itself");
+            return;
+        }
+    }
+
+    m_parent = newParent;
+    if (m_parent) {
+        m_parent->m_children.emplace_back(m_self);
+        if (m_parent->m_window && m_parent->m_window->m_pinned)
+            m_self->m_window->m_pinned = true;
+    }
+    LOGM(Log::DEBUG, "Toplevel {:x} sets parent to {:x}{}", (uintptr_t)this, (uintptr_t)newParent.get(), (oldParent ? std::format(" (was {:x})", (uintptr_t)oldParent.get()) : ""));
 }
 
 CXDGToplevelResource::~CXDGToplevelResource() {

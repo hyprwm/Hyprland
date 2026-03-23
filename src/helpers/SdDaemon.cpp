@@ -44,6 +44,7 @@ int NSystemd::sdNotify(int unsetEnvironment, const char* state) {
 
     unixAddr.sun_family = AF_UNIX;
     strncpy(unixAddr.sun_path, addr, addrLen);
+    unixAddr.sun_path[addrLen] = '\0'; // ensure null termination
     if (unixAddr.sun_path[0] == '@')
         unixAddr.sun_path[0] = '\0';
 

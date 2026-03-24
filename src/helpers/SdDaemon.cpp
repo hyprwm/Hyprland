@@ -40,11 +40,12 @@ int NSystemd::sdNotify(int unsetEnvironment, const char* state) {
 
     struct sockaddr_un unixAddr = {0};
 
-    size_t             addrLen = strnlen(addr, sizeof(unixAddr.sun_path) - 1);
-
     unixAddr.sun_family = AF_UNIX;
-    strncpy(unixAddr.sun_path, addr, addrLen);
-    unixAddr.sun_path[addrLen] = '\0'; // ensure null termination
+
+    const size_t addrLen = strnlen(addr, sizeof(unixAddr.sun_path) - 1);
+    memcpy(unixAddr.sun_path, addr, addrLen);
+    unixAddr.sun_path[addrLen] = '\0';
+
     if (unixAddr.sun_path[0] == '@')
         unixAddr.sun_path[0] = '\0';
 

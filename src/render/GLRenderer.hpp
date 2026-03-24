@@ -29,7 +29,7 @@ namespace Render::GL {
         SP<ITexture>            blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
         void                    setViewport(int x, int y, int width, int height) override;
         bool                    reloadShaders(const std::string& path = "") override;
-
+        bool                    rendererLost() override;
         void                    unsetEGL();
         WP<IElementRenderer>    elementRenderer() override;
 

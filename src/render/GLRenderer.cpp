@@ -47,6 +47,10 @@ void CHyprGLRenderer::initRender() {
     g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;
 }
 
+bool CHyprGLRenderer::rendererLost() {
+    return g_pHyprOpenGL->gpuResetDetected();
+}
+
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     try {
         m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
@@ -61,17 +65,20 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
 
+    if UNLIKELY (rendererLost())
+        return false;
+
     RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
     bindFB(fb);
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
     else
         g_pHyprOpenGL->begin(pMonitor, damage, fb);
+
     return true;
 }
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
-
     m_currentRenderbuffer->bind();
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);

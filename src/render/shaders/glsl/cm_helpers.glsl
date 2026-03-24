@@ -224,6 +224,12 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, 
 #endif
 ) {
     pixColor.rgb /= max(pixColor.a, 0.001);
+#if USE_SDR_MOD
+    // When source is HDR (PQ), undo the sdrBrightness boost in PQ space
+    // before decoding. Needed for screencopy HDR→SDR conversion.
+    if (srcTF == CM_TRANSFER_FUNCTION_ST2084_PQ)
+        pixColor.rgb /= sdrBrightnessMultiplier;
+#endif
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);
@@ -237,8 +243,12 @@ vec4 doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, 
 #endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);
 #if USE_SDR_MOD
-    pixColor = saturate(pixColor, dstxyz, sdrSaturation);
-    pixColor.rgb *= sdrBrightnessMultiplier;
+    // When target is HDR (PQ), apply sdrBrightness/saturation in PQ space
+    // (original SDR→HDR rendering path).
+    if (dstTF == CM_TRANSFER_FUNCTION_ST2084_PQ) {
+        pixColor = saturate(pixColor, dstxyz, sdrSaturation);
+        pixColor.rgb *= sdrBrightnessMultiplier;
+    }
 #endif
 #endif
 

@@ -2227,10 +2227,17 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     auto        matrix = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
     auto        toXYZ  = targetImageDescription->getPrimaries()->value().toXYZ();
 
-    const bool needsMod = (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
-        targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
+    const bool monitorHasSDRMod =
         ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
          (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
+
+    const bool needsMod = (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+        targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ && monitorHasSDRMod;
+
+    // Also need the multiplier for HDR→SDR (screencopy undo path)
+    const bool needsUndoMod = isHDR2SDR(imageDescription->value(), targetImageDescription->value()) && monitorHasSDRMod;
+
+    const bool anySDRmod = needsSDRmod || needsUndoMod;
 
     return {
         .sourceTF        = srcTF,
@@ -2247,9 +2254,9 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .maxLuminance            = maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
         .dstMaxLuminance         = dstMaxLuminance,
         .dstPrimaries2XYZ        = toXYZ.mat(),
-        .needsSDRmod             = needsMod,
-        .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
-        .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
+        .needsSDRmod             = needsMod || needsUndoMod,
+        .sdrSaturation           = anySDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
+        .sdrBrightnessMultiplier = anySDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
     };
 }
 

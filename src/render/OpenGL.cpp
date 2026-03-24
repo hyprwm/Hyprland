@@ -1373,12 +1373,20 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(const STextureRenderData& data, 
             if (maxLuminance >= dstMaxLuminance * 1.01)
                 shaderFeatures |= SH_FEAT_TONEMAP;
 
+            const bool monitorHasSDRMod =
+                ((g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
+                 (g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness != 1.0f));
+
+            // SDR→HDR: apply sdrBrightness boost (existing behavior)
             if (!data.finalMonitorCM &&
                 (SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB ||
                  SOURCE_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
                 TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
-                ((g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
-                 (g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness > 0 && g_pHyprRenderer->m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
+                monitorHasSDRMod)
+                shaderFeatures |= SH_FEAT_SDR_MOD;
+
+            // HDR→SDR (screencopy): undo sdrBrightness boost
+            if (data.cmBackToSRGB && needsHDRmod && monitorHasSDRMod)
                 shaderFeatures |= SH_FEAT_SDR_MOD;
         }
     }

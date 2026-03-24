@@ -199,6 +199,8 @@ namespace Render::GL {
         void                           beginSimple(PHLMONITOR, const CRegion& damage, SP<IRenderbuffer> rb = nullptr, SP<IFramebuffer> fb = nullptr);
         void                           end();
 
+        bool                           gpuResetDetected() const;
+
         void                           renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
         void                           renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
         void                           renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
@@ -314,6 +316,8 @@ namespace Render::GL {
         bool                             m_blend                = false;
         bool                             m_offloadedFramebuffer = false;
         bool                             m_cmSupported          = true;
+
+        bool                             m_gpuReset = false;
 
         SP<CShader>                      m_finalScreenShader;
         GLuint                           m_currentProgram;

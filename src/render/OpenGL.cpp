@@ -6,6 +6,7 @@
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/path/Path.hpp>
 #include <numbers>
+#include <optional>
 #include <random>
 #include <pango/pangocairo.h>
 #include "OpenGL.hpp"
@@ -105,6 +106,21 @@ static const char* eglErrorToString(EGLint error) {
 
 static void eglLog(EGLenum error, const char* command, EGLint type, EGLLabelKHR thread, EGLLabelKHR obj, const char* msg) {
     Log::logger->log(eglLogToLevel(type), "[EGL] Command {} errored out with {} (0x{}): {}", command, eglErrorToString(error), error, msg);
+}
+
+static std::optional<std::string> glGPUResetDetected() {
+    const GLenum RESETSTATUS = glGetGraphicsResetStatus();
+    if UNLIKELY (RESETSTATUS != GL_NO_ERROR) {
+        std::string errStr = "";
+        switch (RESETSTATUS) {
+            case GL_GUILTY_CONTEXT_RESET: errStr = "GL_GUILTY_CONTEXT_RESET"; break;
+            case GL_INNOCENT_CONTEXT_RESET: errStr = "GL_INNOCENT_CONTEXT_RESET"; break;
+            case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
+            default: errStr = "UNKNOWN??"; break;
+        }
+        return {errStr};
+    }
+    return std::nullopt;
 }
 
 static int openRenderNode(int drmFd) {
@@ -460,6 +476,10 @@ CHyprOpenGLImpl::~CHyprOpenGLImpl() {
         gbm_device_destroy(m_gbmDevice);
 }
 
+bool CHyprOpenGLImpl::gpuResetDetected() const {
+    return m_gpuReset;
+}
+
 std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint format) {
     // TODO: return std::expected when clang supports it
 
@@ -666,19 +686,6 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
 void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<IRenderbuffer> rb, SP<IFramebuffer> fb) {
     g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
 
-    const GLenum RESETSTATUS = glGetGraphicsResetStatus();
-    if (RESETSTATUS != GL_NO_ERROR) {
-        std::string errStr = "";
-        switch (RESETSTATUS) {
-            case GL_GUILTY_CONTEXT_RESET: errStr = "GL_GUILTY_CONTEXT_RESET"; break;
-            case GL_INNOCENT_CONTEXT_RESET: errStr = "GL_INNOCENT_CONTEXT_RESET"; break;
-            case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
-            default: errStr = "UNKNOWN??"; break;
-        }
-        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
-        return;
-    }
-
     TRACY_GPU_ZONE("RenderBeginSimple");
 
     const auto FBO = rb ? rb->getFB() : fb;
@@ -709,23 +716,16 @@ void CHyprOpenGLImpl::makeEGLCurrent() {
 
     if (eglGetCurrentContext() != g_pHyprOpenGL->m_eglContext)
         eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
+
+    if UNLIKELY (const auto gpuResetErr = glGPUResetDetected(); gpuResetErr.has_value()) {
+        m_gpuReset = true;
+        Log::logger->log(Log::CRIT, "GPU Reset Detected! glGetGraphicsResetStatus returned {}! Attempting to recover...", gpuResetErr.value());
+        return;
+    }
 }
 
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
     g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
-
-    const GLenum RESETSTATUS = glGetGraphicsResetStatus();
-    if (RESETSTATUS != GL_NO_ERROR) {
-        std::string errStr = "";
-        switch (RESETSTATUS) {
-            case GL_GUILTY_CONTEXT_RESET: errStr = "GL_GUILTY_CONTEXT_RESET"; break;
-            case GL_INNOCENT_CONTEXT_RESET: errStr = "GL_INNOCENT_CONTEXT_RESET"; break;
-            case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
-            default: errStr = "UNKNOWN??"; break;
-        }
-        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
-        return;
-    }
 
     TRACY_GPU_ZONE("RenderBegin");
 

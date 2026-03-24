@@ -193,6 +193,7 @@ namespace Render {
                                                       SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
+        virtual bool                    rendererLost()                              = 0;
 
       protected:
         virtual void              renderOffToMain(SP<IFramebuffer> off)                                         = 0;

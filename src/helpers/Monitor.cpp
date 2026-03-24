@@ -2459,6 +2459,13 @@ bool CMonitorState::test() {
     return m_owner->m_output->test();
 }
 
+bool CMonitorState::clearSwapchain() {
+    auto options   = m_owner->m_output->swapchain->currentOptions();
+    options.length = 0;
+    options.size   = Hyprutils::Math::Vector2D{};
+    return m_owner->m_output->swapchain->reconfigure(options);
+}
+
 bool CMonitorState::updateSwapchain() {
     const auto& OPTIONS = m_owner->m_output->swapchain->currentOptions();
     const auto& STATE   = m_owner->m_output->state->state();
@@ -2512,4 +2519,8 @@ WP<CMonitorResources> CMonitor::resources() {
         m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription);
 
     return m_resources;
+}
+
+void CMonitor::resetResources() {
+    m_resources.reset();
 }

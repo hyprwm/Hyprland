@@ -1767,7 +1767,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Config::VEC2))
             return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("str: {}\nset: {}", *rc<Config::STRING const*>(VAL), VAR.setByUser);
+            return std::format("str: {}\nset: {}", *rc<Hyprlang::STRING const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::STRING))
             return std::format("str: {}\nset: {}", **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
@@ -1781,7 +1781,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
             return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
                                VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(*rc<Config::STRING const*>(VAL)), VAR.setByUser);
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(*rc<Hyprlang::STRING const*>(VAL)), VAR.setByUser);
         else if (TYPE == typeid(Config::STRING))
             return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))

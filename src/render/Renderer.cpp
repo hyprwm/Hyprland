@@ -1717,7 +1717,9 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
 
     // render onto blurFB
-    auto guard = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
+    auto       guard          = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
+    const auto SAVE_TRANSFORM = blurredTex->m_transform;
+    blurredTex->m_transform   = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));
 
     draw(CClearPassElement::SClearData{{0, 0, 0, 0}});
 
@@ -1732,6 +1734,8 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
         *fakeDamage); // .noAA = true
 
     popMonitorTransformEnabled();
+
+    blurredTex->m_transform = SAVE_TRANSFORM;
 }
 
 static bool isSDR2HDR(const NColorManagement::SImageDescription& imageDescription, const NColorManagement::SImageDescription& targetImageDescription) {

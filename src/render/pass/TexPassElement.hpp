@@ -3,7 +3,9 @@
 #include <optional>
 
 class CWLSurfaceResource;
-class ITexture;
+namespace Render {
+    class ITexture;
+}
 class CSyncTimeline;
 
 enum eDiscardMode : uint8_t {
@@ -14,7 +16,7 @@ enum eDiscardMode : uint8_t {
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
-        SP<ITexture>           tex;
+        SP<Render::ITexture>   tex;
         CBox                   box;
         float                  a        = 1.F;
         float                  blurA    = 1.F;
@@ -41,7 +43,7 @@ class CTexPassElement : public IPassElement {
         CRegion                clipRegion;
         PHLLSREF               currentLS;
 
-        SP<ITexture>           blurredBG;
+        SP<Render::ITexture>   blurredBG;
     };
 
     CTexPassElement(const SRenderData& data);

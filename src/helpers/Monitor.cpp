@@ -44,6 +44,7 @@
 #include "debug/log/Logger.hpp"
 #include "debug/HyprNotificationOverlay.hpp"
 #include "MonitorFrameScheduler.hpp"
+#include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <cstring>
@@ -58,6 +59,8 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Render::GL;
+using namespace Monitor;
 
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
@@ -1058,12 +1061,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     updateMatrix();
 
     if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
-        m_mirrorFB.reset();
-        m_offloadFB.reset();
-        m_mirrorSwapFB.reset();
-        m_blurFB.reset();
-        m_offMainFB.reset();
-        m_stencilTex.reset();
+        m_resources.reset(); // TODO skip for 10bit change and fp16?
 
         if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
             g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
@@ -1987,7 +1985,7 @@ bool CMonitor::attemptDirectScanout() {
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
     if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
-        auto sync = CEGLSync::create();
+        auto sync = g_pHyprRenderer->createSyncFDManager();
 
         if (sync->fd().isValid()) {
             m_inFence = sync->takeFd();
@@ -2412,4 +2410,39 @@ bool CMonitorState::updateSwapchain() {
     options.length  = 3;
     options.size    = MODE->pixelSize;
     return m_owner->m_output->swapchain->reconfigure(options);
+}
+
+bool CMonitor::needsACopyFB() {
+    return !m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_self.lock());
+}
+
+bool CMonitor::needsUnmodifiedCopy() {
+    static const auto PKEEP = CConfigValue<Hyprlang::INT>("render:keep_unmodified_copy");
+    if (*PKEEP == 1)
+        return true;
+
+    const bool HAS_MODS = m_sdrMinLuminance != SDR_MIN_LUMINANCE || m_sdrMaxLuminance != SDR_MAX_LUMINANCE || (m_sdrBrightness > 0 && m_sdrBrightness != 1.0) ||
+        (m_sdrSaturation > 0 && m_sdrSaturation != 1.0);
+
+    if (!HAS_MODS)
+        return false;
+
+    if (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_HLG)
+        return false;
+
+    return *PKEEP == 2 ? true : needsACopyFB();
+}
+
+bool CMonitor::useFP16() {
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    return *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+}
+
+WP<CMonitorResources> CMonitor::resources() {
+    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
+
+    if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
+        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription);
+
+    return m_resources;
 }

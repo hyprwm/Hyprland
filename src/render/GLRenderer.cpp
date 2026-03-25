@@ -11,30 +11,35 @@
 #include "../debug/HyprDebugOverlay.hpp"
 #include "../helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
-#include "pass/ClearPassElement.hpp"
-#include "pass/RectPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "../debug/log/Logger.hpp"
 #include "../protocols/types/ContentType.hpp"
 #include "OpenGL.hpp"
 #include "Renderer.hpp"
-#include "gl/GLFramebuffer.hpp"
-#include "gl/GLTexture.hpp"
-#include "decorations/CHyprDropShadowDecoration.hpp"
+#include "./gl/GLElementRenderer.hpp"
+#include "./gl/GLFramebuffer.hpp"
+#include "./gl/GLTexture.hpp"
 
 #include <cstdint>
 #include <hyprutils/memory/SharedPtr.hpp>
+#include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Render;
+using namespace Render::GL;
 
 extern "C" {
 #include <xf86drm.h>
 }
 
-CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer() {}
+CHyprGLRenderer::CHyprGLRenderer() : IHyprRenderer(), m_elementRenderer(makeUnique<CGLElementRenderer>()) {}
+
+IHyprRenderer::eType CHyprGLRenderer::type() {
+    return RT_GL;
+}
 
 void CHyprGLRenderer::initRender() {
     g_pHyprOpenGL->makeEGLCurrent();
@@ -56,7 +61,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
     initRender();
 
     RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
-    fb->bind();
+    bindFB(fb);
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
     else
@@ -118,7 +123,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         return;
     }
 
-    UP<CEGLSync> eglSync = CEGLSync::create();
+    auto eglSync = createSyncFDManager();
     if LIKELY (eglSync && eglSync->isValid()) {
         for (auto const& buf : m_usedAsyncBuffers) {
             for (const auto& releaser : buf->m_syncReleasers) {
@@ -150,13 +155,17 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     }
 }
 
-void CHyprGLRenderer::renderOffToMain(IFramebuffer* off) {
+void CHyprGLRenderer::renderOffToMain(SP<IFramebuffer> off) {
     g_pHyprOpenGL->renderOffToMain(off);
 }
 
 SP<IRenderbuffer> CHyprGLRenderer::getOrCreateRenderbufferInternal(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     g_pHyprOpenGL->makeEGLCurrent();
     return makeShared<CGLRenderbuffer>(buffer, fmt);
+}
+
+UP<ISyncFDManager> CHyprGLRenderer::createSyncFDManager() {
+    return CEGLSync::create();
 }
 
 SP<ITexture> CHyprGLRenderer::createStencilTexture(const int width, const int height) {
@@ -281,122 +290,8 @@ bool CHyprGLRenderer::reloadShaders(const std::string& path) {
     return g_pHyprOpenGL->initShaders(path);
 }
 
-void CHyprGLRenderer::draw(CBorderPassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-    if (m_data.hasGrad2)
-        g_pHyprOpenGL->renderBorder(
-            m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,
-            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
-    else
-        g_pHyprOpenGL->renderBorder(
-            m_data.box, m_data.grad1,
-            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
-};
-
-void CHyprGLRenderer::draw(CClearPassElement* element, const CRegion& damage) {
-    g_pHyprOpenGL->clear(element->m_data.color);
-};
-
-void CHyprGLRenderer::draw(CFramebufferElement* element, const CRegion& damage) {
-    const auto       m_data = element->m_data;
-    SP<IFramebuffer> fb     = nullptr;
-
-    if (m_data.main) {
-        switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_MAIN: fb = g_pHyprRenderer->m_renderData.mainFB; break;
-            case FB_MONITOR_RENDER_CURRENT: fb = g_pHyprRenderer->m_renderData.currentFB; break;
-            case FB_MONITOR_RENDER_OUT: fb = g_pHyprRenderer->m_renderData.outFB; break;
-            default: fb = nullptr;
-        }
-
-        if (!fb) {
-            Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: main but null");
-            return;
-        }
-
-    } else {
-        switch (m_data.framebufferID) {
-            case FB_MONITOR_RENDER_EXTRA_OFFLOAD: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offloadFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR: fb = m_renderData.pMonitor->m_mirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MIRROR_SWAP: fb = m_renderData.pMonitor->m_mirrorSwapFB; break;
-            case FB_MONITOR_RENDER_EXTRA_OFF_MAIN: fb = g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB; break;
-            case FB_MONITOR_RENDER_EXTRA_MONITOR_MIRROR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_monitorMirrorFB; break;
-            case FB_MONITOR_RENDER_EXTRA_BLUR: fb = g_pHyprRenderer->m_renderData.pMonitor->m_blurFB; break;
-            default: fb = nullptr;
-        }
-
-        if (!fb) {
-            Log::logger->log(Log::ERR, "BUG THIS: CFramebufferElement::draw: not main but null");
-            return;
-        }
-    }
-
-    fb->bind();
-};
-
-void CHyprGLRenderer::draw(CPreBlurElement* element, const CRegion& damage) {
-    auto dmg = damage;
-    g_pHyprRenderer->preBlurForCurrentMonitor(&dmg);
-};
-
-void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-
-    if (m_data.color.a == 1.F || !m_data.blur)
-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
-    else
-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
-                                  {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
-};
-
-void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-    m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
-};
-
-void CHyprGLRenderer::draw(CTexPassElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-
-    g_pHyprOpenGL->renderTexture( //
-        m_data.tex, m_data.box,
-        {
-            // blur settings for m_data.blur == true
-            .blur                  = m_data.blur,
-            .blurA                 = m_data.blurA,
-            .overallA              = m_data.overallA,
-            .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
-            .blurredBG             = m_data.blurredBG,
-
-            // common settings
-            .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
-            .surface            = m_data.surface,
-            .a                  = m_data.a,
-            .round              = m_data.round,
-            .roundingPower      = m_data.roundingPower,
-            .discardActive      = m_data.discardActive,
-            .allowCustomUV      = m_data.allowCustomUV,
-            .cmBackToSRGB       = m_data.cmBackToSRGB,
-            .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
-            .discardMode        = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,
-            .discardOpacity     = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
-            .clipRegion         = m_data.clipRegion,
-            .currentLS          = m_data.currentLS,
-
-            .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
-            .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
-        });
-};
-
-void CHyprGLRenderer::draw(CTextureMatteElement* element, const CRegion& damage) {
-    const auto m_data = element->m_data;
-
-    g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
-};
-
 SP<ITexture> CHyprGLRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
-    if (!pMonitor->m_blurFB)
-        return nullptr;
-    return pMonitor->m_blurFB->getTexture();
+    return pMonitor->resources()->m_blurFB->getTexture();
 }
 
 void CHyprGLRenderer::unsetEGL() {
@@ -404,4 +299,8 @@ void CHyprGLRenderer::unsetEGL() {
         return;
 
     eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+}
+
+WP<IElementRenderer> CHyprGLRenderer::elementRenderer() {
+    return m_elementRenderer;
 }

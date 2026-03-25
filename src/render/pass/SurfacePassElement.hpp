@@ -5,7 +5,9 @@
 #include "../../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
-class ITexture;
+namespace Render {
+    class ITexture;
+}
 class CSyncTimeline;
 
 class CSurfacePassElement : public IPassElement {
@@ -17,7 +19,7 @@ class CSurfacePassElement : public IPassElement {
 
         void*                  data        = nullptr;
         SP<CWLSurfaceResource> surface     = nullptr;
-        SP<ITexture>           texture     = nullptr;
+        SP<Render::ITexture>   texture     = nullptr;
         bool                   mainSurface = true;
         double                 w = 0, h = 0;
         int                    rounding      = 0;

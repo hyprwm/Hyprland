@@ -61,6 +61,10 @@ void CScreenshareSession::stop() {
     screenshareEvents(false);
 }
 
+bool CScreenshareSession::isActive() {
+    return !m_stopped && m_sharing;
+}
+
 void CScreenshareSession::init() {
     uintptr_t ptr = m_type == SHARE_WINDOW && !m_window.expired() ? (uintptr_t)m_window.get() : (m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get());
     LOGM(Log::TRACE, "Created screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);

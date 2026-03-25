@@ -156,7 +156,7 @@ bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
     return std::ranges::any_of(m_sessions, [monitor](const auto& s) {
         if (!s)
             return false;
-        return (s->m_type == SHARE_MONITOR || s->m_type == SHARE_REGION) && s->m_monitor == monitor;
+        return s->isActive() && (s->m_type == SHARE_MONITOR || s->m_type == SHARE_REGION) && s->m_monitor == monitor;
     });
 }
 

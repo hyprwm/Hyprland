@@ -66,7 +66,7 @@ void CWorkspaceHistoryTracker::gc() {
 
 const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws) {
     gc();
-    auto it = std::find_if(m_history.begin(), m_history.end(), [&](const auto& entry) { return entry.workspace == ws; });
+    auto it = std::ranges::find_if(m_history, [&](const auto& entry) { return entry.workspace == ws; });
 
     // If the workspace is found in history, the previous one is simply the next element down the timeline
     if (it != m_history.end() && std::next(it) != m_history.end())
@@ -91,7 +91,7 @@ const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previous
 
     gc();
 
-    auto it = std::find_if(m_history.begin(), m_history.end(), [&](const auto& entry) { return entry.workspace == ws; });
+    auto it = std::ranges::find_if(m_history, [&](const auto& entry) { return entry.workspace == ws; });
 
     // Start looking from the element immediately following `ws` in the list
     if (it != m_history.end())

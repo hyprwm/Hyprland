@@ -1,3 +1,7 @@
 src/render/Renderer.cpp
 src/render/OpenGL.cpp
-src/Compositor.cpp
+src/debug/HyprCtl.cpp
+src/protocols/LinuxDMABUF.cpp
+src/protocols/SinglePixel.cpp
+src/managers/screenshare/ScreenshareFrame.cpp
+src/layout/algorithm/tiled/master/MasterAlgorithm.cpp

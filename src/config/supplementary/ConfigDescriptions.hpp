@@ -1575,17 +1575,6 @@ namespace Config::Supplementary {
         },
 
         /*
-     * opengl:
-     */
-
-        SConfigOptionDescription{
-            .value       = "opengl:nvidia_anti_flicker",
-            .description = "reduces flickering on nvidia at the cost of possible frame drops on lower-end GPUs. On non-nvidia, this is ignored.",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
-        },
-
-        /*
      * render:
      */
 

@@ -42,6 +42,10 @@
 struct gbm_device;
 class IHyprRenderer;
 
+namespace Config {
+    class CGradientValueData;
+}
+
 struct SVertex {
     float x, y; // position
     float u, v; // uv
@@ -164,8 +168,6 @@ class CEGLSync {
     friend class CHyprOpenGLImpl;
 };
 
-class CGradientValueData;
-
 class CHyprOpenGLImpl {
   public:
     CHyprOpenGLImpl();
@@ -226,8 +228,8 @@ class CHyprOpenGLImpl {
     void                                      renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
     void                                      renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
     void                                      renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
-    void                                      renderBorder(const CBox&, const CGradientValueData&, SBorderRenderData data);
-    void                                      renderBorder(const CBox&, const CGradientValueData&, const CGradientValueData&, float lerp, SBorderRenderData data);
+    void                                      renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
+    void                                      renderBorder(const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
     void                                      renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);
     void                                      renderTexturePrimitive(SP<ITexture> tex, const CBox& box);
 
@@ -340,7 +342,7 @@ class CHyprOpenGLImpl {
     bool                             m_cmSupported          = true;
 
     SP<CShader>                      m_finalScreenShader;
-    GLuint                           m_currentProgram;
+    GLuint                           m_currentProgram = 0;
 
     void                             initDRMFormats();
     void                             initEGL(bool gbm);

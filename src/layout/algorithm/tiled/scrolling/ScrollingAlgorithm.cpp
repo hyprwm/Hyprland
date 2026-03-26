@@ -8,12 +8,13 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../config/ConfigValue.hpp"
-#include "../../../../config/ConfigManager.hpp"
+#include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../event/EventBus.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -1488,10 +1489,10 @@ SP<SScrollingTargetData> CScrollingAlgorithm::dataFor(SP<ITarget> t) {
 }
 
 eScrollDirection CScrollingAlgorithm::getDynamicDirection() {
-    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
+    const auto  WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent->space()->workspace());
     std::string directionString;
-    if (WORKSPACERULE.layoutopts.contains("direction"))
-        directionString = WORKSPACERULE.layoutopts.at("direction");
+    if (WORKSPACERULE && WORKSPACERULE->m_layoutopts.contains("direction"))
+        directionString = WORKSPACERULE->m_layoutopts.at("direction");
 
     static const auto PCONFDIRECTION  = CConfigValue<Hyprlang::STRING>("scrolling:direction");
     std::string       configDirection = *PCONFDIRECTION;

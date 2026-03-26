@@ -1,6 +1,6 @@
 #include "Popup.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/XDGShell.hpp"
@@ -101,7 +101,7 @@ bool CPopup::desktopComponent() const {
 
 void CPopup::initAllSignals() {
 
-    g_pAnimationManager->createAnimation(0.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
     m_alpha->setUpdateCallback([this](auto) {
         //
         g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
@@ -203,7 +203,7 @@ void CPopup::onMap() {
             m_layerOwner->m_monitor->m_blurFBDirty = true;
     }
 
-    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
+    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
     m_alpha->setValueAndWarp(0.F);
     *m_alpha = 1.F;
 
@@ -244,7 +244,7 @@ void CPopup::onUnmap() {
     g_pHyprRenderer->makeSnapshot(m_self);
 
     m_fadingOut = true;
-    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsOut"));
+    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
     m_alpha->setValueAndWarp(1.F);
     *m_alpha = 0.F;
 

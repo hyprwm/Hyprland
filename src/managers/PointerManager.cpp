@@ -1,7 +1,7 @@
 #include "PointerManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/RelativePointer.hpp"
 #include "../protocols/FractionalScale.hpp"
@@ -295,7 +295,7 @@ void CPointerManager::updateCursorBackend() {
             continue;
         }
 
-        if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors(m) || !attemptHardwareCursor(state)) {
+        if (state->softwareLocks > 0 || m->shouldUseSoftwareCursors() || !attemptHardwareCursor(state)) {
             Log::logger->log(Log::TRACE, "Output {} rejected hardware cursors, falling back to sw", m->m_name);
             state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
@@ -770,7 +770,7 @@ void CPointerManager::damageIfSoftware() {
         if (!monitor || !monitor->m_output || monitor->isMirror())
             continue;
 
-        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(monitor));
+        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || monitor->shouldUseSoftwareCursors());
         if (!usesSoftwareCursor)
             continue;
 

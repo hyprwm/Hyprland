@@ -4,11 +4,12 @@
 #include "../algorithm/Algorithm.hpp"
 
 #include "../../protocols/core/Compositor.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../desktop/state/FloatState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -71,7 +72,7 @@ void CWindowTarget::updatePos() {
 
     // get specific gaps and rules for this workspace,
     // if user specified them in config
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(PWORKSPACE);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE);
 
     if (!validMapped(m_window)) {
         if (m_window)
@@ -107,8 +108,8 @@ void CWindowTarget::updatePos() {
         const bool        DISPLAYINVERSERIGHT = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x);
 
         static auto       PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-        auto* const       PGAPSIN     = sc<CCssGapData*>((PGAPSINDATA.ptr())->getData());
-        auto              gapsIn      = WORKSPACERULE.gapsIn.value_or(*PGAPSIN);
+        auto* const       PGAPSIN     = sc<Config::CCssGapData*>((PGAPSINDATA.ptr())->getData());
+        auto              gapsIn      = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
 
         const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("layout:single_window_aspect_ratio");
         const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("layout:single_window_aspect_ratio_tolerance");
@@ -264,7 +265,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         DESIRED_GEOM.y = xy.y;
     }
 
-    const auto STOREDSIZE = m_window->m_ruleApplicator->persistentSize().valueOrDefault() ? g_pConfigManager->getStoredFloatingSize(m_window.lock()) : std::nullopt;
+    const auto STOREDSIZE = m_window->m_ruleApplicator->persistentSize().valueOrDefault() ? Desktop::floatState()->get(m_window.lock()) : std::nullopt;
 
     if (STOREDSIZE)
         requested.size = clampSizeForDesired(*STOREDSIZE);

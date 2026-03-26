@@ -3,7 +3,7 @@
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
-#include "../config/ConfigManager.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Group.hpp"
@@ -194,7 +194,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 
     static auto  PGAPSIN  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
     static auto  PGAPSOUT = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    const auto   GAPSNONE = CCssGapData{0, 0, 0, 0};
+    const auto   GAPSNONE = Config::CCssGapData{0, 0, 0, 0};
 
     const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
     int          snaps = 0;
@@ -212,7 +212,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
-        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSIN.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()->getData()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
@@ -275,7 +275,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
 
-        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
         const auto   WORK_AREA = Desktop::CReservedArea{GAPSOUT->m_top, GAPSOUT->m_right, GAPSOUT->m_bottom, GAPSOUT->m_left}.apply(MON->logicalBoxMinusReserved());
 
         SRange       monX = {WORK_AREA.x, WORK_AREA.x + WORK_AREA.w};

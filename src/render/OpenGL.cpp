@@ -15,7 +15,7 @@
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/TransferFunction.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../managers/PointerManager.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -120,7 +120,7 @@ static int openRenderNode(int drmFd) {
 
         drmVersion* render_version = drmGetVersion(drmFd);
         if (render_version && render_version->name) {
-            Log::logger->log(Log::DEBUG, "DRM dev versionName", render_version->name);
+            Log::logger->log(Log::DEBUG, "DRM dev versionName {}", render_version->name);
             if (strcmp(render_version->name, "evdi") == 0) {
                 free(renderName); // NOLINT(cppcoreguidelines-no-malloc)
                 renderName = strdup("/dev/dri/card0");
@@ -409,14 +409,14 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         m_pressedHistoryKilled <<= 1;
         m_pressedHistoryKilled |= killing ? 1 : 0;
 #if POINTER_PRESSED_HISTORY_LENGTH < 32
-        m_pressedHistoryKilled &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+        m_pressedHistoryKilled &= (1U << POINTER_PRESSED_HISTORY_LENGTH) - 1;
 #endif
 
         // shift touch flag in
         m_pressedHistoryTouched <<= 1;
         m_pressedHistoryTouched |= touch ? 1 : 0;
 #if POINTER_PRESSED_HISTORY_LENGTH < 32
-        m_pressedHistoryTouched &= (1 >> POINTER_PRESSED_HISTORY_LENGTH) - 1;
+        m_pressedHistoryTouched &= (1U << POINTER_PRESSED_HISTORY_LENGTH) - 1;
 #endif
     };
 
@@ -474,7 +474,11 @@ std::optional<std::vector<uint64_t>> CHyprOpenGLImpl::getModsForFormat(EGLint fo
     mods.resize(len);
     external.resize(len);
 
-    m_proc.eglQueryDmaBufModifiersEXT(m_eglDisplay, format, len, mods.data(), external.data(), &len);
+    if (!m_proc.eglQueryDmaBufModifiersEXT(m_eglDisplay, format, len, mods.data(), external.data(), &len)) {
+        const auto err = eglGetError();
+        Log::logger->log(Log::ERR, "EGL: Failed to query mods (2) for format 0x{:x}, eglGetError: 0x{:x}", format, err);
+        return std::nullopt;
+    }
 
     std::vector<uint64_t> result;
     // reserve number of elements to avoid reallocations
@@ -516,9 +520,17 @@ void CHyprOpenGLImpl::initDRMFormats() {
         Log::logger->log(Log::WARN, "EGL: No mod support");
     } else {
         EGLint len = 0;
-        m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, 0, nullptr, &len);
+        if (!m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, 0, nullptr, &len)) {
+            const auto err = eglGetError();
+            Log::logger->log(Log::ERR, "EGL: Failed to query formats, eglGetError: 0x{:x}", err);
+            return;
+        }
         formats.resize(len);
-        m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, len, formats.data(), &len);
+        if (!m_proc.eglQueryDmaBufFormatsEXT(m_eglDisplay, len, formats.data(), &len)) {
+            const auto err = eglGetError();
+            Log::logger->log(Log::ERR, "EGL: Failed to query formats (2), eglGetError: 0x{:x}", err);
+            return;
+        }
     }
 
     if (formats.empty()) {
@@ -750,6 +762,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 void CHyprOpenGLImpl::end() {
     static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
     auto&       m_renderData   = g_pHyprRenderer->m_renderData;
+    const auto  PMONITOR       = m_renderData.pMonitor;
     TRACY_GPU_ZONE("RenderEnd");
 
     g_pHyprRenderer->m_renderData.currentWindow.reset();
@@ -825,9 +838,8 @@ void CHyprOpenGLImpl::end() {
     // if we dropped to offMain, release it now.
     // if there is a plugin constantly using it, this might be a bit slow,
     // but I haven't seen a single plugin yet use these, so it's better to drop a bit of vram.
-    if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor && g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB &&
-                 g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->isAllocated())
-        g_pHyprRenderer->m_renderData.pMonitor->m_offMainFB->release();
+    if UNLIKELY (PMONITOR && PMONITOR->m_offMainFB && PMONITOR->m_offMainFB->isAllocated())
+        PMONITOR->m_offMainFB->release();
 
     static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
 
@@ -889,21 +901,21 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     if (path.empty() || path == STRVAL_EMPTY)
         return;
 
-    std::string     absPath = absolutePath(path, g_pConfigManager->getMainConfigPath());
+    std::string     absPath = absolutePath(path, Config::mgr()->getMainConfigPath());
 
     std::error_code ec;
     if (!std::filesystem::is_regular_file(absPath, ec)) {
         if (ec)
-            g_pConfigManager->addParseError("Screen shader parser: Failed to check screen shader path: " + ec.message());
+            g_pHyprError->queueError("Screen shader parser: Failed to check screen shader path: " + ec.message());
         else
-            g_pConfigManager->addParseError("Screen shader parser: Screen shader path is not a regular file");
+            g_pHyprError->queueError("Screen shader parser: Screen shader path is not a regular file");
         return;
     }
 
     std::ifstream infile(absPath);
 
     if (!infile.good()) {
-        g_pConfigManager->addParseError("Screen shader parser: Failed to open screen shader");
+        g_pHyprError->queueError("Screen shader parser: Failed to open screen shader");
         return;
     }
 
@@ -930,9 +942,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
         // The screen shader uses the uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
-        g_pConfigManager->addParseError(std::format("Screen shader: Screen shader uses uniform '{}', which requires debug:damage_tracking to be switched off.\n"
-                                                    "WARNING:(Disabling damage tracking will *massively* increase GPU utilization!",
-                                                    name));
+        g_pHyprError->queueError(std::format("Screen shader: Screen shader uses uniform '{}', which requires debug:damage_tracking to be switched off.\n"
+                                             "WARNING:(Disabling damage tracking will *massively* increase GPU utilization!",
+                                             name));
     };
 
     // Allow glitch shader to use time uniform whighout damage tracking
@@ -2029,7 +2041,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     scissor(nullptr);
 }
 
-void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& grad, SBorderRenderData data) {
+void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_renderData.pMonitor, "Tried to render rect without begin()!");
@@ -2115,7 +2127,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& gr
     blend(BLEND);
 }
 
-void CHyprOpenGLImpl::renderBorder(const CBox& box, const CGradientValueData& grad1, const CGradientValueData& grad2, float lerp, SBorderRenderData data) {
+void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp, SBorderRenderData data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
     RASSERT(m_renderData.pMonitor, "Tried to render rect without begin()!");

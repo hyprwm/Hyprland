@@ -10,7 +10,9 @@
 #include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
-#include "config/ConfigWatcher.hpp"
+#include "config/legacy/ConfigManager.hpp"
+#include "config/shared/inotify/ConfigWatcher.hpp"
+#include "config/shared/monitor/MonitorRuleManager.hpp"
 #include "managers/CursorManager.hpp"
 #include "managers/TokenManager.hpp"
 #include "managers/PointerManager.hpp"
@@ -60,6 +62,7 @@
 #include "managers/XWaylandManager.hpp"
 
 #include "config/ConfigManager.hpp"
+#include "config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "render/OpenGL.hpp"
 #include "managers/input/InputManager.hpp"
 #include "managers/animation/AnimationManager.hpp"
@@ -79,6 +82,8 @@
 #include "event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <aquamarine/input/Input.hpp>
 
 #include <fcntl.h>
@@ -286,9 +291,10 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     if (m_onlyConfigVerification) {
         g_pKeybindManager   = makeUnique<CKeybindManager>();
         g_pAnimationManager = makeUnique<CHyprAnimationManager>();
-        g_pConfigManager    = makeUnique<CConfigManager>();
+        Config::initConfigManager();
+        Config::mgr()->init();
 
-        std::println("\n\n======== Config parsing result:\n\n{}", g_pConfigManager->verify());
+        std::println("\n\n======== Config parsing result:\n\n{}", Config::mgr()->verify());
         return;
     }
 
@@ -489,10 +495,11 @@ void CCompositor::initAllSignals() {
 
                 for (auto const& m : m_monitors) {
                     scheduleFrameForMonitor(m);
-                    m->applyMonitorRule(&m->m_activeMonitorRule, true);
+                    auto cpy = m->m_activeMonitorRule;
+                    m->applyMonitorRule(std::move(cpy), true);
                 }
 
-                g_pConfigManager->m_wantsMonitorReload = true;
+                Config::monitorRuleMgr()->scheduleReload();
                 g_pCursorManager->syncGsettings();
             } else {
                 Log::logger->log(Log::DEBUG, "Session got deactivated!");
@@ -590,10 +597,9 @@ void CCompositor::cleanup() {
     g_pHyprRenderer.reset();
     g_pHyprOpenGL.reset();
     Render::g_pShaderLoader.reset();
-    g_pConfigManager.reset();
+    Config::mgr().reset();
     g_layoutManager.reset();
     g_pHyprError.reset();
-    g_pConfigManager.reset();
     g_pKeybindManager.reset();
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
@@ -604,7 +610,7 @@ void CCompositor::cleanup() {
     g_pDonationNagManager.reset();
     g_pWelcomeManager.reset();
     g_pANRManager.reset();
-    g_pConfigWatcher.reset();
+    Config::watcher().reset();
     g_pAsyncResourceGatherer.reset();
 
     if (m_aqBackend)
@@ -633,7 +639,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             g_pDynamicPermissionManager = makeUnique<CDynamicPermissionManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the ConfigManager!");
-            g_pConfigManager = makeUnique<CConfigManager>();
+            if (!Config::initConfigManager())
+                exit(1);
 
             Log::logger->log(Log::DEBUG, "Creating the CHyprError!");
             g_pHyprError = makeUnique<CHyprError>();
@@ -644,7 +651,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
 
-            g_pConfigManager->init();
+            Config::mgr()->init();
 
             Log::logger->log(Log::DEBUG, "Creating the PointerManager!");
             g_pPointerManager = makeUnique<CPointerManager>();
@@ -694,7 +701,7 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the PluginSystem!");
             g_pPluginSystem = makeUnique<CPluginSystem>();
-            g_pConfigManager->handlePluginLoads();
+            Config::mgr()->handlePluginLoads();
 
             Log::logger->log(Log::DEBUG, "Creating the DecorationPositioner!");
             g_pDecorationPositioner = makeUnique<CDecorationPositioner>();
@@ -1036,8 +1043,55 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
-                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect())
-                    box.expand(BORDER_GRAB_AREA);
+                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
+                    const auto  WORKAREA                    = PWORKSPACE->m_space->workArea();
+                    static auto isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
+                        constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
+                        double           aEdge           = -1;
+                        double           bEdge           = -1;
+
+                        switch (dir) {
+                            case Math::DIRECTION_LEFT:
+                                aEdge = WORKAREA.x;
+                                bEdge = box.x;
+                                break;
+                            case Math::DIRECTION_RIGHT:
+                                aEdge = WORKAREA.x + WORKAREA.width;
+                                bEdge = box.x + box.width;
+                                break;
+                            case Math::DIRECTION_UP:
+                                aEdge = WORKAREA.y;
+                                bEdge = box.y;
+                                break;
+                            case Math::DIRECTION_DOWN:
+                                aEdge = WORKAREA.y + WORKAREA.height;
+                                bEdge = box.y + box.height;
+                                break;
+                            default: break;
+                        }
+                        const double delta = aEdge - bEdge;
+                        if (std::abs(delta) < STICK_THRESHOLD)
+                            return true;
+                        else
+                            return false;
+                    };
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_LEFT)) {
+                        box.x -= BORDER_GRAB_AREA;
+                        box.width += BORDER_GRAB_AREA;
+                    }
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_RIGHT))
+                        box.width += BORDER_GRAB_AREA;
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_UP)) {
+                        box.y -= BORDER_GRAB_AREA;
+                        box.height += BORDER_GRAB_AREA;
+                    }
+
+                    if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_DOWN))
+                        box.height += BORDER_GRAB_AREA;
+                }
                 if (box.containsPoint(pos))
                     return w;
             }
@@ -1611,11 +1665,11 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
     }
 
     // Give priority to persistent workspaces to avoid any conflicts between them.
-    for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-        if (!rule.isPersistent)
+    for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
+        if (!rule.m_isPersistent)
             continue;
-        if (rule.workspaceId < -1 && rule.workspaceId < lowest)
-            lowest = rule.workspaceId;
+        if (rule.m_workspaceId < -1 && rule.m_workspaceId < lowest)
+            lowest = rule.m_workspaceId;
     }
 
     return lowest - 1;
@@ -1970,7 +2024,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             nextWorkspaceOnMonitorID = 1;
 
             while (getWorkspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool {
-                const auto B = g_pConfigManager->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
+                const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
                 return B && B != POLDMON;
             }())
                 nextWorkspaceOnMonitorID++;
@@ -2213,7 +2267,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
             g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
     }
 
-    g_pConfigManager->ensureVRR(PMONITOR);
+    Config::monitorRuleMgr()->ensureVRR(PMONITOR);
 }
 
 PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
@@ -2409,15 +2463,15 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     if (!args.contains(' ') && !args.contains('\t'))
         return relativeTo;
 
-    const auto  PMONITOR = Desktop::focusState()->monitor();
+    const auto PMONITOR = Desktop::focusState()->monitor();
 
-    bool        xIsPercent = false;
-    bool        yIsPercent = false;
-    bool        isExact    = false;
+    bool       xIsPercent = false;
+    bool       yIsPercent = false;
+    bool       isExact    = false;
 
-    CVarList    varList(args, 0, 's', true);
-    std::string x = varList[0];
-    std::string y = varList[1];
+    CVarList2  varList(std::string{args}, 0, 's', true);
+    auto       x = varList[0];
+    auto       y = varList[1];
 
     if (x == "exact") {
         x       = varList[1];
@@ -2435,7 +2489,7 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
         y          = y.substr(0, y.length() - 1);
     }
 
-    if (!isNumber(x) || !isNumber(y)) {
+    if (!isNumber2(x) || !isNumber2(y)) {
         Log::logger->log(Log::ERR, "parseWindowVectorArgsRelative: args not numbers");
         return relativeTo;
     }
@@ -2444,11 +2498,11 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     int Y = 0;
 
     if (isExact) {
-        X = xIsPercent ? std::stof(x) * 0.01 * PMONITOR->m_size.x : std::stoi(x);
-        Y = yIsPercent ? std::stof(y) * 0.01 * PMONITOR->m_size.y : std::stoi(y);
+        X = xIsPercent ? *strToNumber<float>(x) * 0.01 * PMONITOR->m_size.x : *strToNumber<int64_t>(x);
+        Y = yIsPercent ? *strToNumber<float>(y) * 0.01 * PMONITOR->m_size.y : *strToNumber<int64_t>(y);
     } else {
-        X = xIsPercent ? (std::stof(x) * 0.01 * relativeTo.x) + relativeTo.x : std::stoi(x) + relativeTo.x;
-        Y = yIsPercent ? (std::stof(y) * 0.01 * relativeTo.y) + relativeTo.y : std::stoi(y) + relativeTo.y;
+        X = xIsPercent ? (*strToNumber<float>(x) * 0.01 * relativeTo.x) + relativeTo.x : *strToNumber<int64_t>(x) + relativeTo.x;
+        Y = yIsPercent ? (*strToNumber<float>(y) * 0.01 * relativeTo.y) + relativeTo.y : *strToNumber<int64_t>(y) + relativeTo.y;
     }
 
     return Vector2D(X, Y);
@@ -2459,7 +2513,7 @@ PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITO
     auto       monID = monid;
 
     // check if bound
-    if (const auto PMONITOR = g_pConfigManager->getBoundMonitorForWS(NAME); PMONITOR)
+    if (const auto PMONITOR = Config::workspaceRuleMgr()->getBoundMonitorForWS(NAME); PMONITOR)
         monID = PMONITOR->m_id;
 
     const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
@@ -2557,7 +2611,7 @@ void CCompositor::openSafeModeBox() {
 
         if (RES.starts_with(OPT_LOAD)) {
             m_safeMode = false;
-            g_pConfigManager->reload();
+            Config::mgr()->reload();
         } else if (RES.starts_with(OPT_OPEN)) {
             std::string reportPath;
             const auto  HOME       = getenv("HOME");
@@ -2682,7 +2736,7 @@ void CCompositor::checkMonitorOverlaps() {
 }
 
 void CCompositor::arrangeMonitors() {
-    static auto* const      PXWLFORCESCALEZERO = rc<Hyprlang::INT* const*>(g_pConfigManager->getConfigValuePtr("xwayland:force_zero_scaling"));
+    static auto             PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     std::vector<PHLMONITOR> toArrange(m_monitors.begin(), m_monitors.end());
     std::vector<PHLMONITOR> arranged;
@@ -2693,11 +2747,11 @@ void CCompositor::arrangeMonitors() {
     for (auto it = toArrange.begin(); it != toArrange.end();) {
         auto m = *it;
 
-        if (m->m_activeMonitorRule.offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
+        if (m->m_activeMonitorRule.m_offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
             // explicit.
-            Log::logger->log(Log::DEBUG, "arrangeMonitors: {} explicit {:j}", m->m_name, m->m_activeMonitorRule.offset);
+            Log::logger->log(Log::DEBUG, "arrangeMonitors: {} explicit {:j}", m->m_name, m->m_activeMonitorRule.m_offset);
 
-            m->moveTo(m->m_activeMonitorRule.offset);
+            m->moveTo(m->m_activeMonitorRule.m_offset);
             arranged.push_back(m);
             it = toArrange.erase(it);
 
@@ -2738,31 +2792,31 @@ void CCompositor::arrangeMonitors() {
         // Moves the monitor to their appropriate position on the x/y axis and
         // increments/decrements the corresponding max offset.
         Vector2D newPosition = {0, 0};
-        switch (m->m_activeMonitorRule.autoDir) {
-            case eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->m_size.y; break;
-            case eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
-            case eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->m_size.x; break;
-            case eAutoDirs::DIR_AUTO_RIGHT:
-            case eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
-            case eAutoDirs::DIR_AUTO_CENTER_UP: {
+        switch (m->m_activeMonitorRule.m_autoDir) {
+            case Config::eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->m_size.y; break;
+            case Config::eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
+            case Config::eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->m_size.x; break;
+            case Config::eAutoDirs::DIR_AUTO_RIGHT:
+            case Config::eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
+            case Config::eAutoDirs::DIR_AUTO_CENTER_UP: {
                 int width     = maxXOffsetRight - maxXOffsetLeft;
                 newPosition.y = maxYOffsetUp - m->m_size.y;
                 newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
                 break;
             }
-            case eAutoDirs::DIR_AUTO_CENTER_DOWN: {
+            case Config::eAutoDirs::DIR_AUTO_CENTER_DOWN: {
                 int width     = maxXOffsetRight - maxXOffsetLeft;
                 newPosition.y = maxYOffsetDown;
                 newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
                 break;
             }
-            case eAutoDirs::DIR_AUTO_CENTER_LEFT: {
+            case Config::eAutoDirs::DIR_AUTO_CENTER_LEFT: {
                 int height    = maxYOffsetDown - maxYOffsetUp;
                 newPosition.x = maxXOffsetLeft - m->m_size.x;
                 newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
                 break;
             }
-            case eAutoDirs::DIR_AUTO_CENTER_RIGHT: {
+            case Config::eAutoDirs::DIR_AUTO_CENTER_RIGHT: {
                 int height    = maxYOffsetDown - maxYOffsetUp;
                 newPosition.x = maxXOffsetRight;
                 newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
@@ -2942,7 +2996,8 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
 
     g_pCompositor->m_readyToProcess = true;
 
-    g_pConfigManager->m_wantsMonitorReload = true;
+    Config::monitorRuleMgr()->scheduleReload();
+
     g_pCompositor->scheduleFrameForMonitor(PNEWMONITOR, IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     checkDefaultCursorWarp(PNEWMONITOR);
@@ -2998,41 +3053,45 @@ bool CCompositor::shouldChangePreferredImageDescription() {
     return false;
 }
 
-void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
+void CCompositor::ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace) {
+    ensurePersistentWorkspacesPresent(Config::workspaceRuleMgr()->getAllWorkspaceRules());
+}
+
+void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
     if (!Desktop::focusState()->monitor())
         return;
 
     std::vector<PHLWORKSPACE> persistentFound;
 
     for (const auto& rule : rules) {
-        if (!rule.isPersistent)
+        if (!rule.m_isPersistent)
             continue;
 
         PHLWORKSPACE PWORKSPACE = nullptr;
         if (pWorkspace) {
-            if (pWorkspace->matchesStaticSelector(rule.workspaceString))
+            if (pWorkspace->matchesStaticSelector(rule.m_workspaceString))
                 PWORKSPACE = pWorkspace;
             else
                 continue;
         }
 
-        auto PMONITOR = getMonitorFromString(rule.monitor);
+        auto PMONITOR = getMonitorFromString(rule.m_monitor);
 
-        if (!rule.monitor.empty() && !PMONITOR)
+        if (!rule.m_monitor.empty() && !PMONITOR)
             continue; // don't do anything yet, as the monitor is not yet present.
 
         if (!PWORKSPACE) {
-            WORKSPACEID id     = rule.workspaceId;
-            std::string wsname = rule.workspaceName;
+            WORKSPACEID id     = rule.m_workspaceId;
+            std::string wsname = rule.m_workspaceName;
 
             if (id == WORKSPACE_INVALID) {
-                const auto R = getWorkspaceIDNameFromString(rule.workspaceString);
+                const auto R = getWorkspaceIDNameFromString(rule.m_workspaceString);
                 id           = R.id;
                 wsname       = R.name;
             }
 
             if (id == WORKSPACE_INVALID) {
-                Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.workspaceString);
+                Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
                 continue;
             }
             PWORKSPACE = getWorkspaceByID(id);
@@ -3044,7 +3103,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
         }
 
         if (!PMONITOR) {
-            Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.monitor);
+            Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.m_monitor);
             continue;
         }
 
@@ -3056,12 +3115,12 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<SWorkspace
 
         if (PWORKSPACE) {
             if (PWORKSPACE->m_monitor == PMONITOR) {
-                Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.workspaceString, PMONITOR->m_name);
+                Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.m_workspaceString, PMONITOR->m_name);
 
                 continue;
             }
 
-            Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.workspaceString, PMONITOR->m_name);
+            Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.m_workspaceString, PMONITOR->m_name);
             moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
             continue;
         }
@@ -3091,11 +3150,11 @@ void CCompositor::ensureWorkspacesOnAssignedMonitors() {
         if (!valid(ws) || ws->m_isSpecialWorkspace)
             continue;
 
-        const auto RULE = g_pConfigManager->getWorkspaceRuleFor(ws);
-        if (RULE.monitor.empty())
+        const auto RULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(ws);
+        if (!RULE || RULE->m_monitor.empty())
             continue;
 
-        const auto PMONITOR = getMonitorFromString(RULE.monitor);
+        const auto PMONITOR = getMonitorFromString(RULE->m_monitor);
         if (!PMONITOR)
             continue;
 

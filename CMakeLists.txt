@@ -130,7 +130,7 @@ find_package(glslang CONFIG REQUIRED)
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
-set(HYPRUTILS_MINIMUM_VERSION 0.11.0)
+set(HYPRUTILS_MINIMUM_VERSION 0.11.1)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.1.6)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
@@ -246,7 +246,7 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERAT
 
 set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
 set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.91)
-set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
+set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.47)
 set(LIBINPUT_MINIMUM_VERSION 1.28)
 
 pkg_check_modules(
@@ -534,6 +534,7 @@ protocolnew("unstable/keyboard-shortcuts-inhibit"
 protocolnew("unstable/text-input" "text-input-unstable-v3" false)
 protocolnew("unstable/pointer-constraints" "pointer-constraints-unstable-v1"
             false)
+protocolnew("unstable/xdg-foreign" "xdg-foreign-unstable-v2" false)
 protocolnew("staging/xdg-activation" "xdg-activation-v1" false)
 protocolnew("staging/ext-idle-notify" "ext-idle-notify-v1" false)
 protocolnew("staging/ext-session-lock" "ext-session-lock-v1" false)

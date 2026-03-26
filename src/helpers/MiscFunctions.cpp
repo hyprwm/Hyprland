@@ -6,7 +6,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "Monitor.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
 #include <cstring>
@@ -25,6 +25,7 @@
 #include <execinfo.h>
 #endif
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/VarList.hpp>
 #include <hyprutils/os/Process.hpp>
 #include "../version.h"
 
@@ -156,10 +157,10 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
-            for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
+            for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
                 if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
-                    invalidWSes.insert(rule.workspaceId);
+                    invalidWSes.insert(rule.m_workspaceId);
             }
         }
 
@@ -235,14 +236,14 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     invalidWSes.insert(ws->m_id);
                 }
             }
-            for (auto const& rule : g_pConfigManager->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.monitor);
+            for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
                 if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
                     // Can't be invalid
                     continue;
                 }
                 // WS is bound to another monitor, can't jump to this
-                invalidWSes.insert(rule.workspaceId);
+                invalidWSes.insert(rule.m_workspaceId);
             }
 
             // Prepare all named workspaces in case when we need them
@@ -926,12 +927,18 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid) {
     return fullPath;
 }
 
-std::string deviceNameToInternalString(std::string in) {
-    std::ranges::replace(in, ' ', '-');
-    std::ranges::replace(in, '\n', '-');
-    std::ranges::replace(in, ',', '-');
-    std::ranges::transform(in, in.begin(), ::tolower);
-    return in;
+std::string deviceNameToInternalString(const std::string& in) {
+    auto result = in | std::views::transform([](unsigned char ch) -> char {
+                      switch (ch) {
+                          case ' ':
+                          case '\n':
+                          case ',': return '-';
+
+                          default: return static_cast<char>(std::tolower(ch));
+                      }
+                  });
+
+    return result | std::ranges::to<std::string>();
 }
 
 static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};

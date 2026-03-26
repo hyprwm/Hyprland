@@ -302,24 +302,24 @@ static bool test() {
 
     // Test normal, unlocked groups
     {
-      auto winA = Tests::spawnKitty("unlocked");
-      if (!winA) {
-          NLog::log("{}Error: unlocked kitty did not spawn", Colors::RED);
-          return false;
-      }
-      OK(getFromSocket("/dispatch togglegroup"));
+        auto winA = Tests::spawnKitty("unlocked");
+        if (!winA) {
+            NLog::log("{}Error: unlocked kitty did not spawn", Colors::RED);
+            return false;
+        }
+        OK(getFromSocket("/dispatch togglegroup"));
 
-      auto winB = Tests::spawnKitty("top");
-      if (!winB) {
-          NLog::log("{}Error: top kitty did not spawn", Colors::RED);
-          return false;
-      }
+        auto winB = Tests::spawnKitty("top");
+        if (!winB) {
+            NLog::log("{}Error: top kitty did not spawn", Colors::RED);
+            return false;
+        }
 
-      // Verify it DID merge into a group
-      {
-          auto str = getFromSocket("/clients");
-          EXPECT_COUNT_STRING(str, "at: 22,22", 2);
-      }
+        // Verify it DID merge into a group
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 2);
+        }
     }
 
     Tests::killAllWindows();
@@ -327,26 +327,26 @@ static bool test() {
 
     // Test locked groups
     {
-      auto lockedWin = Tests::spawnKitty("locked");
-      if (!lockedWin) {
-          NLog::log("{}Error: locked kitty did not spawn", Colors::RED);
-          return false;
-      }
-      OK(getFromSocket("/dispatch togglegroup"));
-      OK(getFromSocket(std::format("/dispatch focuswindow pid:{}", lockedWin->pid())));
-      OK(getFromSocket("/dispatch lockactivegroup lock"));
+        auto lockedWin = Tests::spawnKitty("locked");
+        if (!lockedWin) {
+            NLog::log("{}Error: locked kitty did not spawn", Colors::RED);
+            return false;
+        }
+        OK(getFromSocket("/dispatch togglegroup"));
+        OK(getFromSocket(std::format("/dispatch focuswindow pid:{}", lockedWin->pid())));
+        OK(getFromSocket("/dispatch lockactivegroup lock"));
 
-      auto winB = Tests::spawnKitty("top");
-      if (!winB) {
-          NLog::log("{}Error: top kitty did not spawn", Colors::RED);
-          return false;
-      }
+        auto winB = Tests::spawnKitty("top");
+        if (!winB) {
+            NLog::log("{}Error: top kitty did not spawn", Colors::RED);
+            return false;
+        }
 
-      // Verify it did NOT merge into the locked group
-      {
-          auto str = getFromSocket("/clients");
-          EXPECT_COUNT_STRING(str, "at: 22,22", 1);
-      }
+        // Verify it did NOT merge into the locked group
+        {
+            auto str = getFromSocket("/clients");
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        }
     }
 
     Tests::killAllWindows();
@@ -354,24 +354,24 @@ static bool test() {
 
     // Test locked groups WITH invade rule
     {
-      OK(getFromSocket("/keyword windowrule[locked-im]:match:class ^locked|invade$"));
-      OK(getFromSocket("/keyword windowrule[locked-im]:group set always lock invade"));
+        OK(getFromSocket("/keyword windowrule[locked-im]:match:class ^locked|invade$"));
+        OK(getFromSocket("/keyword windowrule[locked-im]:group set always lock invade"));
 
-      auto lockedWin = Tests::spawnKitty("locked");
-      if (!lockedWin) {
-          NLog::log("{}Error: locked kitty did not spawn", Colors::RED);
-          return false;
-      }
+        auto lockedWin = Tests::spawnKitty("locked");
+        if (!lockedWin) {
+            NLog::log("{}Error: locked kitty did not spawn", Colors::RED);
+            return false;
+        }
 
-      auto invadingWin = Tests::spawnKitty("invade");
-      if (!invadingWin) {
-          NLog::log("{}Error: invading kitty did not spawn", Colors::RED);
-          return false;
-      }
+        auto invadingWin = Tests::spawnKitty("invade");
+        if (!invadingWin) {
+            NLog::log("{}Error: invading kitty did not spawn", Colors::RED);
+            return false;
+        }
 
-      // Verify it DID merge into the locked group
-      auto str = getFromSocket("/clients");
-      EXPECT_COUNT_STRING(str, "at: 22,22", 2);
+        // Verify it DID merge into the locked group
+        auto str = getFromSocket("/clients");
+        EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
 
     Tests::killAllWindows();

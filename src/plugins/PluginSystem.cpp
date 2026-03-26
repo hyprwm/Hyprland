@@ -2,7 +2,7 @@
 
 #include <dlfcn.h>
 #include <ranges>
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
@@ -132,7 +132,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
     PLUGIN->m_version     = PLUGINDATA.version;
     PLUGIN->m_name        = PLUGINDATA.name;
 
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
 
     Log::logger->log(Log::DEBUG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name,
                      rc<uintptr_t>(MODULE), path, PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
@@ -175,7 +175,9 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, sp);
     }
 
-    g_pConfigManager->removePluginConfig(plugin->m_handle);
+    // FIXME: this is wrong and if I forget to fix this by the time I add another config parser
+    // this will explode and I will be mad because I am a RETARD
+    Config::Legacy::mgr()->removePluginConfig(plugin->m_handle);
 
     // save these two for dlclose and a log,
     // as erase_if will kill the pointer
@@ -189,7 +191,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     Log::logger->log(Log::DEBUG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
 
     // reload config to fix some stuf like e.g. unloadedPluginVars
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
 }
 
 void CPluginSystem::unloadAllPlugins() {

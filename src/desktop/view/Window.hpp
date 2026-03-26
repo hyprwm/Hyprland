@@ -5,7 +5,7 @@
 #include <optional>
 
 #include "View.hpp"
-#include "../../config/ConfigDataValues.hpp"
+#include "../../config/shared/complex/ComplexDataTypes.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../helpers/TagKeeper.hpp"
 #include "../../macros.hpp"
@@ -23,9 +23,11 @@
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
-struct SWorkspaceRule;
-
 class IWindowTransformer;
+
+namespace Config {
+    class CWorkspaceRule;
+}
 
 namespace Layout {
     class ITarget;
@@ -181,10 +183,10 @@ namespace Desktop::View {
         SP<Desktop::View::CPopup>      m_popupHead;
 
         // Animated border
-        CGradientValueData m_realBorderColor         = {0};
-        CGradientValueData m_realBorderColorPrevious = {0};
-        PHLANIMVAR<float>  m_borderFadeAnimationProgress;
-        PHLANIMVAR<float>  m_borderAngleAnimationProgress;
+        Config::CGradientValueData m_realBorderColor         = {0};
+        Config::CGradientValueData m_realBorderColorPrevious = {0};
+        PHLANIMVAR<float>          m_borderFadeAnimationProgress;
+        PHLANIMVAR<float>          m_borderAngleAnimationProgress;
 
         // Fade in-out
         PHLANIMVAR<float> m_alpha;
@@ -311,7 +313,7 @@ namespace Desktop::View {
         bool                       isScrollMouseOverridden();
         bool                       isScrollTouchpadOverridden();
         void                       updateWindowData();
-        void                       updateWindowData(const SWorkspaceRule&);
+        void                       updateWindowData(const Config::CWorkspaceRule&);
         void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                       isInCurvedCorner(double x, double y);
         bool                       hasPopupAt(const Vector2D& pos);

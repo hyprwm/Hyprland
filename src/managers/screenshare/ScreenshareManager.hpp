@@ -45,6 +45,7 @@ namespace Screenshare {
 
         UP<CScreenshareFrame> nextFrame(bool overlayCursor);
         void                  stop();
+        bool                  isActive();
 
         // constraints
         const std::vector<DRMFormat>& allowedFormats() const;

@@ -1,7 +1,7 @@
 #include "defines.hpp"
 #include "debug/log/Logger.hpp"
 #include "Compositor.hpp"
-#include "config/ConfigManager.hpp"
+#include "config/legacy/ConfigManager.hpp"
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 #include "helpers/env/Env.hpp"
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
     g_pCompositor->initServer(socketName, socketFd);
 
     if (verifyConfig)
-        return !g_pConfigManager->m_lastConfigVerificationWasSuccessful;
+        return !Config::mgr()->configVerifPassed();
 
     if (!Env::envEnabled("HYPRLAND_NO_RT"))
         NInit::gainRealTime();

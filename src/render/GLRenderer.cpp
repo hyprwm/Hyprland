@@ -1,4 +1,5 @@
 #include "GLRenderer.hpp"
+#include "decorations/CHyprInnerGlowDecoration.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "../config/ConfigValue.hpp"
 #include "../managers/CursorManager.hpp"
@@ -350,6 +351,11 @@ void CHyprGLRenderer::draw(CRectPassElement* element, const CRegion& damage) {
 };
 
 void CHyprGLRenderer::draw(CShadowPassElement* element, const CRegion& damage) {
+    const auto m_data = element->m_data;
+    m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
+};
+
+void CHyprGLRenderer::draw(CInnerGlowPassElement* element, const CRegion& damage) {
     const auto m_data = element->m_data;
     m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };

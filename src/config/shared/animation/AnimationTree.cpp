@@ -39,6 +39,7 @@ void CAnimationTreeController::reset() {
     m_animationTree.createNode("fadeOut", "fade");
     m_animationTree.createNode("fadeSwitch", "fade");
     m_animationTree.createNode("fadeShadow", "fade");
+    m_animationTree.createNode("fadeGlow", "fade");
     m_animationTree.createNode("fadeDim", "fade");
     m_animationTree.createNode("fadeLayers", "fade");
     m_animationTree.createNode("fadeLayersIn", "fadeLayers");

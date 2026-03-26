@@ -227,6 +227,9 @@ namespace Desktop::View {
         // animated shadow color
         PHLANIMVAR<CHyprColor> m_realShadowColor;
 
+        // animated glow color
+        PHLANIMVAR<CHyprColor> m_realGlowColor;
+
         // animated tint
         PHLANIMVAR<float> m_dimPercent;
 

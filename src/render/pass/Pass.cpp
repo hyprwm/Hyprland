@@ -12,7 +12,6 @@
 #include "../../protocols/core/Compositor.hpp"
 #include "RectPassElement.hpp"
 #include "macros.hpp"
-#include "render/pass/ClearPassElement.hpp"
 
 using namespace Render;
 

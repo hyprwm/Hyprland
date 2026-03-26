@@ -189,7 +189,7 @@ void CScreenshareFrame::renderMonitor() {
             .cmBackToSRGB       = !IS_CM_AWARE,
             .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
         },
-        monbox);
+        {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
 
     // render black boxes for noscreenshare

@@ -499,11 +499,11 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault)) : "";
         const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent)) : "";
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
-            std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.m_gapsIn.value().m_top, r.m_gapsIn.value().m_right, r.m_gapsIn.value().m_bottom, r.m_gapsIn.value().m_left) :
-            "";
+                 std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.m_gapsIn.value().m_top, r.m_gapsIn.value().m_right, r.m_gapsIn.value().m_bottom, r.m_gapsIn.value().m_left) :
+                 "";
         const std::string gapsOut     = sc<bool>(r.m_gapsOut) ?
-            std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.m_gapsOut.value().m_top, r.m_gapsOut.value().m_right, r.m_gapsOut.value().m_bottom, r.m_gapsOut.value().m_left) :
-            "";
+                std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.m_gapsOut.value().m_top, r.m_gapsOut.value().m_right, r.m_gapsOut.value().m_bottom, r.m_gapsOut.value().m_left) :
+                "";
         const std::string borderSize  = sc<bool>(r.m_borderSize) ? std::format(",\n    \"borderSize\": {}", r.m_borderSize.value()) : "";
         const std::string border      = sc<bool>(r.m_noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.m_noBorder.value())) : "";
         const std::string rounding    = sc<bool>(r.m_noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.m_noRounding.value())) : "";
@@ -523,13 +523,13 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string default_    = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault) : "<unset>");
         const std::string persistent  = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent) : "<unset>");
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
-            std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.m_gapsIn.value().m_top), std::to_string(r.m_gapsIn.value().m_right),
-                        std::to_string(r.m_gapsIn.value().m_bottom), std::to_string(r.m_gapsIn.value().m_left)) :
-            std::format("\tgapsIn: <unset>\n");
+                 std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.m_gapsIn.value().m_top), std::to_string(r.m_gapsIn.value().m_right),
+                             std::to_string(r.m_gapsIn.value().m_bottom), std::to_string(r.m_gapsIn.value().m_left)) :
+                 std::format("\tgapsIn: <unset>\n");
         const std::string gapsOut     = sc<bool>(r.m_gapsOut) ?
-            std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.m_gapsOut.value().m_top), std::to_string(r.m_gapsOut.value().m_right),
-                        std::to_string(r.m_gapsOut.value().m_bottom), std::to_string(r.m_gapsOut.value().m_left)) :
-            std::format("\tgapsOut: <unset>\n");
+                std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.m_gapsOut.value().m_top), std::to_string(r.m_gapsOut.value().m_right),
+                            std::to_string(r.m_gapsOut.value().m_bottom), std::to_string(r.m_gapsOut.value().m_left)) :
+                std::format("\tgapsOut: <unset>\n");
         const std::string borderSize  = std::format("\tborderSize: {}\n", sc<bool>(r.m_borderSize) ? std::to_string(r.m_borderSize.value()) : "<unset>");
         const std::string border      = std::format("\tborder: {}\n", sc<bool>(r.m_noBorder) ? boolToString(!r.m_noBorder.value()) : "<unset>");
         const std::string rounding    = std::format("\trounding: {}\n", sc<bool>(r.m_noRounding) ? boolToString(!r.m_noRounding.value()) : "<unset>");

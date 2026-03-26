@@ -193,6 +193,35 @@ static bool testAsymmetricGaps() {
     return true;
 }
 
+static void testWorkspaceHistoryMultiMon() {
+    NLog::log("{}Testing multimon workspace history tracker", Colors::YELLOW);
+
+    // Initial state:
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 10"));
+    Tests::spawnKitty();
+    OK(getFromSocket("/dispatch workspace 11"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 12"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 11");
+    }
+    OK(getFromSocket("/dispatch workspace previous_per_monitor"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 10");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
 static void testMultimonBAF() {
     NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
 
@@ -733,6 +762,7 @@ static bool test() {
 
     testMultimonBAF();
     testMultimonFocus();
+    testWorkspaceHistoryMultiMon();
 
     // destroy the headless output
     OK(getFromSocket("/output remove HEADLESS-3"));

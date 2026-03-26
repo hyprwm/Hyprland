@@ -166,7 +166,7 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
 
         const uint64_t modifier = (sc<uint64_t>(modHi) << 32) | modLo;
 
-        const bool anyPlaneSet = std::ranges::any_of(m_attrs->fds, [](int planeFD) { return planeFD != -1; });
+        const bool     anyPlaneSet = std::ranges::any_of(m_attrs->fds, [](int planeFD) { return planeFD != -1; });
         if (m_resource->version() >= 5 && anyPlaneSet && m_attrs->modifier != modifier) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "planes have different modifiers");
             return;

@@ -66,6 +66,9 @@ void CWindowTarget::updatePos() {
     if (fullscreenMode() == FSMODE_MAXIMIZED)
         ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
+    if (!m_space->workspace())
+        return;
+
     const auto PMONITOR         = m_space->workspace()->m_monitor;
     const auto PWORKSPACE       = m_space->workspace();
     const auto MONITOR_WORKAREA = m_space->workArea();

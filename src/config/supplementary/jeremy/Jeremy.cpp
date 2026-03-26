@@ -1,7 +1,6 @@
 #include "Jeremy.hpp"
 
 #include "../../../Compositor.hpp"
-#include "../../ConfigManager.hpp"
 
 #include <hyprutils/path/Path.hpp>
 #include <filesystem>
@@ -13,13 +12,8 @@ std::expected<std::string, std::string> Config::Supplementary::Jeremy::getMainCo
     static auto getCfgPath   = []() -> std::expected<std::string, std::string> {
         lastSafeMode = g_pCompositor->m_safeMode;
 
-        if (g_pCompositor->m_safeMode) {
-            const std::filesystem::path CONFIGPATH = g_pCompositor->m_instancePath + "/recoverycfg.conf";
-            auto                        v          = Config::mgr()->generateDefaultConfig(CONFIGPATH);
-            if (!v)
-                return std::unexpected("safe mode: failed to generate config");
-            return CONFIGPATH.string();
-        }
+        if (g_pCompositor->m_safeMode)
+            return (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string();
 
         if (!g_pCompositor->m_explicitConfigPath.empty())
             return g_pCompositor->m_explicitConfigPath;

@@ -363,6 +363,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
 		PROTO::xdgBell->getGlobal(),
         PROTO::fifo->getGlobal(),
         PROTO::commitTiming->getGlobal(),
+        PROTO::xdgForeignExporter->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

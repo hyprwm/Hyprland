@@ -2319,6 +2319,18 @@ bool CMonitor::needsCM() {
     return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;
 }
 
+static bool isCompatibleTF(eTransferFunction sourceTF, eTransferFunction targetTF) {
+    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    const auto  sdrEOTF    = NTransferFunction::fromConfig();
+    return sourceTF == targetTF                                                                                                         // same
+        || (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB                  // forced source gamma22 to output gamma22
+            && targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)                                                              //
+        || (*PNONSHADER == CM_NS_ONDEMAND                                                                                               // FIXME incorrect but good enough for DS
+            && (sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)  //
+            && (targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || targetTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)) //
+        ;
+}
+
 // TODO support more drm properties
 bool CMonitor::canNoShaderCM() {
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
@@ -2337,12 +2349,9 @@ bool CMonitor::canNoShaderCM() {
     if (m_imageDescription->value().icc.present)
         return false;
 
-    const auto sdrEOTF = NTransferFunction::fromConfig();
     // only primaries differ
     return (
-        (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
-         (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
-          m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
+        isCompatibleTF(SRC_DESC_VALUE.transferFunction, m_imageDescription->value().transferFunction) &&
         SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
         (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)
         // not used by shaders atm

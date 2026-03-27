@@ -51,6 +51,13 @@ CExecutor::CExecutor() {
         // check for user's possible errors with their setup and notify them if needed
         // this is additionally guarded because exiting safe mode will re-run this.
         g_pCompositor->performUserChecks();
+
+        m_listeners.shutdown = Event::bus()->m_events.exit.listen([this] {
+            for (auto const& c : m_execShutdown) {
+                c.withRules ? spawn(c.exec) : spawnRaw(c.exec);
+            }
+            m_execShutdown.clear();
+        });
     });
 }
 

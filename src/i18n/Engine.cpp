@@ -151,6 +151,62 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Genindlæsning af CM-shader mislykkedes, går tilbage til rgba/rgbx.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skærm {name}: wide color gamut er aktiveret men skærmen er ikke i 10-bit tilstand.");
 
+    // el_GR (Greek)
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_TITLE, "Η εφαρμογή δεν αποκρίνεται");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_CONTENT, "Η εφαρμογή {title} - {class} δεν αποκρίνεται.\nΤι θέλετε να κάνετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_TERMINATE, "Τερματισμός");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_WAIT, "Αναμονή");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_PROP_UNKNOWN, "(άγνωστο)");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Μια εφαρμογή <b>{app}</b> ζητά μια άγνωστη άδεια.");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Μια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει την οθόνη σας.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS,
+                            "Μια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει τη θέση του δρομέα σας.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "Μια εφαρμογή <b>{app}</b> προσπαθεί να φορτώσει ένα πρόσθετο: <b>{plugin}</b>.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Εντοπίστηκε νέο πληκτρολόγιο: <b>{keyboard}</b>.\n\nΘέλετε να επιτρέψετε τη λειτουργία του;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(άγνωστο)");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_TITLE, "Αίτημα άδειας");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Συμβουλή: μπορείτε να ορίσετε μόνιμους κανόνες γι' αυτά στο αρχείο ρυθμίσεων του Hyprland.");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW, "Αποδοχή");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Αποδοχή και απομνημόνευση");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_ONCE, "Αποδοχή μία φορά");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_DENY, "Απόρριψη");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Άγνωστη εφαρμογή (αναγνωριστικό wayland πελάτη {wayland_id})");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Η μεταβλητή περιβάλλοντος XDG_CURRENT_DESKTOP φαίνεται να διαχειρίζεται εξωτερικά, με τρέχουσα τιμή: {value}.\nΑυτό μπορεί να προκαλέσει προβλήματα "
+                            "αν δεν είναι σκόπιμο.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Το σύστημά σας δεν έχει εγκατεστημένο το hyprland-guiutils, το οποίο χρησιμοποιείται για ορισμένα παράθυρα διαλόγου. Σκεφτείτε να το εγκαταστήσετε.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Το Hyprland απέτυχε να φορτώσει {count} απαραίτητο πόρο, φταίει ο συντηρητής πακέτων της διανομής σας!";
+        return "Το Hyprland απέτυχε να φορτώσει {count} απαραίτητους πόρους, φταίει ο συντηρητής πακέτων της διανομής σας!";
+    });
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Η διάταξη των οθονών σας είναι εσφαλμένη. Η οθόνη {name} επικαλύπτεται με άλλη(ες) οθόνη(ες) στη διάταξη.\nΔείτε το wiki (σελίδα Monitors) για "
+                            "περισσότερα. Αυτό <b>θα</b> προκαλέσει προβλήματα.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Η οθόνη {name} απέτυχε να ορίσει οποιαδήποτε ζητούμενη λειτουργία, επιστροφή στη λειτουργία {mode}.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Μη έγκυρη κλίμακα για την οθόνη {name}: {scale}, χρησιμοποιείται η προτεινόμενη κλίμακα: {fixed_scale}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Αποτυχία φόρτωσης πρόσθετου {name}: {error}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Η επαναφόρτωση του CM shader απέτυχε, επιστροφή σε rgba/rgbx.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
+                            "Οθόνη {name}: η ευρεία γκάμα χρωμάτων είναι ενεργοποιημένη αλλά η οθόνη δεν βρίσκεται σε λειτουργία 10-bit.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Το Hyprland εκκινήθηκε χωρίς το start-hyprland. Αυτό δεν συνιστάται εκτός αν βρίσκεστε σε περιβάλλον αποσφαλμάτωσης.");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_TITLE, "Ασφαλής λειτουργία");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Το Hyprland εκκινήθηκε σε ασφαλή λειτουργία, που σημαίνει ότι η τελευταία σας συνεδρία κατέρρευσε.\nΗ ασφαλής λειτουργία αποτρέπει τη φόρτωση "
+                            "των ρυθμίσεών σας. Μπορείτε να αντιμετωπίσετε προβλήματα σε αυτό το περιβάλλον ή να φορτώσετε τις ρυθμίσεις σας με το παρακάτω κουμπί.\nΙσχύουν "
+                            "οι προεπιλεγμένες συντομεύσεις: SUPER+Q για kitty, SUPER+R για βασικό εκκινητή, SUPER+M για έξοδο.\nΗ επανεκκίνηση του Hyprland θα γίνει σε "
+                            "κανονική λειτουργία.");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Φόρτωση ρυθμίσεων");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Άνοιγμα φακέλου αναφορών κατάρρευσης");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Εντάξει, κλείσιμο");
+
     // en_US (English)
     huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Application Not Responding");
     huEngine->registerEntry("en_US", TXT_KEY_ANR_CONTENT, "An application {title} - {class} is not responding.\nWhat do you want to do with it?");

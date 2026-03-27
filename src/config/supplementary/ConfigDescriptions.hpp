@@ -310,6 +310,36 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SFloatData{1, 0, 1},
         },
         SConfigOptionDescription{
+            .value       = "decoration:glow:enabled",
+            .description = "enable inner glow on windows",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
+        SConfigOptionDescription{
+            .value       = "decoration:glow:range",
+            .description = "glow range (size) in layout px",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{10, 0, 100},
+        },
+        SConfigOptionDescription{
+            .value       = "decoration:glow:render_power",
+            .description = "in what power to render the falloff (more power, the faster the falloff) [1 - 4]",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{3, 1, 4},
+        },
+        SConfigOptionDescription{
+            .value       = "decoration:glow:color",
+            .description = "glow's color. Alpha dictates glow's opacity.",
+            .type        = CONFIG_OPTION_COLOR,
+            .data        = SConfigOptionDescription::SColorData{0xee33ccff},
+        },
+        SConfigOptionDescription{
+            .value       = "decoration:glow:color_inactive",
+            .description = "inactive glow color. (if not set, will fall back to decoration:glow:color)",
+            .type        = CONFIG_OPTION_COLOR,
+            .data        = SConfigOptionDescription::SColorData{0x0033ccff},
+        },
+        SConfigOptionDescription{
             .value       = "decoration:dim_modal",
             .description = "enables dimming of parents of modal windows",
             .type        = CONFIG_OPTION_BOOL,

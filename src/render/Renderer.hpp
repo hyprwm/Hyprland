@@ -8,17 +8,20 @@
 #include <list>
 #include <optional>
 #include "OpenGL.hpp"
-#include "render/SyncFDManager.hpp"
-#include "render/pass/BorderPassElement.hpp"
-#include "render/pass/ClearPassElement.hpp"
-#include "render/pass/FramebufferElement.hpp"
-#include "render/pass/RectPassElement.hpp"
-#include "render/pass/RendererHintsPassElement.hpp"
-#include "render/pass/ShadowPassElement.hpp"
+#include "./SyncFDManager.hpp"
+#include "./pass/Pass.hpp"
+#include "./pass/BorderPassElement.hpp"
+#include "./pass/ClearPassElement.hpp"
+#include "./pass/FramebufferElement.hpp"
+#include "./pass/RectPassElement.hpp"
+#include "./pass/RendererHintsPassElement.hpp"
+#include "./pass/ShadowPassElement.hpp"
+#include "./pass/SurfacePassElement.hpp"
+#include "./pass/TexPassElement.hpp"
+#include "./pass/TextureMatteElement.hpp"
 #include "types.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
-#include "./pass/Pass.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
@@ -27,8 +30,6 @@
 #include "desktop/view/Popup.hpp"
 #include "Framebuffer.hpp"
 #include "Texture.hpp"
-#include "pass/TexPassElement.hpp"
-#include "./pass/TexPassElement.hpp"
 
 struct SMonitorRule;
 class CWorkspace;

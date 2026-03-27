@@ -228,6 +228,7 @@ class CHyprOpenGLImpl {
     void                                      renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
     void                                      renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
     void                                      renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
+    void                                      renderInnerGlow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a = 1.0);
     void                                      renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);
     void                                      renderBorder(const CBox&, const Config::CGradientValueData&, const Config::CGradientValueData&, float lerp, SBorderRenderData data);
     void                                      renderTextureMatte(SP<ITexture> tex, const CBox& pBox, SP<IFramebuffer> matte);

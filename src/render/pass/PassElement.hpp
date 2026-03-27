@@ -13,7 +13,8 @@ enum ePassElementType : uint8_t {
     EK_SHADOW,
     EK_SURFACE,
     EK_TEXTURE,
-    EK_TEXTURE_MATTE
+    EK_TEXTURE_MATTE,
+    EK_INNER_GLOW
 };
 
 class IPassElement {

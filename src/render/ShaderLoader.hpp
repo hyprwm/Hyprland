@@ -36,6 +36,7 @@ namespace Render {
         SH_FRAG_BLURPREPARE,
         SH_FRAG_BLURFINISH,
         SH_FRAG_SHADOW,
+        SH_FRAG_INNER_GLOW,
         SH_FRAG_SURFACE,
         SH_FRAG_BORDER1,
         SH_FRAG_GLITCH,

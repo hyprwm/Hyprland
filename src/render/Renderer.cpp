@@ -1105,6 +1105,7 @@ void IHyprRenderer::draw(WP<IPassElement> element, const CRegion& damage) {
         case EK_RECT: drawRect(dc<CRectPassElement*>(element.get()), damage); break;
         case EK_HINTS: drawHints(dc<CRendererHintsPassElement*>(element.get()), damage); break;
         case EK_SHADOW: draw(dc<CShadowPassElement*>(element.get()), damage); break;
+        case EK_INNER_GLOW: draw(dc<CInnerGlowPassElement*>(element.get()), damage); break;
         case EK_SURFACE: preDrawSurface(dc<CSurfacePassElement*>(element.get()), damage); break;
         case EK_TEXTURE: drawTex(dc<CTexPassElement*>(element.get()), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dc<CTextureMatteElement*>(element.get()), damage); break;

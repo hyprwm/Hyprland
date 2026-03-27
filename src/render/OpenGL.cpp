@@ -853,14 +853,14 @@ void CHyprOpenGLImpl::end() {
 }
 
 static const std::vector<std::string> SHADER_INCLUDES = {
-    "defines.h",   "constants.h", "cm_helpers.glsl",  "rounding.glsl", "CM.glsl",    "tonemap.glsl",    "gain.glsl",
-    "border.glsl", "shadow.glsl", "blurprepare.glsl", "blur1.glsl",    "blur2.glsl", "blurFinish.glsl",
+    "defines.h",   "constants.h", "cm_helpers.glsl", "rounding.glsl",    "CM.glsl",    "tonemap.glsl", "gain.glsl",
+    "border.glsl", "shadow.glsl", "inner_glow.glsl", "blurprepare.glsl", "blur1.glsl", "blur2.glsl",   "blurFinish.glsl",
 };
 
 // order matters, see ePreparedFragmentShader
 const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
-    "quad.frag",        "passthru.frag",   "rgbamatte.frag", "ext.frag",     "blur1.frag",  "blur2.frag",
-    "blurprepare.frag", "blurfinish.frag", "shadow.frag",    "surface.frag", "border.frag", "glitch.frag",
+    "quad.frag",       "passthru.frag", "rgbamatte.frag",  "ext.frag",     "blur1.frag",  "blur2.frag",  "blurprepare.frag",
+    "blurfinish.frag", "shadow.frag",   "inner_glow.frag", "surface.frag", "border.frag", "glitch.frag",
 };
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {
@@ -2259,6 +2259,69 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
     shader->setUniformFloat(SHADER_RANGE, range);
     shader->setUniformFloat(SHADER_SHADOW_POWER, SHADOWPOWER);
+
+    glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
+
+    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
+        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
+                           g_pHyprRenderer->m_renderData.clipBox.height};
+        damageClip.intersect(g_pHyprRenderer->m_renderData.damage);
+
+        if (!damageClip.empty()) {
+            damageClip.forEachRect([this](const auto& RECT) {
+                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            });
+        }
+    } else {
+        g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
+            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        });
+    }
+
+    glBindVertexArray(0);
+}
+
+void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a) {
+    auto& m_renderData = g_pHyprRenderer->m_renderData;
+    RASSERT(m_renderData.pMonitor, "Tried to render inner glow without begin()!");
+    RASSERT((box.width > 0 && box.height > 0), "Tried to render inner glow with width/height < 0!");
+
+    if (g_pHyprRenderer->m_renderData.damage.empty())
+        return;
+
+    TRACY_GPU_ZONE("RenderInnerGlow");
+
+    CBox newBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+
+    const auto  col = color;
+
+    const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox);
+
+    blend(true);
+
+    const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
+    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+    auto       shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
+    if (!skipCM)
+        passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
+
+    shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
+
+    const auto TOPLEFT     = Vector2D(round, round);
+    const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
+    const auto FULLSIZE    = Vector2D(newBox.width, newBox.height);
+
+    shader->setUniformFloat2(SHADER_TOP_LEFT, sc<float>(TOPLEFT.x), sc<float>(TOPLEFT.y));
+    shader->setUniformFloat2(SHADER_BOTTOM_RIGHT, sc<float>(BOTTOMRIGHT.x), sc<float>(BOTTOMRIGHT.y));
+    shader->setUniformFloat2(SHADER_FULL_SIZE, sc<float>(FULLSIZE.x), sc<float>(FULLSIZE.y));
+    shader->setUniformFloat(SHADER_RADIUS, round);
+    shader->setUniformFloat(SHADER_ROUNDING_POWER, roundingPower);
+    shader->setUniformFloat(SHADER_RANGE, range);
+    shader->setUniformFloat(SHADER_SHADOW_POWER, glowPower);
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 

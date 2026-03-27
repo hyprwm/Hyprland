@@ -21,6 +21,7 @@
 #include "../history/WindowHistoryTracker.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/decorations/CHyprDropShadowDecoration.hpp"
+#include "../../render/decorations/CHyprInnerGlowDecoration.hpp"
 #include "../../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../../render/decorations/CHyprBorderDecoration.hpp"
 #include "../../config/ConfigValue.hpp"
@@ -85,6 +86,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -92,6 +94,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprInnerGlowDecoration>(pWindow));
 
     pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
@@ -113,6 +116,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
@@ -120,6 +124,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
     pWindow->addWindowDeco(makeUnique<CHyprBorderDecoration>(pWindow));
+    pWindow->addWindowDeco(makeUnique<CHyprInnerGlowDecoration>(pWindow));
 
     pWindow->m_target = Layout::CWindowTarget::create(pWindow);
 
@@ -622,6 +627,7 @@ void CWindow::onMap() {
     m_activeInactiveAlpha->resetAllCallbacks();
     m_alpha->resetAllCallbacks();
     m_realShadowColor->resetAllCallbacks();
+    m_realGlowColor->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
     m_movingToWorkspaceAlpha->resetAllCallbacks();
     m_movingFromWorkspaceAlpha->resetAllCallbacks();
@@ -1528,6 +1534,9 @@ void CWindow::updateDecorationValues() {
     static auto PFULLSCREENALPHA        = CConfigValue<Hyprlang::FLOAT>("decoration:fullscreen_opacity");
     static auto PSHADOWCOL              = CConfigValue<Hyprlang::INT>("decoration:shadow:color");
     static auto PSHADOWCOLINACTIVE      = CConfigValue<Hyprlang::INT>("decoration:shadow:color_inactive");
+    static auto PGLOW                   = CConfigValue<Hyprlang::INT>("decoration:glow:enabled");
+    static auto PGLOWCOL                = CConfigValue<Hyprlang::INT>("decoration:glow:color");
+    static auto PGLOWCOLINACTIVE        = CConfigValue<Hyprlang::INT>("decoration:glow:color_inactive");
     static auto PDIMSTRENGTH            = CConfigValue<Hyprlang::FLOAT>("decoration:dim_strength");
     static auto PDIMENABLED             = CConfigValue<Hyprlang::INT>("decoration:dim_inactive");
     static auto PDIMMODAL               = CConfigValue<Hyprlang::INT>("decoration:dim_modal");
@@ -1557,9 +1566,15 @@ void CWindow::updateDecorationValues() {
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
         setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
+
+        if (*PGLOW)
+            *m_realGlowColor = *PGLOWCOL;
     } else {
         const auto* const INACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) : (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
         setBorderColor(m_ruleApplicator->inactiveBorderColor().valueOr(*INACTIVECOLOR));
+
+        if (*PGLOW)
+            *m_realGlowColor = *PGLOWCOLINACTIVE;
     }
 
     // opacity

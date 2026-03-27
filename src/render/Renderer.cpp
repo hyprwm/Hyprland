@@ -2180,6 +2180,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    static auto PNSINTEROP = CConfigValue<Hyprlang::INT>("render:non_shader_cm_interop");
 
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
@@ -2256,21 +2257,18 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
     if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM) || pMonitor->m_ctmUpdated) {
-        if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
-            (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired())) {
-            if (pMonitor->m_noShaderCTM) {
-                Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
-                pMonitor->m_noShaderCTM = false;
-                pMonitor->m_ctmUpdated  = true;
-            }
-        } else {
-            const auto FS_DESC = pMonitor->getFSImageDescription();
-            if (FS_DESC.has_value()) {
+        const bool INTEROP  = (*PNSINTEROP == 1 || (*PNSINTEROP == 2 && FS_WINDOW && FS_WINDOW->getContentType() == CONTENT_TYPE_NONE));
+        bool       resetCTM = !FS_WINDOW;
+        if (FS_WINDOW) {
+            if (*PNONSHADER == CM_NS_IGNORE)
+                resetCTM = true;
+            else if (const auto FS_DESC = pMonitor->getFSImageDescription();
+                     pMonitor->needsCM() && pMonitor->canNoShaderCM() && FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || !pMonitor->m_lastScanout.expired())) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
                 pMonitor->m_noShaderCTM = true;
                 pMonitor->m_ctmUpdated  = false;
                 auto conversion         = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
-                if (pMonitor->m_ctm != Mat3x3::identity()) {
+                if (pMonitor->m_ctm != Mat3x3::identity() && INTEROP) {
                     const auto&                          ctm    = pMonitor->m_ctm.getMatrix();
                     std::array<std::array<double, 3>, 3> values = {
                         {
@@ -2288,7 +2286,20 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     mat[2][0], mat[2][1], mat[2][2], //
                 };
                 pMonitor->m_output->state->setCTM(CTM);
-            }
+            } else if (!INTEROP && pMonitor->m_ctm != Mat3x3::identity()) {
+                Log::logger->log(Log::INFO, "[CM] Setting identity CTM");
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+
+                pMonitor->m_output->state->setCTM(Mat3x3::identity());
+            } else
+                resetCTM = true;
+        }
+
+        if (resetCTM && pMonitor->m_noShaderCTM) {
+            Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
+            pMonitor->m_noShaderCTM = false;
+            pMonitor->m_ctmUpdated  = true;
         }
     }
 

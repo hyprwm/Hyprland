@@ -16,6 +16,9 @@ uniform vec2  fullSize;
 #endif
 
 layout(location = 0) out vec4 fragColor;
+#if USE_MIRROR
+layout(location = 1) out vec4 mirrorColor;
+#endif
 void main() {
     vec4 pixColor = v_color;
 
@@ -24,4 +27,7 @@ void main() {
 #endif
 
     fragColor = pixColor;
+#if USE_MIRROR
+    mirrorColor = fragColor;
+#endif
 }

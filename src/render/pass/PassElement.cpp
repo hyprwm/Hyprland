@@ -19,3 +19,7 @@ void IPassElement::discard() {
 bool IPassElement::undiscardable() {
     return false;
 }
+
+std::vector<UP<IPassElement>> IPassElement::draw() {
+    return {};
+}

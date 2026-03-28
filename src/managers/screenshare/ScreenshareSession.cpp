@@ -62,7 +62,7 @@ void CScreenshareSession::stop() {
 }
 
 bool CScreenshareSession::isActive() {
-    return !m_stopped && m_sharing;
+    return !m_stopped;
 }
 
 void CScreenshareSession::init() {

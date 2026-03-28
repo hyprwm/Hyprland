@@ -35,7 +35,7 @@ CRegion SSurfaceState::accumulateBufferDamage() {
     return bufferDamage;
 }
 
-void SSurfaceState::updateSynchronousTexture(SP<ITexture> lastTexture) {
+void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture) {
     auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);

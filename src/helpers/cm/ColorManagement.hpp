@@ -9,15 +9,17 @@
 #include <vector>
 #include <expected>
 
-#define SDR_MIN_LUMINANCE 0.2
-#define SDR_MAX_LUMINANCE 80.0
-#define SDR_REF_LUMINANCE 80.0
-#define HDR_MIN_LUMINANCE 0.005
-#define HDR_MAX_LUMINANCE 10000.0
-#define HDR_REF_LUMINANCE 203.0
-#define HLG_MAX_LUMINANCE 1000.0
+#define SDR_MIN_LUMINANCE 0.2f
+#define SDR_MAX_LUMINANCE 80.0f
+#define SDR_REF_LUMINANCE 80.0f
+#define HDR_MIN_LUMINANCE 0.005f
+#define HDR_MAX_LUMINANCE 10000.0f
+#define HDR_REF_LUMINANCE 203.0f
+#define HLG_MAX_LUMINANCE 1000.0f
 
-class ITexture;
+namespace Render {
+    class ITexture;
+}
 
 namespace NColorManagement {
     enum eNoShader : uint8_t {
@@ -225,7 +227,7 @@ namespace NColorManagement {
             bool                        present = false;
             size_t                      lutSize = 33;
             std::vector<float>          lutDataPacked;
-            SP<ITexture>                lutTexture;
+            SP<Render::ITexture>        lutTexture;
             std::optional<SVCGTTable16> vcgt;
         } icc;
 
@@ -353,5 +355,11 @@ namespace NColorManagement {
         .luminances       = {.reference = 203},
     });
 
-    static const auto LINEAR_IMAGE_DESCRIPTION = SCRGB_IMAGE_DESCRIPTION; // TODO any reason to use something different?
+    static const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
+        .luminances       = {.min = 0, .max = 10000, .reference = 80},
+    });
 }

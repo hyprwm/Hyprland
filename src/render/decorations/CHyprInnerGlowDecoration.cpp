@@ -94,7 +94,8 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     g_pHyprRenderer->blend(true);
 
-    g_pHyprOpenGL->renderInnerGlow(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GLOWCOLOR, GLOWPOWER, a);
+    // FIXME use g_pHyprRenderer API
+    Render::GL::g_pHyprOpenGL->renderInnerGlow(windowBox, ROUNDING * pMonitor->m_scale, ROUNDINGPOWER, GLOWSIZE * pMonitor->m_scale, GLOWCOLOR, GLOWPOWER, a);
 
     g_pHyprRenderer->m_renderData.currentWindow.reset();
 }

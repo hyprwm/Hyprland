@@ -129,6 +129,8 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
 
             .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
             .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
+
+            .window = m_data.window,
         });
 };
 

@@ -24,6 +24,7 @@ class CDesktopAnimationManager {
     void animationPopin(PHLWINDOW w, bool close = false, float minPerc = 0.f);
     void animationSlide(PHLWINDOW w, std::string force = "", bool close = false);
     void animationGnomed(PHLWINDOW w, bool close = false);
+    void animationShader(PHLWINDOW w, bool close = false);
 };
 
 inline UP<CDesktopAnimationManager> g_pDesktopAnimationManager = makeUnique<CDesktopAnimationManager>();

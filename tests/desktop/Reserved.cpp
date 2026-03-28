@@ -49,4 +49,7 @@ TEST(Desktop, reservedArea) {
     EXPECT_EQ(d.top(), 0);
     EXPECT_EQ(d.right(), 0);
     EXPECT_EQ(d.bottom(), 0);
+
+    Desktop::CReservedArea e{CBox{20, 30, 900, 900}, CBox{0, 0, 100, 100}};
+    EXPECT_EQ(e.ok(), false);
 }

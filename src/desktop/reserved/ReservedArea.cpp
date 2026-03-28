@@ -1,5 +1,6 @@
 #include "ReservedArea.hpp"
 #include "../../macros.hpp"
+#include "../../debug/log/Logger.hpp"
 
 using namespace Desktop;
 
@@ -19,13 +20,24 @@ CReservedArea::CReservedArea(const CBox& parent, const CBox& child) {
     if (parent.empty() || child.empty())
         return; // empty reserved area
 
-    ASSERT(parent.containsPoint(child.pos() + Vector2D{0.0001, 0.0001}));
-    ASSERT(parent.containsPoint(child.pos() + child.size() - Vector2D{0.0001, 0.0001}));
+    if (!parent.containsPoint(child.pos() + Vector2D{0.0001, 0.0001}) //
+        || !parent.containsPoint(child.pos() + child.size() - Vector2D{0.0001, 0.0001})) {
+
+        Log::logger->log(Log::ERR, "CReservedArea: attempted to create a reserved area from parent [{}, {}] and child [{}, {}] which is invalid", parent.pos(), parent.size(),
+                         child.pos(), child.size());
+
+        m_ok = false;
+        return;
+    }
 
     m_initialTopLeft     = child.pos() - parent.pos();
     m_initialBottomRight = (parent.pos() + parent.size()) - (child.pos() + child.size());
 
     calculate();
+}
+
+bool CReservedArea::ok() const {
+    return m_ok;
 }
 
 void CReservedArea::calculate() {

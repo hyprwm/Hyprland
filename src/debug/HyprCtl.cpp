@@ -1290,8 +1290,31 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND == "monitor")
         g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
 
-    if (COMMAND.contains("monitorv2"))
-        g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
+    if (COMMAND.contains("monitorv2")) {
+        const auto openBracket  = COMMAND.find('[');
+        const auto closeBracket = COMMAND.find(']');
+        const auto colon        = COMMAND.find(':', closeBracket == std::string::npos ? 0 : closeBracket);
+
+        if (openBracket != std::string::npos && closeBracket != std::string::npos && colon != std::string::npos) {
+            const auto monitorName = COMMAND.substr(openBracket + 1, closeBracket - openBracket - 1);
+            const auto property    = COMMAND.substr(colon + 1);
+
+            if ((property == "sdrbrightness" || property == "sdrsaturation") && retval.empty()) {
+                const auto PMONITOR = g_pCompositor->getMonitorFromName(monitorName);
+                if (PMONITOR) {
+                    const auto parsed = std::stof(VALUE);
+                    if (property == "sdrbrightness")
+                        PMONITOR->m_sdrBrightness = parsed;
+                    else
+                        PMONITOR->m_sdrSaturation = parsed;
+
+                    g_pHyprRenderer->damageMonitor(PMONITOR);
+                }
+            } else
+                g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
+        } else
+            g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
+    }
 
     if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout

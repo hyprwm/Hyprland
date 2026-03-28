@@ -60,8 +60,11 @@ template <>
 inline std::string CConfigValue<std::string>::operator*() const {
     if (m_typeIndex == typeid(std::string))
         return **rc<const std::string* const*>(m_p);
+    else if (m_typeIndex == typeid(const char*))
+        return std::string{*rc<const Hyprlang::STRING*>(m_hlangp)};
     else
-        return std::string{*rc<const Config::STRING*>(m_p)};
+        RASSERT(false, "CConfigValue<std::string> on a FUCKED type");
+    return "FUCK";
 }
 
 template <>

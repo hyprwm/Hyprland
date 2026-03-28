@@ -8,7 +8,7 @@ void local__configValuePopulate(void* const** p, void* const** hlangp, std::type
 
     *ti = std::type_index(*BIGP.type);
 
-    if (std::type_index(*BIGP.type) == typeid(void*)) {
+    if (std::type_index(*BIGP.type) == typeid(void*) || std::type_index(*BIGP.type) == typeid(const char*)) {
         // this is a special, cursed case. ew.
         *hlangp = BIGP.dataptr;
     } else

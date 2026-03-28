@@ -17,9 +17,13 @@ namespace Desktop::Rule {
         void                                                    addEffect(storageType e, const std::string& result);
         const std::vector<std::pair<storageType, std::string>>& effects();
 
+        void                                                    setEnabled(bool enable);
+        bool                                                    isEnabled() const;
+
         bool                                                    matches(PHLLS w);
 
       private:
         std::vector<std::pair<storageType, std::string>> m_effects;
+        bool                                             m_enabled = true;
     };
 };

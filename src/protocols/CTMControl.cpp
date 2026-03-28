@@ -108,7 +108,7 @@ void CHyprlandCTMControlProtocol::destroyResource(CHyprlandCTMControlResource* r
 }
 
 bool CHyprlandCTMControlProtocol::isCTMAnimationEnabled() {
-    static auto PENABLEANIM = CConfigValue<Hyprlang::INT>("render:ctm_animation");
+    static auto PENABLEANIM = CConfigValue<Config::INTEGER>("render:ctm_animation");
 
     if (*PENABLEANIM == 2 /* auto */) {
         if (!g_pHyprRenderer->isNvidia())

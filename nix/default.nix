@@ -36,6 +36,7 @@
   libxkbcommon,
   libuuid,
   libgbm,
+  lua5_5,
   muparser,
   pango,
   pciutils,
@@ -190,6 +191,7 @@ customStdenv.mkDerivation (finalAttrs: {
       libuuid
       libxcursor
       libxkbcommon
+      lua5_5
       muparser
       pango
       pciutils

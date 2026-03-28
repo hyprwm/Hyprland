@@ -1,6 +1,7 @@
 #include "PointerManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/shared/actions/ConfigActions.hpp"
 #include "../config/legacy/ConfigManager.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/RelativePointer.hpp"
@@ -414,7 +415,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
-    static auto PCPUBUFFER = CConfigValue<Hyprlang::INT>("cursor:use_cpu_buffer");
+    static auto PCPUBUFFER = CConfigValue<Config::INTEGER>("cursor:use_cpu_buffer");
 
     const bool  shouldUseCpuBuffer = *PCPUBUFFER == 1 || (*PCPUBUFFER != 0 && g_pHyprRenderer->isNvidia());
 
@@ -684,7 +685,7 @@ CBox CPointerManager::getCursorBoxGlobal() {
 }
 
 Vector2D CPointerManager::closestValid(const Vector2D& pos) {
-    static auto PADDING = CConfigValue<Hyprlang::INT>("cursor:hotspot_padding");
+    static auto PADDING = CConfigValue<Config::INTEGER>("cursor:hotspot_padding");
 
     auto        CURSOR_PADDING = std::clamp(sc<int>(*PADDING), 0, 100);
     CBox        hotBox         = {{pos.x - CURSOR_PADDING, pos.y - CURSOR_PADDING}, {2 * CURSOR_PADDING, 2 * CURSOR_PADDING}};
@@ -924,7 +925,7 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
     if (!pointer)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_pointerListeners.emplace_back(makeShared<SPointerListener>());
@@ -937,8 +938,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->motionAbsolute = pointer->m_pointerEvents.motionAbsolute.listen([](const IPointer::SMotionAbsoluteEvent& event) {
@@ -946,8 +947,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->button = pointer->m_pointerEvents.button.listen([weak = WP<IPointer>(pointer)](const IPointer::SButtonEvent& event) {
@@ -966,8 +967,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->swipeEnd = pointer->m_pointerEvents.swipeEnd.listen([](const IPointer::SSwipeEndEvent& event) {
@@ -985,8 +986,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->pinchEnd = pointer->m_pointerEvents.pinchEnd.listen([](const IPointer::SPinchEndEvent& event) {
@@ -1018,7 +1019,7 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
     if (!touch)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_touchListeners.emplace_back(makeShared<STouchListener>());
@@ -1032,8 +1033,8 @@ void CPointerManager::attachTouch(SP<ITouch> touch) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->up = touch->m_touchEvents.up.listen([](const ITouch::SUpEvent& event) {
@@ -1059,7 +1060,7 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
     if (!tablet)
         return;
 
-    static auto PMOUSEDPMS = CConfigValue<Hyprlang::INT>("misc:mouse_move_enables_dpms");
+    static auto PMOUSEDPMS = CConfigValue<Config::INTEGER>("misc:mouse_move_enables_dpms");
 
     //
     auto listener = m_tabletListeners.emplace_back(makeShared<STabletListener>());
@@ -1073,8 +1074,8 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->proximity = tablet->m_tabletEvents.proximity.listen([](const CTablet::SProximityEvent& event) {
@@ -1087,8 +1088,8 @@ void CPointerManager::attachTablet(SP<CTablet> tablet) {
 
         PROTO::idle->onActivity();
 
-        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS)
-            CKeybindManager::dpms("on");
+        if (!g_pCompositor->m_dpmsStateOn && *PMOUSEDPMS) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     listener->button = tablet->m_tabletEvents.button.listen([](const CTablet::SButtonEvent& event) {

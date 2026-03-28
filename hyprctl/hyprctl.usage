@@ -157,7 +157,6 @@ hyprctl [<OPTIONS>]... <ARGUMENTS>
                 |  (movewindoworgroup)           	                  "Behave as moveintogroup"
                 |  (movegroupwindow)         	                      "Swap the active window with the next or previous in a group"
                 |  (denywindowfromgroup)         	                  "Prohibit the active window from becoming or being inserted into group"
-                |  (setignoregrouplock)          	                  "Temporarily enable or disable binds:ignore_group_lock"
                 |  (global)          	                              "Execute a Global Shortcut using the GlobalShortcuts portal"
                 |  (submap)          	                              "Change the current mapping group"
                 |  (event)                                            "Emits a custom event to socket2"

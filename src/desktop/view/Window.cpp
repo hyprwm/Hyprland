@@ -1364,7 +1364,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 
     const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
-    const auto  SCALE    = *PXWLFORCESCALEZERO ? PMONITOR->m_scale : 1.0f;
+    const auto  SCALE    = *PXWLFORCESCALEZERO && PMONITOR ? PMONITOR->m_scale : 1.0f;
 
     return SIZE / SCALE;
 }

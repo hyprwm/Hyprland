@@ -930,7 +930,7 @@ bool CMonitor::applyMonitorRule(SMonitorRule* pMonitorRule, bool force) {
 
     m_enabled10bit = set10bit;
 
-    m_supportsWideColor = RULE->supportsHDR;
+    m_supportsWideColor = RULE->supportsWideColor;
     m_supportsHDR       = RULE->supportsHDR;
 
     m_cmType = RULE->cmType;
@@ -2121,18 +2121,23 @@ bool CMonitor::inHDR() {
 }
 
 bool CMonitor::inFullscreenMode() {
-    // Check special workspace first since it renders on top of regular workspaces
-    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
-        return true;
-    return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+    const auto FS_WINDOW = getFullscreenWindow();
+    return FS_WINDOW && FS_WINDOW->m_fullscreenState.internal == FSMODE_FULLSCREEN;
 }
 
 PHLWINDOW CMonitor::getFullscreenWindow() {
-    // Check special workspace first since it renders on top of regular workspaces
-    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
-        return m_activeSpecialWorkspace->getFullscreenWindow();
-    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
-        return m_activeWorkspace->getFullscreenWindow();
+    if (m_activeSpecialWorkspace) {
+        const auto WINDOW = m_activeSpecialWorkspace->getFullscreenWindow();
+        if (WINDOW && WINDOW->m_fullscreenState.internal == FSMODE_FULLSCREEN)
+            return WINDOW;
+    }
+
+    if (m_activeWorkspace) {
+        const auto WINDOW = m_activeWorkspace->getFullscreenWindow();
+        if (WINDOW && WINDOW->m_fullscreenState.internal == FSMODE_FULLSCREEN)
+            return WINDOW;
+    }
+
     return nullptr;
 }
 

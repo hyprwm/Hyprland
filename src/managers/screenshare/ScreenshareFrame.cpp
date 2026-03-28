@@ -174,9 +174,9 @@ void CScreenshareFrame::renderMonitor() {
     g_pHyprRenderer->m_renderData.noSimplify      = true;
 
     // render monitor texture
-    CBox monbox = CBox{{}, PMONITOR->m_pixelSize}
-                      .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
-                      .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+    CBox       monbox = CBox{{}, PMONITOR->m_pixelSize}
+                            .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
+                            .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
 
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;

@@ -16,6 +16,7 @@
 #include "wlr-layer-shell-unstable-v1.hpp"
 
 #include <hyprutils/string/VarList.hpp>
+#include <random>
 
 using namespace Hyprutils::String;
 
@@ -32,10 +33,12 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     if (!CLOSE) {
         pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
         pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_shaderProgress->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
         pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
     } else {
         pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
         pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_shaderProgress->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
         pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
     }
 
@@ -60,6 +63,8 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
             animationSlide(pWindow, animList2[1], CLOSE);
         } else if (STYLE == "gnomed" || STYLE == "gnome")
             animationGnomed(pWindow, CLOSE);
+        else if (STYLE == "shader")
+            animationShader(pWindow, CLOSE);
         else {
             // anim popin, fallback
 
@@ -80,6 +85,8 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
             animationSlide(pWindow, animList[1], CLOSE);
         else if (animList[0] == "gnomed" || animList[0] == "gnome")
             animationGnomed(pWindow, CLOSE);
+        else if (animList[0] == "shader")
+            animationShader(pWindow, CLOSE);
         else {
             // anim popin, fallback
 
@@ -457,6 +464,24 @@ void CDesktopAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
         pWindow->m_realSize->setValueAndWarp(Vector2D{GOALSIZE.x, 0.F});
         *pWindow->m_realPosition = GOALPOS;
         *pWindow->m_realSize     = GOALSIZE;
+    }
+}
+
+void CDesktopAnimationManager::animationShader(PHLWINDOW pWindow, bool close) {
+    pWindow->m_realSize->warp(false);
+    pWindow->m_realPosition->warp(false);
+
+    std::random_device                    rd;
+    std::mt19937                          engine(rd());
+    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+    pWindow->m_shaderSeed = dist(engine);
+
+    if (close) {
+        pWindow->m_shaderProgress->setValueAndWarp(1.0);
+        *pWindow->m_shaderProgress = 0.0f;
+    } else {
+        pWindow->m_shaderProgress->setValueAndWarp(0.0);
+        *pWindow->m_shaderProgress = 1.0f;
     }
 }
 

@@ -184,6 +184,8 @@ namespace Render::GL {
 
             Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
             Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+            PHLWINDOWREF           window;
         };
 
         struct SBorderRenderData {

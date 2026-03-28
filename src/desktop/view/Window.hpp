@@ -182,6 +182,10 @@ namespace Desktop::View {
         SP<Desktop::View::CSubsurface> m_subsurfaceHead;
         SP<Desktop::View::CPopup>      m_popupHead;
 
+        // Custom shader animation progress
+        PHLANIMVAR<float> m_shaderProgress;
+        float             m_shaderSeed = 0.12345f; // 0.0 - 1.0
+
         // Animated border
         Config::CGradientValueData m_realBorderColor         = {0};
         Config::CGradientValueData m_realBorderColorPrevious = {0};

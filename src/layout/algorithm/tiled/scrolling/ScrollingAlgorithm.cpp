@@ -1368,8 +1368,8 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             return std::unexpected("no current col");
 
         // expel a target from srcCol into its own new column at insertIdx
-        auto expelTarget = [&](SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, ssize_t insertIdx) {
-            auto col = insertIdx == -1 ? m_scrollingData->add() : m_scrollingData->add(insertIdx);
+        auto expelTarget = [&](SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx) {
+            auto col = !insertIdx ? m_scrollingData->add() : m_scrollingData->add(*insertIdx);
             srcCol->remove(tdata->target.lock());
             col->add(tdata);
             m_scrollingData->centerOrFitCol(col);
@@ -1385,7 +1385,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         if (ARGS[0] == "promote") {
             auto idx = m_scrollingData->idx(CURRENT_COL);
-            expelTarget(TDATA, CURRENT_COL, idx == -1 ? -1 : idx);
+            expelTarget(TDATA, CURRENT_COL, idx == -1 ? std::nullopt : std::optional<int64_t>{idx});
         } else if (ARGS[0] == "expel") {
             if (CURRENT_COL->targetDatas.size() < 2)
                 return std::unexpected("column has only one window");
@@ -1393,7 +1393,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             const auto  lastTarget = CURRENT_COL->targetDatas.back();
             const auto  currentIdx = m_scrollingData->idx(CURRENT_COL);
             const auto  NEXT_COL   = m_scrollingData->next(CURRENT_COL);
-            const auto  insertIdx  = NEXT_COL ? -1 : currentIdx; // -1 means append
+            const auto  insertIdx  = NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
             const auto& targetCol  = NEXT_COL ? NEXT_COL : nullptr;
 
             if (targetCol) {

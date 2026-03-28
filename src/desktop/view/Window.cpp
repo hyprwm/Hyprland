@@ -285,6 +285,9 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     const auto  WORKAREA = m_workspace->m_space->workArea();
     const auto& RESERVED = CReservedArea(PMONITOR->logicalBox(), WORKAREA);
 
+    if (!RESERVED.ok())
+        return CBox{POS, SIZE};
+
     if (DELTALESSTHAN(POS.x, WORKAREA.x, 1)) {
         POS.x -= RESERVED.left();
         SIZE.x += RESERVED.left();

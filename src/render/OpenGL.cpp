@@ -2295,10 +2295,10 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     blend(true);
 
     const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == DEFAULT_IMAGE_DESCRIPTION->id();
+    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
     auto       shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
     if (!skipCM)
-        passCMUniforms(shader, DEFAULT_IMAGE_DESCRIPTION);
+        passCMUniforms(shader, getDefaultImageDescription());
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);

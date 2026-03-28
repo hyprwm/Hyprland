@@ -1290,8 +1290,19 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
         (imageDescription->value().luminances.max > 0 ? imageDescription->value().luminances.max : imageDescription->value().luminances.reference);
     shader->setUniformFloat(SHADER_MAX_LUMINANCE, maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, targetImageDescription->value().luminances.max > 0 ? targetImageDescription->value().luminances.max : 10000);
+    const bool targetIsHDR = targetImageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ;
+    float      brightnessMultiplier = 1.0f;
+    if (targetIsHDR && m_renderData.pMonitor->m_sdrBrightness > 0) {
+        brightnessMultiplier = m_renderData.pMonitor->m_sdrBrightness;
+
+        if (!needsSDRmod) {
+            const auto delta = brightnessMultiplier - 1.0f;
+            brightnessMultiplier = 1.0f + delta * (delta > 0.0f ? 0.35f : 1.25f);
+        }
+    }
+
     shader->setUniformFloat(SHADER_SDR_SATURATION, needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f);
-    shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f);
+    shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, brightnessMultiplier);
     const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
     if (!primariesConversionCache.contains(cacheKey)) {
         auto                         conversion      = imageDescription->getPrimaries()->convertMatrix(targetImageDescription->getPrimaries());
@@ -1428,9 +1439,9 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<CTexture> tex, const CBox& box, c
                 shaderFeatures |= SH_FEAT_TONEMAP;
 
             if (!data.cmBackToSRGB &&
-                (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
                 targetImageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ &&
-                ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
+                (((imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22) &&
+                  m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
                  (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f)))
                 shaderFeatures |= SH_FEAT_SDR_MOD;
         }

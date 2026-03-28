@@ -1,4 +1,3 @@
-
 #include <helpers/math/Direction.hpp>
 
 #include <gtest/gtest.h>

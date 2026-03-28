@@ -1,4 +1,3 @@
-
 #include <helpers/ByteOperations.hpp>
 
 #include <gtest/gtest.h>

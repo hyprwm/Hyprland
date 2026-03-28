@@ -2447,8 +2447,14 @@ bool CMonitor::needsUnmodifiedCopy() {
 }
 
 bool CMonitor::useFP16() {
-    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
-    return *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+    static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    bool              shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+    static bool       usedBefore = shouldUse;
+    if (usedBefore != shouldUse) {
+        usedBefore    = shouldUse;
+        m_blurFBDirty = true;
+    }
+    return shouldUse;
 }
 
 WP<CMonitorResources> CMonitor::resources() {

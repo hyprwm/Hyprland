@@ -232,6 +232,7 @@ class CKeybindManager {
     static SDispatchResult lockGroups(std::string);
     static SDispatchResult lockActiveGroup(std::string);
     static SDispatchResult moveIntoGroup(std::string);
+    static SDispatchResult moveIntoOrCreateGroup(std::string);
     static SDispatchResult moveOutOfGroup(std::string);
     static SDispatchResult moveGroupWindow(std::string);
     static SDispatchResult moveWindowOrGroup(std::string);

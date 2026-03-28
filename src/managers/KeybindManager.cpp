@@ -125,6 +125,7 @@ CKeybindManager::CKeybindManager() {
     m_dispatchers["lockgroups"]                     = lockGroups;
     m_dispatchers["lockactivegroup"]                = lockActiveGroup;
     m_dispatchers["moveintogroup"]                  = moveIntoGroup;
+    m_dispatchers["moveintoorcreategroup"]          = moveIntoOrCreateGroup;
     m_dispatchers["moveoutofgroup"]                 = moveOutOfGroup;
     m_dispatchers["movewindoworgroup"]              = moveWindowOrGroup;
     m_dispatchers["setignoregrouplock"]             = setIgnoreGroupLock;
@@ -2682,6 +2683,45 @@ SDispatchResult CKeybindManager::moveIntoGroup(std::string args) {
     const auto GROUP = PWINDOWINDIR->m_group;
 
     // Do not move window into locked group if binds:ignore_group_lock is false
+    if (!*PIGNOREGROUPLOCK && (GROUP->locked() || (PWINDOW->m_group && PWINDOW->m_group->locked())))
+        return {};
+
+    moveWindowIntoGroup(PWINDOW, PWINDOWINDIR);
+
+    return {};
+}
+
+SDispatchResult CKeybindManager::moveIntoOrCreateGroup(std::string args) {
+    static auto PIGNOREGROUPLOCK = CConfigValue<Hyprlang::INT>("binds:ignore_group_lock");
+
+    if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
+        return {};
+
+    Math::eDirection dir = Math::fromChar(args[0]);
+    if (dir == Math::DIRECTION_DEFAULT) {
+        Log::logger->log(Log::ERR, "Cannot move into or create group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", args[0]);
+        return {.success = false, .error = std::format("Cannot move into or create group in direction {}, unsupported direction. Supported: l,r,u/t,d/b", args[0])};
+    }
+
+    const auto PWINDOW = Desktop::focusState()->window();
+
+    if (!PWINDOW)
+        return {};
+
+    auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(PWINDOW, dir);
+
+    if (!PWINDOWINDIR)
+        return {};
+
+    if (!PWINDOWINDIR->m_group) {
+        if (PWINDOWINDIR->isFullscreen())
+            return {};
+
+        PWINDOWINDIR->m_group = Desktop::View::CGroup::create({PWINDOWINDIR});
+    }
+
+    const auto GROUP = PWINDOWINDIR->m_group;
+
     if (!*PIGNOREGROUPLOCK && (GROUP->locked() || (PWINDOW->m_group && PWINDOW->m_group->locked())))
         return {};
 

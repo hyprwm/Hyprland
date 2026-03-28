@@ -7,6 +7,7 @@
 #include <ranges>
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
+#include "../ColorManagement.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
@@ -421,7 +422,51 @@ SP<CWLSurfaceResource> CWLSurfaceResource::findFirstPreorder(std::function<bool(
 }
 
 SP<CWLSurfaceResource> CWLSurfaceResource::findWithCM() {
-    return findFirstPreorder([this](SP<CWLSurfaceResource> surf) { return surf->m_colorManagement.valid() && surf->extends() == extends(); });
+    const auto ROOTEXTENTS = extends();
+
+    SP<CWLSurfaceResource> bestExactWithDesc    = nullptr;
+    SP<CWLSurfaceResource> bestFallbackWithDesc = nullptr;
+    SP<CWLSurfaceResource> bestExactAnyCM       = nullptr;
+    SP<CWLSurfaceResource> bestFallbackAnyCM    = nullptr;
+    int64_t               bestAreaWithDesc      = -1;
+    int64_t               bestAreaAnyCM         = -1;
+
+    breadthfirst(
+        [&](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+            if (!surf || !surf->m_colorManagement.valid())
+                return;
+
+            const auto SURFEXTENTS = surf->extends();
+            const int64_t area = int64_t(SURFEXTENTS.w) * int64_t(SURFEXTENTS.h);
+            const bool    hasDesc = surf->m_colorManagement->hasImageDescription();
+
+            if (SURFEXTENTS == ROOTEXTENTS) {
+                if (hasDesc)
+                    bestExactWithDesc = surf;
+                else
+                    bestExactAnyCM = surf;
+                return;
+            }
+
+            if (hasDesc) {
+                if (area > bestAreaWithDesc) {
+                    bestAreaWithDesc      = area;
+                    bestFallbackWithDesc = surf;
+                }
+            } else if (area > bestAreaAnyCM) {
+                bestAreaAnyCM      = area;
+                bestFallbackAnyCM = surf;
+            }
+        },
+        nullptr);
+
+    if (bestExactWithDesc)
+        return bestExactWithDesc;
+    if (bestFallbackWithDesc)
+        return bestFallbackWithDesc;
+    if (bestExactAnyCM)
+        return bestExactAnyCM;
+    return bestFallbackAnyCM;
 }
 
 std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2D& localCoords, bool allowsInput) {

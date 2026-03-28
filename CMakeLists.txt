@@ -562,7 +562,7 @@ protocolnew("staging/commit-timing" "commit-timing-v1" false)
 protocolnew("staging/ext-image-capture-source" "ext-image-capture-source-v1" false)
 protocolnew("staging/ext-image-copy-capture" "ext-image-copy-capture-v1" false)
 
-protocolnew("subprojects/hyprland-protocols/protocols" "hyprland-input-capture-v1"
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-input-capture-v1"
             true)
 protocolwayland()
 

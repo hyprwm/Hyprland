@@ -1793,8 +1793,8 @@ void CWindow::mapWindow() {
 
         if (m_ruleApplicator->static_.fullscreenStateClient || m_ruleApplicator->static_.fullscreenStateInternal) {
             requestedFSState = Desktop::View::SFullscreenState{
-                .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
-                .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
+                     .internal = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateInternal.value_or(0)),
+                     .client   = sc<eFullscreenMode>(m_ruleApplicator->static_.fullscreenStateClient.value_or(0)),
             };
         }
 

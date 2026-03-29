@@ -3082,6 +3082,7 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     data.box          = windowBox;
     data.a            = pWindow->m_alpha->value();
     data.damage       = fakeDamage;
+    data.window       = pWindow;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

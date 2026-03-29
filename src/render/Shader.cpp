@@ -156,6 +156,9 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_DISCARD_OPAQUE]      = getUniform("discardOpaque");
     m_uniformLocations[SHADER_DISCARD_ALPHA]       = getUniform("discardAlpha");
     m_uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = getUniform("discardAlphaValue");
+    m_uniformLocations[SHADER_ANIM_PROGRESS]       = getUniform("animationProgress");
+    m_uniformLocations[SHADER_ANIM_SEED]           = getUniform("animationSeed");
+    m_uniformLocations[SHADER_ANIM_CLOSE]          = getUniform("isClosingAnimation");
     /* set in createVao
         m_uniformLocations[SHADER_SHADER_VAO]
         m_uniformLocations[SHADER_SHADER_VBO_POS]

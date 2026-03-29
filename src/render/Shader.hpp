@@ -79,6 +79,9 @@ enum eShaderUniform : uint8_t {
     SHADER_BLURRED_BG,
     SHADER_UV_SIZE,
     SHADER_UV_OFFSET,
+    SHADER_ANIM_PROGRESS,
+    SHADER_ANIM_SEED,
+    SHADER_ANIM_CLOSE,
 
     SHADER_LAST,
 };

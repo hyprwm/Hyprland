@@ -23,6 +23,12 @@ jobs:
         run: |
           CFLAGS=-Werror CXXFLAGS=-Werror make nopch
 
+      - name: Build and run unit tests
+        run: |
+          cmake -B ./build -DWITH_TESTS=ON
+          cmake --build ./build --target hyprland_gtests -j`nproc 2>/dev/null || getconf NPROCESSORS_CONF`
+          ./build/hyprland_gtests
+
       - name: Compress and package artifacts
         run: |
           mkdir x86_64-pc-linux-gnu

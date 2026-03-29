@@ -53,6 +53,7 @@
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
 #include "types.hpp"
+#include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -2146,9 +2147,9 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
-    static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    static auto PNSINTEROP = CConfigValue<Hyprlang::INT>("render:non_shader_cm_interop");
 
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
@@ -2159,14 +2160,6 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         // HDR metadata determined by
         // HDR scRGB - monitor settings
         // HDR PQ surface & DS is active - surface settings
-        // PPASS = 0 monitor settings
-        // PPASS = 1
-        //           windowed: monitor settings
-        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, gamma if needed
-        // PPASS = 2
-        //           windowed: monitor settings
-        //           fullscreen SDR surface: monitor settings
-        //           fullscreen HDR surface: surface settings
 
         bool hdrIsHandled = false;
         if (FS_WINDOW) {
@@ -2176,8 +2169,9 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
-                if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
-                    // passthrough
+                wantHDR                 = *PAUTOHDR && surfaceIsHDR;
+                if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && !pMonitor->m_lastScanout.expired()) {
+                    // DS HDR
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || pMonitor->m_needsHDRupdate;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
                         Log::logger->log(Log::INFO, "[CM] Recreating HDR metadata for surface");
@@ -2189,8 +2183,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     }
                     hdrIsHandled               = true;
                     pMonitor->m_needsHDRupdate = false;
-                } else if (*PAUTOHDR && surfaceIsHDR)
-                    wantHDR = true; // auto-hdr: hdr on
+                }
             }
         }
 
@@ -2232,28 +2225,50 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (*PCT)
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
-    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM)) {
-        if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
-            (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
-            if (pMonitor->m_noShaderCTM) {
-                Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
-                pMonitor->m_noShaderCTM = false;
-                pMonitor->m_ctmUpdated  = true;
-            }
-        } else {
-            const auto FS_DESC = pMonitor->getFSImageDescription();
-            if (FS_DESC.has_value()) {
+    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM) || pMonitor->m_ctmUpdated) {
+        const bool INTEROP  = (*PNSINTEROP == 1 || (*PNSINTEROP == 2 && FS_WINDOW && FS_WINDOW->getContentType() == CONTENT_TYPE_NONE));
+        bool       resetCTM = !FS_WINDOW;
+        if (FS_WINDOW) {
+            if (*PNONSHADER == CM_NS_IGNORE)
+                resetCTM = true;
+            else if (const auto FS_DESC = pMonitor->getFSImageDescription();
+                     pMonitor->needsCM() && pMonitor->canNoShaderCM() && FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || !pMonitor->m_lastScanout.expired())) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
-                pMonitor->m_noShaderCTM               = true;
-                auto                       conversion = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
-                const auto                 mat        = conversion.mat();
-                const std::array<float, 9> CTM        = {
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+                auto conversion         = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
+                if (pMonitor->m_ctm != Mat3x3::identity() && INTEROP) {
+                    const auto&                          ctm    = pMonitor->m_ctm.getMatrix();
+                    std::array<std::array<double, 3>, 3> values = {
+                        {
+                            {ctm[0], ctm[1], ctm[2]},
+                            {ctm[3], ctm[4], ctm[5]},
+                            {ctm[6], ctm[7], ctm[8]},
+                        },
+                    };
+                    conversion = conversion * Hyprgraphics::CMatrix3(values);
+                }
+                const auto                 mat = conversion.mat();
+                const std::array<float, 9> CTM = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //
                 };
                 pMonitor->m_output->state->setCTM(CTM);
-            }
+            } else if (!INTEROP && pMonitor->m_ctm != Mat3x3::identity()) {
+                Log::logger->log(Log::INFO, "[CM] Setting identity CTM");
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+
+                pMonitor->m_output->state->setCTM(Mat3x3::identity());
+            } else
+                resetCTM = true;
+        }
+
+        if (resetCTM && pMonitor->m_noShaderCTM) {
+            Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
+            pMonitor->m_noShaderCTM = false;
+            pMonitor->m_ctmUpdated  = true;
         }
     }
 

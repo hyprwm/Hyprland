@@ -180,7 +180,7 @@ class CCompositor {
     void                           cleanEnvironment();
     void                           setRandomSplash();
     void                           initManagers(eManagersInitStage stage);
-    void                           prepareFallbackOutput();
+    void                           prepareFallbackOutputs();
     void                           createLockFile();
     void                           removeLockFile();
     void                           setMallocThreshold();

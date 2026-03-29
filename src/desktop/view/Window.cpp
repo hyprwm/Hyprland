@@ -1091,7 +1091,14 @@ void CWindow::onUpdateState() {
 
     if (requestsMX.has_value() && !(m_suppressedEvents & SUPPRESS_MAXIMIZE)) {
         if (m_isMapped) {
-            auto window    = m_self.lock();
+            auto window = m_self.lock();
+
+            // Tiled windows are compositor-managed; ignore client maximize requests.
+            // Chromium echoes set_maximized on fullscreen exit because Hyprland sends
+            // MAXIMIZED to suppress CSD — honoring it would enter FSMODE_MAXIMIZED.
+            if (!window->m_isFloating)
+                return;
+
             auto state     = sc<int8_t>(window->m_fullscreenState.client);
             bool maximized = (state & sc<uint8_t>(FSMODE_MAXIMIZED)) != 0;
             g_pCompositor->changeWindowFullscreenModeClient(window, FSMODE_MAXIMIZED, !maximized);

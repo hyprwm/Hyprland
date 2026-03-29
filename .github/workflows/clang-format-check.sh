@@ -75,6 +75,8 @@ fi
 # initialize exit code
 exit_code=0
 
+clang-format --version
+
 # All files improperly formatted will be printed to the output.
 src_files=$(find "$CHECK_PATH" -name .git -prune -o -regextype posix-egrep -regex "$INCLUDE_REGEX" -print)
 

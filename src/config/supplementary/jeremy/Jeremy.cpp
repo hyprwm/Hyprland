@@ -11,6 +11,16 @@ using namespace Config::Supplementary::Jeremy;
 
 std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
     static bool lastSafeMode = g_pCompositor->m_safeMode;
+
+    static auto regularOrLuaIfAvail = [](std::filesystem::path p) -> std::filesystem::path {
+        std::error_code ec;
+        auto p2 = p;
+        p2.replace_extension(".lua");
+        if (std::filesystem::exists(p2, ec) && !ec)
+            return p2;
+        return p;
+    };
+
     static auto getCfgPath   = []() -> std::expected<SConfigStateReply, std::string> {
         lastSafeMode = g_pCompositor->m_safeMode;
 
@@ -25,10 +35,10 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
 
         const auto PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland");
         if (PATHS.first.has_value()) {
-            return SConfigStateReply{PATHS.first.value(), CONFIG_TYPE_REGULAR};
+            return SConfigStateReply{regularOrLuaIfAvail(PATHS.first.value()), CONFIG_TYPE_REGULAR};
         } else if (PATHS.second.has_value()) {
             auto CONFIGPATH = Hyprutils::Path::fullConfigPath(PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
-            return SConfigStateReply{CONFIGPATH, CONFIG_TYPE_REGULAR};
+            return SConfigStateReply{regularOrLuaIfAvail(CONFIGPATH), CONFIG_TYPE_REGULAR};
         } else
             return std::unexpected("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");
     };

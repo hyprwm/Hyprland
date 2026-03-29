@@ -27,12 +27,10 @@ bool Config::initConfigManager() {
     std::filesystem::path filePath = CFG_PATH->path;
 
     if (CFG_PATH->type == Supplementary::Jeremy::CONFIG_TYPE_REGULAR) {
-        Log::logger->log(Log::DEBUG, "[cfg] Regular config, checking for available lua");
-
-        filePath.replace_extension(".lua");
+        Log::logger->log(Log::DEBUG, "[cfg] Regular config at {}", filePath.string());
 
         std::error_code ec;
-        if (std::filesystem::exists(filePath, ec) && !ec) {
+        if (std::filesystem::exists(filePath, ec) && !ec && filePath.extension() == ".lua") {
             // we have lua!
             Log::logger->log(Log::DEBUG, "[cfg] Using lua config found at {}", filePath.string());
             g_mgr = makeUnique<Lua::CConfigManager>();

@@ -11,6 +11,7 @@
 #include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
 #include "config/ConfigValue.hpp"
+#include "config/supplementary/executor/Executor.hpp"
 #include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
@@ -651,6 +652,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the TokenManager!");
             g_pTokenManager = makeUnique<CTokenManager>();
+
+            // create executor
+            Config::Supplementary::executor();
 
             Config::mgr()->init();
 

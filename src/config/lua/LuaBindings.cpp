@@ -903,12 +903,12 @@ static int dsp_denyFromGroup(lua_State* L) {
 }
 
 static int dsp_mouseDrag(lua_State* L) {
-    checkResult(L, CA::mouse("1movewindow"));
+    checkResult(L, CA::mouse("movewindow"));
     return 0;
 }
 
 static int dsp_mouseResize(lua_State* L) {
-    checkResult(L, CA::mouse("1resizewindow"));
+    checkResult(L, CA::mouse("resizewindow"));
     return 0;
 }
 

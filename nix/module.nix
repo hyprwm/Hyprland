@@ -9,6 +9,25 @@ let
   inherit (pkgs.stdenv.hostPlatform) system;
   selflib = import ./lib.nix lib;
   cfg = config.programs.hyprland;
+
+  hyprlangType =
+    with lib.types;
+    let
+      valueType =
+        nullOr (oneOf [
+          bool
+          int
+          float
+          str
+          path
+          (attrsOf valueType)
+          (listOf valueType)
+        ])
+        // {
+          description = "Hyprland configuration value";
+        };
+    in
+    valueType;
 in
 {
   options = {
@@ -23,24 +42,7 @@ in
       };
 
       settings = lib.mkOption {
-        type =
-          with lib.types;
-          let
-            valueType =
-              nullOr (oneOf [
-                bool
-                int
-                float
-                str
-                path
-                (attrsOf valueType)
-                (listOf valueType)
-              ])
-              // {
-                description = "Hyprland configuration value";
-              };
-          in
-          valueType;
+        type = hyprlangType;
         default = { };
         description = ''
           Hyprland configuration written in Nix. Entries with the same key
@@ -73,6 +75,30 @@ in
             ];
           }
         '';
+      };
+
+      defaultSettings = lib.mkOption {
+        type = hyprlangType;
+
+        default = {
+          permission = [
+            "${cfg.portalPackage}/libexec/.xdg-desktop-portal-hyprland-wrapped, screencopy, allow"
+            "${lib.getExe pkgs.grim}, screencopy, allow"
+          ];
+        };
+
+        defaultText = lib.literalExpression ''
+          {
+            permission = [
+              "${cfg.portalPackage}/libexec/.xdg-desktop-portal-hyprland-wrapped, screencopy, allow"
+              "${lib.getExe pkgs.grim}, screencopy, allow"
+            ];
+          }
+        '';
+
+        example = lib.literalExpression "{ }";
+
+        description = "Default settings. Can be disabled by setting this option to `{}`.";
       };
 
       extraConfig = lib.mkOption {
@@ -158,6 +184,12 @@ in
                 topCommandsPrefixes = cfg.topPrefixes;
                 bottomCommandsPrefixes = cfg.bottomPrefixes;
               } cfg.settings
+            )
+            + lib.optionalString (cfg.defaultSettings != { }) (
+              selflib.toHyprlang {
+                topCommandsPrefixes = cfg.topPrefixes;
+                bottomCommandsPrefixes = cfg.bottomPrefixes;
+              } cfg.defaultSettings
             )
             + lib.optionalString (cfg.extraConfig != "") cfg.extraConfig;
         };

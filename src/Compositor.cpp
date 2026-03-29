@@ -893,7 +893,7 @@ bool CCompositor::monitorExists(PHLMONITOR pMonitor) {
     return std::ranges::any_of(m_realMonitors, [&](const PHLMONITOR& m) { return m == pMonitor; });
 }
 
-PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
+PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t properties, PHLWINDOW pIgnoreWindow) {
     const auto PMONITOR = getMonitorFromVector(pos);
     if (!PMONITOR)
         return nullptr;
@@ -903,8 +903,12 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
     static auto PBORDERGRABEXTEND    = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
     static auto PSPECIALFALLTHRU     = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
     static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    static auto PFOLLOWMOUSESHRINK   = CConfigValue<Hyprlang::INT>("input:follow_mouse_shrink");
     const auto  BORDER_GRAB_AREA     = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
     const bool  ONLY_PRIORITY        = properties & Desktop::View::FOCUS_PRIORITY;
+    const bool  FOLLOW_MOUSE_CHECK   = properties & Desktop::View::FOLLOW_MOUSE_CHECK;
+    const auto  HITBOX_SHRINK        = FOLLOW_MOUSE_CHECK ? *PFOLLOWMOUSESHRINK : 0;
+    const auto  LASTFOCUSED          = Desktop::focusState()->window();
 
     const auto  isShadowedByModal = [](PHLWINDOW w) -> bool {
         return *PMODALPARENTBLOCKING && w->m_xdgSurface && w->m_xdgSurface->m_toplevel && w->m_xdgSurface->m_toplevel->anyChildModal();
@@ -920,6 +924,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
+                if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                    box = box.copy().expand(-HITBOX_SHRINK);
                 if (box.containsPoint(g_pPointerManager->position()))
                     return w;
 
@@ -962,6 +968,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
 
                     const auto BB  = w->getWindowBoxUnified(properties);
                     CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
+                    if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                        box = box.copy().expand(-HITBOX_SHRINK);
                     if (box.containsPoint(g_pPointerManager->position())) {
 
                         if (w->m_isX11 && w->isX11OverrideRedirect() && !w->m_xwaylandSurface->wantsFocus()) {
@@ -1093,6 +1101,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint8_t proper
                     if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_DOWN))
                         box.height += BORDER_GRAB_AREA;
                 }
+                if (HITBOX_SHRINK > 0 && w != LASTFOCUSED)
+                    box = box.copy().expand(-HITBOX_SHRINK);
                 if (box.containsPoint(pos))
                     return w;
             }

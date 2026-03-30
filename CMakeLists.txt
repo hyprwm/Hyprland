@@ -566,7 +566,13 @@ protocolwayland()
 
 # tools
 add_subdirectory(hyprctl)
-add_subdirectory(start)
+
+if(NO_START_HYPRLAND)
+  message(STATUS "start-hyprland is disabled")
+else()
+  add_subdirectory(start)
+  message(STATUS "start-hyprland is enabled (NO_START_HYPRLAND not defined)")
+endif()
 
 if(NO_HYPRPM)
   message(STATUS "hyprpm is disabled")

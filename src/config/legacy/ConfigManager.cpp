@@ -1791,6 +1791,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       repeat          = false;
     bool       mouse           = false;
     bool       nonConsuming    = false;
+    bool       autoConsuming   = false;
     bool       transparent     = false;
     bool       ignoreMods      = false;
     bool       multiKey        = false;
@@ -1810,6 +1811,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             case 'e': repeat = true; break;
             case 'm': mouse = true; break;
             case 'n': nonConsuming = true; break;
+            case 'a': autoConsuming = true; break;
             case 't': transparent = true; break;
             case 'i': ignoreMods = true; break;
             case 's': multiKey = true; break;
@@ -1909,10 +1911,33 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
-                                               COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag,         submapUniversal,   deviceInclusive,    devices});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key,
+                                               KEYSYMS,
+                                               parsedKey.keycode,
+                                               parsedKey.catchAll,
+                                               MOD,
+                                               MODS,
+                                               HANDLER,
+                                               COMMAND,
+                                               locked,
+                                               m_currentSubmap,
+                                               DESCRIPTION,
+                                               release,
+                                               repeat,
+                                               longPress,
+                                               mouse,
+                                               nonConsuming,
+                                               autoConsuming,
+                                               transparent,
+                                               ignoreMods,
+                                               multiKey,
+                                               hasDescription,
+                                               dontInhibit,
+                                               click,
+                                               drag,
+                                               submapUniversal,
+                                               deviceInclusive,
+                                               devices});
     }
 
     return {};

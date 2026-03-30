@@ -22,7 +22,7 @@ TEST(TagMatchEngine, doesNotMatchMissingTag) {
 }
 
 TEST(TagMatchEngine, emptyKeeper) {
-    CTagKeeper keeper;
+    CTagKeeper      keeper;
 
     CTagMatchEngine engine("myTag");
     EXPECT_FALSE(engine.match(keeper));

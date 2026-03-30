@@ -97,3 +97,7 @@ asan:
 test:
 	$(MAKE) debug
 	./build/hyprtester/hyprtester -c hyprtester/test.conf -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so
+
+format:
+	@files=$$(git diff --name-only | grep -E "\.(cpp|hpp)$$"); if [ -n "$$files" ]; \
+		then echo "clang-format -i" $$files; clang-format -i $$files; fi

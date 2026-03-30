@@ -2216,8 +2216,8 @@ namespace Config::Supplementary {
         SConfigOptionDescription{
             .value       = "scrolling:follow_focus",
             .description = "when a window is focused, should the layout move to bring it into view automatically",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{.value = true},
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
         SConfigOptionDescription{
             .value       = "scrolling:follow_min_visible",

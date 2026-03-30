@@ -2266,7 +2266,7 @@ void CWindow::unmapWindow() {
             if (candidate == nextInGroup)
                 Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
             else
-                Desktop::focusState()->fullWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
+                Desktop::focusState()->fullWindowFocus(candidate, FOCUS_REASON_UNMAP_WINDOW);
 
             if ((*PEXITRETAINSFS || candidate == nextInGroup) && CURRENTWINDOWFSSTATE)
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);

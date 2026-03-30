@@ -515,7 +515,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
     m_mouseButtonCallback = Event::bus()->m_events.input.mouse.button.listen([this](IPointer::SButtonEvent e, Event::SCallbackInfo&) {
         static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
-        if (*PFOLLOW_FOCUS && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
+        if (*PFOLLOW_FOCUS == 2 && e.state == WL_POINTER_BUTTON_STATE_RELEASED && Desktop::focusState()->window())
             focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_CLICK);
     });
 
@@ -525,7 +525,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
 
         static const auto PFOLLOW_FOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
-        if (!*PFOLLOW_FOCUS && !Desktop::isHardInputFocusReason(reason))
+        if (*PFOLLOW_FOCUS != 2 && !Desktop::isHardInputFocusReason(reason))
             return;
 
         if (pWindow->m_workspace != m_parent->space()->workspace())

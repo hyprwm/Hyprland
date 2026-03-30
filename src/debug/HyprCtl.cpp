@@ -1773,7 +1773,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Config::STRING))
             return std::format("str: {}\nset: {}", **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
-            return std::format("custom type: {}\nset: {}", (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), VAR.setByUser);
+            return std::format("custom type: {}\nset: {}", rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
     } else {
         if (TYPE == typeid(Config::INTEGER))
             return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
@@ -1787,7 +1787,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Config::STRING))
             return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
-            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), VAR.setByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem,
+                               rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
     }
 
     return "invalid type (internal error)";

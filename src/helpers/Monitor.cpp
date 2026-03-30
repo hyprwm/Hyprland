@@ -657,21 +657,29 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     }
 
     // Check if the rule isn't already applied
-    // TODO: clean this up lol
-    if (!force && DELTALESSTHAN(m_pixelSize.x, RULE->m_resolution.x, 1) /* ↓ */
-        && DELTALESSTHAN(m_pixelSize.y, RULE->m_resolution.y, 1)        /* Resolution is the same */
-        && m_pixelSize.x > 1 && m_pixelSize.y > 1                       /* Active resolution is not invalid */
-        && DELTALESSTHAN(m_refreshRate, RULE->m_refreshRate, 1)         /* Refresh rate is the same */
-        && m_setScale == RULE->m_scale                                  /* Scale is the same */
-        && m_autoDir == RULE->m_autoDir                                 /* Auto direction is the same */
-        /* position is set correctly */
-        && ((DELTALESSTHAN(m_position.x, RULE->m_offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->m_offset.y, 1)) || RULE->m_offset == Vector2D(-INT32_MAX, -INT32_MAX))
-        /* other properties hadn't changed */
-        && m_transform == RULE->m_transform && RULE->m_enable10bit == m_enabled10bit && RULE->m_cmType == m_cmType && RULE->m_sdrSaturation == m_sdrSaturation &&
+    // Refactored: split complex condition into readable components
+    const bool sameResolution =
+        DELTALESSTHAN(m_pixelSize.x, RULE->m_resolution.x, 1) && DELTALESSTHAN(m_pixelSize.y, RULE->m_resolution.y, 1) && m_pixelSize.x > 1 && m_pixelSize.y > 1;
+
+    const bool sameRefreshRate = DELTALESSTHAN(m_refreshRate, RULE->m_refreshRate, 1);
+
+    const bool sameScale   = m_setScale == RULE->m_scale;
+    const bool sameAutoDir = m_autoDir == RULE->m_autoDir;
+
+    const bool samePosition =
+        (DELTALESSTHAN(m_position.x, RULE->m_offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->m_offset.y, 1)) || RULE->m_offset == Vector2D(-INT32_MAX, -INT32_MAX);
+
+    const bool sameTransform  = m_transform == RULE->m_transform;
+    const bool sameColorProps = RULE->m_enable10bit == m_enabled10bit && RULE->m_cmType == m_cmType && RULE->m_sdrSaturation == m_sdrSaturation &&
         RULE->m_sdrBrightness == m_sdrBrightness && RULE->m_sdrMinLuminance == m_minLuminance && RULE->m_sdrMaxLuminance == m_maxLuminance &&
         RULE->m_supportsWideColor == m_supportsWideColor && RULE->m_supportsHDR == m_supportsHDR && RULE->m_minLuminance == m_minLuminance &&
-        RULE->m_maxLuminance == m_maxLuminance && RULE->m_maxAvgLuminance == m_maxAvgLuminance && !std::memcmp(&m_customDrmMode, &RULE->m_drmMode, sizeof(m_customDrmMode)) &&
-        m_reservedArea == RULE->m_reservedArea) {
+        RULE->m_maxLuminance == m_maxLuminance && RULE->m_maxAvgLuminance == m_maxAvgLuminance;
+
+    const bool sameDrmMode = !std::memcmp(&m_customDrmMode, &RULE->m_drmMode, sizeof(m_customDrmMode));
+
+    const bool sameReservedArea = m_reservedArea == RULE->m_reservedArea;
+
+    if (!force && sameResolution && sameRefreshRate && sameScale && sameAutoDir && samePosition && sameTransform && sameColorProps && sameDrmMode && sameReservedArea) {
 
         Log::logger->log(Log::DEBUG, "Not applying a new rule to {} because it's already applied!", m_name);
 

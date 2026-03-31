@@ -128,10 +128,32 @@ void CSubsurface::checkSiblingDamage() {
     }
 }
 
-void CSubsurface::recheckDamageForSubsurfaces() {
+void CSubsurface::recheckDamageForSubsurfaces(int depth) {
+    if (depth > 32)
+        return;
+
     for (auto const& n : m_children) {
         const auto COORDS = n->coordsGlobal();
-        g_pHyprRenderer->damageSurface(n->wlSurface()->resource(), COORDS.x, COORDS.y);
+        const auto SIZE   = n->size();
+
+        const bool GEOMETRYUNCHANGED = n->m_hasLastRecheckGeometry && COORDS.x == n->m_lastRecheckGlobalPos.x && COORDS.y == n->m_lastRecheckGlobalPos.y &&
+            SIZE.x == n->m_lastRecheckGlobalSize.x && SIZE.y == n->m_lastRecheckGlobalSize.y;
+
+        if (!GEOMETRYUNCHANGED) {
+            // damage the old area to clear stale pixels
+            if (n->m_hasLastRecheckGeometry)
+                g_pHyprRenderer->damageBox(CBox{n->m_lastRecheckGlobalPos, n->m_lastRecheckGlobalSize}.expand(4));
+
+            n->m_lastRecheckGlobalPos   = COORDS;
+            n->m_lastRecheckGlobalSize  = SIZE;
+            n->m_hasLastRecheckGeometry = true;
+
+            // damage the new area
+            g_pHyprRenderer->damageBox(CBox{COORDS, SIZE}.expand(4));
+        }
+
+        // recurse into children to handle nested subsurface trees
+        n->recheckDamageForSubsurfaces(depth + 1);
     }
 }
 
@@ -194,8 +216,9 @@ void CSubsurface::onNewSubsurface(SP<CWLSubsurfaceResource> pSubsurface) {
 }
 
 void CSubsurface::onMap() {
-    m_lastSize     = m_wlSurface->resource()->m_current.size;
-    m_lastPosition = m_subsurface->m_position;
+    m_lastSize               = m_wlSurface->resource()->m_current.size;
+    m_lastPosition           = m_subsurface->m_position;
+    m_hasLastRecheckGeometry = false;
 
     const auto COORDS = coordsGlobal();
     CBox       box{COORDS, m_lastSize};
@@ -209,6 +232,8 @@ void CSubsurface::onMap() {
 void CSubsurface::onUnmap() {
     damageLastArea();
 
+    m_hasLastRecheckGeometry = false;
+    
     if (m_wlSurface->resource() == Desktop::focusState()->surface())
         g_pInputManager->releaseAllMouseButtons();
 

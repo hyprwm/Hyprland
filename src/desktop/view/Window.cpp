@@ -2672,3 +2672,7 @@ void CWindow::sendClose() {
     if (m_isMapped)
         g_pXWaylandManager->sendCloseWindow(m_self.lock());
 }
+
+bool CWindow::shouldRenderSnapshot() {
+    return m_fadingOut;
+}

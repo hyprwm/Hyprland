@@ -1356,10 +1356,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         return WORK_BUFFER_IMAGE_DESCRIPTION;
     }();
 
-    auto currentWindow = data.window ? data.window : g_pHyprRenderer->m_renderData.currentWindow;
+    auto       currentWindow = g_pHyprRenderer->m_renderData.currentWindow;
 
-    if (currentWindow && currentWindow->m_shaderProgress->isBeingAnimated())
-        shaderFeatures |= SH_FEAT_ANIMATION;
+    const bool IS_ANIMATED = data.animatedWindow && data.animatedWindow->m_shaderProgress->isBeingAnimated();
+    if (IS_ANIMATED)
+        shader = getExternalShader(data.animatedWindow->m_animationShaderFilename);
 
     if (data.blur && *PBLEND && data.blurredBG)
         shaderFeatures |= SH_FEAT_BLUR;
@@ -1413,7 +1414,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
 
     shader->setUniformFloat(SHADER_ALPHA, alpha);
 
-    if (shaderFeatures & SH_FEAT_ANIMATION) {
+    if (IS_ANIMATED) {
         shader->setUniformFloat(SHADER_ANIM_PROGRESS, currentWindow->m_shaderProgress->value());
         shader->setUniformFloat(SHADER_ANIM_SEED, currentWindow->m_shaderSeed);
         shader->setUniformInt(SHADER_ANIM_CLOSE, currentWindow->m_shaderProgress->goal() == 0.0f ? 1 : 0);
@@ -1993,7 +1994,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                               .currentLS                   = data.currentLS,
                               .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
                               .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
-                              .window                      = data.window,
                           }); // discard opaque and alpha < discardOpacity
 
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -2069,7 +2069,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
                               .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
                               .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
-                              .window                      = data.window,
+                              .animatedWindow              = data.animatedWindow,
                           });
 
     GLFB(g_pHyprRenderer->m_renderData.currentFB)->invalidate({GL_STENCIL_ATTACHMENT});
@@ -2542,6 +2542,23 @@ WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, Shad
 
     ASSERT(it->second);
     return it->second;
+}
+
+WP<CShader> CHyprOpenGLImpl::getExternalShader(const std::string& filename) {
+    if (!m_shaders->external.contains(filename)) {
+        auto shader = makeShared<CShader>();
+
+        Log::logger->log(Log::INFO, "compiling external shader {}", filename);
+
+        const auto fragSrc = g_pShaderLoader->process(filename);
+
+        if (!shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true))
+            Log::logger->log(Log::ERR, "failed compiling external shader {}", filename);
+
+        m_shaders->external[filename] = shader;
+        return shader;
+    }
+    return m_shaders->external[filename];
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

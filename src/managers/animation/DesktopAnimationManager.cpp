@@ -64,9 +64,10 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
             animationSlide(pWindow, animList2[1], CLOSE);
         } else if (STYLE == "gnomed" || STYLE == "gnome")
             animationGnomed(pWindow, CLOSE);
-        else if (STYLE == "shader")
-            animationShader(pWindow, CLOSE);
-        else {
+        else if (STYLE == "shader") {
+            CVarList animList2(STYLE, 0, 's');
+            animationShader(pWindow, animList2[1], CLOSE);
+        } else {
             // anim popin, fallback
 
             float minPerc = 0.f;
@@ -87,7 +88,7 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
         else if (animList[0] == "gnomed" || animList[0] == "gnome")
             animationGnomed(pWindow, CLOSE);
         else if (animList[0] == "shader")
-            animationShader(pWindow, CLOSE);
+            animationShader(pWindow, animList[1], CLOSE);
         else {
             // anim popin, fallback
 
@@ -468,14 +469,15 @@ void CDesktopAnimationManager::animationGnomed(PHLWINDOW pWindow, bool close) {
     }
 }
 
-void CDesktopAnimationManager::animationShader(PHLWINDOW pWindow, bool close) {
+void CDesktopAnimationManager::animationShader(PHLWINDOW pWindow, const std::string& filename, bool close) {
     pWindow->m_realSize->warp(false);
     pWindow->m_realPosition->warp(false);
 
     std::random_device                    rd;
     std::mt19937                          engine(rd());
     std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-    pWindow->m_shaderSeed = dist(engine);
+    pWindow->m_shaderSeed              = dist(engine);
+    pWindow->m_animationShaderFilename = filename;
 
     if (close) {
         pWindow->m_shaderProgress->setValueAndWarp(1.0);

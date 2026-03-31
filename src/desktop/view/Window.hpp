@@ -206,6 +206,7 @@ namespace Desktop::View {
 
         // Custom shader animation progress
         PHLANIMVAR<float> m_shaderProgress;
+        std::string       m_animationShaderFilename;
         float             m_shaderSeed = 0.12345f; // 0.0 - 1.0
 
         // Animated border
@@ -408,6 +409,7 @@ namespace Desktop::View {
         SP<Layout::ITarget>        layoutTarget();
         bool                       canBeGroupedInto(SP<CGroup> group);
         void                       sendClose();
+        bool                       shouldRenderSnapshot();
 
         CBox                       getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

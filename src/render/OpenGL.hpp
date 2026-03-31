@@ -89,6 +89,7 @@ namespace Render::GL {
         std::string                                                                         TEXVERTSRC;
         std::string                                                                         TEXVERTSRC320;
         std::array<std::map<Render::ShaderFeatureFlags, SP<CShader>>, Render::SH_FRAG_LAST> fragVariants;
+        std::map<std::string, SP<CShader>>                                                  external;
     };
 
     struct SCurrentRenderData {
@@ -184,7 +185,7 @@ namespace Render::GL {
             Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
             Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
 
-            PHLWINDOWREF           window;
+            PHLWINDOWREF           animatedWindow;
         };
 
         struct SBorderRenderData {
@@ -238,6 +239,7 @@ namespace Render::GL {
 
         bool                           explicitSyncSupported();
         WP<CShader>                    getShaderVariant(Render::ePreparedFragmentShader frag, Render::ShaderFeatureFlags features = 0);
+        WP<CShader>                    getExternalShader(const std::string& filename);
 
         bool                           m_shadersInitialized = false;
         SP<SPreparedShaders>           m_shaders;

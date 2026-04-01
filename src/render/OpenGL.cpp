@@ -1300,8 +1300,8 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             return tex->m_imageDescription;
 
         // if valid CM surface, use that as a source
-        if (g_pHyprRenderer->m_renderData.surface.valid() && g_pHyprRenderer->m_renderData.surface->m_colorManagement.valid())
-            return CImageDescription::from(g_pHyprRenderer->m_renderData.surface->m_colorManagement->imageDescription());
+        if (surface.valid() && surface->m_colorManagement.valid())
+            return CImageDescription::from(surface->m_colorManagement->imageDescription());
 
         if (data.cmBackToSRGB)
             return g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription;
@@ -1337,8 +1337,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     if (data.discardActive)
         shaderFeatures |= SH_FEAT_DISCARD;
 
-    const bool CANT_CHECK_CM_EQUALITY =
-        data.cmBackToSRGB || data.finalMonitorCM || (!g_pHyprRenderer->m_renderData.surface || !g_pHyprRenderer->m_renderData.surface->m_colorManagement);
+    const bool CANT_CHECK_CM_EQUALITY = data.finalMonitorCM || !surface || !surface->m_colorManagement;
 
     const bool skipCM = !*PENABLECM || !m_cmSupported                                                    /* CM unsupported or disabled */
         || g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM()                                      /* no shader needed */
@@ -1353,9 +1352,9 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shaderFeatures |= SH_FEAT_ROUNDING;
 
     if (!skipCM) {
-        const auto settings = g_pHyprRenderer->getCMSettings(SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION,
-                                                             g_pHyprRenderer->m_renderData.surface.valid() ? g_pHyprRenderer->m_renderData.surface.lock() : nullptr, true,
-                                                             g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+        const auto settings =
+            g_pHyprRenderer->getCMSettings(SOURCE_IMAGE_DESCRIPTION, TARGET_IMAGE_DESCRIPTION, surface.valid() ? surface.lock() : nullptr, true,
+                                           g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, true);
 
         shaderFeatures |= SH_FEAT_CM;
 

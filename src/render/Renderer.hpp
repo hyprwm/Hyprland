@@ -190,7 +190,8 @@ namespace Render {
         void                            preBlurForCurrentMonitor(CRegion* fakeDamage);
 
         SCMSettings                     getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
+                                                      bool shouldUseSurface = false);
         void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 

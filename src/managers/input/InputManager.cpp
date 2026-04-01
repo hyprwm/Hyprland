@@ -1120,11 +1120,6 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
 
     const auto ENABLED    = HASCONFIG ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
     const auto ALLOWBINDS = HASCONFIG ? Config::mgr()->getDeviceInt(devname, "keybinds") : true;
-    const auto DEVICETAGS = HASCONFIG ? Config::mgr()->getDeviceString(devname, "tags") : "";
-
-    for (const auto tagString : std::ranges::views::split(DEVICETAGS, ',')) {
-        pKeyboard->m_deviceTags.emplace(std::string_view(tagString));
-    }
 
     pKeyboard->m_enabled           = ENABLED;
     pKeyboard->m_resolveBindsBySym = RESOLVEBINDSBYSYM;
@@ -1251,11 +1246,6 @@ void CInputManager::setPointerConfigs() {
             } else if (!ENABLED && m->m_connected) {
                 g_pPointerManager->detachPointer(m);
                 m->m_connected = false;
-            }
-
-            const auto DEVICETAGS = Config::mgr()->getDeviceString(devname, "tags");
-            for (const auto tagString : std::ranges::views::split(DEVICETAGS, ',')) {
-                m->m_deviceTags.emplace(std::string_view(tagString));
             }
         }
 

@@ -916,7 +916,6 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.blockBlurOptimization            = pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM || pLayer->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND;
 
     renderdata.clipBox = CBox{0, 0, pMonitor->m_size.x, pMonitor->m_size.y}.scale(pMonitor->m_scale);
-
     if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
         renderdata.discardMode |= DISCARD_ALPHA;
         renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
@@ -944,7 +943,13 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
     renderdata.dontRound       = true;
     renderdata.popup           = true;
     renderdata.blur            = pLayer->m_ruleApplicator->blurPopups().valueOrDefault();
-    renderdata.surfaceCounter  = 0;
+    renderdata.discardMode &= ~DISCARD_ALPHA;
+    renderdata.discardOpacity = 0.F;
+    if (renderdata.blur && pLayer->m_ruleApplicator->ignoreAlpha().hasValue()) {
+        renderdata.discardMode |= DISCARD_ALPHA;
+        renderdata.discardOpacity = pLayer->m_ruleApplicator->ignoreAlpha().valueOrDefault();
+    }
+    renderdata.surfaceCounter = 0;
     if (popups) {
         pLayer->m_popupHead->breadthfirst(
             [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
@@ -3157,8 +3162,12 @@ void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     data.blur                  = SHOULD_BLUR;
     data.blurA                 = sqrt(popup->m_alpha->value()); // sqrt makes the blur fadeout more realistic.
     data.blockBlurOptimization = SHOULD_BLUR;                   // force no xray on this (popups never have xray)
-    if (SHOULD_BLUR)
-        data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
+    if (SHOULD_BLUR) {
+        if (const auto PLAYER = popup->layerOwner(); PLAYER && PLAYER->m_ruleApplicator->ignoreAlpha().hasValue())
+            data.ignoreAlpha = std::max(PLAYER->m_ruleApplicator->ignoreAlpha().valueOrDefault(), 0.01F);
+        else
+            data.ignoreAlpha = std::max(*PBLURIGNOREA, 0.01F); /* ignore the alpha 0 regions */
+    }
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

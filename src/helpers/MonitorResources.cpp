@@ -23,6 +23,19 @@ void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
     fb->setImageDescription(m_imageDescription);
 }
 
+void CMonitorResources::setImageDescription(NColorManagement::PImageDescription imageDescription) {
+    if (m_imageDescription == imageDescription)
+        return;
+    m_imageDescription = imageDescription;
+    m_blurFB->setImageDescription(imageDescription);
+    for (const auto& res : m_workBuffers)
+        res.buffer->setImageDescription(imageDescription);
+    if (m_monitorMirrorFB)
+        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
+    if (m_mirrorTex)
+        m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
+}
+
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
     std::erase_if(m_workBuffers, [](const auto& res) { return res.lastUsed.getSeconds() >= MAX_UNUSED_SECONDS; });
 
@@ -75,18 +88,22 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
     return hasMirrorFB() ? mirrorFB()->getTexture() : nullptr;
 }
 
-void CMonitorResources::enableMirror() {
-    if (m_mirrorTex)
-        return;
-    m_mirrorTex = g_pHyprRenderer->createTexture();
-    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
-    m_mirrorTex->m_imageDescription = CImageDescription::from(SImageDescription{
+NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
+    return CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
         .primariesNameSet = m_imageDescription->value().primariesNameSet,
         .primariesNamed   = m_imageDescription->value().primariesNamed,
         .primaries        = m_imageDescription->value().primaries,
         .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
     });
+}
+
+void CMonitorResources::enableMirror() {
+    if (m_mirrorTex)
+        return;
+    m_mirrorTex = g_pHyprRenderer->createTexture();
+    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
+    m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
 }
 
 void CMonitorResources::disableMirror() {

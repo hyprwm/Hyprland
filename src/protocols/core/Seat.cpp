@@ -137,10 +137,10 @@ CWLPointerResource::CWLPointerResource(SP<CWlPointer> resource_, SP<CWLSeatResou
         g_pSeatManager->onSetCursor(m_owner.lock(), serial, surfResource, {hotX, hotY});
     });
 
-    auto surf = g_pSeatManager->m_state.pointerFocus.lock();
+    auto surface = g_pSeatManager->m_state.pointerFocus.lock();
 
-    if (surf && surf->client() == m_resource->client())
-        sendEnter(surf, {-1, -1});
+    if (surface && surface->client() == m_resource->client())
+        sendEnter(surface, {-1, -1});
 }
 
 CWLPointerResource::~CWLPointerResource() {

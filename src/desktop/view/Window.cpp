@@ -26,6 +26,7 @@
 #include "../../render/decorations/CHyprBorderDecoration.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationNodeOverride.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../managers/TokenManager.hpp"
@@ -876,7 +877,9 @@ bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
 }
 
 void CWindow::setAnimationsToMove() {
-    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+    const auto CFG = Config::windowAnimationConfigForNode(Config::animOverrideString(m_ruleApplicator->animationWindowsMove()), "windowsMove");
+    m_ruleApplicator->pinStandaloneAnimWindowsMove(CFG);
+    m_realPosition->setConfig(CFG);
     m_animatingIn = false;
 }
 

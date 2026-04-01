@@ -63,6 +63,41 @@ static bool testGetprop() {
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation"), "teststyle");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation -j"), R"({"animation": "teststyle"})");
 
+    // windowsIn
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsIn"), "(unset)");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsIn -j"), R"({"windowsIn": ""})");
+    getFromSocket("/dispatch setprop class:kitty windowsIn 1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsIn"), "1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsIn -j"), R"({"windowsIn": "1 8 default popin 80%"})");
+
+    // windowsOut
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsOut"), "(unset)");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsOut -j"), R"({"windowsOut": ""})");
+    getFromSocket("/dispatch setprop class:kitty windowsOut 1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsOut"), "1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsOut -j"), R"({"windowsOut": "1 8 default popin 80%"})");
+
+    // windowsMove
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsMove"), "(unset)");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsMove -j"), R"({"windowsMove": ""})");
+    getFromSocket("/dispatch setprop class:kitty windowsMove 1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsMove"), "1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty windowsMove -j"), R"({"windowsMove": "1 8 default popin 80%"})");
+
+    // fadeIn
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeIn"), "(unset)");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeIn -j"), R"({"fadeIn": ""})");
+    getFromSocket("/dispatch setprop class:kitty fadeIn 1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeIn"), "1 8 default popin 80%");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeIn -j"), R"({"fadeIn": "1 8 default popin 80%"})");
+
+    // fadeOut
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeOut"), "(unset)");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeOut -j"), R"({"fadeOut": ""})");
+    getFromSocket("/dispatch setprop class:kitty fadeOut 1 8 default");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeOut"), "1 8 default");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty fadeOut -j"), R"({"fadeOut": "1 8 default"})");
+
     // max_size
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size"), "inf inf");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size -j"), R"({"max_size": [null,null]})");

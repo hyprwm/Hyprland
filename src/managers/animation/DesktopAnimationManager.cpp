@@ -8,6 +8,7 @@
 #include "../../desktop/view/Group.hpp"
 #include "../../desktop/Workspace.hpp"
 
+#include "../../config/shared/animation/AnimationNodeOverride.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 
 #include "../../helpers/Monitor.hpp"
@@ -24,7 +25,15 @@ static void setVector2DAnimToMove(WP<Hyprutils::Animation::CBaseAnimatedVariable
         return;
 
     CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
-    animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+    const auto                   PW      = animvar->m_Context.pWindow.lock();
+
+    // Set the windowsrule windowsMove override config.
+    if (PW) {
+        const auto CFGMOVE = Config::windowAnimationConfigForNode(Config::animOverrideString(PW->m_ruleApplicator->animationWindowsMove()), "windowsMove");
+        PW->m_ruleApplicator->pinStandaloneAnimWindowsMove(CFGMOVE);
+        animvar->setConfig(CFGMOVE);
+    } else
+        animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
 
     if (animvar->m_Context.pWindow)
         animvar->m_Context.pWindow->m_animatingIn = false;
@@ -39,18 +48,26 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     const bool CLOSE = type == ANIMATION_TYPE_OUT;
 
     if (CLOSE) {
-        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
+        const auto WOUT = Config::windowAnimationConfigForNode(Config::animOverrideString(pWindow->m_ruleApplicator->animationWindowsOut()), "windowsOut");
+        const auto FOUT = Config::windowAnimationConfigForNode(Config::animOverrideString(pWindow->m_ruleApplicator->animationFadeOut()), "fadeOut");
+        pWindow->m_ruleApplicator->pinStandaloneAnimWindowsOut(WOUT);
+        pWindow->m_ruleApplicator->pinStandaloneAnimFadeOut(FOUT);
+        pWindow->m_realPosition->setConfig(WOUT);
+        pWindow->m_realSize->setConfig(WOUT);
+        pWindow->m_alpha->setConfig(FOUT);
 
         if (pWindow->m_alpha->enabled())
             *pWindow->m_alpha = 0.F;
     } else {
         pWindow->m_alpha->setValueAndWarp(0.F);
         *pWindow->m_alpha = 1.F;
-        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
+        const auto WIN    = Config::windowAnimationConfigForNode(Config::animOverrideString(pWindow->m_ruleApplicator->animationWindowsIn()), "windowsIn");
+        const auto FIN    = Config::windowAnimationConfigForNode(Config::animOverrideString(pWindow->m_ruleApplicator->animationFadeIn()), "fadeIn");
+        pWindow->m_ruleApplicator->pinStandaloneAnimWindowsIn(WIN);
+        pWindow->m_ruleApplicator->pinStandaloneAnimFadeIn(FIN);
+        pWindow->m_realPosition->setConfig(WIN);
+        pWindow->m_realSize->setConfig(WIN);
+        pWindow->m_alpha->setConfig(FIN);
     }
 
     std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();

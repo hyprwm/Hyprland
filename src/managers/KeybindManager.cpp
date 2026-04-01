@@ -1,5 +1,4 @@
 #include "../config/ConfigValue.hpp"
-#include "../config/legacy/ConfigManager.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -11,24 +10,18 @@
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/DataDevice.hpp"
-#include "../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "KeybindManager.hpp"
 #include "PointerManager.hpp"
 #include "Compositor.hpp"
-#include "TokenManager.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../config/ConfigManager.hpp"
-#include "../desktop/rule/windowRule/WindowRule.hpp"
-#include "../desktop/rule/Engine.hpp"
 #include "../desktop/view/Group.hpp"
 #include "../layout/LayoutManager.hpp"
-#include "../layout/target/WindowTarget.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
@@ -3059,6 +3052,16 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             parsePropTrivial(PWINDOW->m_ruleApplicator->scrollTouchpad(), VAL);
         else if (PROP == "animation")
             parsePropTrivial(PWINDOW->m_ruleApplicator->animationStyle(), VAL);
+        else if (PROP == "windowsIn")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationWindowsIn(), VAL);
+        else if (PROP == "windowsOut")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationWindowsOut(), VAL);
+        else if (PROP == "windowsMove")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationWindowsMove(), VAL);
+        else if (PROP == "fadeIn")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationFadeIn(), VAL);
+        else if (PROP == "fadeOut")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->animationFadeOut(), VAL);
         else
             return {.success = false, .error = "prop not found"};
 

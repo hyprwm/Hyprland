@@ -1,5 +1,6 @@
 #include "WorkspaceAlgoMatcher.hpp"
-
+#include <unordered_map>
+#include <string>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 
@@ -13,6 +14,8 @@
 #include "../algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 
 #include "../../Compositor.hpp"
+
+static const std::unordered_map<std::string, int> layoutIDs = {{"dwindle", 1}, {"master", 2}, {"scrolling", 3}, {"monocle", 4}, {"default", 5}, {"floating", 6}};
 
 using namespace Layout;
 using namespace Layout::Supplementary;
@@ -112,7 +115,7 @@ SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
-    // TODO: make this ID-based, string comparison is slow
+    // TODO: fully migrate layout selection to ID-based system (comparison optimized)
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (!ws)
             continue;
@@ -123,9 +126,18 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
             continue;
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
+        auto       itLayout      = layoutIDs.find(LAYOUT_TO_USE);
+        const int  layoutID      = (itLayout != layoutIDs.end()) ? itLayout->second : -1;
 
-        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
-            continue;
+        if (m_algoNames.contains(&typeid(*TILED_ALGO.get()))) {
+            const auto& currentName = m_algoNames.at(&typeid(*TILED_ALGO.get()));
+
+            auto        itCurrent = layoutIDs.find(currentName);
+            const int   currentID = (itCurrent != layoutIDs.end()) ? itCurrent->second : -1;
+
+            if (currentID == layoutID)
+                continue;
+        }
 
         // needs a switchup
         ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));

@@ -1,5 +1,6 @@
 #include "WorkspaceAlgoMatcher.hpp"
-
+#include <unordered_map>
+#include <string>
 #include "../../config/ConfigValue.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 
@@ -128,14 +129,15 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
         auto       itLayout      = layoutIDs.find(LAYOUT_TO_USE);
         const int  layoutID      = (itLayout != layoutIDs.end()) ? itLayout->second : -1;
 
-        if (!m_algoNames.contains(&typeid(*TILED_ALGO.get())))
-            continue;
+        if (m_algoNames.contains(&typeid(*TILED_ALGO.get()))) {
+            const auto& currentName = m_algoNames.at(&typeid(*TILED_ALGO.get()));
 
-        const auto& currentName = m_algoNames.at(&typeid(*TILED_ALGO.get()));
-        const int   currentID   = layoutIDs.contains(currentName) ? layoutIDs.at(currentName) : -1;
+            auto        itCurrent = layoutIDs.find(currentName);
+            const int   currentID = (itCurrent != layoutIDs.end()) ? itCurrent->second : -1;
 
-        if (currentID == layoutID)
-            continue;
+            if (currentID == layoutID)
+                continue;
+        }
 
         // needs a switchup
         ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));

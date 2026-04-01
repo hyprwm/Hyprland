@@ -14,6 +14,8 @@
 
 #include "../../Compositor.hpp"
 
+static const std::unordered_map<std::string, int> layoutIDs = {{"dwindle", 1}, {"master", 2}, {"scrolling", 3}, {"monocle", 4}, {"default", 5}, {"floating", 6}};
+
 using namespace Layout;
 using namespace Layout::Supplementary;
 
@@ -112,7 +114,7 @@ SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
-    // TODO: make this ID-based, string comparison is slow
+    // TODO: fully migrate layout selection to ID-based system (comparison optimized)
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (!ws)
             continue;
@@ -123,8 +125,16 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
             continue;
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
+        auto       itLayout      = layoutIDs.find(LAYOUT_TO_USE);
+        const int  layoutID      = (itLayout != layoutIDs.end()) ? itLayout->second : -1;
 
-        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
+        if (!m_algoNames.contains(&typeid(*TILED_ALGO.get())))
+            continue;
+
+        const auto& currentName = m_algoNames.at(&typeid(*TILED_ALGO.get()));
+        const int   currentID   = layoutIDs.contains(currentName) ? layoutIDs.at(currentName) : -1;
+
+        if (currentID == layoutID)
             continue;
 
         // needs a switchup

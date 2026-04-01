@@ -1515,7 +1515,7 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
 
     cairo_surface_flush(CAIROSURFACE);
 
-    auto tex = createTexture(cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE), cairo_image_surface_get_data(CAIROSURFACE));
+    auto tex = createTexture(CAIROSURFACE);
 
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);

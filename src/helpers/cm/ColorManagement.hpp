@@ -1,6 +1,7 @@
 #pragma once
 
 #include "color-management-v1.hpp"
+#include <format>
 #include <hyprgraphics/color/Color.hpp>
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/math/Math.hpp"
@@ -373,3 +374,12 @@ namespace NColorManagement {
         .luminances       = {.min = 0, .max = 10000, .reference = 80},
     });
 }
+
+template <typename CharT>
+struct std::formatter<Hyprgraphics::SPCPRimaries, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const Hyprgraphics::SPCPRimaries& primaries, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[r={},{} g={},{} b={},{} w={},{}]", primaries.red.x, primaries.red.y, primaries.green.x, primaries.green.y, primaries.blue.x,
+                              primaries.blue.y, primaries.white.x, primaries.white.y);
+    }
+};

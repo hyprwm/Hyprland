@@ -82,7 +82,7 @@ CGLTexture::CGLTexture(const Aquamarine::SDMABUFAttrs& attrs, void* image, bool 
     m_type   = NFormatUtils::isFormatOpaque(attrs.format) ? TEXTURE_RGBX : TEXTURE_RGBA;
     //}
 
-    allocate(attrs.size);
+    allocate(attrs.size, attrs.format);
     m_eglImage = image;
 
     bind();

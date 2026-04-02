@@ -1635,6 +1635,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "<b>{app}</b> программасы билгесез рөхсәт сорый.");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> программасы сезнең экранны яздырырга тели.\n\nРөхсәт бирәсезме?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "<b>{app}</b> программасы курсор позициясен күзәтергә тели.\n\nРөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> программасы плагин йөкләргә тели: <b>{plugin}</b>.\n\nРөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Яңа клавиатура табылды: <b>{keyboard}</b>.\n\nАның эшләргә рөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(билгесез)");
@@ -1661,6 +1662,18 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} плагинны йөкләүдә хата: {error}");
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM шейдерын яңадан йөкләү уңышсыз булды, rgba/rgbx режимына кайтыла.");
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: киң төсләр диапазоны кушылган, ләкин дисплей 10-бит режимында түгел.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland start-hyprland ярдәмендә эшләтелмәгән. Бу, төзәтү мохитеннән тыш, бик тәкъдим ителми.");
+
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_TITLE, "Куркынычсыз режим");
+    huEngine->registerEntry(
+        "tt_RU", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland куркынычсыз режимда эшләтелде, димәк сезнең соңгы сессия авария белән тәмамланган.\n"
+        "Куркынычсыз режим сезнең конфигурацияне йөкләүне тыя. Сез бу мохиттә проблемаларны тикшерә аласыз, яки түбәндәге төймә аша конфигурацияне йөкли аласыз.\n"
+        "Килешенгән төймә бәйләнешләре кулланыла: SUPER+Q kitty ачу, SUPER+R лаунчер ачу, SUPER+M чыгу.\n"
+        "Hyprland-ны яңадан эшләтү аны гадәти режимда ачачак.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Конфигурацияне йөкләү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Авария хисаплары папкасын ачу");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Аңлашылды, ябу");
 
     // uk_UA (Ukrainian)
     huEngine->registerEntry("uk_UA", TXT_KEY_ANR_TITLE, "Програма не відповідає");

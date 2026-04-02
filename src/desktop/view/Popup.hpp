@@ -32,6 +32,7 @@ namespace Desktop::View {
         virtual std::optional<CBox>   surfaceLogicalBox() const;
 
         SP<Desktop::View::CWLSurface> getT1Owner() const;
+        PHLLS                         layerOwner() const;
         Vector2D                      coordsRelativeToParent() const;
         Vector2D                      coordsGlobal() const;
         PHLMONITOR                    getMonitor() const;

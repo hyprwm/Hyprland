@@ -352,6 +352,10 @@ SP<Desktop::View::CWLSurface> CPopup::getT1Owner() const {
         return m_layerOwner->wlSurface();
 }
 
+PHLLS CPopup::layerOwner() const {
+    return m_layerOwner.lock();
+}
+
 Vector2D CPopup::coordsRelativeToParent() const {
     Vector2D offset;
 

@@ -1390,18 +1390,12 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             if (CURRENT_COL->targetDatas.size() < 2)
                 return std::unexpected("column has only one window");
 
-            const auto  lastTarget = CURRENT_COL->targetDatas.back();
-            const auto  currentIdx = m_scrollingData->idx(CURRENT_COL);
-            const auto  NEXT_COL   = m_scrollingData->next(CURRENT_COL);
-            const auto  insertIdx  = NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
-            const auto& targetCol  = NEXT_COL ? NEXT_COL : nullptr;
+            const auto lastTarget = CURRENT_COL->targetDatas.back();
+            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
+            const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
+            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
 
-            if (targetCol) {
-                CURRENT_COL->remove(lastTarget->target.lock());
-                targetCol->add(lastTarget);
-                m_scrollingData->centerOrFitCol(CURRENT_COL);
-            } else
-                expelTarget(lastTarget, CURRENT_COL, insertIdx);
+            expelTarget(lastTarget, CURRENT_COL, insertIdx);
         } else if (ARGS[0] == "consume") {
             const auto NEXT_COL = m_scrollingData->next(CURRENT_COL);
             if (!NEXT_COL)

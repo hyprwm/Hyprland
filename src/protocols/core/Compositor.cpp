@@ -782,7 +782,12 @@ void CWLCompositorProtocol::destroyResource(CWLRegionResource* resource) {
 }
 
 void CWLCompositorProtocol::forEachSurface(std::function<void(SP<CWLSurfaceResource>)> fn) {
-    for (auto& surf : m_surfaces) {
+    const auto surfaces = m_surfaces;
+
+    for (auto& surf : surfaces) {
+        if (!surf)
+            continue;
+
         fn(surf);
     }
 }

@@ -111,9 +111,9 @@ namespace Layout::Tiled {
 
         CBox                                     usableArea();
 
-        void                                     inhibitScrolling(Layout::Tiled::eInhibitScrollingReason reason);
-        void                                     uninhibitScrolling();
-        bool                                     isScrollingInhibited();
+        void                                     inhibitScroll(Layout::Tiled::eInhibitScrollingReason reason);
+        void                                     uninhibitScroll();
+        bool                                     isScrollInhibited();
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,

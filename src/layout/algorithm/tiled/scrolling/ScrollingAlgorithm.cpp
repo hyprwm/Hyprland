@@ -1484,13 +1484,13 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         // Toggle
         if (ARGS.size() == 1)
-            isScrollingInhibited() ? uninhibitScrolling() : inhibitScrolling(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
+            isScrollInhibited() ? uninhibitScroll() : inhibitScroll(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
         // Explicit Disable
         else if (ARGS[1] == "0" || ARGS[1] == "false")
-            uninhibitScrolling();
+            uninhibitScroll();
         // Explicit Enable
         else
-            inhibitScrolling(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
+            inhibitScroll(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
 
     } else
         return std::unexpected("no such layoutmsg for scrolling");
@@ -1605,7 +1605,7 @@ CBox CScrollingAlgorithm::usableArea() {
     return box;
 }
 
-void CScrollingAlgorithm::inhibitScrolling(Layout::Tiled::eInhibitScrollingReason reason) {
+void CScrollingAlgorithm::inhibitScroll(Layout::Tiled::eInhibitScrollingReason reason) {
 
     // Reason must be provided every time scrolling is to be inhibted.
     m_scrollingData->controller->getScrollInhibitor().reason              = reason;
@@ -1619,7 +1619,7 @@ void CScrollingAlgorithm::inhibitScrolling(Layout::Tiled::eInhibitScrollingReaso
         Log::logger->log(Log::DEBUG, "Scrolling inhibited as a result of reason code \"{}\"", static_cast<uint8_t>(reason));
 }
 
-void CScrollingAlgorithm::uninhibitScrolling() {
+void CScrollingAlgorithm::uninhibitScroll() {
     m_scrollingData->controller->getScrollInhibitor().isInhibited = false;
 
     eInhibitScrollingReason reason = m_scrollingData->controller->getScrollInhibitor().reason;
@@ -1629,7 +1629,7 @@ void CScrollingAlgorithm::uninhibitScrolling() {
         Log::logger->log(Log::DEBUG, "Scrolling uninhibited - the reason code for inhibition was \"{}\"", static_cast<uint8_t>(reason));
 }
 
-bool CScrollingAlgorithm::isScrollingInhibited() {
+bool CScrollingAlgorithm::isScrollInhibited() {
     return m_scrollingData->controller->getScrollInhibitor().isInhibited;
 }
 

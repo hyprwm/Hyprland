@@ -1475,8 +1475,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->centerOrFitCol(CURRENT_COL);
         m_scrollingData->recalculate();
-    }
-    else if (ARGS[0] == "inhibit_scroll") {
+    } else if (ARGS[0] == "inhibit_scroll") {
         // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
 
         if (ARGS.size() > 2)

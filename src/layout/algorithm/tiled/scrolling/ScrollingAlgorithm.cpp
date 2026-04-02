@@ -1475,6 +1475,23 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->centerOrFitCol(CURRENT_COL);
         m_scrollingData->recalculate();
+    }
+    else if (ARGS[0] == "inhibit_scroll") {
+        // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
+
+        if (ARGS.size() > 2)
+            return std::unexpected("too many args");
+
+        // Toggle
+        if (ARGS.size() == 1)
+            isScrollingInhibited() ? uninhibitScrolling() : inhibitScrolling(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
+        // Explicit Disable
+        else if (ARGS[1] == "0" || ARGS[1] == "false")
+            uninhibitScrolling();
+        // Explicit Enable
+        else
+            inhibitScrolling(eInhibitScrollingReason::INHIBIT_SCROLL_DISPATCH);
+
     } else
         return std::unexpected("no such layoutmsg for scrolling");
 
@@ -1586,6 +1603,34 @@ CBox CScrollingAlgorithm::usableArea() {
     box.h = std::max(box.h, 1.0);
 
     return box;
+}
+
+void CScrollingAlgorithm::inhibitScrolling(Layout::Tiled::eInhibitScrollingReason reason) {
+
+    // Reason must be provided every time scrolling is to be inhibted.
+    m_scrollingData->controller->getScrollInhibitor().reason              = reason;
+    m_scrollingData->controller->getScrollInhibitor().offsetWhenInhibited = m_scrollingData->controller->getOffset();
+    m_scrollingData->controller->getScrollInhibitor().isInhibited         = true;
+
+    if (reason == INHIBIT_SCROLL_DISPATCH)
+        Log::logger->log(Log::INFO, "Scrolling inhibited as a result of user dispatch");
+    // All other reasons are for internal use only
+    else
+        Log::logger->log(Log::DEBUG, "Scrolling inhibited as a result of reason code \"{}\"", static_cast<uint8_t>(reason));
+}
+
+void CScrollingAlgorithm::uninhibitScrolling() {
+    m_scrollingData->controller->getScrollInhibitor().isInhibited = false;
+
+    eInhibitScrollingReason reason = m_scrollingData->controller->getScrollInhibitor().reason;
+    if (reason == INHIBIT_SCROLL_DISPATCH)
+        Log::logger->log(Log::INFO, "Scrolling uninhibited");
+    else
+        Log::logger->log(Log::DEBUG, "Scrolling uninhibited - the reason code for inhibition was \"{}\"", static_cast<uint8_t>(reason));
+}
+
+bool CScrollingAlgorithm::isScrollingInhibited() {
+    return m_scrollingData->controller->getScrollInhibitor().isInhibited;
 }
 
 float CScrollingAlgorithm::defaultColumnWidth() {

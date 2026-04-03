@@ -1661,7 +1661,25 @@ void CMonitor::setCTM(const Mat3x3& ctm_) {
 }
 
 uint32_t CMonitor::isSolitaryBlocked(bool full) {
-    uint32_t reasons = 0;
+    uint32_t   reasons = 0;
+
+    const auto PWORKSPACE = m_activeWorkspace;
+    if (!PWORKSPACE) {
+        reasons |= SC_WORKSPACE;
+        return reasons;
+    }
+
+    if (!PWORKSPACE->m_hasFullscreenWindow) {
+        reasons |= SC_WINDOWED;
+        if (!full)
+            return reasons;
+    }
+
+    if (m_activeSpecialWorkspace) {
+        reasons |= SC_SPECIAL;
+        if (!full)
+            return reasons;
+    }
 
     if (g_pHyprNotificationOverlay->hasAny()) {
         reasons |= SC_NOTIFICATION;
@@ -1681,26 +1699,8 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PWORKSPACE = m_activeWorkspace;
-    if (!PWORKSPACE) {
-        reasons |= SC_WORKSPACE;
-        return reasons;
-    }
-
-    if (!PWORKSPACE->m_hasFullscreenWindow) {
-        reasons |= SC_WINDOWED;
-        if (!full)
-            return reasons;
-    }
-
     if (PROTO::data->dndActive()) {
         reasons |= SC_DND;
-        if (!full)
-            return reasons;
-    }
-
-    if (m_activeSpecialWorkspace) {
-        reasons |= SC_SPECIAL;
         if (!full)
             return reasons;
     }
@@ -1780,10 +1780,15 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
 
 void CMonitor::recheckSolitary() {
     m_solitaryClient.reset(); // reset it, if we find one it will be set.
+
+    const auto PWORKSPACE = m_activeWorkspace;
+    if (!PWORKSPACE)
+        return;
+
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = m_activeWorkspace->getFullscreenWindow();
+    m_solitaryClient = PWORKSPACE->getFullscreenWindow();
 }
 
 uint8_t CMonitor::isTearingBlocked(bool full) {
@@ -1847,6 +1852,15 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
     static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    const auto  PWORKSPACE     = m_activeWorkspace;
+
+    // Fast reject for the hot render path; full=true callers still collect
+    // the remaining blockers for hyprctl/debug output below.
+    if (!canAttemptDirectScanoutFast()) {
+        reasons |= DS_BLOCK_CANDIDATE;
+        if (!full)
+            return reasons;
+    }
 
     if (*PDIRECTSCANOUT == 0) {
         reasons |= DS_BLOCK_USER;
@@ -1855,11 +1869,11 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     }
 
     if (*PDIRECTSCANOUT == 2) {
-        if (!m_activeWorkspace || !m_activeWorkspace->m_hasFullscreenWindow || m_activeWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN) {
+        if (!PWORKSPACE || !PWORKSPACE->m_hasFullscreenWindow || PWORKSPACE->m_fullscreenMode != FSMODE_FULLSCREEN) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
-        } else if (m_activeWorkspace->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
+        } else if (PWORKSPACE->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
             reasons |= DS_BLOCK_CONTENT;
             if (!full)
                 return reasons;
@@ -1930,12 +1944,7 @@ bool CMonitor::attemptDirectScanout() {
 
     const auto PCANDIDATE = m_solitaryClient.lock();
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
-    const auto params     = PSURFACE->m_current.buffer->dmabuf();
-
-    Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
-                     rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
-
-    auto PBUFFER = PSURFACE->m_current.buffer.m_buffer;
+    auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
@@ -1962,6 +1971,11 @@ bool CMonitor::attemptDirectScanout() {
 
         return true;
     }
+
+    const auto params = PSURFACE->m_current.buffer->dmabuf();
+
+    Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
+                     rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
     // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
     // and comes from the appropriate device. This may implode on multi-gpu!!
@@ -1990,7 +2004,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
     // multigpu needs a fence to trigger fence syncing blits and also committing with the recreated dgpu fence
-    if (!DRM::sameGpu(m_output->getBackend()->preferredAllocator()->drmFD(), g_pCompositor->m_drm.fd) && g_pHyprRenderer->explicitSyncSupported()) {
+    if (g_pHyprRenderer->explicitSyncSupported() && isMultiGPU()) {
         auto sync = g_pHyprRenderer->createSyncFDManager();
 
         if (sync->fd().isValid()) {
@@ -2030,6 +2044,47 @@ bool CMonitor::attemptDirectScanout() {
     });
 
     return true;
+}
+
+bool CMonitor::canAttemptDirectScanoutFast() const {
+    return !m_solitaryClient.expired() || !m_lastScanout.expired() || m_directScanoutIsActive;
+}
+
+bool CMonitor::isMultiGPU() {
+    if (!m_output || !g_pCompositor)
+        return false;
+
+    const auto PREFERREDALLOCATOR = m_output->getBackend()->preferredAllocator();
+    const int  allocatorFD        = PREFERREDALLOCATOR ? PREFERREDALLOCATOR->drmFD() : -1;
+    const int  compositorFD       = g_pCompositor->m_drm.fd;
+
+    if (allocatorFD < 0 || compositorFD < 0) {
+        m_cachedAllocatorDRMDev.reset();
+        m_cachedCompositorDRMDev.reset();
+        m_cachedAllocatorDRMFD  = allocatorFD;
+        m_cachedCompositorDRMFD = compositorFD;
+        m_cachedSameGPU         = true;
+        return false;
+    }
+
+    const auto allocatorDev  = DRM::devIDFromFD(allocatorFD);
+    const auto compositorDev = DRM::devIDFromFD(compositorFD);
+
+    // AQ can reopen DRM nodes for refcounting, so raw fd numbers are not a stable cache key.
+    const bool useDeviceIDCache = allocatorDev.has_value() && compositorDev.has_value();
+    const bool cacheStale       = !m_cachedSameGPU ||
+        (useDeviceIDCache ? m_cachedAllocatorDRMDev != allocatorDev || m_cachedCompositorDRMDev != compositorDev :
+                            m_cachedAllocatorDRMFD != allocatorFD || m_cachedCompositorDRMFD != compositorFD);
+
+    if (cacheStale) {
+        m_cachedAllocatorDRMDev  = allocatorDev;
+        m_cachedCompositorDRMDev = compositorDev;
+        m_cachedAllocatorDRMFD   = allocatorFD;
+        m_cachedCompositorDRMFD  = compositorFD;
+        m_cachedSameGPU          = DRM::sameGpu(allocatorFD, compositorFD);
+    }
+
+    return !*m_cachedSameGPU;
 }
 
 bool CMonitor::shouldUseSoftwareCursors() {

@@ -1901,21 +1901,24 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         return;
 
     // tearing and DS first
-    bool shouldTear = pMonitor->updateTearing();
+    bool       shouldTear              = pMonitor->updateTearing();
+    const bool canAttemptDirectScanout = pMonitor->canAttemptDirectScanoutFast();
 
-    if (pMonitor->attemptDirectScanout()) {
-        pMonitor->m_directScanoutIsActive = true;
-        return;
-    } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
-        Log::logger->log(Log::DEBUG, "Left a direct scanout.");
-        pMonitor->m_lastScanout.reset();
-        pMonitor->m_directScanoutIsActive = false;
+    if (canAttemptDirectScanout) {
+        if (pMonitor->attemptDirectScanout()) {
+            pMonitor->m_directScanoutIsActive = true;
+            return;
+        } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
+            Log::logger->log(Log::DEBUG, "Left a direct scanout.");
+            pMonitor->m_lastScanout.reset();
+            pMonitor->m_directScanoutIsActive = false;
 
-        // reset DRM format, but only if needed since it might modeset
-        if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
-            pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
+            // reset DRM format, but only if needed since it might modeset
+            if (pMonitor->m_output->state->state().drmFormat != pMonitor->m_prevDrmFormat)
+                pMonitor->m_output->state->setFormat(pMonitor->m_prevDrmFormat);
 
-        pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
+            pMonitor->m_drmFormat = pMonitor->m_prevDrmFormat;
+        }
     }
 
     Event::bus()->m_events.render.pre.emit(pMonitor);

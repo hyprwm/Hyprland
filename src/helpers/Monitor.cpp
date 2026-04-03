@@ -949,7 +949,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     m_enabled10bit = set10bit;
 
-    m_supportsWideColor = RULE->m_supportsHDR;
+    m_supportsWideColor = RULE->m_supportsWideColor;
     m_supportsHDR       = RULE->m_supportsHDR;
 
     if (RULE->m_iccFile.empty()) {
@@ -1989,6 +1989,7 @@ bool CMonitor::attemptDirectScanout() {
     if (m_lastScanout.expired())
         m_prevDrmFormat = m_drmFormat;
 
+    const bool NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
     if (m_drmFormat != params.format) {
         m_output->state->setFormat(params.format);
         m_drmFormat = params.format;
@@ -1999,7 +2000,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    if (!m_state.test()) {
+    if (NEEDS_TEST && !m_state.test()) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
@@ -2344,10 +2345,12 @@ bool CMonitor::canNoShaderCM() {
     if (SRC_DESC.value() == m_imageDescription)
         return true; // no CM needed
 
-    const auto SRC_DESC_VALUE = SRC_DESC.value()->value();
+    const auto& SRC_DESC_VALUE = SRC_DESC.value()->value();
 
     if (m_imageDescription->value().icc.present)
         return false;
+
+    Log::logger->log(Log::TRACE, "CM: can no shder compares src={} to output={}", SRC_DESC_VALUE, m_imageDescription->value());
 
     // only primaries differ
     return (

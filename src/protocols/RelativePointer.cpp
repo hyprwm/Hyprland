@@ -22,8 +22,12 @@ wl_client* CRelativePointer::client() {
 }
 
 void CRelativePointer::sendRelativeMotion(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-    m_resource->sendRelativeMotion(time >> 32, time & 0xFFFFFFFF, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y), wl_fixed_from_double(deltaUnaccel.x),
-                                   wl_fixed_from_double(deltaUnaccel.y));
+    sendRelativeMotion(time >> 32, time & 0xFFFFFFFF, wl_fixed_from_double(delta.x), wl_fixed_from_double(delta.y), wl_fixed_from_double(deltaUnaccel.x),
+                       wl_fixed_from_double(deltaUnaccel.y));
+}
+
+void CRelativePointer::sendRelativeMotion(uint32_t timeHi, uint32_t timeLo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dxUnaccel, wl_fixed_t dyUnaccel) {
+    m_resource->sendRelativeMotion(timeHi, timeLo, dx, dy, dxUnaccel, dyUnaccel);
 }
 
 CRelativePointerProtocol::CRelativePointerProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -58,16 +62,21 @@ void CRelativePointerProtocol::onGetRelativePointer(CZwpRelativePointerManagerV1
 }
 
 void CRelativePointerProtocol::sendRelativeMotion(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel) {
-
     if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
 
-    const auto FOCUSED = g_pSeatManager->m_state.pointerFocusResource->client();
+    const auto FOCUSED   = g_pSeatManager->m_state.pointerFocusResource->client();
+    const auto TIMEHI    = sc<uint32_t>(time >> 32);
+    const auto TIMELO    = sc<uint32_t>(time & 0xFFFFFFFF);
+    const auto DX        = wl_fixed_from_double(delta.x);
+    const auto DY        = wl_fixed_from_double(delta.y);
+    const auto DXUNACCEL = wl_fixed_from_double(deltaUnaccel.x);
+    const auto DYUNACCEL = wl_fixed_from_double(deltaUnaccel.y);
 
     for (auto const& rp : m_relativePointers) {
         if (FOCUSED != rp->client())
             continue;
 
-        rp->sendRelativeMotion(time, delta, deltaUnaccel);
+        rp->sendRelativeMotion(TIMEHI, TIMELO, DX, DY, DXUNACCEL, DYUNACCEL);
     }
 }

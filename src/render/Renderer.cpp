@@ -1940,8 +1940,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     pMonitor->m_renderingActive = true;
 
-    // we need to cleanup fading out when rendering the appropriate context
-    g_pCompositor->cleanupFadingOut(pMonitor->m_id);
+    // Most frames have no fading-out windows or layers for this monitor.
+    if (!g_pCompositor->m_windowsFadingOut.empty() || !g_pCompositor->m_surfacesFadingOut.empty())
+        g_pCompositor->cleanupFadingOut(pMonitor->m_id);
 
     // TODO: this is getting called with extents being 0,0,0,0 should it be?
     // potentially can save on resources.
@@ -1957,10 +1958,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         zoomLock = true;
     }
 
-    if (pMonitor == g_pCompositor->getMonitorFromCursor())
+    m_renderData.mouseZoomFactor = 1.f;
+    if (ZOOMFACTOR != 1.f && pMonitor == g_pCompositor->getMonitorFromCursor())
         m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
-    else
-        m_renderData.mouseZoomFactor = 1.f;
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
         m_renderData.mouseZoomFactor    = 2.0 - pMonitor->m_zoomAnimProgress->value(); // 2x zoom -> 1x zoom
@@ -2537,10 +2537,14 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 
     damageBox.translate({x, y});
 
-    CRegion damageBoxForEach;
+    const auto EXTENTS = damageBox.getExtents();
+
+    CRegion    damageBoxForEach;
 
     for (auto const& m : g_pCompositor->m_monitors) {
         if (!m->m_output)
+            continue;
+        if (!EXTENTS.overlaps(m->logicalBox()))
             continue;
 
         damageBoxForEach.set(damageBox);

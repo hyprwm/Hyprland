@@ -1118,6 +1118,7 @@ void CMonitor::addDamage(const CBox& box) {
     if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        return;
     }
 
     if (m_damage.damage(box))
@@ -2419,7 +2420,7 @@ CMonitorState::CMonitorState(CMonitor* owner) : m_owner(owner) {
 }
 
 void CMonitorState::ensureBufferPresent() {
-    const auto STATE = m_owner->m_output->state->state();
+    const auto& STATE = m_owner->m_output->state->state();
     if (!STATE.enabled) {
         Log::logger->log(Log::TRACE, "CMonitorState::ensureBufferPresent: Ignoring, monitor is not enabled");
         return;
@@ -2459,13 +2460,18 @@ bool CMonitorState::test() {
 }
 
 bool CMonitorState::updateSwapchain() {
-    auto        options = m_owner->m_output->swapchain->currentOptions();
+    const auto& OPTIONS = m_owner->m_output->swapchain->currentOptions();
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
         Log::logger->log(Log::WARN, "updateSwapchain: No mode?");
         return true;
     }
+
+    if (OPTIONS.format == m_owner->m_drmFormat && OPTIONS.scanout && OPTIONS.length == 3 && OPTIONS.size == MODE->pixelSize)
+        return true;
+
+    auto options    = OPTIONS;
     options.format  = m_owner->m_drmFormat;
     options.scanout = true;
     options.length  = 3;

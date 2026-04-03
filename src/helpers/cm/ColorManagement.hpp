@@ -95,6 +95,7 @@ namespace NColorManagement {
             case CM_TRANSFER_FUNCTION_ST2084_PQ: return "TF:ST2084_PQ";
             case CM_TRANSFER_FUNCTION_ST428: return "TF:ST428";
             case CM_TRANSFER_FUNCTION_HLG: return "TF:HLG";
+            default: return "TF:ERROR";
         }
     }
 

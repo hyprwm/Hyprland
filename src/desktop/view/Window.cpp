@@ -1385,7 +1385,7 @@ Vector2D CWindow::realToReportPosition() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR       = m_monitor.lock();
-    const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
+    const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
     const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::waylandToXWaylandCoords(MONITORS, m_realPosition->goal(), *PXWLFORCESCALEZERO, preferredIndex);
@@ -1405,7 +1405,7 @@ Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR       = m_monitor.lock();
-    const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
+    const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
     const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::xwaylandToWaylandCoords(MONITORS, pos, *PXWLFORCESCALEZERO, preferredIndex);
@@ -2479,7 +2479,7 @@ void CWindow::unmanagedSetGeometry() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     const auto  PMONITOR       = m_monitor.lock();
-    const auto  MONITORS       = std::span<const PHLMONITOR>{g_pCompositor->m_monitors};
+    const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
     const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
     const auto  LOGICALPOS     = XWayland::xwaylandToWaylandCoords(MONITORS, m_xwaylandSurface->m_geometry.pos(), *PXWLFORCESCALEZERO, preferredIndex);
     const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;

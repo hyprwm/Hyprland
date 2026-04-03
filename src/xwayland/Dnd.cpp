@@ -151,7 +151,7 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    m_lastSurfaceCoords = XWayland::xwaylandToWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, XSURF->m_geometry.pos(), *PXWLFORCESCALEZERO);
+    m_lastSurfaceCoords = XWayland::xwaylandToWaylandCoords(g_pCompositor->m_monitors, XSURF->m_geometry.pos(), *PXWLFORCESCALEZERO);
 #endif
 }
 
@@ -186,8 +186,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
     xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
     static auto               PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-    const auto                XCOORDS            = XWayland::waylandToXWaylandCoords(std::span<const PHLMONITOR>{g_pCompositor->m_monitors}, m_lastSurfaceCoords + local,
-                                                                                      *PXWLFORCESCALEZERO);
+    const auto                XCOORDS            = XWayland::waylandToXWaylandCoords(g_pCompositor->m_monitors, m_lastSurfaceCoords + local, *PXWLFORCESCALEZERO);
     const uint32_t            coords  = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
 
     xcb_client_message_data_t data = {{0}};

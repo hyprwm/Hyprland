@@ -1337,12 +1337,13 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     if (data.discardActive)
         shaderFeatures |= SH_FEAT_DISCARD;
 
-    const bool CANT_CHECK_CM_EQUALITY = data.finalMonitorCM || !surface || !surface->m_colorManagement;
-
-    const bool skipCM = !*PENABLECM || !m_cmSupported                                                    /* CM unsupported or disabled */
-        || g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM()                                      /* no shader needed */
-        || (SOURCE_IMAGE_DESCRIPTION->id() == TARGET_IMAGE_DESCRIPTION->id() && !CANT_CHECK_CM_EQUALITY) /* Source and target have the same image description */
+    const bool skipCM = !*PENABLECM || !m_cmSupported                   /* CM unsupported or disabled */
+        || g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM()     /* no shader needed */
+        || !SOURCE_IMAGE_DESCRIPTION->needsCM(TARGET_IMAGE_DESCRIPTION) /* Source and target have matching image descriptions */
         ;
+
+    if (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB())
+        Log::logger->log(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
 
     if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow &&
         (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0 || g_pHyprRenderer->m_renderData.currentWindow->m_dimPercent->value() > 0))
@@ -1663,7 +1664,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         WP<CShader> shader;
 
         // From FB to sRGB
-        const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+        const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURPREPARE, SH_FEAT_CM));
             passCMUniforms(shader, g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription());
@@ -1783,7 +1784,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
         // From FB to sRGB
-        const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+        const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
         if (!skipCM) {
             shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM));
             passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription());
@@ -2067,7 +2068,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     WP<CShader> shader;
 
     const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+    const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
@@ -2152,7 +2153,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     WP<CShader> shader;
     const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool  skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+    const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
@@ -2230,7 +2231,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     blend(true);
 
     const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+    const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
     if (!skipCM)
         passCMUniforms(shader, getDefaultImageDescription());
@@ -2294,7 +2295,7 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     blend(true);
 
     const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || g_pHyprRenderer->workBufferImageDescription()->id() == getDefaultImageDescription()->id();
+    const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     auto       shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
     if (!skipCM)
         passCMUniforms(shader, getDefaultImageDescription());
@@ -2345,6 +2346,9 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
         return;
     }
     auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
+
+    Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(),
+                     g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription->value());
 
     blend(false);
 

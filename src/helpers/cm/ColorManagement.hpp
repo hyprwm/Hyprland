@@ -339,6 +339,7 @@ namespace NColorManagement {
         uint64_t                           id() const;
 
         WP<const CPrimaries>               getPrimaries() const;
+        bool                               needsCM(WP<const CImageDescription> target) const;
 
       private:
         CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId);

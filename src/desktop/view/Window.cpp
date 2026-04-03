@@ -2235,7 +2235,7 @@ void CWindow::unmapWindow() {
         PWORKSPACE->m_hasFullscreenWindow = false;
 
     if (m_group)
-        m_group->remove(m_self.lock());
+        m_group->remove(m_self.lock(), Math::DIRECTION_DEFAULT, CGroup::REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW);
 
     g_layoutManager->removeTarget(m_target);
 
@@ -2264,7 +2264,7 @@ void CWindow::unmapWindow() {
 
         if (candidate != Desktop::focusState()->window() && candidate) {
             if (candidate == nextInGroup)
-                Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
+                Desktop::focusState()->rawWindowFocus(candidate, FOCUS_REASON_UNMAP_GROUPED_WINDOW);
             else
                 Desktop::focusState()->fullWindowFocus(candidate, FOCUS_REASON_DESKTOP_STATE_CHANGE);
 

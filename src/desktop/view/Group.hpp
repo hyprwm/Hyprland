@@ -3,6 +3,7 @@
 #include "../DesktopTypes.hpp"
 #include "../../helpers/math/Direction.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace Layout {
@@ -15,10 +16,15 @@ namespace Desktop::View {
         static SP<CGroup> create(std::vector<PHLWINDOWREF>&& windows);
         ~CGroup();
 
+
+        enum eRemoveFromGroupReason :uint8_t {
+          REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW,
+        };
+
         bool                             has(PHLWINDOW w) const;
 
         void                             add(PHLWINDOW w);
-        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT);
+        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT, std::optional<eRemoveFromGroupReason> reason = std::nullopt);
         void                             moveCurrent(bool next);
         void                             setCurrent(size_t idx);
         void                             setCurrent(PHLWINDOW w);

@@ -90,7 +90,7 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
 
 NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
     return CImageDescription::from(SImageDescription{
-        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
         .primariesNameSet = m_imageDescription->value().primariesNameSet,
         .primariesNamed   = m_imageDescription->value().primariesNamed,
         .primaries        = m_imageDescription->value().primaries,

@@ -2510,7 +2510,8 @@ bool CMonitor::needsUnmodifiedCopy() {
     if (!HAS_MODS)
         return false;
 
-    if (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_HLG)
+    if ((!useFP16() && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB) ||
+        (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_HLG))
         return false;
 
     return *PKEEP == 2 ? true : needsACopyFB();

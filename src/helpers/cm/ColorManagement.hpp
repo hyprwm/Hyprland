@@ -7,6 +7,7 @@
 #include "../../helpers/math/Math.hpp"
 
 #include <filesystem>
+#include <string>
 #include <vector>
 #include <expected>
 
@@ -77,6 +78,23 @@ namespace NColorManagement {
         switch (tf) {
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4: return CM_TRANSFER_FUNCTION_SRGB;
             default: return sc<eTransferFunction>(tf);
+        }
+    }
+    inline std::string tfToString(eTransferFunction tf) {
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_BT1886: return "TF:BT1886";
+            case CM_TRANSFER_FUNCTION_GAMMA22: return "TF:GAMMA22";
+            case CM_TRANSFER_FUNCTION_GAMMA28: return "TF:GAMMA28";
+            case CM_TRANSFER_FUNCTION_ST240: return "TF:ST240";
+            case CM_TRANSFER_FUNCTION_EXT_LINEAR: return "TF:EXT_LINEAR";
+            case CM_TRANSFER_FUNCTION_LOG_100: return "TF:LOG_100";
+            case CM_TRANSFER_FUNCTION_LOG_316: return "TF:LOG_316";
+            case CM_TRANSFER_FUNCTION_XVYCC: return "TF:XVYCC";
+            case CM_TRANSFER_FUNCTION_SRGB: return "TF:SRGB";
+            case CM_TRANSFER_FUNCTION_EXT_SRGB: return "TF:EXT_SRGB";
+            case CM_TRANSFER_FUNCTION_ST2084_PQ: return "TF:ST2084_PQ";
+            case CM_TRANSFER_FUNCTION_ST428: return "TF:ST428";
+            case CM_TRANSFER_FUNCTION_HLG: return "TF:HLG";
         }
     }
 
@@ -381,5 +399,23 @@ struct std::formatter<Hyprgraphics::SPCPRimaries, CharT> : std::formatter<CharT>
     auto format(const Hyprgraphics::SPCPRimaries& primaries, FormatContext& ctx) const {
         return std::format_to(ctx.out(), "[r={},{} g={},{} b={},{} w={},{}]", primaries.red.x, primaries.red.y, primaries.green.x, primaries.green.y, primaries.blue.x,
                               primaries.blue.y, primaries.white.x, primaries.white.y);
+    }
+};
+
+template <typename CharT>
+struct std::formatter<NColorManagement::SImageDescription::SPCLuminances, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const NColorManagement::SImageDescription::SPCLuminances& luminances, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[{}-{}({})]", luminances.min, luminances.max, luminances.reference);
+    }
+};
+
+template <typename CharT>
+struct std::formatter<NColorManagement::SImageDescription, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const NColorManagement::SImageDescription& imageDescription, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[{}{}, primaries={}, luminances={}]", NColorManagement::tfToString(imageDescription.transferFunction),
+                              imageDescription.transferFunctionPower != 1.0f ? std::format("^{}", imageDescription.transferFunctionPower) : "", imageDescription.getPrimaries(),
+                              imageDescription.luminances);
     }
 };

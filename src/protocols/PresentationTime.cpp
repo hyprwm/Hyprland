@@ -146,3 +146,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& whe
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
     m_queue.emplace_back(std::move(data));
 }
+
+bool CPresentationProtocol::hasPendingFeedbacks() const {
+    return !m_feedbacks.empty();
+}

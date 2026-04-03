@@ -358,13 +358,21 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
     // first, gather all nodes below
     for (auto const& n : nodes) {
         std::erase_if(n->m_subsurfaces, [](const auto& e) { return e.expired(); });
+
         // subsurfaces is sorted lowest -> highest
-        for (auto const& c : n->m_subsurfaces) {
-            if (c->m_zIndex >= 0)
-                break;
-            if (c->m_surface.expired())
+        for (auto const& subsurfaceRef : n->m_subsurfaces) {
+            const auto subsurface = subsurfaceRef.lock();
+            if (!subsurface)
                 continue;
-            nodes2.emplace_back(c->m_surface.lock());
+
+            if (subsurface->m_zIndex >= 0)
+                break;
+
+            const auto surface = subsurface->m_surface.lock();
+            if (!surface)
+                continue;
+
+            nodes2.emplace_back(surface);
         }
     }
 
@@ -377,19 +385,29 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
         Vector2D offset = {};
         if (n->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
             auto subsurface = sc<CSubsurfaceRole*>(n->m_role.get())->m_subsurface.lock();
-            offset          = subsurface->posRelativeToParent();
+            if (subsurface)
+                offset = subsurface->posRelativeToParent();
         }
 
         fn(n, offset, data);
     }
 
     for (auto const& n : nodes) {
-        for (auto const& c : n->m_subsurfaces) {
-            if (c->m_zIndex < 0)
+        std::erase_if(n->m_subsurfaces, [](const auto& e) { return e.expired(); });
+
+        for (auto const& subsurfaceRef : n->m_subsurfaces) {
+            const auto subsurface = subsurfaceRef.lock();
+            if (!subsurface)
                 continue;
-            if (c->m_surface.expired())
+
+            if (subsurface->m_zIndex < 0)
                 continue;
-            nodes2.emplace_back(c->m_surface.lock());
+
+            const auto surface = subsurface->m_surface.lock();
+            if (!surface)
+                continue;
+
+            nodes2.emplace_back(surface);
         }
     }
 
@@ -406,10 +424,19 @@ void CWLSurfaceResource::breadthfirst(std::function<void(SP<CWLSurfaceResource>,
 SP<CWLSurfaceResource> CWLSurfaceResource::findFirstPreorderHelper(SP<CWLSurfaceResource> root, std::function<bool(SP<CWLSurfaceResource>)> fn) {
     if (fn(root))
         return root;
-    for (auto const& sub : root->m_subsurfaces) {
-        if (sub.expired() || sub->m_surface.expired())
+
+    std::erase_if(root->m_subsurfaces, [](const auto& e) { return e.expired(); });
+
+    for (auto const& subsurfaceRef : root->m_subsurfaces) {
+        const auto subsurface = subsurfaceRef.lock();
+        if (!subsurface)
             continue;
-        const auto found = findFirstPreorderHelper(sub->m_surface.lock(), fn);
+
+        const auto surface = subsurface->m_surface.lock();
+        if (!surface)
+            continue;
+
+        const auto found = findFirstPreorderHelper(surface, fn);
         if (found)
             return found;
     }
@@ -598,6 +625,7 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
 }
 
 void CWLSurfaceResource::sortSubsurfaces() {
+    std::erase_if(m_subsurfaces, [](const auto& subsurface) { return !subsurface; });
     std::ranges::sort(m_subsurfaces, [](const auto& a, const auto& b) { return a->m_zIndex < b->m_zIndex; });
 
     // find the first non-negative index. We will preserve negativity: e.g. -2, -1, 1, 2
@@ -698,6 +726,10 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
+
+    if (!PROTO::presentation->hasPendingFeedbacks())
+        return;
+
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
     FEEDBACK->attachMonitor(pMonitor);
     if (discarded)

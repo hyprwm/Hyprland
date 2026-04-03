@@ -91,18 +91,29 @@ CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWL
 }
 
 CWLSubsurfaceResource::~CWLSubsurfaceResource() {
+    unlinkFromParent();
     m_events.destroy.emit();
     if (m_surface)
         m_surface->resetRole();
 }
 
 void CWLSubsurfaceResource::destroy() {
+    unlinkFromParent();
+
     if (m_surface && m_surface->m_mapped) {
         m_surface->m_events.unmap.emit();
         m_surface->unmap();
     }
     m_events.destroy.emit();
     PROTO::subcompositor->destroyResource(this);
+}
+
+void CWLSubsurfaceResource::unlinkFromParent() {
+    const auto PARENT = m_parent.lock();
+    if (!PARENT)
+        return;
+
+    std::erase_if(PARENT->m_subsurfaces, [this](const auto& subsurface) { return !subsurface || subsurface.get() == this; });
 }
 
 Vector2D CWLSubsurfaceResource::posRelativeToParent() {

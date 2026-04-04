@@ -188,6 +188,10 @@ namespace Desktop::View {
         PHLANIMVAR<float>          m_borderFadeAnimationProgress;
         PHLANIMVAR<float>          m_borderAngleAnimationProgress;
 
+        // Cached border size (invalidated by updateWindowData)
+        mutable int  m_cachedBorderSize     = -1;
+        mutable bool m_borderSizeCacheDirty = true;
+
         // Fade in-out
         PHLANIMVAR<float> m_alpha;
         bool              m_fadingOut     = false;

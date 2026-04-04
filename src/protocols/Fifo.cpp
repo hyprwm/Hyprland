@@ -76,34 +76,51 @@ void CFifoResource::presented() {
 }
 
 bool CFifoResource::checkMonitors(bool needsSchedule) {
+    if (!m_surface)
+        return false;
+
+    bool eligibleMonitor = false;
+
     if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
+        const auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
+        if (!box)
+            return false;
+
         for (auto& m : g_pCompositor->m_monitors) {
             if (!m || !m->m_enabled)
                 continue;
 
-            auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
-            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
-                if (m->m_tearingState.activelyTearing)
-                    return false; // dont fifo lock on tearing.
+            if (box->intersection({m->m_position, m->m_size}).empty())
+                continue;
 
-                if (needsSchedule)
-                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-            }
+            if (m->m_tearingState.activelyTearing)
+                return false; // dont fifo lock on tearing.
+
+            eligibleMonitor = true;
+
+            if (needsSchedule)
+                g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
         }
     } else {
         for (auto& m : m_surface->m_enteredOutputs) {
             if (!m)
                 continue;
 
-            if (m->m_tearingState.activelyTearing)
+            const auto PMONITOR = m.lock();
+            if (!PMONITOR || !PMONITOR->m_enabled)
+                continue;
+
+            if (PMONITOR->m_tearingState.activelyTearing)
                 return false; // dont fifo lock on tearing.
 
+            eligibleMonitor = true;
+
             if (needsSchedule)
-                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
         }
     }
 
-    return true;
+    return eligibleMonitor;
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {

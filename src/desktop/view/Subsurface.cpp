@@ -233,7 +233,7 @@ void CSubsurface::onUnmap() {
     damageLastArea();
 
     m_hasLastRecheckGeometry = false;
-    
+
     if (m_wlSurface->resource() == Desktop::focusState()->surface())
         g_pInputManager->releaseAllMouseButtons();
 

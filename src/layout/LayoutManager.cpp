@@ -339,6 +339,8 @@ void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculate
             m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE);
         else if (reason == RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD)
             m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_HYPRCTL_KEYWORD);
+        else if (reason == RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN)
+            m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_TOGGLE_FULLSCREEN);
         else
             m->m_activeSpecialWorkspace->m_space->recalculate();
         return;
@@ -349,6 +351,8 @@ void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculate
             m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_WORKSPACE_CHANGE);
         else if (reason == RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD)
             m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_HYPRCTL_KEYWORD);
+        else if (reason == RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN)
+            m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_TOGGLE_FULLSCREEN);
         else
             m->m_activeWorkspace->m_space->recalculate();
         return;

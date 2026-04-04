@@ -2578,9 +2578,6 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         }
     }
 
-    for (auto const& wd : pWindow->m_windowDecorations)
-        wd->damageEntire();
-
     static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
 
     if (*PLOGDAMAGE)

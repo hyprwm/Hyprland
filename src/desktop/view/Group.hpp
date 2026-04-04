@@ -3,7 +3,6 @@
 #include "../DesktopTypes.hpp"
 #include "../../helpers/math/Direction.hpp"
 
-#include <optional>
 #include <vector>
 
 namespace Layout {

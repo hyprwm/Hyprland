@@ -5,7 +5,7 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "../LayoutManager.hpp"
-#include "layout/space/Space.hpp"
+#include "../space/Space.hpp"
 
 #include <expected>
 

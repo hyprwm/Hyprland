@@ -173,10 +173,11 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             }
         }
     } else if (in.starts_with("prev")) {
-        if (!Desktop::focusState()->monitor())
+        auto monitor = Desktop::focusState()->monitor();
+        if (!monitor)
             return {WORKSPACE_INVALID};
 
-        const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
+        const auto PWORKSPACE = monitor->m_activeWorkspace;
 
         if (!valid(PWORKSPACE))
             return {WORKSPACE_INVALID};

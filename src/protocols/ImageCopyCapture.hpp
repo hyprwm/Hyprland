@@ -98,12 +98,18 @@ class CImageCopyCaptureCursorSession {
         CHyprSignalListener constraintsChanged;
         CHyprSignalListener stopped;
         CHyprSignalListener commit;
+        CHyprSignalListener sourceInvalidated;
+        CHyprSignalListener sourceDestroyed;
+        CHyprSignalListener sourceMonitorChanged;
     } m_listeners;
 
+    PHLMONITOR sourceMonitor() const;
+    void       onSourceUnavailable();
     void sendCursorEvents();
+    void updateCommitListener();
 
     void createFrame(SP<CExtImageCopyCaptureFrameV1> resource);
-    void destroyCaptureSession();
+    void destroyCaptureSession(bool sendStopped = false);
     void sendConstraints();
 };
 

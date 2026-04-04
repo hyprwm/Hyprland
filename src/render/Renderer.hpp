@@ -191,6 +191,7 @@ namespace Render {
 
         SCMSettings                     getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                                       SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+        void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 
       protected:
@@ -216,11 +217,22 @@ namespace Render {
 
         SP<ITexture>         getBackground(PHLMONITOR pMonitor);
         virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
-        SP<ITexture>         m_lockDeadTexture;
-        SP<ITexture>         m_lockDead2Texture;
-        SP<ITexture>         m_lockTtyTextTexture;
-        bool                 m_monitorTransformEnabled = false; // do not modify directly
-        std::stack<bool>     m_monitorTransformStack;
+
+        struct SCMSettingsCacheEntry {
+            uint64_t    srcDescId = 0, dstDescId = 0;
+            void*       surfacePtr      = nullptr; // read-only!!
+            bool        modifySDR       = false;
+            float       sdrMinLuminance = -1.F;
+            int         sdrMaxLuminance = -1;
+            SCMSettings settings;
+        };
+        std::vector<SCMSettingsCacheEntry> m_cmSettingsCache;
+
+        SP<ITexture>                       m_lockDeadTexture;
+        SP<ITexture>                       m_lockDead2Texture;
+        SP<ITexture>                       m_lockTtyTextTexture;
+        bool                               m_monitorTransformEnabled = false; // do not modify directly
+        std::stack<bool>                   m_monitorTransformStack;
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

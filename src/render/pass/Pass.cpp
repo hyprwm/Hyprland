@@ -27,16 +27,13 @@ void CRenderPass::add(UP<IPassElement>&& el) {
     m_passElements.emplace_back(makeUnique<SPassElementData>(CRegion{}, std::move(el)));
 }
 
-void CRenderPass::simplify() {
+void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
     // TODO: use precompute blur for instances where there is nothing in between
 
-    // if there is live blur, we need to NOT occlude any area where it will be influenced
-    const auto WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
-
-    CRegion    newDamage = m_damage.copy().intersect(CBox{{}, pMonitor->m_transformedSize});
+    CRegion newDamage = m_damage.copy().intersect(CBox{{}, pMonitor->m_transformedSize});
     for (auto& el : m_passElements | std::views::reverse) {
 
         if (newDamage.empty() && !el->element->undiscardable()) {
@@ -73,26 +70,7 @@ void CRenderPass::simplify() {
 
             // if this intersects the liveBlur region, allow live blur to operate correctly.
             // do not occlude a border near it.
-            if (WILLBLUR) {
-                CRegion liveBlurRegion;
-                for (auto& el2 : m_passElements) {
-                    // if we reach self, no problem, we can break.
-                    // if the blur is above us, we don't care, it will work fine.
-                    if (el2 == el)
-                        break;
-
-                    if (!el2->element->needsLiveBlur())
-                        continue;
-
-                    const auto BB = el2->element->boundingBox();
-                    RASSERT(BB, "No bounding box for an element with live blur is illegal");
-
-                    liveBlurRegion.add(*BB);
-                }
-
-                // expand the region: this area needs to be proper to blur it right.
-                liveBlurRegion.scale(pMonitor->m_scale).expand(oneBlurRadius() * 2.F);
-
+            if (willBlur) {
                 if (auto infringement = opaque.copy().intersect(liveBlurRegion); !infringement.empty()) {
                     // eh, this is not the correct solution, but it will do...
                     // TODO: is this *easily* fixable?
@@ -107,7 +85,7 @@ void CRenderPass::simplify() {
 
     if (*PDEBUGPASS) {
         for (auto& el2 : m_passElements) {
-            if (!el2->element->needsLiveBlur())
+            if (!el2->element->needsLiveBlurCached)
                 continue;
 
             const auto BB = el2->element->boundingBox();
@@ -126,7 +104,26 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
 
-    const auto  WILLBLUR = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsLiveBlur(); });
+    // single pass: cache blur results and gather aggregate info
+    bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false;
+    CRegion blurRegion;
+    for (auto& el : m_passElements) {
+        el->element->needsLiveBlurCached       = el->element->needsLiveBlur();
+        el->element->needsPrecomputeBlurCached = el->element->needsPrecomputeBlur();
+
+        if (el->element->needsLiveBlurCached) {
+            willBlur      = true;
+            const auto BB = el->element->boundingBox();
+            RASSERT(BB, "No bounding box for an element with live blur is illegal");
+            blurRegion.add(*BB);
+        }
+
+        if (el->element->needsPrecomputeBlurCached)
+            willPrecomputeBlur = true;
+
+        if (el->element->disableSimplification())
+            willDisableSimplification = true;
+    }
 
     m_damage = *PDEBUGPASS ? CRegion{CBox{{}, {INT32_MAX, INT32_MAX}}} : damage_.copy();
     if (*PDEBUGPASS) {
@@ -149,20 +146,13 @@ CRegion CRenderPass::render(const CRegion& damage_) {
         m_debugData.lastWindowText    = g_pHyprRenderer->renderText("lastWindow", Colors::WHITE, 12);
     }
 
-    if (WILLBLUR && !*PDEBUGPASS) {
-        // combine blur regions into one that will be expanded
-        CRegion blurRegion;
-        for (auto& el : m_passElements) {
-            if (!el->element->needsLiveBlur())
-                continue;
-
-            const auto BB = el->element->boundingBox();
-            RASSERT(BB, "No bounding box for an element with live blur is illegal");
-
-            blurRegion.add(*BB);
-        }
-
+    // precompute the expanded live blur region for simplify() to use
+    CRegion liveBlurRegion;
+    if (willBlur && !*PDEBUGPASS) {
         blurRegion.scale(pMonitor->m_scale);
+
+        // save a copy for simplify's occlusion test before we mutate for damage expansion
+        liveBlurRegion = blurRegion.copy().expand(oneBlurRadius() * 2.F);
 
         blurRegion.intersect(m_damage).expand(oneBlurRadius());
 
@@ -177,15 +167,15 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     } else
         g_pHyprRenderer->m_renderData.finalDamage = m_damage;
 
-    if (g_pHyprRenderer->m_renderData.noSimplify || std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->disableSimplification(); })) {
+    if (g_pHyprRenderer->m_renderData.noSimplify || willDisableSimplification) {
         for (auto& el : m_passElements) {
             el->elementDamage = m_damage;
         }
     } else
-        simplify();
+        simplify(willBlur, liveBlurRegion);
 
     if (g_pHyprRenderer->m_renderData.pMonitor)
-        g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = std::ranges::any_of(m_passElements, [](const auto& el) { return el->element->needsPrecomputeBlur(); });
+        g_pHyprRenderer->m_renderData.pMonitor->m_blurFBShouldRender = willPrecomputeBlur;
 
     if (m_passElements.empty())
         return {};
@@ -301,7 +291,7 @@ void CRenderPass::renderDebugData() {
     auto        tick = [](const bool val) -> const char* { return val ? "✔" : "✖"; };
     for (const auto& el : m_passElements | std::views::reverse) {
         passStructure += std::format("{} {} (bb: {} op: {}, pb: {}, lb: {})\n", tick(!el->discard), el->element->passName(), yn(el->element->boundingBox().has_value()),
-                                     yn(!el->element->opaqueRegion().empty()), yn(el->element->needsPrecomputeBlur()), yn(el->element->needsLiveBlur()));
+                                     yn(!el->element->opaqueRegion().empty()), yn(el->element->needsPrecomputeBlurCached), yn(el->element->needsLiveBlurCached));
     }
 
     if (!passStructure.empty())

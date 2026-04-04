@@ -32,7 +32,7 @@ namespace Render {
 
         std::vector<UP<SPassElementData>> m_passElements;
 
-        void                              simplify();
+        void                              simplify(bool willBlur, const CRegion& liveBlurRegion);
         float                             oneBlurRadius();
         void                              renderDebugData();
 

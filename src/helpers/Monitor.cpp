@@ -1407,13 +1407,13 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                     pWindow = pWorkspace->getFirstWindow();
             }
 
-            Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
+            Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_WORKSPACE_CHANGE);
         }
 
         if (!noMouseMove)
             g_pInputManager->simulateMouseMovement();
 
-        g_layoutManager->recalculateMonitor(m_self.lock());
+        g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE);
 
         g_pEventManager->postEvent(SHyprIPCEvent{"workspace", pWorkspace->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"workspacev2", std::format("{},{}", pWorkspace->m_id, pWorkspace->m_name)});
@@ -1476,11 +1476,11 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         if (POLDSPECIAL)
             POLDSPECIAL->m_events.activeChanged.emit();
 
-        g_layoutManager->recalculateMonitor(m_self.lock());
+        g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
         if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
             if (const auto PLAST = m_activeWorkspace->getLastFocusedWindow(); PLAST)
-                Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
+                Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
             else
                 g_pInputManager->refocus();
         }
@@ -1505,7 +1505,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     const auto PMONITORWORKSPACEOWNER = pWorkspace->m_monitor.lock();
     if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
         PMWSOWNER->m_activeSpecialWorkspace.reset();
-        g_layoutManager->recalculateMonitor(PMWSOWNER);
+        g_layoutManager->recalculateMonitor(PMWSOWNER, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMWSOWNER);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
@@ -1570,11 +1570,11 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
     }
 
-    g_layoutManager->recalculateMonitor(m_self.lock());
+    g_layoutManager->recalculateMonitor(m_self.lock(), Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
 
     if (!(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
         if (const auto PLAST = pWorkspace->getLastFocusedWindow(); PLAST)
-            Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
+            Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_TOGGLE_SPECIAL_WORKSPACE);
         else
             g_pInputManager->refocus();
     }

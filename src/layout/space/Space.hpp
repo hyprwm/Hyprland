@@ -12,6 +12,13 @@
 #include <expected>
 
 namespace Layout {
+
+    enum eRecalculateReason : uint8_t {
+      RECALCULATE_REASON_WORKSPACE_CHANGE,
+      RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
+    };
+
+
     class ITarget;
     class CAlgorithm;
 
@@ -34,7 +41,7 @@ namespace Layout {
 
         void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        void                             recalculate();
+        void                             recalculate(std::optional<eRecalculateReason> reason = std::nullopt);
 
         void                             toggleTargetFloating(SP<ITarget> t);
 

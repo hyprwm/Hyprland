@@ -658,12 +658,21 @@ void CWindow::onMap() {
         false);
 
     m_realSize->setUpdateCallback([this](auto) {
-        if (m_isMapped)
-            m_events.resize.emit();
+        if (!m_isMapped)
+            return;
+
+        updateWindowDecos();
+
+        m_events.resize.emit();
     });
 
     m_realPosition->setUpdateCallback([this](auto) {
-        if (m_isMapped && m_monitor != m_prevMonitor) {
+        if (!m_isMapped)
+            return;
+
+        updateWindowDecos();
+
+        if (m_monitor != m_prevMonitor) {
             m_prevMonitor = m_monitor;
             m_events.monitorChanged.emit();
         }

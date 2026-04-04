@@ -358,21 +358,18 @@ SBoxExtents CDecorationPositioner::computeWindowDecorationExtents(PHLWINDOWREF p
 }
 
 SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
-    // inputOnly is rare (input handling), skip the cache for it
-    if (inputOnly)
-        return computeWindowDecorationExtents(pWindow, true);
-
     const auto WIT = std::ranges::find_if(m_windowDatas, [&](const auto& other) { return other.first.lock() == pWindow; });
     if (WIT == m_windowDatas.end())
-        return computeWindowDecorationExtents(pWindow, false);
+        return computeWindowDecorationExtents(pWindow, inputOnly);
 
     auto& wd = WIT->second;
     if (wd.needsDamageExtents) {
-        wd.decorationExtents  = computeWindowDecorationExtents(pWindow, false);
-        wd.needsDamageExtents = false;
+        wd.decorationExtents      = computeWindowDecorationExtents(pWindow, false);
+        wd.decorationInputExtents = computeWindowDecorationExtents(pWindow, true);
+        wd.needsDamageExtents     = false;
     }
 
-    return wd.decorationExtents;
+    return inputOnly ? wd.decorationInputExtents : wd.decorationExtents;
 }
 
 CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {

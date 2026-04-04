@@ -80,12 +80,13 @@ class CDecorationPositioner {
     };
 
     struct SWindowData {
-        Vector2D    lastWindowSize     = {};
-        SBoxExtents reserved           = {};
-        SBoxExtents extents            = {};
-        SBoxExtents decorationExtents  = {};
-        bool        needsRecalc        = false;
-        bool        needsDamageExtents = true;
+        Vector2D    lastWindowSize          = {};
+        SBoxExtents reserved                = {};
+        SBoxExtents extents                 = {};
+        SBoxExtents decorationExtents       = {};
+        SBoxExtents decorationInputExtents  = {};
+        bool        needsRecalc             = false;
+        bool        needsDamageExtents      = true;
     };
 
     std::map<PHLWINDOWREF, SWindowData>     m_windowDatas;

@@ -2458,7 +2458,10 @@ bool CHyprOpenGLImpl::explicitSyncSupported() {
 }
 
 WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, ShaderFeatureFlags features) {
-    if (!m_shaders->fragVariants[frag].contains(features)) {
+    auto& variants = m_shaders->fragVariants[frag];
+    auto  it       = variants.find(features);
+
+    if (it == variants.end()) {
         auto shader = makeShared<CShader>();
 
         Log::logger->log(Log::INFO, "compiling feature set {} for {}", features, FRAG_SHADERS[frag]);
@@ -2468,12 +2471,12 @@ WP<CShader> CHyprOpenGLImpl::getShaderVariant(ePreparedFragmentShader frag, Shad
         if (!shader->createProgram(m_shaders->TEXVERTSRC, fragSrc, true, true))
             Log::logger->log(Log::ERR, "shader features {} failed for {}", features, FRAG_SHADERS[frag]);
 
-        m_shaders->fragVariants[frag][features] = shader;
-        return shader;
+        it = variants.emplace(features, std::move(shader)).first;
+        return it->second;
     }
 
-    ASSERT(m_shaders->fragVariants[frag][features]);
-    return m_shaders->fragVariants[frag][features];
+    ASSERT(it->second);
+    return it->second;
 }
 
 std::vector<SDRMFormat> CHyprOpenGLImpl::getDRMFormats() {

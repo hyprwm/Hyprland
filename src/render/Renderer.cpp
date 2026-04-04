@@ -1612,6 +1612,7 @@ void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMode mode, SP<IHLBuffer> buffer, SP<IFramebuffer> fb, bool simple) {
     m_renderPass.clear();
+    clearCMSettingsCache();
     m_renderMode          = mode;
     m_renderData.pMonitor = pMonitor;
 
@@ -1765,8 +1766,22 @@ static bool isHDR2SDR(const NColorManagement::SImageDescription& imageDescriptio
          targetImageDescription.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22);
 }
 
+void IHyprRenderer::clearCMSettingsCache() {
+    m_cmSettingsCache.clear();
+}
+
 SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                          SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
+    const auto srcId = imageDescription->id();
+    const auto dstId = targetImageDescription->id();
+    void*      sPtr  = m_renderData.surface.get();
+
+    for (auto const& entry : m_cmSettingsCache) {
+        if (entry.srcDescId == srcId && entry.dstDescId == dstId && entry.surfacePtr == sPtr && entry.modifySDR == modifySDR && entry.sdrMinLuminance == sdrMinLuminance &&
+            entry.sdrMaxLuminance == sdrMaxLuminance)
+            return entry.settings;
+    }
+
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
 
@@ -1799,7 +1814,7 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
          (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
 
-    return {
+    auto result = SCMSettings{
         .sourceTF        = srcTF,
         .targetTF        = targetImageDescription->value().transferFunction,
         .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
@@ -1818,6 +1833,10 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .sdrSaturation           = needsSDRmod && m_renderData.pMonitor->m_sdrSaturation > 0 ? m_renderData.pMonitor->m_sdrSaturation : 1.0f,
         .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
     };
+
+    m_cmSettingsCache.push_back({srcId, dstId, sPtr, modifySDR, sdrMinLuminance, sdrMaxLuminance, result});
+
+    return result;
 }
 
 void IHyprRenderer::renderMirrored() {

@@ -101,9 +101,9 @@ size_t CAlgorithm::floatingTargets() const {
     return m_floatingTargets.size();
 }
 
-void CAlgorithm::recalculate() {
-    m_tiled->recalculate();
-    m_floating->recalculate();
+void CAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
+    m_tiled->recalculate(reason);
+    m_floating->recalculate(reason);
 
     const auto PWORKSPACE = m_space->workspace();
     if (!PWORKSPACE)

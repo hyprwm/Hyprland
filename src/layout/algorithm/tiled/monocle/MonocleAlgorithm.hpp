@@ -25,8 +25,8 @@ namespace Layout::Tiled {
         virtual void                    movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void                    removeTarget(SP<ITarget> target);
 
-        virtual void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        virtual void                    recalculate();
+        virtual void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        virtual void                             recalculate(std::optional<eRecalculateReason> reason = std::nullopt);
 
         virtual SP<ITarget>             getNextCandidate(SP<ITarget> old);
 

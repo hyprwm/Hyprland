@@ -16,9 +16,8 @@ namespace Desktop::View {
         static SP<CGroup> create(std::vector<PHLWINDOWREF>&& windows);
         ~CGroup();
 
-
-        enum eRemoveFromGroupReason :uint8_t {
-          REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW,
+        enum eRemoveFromGroupReason : uint8_t {
+            REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW,
         };
 
         bool                             has(PHLWINDOW w) const;

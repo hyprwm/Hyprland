@@ -202,6 +202,24 @@ SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
     return !m_algorithm ? nullptr : m_algorithm->getNextCandidate(old);
 }
 
+bool Layout::isHardRecalculateReason(eRecalculateReason reason) {
+    return reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_HYPRCTL_KEYWORD &&
+        reason != RECALCULATE_REASON_TOGGLE_FULLSCREEN && reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR;
+}
+
 const std::vector<WP<ITarget>>& CSpace::targets() const {
     return m_targets;
+}
+
+std::optional<eRecalculateReason> Layout::recalcMonitorReasontoRecalcReason(std::optional<CLayoutManager::eRecalculateMonitorReason> reason) {
+    if (!reason)
+        return std::nullopt;
+
+    switch (reason.value()) {
+        case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE: return RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE;
+        case CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE: return RECALCULATE_REASON_WORKSPACE_CHANGE;
+        case CLayoutManager::RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD: return RECALCULATE_REASON_HYPRCTL_KEYWORD;
+        case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN: return RECALCULATE_REASON_TOGGLE_FULLSCREEN;
+        default: return std::nullopt;
+    }
 }

@@ -808,10 +808,10 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
         const auto TARGETDATA = dataFor(TARGET);
 
         if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true)) {
-            // TODO: erstarr Maybe do smt about this mess
-            // RECALCULATE_REASON_WORKSPACE_CHANGE, RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE => guard against scrolling view move when switching workspaces when target is scrolling (special or not)
-            // RECALCULATE_REASON_HYPRCTL_KEYWORD => guard against `hyprctl keyword` commands moving scrolling view
-            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_HYPRCTL_KEYWORD && reason != RECALCULATE_REASON_TOGGLE_FULLSCREEN && reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR)
+
+            // guard against unwanted scrolling viewport moves
+            // (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view)
+            if (Layout::isHardRecalculateReason(reason.value()))
                 focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }
     }

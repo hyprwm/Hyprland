@@ -317,7 +317,9 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
-    // loop over the tiled windows that are fading out
+    // pre-filter renderable windows once for the tiled + floating passes
+    std::vector<PHLWINDOW> windows;
+    windows.reserve(g_pCompositor->m_windows.size());
     for (auto const& w : g_pCompositor->m_windows) {
         if (!shouldRenderWindow(w, pMonitor))
             continue;
@@ -325,7 +327,15 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         if (w->m_alpha->value() == 0.f)
             continue;
 
-        if (w->isFullscreen() || w->m_isFloating)
+        if (w->isFullscreen())
+            continue;
+
+        windows.emplace_back(w);
+    }
+
+    // tiled windows that are fading out
+    for (auto const& w : windows) {
+        if (w->m_isFloating)
             continue;
 
         if (pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
@@ -335,14 +345,8 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // and floating ones too
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!shouldRenderWindow(w, pMonitor))
-            continue;
-
-        if (w->m_alpha->value() == 0.f)
-            continue;
-
-        if (w->isFullscreen() || !w->m_isFloating)
+    for (auto const& w : windows) {
+        if (!w->m_isFloating)
             continue;
 
         if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())

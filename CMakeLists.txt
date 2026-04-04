@@ -301,7 +301,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
   endif()
 
-  add_compile_options(-fno-pie -fno-builtin)
+  add_compile_options(-fno-pie -fno-builtin -fno-omit-frame-pointer)
   add_link_options(-no-pie -fno-builtin)
   if(USE_GPROF)
     add_compile_options(-pg)

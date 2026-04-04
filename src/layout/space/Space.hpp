@@ -22,7 +22,7 @@ namespace Layout {
         RECALCULATE_REASON_RENDER_MOINTOR,
     };
 
-    std::optional<eRecalculateReason> recalcMonitorReasontoRecalcReason(std::optional<CLayoutManager::eRecalculateMonitorReason> reason);
+    std::optional<eRecalculateReason> recalcMonitorReasontoRecalcReason(CLayoutManager::eRecalculateMonitorReason reason);
 
     class ITarget;
     class CAlgorithm;

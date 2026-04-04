@@ -811,7 +811,7 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
 
             // guard against unwanted scrolling viewport moves
             // (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view)
-            if (Layout::isHardRecalculateReason(reason.value()))
+            if ( !reason.has_value() || Layout::isHardRecalculateReason(reason.value()))
                 focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }
     }

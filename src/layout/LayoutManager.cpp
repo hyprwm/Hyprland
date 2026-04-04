@@ -335,10 +335,10 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
 // TODO: erstarr - don't leave this like this. a function for mathcing recalculate_monitor reasons into recalculate reasons should be good. maybe an operator overload?
 void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculateMonitorReason> reason) {
     if (m->m_activeSpecialWorkspace)
-        m->m_activeSpecialWorkspace->m_space->recalculate(recalcMonitorReasontoRecalcReason(reason));
+        m->m_activeSpecialWorkspace->m_space->recalculate(reason.has_value() ? recalcMonitorReasontoRecalcReason(reason.value()) : std::nullopt);
 
     if (m->m_activeWorkspace)
-        m->m_activeWorkspace->m_space->recalculate(recalcMonitorReasontoRecalcReason(reason));
+        m->m_activeWorkspace->m_space->recalculate(reason.has_value() ? recalcMonitorReasontoRecalcReason(reason.value()) : std::nullopt);
 }
 
 void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {

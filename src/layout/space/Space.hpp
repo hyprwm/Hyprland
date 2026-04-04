@@ -16,6 +16,7 @@ namespace Layout {
     enum eRecalculateReason : uint8_t {
       RECALCULATE_REASON_WORKSPACE_CHANGE,
       RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
+      RECALCULATE_REASON_HYPRCTL_KEYWORD,
     };
 
 

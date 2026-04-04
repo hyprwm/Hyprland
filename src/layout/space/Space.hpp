@@ -14,14 +14,15 @@
 namespace Layout {
 
     enum eRecalculateReason : uint8_t {
-      RECALCULATE_REASON_WORKSPACE_CHANGE,
-      RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
-      RECALCULATE_REASON_HYPRCTL_KEYWORD,
-      RECALCULATE_REASON_TOGGLE_FULLSCREEN,
-      RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES,
-      RECALCULATE_REASON_RENDER_MOINTOR,
+        RECALCULATE_REASON_WORKSPACE_CHANGE,
+        RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
+        RECALCULATE_REASON_HYPRCTL_KEYWORD,
+        RECALCULATE_REASON_TOGGLE_FULLSCREEN,
+        RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES,
+        RECALCULATE_REASON_RENDER_MOINTOR,
     };
 
+    std::optional<eRecalculateReason> recalcMonitorReasontoRecalcReason(std::optional<CLayoutManager::eRecalculateMonitorReason> reason);
 
     class ITarget;
     class CAlgorithm;
@@ -79,4 +80,6 @@ namespace Layout {
         // for recalc
         CHyprSignalListener m_geomUpdateCallback;
     };
+
+    bool isHardRecalculateReason(eRecalculateReason reason);
 };

@@ -150,15 +150,12 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
 
     switch (av.m_Context.eDamagePolicy) {
         case AVARDAMAGE_ENTIRE: {
-            if (PWINDOW) {
-                PWINDOW->updateWindowDecos();
+            if (PWINDOW)
                 g_pHyprRenderer->damageWindow(PWINDOW);
-            } else if (PWORKSPACE) {
+            else if (PWORKSPACE) {
                 for (auto const& w : g_pCompositor->m_windows) {
                     if (!validMapped(w) || w->m_workspace != PWORKSPACE)
                         continue;
-
-                    w->updateWindowDecos();
 
                     // damage any workspace window that is on any monitor
                     if (!w->m_pinned)

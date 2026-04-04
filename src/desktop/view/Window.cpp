@@ -830,15 +830,25 @@ void CWindow::updateWindowData(const Config::CWorkspaceRule& workspaceRule) {
     m_ruleApplicator->rounding().matchOptional(workspaceRule.m_noRounding.value_or(false) ? std::optional<Hyprlang::INT>(0) : std::nullopt,
                                                Desktop::Types::PRIORITY_WORKSPACE_RULE);
     m_ruleApplicator->noShadow().matchOptional(workspaceRule.m_noShadow, Desktop::Types::PRIORITY_WORKSPACE_RULE);
+
+    m_borderSizeCacheDirty = true;
 }
 
 int CWindow::getRealBorderSize() const {
-    if ((m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_ruleApplicator->decorate().valueOrDefault())
+    if (!m_borderSizeCacheDirty)
+        return m_cachedBorderSize;
+
+    if ((m_workspace && isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) || !m_ruleApplicator->decorate().valueOrDefault()) {
+        m_cachedBorderSize     = 0;
+        m_borderSizeCacheDirty = false;
         return 0;
+    }
 
     static auto PBORDERSIZE = CConfigValue<Hyprlang::INT>("general:border_size");
 
-    return m_ruleApplicator->borderSize().valueOr(*PBORDERSIZE);
+    m_cachedBorderSize     = m_ruleApplicator->borderSize().valueOr(*PBORDERSIZE);
+    m_borderSizeCacheDirty = false;
+    return m_cachedBorderSize;
 }
 
 float CWindow::getScrollMouse() {
@@ -1533,6 +1543,8 @@ Vector2D CWindow::getReportedSize() {
 }
 
 void CWindow::updateDecorationValues() {
+    m_borderSizeCacheDirty = true;
+
     static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
     static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");
     static auto PNOGROUPACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border_active");

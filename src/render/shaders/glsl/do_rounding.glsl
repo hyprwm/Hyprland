@@ -1,1 +1,0 @@
-pixColor = rounding(pixColor);

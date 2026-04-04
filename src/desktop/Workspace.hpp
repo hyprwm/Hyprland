@@ -6,6 +6,10 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
 
+namespace Layout {
+    class CSpace;
+};
+
 enum eFullscreenMode : int8_t {
     FSMODE_NONE       = 0,
     FSMODE_MAXIMIZED  = 1 << 0,
@@ -20,7 +24,9 @@ class CWorkspace {
     CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special = false, bool isEmpty = true);
     ~CWorkspace();
 
-    WP<CWorkspace> m_self;
+    WP<CWorkspace>     m_self;
+
+    SP<Layout::CSpace> m_space;
 
     // Workspaces ID-based have IDs > 0
     // and workspaces name-based have IDs starting with -1337
@@ -34,9 +40,10 @@ class CWorkspace {
     wl_array        m_wlrCoordinateArr;
 
     // for animations
-    PHLANIMVAR<Vector2D> m_renderOffset;
-    PHLANIMVAR<float>    m_alpha;
-    bool                 m_forceRendering = false;
+    PHLANIMVAR<Vector2D>       m_renderOffset;
+    PHLANIMVAR<float>          m_alpha;
+    bool                       m_forceRendering = false;
+    std::optional<std::string> m_animationStyle;
 
     // allows damage to propagate.
     bool m_visible = false;
@@ -87,13 +94,13 @@ class CWorkspace {
     } m_events;
 
   private:
-    void                 init(PHLWORKSPACE self);
+    void                init(PHLWORKSPACE self);
 
-    SP<HOOK_CALLBACK_FN> m_focusedWindowHook;
-    bool                 m_inert = true;
+    CHyprSignalListener m_focusedWindowHook;
+    bool                m_inert = true;
 
-    SP<CWorkspace>       m_selfPersistent; // for persistent workspaces.
-    bool                 m_persistent = false;
+    SP<CWorkspace>      m_selfPersistent; // for persistent workspaces.
+    bool                m_persistent = false;
 };
 
 inline bool valid(const PHLWORKSPACE& ref) {

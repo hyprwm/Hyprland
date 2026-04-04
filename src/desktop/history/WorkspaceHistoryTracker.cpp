@@ -3,8 +3,8 @@
 #include "../../helpers/Monitor.hpp"
 #include "../Workspace.hpp"
 #include "../state/FocusState.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../event/EventBus.hpp"
 #include "../../config/ConfigValue.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -18,14 +18,9 @@ SP<CWorkspaceHistoryTracker> History::workspaceTracker() {
 }
 
 CWorkspaceHistoryTracker::CWorkspaceHistoryTracker() {
-    static auto P = g_pHookSystem->hookDynamic("workspace", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto workspace = std::any_cast<PHLWORKSPACE>(data);
-        track(workspace);
-    });
+    static auto P = Event::bus()->m_events.workspace.active.listen([this](PHLWORKSPACE workspace) { track(workspace); });
 
-    static auto P1 = g_pHookSystem->hookDynamic("focusedMon", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto mon = std::any_cast<PHLMONITOR>(data);
-
+    static auto P1 = Event::bus()->m_events.monitor.focused.listen([this](PHLMONITOR mon) {
         // This sucks ASS, but we have to do this because switching to a workspace on another mon will trigger a workspace event right afterwards and we don't
         // want to remember the workspace that was not visible there
         // TODO: do something about this
@@ -36,111 +31,92 @@ CWorkspaceHistoryTracker::CWorkspaceHistoryTracker() {
     });
 }
 
-CWorkspaceHistoryTracker::SWorkspacePreviousData& CWorkspaceHistoryTracker::dataFor(PHLWORKSPACE ws) {
-    for (auto& ref : m_datas) {
-        if (ref.workspace != ws)
-            continue;
-
-        return ref;
-    }
-
-    return m_datas.emplace_back(SWorkspacePreviousData{
-        .workspace = ws,
-    });
-}
-
-void CWorkspaceHistoryTracker::track(PHLWORKSPACE w) {
-    if (!w || !w->m_monitor || w == m_lastWorkspaceData.workspace)
+void CWorkspaceHistoryTracker::track(PHLWORKSPACE ws) {
+    if (!ws || !ws->m_monitor)
         return;
 
-    static auto                   PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
+    static auto PALLOWWORKSPACECYCLES = CConfigValue<Hyprlang::INT>("binds:allow_workspace_cycles");
 
-    auto&                         data = dataFor(w);
-
-    Hyprutils::Utils::CScopeGuard x([&] { setLastWorkspaceData(w); });
-
-    if (m_lastWorkspaceData.workspace == w && !*PALLOWWORKSPACECYCLES)
+    if (!m_history.empty() && m_history.front().workspace == ws && !*PALLOWWORKSPACECYCLES)
         return;
 
-    data.previous = m_lastWorkspaceData.workspace;
-    if (m_lastWorkspaceData.workspace) {
-        data.previousName = m_lastWorkspaceData.workspace->m_name;
-        data.previousID   = m_lastWorkspaceData.workspace->m_id;
-        data.previousMon  = m_lastWorkspaceData.workspace->m_monitor;
-    } else {
-        data.previousName = m_lastWorkspaceData.workspaceName;
-        data.previousID   = m_lastWorkspaceData.workspaceID;
-        data.previousMon  = m_lastWorkspaceData.monitor;
-    }
+    // Erase from timeline if it exists so we can move it to the very front
+    std::erase_if(m_history, [&](const auto& entry) { return entry.workspace == ws; });
+
+    // Push the newly focused workspace to the top of our MRU list
+    m_history.push_front(SHistoryEntry{.workspace = ws, .monitor = ws->m_monitor, .name = ws->m_name, .id = ws->m_id});
+
+    Hyprutils::Utils::CScopeGuard x([&] { setLastWorkspaceData(ws); });
 }
 
 void CWorkspaceHistoryTracker::gc() {
-    std::erase_if(m_datas, [](const auto& e) { return !e.workspace; });
+    std::vector<PHLMONITORREF> monitorCounts;
+    std::erase_if(m_history, [&](const auto& entry) {
+        // Search if the monitor has been seen already
+        for (auto& mon : monitorCounts | std::views::drop(1)) {
+            // Remove entry
+            if (mon == entry.monitor)
+                return !entry.workspace;
+        }
+        // Add monitor to seen monitors
+        monitorCounts.emplace_back(entry.monitor);
+        return false;
+    });
 }
 
-const CWorkspaceHistoryTracker::SWorkspacePreviousData* CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws) {
+const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws) {
     gc();
+    auto it = std::ranges::find_if(m_history, [&](const auto& entry) { return entry.workspace == ws; });
 
-    for (const auto& d : m_datas) {
-        if (d.workspace != ws)
-            continue;
-        return &d;
-    }
+    // If the workspace is found in history, the previous one is simply the next element down the timeline
+    if (it != m_history.end() && std::next(it) != m_history.end())
+        return *std::next(it);
 
-    return &dataFor(ws);
+    // No prior history found
+    return SHistoryEntry{.id = WORKSPACE_INVALID};
 }
 
 SWorkspaceIDName CWorkspaceHistoryTracker::previousWorkspaceIDName(PHLWORKSPACE ws) {
-    gc();
+    const auto DATA = previousWorkspace(ws);
 
-    for (const auto& d : m_datas) {
-        if (d.workspace != ws)
-            continue;
-        return SWorkspaceIDName{.id = d.previousID, .name = d.previousName, .isAutoIDd = d.previousID <= 0};
-    }
+    if (DATA.id == WORKSPACE_INVALID)
+        return SWorkspaceIDName{.id = WORKSPACE_INVALID};
 
-    auto& d = dataFor(ws);
-    return SWorkspaceIDName{.id = d.previousID, .name = d.previousName, .isAutoIDd = d.previousID <= 0};
+    return SWorkspaceIDName{.id = DATA.id, .name = DATA.name, .isAutoIDd = DATA.id <= 0};
 }
 
-const CWorkspaceHistoryTracker::SWorkspacePreviousData* CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws, PHLMONITOR restrict) {
+const CWorkspaceHistoryTracker::SHistoryEntry CWorkspaceHistoryTracker::previousWorkspace(PHLWORKSPACE ws, PHLMONITOR restrict) {
     if (!restrict)
         return previousWorkspace(ws);
 
-    auto& data = dataFor(ws);
-    while (true) {
+    gc();
 
-        // case 1: previous exists
-        if (data.previous) {
-            if (data.previous->m_monitor != restrict) {
-                data = dataFor(data.previous.lock());
-                continue;
-            }
+    auto it = std::ranges::find_if(m_history, [&](const auto& entry) { return entry.workspace == ws; });
 
-            break;
-        }
+    // Start looking from the element immediately following `ws` in the list
+    if (it != m_history.end())
+        it++;
+    else
+        it = m_history.begin();
 
-        // case 2: previous doesnt exist, but we have mon
-        if (data.previousMon) {
-            if (data.previousMon != restrict)
-                return nullptr;
+    // Scan down the timeline until we hit a workspace mapped to the restricted monitor
+    while (it != m_history.end()) {
+        if (it->monitor == restrict)
+            return *it;
 
-            break;
-        }
-
-        // case 3: no mon and no previous
-        return nullptr;
+        it++;
     }
 
-    return &data;
+    // Entry not found
+    return SHistoryEntry{.id = WORKSPACE_INVALID};
 }
 
 SWorkspaceIDName CWorkspaceHistoryTracker::previousWorkspaceIDName(PHLWORKSPACE ws, PHLMONITOR restrict) {
     const auto DATA = previousWorkspace(ws, restrict);
-    if (!DATA)
+    if (DATA.id == WORKSPACE_INVALID)
         return SWorkspaceIDName{.id = WORKSPACE_INVALID};
 
-    return SWorkspaceIDName{.id = DATA->previousID, .name = DATA->previousName, .isAutoIDd = DATA->previousID <= 0};
+    return SWorkspaceIDName{.id = DATA.id, .name = DATA.name, .isAutoIDd = DATA.id <= 0};
 }
 
 void CWorkspaceHistoryTracker::setLastWorkspaceData(PHLWORKSPACE w) {

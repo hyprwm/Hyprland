@@ -62,7 +62,7 @@ namespace Desktop::Types {
             for (size_t i = 0; i < PRIORITY_END; ++i) {
                 if constexpr (Extended && !std::is_same_v<T, bool>)
                     m_values[i] = other.m_values[i].has_value() ? clampOptional(*other.m_values[i], m_minValue, m_maxValue) : other.m_values[i];
-                else
+                else if (other.m_values[i].has_value())
                     m_values[i] = other.m_values[i];
             }
 

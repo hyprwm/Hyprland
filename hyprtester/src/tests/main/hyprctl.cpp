@@ -173,6 +173,13 @@ static bool testGetprop() {
     return true;
 }
 
+static void testSubmap() {
+    NLog::log("{}Testing hyprctl submap", Colors::GREEN);
+
+    EXPECT(getCommandStdOut("hyprctl submap"), "default\n");
+    EXPECT(getCommandStdOut("hyprctl submap -j | jq -r \".\""), "default");
+}
+
 static bool test() {
     NLog::log("{}Testing hyprctl", Colors::GREEN);
 
@@ -186,6 +193,7 @@ static bool test() {
 
     testGetprop();
     testDevicesActiveLayoutIndex();
+    testSubmap();
     getFromSocket("/reload");
 
     return !ret;

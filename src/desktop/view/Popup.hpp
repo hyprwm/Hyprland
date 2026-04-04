@@ -6,6 +6,7 @@
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
+#include "../../render/Framebuffer.hpp"
 
 class CXDGPopupResource;
 
@@ -31,6 +32,7 @@ namespace Desktop::View {
         virtual std::optional<CBox>   surfaceLogicalBox() const;
 
         SP<Desktop::View::CWLSurface> getT1Owner() const;
+        PHLLS                         layerOwner() const;
         Vector2D                      coordsRelativeToParent() const;
         Vector2D                      coordsGlobal() const;
         PHLMONITOR                    getMonitor() const;
@@ -57,8 +59,10 @@ namespace Desktop::View {
         bool                      m_mapped = false;
 
         // fade in-out
-        PHLANIMVAR<float> m_alpha;
-        bool              m_fadingOut = false;
+        PHLANIMVAR<float>        m_alpha;
+        bool                     m_fadingOut = false;
+
+        SP<Render::IFramebuffer> m_snapshotFB;
 
       private:
         CPopup();

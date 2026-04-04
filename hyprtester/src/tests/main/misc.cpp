@@ -177,6 +177,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -185,6 +186,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -194,6 +196,7 @@ static bool test() {
         // should be ignored as per focus_under_fullscreen 0
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -204,6 +207,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_C");
     }
 
@@ -214,6 +218,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
         EXPECT_CONTAINS(str, "kitty_D");
     }
 
@@ -233,6 +238,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -241,6 +247,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     Tests::spawnKitty("kitty_B");
@@ -253,6 +260,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     Tests::killAllWindows();
@@ -268,6 +276,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreen 0 unset"));
@@ -275,6 +284,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch fullscreen 1 toggle"));
@@ -282,6 +292,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
     }
 
     OK(getFromSocket("/dispatch fullscreen 1 toggle"));
@@ -289,6 +300,23 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 3 3 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 3 3 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
@@ -296,6 +324,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
@@ -303,6 +332,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
@@ -310,6 +340,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
@@ -317,6 +348,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     // Ensure that the process autostarted in the config does not

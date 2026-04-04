@@ -22,6 +22,7 @@ Any arguments after -- are passed to Hyprland. For Hyprland help, run start-hypr
 Additional arguments for start-hyprland:
  --path [path]       -> Override Hyprland path
  --no-nixgl          -> Force disable nixGL
+ --force-nixgl       -> Force enable nixGL
 )#";
 
 //
@@ -77,6 +78,10 @@ int main(int argc, const char** argv, const char** envp) {
         }
         if (arg == "--no-nixgl") {
             g_state->noNixGl = true;
+            continue;
+        }
+        if (arg == "--force-nixgl") {
+            g_state->forceNixGl = true;
             continue;
         }
     }

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <xf86drm.h>
 #include "../Compositor.hpp"
+#include "render/Renderer.hpp"
 #include "types/WLBuffer.hpp"
 #include "../render/OpenGL.hpp"
 
@@ -61,7 +62,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : m_resource(resource_)
 
             uint64_t mod = DRM_FORMAT_MOD_INVALID;
 
-            auto     fmts = g_pHyprOpenGL->getDRMFormats();
+            auto     fmts = g_pHyprRenderer->getDRMFormats();
             for (auto const& f : fmts) {
                 if (f.drmFormat != fmt)
                     continue;
@@ -101,7 +102,7 @@ CMesaDRMResource::CMesaDRMResource(SP<CWlDrm> resource_) : m_resource(resource_)
     m_resource->sendDevice(PROTO::mesaDRM->m_nodeName.c_str());
     m_resource->sendCapabilities(WL_DRM_CAPABILITY_PRIME);
 
-    auto fmts = g_pHyprOpenGL->getDRMFormats();
+    auto fmts = g_pHyprRenderer->getDRMFormats();
     for (auto const& fmt : fmts) {
         m_resource->sendFormat(fmt.drmFormat);
     }

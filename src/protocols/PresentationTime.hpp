@@ -56,6 +56,7 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
     void         queueData(UP<CQueuedPresentationData>&& data);
+    bool         hasPendingFeedbacks() const;
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

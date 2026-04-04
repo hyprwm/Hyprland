@@ -1,14 +1,13 @@
 #include "InputMethodRelay.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../event/EventBus.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/TextInputV1.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../managers/HookSystemManager.hpp"
 
 CInputMethodRelay::CInputMethodRelay() {
-    static auto P =
-        g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
+    static auto P = Event::bus()->m_events.input.keyboard.focus.listen([&](SP<CWLSurfaceResource> surf) { onKeyboardFocus(surf); });
 
     m_listeners.newTIV3 = PROTO::textInputV3->m_events.newTextInput.listen([this](const auto& input) { onNewTextInput(input); });
     m_listeners.newTIV1 = PROTO::textInputV1->m_events.newTextInput.listen([this](const auto& input) { onNewTextInput(input); });

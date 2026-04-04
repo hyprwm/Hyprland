@@ -70,6 +70,14 @@ struct SVersionInfo {
 class IHyprLayout;
 class IHyprWindowDecoration;
 struct SConfigValue;
+class Hypr_dummyClass {};
+
+namespace Layout {
+    class ITiledAlgorithm;
+    class IFloatingAlgorithm;
+};
+
+using HOOK_CALLBACK_FN = Hypr_dummyClass;
 
 /*
     These methods are for the plugin to implement
@@ -143,6 +151,8 @@ namespace HyprlandAPI {
     APICALL Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
+        Deprecated: doesn't do anything anymore, use Event::bus()
+
         Register a dynamic (function) callback to a selected event.
         Pointer will be free'd by Hyprland on unregisterCallback().
 
@@ -150,7 +160,7 @@ namespace HyprlandAPI {
 
         WARNING: Losing this pointer will unregister the callback!
     */
-    APICALL [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
+    APICALL [[deprecated]] [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
 
     /*
         Unregisters a callback. If the callback was dynamic, frees the memory.
@@ -172,15 +182,26 @@ namespace HyprlandAPI {
         Adds a layout to Hyprland.
 
         returns: true on success. False otherwise.
+
+        deprecated: addTiledAlgo, addFloatingAlgo
     */
-    APICALL bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
+    APICALL [[deprecated]] bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
 
     /*
         Removes an added layout from Hyprland.
 
         returns: true on success. False otherwise.
+
+        deprecated: V2 removeAlgo
     */
-    APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
+    APICALL [[deprecated]] bool removeLayout(HANDLE handle, IHyprLayout* layout);
+
+    /*
+        Algorithm fns. Used for registering and removing. Return success.
+    */
+    APICALL bool addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory);
+    APICALL bool addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory);
+    APICALL bool removeAlgo(HANDLE handle, const std::string& name);
 
     /*
         Queues a config reload. Does not take effect immediately.

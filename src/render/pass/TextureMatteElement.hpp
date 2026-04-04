@@ -2,21 +2,22 @@
 #include "PassElement.hpp"
 #include "../Framebuffer.hpp"
 
-class CTexture;
+namespace Render {
+    class ITexture;
+}
 
 class CTextureMatteElement : public IPassElement {
   public:
     struct STextureMatteData {
-        CBox             box;
-        SP<CTexture>     tex;
-        SP<CFramebuffer> fb;
-        bool             disableTransformAndModify = false;
+        CBox                     box;
+        SP<Render::ITexture>     tex;
+        SP<Render::IFramebuffer> fb;
+        bool                     disableTransformAndModify = false;
     };
 
     CTextureMatteElement(const STextureMatteData& data_);
     virtual ~CTextureMatteElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
 
@@ -24,6 +25,9 @@ class CTextureMatteElement : public IPassElement {
         return "CTextureMatteElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_TEXTURE_MATTE;
+    };
+
     STextureMatteData m_data;
 };

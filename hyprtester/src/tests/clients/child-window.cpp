@@ -118,6 +118,33 @@ static bool test() {
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
 
+    // test that child windows (shouldBeFloated) are not auto-grouped
+    NLog::log("{}Test child windows are not auto-grouped", Colors::GREEN);
+    auto kitty = Tests::spawnKitty();
+    if (!kitty) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    // create group and enable auto-grouping
+    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/keyword group:auto_group true"));
+
+    SClient client2;
+    if (!startClient(client2))
+        return false;
+
+    EXPECT(Tests::windowCount(), 2);
+    createChild(client2);
+    EXPECT(Tests::windowCount(), 3);
+
+    // child has set_parent so shouldBeFloated returns true, it should not be auto-grouped
+    EXPECT_COUNT_STRING(getFromSocket("/clients"), "grouped: 0", 1);
+
+    stopClient(client2);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+
     return !ret;
 }
 

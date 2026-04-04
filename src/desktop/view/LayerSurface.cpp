@@ -7,11 +7,11 @@
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/EventManager.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -29,9 +29,9 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     pLS->m_layer          = std::clamp(resource->m_current.layer, ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND, ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     pLS->m_popupHead      = CPopup::create(pLS);
 
-    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, g_pConfigManager->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(0.f, pLS->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realPosition, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(Vector2D(0, 0), pLS->m_realSize, Config::animationTree()->getAnimationPropertyConfig("layersIn"), pLS, AVARDAMAGE_ENTIRE);
 
     pLS->registerCallbacks();
 
@@ -77,13 +77,8 @@ CLayerSurface::CLayerSurface(SP<CLayerShellResource> resource_) : IView(CWLSurfa
 }
 
 CLayerSurface::~CLayerSurface() {
-    if (!g_pHyprOpenGL)
-        return;
-
     if (m_wlSurface)
         m_wlSurface->unassign();
-    g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_layerFramebuffers, [&](const auto& other) { return other.first.expired() || other.first.lock() == m_self.lock(); });
 
     for (auto const& mon : g_pCompositor->m_realMonitors) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
@@ -222,7 +217,7 @@ void CLayerSurface::onMap() {
     m_fadingOut     = false;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
-    EMIT_HOOK_EVENT("openLayer", m_self.lock());
+    Event::bus()->m_events.layer.opened.emit(m_self.lock());
 
     g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
@@ -232,7 +227,7 @@ void CLayerSurface::onUnmap() {
     Log::logger->log(Log::DEBUG, "LayerSurface {:x} unmapped", rc<uintptr_t>(m_layerSurface.get()));
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "closelayer", .data = m_layerSurface->m_layerNamespace});
-    EMIT_HOOK_EVENT("closeLayer", m_self.lock());
+    Event::bus()->m_events.layer.closed.emit(m_self.lock());
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
@@ -315,7 +310,7 @@ void CLayerSurface::onCommit() {
         return;
 
     if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
+        PMONITOR->m_blurFBDirty = true;
 
     CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
     g_pHyprRenderer->damageBox(geomFixed);
@@ -340,7 +335,10 @@ void CLayerSurface::onCommit() {
             *m_alpha = PMONITOR->inFullscreenMode() ? (m_layer >= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY ? 1.F : 0.F) : 1.F;
 
             if (m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND || m_layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM)
-                g_pHyprOpenGL->markBlurDirtyForMonitor(PMONITOR); // so that blur is recalc'd
+                PMONITOR->m_blurFBDirty = true; // so that blur is recalc'd
+
+            if (g_pSeatManager->m_state.pointerFocus == m_wlSurface->resource())
+                g_pInputManager->simulateMouseMovement();
         }
 
         g_pHyprRenderer->arrangeLayersForMonitor(PMONITOR->m_id);

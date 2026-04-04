@@ -1,1 +1,0 @@
-pixColor = tonemap(pixColor, dstxyz);

@@ -9,7 +9,7 @@
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/TagKeeper.hpp"
-#include "../../../config/ConfigDataValues.hpp"
+#include "../../../config/shared/complex/ComplexDataTypes.hpp"
 
 namespace Desktop::Rule {
     class CWindowRule;
@@ -33,7 +33,8 @@ namespace Desktop::Rule {
         void                                                        propertiesChanged(std::underlying_type_t<eRuleProperty> props);
         std::unordered_set<CWindowRuleEffectContainer::storageType> resetProps(std::underlying_type_t<eRuleProperty> props,
                                                                                Types::eOverridePriority              prio = Types::PRIORITY_WINDOW_RULE);
-        void                                                        readStaticRules(bool preRead = false);
+        bool                                                        readStaticRules(bool preRead = false);
+        void                                                        recheckStaticRules();
 
         // static props
         struct {
@@ -53,6 +54,7 @@ namespace Desktop::Rule {
             std::optional<int>       noCloseFor;
 
             std::string              size, position;
+            std::optional<float>     scrollingWidth;
 
             std::vector<std::string> suppressEvent;
         } static_;
@@ -128,8 +130,8 @@ namespace Desktop::Rule {
         DEFINE_PROP(Vector2D, maxSize, Vector2D{}, WINDOW_RULE_EFFECT_MAX_SIZE)
         DEFINE_PROP(Vector2D, minSize, Vector2D{}, WINDOW_RULE_EFFECT_MIN_SIZE)
 
-        DEFINE_PROP(CGradientValueData, activeBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
-        DEFINE_PROP(CGradientValueData, inactiveBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
+        DEFINE_PROP(Config::CGradientValueData, activeBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
+        DEFINE_PROP(Config::CGradientValueData, inactiveBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
 
         std::vector<std::pair<std::string, std::underlying_type_t<eRuleProperty>>> m_dynamicTags;
         CTagKeeper                                                                 m_tagKeeper;
@@ -138,7 +140,8 @@ namespace Desktop::Rule {
 #undef DEFINE_PROP
 
       private:
-        PHLWINDOWREF m_window;
+        PHLWINDOWREF                          m_window;
+        std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
 
         struct SRuleResult {
             bool needsRelayout = false;

@@ -2,6 +2,17 @@
 
 #include "IHyprWindowDecoration.hpp"
 
+struct SShadowRenderData {
+    bool    ignoreWindow = false;
+    bool    valid        = false;
+    CBox    fullBox;
+    CBox    windowBox;
+    CRegion saveDamage;
+    float   rounding      = 0;
+    float   roundingPower = 0;
+    int     size          = 0;
+};
+
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {
   public:
     CHyprDropShadowDecoration(PHLWINDOW);
@@ -25,7 +36,12 @@ class CHyprDropShadowDecoration : public IHyprWindowDecoration {
 
     virtual std::string                getDisplayName();
 
-    void                               render(PHLMONITOR, float const& a);
+    bool                               canRender(PHLMONITOR);
+    SShadowRenderData                  getRenderData(PHLMONITOR, float const& a);
+    void                               reposition();
+
+    // TODO remove
+    void render(PHLMONITOR, float const& a);
 
   private:
     SBoxExtents  m_extents;

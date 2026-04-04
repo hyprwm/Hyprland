@@ -1,45 +1,49 @@
 #include "PointerManager.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../protocols/PointerGestures.hpp"
 #include "../protocols/RelativePointer.hpp"
 #include "../protocols/FractionalScale.hpp"
 #include "../protocols/IdleNotify.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/core/Seat.hpp"
+#include "debug/log/Logger.hpp"
 #include "eventLoop/EventLoopManager.hpp"
+#include "../render/pass/ClearPassElement.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "SeatManager.hpp"
 #include "../helpers/time/Time.hpp"
+#include "../helpers/Drm.hpp"
+#include "../event/EventBus.hpp"
+#include <climits>
 #include <cstring>
 #include <gbm.h>
 #include <cairo/cairo.h>
+#include <hyprutils/math/Region.hpp>
+#include <hyprutils/math/Vector2D.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
 using namespace Hyprutils::Utils;
 
 CPointerManager::CPointerManager() {
-    m_hooks.monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto PMONITOR = std::any_cast<PHLMONITOR>(data);
-
+    m_hooks.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         onMonitorLayoutChange();
 
-        PMONITOR->m_events.modeChanged.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
-        PMONITOR->m_events.disconnect.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
-        PMONITOR->m_events.destroy.listenStatic([this] {
+        monitor->m_events.modeChanged.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
+        monitor->m_events.disconnect.listenStatic([this] { g_pEventLoopManager->doLater([this]() { onMonitorLayoutChange(); }); });
+        monitor->m_events.destroy.listenStatic([this] {
             if (g_pCompositor && !g_pCompositor->m_isShuttingDown)
                 std::erase_if(m_monitorStates, [](const auto& other) { return other->monitor.expired(); });
         });
     });
 
-    m_hooks.monitorPreRender = g_pHookSystem->hookDynamic("preMonitorCommit", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto state = stateFor(std::any_cast<PHLMONITOR>(data));
+    m_hooks.monitorPreRender = Event::bus()->m_events.monitor.preCommit.listen([this](PHLMONITOR monitor) {
+        auto state = stateFor(monitor);
         if (!state)
             return;
 
@@ -95,6 +99,10 @@ Vector2D CPointerManager::position() {
     return m_pointerPos;
 }
 
+Vector2D CPointerManager::hotspot() {
+    return m_currentCursorImage.hotspot;
+}
+
 bool CPointerManager::hasCursor() {
     return m_currentCursorImage.pBuffer || m_currentCursorImage.surface;
 }
@@ -114,6 +122,7 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
             m_currentCursorImage.scale   = scale;
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         }
 
         return;
@@ -131,6 +140,7 @@ void CPointerManager::setCursorBuffer(SP<Aquamarine::IBuffer> buf, const Vector2
 
     updateCursorBackend();
     damageIfSoftware();
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
@@ -142,6 +152,7 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
             m_currentCursorImage.scale   = surf && surf->resource() ? surf->resource()->m_current.scale : 1.F;
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         }
 
         return;
@@ -163,6 +174,7 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
             recheckEnteredOutputs();
             updateCursorBackend();
             damageIfSoftware();
+            m_events.cursorChanged.emit();
         });
 
         if (surf->resource()->m_current.texture) {
@@ -176,6 +188,7 @@ void CPointerManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const
     recheckEnteredOutputs();
     updateCursorBackend();
     damageIfSoftware();
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::recheckEnteredOutputs() {
@@ -260,6 +273,8 @@ void CPointerManager::resetCursorImage(bool apply) {
             ms->cursorFrontBuffer = nullptr;
         }
     }
+
+    m_events.cursorChanged.emit();
 }
 
 void CPointerManager::updateCursorBackend() {
@@ -281,7 +296,7 @@ void CPointerManager::updateCursorBackend() {
             continue;
         }
 
-        if (state->softwareLocks > 0 || g_pConfigManager->shouldUseSoftwareCursors(m) || !attemptHardwareCursor(state)) {
+        if (state->softwareLocks > 0 || m->shouldUseSoftwareCursors() || !attemptHardwareCursor(state)) {
             Log::logger->log(Log::TRACE, "Output {} rejected hardware cursors, falling back to sw", m->m_name);
             state->box            = getCursorBoxLogicalForMonitor(state->monitor.lock());
             state->hardwareFailed = true;
@@ -396,7 +411,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     return true;
 }
 
-SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<CTexture> texture) {
+SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager::SMonitorPointerState> state, SP<Render::ITexture> texture) {
     auto        maxSize    = state->monitor->m_output->cursorPlaneSize();
     auto const& cursorSize = m_currentCursorImage.size;
 
@@ -440,7 +455,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         options.length   = 2;
         options.scanout  = true;
         options.cursor   = true;
-        options.multigpu = state->monitor->m_output->getBackend()->preferredAllocator()->drmFD() != g_pCompositor->m_drm.fd;
+        options.multigpu = state->monitor->isMultiGPU();
         // We do not set the format (unless shm). If it's unset (DRM_FORMAT_INVALID) then the swapchain will pick for us,
         // but if it's set, we don't wanna change it.
         if (shouldUseCpuBuffer)
@@ -529,24 +544,23 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
         // we need to scale the cursor to the right size, because it might not be (esp with XCursor)
         const auto SCALE = texture->m_size / (m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale);
-        cairo_matrix_scale(&matrixPre, SCALE.x, SCALE.y);
+        const auto SX = SCALE.x, SY = SCALE.y;
+        const auto BW = sc<double>(DMABUF.size.x), BH = sc<double>(DMABUF.size.y);
 
-        if (TR) {
-            cairo_matrix_rotate(&matrixPre, M_PI_2 * sc<double>(TR));
-
-            // FIXME: this is wrong, and doesn't work for 5, 6 and 7. (flipped + rot)
-            // cba to do it rn, does anyone fucking use that??
-            if (TR >= WL_OUTPUT_TRANSFORM_FLIPPED) {
-                cairo_matrix_scale(&matrixPre, -1, 1);
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
-            }
-
-            if (TR == 3 || TR == 7)
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, 0);
-            else if (TR == 2 || TR == 6)
-                cairo_matrix_translate(&matrixPre, -DMABUF.size.x, -DMABUF.size.y);
-            else if (TR == 1 || TR == 5)
-                cairo_matrix_translate(&matrixPre, 0, -DMABUF.size.y);
+        // Cairo pattern matrix maps destination coords to source coords (inverse of visual transform).
+        // x_src = xx * x_dst + xy * y_dst + x0
+        // y_src = yx * x_dst + yy * y_dst + y0
+        // cairo_matrix_init(&m, xx, yx, xy, yy, x0, y0)
+        switch (TR) {
+            case WL_OUTPUT_TRANSFORM_NORMAL:
+            default: cairo_matrix_init(&matrixPre, SX, 0, 0, SY, 0, 0); break;
+            case WL_OUTPUT_TRANSFORM_90: cairo_matrix_init(&matrixPre, 0, SY, -SX, 0, SX * BW, 0); break;
+            case WL_OUTPUT_TRANSFORM_180: cairo_matrix_init(&matrixPre, -SX, 0, 0, -SY, SX * BW, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_270: cairo_matrix_init(&matrixPre, 0, -SY, SX, 0, 0, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED: cairo_matrix_init(&matrixPre, -SX, 0, 0, SY, SX * BW, 0); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_90: cairo_matrix_init(&matrixPre, 0, SY, SX, 0, 0, 0); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_180: cairo_matrix_init(&matrixPre, SX, 0, 0, -SY, 0, SY * BH); break;
+            case WL_OUTPUT_TRANSFORM_FLIPPED_270: cairo_matrix_init(&matrixPre, 0, -SY, -SX, 0, SX * BW, SY * BH); break;
         }
 
         cairo_pattern_set_matrix(PATTERNPRE, &matrixPre);
@@ -568,8 +582,7 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
         return buf;
     }
 
-    g_pHyprRenderer->makeEGLCurrent();
-    g_pHyprOpenGL->m_renderData.pMonitor = state->monitor;
+    g_pHyprRenderer->m_renderData.pMonitor = state->monitor;
 
     auto RBO = g_pHyprRenderer->getOrCreateRenderbuffer(buf, state->monitor->m_cursorSwapchain->currentOptions().format);
     if (!RBO) {
@@ -579,18 +592,19 @@ SP<Aquamarine::IBuffer> CPointerManager::renderHWCursorBuffer(SP<CPointerManager
 
     RBO->bind();
 
-    const auto& damageSize = state->monitor->m_output->cursorPlaneSize();
-    g_pHyprOpenGL->beginSimple(state->monitor.lock(), {0, 0, damageSize.x, damageSize.y}, RBO);
-    g_pHyprOpenGL->clear(CHyprColor{0.F, 0.F, 0.F, 0.F}); // ensure the RBO is zero initialized.
+    CRegion damageRegion = {0, 0, INT_MAX, INT_MAX};
+    g_pHyprRenderer->beginFullFakeRender(state->monitor.lock(), damageRegion, RBO->getFB());
+    g_pHyprRenderer->startRenderPass();
+    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
 
     CBox xbox = {{}, Vector2D{m_currentCursorImage.size / m_currentCursorImage.scale * state->monitor->m_scale}.round()};
     Log::logger->log(Log::TRACE, "[pointer] monitor: {}, size: {}, hw buf: {}, scale: {:.2f}, monscale: {:.2f}, xbox: {}", state->monitor->m_name, m_currentCursorImage.size,
                      cursorSize, m_currentCursorImage.scale, state->monitor->m_scale, xbox.size());
 
-    g_pHyprOpenGL->renderTexture(texture, xbox, {});
+    g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = texture, .box = xbox}, damageRegion);
 
-    g_pHyprOpenGL->end();
-    g_pHyprOpenGL->m_renderData.pMonitor.reset();
+    g_pHyprRenderer->endRender();
+    g_pHyprRenderer->m_renderData.pMonitor.reset();
 
     return buf;
 }
@@ -754,7 +768,7 @@ void CPointerManager::damageIfSoftware() {
         if (!monitor || !monitor->m_output || monitor->isMirror())
             continue;
 
-        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || g_pConfigManager->shouldUseSoftwareCursors(monitor));
+        auto usesSoftwareCursor = (mw->softwareLocks > 0 || mw->hardwareFailed || monitor->shouldUseSoftwareCursors());
         if (!usesSoftwareCursor)
             continue;
 
@@ -887,13 +901,17 @@ void CPointerManager::onMonitorLayoutChange() {
     damageIfSoftware();
 }
 
-SP<CTexture> CPointerManager::getCurrentCursorTexture() {
+const CPointerManager::SCursorImage& CPointerManager::currentCursorImage() {
+    return m_currentCursorImage;
+}
+
+SP<Render::ITexture> CPointerManager::getCurrentCursorTexture() {
     if (!m_currentCursorImage.pBuffer && (!m_currentCursorImage.surface || !m_currentCursorImage.surface->resource()->m_current.texture))
         return nullptr;
 
     if (m_currentCursorImage.pBuffer) {
         if (!m_currentCursorImage.bufferTex)
-            m_currentCursorImage.bufferTex = makeShared<CTexture>(m_currentCursorImage.pBuffer, true);
+            m_currentCursorImage.bufferTex = g_pHyprRenderer->createTexture(m_currentCursorImage.pBuffer, true);
         return m_currentCursorImage.bufferTex;
     }
 
@@ -930,8 +948,8 @@ void CPointerManager::attachPointer(SP<IPointer> pointer) {
             CKeybindManager::dpms("on");
     });
 
-    listener->button = pointer->m_pointerEvents.button.listen([](const IPointer::SButtonEvent& event) {
-        g_pInputManager->onMouseButton(event);
+    listener->button = pointer->m_pointerEvents.button.listen([weak = WP<IPointer>(pointer)](const IPointer::SButtonEvent& event) {
+        g_pInputManager->onMouseButton(event, weak.lock());
         PROTO::idle->onActivity();
     });
 

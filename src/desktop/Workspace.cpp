@@ -1,10 +1,15 @@
 #include "Workspace.hpp"
+#include "view/Group.hpp"
 #include "../Compositor.hpp"
-#include "../config/ConfigValue.hpp"
-#include "config/ConfigManager.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
+#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../config/supplementary/executor/Executor.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../layout/space/Space.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../event/EventBus.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
@@ -25,48 +30,48 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_self = self;
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), m_renderOffset, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
-                                         self, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+    g_pAnimationManager->createAnimation(
+        Vector2D(0, 0), m_renderOffset, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
                                          AVARDAMAGE_ENTIRE);
 
-    const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
-    if (RULEFORTHIS.defaultName.has_value())
-        m_name = RULEFORTHIS.defaultName.value();
+    const auto RULEFORTHIS = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    if (RULEFORTHIS.m_defaultName.has_value())
+        m_name = RULEFORTHIS.m_defaultName.value();
+    if (RULEFORTHIS.m_animationStyle.has_value())
+        m_animationStyle = RULEFORTHIS.m_animationStyle.value();
 
-    m_focusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
-
-        if (PWINDOW == m_lastFocusedWindow.lock())
+    m_focusedWindowHook = Event::bus()->m_events.window.close.listen([this](PHLWINDOW pWindow) {
+        if (pWindow == m_lastFocusedWindow.lock())
             m_lastFocusedWindow.reset();
     });
 
+    m_space = Layout::CSpace::create(m_self.lock());
+    m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
+
     m_inert = false;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent);
 
     if (self->m_wasCreatedEmpty)
-        if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            CKeybindManager::spawnWithRules(*cmd, self);
+        if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
+            Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
     g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-    EMIT_HOOK_EVENT("createWorkspace", this);
+    Event::bus()->m_events.workspace.created.emit(self);
 }
 
 CWorkspace::~CWorkspace() {
     Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
-    // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
-    if (g_pHookSystem)
-        g_pHookSystem->unhook(m_focusedWindowHook);
-
     if (g_pEventManager) {
         g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
         g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-        EMIT_HOOK_EVENT("destroyWorkspace", this);
     }
+
+    Event::bus()->m_events.workspace.removed.emit(m_self);
 
     m_events.destroy.emit();
 }
@@ -406,14 +411,19 @@ bool CWorkspace::isVisibleNotCovered() {
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+
+    if (!m_space)
+        return 0;
+
+    for (auto const& t : m_space->targets()) {
+        if (!t)
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+
+        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && (!t->window() || t->window()->isHidden() == onlyVisible.value()))
             continue;
         no++;
     }
@@ -423,16 +433,16 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
 
 int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+    for (auto const& g : Desktop::View::groups()) {
+        const auto HEAD = g->head();
+
+        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
-        if (!w->m_groupData.head)
+        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
-            continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && g->current()->isHidden() == onlyVisible.value())
             continue;
         no++;
     }
@@ -477,13 +487,13 @@ void CWorkspace::updateWindowDecos() {
 }
 
 void CWorkspace::updateWindowData() {
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace != m_self)
             continue;
 
-        w->updateWindowData(WORKSPACERULE);
+        w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
     }
 }
 
@@ -503,24 +513,22 @@ void CWorkspace::rename(const std::string& name) {
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent);
 
-    if (WORKSPACERULE.isPersistent)
-        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
+    if (WORKSPACERULE.m_isPersistent)
+        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_isMapped && w->m_workspace == m_self && w->isFullscreen(); });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t->fullscreenMode() != FSMODE_NONE; });
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || w->m_workspace != m_self)
-            continue;
-
-        w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+    for (auto const& t : m_space->targets()) {
+        if (t->window())
+            t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 

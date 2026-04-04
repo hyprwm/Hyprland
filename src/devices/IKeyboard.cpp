@@ -1,14 +1,17 @@
 #include "IKeyboard.hpp"
 #include "../defines.hpp"
-#include "../helpers/varlist/VarList.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../helpers/MiscFunctions.hpp"
+#include "../hyprerror/HyprError.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
+#include <hyprutils/string/VarList.hpp>
 #include <cstring>
 
 using namespace Hyprutils::OS;
+using namespace Hyprutils::String;
 
 #define LED_COUNT 3
 
@@ -82,7 +85,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
                      rules.model, rules.options);
 
     if (!m_xkbFilePath.empty()) {
-        auto path = absolutePath(m_xkbFilePath, g_pConfigManager->m_configCurrentPath);
+        auto path = absolutePath(m_xkbFilePath, Config::mgr()->currentConfigPath());
 
         if (FILE* const KEYMAPFILE = fopen(path.c_str(), "r"); !KEYMAPFILE)
             Log::logger->log(Log::ERR, "Cannot open input:kb_file= file for reading");
@@ -96,8 +99,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!m_xkbKeymap) {
-        g_pConfigManager->addParseError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
-                                        ", options: " + rules.options + ", layout: " + rules.layout + " )");
+        g_pHyprError->queueError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
+                                 ", options: " + rules.options + ", layout: " + rules.layout + " )");
 
         Log::logger->log(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules,
                          rules.model, rules.options);
@@ -114,7 +117,7 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
 
     updateXKBTranslationState(m_xkbKeymap);
 
-    const auto NUMLOCKON = g_pConfigManager->getDeviceInt(m_hlName, "numlock_by_default", "input:numlock_by_default");
+    const auto NUMLOCKON = Config::mgr()->getDeviceInt(m_hlName, "numlock_by_default", "input:numlock_by_default");
 
     if (NUMLOCKON == 1) {
         // lock numlock

@@ -1,8 +1,11 @@
 #include "Shader.hpp"
-#include "../config/ConfigManager.hpp"
-#include "render/OpenGL.hpp"
+#include "../hyprerror/HyprError.hpp"
+#include "../config/ConfigValue.hpp"
+#include "OpenGL.hpp"
 
 #define EPSILON(x, y) (std::abs((x) - (y)) < 1e-5f)
+
+using namespace Render::GL;
 
 static bool compareFloat(auto a, auto b) {
     if (a.size() != b.size())
@@ -42,7 +45,7 @@ void CShader::logShaderError(const GLuint& shader, bool program, bool silent) {
     Log::logger->log(Log::ERR, "Failed to link shader: {}", FULLERROR);
 
     if (!silent)
-        g_pConfigManager->addParseError(FULLERROR);
+        g_pHyprError->queueError(FULLERROR);
 }
 
 GLuint CShader::compileShader(const GLuint& type, std::string src, bool dynamic, bool silent) {
@@ -127,7 +130,6 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 
     // shader has #include "CM.glsl"
-    m_uniformLocations[SHADER_SKIP_CM]              = getUniform("skipCM");
     m_uniformLocations[SHADER_SOURCE_TF]            = getUniform("sourceTF");
     m_uniformLocations[SHADER_TARGET_TF]            = getUniform("targetTF");
     m_uniformLocations[SHADER_SRC_TF_RANGE]         = getUniform("srcTFRange");
@@ -140,8 +142,13 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_SDR_SATURATION]       = getUniform("sdrSaturation");
     m_uniformLocations[SHADER_SDR_BRIGHTNESS]       = getUniform("sdrBrightnessMultiplier");
     m_uniformLocations[SHADER_CONVERT_MATRIX]       = getUniform("convertMatrix");
+    m_uniformLocations[SHADER_LUT_3D]               = getUniform("iccLut3D");
+    m_uniformLocations[SHADER_LUT_SIZE]             = getUniform("iccLutSize");
     //
     m_uniformLocations[SHADER_TEX]                 = getUniform("tex");
+    m_uniformLocations[SHADER_BLURRED_BG]          = getUniform("blurredBG");
+    m_uniformLocations[SHADER_UV_SIZE]             = getUniform("uvSize");
+    m_uniformLocations[SHADER_UV_OFFSET]           = getUniform("uvOffset");
     m_uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
     m_uniformLocations[SHADER_POS_ATTRIB]          = getAttrib("pos");
     m_uniformLocations[SHADER_TEX_ATTRIB]          = getAttrib("texcoord");
@@ -248,7 +255,8 @@ void CShader::setUniformInt(eShaderUniform location, GLint v0) {
         return;
 
     cached = v0;
-    glUniform1i(m_uniformLocations[location], v0);
+
+    GLCALL(glUniform1i(m_uniformLocations[location], v0));
 }
 
 void CShader::setUniformFloat(eShaderUniform location, GLfloat v0) {
@@ -264,7 +272,7 @@ void CShader::setUniformFloat(eShaderUniform location, GLfloat v0) {
     }
 
     cached = v0;
-    glUniform1f(m_uniformLocations[location], v0);
+    GLCALL(glUniform1f(m_uniformLocations[location], v0));
 }
 
 void CShader::setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1) {
@@ -280,7 +288,7 @@ void CShader::setUniformFloat2(eShaderUniform location, GLfloat v0, GLfloat v1) 
     }
 
     cached = std::array<GLfloat, 2>{v0, v1};
-    glUniform2f(m_uniformLocations[location], v0, v1);
+    GLCALL(glUniform2f(m_uniformLocations[location], v0, v1));
 }
 
 void CShader::setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2) {
@@ -296,7 +304,7 @@ void CShader::setUniformFloat3(eShaderUniform location, GLfloat v0, GLfloat v1, 
     }
 
     cached = std::array<GLfloat, 3>{v0, v1, v2};
-    glUniform3f(m_uniformLocations[location], v0, v1, v2);
+    GLCALL(glUniform3f(m_uniformLocations[location], v0, v1, v2));
 }
 
 void CShader::setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3) {
@@ -312,7 +320,7 @@ void CShader::setUniformFloat4(eShaderUniform location, GLfloat v0, GLfloat v1, 
     }
 
     cached = std::array<GLfloat, 4>{v0, v1, v2, v3};
-    glUniform4f(m_uniformLocations[location], v0, v1, v2, v3);
+    GLCALL(glUniform4f(m_uniformLocations[location], v0, v1, v2, v3));
 }
 
 void CShader::setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 9> value) {
@@ -328,7 +336,7 @@ void CShader::setUniformMatrix3fv(eShaderUniform location, GLsizei count, GLbool
     }
 
     cached = SUniformMatrix3Data{.count = count, .transpose = transpose, .value = value};
-    glUniformMatrix3fv(m_uniformLocations[location], count, transpose, value.data());
+    GLCALL(glUniformMatrix3fv(m_uniformLocations[location], count, transpose, value.data()));
 }
 
 void CShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLboolean transpose, std::array<GLfloat, 8> value) {
@@ -344,7 +352,7 @@ void CShader::setUniformMatrix4x2fv(eShaderUniform location, GLsizei count, GLbo
     }
 
     cached = SUniformMatrix4Data{.count = count, .transpose = transpose, .value = value};
-    glUniformMatrix4x2fv(m_uniformLocations[location], count, transpose, value.data());
+    GLCALL(glUniformMatrix4x2fv(m_uniformLocations[location], count, transpose, value.data()));
 }
 
 void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::vector<float>& value, GLsizei vec_size) {
@@ -361,9 +369,9 @@ void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::ve
 
     cached = SUniformVData{.count = count, .value = value};
     switch (vec_size) {
-        case 1: glUniform1fv(m_uniformLocations[location], count, value.data()); break;
-        case 2: glUniform2fv(m_uniformLocations[location], count, value.data()); break;
-        case 4: glUniform4fv(m_uniformLocations[location], count, value.data()); break;
+        case 1: GLCALL(glUniform1fv(m_uniformLocations[location], count, value.data())); break;
+        case 2: GLCALL(glUniform2fv(m_uniformLocations[location], count, value.data())); break;
+        case 4: GLCALL(glUniform4fv(m_uniformLocations[location], count, value.data())); break;
         default: UNREACHABLE();
     }
 }

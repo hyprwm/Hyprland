@@ -2,8 +2,9 @@
 #include <algorithm>
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../event/EventBus.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../config/shared/monitor/MonitorRuleManager.hpp"
 
 using namespace Aquamarine;
 
@@ -319,7 +320,7 @@ COutputConfiguration::COutputConfiguration(SP<CZwlrOutputConfigurationV1> resour
 
         newState.enabled = false;
 
-        g_pConfigManager->m_wantsMonitorReload = true;
+        Config::monitorRuleMgr()->scheduleReload();
 
         m_owner->m_monitorStates[PMONITOR->m_name] = newState;
     });
@@ -420,7 +421,7 @@ bool COutputConfiguration::applyTestConfiguration(bool test) {
         // reset properties for next set.
         head->m_state.committedProperties = 0;
 
-        g_pConfigManager->m_wantsMonitorReload = true;
+        Config::monitorRuleMgr()->scheduleReload();
 
         m_owner->m_monitorStates[PMONITOR->m_name] = newState;
     }
@@ -578,7 +579,7 @@ bool COutputConfigurationHead::good() {
 }
 
 COutputManagementProtocol::COutputManagementProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = Event::bus()->m_events.monitor.layoutChanged.listen([this] {
         updateAllOutputs();
         sendPendingSuccessEvents();
     });

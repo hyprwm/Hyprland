@@ -8,15 +8,13 @@ CSinglePixelBuffer::CSinglePixelBuffer(uint32_t id, wl_client* client, CHyprColo
 
     m_color = col_.getAsHex();
 
-    g_pHyprRenderer->makeEGLCurrent();
-
     m_opaque = col_.a >= 1.F;
 
-    m_texture = makeShared<CTexture>(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
+    m_texture = g_pHyprRenderer->createTexture(DRM_FORMAT_ARGB8888, rc<uint8_t*>(&m_color), 4, Vector2D{1, 1});
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
 
-    m_success = m_texture->m_texID;
+    m_success = m_texture->ok();
 
     size = {1, 1};
 
@@ -88,7 +86,7 @@ CSinglePixelBufferManagerResource::CSinglePixelBufferManagerResource(UP<CWpSingl
 
     m_resource->setCreateU32RgbaBuffer([this](CWpSinglePixelBufferManagerV1* res, uint32_t id, uint32_t r, uint32_t g, uint32_t b, uint32_t a) {
         CHyprColor  color{r / sc<float>(std::numeric_limits<uint32_t>::max()), g / sc<float>(std::numeric_limits<uint32_t>::max()),
-                         b / sc<float>(std::numeric_limits<uint32_t>::max()), a / sc<float>(std::numeric_limits<uint32_t>::max())};
+                          b / sc<float>(std::numeric_limits<uint32_t>::max()), a / sc<float>(std::numeric_limits<uint32_t>::max())};
         const auto& RESOURCE = PROTO::singlePixel->m_buffers.emplace_back(makeUnique<CSinglePixelBufferResource>(id, m_resource->client(), color));
 
         if UNLIKELY (!RESOURCE->good()) {

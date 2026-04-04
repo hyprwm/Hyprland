@@ -50,6 +50,8 @@
 #include "../protocols/SecurityContext.hpp"
 #include "../protocols/CTMControl.hpp"
 #include "../protocols/HyprlandSurface.hpp"
+#include "../protocols/ImageCaptureSource.hpp"
+#include "../protocols/ImageCopyCapture.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -65,8 +67,10 @@
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
 #include "../protocols/CommitTiming.hpp"
+#include "../protocols/XDGForeignV2.hpp"
 
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"
 #include "content-type-v1.hpp"
@@ -106,13 +110,12 @@ CProtocolManager::CProtocolManager() {
 
     static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
+    static const auto PCMV1_2   = CConfigValue<Hyprlang::INT>("experimental:wp_cm_1_2");
 
     static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
 
     // Outputs are a bit dumb, we have to agree.
-    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
-
+    static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
         // also ignore the fallback
@@ -129,8 +132,7 @@ CProtocolManager::CProtocolManager() {
         m_modeChangeListeners[M->m_name] = M->m_events.modeChanged.listen([this, M] { onMonitorModeChange(M); });
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
+    static auto P2 = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR M) {
         if (!PROTO::outputs.contains(M->m_name))
             return;
         PROTO::outputs.at(M->m_name)->remove();
@@ -180,8 +182,6 @@ CProtocolManager::CProtocolManager() {
     PROTO::dataWlr             = makeUnique<CDataDeviceWLRProtocol>(&zwlr_data_control_manager_v1_interface, 2, "DataDeviceWlr");
     PROTO::primarySelection    = makeUnique<CPrimarySelectionProtocol>(&zwp_primary_selection_device_manager_v1_interface, 1, "PrimarySelection");
     PROTO::xwaylandShell       = makeUnique<CXWaylandShellProtocol>(&xwayland_shell_v1_interface, 1, "XWaylandShell");
-    PROTO::screencopy          = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
-    PROTO::toplevelExport      = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
     PROTO::toplevelMapping     = makeUnique<CToplevelMappingProtocol>(&hyprland_toplevel_mapping_manager_v1_interface, 1, "ToplevelMapping");
     PROTO::globalShortcuts     = makeUnique<CGlobalShortcutsProtocol>(&hyprland_global_shortcuts_manager_v1_interface, 1, "GlobalShortcuts");
     PROTO::xdgDialog           = makeUnique<CXDGDialogProtocol>(&xdg_wm_dialog_v1_interface, 1, "XDGDialog");
@@ -196,12 +196,20 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::xdgForeignExporter  = makeUnique<CXDGForeignExporterProtocolV2>(&zxdg_exporter_v2_interface, 1, "XDGForeignExporter");
+    PROTO::xdgForeignImporter  = makeUnique<CXDGForeignImporterProtocolV2>(&zxdg_importer_v2_interface, 1, "XDGForeignImporter");
 
     if (*PENABLECT)
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
 
+    // Screensharing Protocols
+    PROTO::screencopy         = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
+    PROTO::toplevelExport     = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(); // ctor inits actual protos, output and toplevel
+    PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
+
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 2 : 1, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 
@@ -215,7 +223,7 @@ CProtocolManager::CProtocolManager() {
         else
             lease.reset();
 
-        if (g_pHyprOpenGL->m_exts.EGL_ANDROID_native_fence_sync_ext && !PROTO::sync) {
+        if (g_pHyprRenderer->explicitSyncSupported() && !PROTO::sync) {
             if (g_pCompositor->supportsDrmSyncobjTimeline()) {
                 PROTO::sync = makeUnique<CDRMSyncobjProtocol>(&wp_linux_drm_syncobj_manager_v1_interface, 1, "DRMSyncobj");
                 Log::logger->log(Log::DEBUG, "DRM Syncobj Timeline support detected, enabling explicit sync protocol");
@@ -224,7 +232,7 @@ CProtocolManager::CProtocolManager() {
         }
     }
 
-    if (!g_pHyprOpenGL->getDRMFormats().empty()) {
+    if (!g_pHyprRenderer->getDRMFormats().empty()) {
         PROTO::mesaDRM  = makeUnique<CMesaDRMProtocol>(&wl_drm_interface, 2, "MesaDRM");
         PROTO::linuxDma = makeUnique<CLinuxDMABufV1Protocol>(&zwp_linux_dmabuf_v1_interface, 5, "LinuxDMABUF");
     } else
@@ -297,7 +305,10 @@ CProtocolManager::~CProtocolManager() {
     PROTO::extDataDevice.reset();
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
+    PROTO::xdgForeignExporter.reset();
+    PROTO::xdgForeignImporter.reset();
     PROTO::commitTiming.reset();
+    PROTO::imageCaptureSource.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();
@@ -352,6 +363,8 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
 		PROTO::xdgBell->getGlobal(),
         PROTO::fifo->getGlobal(),
         PROTO::commitTiming->getGlobal(),
+        PROTO::xdgForeignExporter->getGlobal(),
+        PROTO::xdgForeignImporter->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

@@ -16,8 +16,6 @@ CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     if UNLIKELY (!pool_->m_pool->m_data)
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
-
     size     = size_;
     m_pool   = pool_->m_pool;
     m_stride = stride_;

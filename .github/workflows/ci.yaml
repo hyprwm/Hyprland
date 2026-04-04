@@ -52,11 +52,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: clang-format check
-      #   uses: jidicula/clang-format-action@v4.16.0
-      #   with:
-      #     exclude-regex: ^subprojects$
-
       - name: Install clang-format
         run: |
           pacman --noconfirm --noprogressbar -Syyu

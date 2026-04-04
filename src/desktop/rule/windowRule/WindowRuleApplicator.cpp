@@ -4,10 +4,11 @@
 #include "../utils/SetUtils.hpp"
 #include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
-#include "../../../managers/LayoutManager.hpp"
-#include "../../../managers/HookSystemManager.hpp"
+#include "../../../event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/VarList.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 using namespace Hyprutils::String;
 
@@ -148,17 +149,19 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_BORDER_COLOR: {
                 try {
                     // Each vector will only get used if it has at least one color
-                    CGradientValueData activeBorderGradient   = {};
-                    CGradientValueData inactiveBorderGradient = {};
-                    bool               active                 = true;
-                    CVarList           colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
+                    Config::CGradientValueData activeBorderGradient   = {};
+                    Config::CGradientValueData inactiveBorderGradient = {};
+                    bool                       active                 = true;
+                    CVarList                   colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
 
                     // Basic form has only two colors, everything else can be parsed as a gradient
                     if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
                         m_activeBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
+                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
                         m_inactiveBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
+                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
+                        m_activeBorderColor.second |= rule->getPropertiesMask();
+                        m_inactiveBorderColor.second |= rule->getPropertiesMask();
                         break;
                     }
 
@@ -540,15 +543,22 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
                 } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid no close for {}", effect); }
                 break;
             }
+            case WINDOW_RULE_EFFECT_SCROLLING_WIDTH: {
+                try {
+                    static_.scrollingWidth = std::stof(effect);
+                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid scrolling width {}", effect); }
+                break;
+            }
         }
     }
 
     return SRuleResult{};
 }
 
-void CWindowRuleApplicator::readStaticRules(bool preRead) {
+//
+bool CWindowRuleApplicator::readStaticRules(bool preRead) {
     if (!m_window)
-        return;
+        return false;
 
     static_ = {};
 
@@ -574,35 +584,35 @@ void CWindowRuleApplicator::readStaticRules(bool preRead) {
         tagsWereChanged = tagsWereChanged || RES.tagsChanged;
     }
 
-    // recheck some props people might wanna use for static rules.
-    std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
+    // set a recheck for some props people might wanna use for static rules.
     if (tagsWereChanged)
         propsToRecheck |= RULE_PROP_TAG;
     if (static_.content != NContentType::CONTENT_TYPE_NONE)
         propsToRecheck |= RULE_PROP_CONTENT;
-
-    if (propsToRecheck != RULE_PROP_NONE) {
-        for (const auto& r : ruleEngine()->rules()) {
-            if (r->type() != RULE_TYPE_WINDOW)
-                continue;
-
-            if (!(r->getPropertiesMask() & propsToRecheck))
-                continue;
-
-            auto wr = reinterpretPointerCast<CWindowRule>(r);
-
-            if (!wr->matches(m_window.lock(), true))
-                continue;
-
-            applyStaticRule(wr);
-        }
-    }
 
     for (const auto& wr : execRules) {
         applyStaticRule(wr);
         applyDynamicRule(wr);
         if (!preRead)
             ruleEngine()->unregisterRule(wr);
+    }
+    return (propsToRecheck != RULE_PROP_NONE);
+}
+
+void CWindowRuleApplicator::recheckStaticRules() {
+    for (const auto& r : ruleEngine()->rules()) {
+        if (r->type() != RULE_TYPE_WINDOW)
+            continue;
+
+        if (!(r->getPropertiesMask() & propsToRecheck))
+            continue;
+
+        auto wr = reinterpretPointerCast<CWindowRule>(r);
+
+        if (!wr->matches(m_window.lock(), true))
+            continue;
+
+        applyStaticRule(wr);
     }
 }
 
@@ -629,11 +639,13 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
         needsRelayout  = needsRelayout || RES.needsRelayout;
     }
 
+    m_window->updateWindowData();
+    m_window->updateWindowDecos();
     m_window->updateDecorationValues();
 
     if (needsRelayout)
         g_pDecorationPositioner->forceRecalcFor(m_window.lock());
 
     // for plugins
-    EMIT_HOOK_EVENT("windowUpdateRules", m_window.lock());
+    Event::bus()->m_events.window.updateRules.emit(m_window.lock());
 }

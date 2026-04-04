@@ -1,9 +1,8 @@
 #include "ExtWorkspace.hpp"
 #include "../Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../event/EventBus.hpp"
 #include <algorithm>
-#include <any>
 #include <utility>
 #include "core/Output.hpp"
 
@@ -27,12 +26,20 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
 
     const auto& output = PROTO::outputs.at(m_monitor->m_name);
 
-    if (auto resource = output->outputResourceFrom(m_resource->client()))
-        m_resource->sendOutputEnter(resource->getResource()->resource());
+    if (auto resources = output->outputResourcesFrom(m_resource->client()); !resources.empty()) {
+        for (const auto& r : resources) {
+            m_resource->sendOutputEnter(r->getResource()->resource());
+        }
+    }
 
     m_listeners.outputBound = output->m_events.outputBound.listen([this](const SP<CWLOutputResource>& output) {
-        if (output->client() == m_resource->client())
-            m_resource->sendOutputEnter(output->getResource()->resource());
+        if (output->client() != m_resource->client())
+            return;
+
+        m_resource->sendOutputEnter(output->getResource()->resource());
+
+        if (m_manager)
+            m_manager->scheduleDone();
     });
 }
 
@@ -294,17 +301,13 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
 }
 
 CExtWorkspaceProtocol::CExtWorkspaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P1 = g_pHookSystem->hookDynamic("createWorkspace", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto workspace = std::any_cast<CWorkspace*>(data)->m_self.lock();
-
+    static auto P1 = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF workspace) {
         for (auto const& m : m_managers) {
-            m->onWorkspaceCreated(workspace);
+            m->onWorkspaceCreated(workspace.lock());
         }
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto monitor = std::any_cast<PHLMONITOR>(data);
-
+    static auto P2 = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         for (auto const& m : m_managers) {
             m->onMonitorCreated(monitor);
         }

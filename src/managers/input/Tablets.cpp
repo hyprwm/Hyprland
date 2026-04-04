@@ -2,11 +2,11 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/core/DataDevice.hpp"
+#include "../../event/EventBus.hpp"
 
 static void unfocusTool(SP<CTabletTool> tool) {
     if (!tool->getSurface())
@@ -107,6 +107,11 @@ static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeAre
 }
 
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.axis.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
@@ -171,7 +176,10 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("tabletTip", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.tip.emit(e, info);
+    if (info.cancelled)
+        return;
 
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
@@ -196,6 +204,11 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 }
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.button.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
     if (e.down)
@@ -210,6 +223,11 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 }
 
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.proximity.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 

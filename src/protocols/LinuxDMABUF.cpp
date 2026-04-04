@@ -8,11 +8,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include "core/Compositor.hpp"
+#include "render/Renderer.hpp"
 #include "types/DMABuffer.hpp"
 #include "types/WLBuffer.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../render/OpenGL.hpp"
 #include "../Compositor.hpp"
+#include "../event/EventBus.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -165,7 +166,8 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
 
         const uint64_t modifier = (sc<uint64_t>(modHi) << 32) | modLo;
 
-        if (m_resource->version() >= 5 && m_attrs->modifier && m_attrs->modifier != modifier) {
+        const bool     anyPlaneSet = std::ranges::any_of(m_attrs->fds, [](int planeFD) { return planeFD != -1; });
+        if (m_resource->version() >= 5 && anyPlaneSet && m_attrs->modifier != modifier) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "planes have different modifiers");
             return;
         }
@@ -267,7 +269,7 @@ bool CLinuxDMABUFParamsResource::commence() {
         uint32_t handle = 0;
 
         if (drmPrimeFDToHandle(PROTO::linuxDma->m_mainDeviceFD.get(), m_attrs->fds.at(i), &handle)) {
-            LOGM(Log::ERR, "Failed to import dmabuf fd");
+            LOGM(Log::ERR, "Failed to import dmabuf fd {} on plane {}", m_attrs->fds.at(i), i);
             return false;
         }
 
@@ -310,10 +312,11 @@ bool CLinuxDMABUFParamsResource::verify() {
     }
 
     for (size_t i = 0; i < sc<size_t>(m_attrs->planes); ++i) {
-        if (sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y > UINT32_MAX) {
+        const auto computedSize = sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y;
+        if (computedSize > UINT32_MAX) {
             m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_OUT_OF_BOUNDS,
                               std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, sc<uint64_t>(m_attrs->offsets.at(i)),
-                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i))));
+                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, computedSize));
             return false;
         }
     }
@@ -348,7 +351,7 @@ void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
     m_resource->sendTrancheFlags(sc<zwpLinuxDmabufFeedbackV1TrancheFlags>(tranche.flags));
 
     wl_array indices = {
-        .size = tranche.indices.size() * sizeof(tranche.indices.at(0)),
+        .size = tranche.indices.size() * sizeof(std::vector<uint16_t>::value_type),
         .data = tranche.indices.data(),
     };
     m_resource->sendTrancheFormats(&indices);
@@ -434,7 +437,7 @@ void CLinuxDMABUFResource::sendMods() {
 }
 
 CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("ready", [this](void* self, SCallbackInfo& info, std::any d) {
+    static auto P = Event::bus()->m_events.ready.listen([this] {
         int  rendererFD = g_pCompositor->m_drmRenderNode.fd >= 0 ? g_pCompositor->m_drmRenderNode.fd : g_pCompositor->m_drm.fd;
         auto dev        = devIDFromFD(rendererFD);
 
@@ -449,7 +452,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
         SDMABUFTranche eglTranche = {
             .device  = m_mainDevice,
             .flags   = 0, // renderer isn't for ds so don't set flag.
-            .formats = g_pHyprOpenGL->getDRMFormats(),
+            .formats = g_pHyprRenderer->getDRMFormats(),
         };
 
         std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tches;
@@ -467,24 +470,22 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
                 tches.emplace_back(std::make_pair<>(mon, tranche));
             }
 
-            static auto monitorAdded = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                auto tranche  = SDMABUFTranche{
-                     .device  = m_mainDevice,
-                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
-                     .formats = pMonitor->m_output->getRenderFormats(),
+            static auto monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR mon) {
+                auto tranche = SDMABUFTranche{
+                    .device  = m_mainDevice,
+                    .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,
+                    .formats = mon->m_output->getRenderFormats(),
                 };
-                m_formatTable->m_monitorTranches.emplace_back(std::make_pair<>(pMonitor, tranche));
+                m_formatTable->m_monitorTranches.emplace_back(std::make_pair<>(mon, tranche));
                 resetFormatTable();
             });
 
-            static auto monitorRemoved = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-                auto pMonitor = std::any_cast<PHLMONITOR>(param);
-                std::erase_if(m_formatTable->m_monitorTranches, [pMonitor](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == pMonitor; });
+            static auto monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) {
+                std::erase_if(m_formatTable->m_monitorTranches, [mon](std::pair<PHLMONITORREF, SDMABUFTranche> pair) { return pair.first == mon; });
                 resetFormatTable();
             });
 
-            static auto configReloaded = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) {
+            static auto configReloaded = Event::bus()->m_events.config.reloaded.listen([this] {
                 static const auto PSKIP_NON_KMS = CConfigValue<Hyprlang::INT>("quirks:skip_non_kms_dmabuf_formats");
                 static auto       prev          = *PSKIP_NON_KMS;
                 if (prev != *PSKIP_NON_KMS) {
@@ -642,4 +643,8 @@ void CLinuxDMABufV1Protocol::updateScanoutTranche(SP<CWLSurfaceResource> surface
     feedbackResource->m_resource->sendDone();
 
     feedbackResource->m_lastFeedbackWasScanout = true;
+}
+
+dev_t CLinuxDMABufV1Protocol::getMainDevice() {
+    return m_mainDevice;
 }

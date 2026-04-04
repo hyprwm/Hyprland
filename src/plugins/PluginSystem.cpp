@@ -2,13 +2,12 @@
 
 #include <dlfcn.h>
 #include <ranges>
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
-#include "../managers/LayoutManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../i18n/Engine.hpp"
 
 CPluginSystem::CPluginSystem() {
@@ -133,7 +132,7 @@ std::expected<CPlugin*, std::string> CPluginSystem::loadPluginInternal(const std
     PLUGIN->m_version     = PLUGINDATA.version;
     PLUGIN->m_name        = PLUGINDATA.name;
 
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
 
     Log::logger->log(Log::DEBUG, R"( [PluginSystem] Plugin {} loaded. Handle: {:x}, path: "{}", author: "{}", description: "{}", version: "{}")", PLUGINDATA.name,
                      rc<uintptr_t>(MODULE), path, PLUGINDATA.author, PLUGINDATA.description, PLUGINDATA.version);
@@ -151,14 +150,14 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             exitFunc();
     }
 
-    for (auto const& [k, v] : plugin->m_registeredCallbacks) {
-        if (const auto SHP = v.lock())
-            g_pHookSystem->unhook(SHP);
-    }
+    // for (auto const& [k, v] : plugin->m_registeredCallbacks) {
+    //     if (const auto SHP = v.lock())
+    //         g_pHookSystem->unhook(SHP);
+    // }
 
-    const auto ls = plugin->m_registeredLayouts;
-    for (auto const& l : ls)
-        g_pLayoutManager->removeLayout(l);
+    for (const auto& l : plugin->m_registeredAlgos) {
+        Layout::Supplementary::algoMatcher()->unregisterAlgo(l);
+    }
 
     g_pFunctionHookSystem->removeAllHooksFrom(plugin->m_handle);
 
@@ -176,7 +175,9 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, sp);
     }
 
-    g_pConfigManager->removePluginConfig(plugin->m_handle);
+    // FIXME: this is wrong and if I forget to fix this by the time I add another config parser
+    // this will explode and I will be mad because I am a RETARD
+    Config::Legacy::mgr()->removePluginConfig(plugin->m_handle);
 
     // save these two for dlclose and a log,
     // as erase_if will kill the pointer
@@ -190,7 +191,7 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
     Log::logger->log(Log::DEBUG, " [PluginSystem] Plugin {} unloaded.", PLNAME);
 
     // reload config to fix some stuf like e.g. unloadedPluginVars
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
 }
 
 void CPluginSystem::unloadAllPlugins() {

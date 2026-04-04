@@ -3,14 +3,18 @@
 #include "../../Compositor.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../render/Renderer.hpp"
-#include "../../managers/LayoutManager.hpp"
 #include "../../managers/EventManager.hpp"
-#include "../../managers/HookSystemManager.hpp"
+#include "../../managers/input/InputManager.hpp"
+#include "../../managers/SeatManager.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/LayoutManager.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Desktop;
+
+#define COMMA ,
 
 SP<CFocusState> Desktop::focusState() {
     static SP<CFocusState> state = makeShared<CFocusState>();
@@ -63,7 +67,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     return {};
 }
 
-void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
+void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface, bool forceFSCycle) {
     if (pWindow) {
         if (!pWindow->m_workspace)
             return;
@@ -83,10 +87,10 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surf
         return;
     }
 
-    rawWindowFocus(pWindow, surface);
+    rawWindowFocus(pWindow, reason, surface);
 }
 
-void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surface) {
+void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface) {
     static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
     static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
 
@@ -105,7 +109,9 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     if (pWindow && pWindow->m_isX11 && pWindow->isX11OverrideRedirect() && !pWindow->m_xwaylandSurface->wantsFocus())
         return;
 
-    g_pLayoutManager->getCurrentLayout()->bringWindowToTop(pWindow);
+    // m_target on purpose, this avoids the group
+    if (pWindow)
+        g_layoutManager->bringTargetToTop(pWindow->m_target);
 
     if (!pWindow || !validMapped(pWindow)) {
 
@@ -127,9 +133,7 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindow", ","});
         g_pEventManager->postEvent(SHyprIPCEvent{"activewindowv2", ""});
 
-        EMIT_HOOK_EVENT("activeWindow", PHLWINDOW{nullptr});
-
-        g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(nullptr);
+        Event::bus()->m_events.window.active.emit(nullptr, reason);
 
         m_focusSurface.reset();
 
@@ -196,16 +200,14 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, SP<CWLSurfaceResource> surfa
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = pWindow->m_class + "," + pWindow->m_title});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});
 
-    EMIT_HOOK_EVENT("activeWindow", pWindow);
-
-    g_pLayoutManager->getCurrentLayout()->onWindowFocusChange(pWindow);
+    Event::bus()->m_events.window.active.emit(pWindow, reason);
 
     g_pInputManager->recheckIdleInhibitorStatus();
 
     if (*PFOLLOWMOUSE == 0)
         g_pInputManager->sendMotionEventsToFocused();
 
-    if (pWindow->m_groupData.pNextWindow)
+    if (pWindow->m_group)
         pWindow->deactivateGroupMembers();
 }
 
@@ -231,7 +233,7 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
         g_pSeatManager->setKeyboardFocus(nullptr);
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindow", .data = ","});
         g_pEventManager->postEvent(SHyprIPCEvent{.event = "activewindowv2", .data = ""});
-        EMIT_HOOK_EVENT("keyboardFocus", SP<CWLSurfaceResource>{nullptr});
+        Event::bus()->m_events.input.keyboard.focus.emit(nullptr);
         m_focusSurface.reset();
         return;
     }
@@ -247,7 +249,7 @@ void CFocusState::rawSurfaceFocus(SP<CWLSurfaceResource> pSurface, PHLWINDOW pWi
     g_pXWaylandManager->activateSurface(pSurface, true);
     m_focusSurface = pSurface;
 
-    EMIT_HOOK_EVENT("keyboardFocus", pSurface);
+    Event::bus()->m_events.input.keyboard.focus.emit(pSurface);
 
     const auto SURF    = Desktop::View::CWLSurface::fromResource(pSurface);
     const auto OLDSURF = Desktop::View::CWLSurface::fromResource(PLASTSURF);
@@ -276,7 +278,7 @@ void CFocusState::rawMonitorFocus(PHLMONITOR pMonitor) {
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmon", .data = pMonitor->m_name + "," + WORKSPACE_NAME});
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "focusedmonv2", .data = pMonitor->m_name + "," + WORKSPACE_ID});
 
-    EMIT_HOOK_EVENT("focusedMon", pMonitor);
+    Event::bus()->m_events.monitor.focused.emit(pMonitor);
     m_focusMonitor = pMonitor;
 }
 
@@ -295,4 +297,8 @@ PHLMONITOR CFocusState::monitor() {
 void CFocusState::resetWindowFocus() {
     m_focusWindow.reset();
     m_focusSurface.reset();
+}
+
+bool Desktop::isHardInputFocusReason(eFocusReason r) {
+    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK || r == FOCUS_REASON_DESKTOP_STATE_CHANGE;
 }

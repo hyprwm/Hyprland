@@ -1,6 +1,6 @@
 #include "ForeignToplevel.hpp"
 #include "../Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../event/EventBus.hpp"
 
 CForeignToplevelHandle::CForeignToplevelHandle(SP<CExtForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : m_resource(resource_), m_window(pWindow_) {
     if UNLIKELY (!resource_->resource())
@@ -123,9 +123,7 @@ bool CForeignToplevelList::good() {
 }
 
 CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("openWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
+    static auto P = Event::bus()->m_events.window.open.listen([this](PHLWINDOW window) {
         if (!windowValidForForeign(window))
             return;
 
@@ -134,9 +132,7 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
         }
     });
 
-    static auto P1 = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
+    static auto P1 = Event::bus()->m_events.window.close.listen([this](PHLWINDOW window) {
         if (!windowValidForForeign(window))
             return;
 
@@ -145,9 +141,7 @@ CForeignToplevelProtocol::CForeignToplevelProtocol(const wl_interface* iface, co
         }
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("windowTitle", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto window = std::any_cast<PHLWINDOW>(data);
-
+    static auto P2 = Event::bus()->m_events.window.title.listen([this](PHLWINDOW window) {
         if (!windowValidForForeign(window))
             return;
 

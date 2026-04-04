@@ -228,23 +228,23 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
     constexpr size_t BUFFER_SIZE         = 8192;
     char             buffer[BUFFER_SIZE] = {0};
 
-    sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
-
-    if (sizeWritten < 0) {
-        if (errno == EWOULDBLOCK)
-            log("Hyprland IPC didn't respond in time\n");
-        log("Couldn't read (6)");
-        return 6;
-    }
-
-    reply += std::string(buffer, sizeWritten);
-
-    while (sizeWritten == BUFFER_SIZE) {
+    // read all data until server closes the connection
+    // this handles partial writes on the server side under high load
+    while (true) {
         sizeWritten = read(SERVERSOCKET, buffer, BUFFER_SIZE);
+
         if (sizeWritten < 0) {
+            if (errno == EWOULDBLOCK)
+                log("Hyprland IPC didn't respond in time\n");
             log("Couldn't read (6)");
             return 6;
         }
+
+        if (sizeWritten == 0) {
+            // server closed connection, we're done
+            break;
+        }
+
         reply += std::string(buffer, sizeWritten);
     }
 

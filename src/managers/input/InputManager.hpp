@@ -89,7 +89,7 @@ class CInputManager {
 
     void               onMouseMoved(IPointer::SMotionEvent);
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
-    void               onMouseButton(IPointer::SButtonEvent);
+    void               onMouseButton(IPointer::SButtonEvent, SP<IPointer>);
     void               onMouseWheel(IPointer::SAxisEvent, SP<IPointer> pointer = nullptr);
     void               onPointerFrame();
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
@@ -154,12 +154,6 @@ class CInputManager {
     void               onTabletButton(CTablet::SButtonEvent);
 
     STouchData         m_touchData;
-
-    // for dragging floating windows
-    PHLWINDOWREF   m_currentlyDraggedWindow;
-    eMouseBindMode m_dragMode             = MBIND_INVALID;
-    bool           m_wasDraggingWindow    = false;
-    bool           m_dragThresholdReached = false;
 
     // for refocus to be forced
     PHLWINDOWREF                 m_forcedFocus;
@@ -240,7 +234,7 @@ class CInputManager {
     void               setupKeyboard(SP<IKeyboard> keeb);
     void               setupMouse(SP<IPointer> mauz);
 
-    void               processMouseDownNormal(const IPointer::SButtonEvent& e);
+    void               processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer>);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
 
     bool               cursorImageUnlocked();

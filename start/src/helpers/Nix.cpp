@@ -82,6 +82,9 @@ std::expected<void, std::string> Nix::nixEnvironmentOk() {
 }
 
 bool Nix::shouldUseNixGL() {
+    if (g_state->forceNixGl)
+        return true;
+
     if (g_state->noNixGl)
         return false;
 
@@ -103,7 +106,19 @@ bool Nix::shouldUseNixGL() {
 
     if (IS_NIX) {
         const auto NAME = getFromEtcOsRelease("NAME");
-        return !NAME || *NAME != "NixOS";
+
+        // Hyprland is nix: recommend nixGL iff !NIX && !NIX-OPENGL
+
+        if (*NAME == "NixOS")
+            return false;
+
+        std::error_code ec;
+
+        if (std::filesystem::exists("/run/opengl-driver", ec) && !ec) // NOLINTNEXTLINE
+            return false;
+
+        // we are not on nix / no nix opengl driver
+        return true;
     }
 
     return false;

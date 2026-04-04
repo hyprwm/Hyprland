@@ -2,7 +2,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../xwayland/XWayland.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../event/EventBus.hpp"
 #include "core/Output.hpp"
 
 #define OUTPUT_MANAGER_VERSION                   3
@@ -36,8 +36,8 @@ void CXDGOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver
 }
 
 CXDGOutputProtocol::CXDGOutputProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P  = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
-    static auto P2 = g_pHookSystem->hookDynamic("configReloaded", [this](void* self, SCallbackInfo& info, std::any param) { this->updateAllOutputs(); });
+    static auto P  = Event::bus()->m_events.monitor.layoutChanged.listen([this] { updateAllOutputs(); });
+    static auto P2 = Event::bus()->m_events.config.reloaded.listen([this] { updateAllOutputs(); });
 }
 
 void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32_t id, wl_resource* outputResource) {

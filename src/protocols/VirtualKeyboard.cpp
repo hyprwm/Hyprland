@@ -2,7 +2,7 @@
 #include <filesystem>
 #include <sys/mman.h>
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/MiscFunctions.hpp"
@@ -135,7 +135,7 @@ void CVirtualKeyboardV1Resource::releasePressed() {
 }
 
 void CVirtualKeyboardV1Resource::destroy() {
-    const auto RELEASEPRESSED = g_pConfigManager->getDeviceInt(m_name, "release_pressed_on_close", "input:virtualkeyboard:release_pressed_on_close");
+    const auto RELEASEPRESSED = Config::mgr()->getDeviceInt(m_name, "release_pressed_on_close", "input:virtualkeyboard:release_pressed_on_close");
     if (RELEASEPRESSED)
         releasePressed();
     m_events.destroy.emit();

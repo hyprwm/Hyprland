@@ -110,6 +110,7 @@ add_compile_options(
   -Wno-narrowing
   -Wno-pointer-arith
   -Wno-clobbered
+  -frtti
   -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
 
 # disable lto as it may break plugins
@@ -124,11 +125,12 @@ find_package(Threads REQUIRED)
 
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
+find_package(glslang CONFIG REQUIRED)
 
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
-set(HYPRUTILS_MINIMUM_VERSION 0.11.0)
+set(HYPRUTILS_MINIMUM_VERSION 0.11.1)
 set(HYPRGRAPHICS_MINIMUM_VERSION 0.1.6)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
@@ -244,7 +246,7 @@ set_source_files_properties(${CMAKE_SOURCE_DIR}/src/version.h PROPERTIES GENERAT
 
 set(XKBCOMMON_MINIMUM_VERSION 1.11.0)
 set(WAYLAND_SERVER_MINIMUM_VERSION 1.22.91)
-set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.45)
+set(WAYLAND_SERVER_PROTOCOLS_MINIMUM_VERSION 1.47)
 set(LIBINPUT_MINIMUM_VERSION 1.28)
 
 pkg_check_modules(
@@ -265,7 +267,8 @@ pkg_check_modules(
   gbm
   gio-2.0
   re2
-  muparser)
+  muparser
+  lcms2)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -298,7 +301,7 @@ if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
     target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
   endif()
 
-  add_compile_options(-fno-pie -fno-builtin)
+  add_compile_options(-fno-pie -fno-builtin -fno-omit-frame-pointer)
   add_link_options(-no-pie -fno-builtin)
   if(USE_GPROF)
     add_compile_options(-pg)
@@ -477,9 +480,9 @@ function(protocolWayland)
 endfunction()
 
 if(TARGET OpenGL::GL)
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GL glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 else()
-  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 Threads::Threads)
+  target_link_libraries(hyprland_lib PUBLIC OpenGL::EGL OpenGL::GLES3 glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV Threads::Threads)
 endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
@@ -531,6 +534,7 @@ protocolnew("unstable/keyboard-shortcuts-inhibit"
 protocolnew("unstable/text-input" "text-input-unstable-v3" false)
 protocolnew("unstable/pointer-constraints" "pointer-constraints-unstable-v1"
             false)
+protocolnew("unstable/xdg-foreign" "xdg-foreign-unstable-v2" false)
 protocolnew("staging/xdg-activation" "xdg-activation-v1" false)
 protocolnew("staging/ext-idle-notify" "ext-idle-notify-v1" false)
 protocolnew("staging/ext-session-lock" "ext-session-lock-v1" false)
@@ -555,6 +559,8 @@ protocolnew("staging/ext-data-control" "ext-data-control-v1" false)
 protocolnew("staging/pointer-warp" "pointer-warp-v1" false)
 protocolnew("staging/fifo" "fifo-v1" false)
 protocolnew("staging/commit-timing" "commit-timing-v1" false)
+protocolnew("staging/ext-image-capture-source" "ext-image-capture-source-v1" false)
+protocolnew("staging/ext-image-copy-capture" "ext-image-copy-capture-v1" false)
 
 protocolwayland()
 

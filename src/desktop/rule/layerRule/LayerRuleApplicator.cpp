@@ -4,6 +4,7 @@
 #include "../../view/LayerSurface.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
+#include "../../../event/EventBus.hpp"
 
 using namespace Desktop;
 using namespace Desktop::Rule;
@@ -32,11 +33,38 @@ void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> prop
     UNSET(aboveLock)
     UNSET(ignoreAlpha)
     UNSET(animationStyle)
+
+#undef UNSET
+
+    if (prio == Types::PRIORITY_WINDOW_RULE)
+        std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
 }
 
 void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
+            default: {
+                if (key <= LAYER_RULE_EFFECT_LAST_STATIC) {
+                    Log::logger->log(Log::TRACE, "CLayerRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eLayerRuleEffect>>(key));
+                    break;
+                }
+
+                // custom type, add to our vec
+                if (!m_otherProps.props.contains(key)) {
+                    m_otherProps.props.emplace(key,
+                                               makeUnique<SCustomPropContainer>(SCustomPropContainer{
+                                                   .idx      = key,
+                                                   .propMask = rule->getPropertiesMask(),
+                                                   .effect   = effect,
+                                               }));
+                } else {
+                    auto& e = m_otherProps.props[key];
+                    e->propMask |= rule->getPropertiesMask();
+                    e->effect = effect;
+                }
+
+                break;
+            }
             case LAYER_RULE_EFFECT_NONE: {
                 Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
                 break;
@@ -125,4 +153,7 @@ void CLayerRuleApplicator::propertiesChanged(std::underlying_type_t<eRulePropert
 
         applyDynamicRule(wr);
     }
+
+    // for plugins
+    Event::bus()->m_events.layer.updateRules.emit(m_ls.lock());
 }

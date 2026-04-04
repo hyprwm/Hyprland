@@ -3,6 +3,7 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "../../desktop/DesktopTypes.hpp"
 #include <string>
+#include <optional>
 
 class CDesktopAnimationManager {
   public:
@@ -13,7 +14,7 @@ class CDesktopAnimationManager {
 
     void startAnimation(PHLWINDOW w, eAnimationType type, bool force = false);
     void startAnimation(PHLLS ls, eAnimationType type, bool instant = false);
-    void startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left = true, bool instant = false);
+    void startAnimation(PHLWORKSPACE ws, eAnimationType type, bool left = true, bool instant = false, std::optional<std::string> style = std::nullopt);
 
     void setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnimationType type);
     void setFullscreenFloatingFade(PHLWINDOW pWindow, float fade);

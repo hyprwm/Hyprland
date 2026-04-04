@@ -193,6 +193,35 @@ static bool testAsymmetricGaps() {
     return true;
 }
 
+static void testWorkspaceHistoryMultiMon() {
+    NLog::log("{}Testing multimon workspace history tracker", Colors::YELLOW);
+
+    // Initial state:
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 10"));
+    Tests::spawnKitty();
+    OK(getFromSocket("/dispatch workspace 11"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 12"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 11");
+    }
+    OK(getFromSocket("/dispatch workspace previous_per_monitor"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 10");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
 static void testMultimonBAF() {
     NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
 
@@ -251,6 +280,144 @@ static void testMultimonBAF() {
         auto str = getFromSocket("/activeworkspace");
         EXPECT_CONTAINS(str, "workspace ID 3 ");
     }
+
+    Tests::killAllWindows();
+}
+
+static void testMultimonFocus() {
+    NLog::log("{}Testing multimon focus and move", Colors::YELLOW);
+
+    OK(getFromSocket("/keyword input:follow_mouse 0"));
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 8"));
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 7"));
+
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    Tests::spawnKitty("c");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: c");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus l"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
+    }
+
+    OK(getFromSocket("/dispatch movewindow r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: c");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus l"));
+
+    OK(getFromSocket("/keyword general:no_focus_fallback true"));
+    OK(getFromSocket("/keyword binds:window_direction_monitor_fallback false"));
+
+    EXPECT_NOT(getFromSocket("/dispatch movefocus l"), "ok");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movewindow l"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+}
+
+static void testDynamicWsEffects() {
+    // test dynamic workspace effects, they shouldn't lag
+
+    OK(getFromSocket("/dispatch workspace 69"));
+
+    Tests::spawnKitty("bitch");
+
+    OK(getFromSocket("r/keyword workspace 69,bordersize:20"));
+    OK(getFromSocket("r/keyword workspace 69,rounding:false"));
+
+    EXPECT(getFromSocket("/getprop class:bitch border_size"), "20");
+    EXPECT(getFromSocket("/getprop class:bitch rounding"), "0");
+
+    OK(getFromSocket("/reload"));
 
     Tests::killAllWindows();
 }
@@ -594,13 +761,15 @@ static bool test() {
     Tests::killAllWindows();
 
     testMultimonBAF();
+    testMultimonFocus();
+    testWorkspaceHistoryMultiMon();
 
     // destroy the headless output
     OK(getFromSocket("/output remove HEADLESS-3"));
 
     testSpecialWorkspaceFullscreen();
-
     testAsymmetricGaps();
+    testDynamicWsEffects();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

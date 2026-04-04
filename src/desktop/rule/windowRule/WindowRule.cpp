@@ -5,8 +5,11 @@
 #include "../../../managers/TokenManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
+#include <hyprutils/string/VarList2.hpp>
+
 using namespace Desktop;
 using namespace Desktop::Rule;
+using namespace Hyprutils::String;
 
 CWindowRule::CWindowRule(const std::string& name) : IRule(name) {
     ;
@@ -77,7 +80,7 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_GROUP:
-                if (!engine->match(w->m_groupData.pNextWindow))
+                if (!engine->match(!!w->m_group))
                     return false;
                 break;
             case RULE_PROP_MODAL:
@@ -97,27 +100,31 @@ bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
                     return false;
                 break;
             case RULE_PROP_CONTENT:
-                if (!engine->match(w->getContentType()))
+                if (!engine->match(std::format("{}", sc<size_t>(w->getContentType()))) && !engine->match(NContentType::toString(w->getContentType())))
                     return false;
                 break;
             case RULE_PROP_XDG_TAG:
                 if (!w->xdgTag().has_value() || !engine->match(*w->xdgTag()))
                     return false;
                 break;
+
             case RULE_PROP_EXEC_TOKEN:
-                // this is only allowed on static rules, we don't need it on dynamic plus it's expensive
                 if (!allowEnvLookup)
                     break;
 
-                const auto ENV = w->getEnv();
-                if (ENV.contains(EXEC_RULE_ENV_NAME)) {
-                    const auto TKN = ENV.at(EXEC_RULE_ENV_NAME);
-                    if (!engine->match(TKN))
-                        return false;
-                    break;
-                }
+                const auto ENV   = w->getEnv();
+                bool       match = false;
 
-                return false;
+                if (ENV.contains(EXEC_RULE_ENV_NAME)) {
+                    if (engine->match(ENV.at(EXEC_RULE_ENV_NAME)))
+                        match = true;
+                } else if (m_matchEngines.contains(RULE_PROP_EXEC_PID)) {
+                    if (m_matchEngines.at(RULE_PROP_EXEC_PID)->match(w->getPID()))
+                        match = true;
+                }
+                if (!match)
+                    return false;
+                break;
         }
     }
 
@@ -152,11 +159,6 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
 
         wr->addEffect(*EFFECT, std::string{"1"});
     }
-
-    const auto TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
-
-    wr->markAsExecRule(TOKEN, false /* TODO: could be nice. */);
-    wr->registerMatch(RULE_PROP_EXEC_TOKEN, TOKEN);
 
     return wr;
 }

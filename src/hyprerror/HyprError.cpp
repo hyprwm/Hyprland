@@ -2,20 +2,20 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../event/EventBus.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 using namespace Hyprutils::Animation;
 
 CHyprError::CHyprError() {
-    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
-    static auto P = g_pHookSystem->hookDynamic("focusedMon", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)
             return;
 
@@ -23,15 +23,13 @@ CHyprError::CHyprError() {
         m_monitorChanged = true;
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("preRender", [&](void* self, SCallbackInfo& info, std::any param) {
+    static auto P2 = Event::bus()->m_events.render.pre.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)
             return;
 
         if (m_fadeOpacity->isBeingAnimated() || m_monitorChanged)
             g_pHyprRenderer->damageBox(m_damageBox);
     });
-
-    m_texture = makeShared<CTexture>();
 }
 
 void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
@@ -39,11 +37,15 @@ void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
     m_queuedColor = color;
 }
 
-void CHyprError::createQueued() {
-    if (m_isCreated)
-        m_texture->destroyTexture();
+void CHyprError::queueError(std::string err) {
+    queueCreate(err + "\nHyprland may not work correctly.", CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+}
 
-    m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+void CHyprError::createQueued() {
+    if (m_isCreated && m_texture)
+        m_texture.reset();
+
+    m_fadeOpacity->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
 
     m_fadeOpacity->setValueAndWarp(0.f);
     *m_fadeOpacity = 1.f;
@@ -145,12 +147,13 @@ void CHyprError::createQueued() {
 
     // copy the data to an OpenGL texture we have
     const auto DATA = cairo_image_surface_get_data(CAIROSURFACE);
-    m_texture->allocate();
-    m_texture->bind();
-    m_texture->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    m_texture->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
-    m_texture->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+    auto       tex  = texture();
+    tex->allocate(PMONITOR->m_pixelSize);
+    tex->bind();
+    tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
+    tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, DATA);
 
@@ -187,7 +190,8 @@ void CHyprError::draw() {
         if (!m_fadeOpacity->isBeingAnimated()) {
             if (m_fadeOpacity->value() == 0.f) {
                 m_queuedDestroy = false;
-                m_texture->destroyTexture();
+                if (m_texture)
+                    m_texture.reset();
                 m_isCreated = false;
                 m_queued    = "";
 
@@ -198,13 +202,13 @@ void CHyprError::draw() {
 
                 return;
             } else {
-                m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+                m_fadeOpacity->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
                 *m_fadeOpacity = 0.f;
             }
         }
     }
 
-    const auto  PMONITOR = g_pHyprOpenGL->m_renderData.pMonitor;
+    const auto  PMONITOR = g_pHyprRenderer->m_renderData.pMonitor;
 
     CBox        monbox = {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y};
 
@@ -218,7 +222,7 @@ void CHyprError::draw() {
     m_monitorChanged = false;
 
     CTexPassElement::SRenderData data;
-    data.tex = m_texture;
+    data.tex = texture();
     data.box = monbox;
     data.a   = m_fadeOpacity->value();
 
@@ -238,4 +242,10 @@ bool CHyprError::active() {
 
 float CHyprError::height() {
     return m_lastHeight;
+}
+
+SP<Render::ITexture> CHyprError::texture() {
+    if (!m_texture)
+        m_texture = g_pHyprRenderer->createTexture();
+    return m_texture;
 }

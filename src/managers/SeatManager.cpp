@@ -11,7 +11,6 @@
 #include "../devices/IKeyboard.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 #include <algorithm>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -212,10 +211,12 @@ void CSeatManager::sendKeyboardMods(uint32_t depressed, uint32_t latched, uint32
 }
 
 void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& local) {
+    const bool dndActive = PROTO::data && PROTO::data->dndActive();
+
     if (m_state.pointerFocus == surf)
         return;
 
-    if (PROTO::data->dndActive() && surf) {
+    if (dndActive && surf) {
         if (m_state.dndPointerFocus == surf)
             return;
         Log::logger->log(Log::DEBUG, "[seatmgr] Refusing pointer focus during an active dnd, but setting dndPointerFocus");
@@ -305,7 +306,7 @@ void CSeatManager::sendPointerMotion(uint32_t timeMs, const Vector2D& local) {
 }
 
 void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_button_state state_) {
-    if (!m_state.pointerFocusResource || PROTO::data->dndActive())
+    if (!m_state.pointerFocusResource || (PROTO::data && PROTO::data->dndActive()))
         return;
 
     for (auto const& s : m_seatResources) {
@@ -668,7 +669,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
 
                 // If this was a popup grab, focus its parent window to maintain context
                 if (validMapped(parentWindow)) {
-                    Desktop::focusState()->rawWindowFocus(parentWindow);
+                    Desktop::focusState()->rawWindowFocus(parentWindow, Desktop::FOCUS_REASON_FFM);
                     Log::logger->log(Log::DEBUG, "[seatmgr] Refocused popup parent window {} (follow_mouse={})", parentWindow->m_title, *PFOLLOWMOUSE);
                 } else
                     g_pInputManager->refocusLastWindow(PMONITOR);
@@ -702,7 +703,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
             auto candidate = Desktop::focusState()->window();
 
             if (candidate)
-                Desktop::focusState()->rawWindowFocus(candidate);
+                Desktop::focusState()->rawWindowFocus(candidate, Desktop::FOCUS_REASON_FFM);
         }
 
         if (oldGrab->m_onEnd)

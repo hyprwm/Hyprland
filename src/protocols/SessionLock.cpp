@@ -62,11 +62,11 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 
         if (m_surface)
             m_surface->enter(m_monitor.lock());
+
+        m_listeners.monitorMode = m_monitor->m_events.modeChanged.listen([this] { sendConfigure(); });
     }
 
     sendConfigure();
-
-    m_listeners.monitorMode = m_monitor->m_events.modeChanged.listen([this] { sendConfigure(); });
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
@@ -203,8 +203,17 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
 void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output) {
     LOGM(Log::DEBUG, "New sessionLockSurface with id {}", id);
 
-    auto             PSURFACE = CWLSurfaceResource::fromResource(surface);
-    auto             PMONITOR = CWLOutputResource::fromResource(output)->m_monitor.lock();
+    auto PSURFACE  = CWLSurfaceResource::fromResource(surface);
+    auto OUTPUTRES = CWLOutputResource::fromResource(output);
+    if (!OUTPUTRES) {
+        LOGM(Log::ERR, "onGetLockSurface: invalid output resource");
+        return;
+    }
+    auto PMONITOR = OUTPUTRES->m_monitor.lock();
+    if (!PMONITOR) {
+        LOGM(Log::ERR, "onGetLockSurface: monitor is gone for output resource");
+        return;
+    }
 
     SP<CSessionLock> sessionLock;
     for (auto const& l : m_locks) {

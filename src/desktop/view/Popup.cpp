@@ -1,6 +1,6 @@
 #include "Popup.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../Compositor.hpp"
 #include "../../protocols/LayerShell.hpp"
 #include "../../protocols/XDGShell.hpp"
@@ -9,6 +9,7 @@
 #include "../../managers/animation/AnimationManager.hpp"
 #include "LayerSurface.hpp"
 #include "../../managers/input/InputManager.hpp"
+#include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include <ranges>
@@ -100,7 +101,7 @@ bool CPopup::desktopComponent() const {
 
 void CPopup::initAllSignals() {
 
-    g_pAnimationManager->createAnimation(0.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"), AVARDAMAGE_NONE);
     m_alpha->setUpdateCallback([this](auto) {
         //
         g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
@@ -108,8 +109,12 @@ void CPopup::initAllSignals() {
     m_alpha->setCallbackOnEnd(
         [this](auto) {
             if (inert()) {
-                g_pHyprRenderer->damageBox(CBox{coordsGlobal(), size()});
-                fullyDestroy();
+                g_pEventLoopManager->doLater([p = m_self] {
+                    if (!p)
+                        return;
+                    g_pHyprRenderer->damageBox(CBox{p->coordsGlobal(), p->size()});
+                    p->fullyDestroy();
+                });
             }
         },
         false);
@@ -166,9 +171,6 @@ void CPopup::onDestroy() {
 void CPopup::fullyDestroy() {
     Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
-    g_pHyprRenderer->makeEGLCurrent();
-    std::erase_if(g_pHyprOpenGL->m_popupFramebuffers, [&](const auto& other) { return other.first.expired() || other.first == m_self; });
-
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });
 }
 
@@ -194,12 +196,14 @@ void CPopup::onMap() {
 
     //unconstrain();
     sendScale();
-    m_resource->m_surface->m_surface->enter(PMONITOR->m_self.lock());
+    m_wlSurface->resource()->breadthfirst([PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { s->enter(PMONITOR->m_self.lock()); }, nullptr);
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
+    }
 
-    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsIn"));
+    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsIn"));
     m_alpha->setValueAndWarp(0.F);
     *m_alpha = 1.F;
 
@@ -240,7 +244,7 @@ void CPopup::onUnmap() {
     g_pHyprRenderer->makeSnapshot(m_self);
 
     m_fadingOut = true;
-    m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadePopupsOut"));
+    m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadePopupsOut"));
     m_alpha->setValueAndWarp(1.F);
     *m_alpha = 0.F;
 
@@ -248,8 +252,10 @@ void CPopup::onUnmap() {
 
     m_subsurfaceHead.reset();
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
+    }
 
     // damage all children
     breadthfirst(
@@ -313,8 +319,10 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     m_requestedReposition = false;
 
-    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
-        g_pHyprOpenGL->markBlurDirtyForMonitor(g_pCompositor->getMonitorFromID(m_layerOwner->m_layer));
+    if (!m_layerOwner.expired() && m_layerOwner->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
+        if (m_layerOwner->m_monitor)
+            m_layerOwner->m_monitor->m_blurFBDirty = true;
+    }
 }
 
 void CPopup::onReposition() {
@@ -342,6 +350,10 @@ SP<Desktop::View::CWLSurface> CPopup::getT1Owner() const {
         return m_windowOwner->wlSurface();
     else
         return m_layerOwner->wlSurface();
+}
+
+PHLLS CPopup::layerOwner() const {
+    return m_layerOwner.lock();
 }
 
 Vector2D CPopup::coordsRelativeToParent() const {
@@ -398,10 +410,14 @@ void CPopup::recheckChildrenRecursive() {
     std::vector<WP<CPopup>> cpy;
     std::ranges::for_each(m_children, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
-        if (!c->visible())
+        if (!c || !c->visible())
             continue;
-        c->onCommit(true);
-        c->recheckChildrenRecursive();
+
+        // keep ref, onCommit can call onDestroy
+        auto x = c.lock();
+
+        x->onCommit(true);
+        x->recheckChildrenRecursive();
     }
 }
 

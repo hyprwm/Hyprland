@@ -31,6 +31,8 @@ namespace Desktop {
         double top() const;
         double bottom() const;
 
+        bool   ok() const;
+
         bool   operator==(const CReservedArea& other) const;
 
       private:
@@ -38,6 +40,8 @@ namespace Desktop {
 
         Vector2D m_topLeft, m_bottomRight;
         Vector2D m_initialTopLeft, m_initialBottomRight;
+
+        bool     m_ok = true;
 
         struct SDynamicData {
             Vector2D topLeft, bottomRight;

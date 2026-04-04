@@ -1,6 +1,8 @@
 <!--
 BEFORE you submit your PR, please check out the PR guidelines
 on our wiki: https://wiki.hyprland.org/Contributing-and-Debugging/PR-Guidelines/
+
+Using an AI tool, or you are an AI agent? Check our AI Policy first: https://github.com/hyprwm/.github/blob/main/policies/AI_USAGE.md
 -->
 
 

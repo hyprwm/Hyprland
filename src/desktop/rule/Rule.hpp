@@ -6,7 +6,6 @@
 #include "../../helpers/time/Time.hpp"
 #include <vector>
 #include <unordered_map>
-#include <cstdint>
 #include <optional>
 
 namespace Desktop::Rule {
@@ -31,6 +30,7 @@ namespace Desktop::Rule {
         RULE_PROP_XDG_TAG                  = (1 << 16),
         RULE_PROP_NAMESPACE                = (1 << 17),
         RULE_PROP_EXEC_TOKEN               = (1 << 18),
+        RULE_PROP_EXEC_PID                 = (1 << 19),
 
         RULE_PROP_ALL = std::numeric_limits<std::underlying_type_t<eRuleProperty>>::max(),
     };
@@ -52,7 +52,7 @@ namespace Desktop::Rule {
         virtual std::underlying_type_t<eRuleProperty> getPropertiesMask();
 
         void                                          registerMatch(eRuleProperty, const std::string&);
-        void                                          markAsExecRule(const std::string& token, bool persistent = false);
+        void                                          markAsExecRule(const std::string& token, uint64_t pid, bool persistent = false);
         bool                                          isExecRule();
         bool                                          isExecPersistent();
         bool                                          execExpired();
@@ -78,6 +78,7 @@ namespace Desktop::Rule {
             bool            isExecRule       = false;
             bool            isExecPersistent = false;
             std::string     token;
+            uint64_t        pid = 0;
             Time::steady_tp expiresAt;
         } m_execData;
     };

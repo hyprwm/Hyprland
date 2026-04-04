@@ -297,31 +297,23 @@ int NFormatUtils::minStride(const SPixelFormat* const fmt, int32_t width) {
     return std::ceil((width * fmt->bytesPerBlock) / pixelsPerBlock(fmt));
 }
 
-uint32_t NFormatUtils::drmFormatToGL(DRMFormat drm) {
-    switch (drm) {
-        case DRM_FORMAT_XRGB8888:
-        case DRM_FORMAT_XBGR8888: return GL_RGBA; // doesn't matter, opengl is gucci in this case.
-        case DRM_FORMAT_XRGB2101010:
-        case DRM_FORMAT_XBGR2101010: return GL_RGB10_A2;
-        default: return GL_RGBA;
-    }
-    UNREACHABLE();
-    return GL_RGBA;
-}
-
-uint32_t NFormatUtils::glFormatToType(uint32_t gl) {
-    return gl != GL_RGBA ? GL_UNSIGNED_INT_2_10_10_10_REV : GL_UNSIGNED_BYTE;
-}
-
 std::string NFormatUtils::drmFormatName(DRMFormat drm) {
-    auto        n    = drmGetFormatName(drm);
+    auto n = drmGetFormatName(drm);
+
+    if (!n)
+        return "unknown";
+
     std::string name = n;
     free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;
 }
 
 std::string NFormatUtils::drmModifierName(uint64_t mod) {
-    auto        n    = drmGetFormatModifierName(mod);
+    auto n = drmGetFormatModifierName(mod);
+
+    if (!n)
+        return "unknown";
+
     std::string name = n;
     free(n); // NOLINT(cppcoreguidelines-no-malloc,-warnings-as-errors)
     return name;

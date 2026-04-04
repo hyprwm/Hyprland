@@ -535,7 +535,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         if (!TARGET || TARGET->floating())
             return;
 
-        focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_KB : INPUT_MODE_SOFT));
+        focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
     });
 
     // Initialize default widths and direction
@@ -576,7 +576,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     // if we moved via non-kb, and it's fully visible, ignore
-    if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)
+    if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_HARD)
         return;
 
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
@@ -808,9 +808,11 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
         const auto TARGETDATA = dataFor(TARGET);
 
         if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true)) {
-            // guard against scrolling tape move when switching workspaces when target is scrolling (special or not)
-            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE)
-                focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_KB);
+            // TODO: erstarr Maybe do smt about this mess
+            // RECALCULATE_REASON_WORKSPACE_CHANGE, RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE => guard against scrolling view move when switching workspaces when target is scrolling (special or not)
+            // RECALCULATE_REASON_HYPRCTL_KEYWORD => guard against `hyprctl keyword` commands moving scrolling view
+            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_HYPRCTL_KEYWORD)
+                focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }
     }
 

@@ -332,10 +332,13 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
 }
 
+// TODO: erstarr - don't leave this like this. a function for mathcing recalculate_monitor reasons into recalculate reasons should be good. maybe an operator overload?
 void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculateMonitorReason> reason) {
     if (m->m_activeSpecialWorkspace) {
         if (reason == RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE)
             m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE);
+        else if (reason == RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD)
+            m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_HYPRCTL_KEYWORD);
         else
             m->m_activeSpecialWorkspace->m_space->recalculate();
         return;
@@ -344,6 +347,8 @@ void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculate
     if (m->m_activeWorkspace) {
         if (reason == RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE)
             m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_WORKSPACE_CHANGE);
+        else if (reason == RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD)
+            m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_HYPRCTL_KEYWORD);
         else
             m->m_activeWorkspace->m_space->recalculate();
         return;

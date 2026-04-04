@@ -114,7 +114,7 @@ namespace Layout::Tiled {
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
             INPUT_MODE_CLICK,
-            INPUT_MODE_KB
+            INPUT_MODE_HARD
         };
 
       private:

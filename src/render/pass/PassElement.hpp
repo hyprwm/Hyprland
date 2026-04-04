@@ -34,4 +34,8 @@ class IPassElement {
     virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates
     virtual CRegion             opaqueRegion(); // in monitor-local logical coordinates
     virtual bool                disableSimplification();
+
+    // cached results, computed once per frame in CRenderPass::render()
+    bool needsLiveBlurCached       = false;
+    bool needsPrecomputeBlurCached = false;
 };

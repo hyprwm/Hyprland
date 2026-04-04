@@ -61,7 +61,8 @@ void CDecorationPositioner::uncacheDecoration(IHyprWindowDecoration* deco) {
     if (WIT == m_windowDatas.end())
         return;
 
-    WIT->second.needsRecalc = true;
+    WIT->second.needsRecalc        = true;
+    WIT->second.needsDamageExtents = true;
 }
 
 void CDecorationPositioner::repositionDeco(IHyprWindowDecoration* deco) {
@@ -111,7 +112,27 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     if (WIT == m_windowDatas.end())
         return;
 
-    const auto WINDOWDATA = &WIT->second;
+    auto* const WINDOWDATA = &WIT->second;
+
+    // fast path: if size unchanged and no recalc needed, skip the expensive work below.
+    // needsReposition is only true for newly-added decoration entries, so if the deco count
+    // matches what we've cached, no new decos were added and we can skip the all_of scan too.
+    if (WINDOWDATA->lastWindowSize == pWindow->m_realSize->value() && !WINDOWDATA->needsRecalc) {
+        const auto expectedDecos = pWindow->m_windowDecorations.size();
+        bool       allCached     = true;
+        size_t     found         = 0;
+        for (auto const& data : m_windowPositioningDatas) {
+            if (data->pWindow.lock() == pWindow) {
+                if (data->needsReposition) {
+                    allCached = false;
+                    break;
+                }
+                ++found;
+            }
+        }
+        if (allCached && found == expectedDecos)
+            return;
+    }
 
     sanitizeDatas();
 
@@ -123,13 +144,6 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
     for (auto const& wd : pWindow->m_windowDecorations) {
         datas.push_back(getDataFor(wd.get(), pWindow));
     }
-
-    if (WINDOWDATA->lastWindowSize == pWindow->m_realSize->value() /* position not changed */
-        && std::ranges::all_of(m_windowPositioningDatas, [pWindow](const auto& data) { return pWindow != data->pWindow.lock() || !data->needsReposition; })
-        /* all window datas are either not for this window or don't need a reposition */
-        && !WINDOWDATA->needsRecalc /* window doesn't need recalc */
-    )
-        return;
 
     for (auto const& wd : datas) {
         wd->positioningInfo = wd->pDecoration->getPositioningInfo();
@@ -273,6 +287,9 @@ void CDecorationPositioner::onWindowUpdate(PHLWINDOW pWindow) {
         WINDOWDATA->extents = {{stickyOffsetXL + reservedXL, stickyOffsetYT + reservedYT}, {stickyOffsetXR + reservedXR, stickyOffsetYB + reservedYB}};
         pWindow->layoutTarget()->recalc();
     }
+
+    // update cached decoration extents for getWindowDecorationExtents
+    WINDOWDATA->needsDamageExtents = true;
 }
 
 void CDecorationPositioner::onWindowUnmap(PHLWINDOW pWindow) {
@@ -291,7 +308,7 @@ SBoxExtents CDecorationPositioner::getWindowDecorationReserved(PHLWINDOWREF pWin
     } catch (std::out_of_range& e) { return {}; }
 }
 
-SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
+SBoxExtents CDecorationPositioner::computeWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
     CBox const mainSurfaceBox = pWindow->getWindowMainSurfaceBox();
     CBox       accum          = mainSurfaceBox;
 
@@ -338,6 +355,24 @@ SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWind
     }
 
     return accum.extentsFrom(mainSurfaceBox);
+}
+
+SBoxExtents CDecorationPositioner::getWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly) {
+    // inputOnly is rare (input handling), skip the cache for it
+    if (inputOnly)
+        return computeWindowDecorationExtents(pWindow, true);
+
+    const auto WIT = std::ranges::find_if(m_windowDatas, [&](const auto& other) { return other.first.lock() == pWindow; });
+    if (WIT == m_windowDatas.end())
+        return computeWindowDecorationExtents(pWindow, false);
+
+    auto& wd = WIT->second;
+    if (wd.needsDamageExtents) {
+        wd.decorationExtents  = computeWindowDecorationExtents(pWindow, false);
+        wd.needsDamageExtents = false;
+    }
+
+    return wd.decorationExtents;
 }
 
 CBox CDecorationPositioner::getBoxWithIncludedDecos(PHLWINDOW pWindow) {

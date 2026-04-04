@@ -363,7 +363,7 @@ void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (ws && ws->m_monitor == m) {
             ws->m_space->recheckWorkArea();
-            ws->m_space->recalculate();
+            ws->m_space->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);
         }
     }
 }

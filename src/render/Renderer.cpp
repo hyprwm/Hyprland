@@ -2883,6 +2883,9 @@ bool IHyprRenderer::isMgpu() {
 void IHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
     static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
 
+    if (*PFPS <= 0)
+        return;
+
     if (std::ranges::find(m_renderUnfocused, window) != m_renderUnfocused.end())
         return;
 

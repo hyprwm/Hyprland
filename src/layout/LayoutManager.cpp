@@ -332,11 +332,22 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
 }
 
-void CLayoutManager::recalculateMonitor(PHLMONITOR m) {
-    if (m->m_activeSpecialWorkspace)
-        m->m_activeSpecialWorkspace->m_space->recalculate();
-    if (m->m_activeWorkspace)
-        m->m_activeWorkspace->m_space->recalculate();
+void CLayoutManager::recalculateMonitor(PHLMONITOR m, std::optional<eRecalculateMonitorReason> reason) {
+    if (m->m_activeSpecialWorkspace) {
+        if (reason == RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE)
+            m->m_activeSpecialWorkspace->m_space->recalculate(RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE);
+        else
+            m->m_activeSpecialWorkspace->m_space->recalculate();
+        return;
+    }
+
+    if (m->m_activeWorkspace) {
+        if (reason == RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE)
+            m->m_activeWorkspace->m_space->recalculate(RECALCULATE_REASON_WORKSPACE_CHANGE);
+        else
+            m->m_activeWorkspace->m_space->recalculate();
+        return;
+    }
 }
 
 void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {

@@ -146,11 +146,11 @@ SP<CAlgorithm> CSpace::algorithm() const {
     return m_algorithm;
 }
 
-void CSpace::recalculate() {
+void CSpace::recalculate(std::optional<eRecalculateReason> reason) {
     recheckWorkArea();
 
     if (m_algorithm)
-        m_algorithm->recalculate();
+        m_algorithm->recalculate(reason);
 }
 
 void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {

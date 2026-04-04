@@ -5,6 +5,7 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "../LayoutManager.hpp"
+#include "layout/space/Space.hpp"
 
 #include <expected>
 #include <optional>
@@ -34,8 +35,8 @@ namespace Layout {
         Config::ErrorResult           layoutMsg(const std::string_view& sv);
         std::optional<Vector2D>       predictSizeForNewTiledTarget();
 
-        void                          recalculate();
-        void                          recenter(SP<ITarget> t);
+        void                             recalculate(std::optional<eRecalculateReason> reason = std::nullopt);
+        void                             recenter(SP<ITarget> t);
 
         void                          resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
         void                          moveTarget(const Vector2D& Δ, SP<ITarget> target);

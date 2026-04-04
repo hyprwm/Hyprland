@@ -796,7 +796,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     m_scrollingData->recalculate(true);
 }
 
-void CScrollingAlgorithm::recalculate() {
+void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
     // guard against recalculation during transitional monitor states
     // (e.g. monitor reconnecting after suspend where workspace/monitor may not be ready)
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
@@ -807,8 +807,11 @@ void CScrollingAlgorithm::recalculate() {
 
         const auto TARGETDATA = dataFor(TARGET);
 
-        if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true))
-            focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_KB);
+        if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true)) {
+            // guard against scrolling tape move when switching workspaces when target is scrolling (special or not)
+            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE)
+                focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_KB);
+        }
     }
 
     m_scrollingData->recalculate();

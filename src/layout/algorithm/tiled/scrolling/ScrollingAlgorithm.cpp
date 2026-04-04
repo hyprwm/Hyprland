@@ -811,7 +811,7 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
             // TODO: erstarr Maybe do smt about this mess
             // RECALCULATE_REASON_WORKSPACE_CHANGE, RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE => guard against scrolling view move when switching workspaces when target is scrolling (special or not)
             // RECALCULATE_REASON_HYPRCTL_KEYWORD => guard against `hyprctl keyword` commands moving scrolling view
-            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_HYPRCTL_KEYWORD)
+            if (reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_HYPRCTL_KEYWORD && reason != RECALCULATE_REASON_TOGGLE_FULLSCREEN)
                 focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }
     }

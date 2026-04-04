@@ -48,6 +48,7 @@ namespace Layout {
             RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
             RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
             RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD,
+            RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN,
         };
 
         void                             newTarget(SP<ITarget> target, SP<CSpace> space);

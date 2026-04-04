@@ -172,7 +172,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             if (*PROUNDING) {
                 rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
-                if (*PROUNDONLYEDGES) {
+                if (*PROUNDONLYEDGES && barsToDraw > 1) {
                     rectdata.round      = 0;
                     const double offset = *PROUNDING * 2;
                     if (i == 0) {
@@ -207,7 +207,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                     if (*PGRADIENTROUNDING) {
                         data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
-                        if (*PGRADIENTROUNDINGONLYEDGES) {
+                        if (*PGRADIENTROUNDINGONLYEDGES && barsToDraw > 1) {
                             data.round          = 0;
                             const double offset = *PGRADIENTROUNDING * 2;
                             if (i == 0) {

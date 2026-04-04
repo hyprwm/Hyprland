@@ -72,6 +72,7 @@ class CLinuxDMABUFParamsResource {
   private:
     UP<CZwpLinuxBufferParamsV1> m_resource;
 
+    bool                        formatSupported() const;
     bool                        verify();
     bool                        commence();
 };

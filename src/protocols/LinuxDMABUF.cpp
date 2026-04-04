@@ -190,13 +190,6 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
             return;
         }
 
-        if (m_resource->version() >= 4 && std::ranges::none_of(PROTO::linuxDma->m_formatTable->m_rendererTranche.formats, [this, fmt](const auto format) {
-                return format.drmFormat == fmt && std::ranges::any_of(format.modifiers, [this](const auto mod) { return !mod || mod == m_attrs->modifier; });
-            })) {
-            r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "format + modifier pair is not supported");
-            return;
-        }
-
         m_attrs->size   = {w, h};
         m_attrs->format = fmt;
         m_attrs->planes = 4 - std::ranges::count(m_attrs->fds, -1);
@@ -228,8 +221,22 @@ bool CLinuxDMABUFParamsResource::good() {
     return m_resource->resource();
 }
 
+bool CLinuxDMABUFParamsResource::formatSupported() const {
+    if (m_resource->version() < 4)
+        return true;
+
+    return std::ranges::any_of(PROTO::linuxDma->m_formatTable->m_rendererTranche.formats, [this](const auto& format) {
+        return format.drmFormat == m_attrs->format && std::ranges::any_of(format.modifiers, [this](const auto mod) { return !mod || mod == m_attrs->modifier; });
+    });
+}
+
 void CLinuxDMABUFParamsResource::create(uint32_t id) {
     m_used = true;
+
+    if UNLIKELY (!formatSupported()) {
+        m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "format + modifier pair is not supported");
+        return;
+    }
 
     if UNLIKELY (!verify()) {
         LOGM(Log::ERR, "Failed creating a dmabuf: verify() said no");

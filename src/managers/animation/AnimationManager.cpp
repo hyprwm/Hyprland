@@ -66,74 +66,77 @@ static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float P
     av.value() = {lerped, lerp(av.begun().a, av.goal().a, POINTY)};
 }
 
+static SAnimationContext& getContext(Hyprutils::Animation::CBaseAnimatedVariable* pAV) {
+    switch (pAV->m_Type) {
+        case AVARTYPE_FLOAT: return dc<CAnimatedVariable<float>*>(pAV)->m_Context;
+        case AVARTYPE_VECTOR: return dc<CAnimatedVariable<Vector2D>*>(pAV)->m_Context;
+        case AVARTYPE_COLOR: return dc<CAnimatedVariable<CHyprColor>*>(pAV)->m_Context;
+        default: UNREACHABLE();
+    }
+}
+
+static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border, bool shadow) {
+    if (entire)
+        g_pHyprRenderer->damageWindow(pWindow); // damageWindow already damages all decorations
+    else {
+        if (border) {
+            const auto PDECO = pWindow->getDecorationByType(DECORATION_BORDER);
+            PDECO->damageEntire();
+        }
+        if (shadow) {
+            const auto PDECO = pWindow->getDecorationByType(DECORATION_SHADOW);
+            PDECO->damageEntire();
+        }
+    }
+}
+
+static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
+    // don't damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
+    if (pWorkspace->m_isSpecialWorkspace)
+        g_pHyprRenderer->damageMonitor(pMonitor);
+
+    // TODO: just make this into a damn callback already vax...
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (!w->m_isMapped || w->isHidden() || w->m_workspace != pWorkspace)
+            continue;
+
+        if (w->m_isFloating && !w->m_pinned) {
+            // still doing the full damage hack for floating because sometimes when the window
+            // goes through multiple monitors the last rendered frame is missing damage somehow??
+            const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
+            const CBox monitorBox        = {pMonitor->m_position, pMonitor->m_size};
+            if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
+                g_pHyprRenderer->damageWindow(w, true);
+        }
+
+        if (pWorkspace->m_isSpecialWorkspace)
+            g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
+    }
+
+    // damage any workspace window that is on any monitor
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (!validMapped(w) || w->m_workspace != pWorkspace || w->m_pinned)
+            continue;
+
+        g_pHyprRenderer->damageWindow(w);
+    }
+}
+
 template <Animable VarType>
 static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
-    PHLWINDOW    PWINDOW            = av.m_Context.pWindow.lock();
-    PHLWORKSPACE PWORKSPACE         = av.m_Context.pWorkspace.lock();
-    PHLLS        PLAYER             = av.m_Context.pLayer.lock();
-    PHLMONITOR   PMONITOR           = nullptr;
-    bool         animationsDisabled = warp;
+    bool animationsDisabled = warp;
 
-    if (PWINDOW) {
-        if (av.m_Context.eDamagePolicy == AVARDAMAGE_ENTIRE)
-            g_pHyprRenderer->damageWindow(PWINDOW);
-        else if (av.m_Context.eDamagePolicy == AVARDAMAGE_BORDER) {
-            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
-            PDECO->damageEntire();
-        } else if (av.m_Context.eDamagePolicy == AVARDAMAGE_SHADOW) {
-            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
-            PDECO->damageEntire();
-        }
-
-        PMONITOR = PWINDOW->m_monitor.lock();
-        if (!PMONITOR)
+    if (auto w = av.m_Context.pWindow.lock()) {
+        if (!w->m_monitor.lock())
             return;
-
-        animationsDisabled = PWINDOW->m_ruleApplicator->noAnim().valueOr(animationsDisabled);
-    } else if (PWORKSPACE) {
-        PMONITOR = PWORKSPACE->m_monitor.lock();
-        if (!PMONITOR)
+        animationsDisabled = w->m_ruleApplicator->noAnim().valueOr(animationsDisabled);
+    } else if (auto ws = av.m_Context.pWorkspace.lock()) {
+        if (!ws->m_monitor.lock())
             return;
-
-        // don't damage the whole monitor on workspace change, unless it's a special workspace, because dim/blur etc
-        if (PWORKSPACE->m_isSpecialWorkspace)
-            g_pHyprRenderer->damageMonitor(PMONITOR);
-
-        // TODO: just make this into a damn callback already vax...
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_isMapped || w->isHidden() || w->m_workspace != PWORKSPACE)
-                continue;
-
-            if (w->m_isFloating && !w->m_pinned) {
-                // still doing the full damage hack for floating because sometimes when the window
-                // goes through multiple monitors the last rendered frame is missing damage somehow??
-                const CBox windowBoxNoOffset = w->getFullWindowBoundingBox();
-                const CBox monitorBox        = {PMONITOR->m_position, PMONITOR->m_size};
-                if (windowBoxNoOffset.intersection(monitorBox) != windowBoxNoOffset) // on edges between multiple monitors
-                    g_pHyprRenderer->damageWindow(w, true);
-            }
-
-            if (PWORKSPACE->m_isSpecialWorkspace)
-                g_pHyprRenderer->damageWindow(w, true); // hack for special too because it can cross multiple monitors
-        }
-
-        // damage any workspace window that is on any monitor
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (!validMapped(w) || w->m_workspace != PWORKSPACE || w->m_pinned)
-                continue;
-
-            g_pHyprRenderer->damageWindow(w);
-        }
-    } else if (PLAYER) {
-        // "some fucking layers miss 1 pixel???" -- vaxry
-        CBox expandBox = CBox{PLAYER->m_realPosition->value(), PLAYER->m_realSize->value()};
-        expandBox.expand(5);
-        g_pHyprRenderer->damageBox(expandBox);
-
-        PMONITOR = g_pCompositor->getMonitorFromVector(PLAYER->m_realPosition->goal() + PLAYER->m_realSize->goal() / 2.F);
-        if (!PMONITOR)
+    } else if (auto ls = av.m_Context.pLayer.lock()) {
+        if (!g_pCompositor->getMonitorFromVector(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F))
             return;
-        animationsDisabled = animationsDisabled || PLAYER->m_ruleApplicator->noanim().valueOrDefault();
+        animationsDisabled = animationsDisabled || ls->m_ruleApplicator->noanim().valueOrDefault();
     }
 
     const auto SPENT   = av.getPercent();
@@ -147,56 +150,6 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         updateVariable<VarType>(av, POINTY, WARP);
 
     av.onUpdate();
-
-    switch (av.m_Context.eDamagePolicy) {
-        case AVARDAMAGE_ENTIRE: {
-            if (PWINDOW)
-                g_pHyprRenderer->damageWindow(PWINDOW);
-            else if (PWORKSPACE) {
-                for (auto const& w : g_pCompositor->m_windows) {
-                    if (!validMapped(w) || w->m_workspace != PWORKSPACE)
-                        continue;
-
-                    // damage any workspace window that is on any monitor
-                    if (!w->m_pinned)
-                        g_pHyprRenderer->damageWindow(w);
-                }
-            } else if (PLAYER) {
-                if (PLAYER->m_layer <= 1 && PMONITOR)
-                    PMONITOR->m_blurFBDirty = true;
-
-                // some fucking layers miss 1 pixel???
-                CBox expandBox = CBox{PLAYER->m_realPosition->value(), PLAYER->m_realSize->value()};
-                expandBox.expand(5);
-                g_pHyprRenderer->damageBox(expandBox);
-            }
-            break;
-        }
-        case AVARDAMAGE_BORDER: {
-            RASSERT(PWINDOW, "Tried to AVARDAMAGE_BORDER a non-window AVAR!");
-
-            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_BORDER);
-            PDECO->damageEntire();
-
-            break;
-        }
-        case AVARDAMAGE_SHADOW: {
-            RASSERT(PWINDOW, "Tried to AVARDAMAGE_SHADOW a non-window AVAR!");
-
-            const auto PDECO = PWINDOW->getDecorationByType(DECORATION_SHADOW);
-
-            PDECO->damageEntire();
-
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-
-    // manually schedule a frame
-    if (PMONITOR && !PMONITOR->inFullscreenMode())
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
 }
 
 void CHyprAnimationManager::tick() {
@@ -206,38 +159,157 @@ void CHyprAnimationManager::tick() {
 
     static auto PANIMENABLED = CConfigValue<Hyprlang::INT>("animations:enabled");
 
-    if (!m_vActiveAnimatedVariables.empty()) {
-        const auto CPY = m_vActiveAnimatedVariables;
+    if (m_vActiveAnimatedVariables.empty()) {
+        tickDone();
+        return;
+    }
 
-        for (const auto& PAV : CPY) {
-            if (!PAV)
-                continue;
+    const auto CPY = m_vActiveAnimatedVariables;
 
-            // lock this value while we are doing handleUpdate to avoid a UAF if an update callback destroys it
-            const auto LOCK = PAV.lock();
+    // batch damage per owner to avoid redundant damage calls, otherwise
+    // we could be damaging many many times too much
+    struct SDamageOwner {
+        PHLWINDOW    window;
+        PHLWORKSPACE workspace;
+        PHLLS        layer;
+        PHLMONITOR   monitor;
+        bool         entire = false;
+        bool         border = false;
+        bool         shadow = false;
+    };
 
-            // for disabled anims just warp
-            bool warp = !*PANIMENABLED || !PAV->enabled();
+    std::vector<SDamageOwner> owners;
+    owners.reserve(4);
 
-            switch (PAV->m_Type) {
-                case AVARTYPE_FLOAT: {
-                    auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
-                    RASSERT(pTypedAV, "Failed to upcast animated float");
-                    handleUpdate(*pTypedAV, warp);
-                } break;
-                case AVARTYPE_VECTOR: {
-                    auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
-                    RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
-                    handleUpdate(*pTypedAV, warp);
-                } break;
-                case AVARTYPE_COLOR: {
-                    auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
-                    RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
-                    handleUpdate(*pTypedAV, warp);
-                } break;
-                default: UNREACHABLE();
+    // Collect per-owner damage policies
+    for (const auto& PAV : CPY) {
+        if (!PAV)
+            continue;
+
+        const auto&   ctx = getContext(PAV.get());
+
+        SDamageOwner* owner = nullptr;
+
+        if (auto w = ctx.pWindow.lock()) {
+            for (auto& o : owners) {
+                if (o.window == w) {
+                    owner = &o;
+                    break;
+                }
+            }
+            if (!owner) {
+                auto monitor = w->m_monitor.lock();
+                if (!monitor)
+                    continue;
+                owners.emplace_back(SDamageOwner{.window = w, .monitor = monitor});
+                owner = &owners.back();
+            }
+        } else if (auto ws = ctx.pWorkspace.lock()) {
+            for (auto& o : owners) {
+                if (o.workspace == ws) {
+                    owner = &o;
+                    break;
+                }
+            }
+            if (!owner) {
+                auto monitor = ws->m_monitor.lock();
+                if (!monitor)
+                    continue;
+                owners.emplace_back(SDamageOwner{.workspace = ws, .monitor = monitor});
+                owner = &owners.back();
+            }
+        } else if (auto ls = ctx.pLayer.lock()) {
+            for (auto& o : owners) {
+                if (o.layer == ls) {
+                    owner = &o;
+                    break;
+                }
+            }
+            if (!owner) {
+                auto monitor = g_pCompositor->getMonitorFromVector(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F);
+                if (!monitor)
+                    continue;
+                owners.emplace_back(SDamageOwner{.layer = ls, .monitor = monitor});
+                owner = &owners.back();
+            }
+        } else
+            continue;
+
+        switch (ctx.eDamagePolicy) {
+            case AVARDAMAGE_ENTIRE: owner->entire = true; break;
+            case AVARDAMAGE_BORDER: owner->border = true; break;
+            case AVARDAMAGE_SHADOW: owner->shadow = true; break;
+            default: break;
+        }
+    }
+
+    // pre-damage each owner once (old state)
+    for (const auto& owner : owners) {
+        if (owner.window)
+            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow);
+        else if (owner.workspace)
+            preDamageWorkspace(owner.workspace, owner.monitor);
+        else if (owner.layer) {
+            CBox expandBox = CBox{owner.layer->m_realPosition->value(), owner.layer->m_realSize->value()};
+            expandBox.expand(5);
+            g_pHyprRenderer->damageBox(expandBox);
+        }
+    }
+
+    // update all variable values
+    for (const auto& PAV : CPY) {
+        if (!PAV)
+            continue;
+
+        const auto LOCK = PAV.lock();
+        bool       warp = !*PANIMENABLED || !PAV->enabled();
+
+        switch (PAV->m_Type) {
+            case AVARTYPE_FLOAT: {
+                auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated float");
+                handleUpdate(*pTypedAV, warp);
+            } break;
+            case AVARTYPE_VECTOR: {
+                auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
+                handleUpdate(*pTypedAV, warp);
+            } break;
+            case AVARTYPE_COLOR: {
+                auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
+                handleUpdate(*pTypedAV, warp);
+            } break;
+            default: UNREACHABLE();
+        }
+    }
+
+    // post-damage each owner once (new state) + schedule frames
+    for (const auto& owner : owners) {
+        if (owner.window)
+            damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow);
+        else if (owner.workspace) {
+            if (owner.entire) {
+                for (auto const& w : g_pCompositor->m_windows) {
+                    if (!validMapped(w) || w->m_workspace != owner.workspace || w->m_pinned)
+                        continue;
+
+                    g_pHyprRenderer->damageWindow(w);
+                }
+            }
+        } else if (owner.layer) {
+            if (owner.entire) {
+                if (owner.layer->m_layer <= 1)
+                    owner.monitor->m_blurFBDirty = true;
+
+                CBox expandBox = CBox{owner.layer->m_realPosition->value(), owner.layer->m_realSize->value()};
+                expandBox.expand(5);
+                g_pHyprRenderer->damageBox(expandBox);
             }
         }
+
+        if (!owner.monitor->inFullscreenMode())
+            g_pCompositor->scheduleFrameForMonitor(owner.monitor, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 
     tickDone();

@@ -173,9 +173,7 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode cu
     if (mode == FSMODE_NONE && m_algorithm && t->floating())
         m_algorithm->recenter(t);
 
-    recalculate();
-
-    return REQUEST_RESULT;
+    recalculate(RECALCULATE_REASON_TOGGLE_FULLSCREEN);
 }
 
 Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {

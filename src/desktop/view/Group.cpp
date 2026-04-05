@@ -123,6 +123,8 @@ void CGroup::add(PHLWINDOW w) {
 }
 
 void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
+    static auto           DISBAND_ON_EMPTY = CConfigValue<Hyprlang::INT>("group:disband_on_empty");
+
     std::optional<size_t> idx;
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {
@@ -171,6 +173,12 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
             }
         }
         w->m_target->assignToSpace(m_target->space(), focalPoint);
+    }
+
+    // Disband group if only one window remains and disband_on_empty is enabled
+    if (*DISBAND_ON_EMPTY && m_windows.size() == 1) {
+        destroy();
+        return;
     }
 }
 

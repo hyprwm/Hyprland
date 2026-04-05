@@ -32,7 +32,7 @@ std::optional<dev_t> DRM::devIDFromFD(int fd) {
 }
 
 bool DRM::sameGpu(int fd1, int fd2) {
-    if (fd1 >= 0 && fd1 == fd2)
+    if (fd1 < 0 || fd2 < 0 || fd1 == fd2)
         return true;
 
     static std::mutex                   cacheMutex;

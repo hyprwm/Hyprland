@@ -813,12 +813,12 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:expand_undersized_textures", Hyprlang::INT{1});
     registerConfigVar("render:xp_mode", Hyprlang::INT{0});
     registerConfigVar("render:ctm_animation", Hyprlang::INT{2});
-    registerConfigVar("render:cm_fs_passthrough", Hyprlang::INT{2});
     registerConfigVar("render:cm_enabled", Hyprlang::INT{1});
     registerConfigVar("render:send_content_type", Hyprlang::INT{1});
     registerConfigVar("render:cm_auto_hdr", Hyprlang::INT{1});
     registerConfigVar("render:new_render_scheduling", Hyprlang::INT{0});
-    registerConfigVar("render:non_shader_cm", Hyprlang::INT{3});
+    registerConfigVar("render:non_shader_cm", Hyprlang::INT{2});
+    registerConfigVar("render:non_shader_cm_interop", Hyprlang::INT{2});
     registerConfigVar("render:cm_sdr_eotf", {"default"});
     registerConfigVar("render:commit_timing_enabled", Hyprlang::INT{1});
     registerConfigVar("render:icc_vcgt_enabled", Hyprlang::INT{1});

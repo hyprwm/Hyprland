@@ -15,12 +15,26 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
     m_blurFB(g_pHyprRenderer->createFB(std::format("Monitor {} blur FB", monitor->m_name))), m_monitor(monitor), m_drmFormat(format), m_size(size),
     m_imageDescription(imageDescription) {
     initFB(m_blurFB);
+    monitor->m_blurFBDirty = true;
 }
 
 void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
     fb->addStencil(m_stencilTex);
     fb->alloc(m_size.x, m_size.y, m_drmFormat);
     fb->setImageDescription(m_imageDescription);
+}
+
+void CMonitorResources::setImageDescription(NColorManagement::PImageDescription imageDescription) {
+    if (m_imageDescription == imageDescription)
+        return;
+    m_imageDescription = imageDescription;
+    m_blurFB->setImageDescription(imageDescription);
+    for (const auto& res : m_workBuffers)
+        res.buffer->setImageDescription(imageDescription);
+    if (m_monitorMirrorFB)
+        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
+    if (m_mirrorTex)
+        m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
@@ -65,7 +79,7 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
 
     if (!m_monitorMirrorFB->isAllocated()) {
         m_monitorMirrorFB->alloc(m_size.x, m_size.y, DRM_FORMAT_XRGB8888);
-        m_monitorMirrorFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
     }
 
     return m_monitorMirrorFB;
@@ -75,13 +89,9 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
     return hasMirrorFB() ? mirrorFB()->getTexture() : nullptr;
 }
 
-void CMonitorResources::enableMirror() {
-    if (m_mirrorTex)
-        return;
-    m_mirrorTex = g_pHyprRenderer->createTexture();
-    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
-    m_mirrorTex->m_imageDescription = CImageDescription::from(SImageDescription{
-        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
+NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
+    return CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
         .primariesNameSet = m_imageDescription->value().primariesNameSet,
         .primariesNamed   = m_imageDescription->value().primariesNamed,
         .primaries        = m_imageDescription->value().primaries,
@@ -89,6 +99,17 @@ void CMonitorResources::enableMirror() {
     });
 }
 
+void CMonitorResources::enableMirror() {
+    if (m_mirrorTex)
+        return;
+    m_mirrorTex = g_pHyprRenderer->createTexture();
+    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
+    m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
+    m_monitor->m_blurFBDirty        = true;
+}
+
 void CMonitorResources::disableMirror() {
+    if (m_mirrorTex)
+        m_monitor->m_blurFBDirty = true;
     m_mirrorTex.reset();
 }

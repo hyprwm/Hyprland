@@ -169,6 +169,16 @@ void CScreenshareFrame::renderMonitor() {
         return;
     }
 
+    if (!TEXTURE->m_imageDescription)
+        Log::logger->log(Log::ERR, "CM: FIXME no source image description for screenshare");
+
+    if (!g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+        Log::logger->log(Log::ERR, "CM: FIXME no target image description for screenshare");
+
+    if (TEXTURE->m_imageDescription && g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+        Log::logger->log(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(),
+                         g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+
     const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->m_renderData.noSimplify      = true;
@@ -371,7 +381,7 @@ bool CScreenshareFrame::copyDmabuf() {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
-    g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     render();
 
@@ -405,7 +415,7 @@ bool CScreenshareFrame::copyShm() {
 
     auto       outFB = g_pHyprRenderer->createFB();
     outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
-    outFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    outFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, m_damage, outFB)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
@@ -438,7 +448,7 @@ void CScreenshareFrame::storeTempFB() {
     if (!m_session->m_tempFB)
         m_session->m_tempFB = g_pHyprRenderer->createFB();
     m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
-    m_session->m_tempFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    m_session->m_tempFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 

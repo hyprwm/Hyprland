@@ -109,6 +109,7 @@ void CMonitorResources::enableMirror() {
 }
 
 void CMonitorResources::disableMirror() {
+    if (m_mirrorTex)
+        m_monitor->m_blurFBDirty = true;
     m_mirrorTex.reset();
-    m_monitor->m_blurFBDirty = true;
 }

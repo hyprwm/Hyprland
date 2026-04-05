@@ -13,8 +13,7 @@ using namespace Desktop::Rule;
 namespace {
     template <typename T>
     void resetRuleProp(std::pair<Desktop::Types::COverridableVar<T>, std::underlying_type_t<Desktop::Rule::eRuleProperty>>& prop,
-                       std::underlying_type_t<Desktop::Rule::eRuleProperty>                                              props,
-                       Desktop::Types::eOverridePriority                                                                   prio) {
+                       std::underlying_type_t<Desktop::Rule::eRuleProperty> props, Desktop::Types::eOverridePriority prio) {
         auto& [value, propMask] = prop;
 
         if (!(propMask & props))
@@ -32,9 +31,8 @@ CLayerRuleApplicator::CLayerRuleApplicator(PHLLS ls) : m_ls(ls) {
 }
 
 void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
-    std::apply(
-        [&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
-        std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));
+    std::apply([&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
+               std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));
 
     if (prio == Types::PRIORITY_WINDOW_RULE)
         std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });

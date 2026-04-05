@@ -710,16 +710,14 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 
     // no need to end, shm.
     auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
-    const auto packedStride        = sc<size_t>(buf->size.x) * 4;
-    const auto packedLen           = packedStride * sc<size_t>(buf->size.y);
+    const auto packedStride       = sc<size_t>(buf->size.x) * 4;
+    const auto packedLen          = packedStride * sc<size_t>(buf->size.y);
     (void)fmt;
 
     shmData.resize(packedLen);
 
-    if (const auto RECTS = damage.getRects();
-        RECTS.size() == 1 && RECTS.at(0).x1 == 0 && RECTS.at(0).y1 == 0 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y &&
-        sc<size_t>(shmAttrs.stride) == packedStride &&
-        packedLen <= bufLen)
+    if (const auto RECTS = damage.getRects(); RECTS.size() == 1 && RECTS.at(0).x1 == 0 && RECTS.at(0).y1 == 0 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y &&
+        sc<size_t>(shmAttrs.stride) == packedStride && packedLen <= bufLen)
         memcpy(shmData.data(), pixelData, packedLen);
     else {
         damage.forEachRect([&](const auto& box) {

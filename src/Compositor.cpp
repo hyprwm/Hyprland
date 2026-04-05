@@ -2194,6 +2194,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
 
     const bool CHANGEINTERNAL = !PWINDOW->m_pinned && PWINDOW->m_fullscreenState.internal != state.internal;
 
+    // arm m_suppressNextMaximize to swallow the set_maximized echo on fullscreen exit
+    if (CHANGEINTERNAL && !PWINDOW->m_isFloating && (PWINDOW->m_fullscreenState.internal & FSMODE_FULLSCREEN) && !(state.internal & FSMODE_FULLSCREEN))
+        PWINDOW->m_suppressNextMaximize = true;
+
     if (*PALLOWPINFULLSCREEN && PWINDOW->m_pinFullscreened && PWINDOW->isFullscreen() && !PWINDOW->m_pinned && state.internal == FSMODE_NONE) {
         PWINDOW->m_pinned          = true;
         PWINDOW->m_pinFullscreened = false;

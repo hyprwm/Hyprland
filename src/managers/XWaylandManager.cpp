@@ -180,7 +180,7 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    PHLMONITOR pMonitor = preferredMonitor;
+    PHLMONITOR  pMonitor = preferredMonitor;
     if (!pMonitor) {
         double bestDistance = __FLT_MAX__;
         for (const auto& m : g_pCompositor->m_monitors) {
@@ -217,7 +217,7 @@ Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PH
 
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    PHLMONITOR pMonitor = preferredMonitor;
+    PHLMONITOR  pMonitor = preferredMonitor;
     if (!pMonitor) {
         double bestDistance = __FLT_MAX__;
         for (const auto& m : g_pCompositor->m_monitors) {

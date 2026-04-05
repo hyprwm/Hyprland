@@ -4,6 +4,7 @@
 #include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <ranges>
 
@@ -41,7 +42,8 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
         Log::logger->log(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
     else {
         uint64_t expirations;
-        read(fd, &expirations, sizeof(expirations));
+        if (read(fd, &expirations, sizeof(expirations)) < 0)
+            Log::logger->log(Log::ERR, "timerWrite: read failed on fd {}: {}", fd, strerror(errno));
     }
 
     g_pEventLoopManager->onTimerFire();

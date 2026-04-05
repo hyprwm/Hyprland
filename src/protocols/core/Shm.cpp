@@ -7,6 +7,9 @@
 #include "../types/WLBuffer.hpp"
 #include "../../helpers/Format.hpp"
 #include "../../render/Renderer.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 using namespace Hyprutils::OS;
 
 CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
@@ -21,7 +24,7 @@ CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     m_stride = stride_;
     m_fmt    = fmt_;
     m_offset = offset_;
-    m_opaque = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
+    m_opaque = isDrmFormatOpaque(NFormatUtils::shmToDRM(fmt_));
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->m_resource->client(), 1, id));
 

@@ -3,7 +3,9 @@
 #include "../Renderer.hpp"
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Render::GL;
 
 CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
@@ -27,14 +29,14 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
         m_fbAllocated = true;
     }
 
-    const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
+    const auto format = getPixelFormatFromDRM(drmFormat);
     m_tex->bind();
     glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
 
     if (m_mirrorTex) {
-        const auto format = NFormatUtils::getPixelFormatFromDRM(m_mirrorTex->m_drmFormat);
+        const auto format = getPixelFormatFromDRM(m_mirrorTex->m_drmFormat);
         m_mirrorTex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
@@ -110,7 +112,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     auto shm                      = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
         return false;
@@ -122,7 +124,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_size.x);
+    uint32_t packStride = minStride(PFORMAT, m_size.x);
     int      glFormat   = PFORMAT->glFormat;
 
     if (glFormat == GL_RGBA)
@@ -130,11 +132,9 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
         if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
+            if (PFORMAT->swizzle == SWIZZLE_RGBA)
                 glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
+            else if (PFORMAT->swizzle == SWIZZLE_BGRA)
                 glFormat = GL_BGRA_EXT;
             else {
                 LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");

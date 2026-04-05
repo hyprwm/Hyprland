@@ -4,7 +4,9 @@
 
 #include <drm_fourcc.h>
 #include <wayland-server-protocol.h>
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace NFormatUtils;
 
 TEST(Helpers, formatDrmToShm) {
@@ -45,8 +47,8 @@ TEST(Helpers, formatGetPixelFormatFromDRM) {
 }
 
 TEST(Helpers, formatIsFormatOpaque) {
-    EXPECT_TRUE(isFormatOpaque(DRM_FORMAT_XRGB8888));
-    EXPECT_FALSE(isFormatOpaque(DRM_FORMAT_ARGB8888));
+    EXPECT_TRUE(isDrmFormatOpaque(DRM_FORMAT_XRGB8888));
+    EXPECT_FALSE(isDrmFormatOpaque(DRM_FORMAT_ARGB8888));
 }
 
 TEST(Helpers, formatPixelsPerBlock) {

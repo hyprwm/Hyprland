@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <format>
 #include <fstream>
-#include <iterator>
 #include <netinet/in.h>
 #include <cstdio>
 #include <cstdlib>
@@ -23,7 +22,6 @@
 #include <sstream>
 #include <string>
 #include <typeindex>
-#include <numeric>
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -32,7 +30,6 @@ using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
 
-#include "../config/shared/complex/ComplexDataTypes.hpp"
 #include "../config/legacy/ConfigManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/complex/ComplexDataTypes.hpp"
@@ -60,7 +57,6 @@ using namespace Hyprutils::OS;
 
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../managers/XWaylandManager.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../debug/HyprNotificationOverlay.hpp"
@@ -550,8 +546,7 @@ static std::string activeWorkspaceRequest(eHyprCtlOutputFormat format, std::stri
     if (!Desktop::focusState()->monitor())
         return "unsafe state";
 
-    std::string result = "";
-    auto        w      = Desktop::focusState()->monitor()->m_activeWorkspace;
+    auto w = Desktop::focusState()->monitor()->m_activeWorkspace;
 
     if (!valid(w))
         return "internal error";
@@ -1649,6 +1644,36 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             return animationStyle.valueOr("(unset)");
         else
             return std::format(R"({{"{}": "{}"}})", PROP, animationStyle.valueOr(""));
+    } else if (PROP == "windowsIn") {
+        auto& v = PWINDOW->m_ruleApplicator->animationWindowsIn();
+        if (FORMNORM)
+            return v.valueOr("(unset)");
+        else
+            return std::format(R"({{"{}": "{}"}})", PROP, v.valueOr(""));
+    } else if (PROP == "windowsOut") {
+        auto& v = PWINDOW->m_ruleApplicator->animationWindowsOut();
+        if (FORMNORM)
+            return v.valueOr("(unset)");
+        else
+            return std::format(R"({{"{}": "{}"}})", PROP, v.valueOr(""));
+    } else if (PROP == "windowsMove") {
+        auto& v = PWINDOW->m_ruleApplicator->animationWindowsMove();
+        if (FORMNORM)
+            return v.valueOr("(unset)");
+        else
+            return std::format(R"({{"{}": "{}"}})", PROP, v.valueOr(""));
+    } else if (PROP == "fadeIn") {
+        auto& v = PWINDOW->m_ruleApplicator->animationFadeIn();
+        if (FORMNORM)
+            return v.valueOr("(unset)");
+        else
+            return std::format(R"({{"{}": "{}"}})", PROP, v.valueOr(""));
+    } else if (PROP == "fadeOut") {
+        auto& v = PWINDOW->m_ruleApplicator->animationFadeOut();
+        if (FORMNORM)
+            return v.valueOr("(unset)");
+        else
+            return std::format(R"({{"{}": "{}"}})", PROP, v.valueOr(""));
     } else if (PROP == "max_size")
         return sizeToString(true);
     else if (PROP == "min_size")

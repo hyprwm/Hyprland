@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <hyprutils/animation/AnimationConfig.hpp>
+
 #include "WindowRuleEffectContainer.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../Rule.hpp"
@@ -10,6 +12,7 @@
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/TagKeeper.hpp"
 #include "../../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../../helpers/memory/Memory.hpp"
 
 namespace Desktop::Rule {
     class CWindowRule;
@@ -126,6 +129,11 @@ namespace Desktop::Rule {
         DEFINE_PROP(Hyprlang::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD)
 
         DEFINE_PROP(std::string, animationStyle, std::string(""), WINDOW_RULE_EFFECT_ANIMATION)
+        DEFINE_PROP(std::string, animationWindowsIn, std::string(""), WINDOW_RULE_EFFECT_WINDOWS_IN)
+        DEFINE_PROP(std::string, animationWindowsOut, std::string(""), WINDOW_RULE_EFFECT_WINDOWS_OUT)
+        DEFINE_PROP(std::string, animationWindowsMove, std::string(""), WINDOW_RULE_EFFECT_WINDOWS_MOVE)
+        DEFINE_PROP(std::string, animationFadeIn, std::string(""), WINDOW_RULE_EFFECT_FADE_IN)
+        DEFINE_PROP(std::string, animationFadeOut, std::string(""), WINDOW_RULE_EFFECT_FADE_OUT)
 
         DEFINE_PROP(Vector2D, maxSize, Vector2D{}, WINDOW_RULE_EFFECT_MAX_SIZE)
         DEFINE_PROP(Vector2D, minSize, Vector2D{}, WINDOW_RULE_EFFECT_MIN_SIZE)
@@ -136,12 +144,36 @@ namespace Desktop::Rule {
         std::vector<std::pair<std::string, std::underlying_type_t<eRuleProperty>>> m_dynamicTags;
         CTagKeeper                                                                 m_tagKeeper;
 
+        // Keep per-rule standalone animation configs alive (CBaseAnimatedVariable::setConfig only stores a weak ref).
+        void pinStandaloneAnimWindowsIn(SP<Hyprutils::Animation::SAnimationPropertyConfig> cfg) {
+            m_pinnedAnimWindowsIn = std::move(cfg);
+        }
+        void pinStandaloneAnimWindowsOut(SP<Hyprutils::Animation::SAnimationPropertyConfig> cfg) {
+            m_pinnedAnimWindowsOut = std::move(cfg);
+        }
+        void pinStandaloneAnimWindowsMove(SP<Hyprutils::Animation::SAnimationPropertyConfig> cfg) {
+            m_pinnedAnimWindowsMove = std::move(cfg);
+        }
+        void pinStandaloneAnimFadeIn(SP<Hyprutils::Animation::SAnimationPropertyConfig> cfg) {
+            m_pinnedAnimFadeIn = std::move(cfg);
+        }
+        void pinStandaloneAnimFadeOut(SP<Hyprutils::Animation::SAnimationPropertyConfig> cfg) {
+            m_pinnedAnimFadeOut = std::move(cfg);
+        }
+
 #undef COMMA
 #undef DEFINE_PROP
 
       private:
-        PHLWINDOWREF                          m_window;
-        std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
+        PHLWINDOWREF                                       m_window;
+
+        SP<Hyprutils::Animation::SAnimationPropertyConfig> m_pinnedAnimWindowsIn;
+        SP<Hyprutils::Animation::SAnimationPropertyConfig> m_pinnedAnimWindowsOut;
+        SP<Hyprutils::Animation::SAnimationPropertyConfig> m_pinnedAnimWindowsMove;
+        SP<Hyprutils::Animation::SAnimationPropertyConfig> m_pinnedAnimFadeIn;
+        SP<Hyprutils::Animation::SAnimationPropertyConfig> m_pinnedAnimFadeOut;
+
+        std::underlying_type_t<eRuleProperty>              propsToRecheck = RULE_PROP_NONE;
 
         struct SRuleResult {
             bool needsRelayout = false;

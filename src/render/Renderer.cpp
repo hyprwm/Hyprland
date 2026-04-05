@@ -1775,7 +1775,7 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
                                          SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, bool shouldUseSurface) {
     const auto srcId = imageDescription->id();
     const auto dstId = targetImageDescription->id();
-    void*      sPtr  = m_renderData.surface.get();
+    void*      sPtr  = shouldUseSurface ? m_renderData.surface.get() : nullptr;
 
     for (auto const& entry : m_cmSettingsCache) {
         if (entry.srcDescId == srcId && entry.dstDescId == dstId && entry.surfacePtr == sPtr && entry.modifySDR == modifySDR && entry.sdrMinLuminance == sdrMinLuminance &&
@@ -1836,7 +1836,15 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
     };
 
-    m_cmSettingsCache.push_back({srcId, dstId, sPtr, modifySDR, sdrMinLuminance, sdrMaxLuminance, result});
+    m_cmSettingsCache.push_back({
+        .srcDescId       = srcId,
+        .dstDescId       = dstId,
+        .surfacePtr      = sPtr,
+        .modifySDR       = modifySDR,
+        .sdrMinLuminance = sdrMinLuminance,
+        .sdrMaxLuminance = sdrMaxLuminance,
+        .settings        = result,
+    });
 
     return result;
 }

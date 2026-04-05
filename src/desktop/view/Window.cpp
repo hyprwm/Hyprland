@@ -1229,7 +1229,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 
-    if (!m_isFloating || isFullscreen() || g_layoutManager->dragController()->target() == m_self) {
+    if (!m_isFloating || isFullscreen() || g_layoutManager->dragController()->target() == m_self || (m_suppressedEvents & Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST)) {
         sendWindowSize(true);
         g_pInputManager->refocus();
         g_pHyprRenderer->damageWindow(m_self.lock());
@@ -1833,7 +1833,9 @@ void CWindow::mapWindow() {
                 else if (var == "activatefocus")
                     m_suppressedEvents |= Desktop::View::SUPPRESS_ACTIVATE_FOCUSONLY;
                 else if (var == "fullscreenoutput")
-                    m_suppressedEvents |= Desktop::View::SUPPRESS_FULLSCREEN_OUTPUT;
+                    m_suppressedEvents |= Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST;
+                else if (var == "x11configurerequest")
+                    m_suppressedEvents |= Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST;
                 else
                     Log::logger->log(Log::ERR, "Error while parsing suppressevent windowrule: unknown event type {}", var);
             }

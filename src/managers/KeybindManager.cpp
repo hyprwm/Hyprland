@@ -35,6 +35,7 @@
 #include "../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 #include "../event/EventBus.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 
 #include <optional>
 #include <iterator>
@@ -369,10 +370,14 @@ bool CKeybindManager::tryMoveFocusToMonitor(PHLMONITOR monitor) {
 }
 
 void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle) {
-    static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto       PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto       PNOWARPS     = CConfigValue<Hyprlang::INT>("cursor:no_warps");
+    static auto       PFOLLOWFOCUS = CConfigValue<Hyprlang::INT>("scrolling:follow_focus");
 
-    const auto  PLASTWINDOW = Desktop::focusState()->window();
+    std::string const PLAYOUTOFWINDOWTOSWITCHTO =
+        Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(&typeid(*PWINDOWTOCHANGETO->m_workspace->m_space->algorithm()->tiledAlgo()));
+
+    const auto PLASTWINDOW = Desktop::focusState()->window();
 
     if (PWINDOWTOCHANGETO == PLASTWINDOW || !PWINDOWTOCHANGETO)
         return;
@@ -384,7 +389,13 @@ void CKeybindManager::switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCy
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
+
+        // follow_focus = 0 on scrolling layout disallows the use of movefocus dispatch to move scrolling view, therefore a FOCUS_REASON that resolves to 'Soft' focus reason is desired
+        if (PLAYOUTOFWINDOWTOSWITCHTO == "scrolling" && *PFOLLOWFOCUS == 0)
+            Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_OTHER, nullptr, forceFSCycle);
+        else
+            Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
+
         PWINDOWTOCHANGETO->warpCursor();
 
         // Move mouse focus to the new window if required by current follow_mouse and warp modes

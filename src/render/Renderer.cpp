@@ -1643,6 +1643,9 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 
     initRender();
 
+    if (rendererLost())
+        return false;
+
     if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
         Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
@@ -1885,6 +1888,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
+    if (rendererLost())
+        return;
+
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
         return;
@@ -1994,6 +2000,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+        return;
+    }
+
+    if UNLIKELY (rendererLost()) {
+        g_pCompositor->queueRendererReset();
         return;
     }
 

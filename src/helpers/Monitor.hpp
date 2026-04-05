@@ -92,6 +92,7 @@ class CMonitorState {
     bool commit();
     bool test();
     bool updateSwapchain();
+    bool clearSwapchain();
 
   private:
     void      ensureBufferPresent();
@@ -395,6 +396,7 @@ class CMonitor {
     bool                           needsUnmodifiedCopy();
     bool                           useFP16();
     WP<Monitor::CMonitorResources> resources();
+    void                           resetResources();
 
   private:
     void                    updateMatrix();

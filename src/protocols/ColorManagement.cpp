@@ -316,8 +316,10 @@ wl_client* CColorManagementSurface::client() {
 }
 
 const SImageDescription& CColorManagementSurface::imageDescription() {
-    if (!hasImageDescription())
-        LOGM(Log::WARN, "Reading imageDescription while none set. Returns default or empty values");
+    if (!hasImageDescription()) {
+        LOGM(Log::TRACE, "Reading imageDescription while none set. Returns default or empty values");
+        return getDefaultImageDescription()->value(); // JIC default settings change
+    }
 
     return m_imageDescription->value();
 }

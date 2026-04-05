@@ -2347,8 +2347,7 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
     }
     auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
 
-    Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(),
-                     g_pHyprRenderer->m_renderData.currentFB->getTexture()->m_imageDescription->value());
+    Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
     blend(false);
 

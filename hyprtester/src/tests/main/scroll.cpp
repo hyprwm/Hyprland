@@ -198,6 +198,63 @@ static void testSwapcolWrapping() {
     Tests::killAllWindows();
 }
 
+static void testScrollInhibitor() {
+
+    // setup so borders don't contribute to window positioning
+    OK(getFromSocket("/keyword general:border_size 0"));
+    OK(getFromSocket("/keyword general:gaps_in 0"));
+    OK(getFromSocket("/keyword general:gaps_out 0"));
+
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+        // set each window's column size to take up the entire screen
+        OK(getFromSocket("/dispatch layoutmsg colresize 1"));
+    }
+
+    // must be focused on the leftmost window
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+
+    std::string posA   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    std::string posA_x = posA.substr(4, posA.find(',') - 4);
+
+    std::string sizeA   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "size:");
+    std::string sizeA_x = sizeA.substr(6, sizeA.find(',') - 6);
+
+    OK(getFromSocket("/dispatch layoutmsg inhibit_scroll 1"));
+
+    // if it were not inhibited, it'd move the view to show the rightmost window
+    OK(getFromSocket("/dispatch layoutmsg focus r"));
+
+    // if the left window's "at: ..." attribute's x coordinate is = right window's at_x + size_x, the inhibition worked.
+    {
+        std::string posB   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        std::string posB_x = posB.substr(4, posB.find(',') - 4);
+
+        std::string expectedRightWindowPos = std::to_string(std::stoi(posA_x) + std::stoi(sizeA_x));
+
+        // This way prevents the check from breaking if resolution for tests were to be changed
+        // NOLINTBEGIN(performance-unnecessary-copy-initialization)
+        EXPECT(posB_x, expectedRightWindowPos);
+        // NOLINTEND(performance-unnecessary-copy-initialization)
+    }
+
+    // clean up
+
+    // to revert the changes made to border_size, gaps_in, gaps_out
+    NLog::log("{}Restoring config state", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+}
+
 static bool testWindowRule() {
     NLog::log("{}Testing Scrolling Width", Colors::GREEN);
 
@@ -244,6 +301,10 @@ static bool test() {
     // test
     NLog::log("{}Testing swapcol wrap", Colors::GREEN);
     testSwapcolWrapping();
+
+    // test
+    NLog::log("{}Testing scroll inhibitor", Colors::GREEN);
+    testScrollInhibitor();
 
     testWindowRule();
 

@@ -1,6 +1,7 @@
 #include "MainLoopExecutor.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../macros.hpp"
+#include <cstring>
 #include <unistd.h>
 
 static int onDataRead(int fd, uint32_t mask, void* data) {
@@ -26,7 +27,8 @@ CMainLoopExecutor::~CMainLoopExecutor() {
 
 void CMainLoopExecutor::signal() {
     const char* amogus = "h";
-    write(m_writeFd.get(), amogus, 1);
+    if (write(m_writeFd.get(), amogus, 1) < 0)
+        Log::logger->log(Log::ERR, "signal: failed to write to fd {}: {}", m_writeFd.get(), strerror(errno));
 }
 
 void CMainLoopExecutor::onFired() {

@@ -43,7 +43,7 @@ static char const* getRandomMessage() {
 }
 
 [[noreturn]] static inline void exitWithError(char const* err) {
-    write(STDERR_FILENO, err, strlen(err));
+    [[maybe_unused]] auto w = write(STDERR_FILENO, err, strlen(err));
     // perror() is not signal-safe, but we use it here
     // because if the crash-handler already crashed, it can't get any worse.
     perror("");

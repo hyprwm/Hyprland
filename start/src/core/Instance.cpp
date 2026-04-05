@@ -81,7 +81,8 @@ void CHyprlandInstance::runHyprlandThread(bool safeMode) {
                 break;
         }
 
-        write(m_wakeupWrite.get(), "vax", 3);
+        if (write(m_wakeupWrite.get(), "vax", 3) < 0)
+            g_logger->log(Hyprutils::CLI::LOG_ERR, "Failed to write to wakeup fd {}: {}", m_wakeupWrite.get(), strerror(errno));
 
         std::fflush(stdout);
         std::fflush(stderr);

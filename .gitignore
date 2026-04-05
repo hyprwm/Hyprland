@@ -38,6 +38,8 @@ hyprctl/hw-protocols/*.h*
 gmon.out
 *.out
 *.tar.gz
+perf.data
+flame.svg
 
 PKGBUILD
 
@@ -48,3 +50,5 @@ example/hyprland.desktop
 
 **/.#*.*
 **/#*.*#
+
+debug-tools/flamegraph

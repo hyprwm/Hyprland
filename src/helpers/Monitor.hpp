@@ -25,6 +25,7 @@
 #include <aquamarine/output/Output.hpp>
 #include <aquamarine/allocator/Swapchain.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <sys/types.h>
 
 #include "../helpers/TransferFunction.hpp"
 #include "../config/shared/monitor/MonitorRule.hpp"
@@ -323,6 +324,8 @@ class CMonitor {
     bool        updateTearing();
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
+    bool        canAttemptDirectScanoutFast() const;
+    bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);
     void        onCursorMovedOnMonitor();
     void        setDPMS(bool on);
@@ -369,6 +372,12 @@ class CMonitor {
 
     PHLWINDOWREF                        m_previousFSWindow;
     bool                                m_needsHDRupdate = false;
+
+    std::optional<dev_t>                m_cachedAllocatorDRMDev;
+    std::optional<dev_t>                m_cachedCompositorDRMDev;
+    int                                 m_cachedAllocatorDRMFD  = -1;
+    int                                 m_cachedCompositorDRMFD = -1;
+    std::optional<bool>                 m_cachedSameGPU;
 
     NColorManagement::PImageDescription m_imageDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
     bool                                m_noShaderCTM      = false; // sets drm CTM, restore needed

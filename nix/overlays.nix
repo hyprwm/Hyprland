@@ -19,12 +19,12 @@ in
   default = lib.composeManyExtensions (
     with self.overlays;
     [
-      hyprland-packages
+      hyprland
       hyprland-extras
     ]
   );
 
-  # Packages for variations of Hyprland, dependencies included.
+  # Packages for variations of Hyprland, all dependencies included.
   hyprland-packages = lib.composeManyExtensions [
     # Dependencies
     inputs.aquamarine.overlays.default
@@ -36,50 +36,57 @@ in
     inputs.hyprutils.overlays.default
     inputs.hyprwayland-scanner.overlays.default
     inputs.hyprwire.overlays.default
-    self.overlays.udis86
-    self.overlays.glaze
-
     # Hyprland packages themselves
-    (
-      final: _prev:
-      let
-        date = mkDate (self.lastModifiedDate or "19700101");
-        version = "${ver}+date=${date}_${self.shortRev or "dirty"}";
-      in
-      {
-        hyprland = final.callPackage ./default.nix {
-          stdenv = final.gcc15Stdenv;
-          commit = self.rev or "";
-          revCount = self.sourceInfo.revCount or "";
-          inherit date version;
-        };
-        hyprland-unwrapped = final.hyprland.override { wrapRuntimeDeps = false; };
-
-        hyprland-with-tests = final.hyprland.override { withTests = true; };
-
-        hyprland-with-hyprtester = builtins.trace ''
-          hyprland-with-hyprtester was removed. Please use the hyprland package.
-          Hyprtester is always built now.
-        '' final.hyprland;
-
-        # deprecated packages
-        hyprland-legacy-renderer = builtins.trace ''
-          hyprland-legacy-renderer was removed. Please use the hyprland package.
-          Legacy renderer is no longer supported.
-        '' final.hyprland;
-
-        hyprland-nvidia = builtins.trace ''
-          hyprland-nvidia was removed. Please use the hyprland package.
-          Nvidia patches are no longer needed.
-        '' final.hyprland;
-
-        hyprland-hidpi = builtins.trace ''
-          hyprland-hidpi was removed. Please use the hyprland package.
-          For more information, refer to https://wiki.hypr.land/Configuring/XWayland.
-        '' final.hyprland;
-      }
-    )
+    self.overlays.hyprland
   ];
+
+  # Hyprland with its internal dependencies.
+  hyprland = lib.composeManyExtensions (with self.overlays; [
+    udis86
+    glaze
+    hyprland-no-deps
+  ]);
+
+  # Hyprland without any dependencies.
+  hyprland-no-deps =
+    final: _prev:
+    let
+      date = mkDate (self.lastModifiedDate or "19700101");
+      version = "${ver}+date=${date}_${self.shortRev or "dirty"}";
+    in
+    {
+      hyprland = final.callPackage ./default.nix {
+        stdenv = final.gcc15Stdenv;
+        commit = self.rev or "";
+        revCount = self.sourceInfo.revCount or "";
+        inherit date version;
+      };
+
+      hyprland-unwrapped = final.hyprland.override { wrapRuntimeDeps = false; };
+
+      hyprland-with-tests = final.hyprland.override { withTests = true; };
+
+      hyprland-with-hyprtester = builtins.trace ''
+        hyprland-with-hyprtester was removed. Please use the hyprland package.
+        Hyprtester is always built now.
+      '' final.hyprland;
+
+      # deprecated packages
+      hyprland-legacy-renderer = builtins.trace ''
+        hyprland-legacy-renderer was removed. Please use the hyprland package.
+        Legacy renderer is no longer supported.
+      '' final.hyprland;
+
+      hyprland-nvidia = builtins.trace ''
+        hyprland-nvidia was removed. Please use the hyprland package.
+        Nvidia patches are no longer needed.
+      '' final.hyprland;
+
+      hyprland-hidpi = builtins.trace ''
+        hyprland-hidpi was removed. Please use the hyprland package.
+        For more information, refer to https://wiki.hypr.land/Configuring/XWayland.
+      '' final.hyprland;
+    };
 
   # Debug
   hyprland-debug = lib.composeManyExtensions [

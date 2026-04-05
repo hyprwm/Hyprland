@@ -151,6 +151,62 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Genindlæsning af CM-shader mislykkedes, går tilbage til rgba/rgbx.");
     huEngine->registerEntry("da_DK", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Skærm {name}: wide color gamut er aktiveret men skærmen er ikke i 10-bit tilstand.");
 
+    // el_GR (Greek)
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_TITLE, "Η εφαρμογή δεν αποκρίνεται");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_CONTENT, "Η εφαρμογή {title} - {class} δεν αποκρίνεται.\nΤι θέλετε να κάνετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_TERMINATE, "Τερματισμός");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_OPTION_WAIT, "Αναμονή");
+    huEngine->registerEntry("el_GR", TXT_KEY_ANR_PROP_UNKNOWN, "(άγνωστο)");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Μια εφαρμογή <b>{app}</b> ζητά μια άγνωστη άδεια.");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Μια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει την οθόνη σας.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS,
+                            "Μια εφαρμογή <b>{app}</b> προσπαθεί να καταγράψει τη θέση του δρομέα σας.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "Μια εφαρμογή <b>{app}</b> προσπαθεί να φορτώσει ένα πρόσθετο: <b>{plugin}</b>.\n\nΘέλετε να το επιτρέψετε;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Εντοπίστηκε νέο πληκτρολόγιο: <b>{keyboard}</b>.\n\nΘέλετε να επιτρέψετε τη λειτουργία του;");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(άγνωστο)");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_TITLE, "Αίτημα άδειας");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Συμβουλή: μπορείτε να ορίσετε μόνιμους κανόνες γι' αυτά στο αρχείο ρυθμίσεων του Hyprland.");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW, "Αποδοχή");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Αποδοχή και απομνημόνευση");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_ALLOW_ONCE, "Αποδοχή μία φορά");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_DENY, "Απόρριψη");
+    huEngine->registerEntry("el_GR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Άγνωστη εφαρμογή (αναγνωριστικό wayland πελάτη {wayland_id})");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "Η μεταβλητή περιβάλλοντος XDG_CURRENT_DESKTOP φαίνεται να διαχειρίζεται εξωτερικά, με τρέχουσα τιμή: {value}.\nΑυτό μπορεί να προκαλέσει προβλήματα "
+                            "αν δεν είναι σκόπιμο.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_NO_GUIUTILS,
+                            "Το σύστημά σας δεν έχει εγκατεστημένο το hyprland-guiutils, το οποίο χρησιμοποιείται για ορισμένα παράθυρα διαλόγου. Σκεφτείτε να το εγκαταστήσετε.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Το Hyprland απέτυχε να φορτώσει {count} απαραίτητο πόρο, φταίει ο συντηρητής πακέτων της διανομής σας!";
+        return "Το Hyprland απέτυχε να φορτώσει {count} απαραίτητους πόρους, φταίει ο συντηρητής πακέτων της διανομής σας!";
+    });
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "Η διάταξη των οθονών σας είναι εσφαλμένη. Η οθόνη {name} επικαλύπτεται με άλλη(ες) οθόνη(ες) στη διάταξη.\nΔείτε το wiki (σελίδα Monitors) για "
+                            "περισσότερα. Αυτό <b>θα</b> προκαλέσει προβλήματα.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Η οθόνη {name} απέτυχε να ορίσει οποιαδήποτε ζητούμενη λειτουργία, επιστροφή στη λειτουργία {mode}.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Μη έγκυρη κλίμακα για την οθόνη {name}: {scale}, χρησιμοποιείται η προτεινόμενη κλίμακα: {fixed_scale}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Αποτυχία φόρτωσης πρόσθετου {name}: {error}");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Η επαναφόρτωση του CM shader απέτυχε, επιστροφή σε rgba/rgbx.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B,
+                            "Οθόνη {name}: η ευρεία γκάμα χρωμάτων είναι ενεργοποιημένη αλλά η οθόνη δεν βρίσκεται σε λειτουργία 10-bit.");
+    huEngine->registerEntry("el_GR", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Το Hyprland εκκινήθηκε χωρίς το start-hyprland. Αυτό δεν συνιστάται εκτός αν βρίσκεστε σε περιβάλλον αποσφαλμάτωσης.");
+
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_TITLE, "Ασφαλής λειτουργία");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Το Hyprland εκκινήθηκε σε ασφαλή λειτουργία, που σημαίνει ότι η τελευταία σας συνεδρία κατέρρευσε.\nΗ ασφαλής λειτουργία αποτρέπει τη φόρτωση "
+                            "των ρυθμίσεών σας. Μπορείτε να αντιμετωπίσετε προβλήματα σε αυτό το περιβάλλον ή να φορτώσετε τις ρυθμίσεις σας με το παρακάτω κουμπί.\nΙσχύουν "
+                            "οι προεπιλεγμένες συντομεύσεις: SUPER+Q για kitty, SUPER+R για βασικό εκκινητή, SUPER+M για έξοδο.\nΗ επανεκκίνηση του Hyprland θα γίνει σε "
+                            "κανονική λειτουργία.");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Φόρτωση ρυθμίσεων");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Άνοιγμα φακέλου αναφορών κατάρρευσης");
+    huEngine->registerEntry("el_GR", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Εντάξει, κλείσιμο");
+
     // en_US (English)
     huEngine->registerEntry("en_US", TXT_KEY_ANR_TITLE, "Application Not Responding");
     huEngine->registerEntry("en_US", TXT_KEY_ANR_CONTENT, "An application {title} - {class} is not responding.\nWhat do you want to do with it?");
@@ -1021,6 +1077,58 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Het opnieuw laden van de CM-shader is mislukt. Er wordt teruggevallen op rgba/rgbx.");
     huEngine->registerEntry("nl_NL", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: breed kleurbereik is ingeschakeld maar het scherm staat niet in 10-bitmodus.");
 
+    // pa_IN (Punjabi)
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_TITLE, "ਐਪਲੀਕੇਸ਼ਨ ਜਵਾਬ ਨਹੀਂ ਦੇ ਰਹੀ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_CONTENT, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ {title} - {class} ਜਵਾਬ ਨਹੀਂ ਦੇ ਰਹੀ ਹੈ।\nਤੁਸੀਂ ਇਸ ਨਾਲ ਕੀ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_OPTION_TERMINATE, "ਬੰਦ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_OPTION_WAIT, "ਉਡੀਕ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_ANR_PROP_UNKNOWN, "(ਅਗਿਆਤ)");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਅਗਿਆਤ ਇਜਾਜ਼ਤ ਦੀ ਬੇਨਤੀ ਕਰ ਰਹੀ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਤੁਹਾਡੀ ਸਕ੍ਰੀਨ ਨੂੰ ਰਿਕਾਰਡ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਤੁਹਾਡੇ ਕਰਸਰ ਦੀ ਸਥਿਤੀ ਪੜ੍ਹਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
+                            "ਇੱਕ ਐਪਲੀਕੇਸ਼ਨ <b>{app}</b> ਇੱਕ ਪਲੱਗਇਨ ਲੋਡ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੀ ਹੈ: <b>{plugin}</b>।\n\nਕੀ ਤੁਸੀਂ ਇਸਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "ਇੱਕ ਨਵਾਂ ਕੀਬੋਰਡ ਲੱਭਿਆ ਗਿਆ ਹੈ: <b>{keyboard}</b>।\n\nਕੀ ਤੁਸੀਂ ਇਸਨੂੰ ਕੰਮ ਕਰਨ ਦੀ ਇਜਾਜ਼ਤ ਦੇਣਾ ਚਾਹੁੰਦੇ ਹੋ?");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(ਅਗਿਆਤ)");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_TITLE, "ਇਜਾਜ਼ਤ ਦੀ ਬੇਨਤੀ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "ਸੁਝਾਅ: ਤੁਸੀਂ ਆਪਣੀ Hyprland ਕੌਂਫਿਗਰੇਸ਼ਨ ਫਾਈਲ ਵਿੱਚ ਇਹਨਾਂ ਲਈ ਪੱਕੇ ਨਿਯਮ ਸੈੱਟ ਕਰ ਸਕਦੇ ਹੋ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW, "ਇਜਾਜ਼ਤ ਦਿਓ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "ਇਜਾਜ਼ਤ ਦਿਓ ਅਤੇ ਯਾਦ ਰੱਖੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_ALLOW_ONCE, "ਇੱਕ ਵਾਰ ਇਜਾਜ਼ਤ ਦਿਓ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_DENY, "ਇਨਕਾਰ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "ਅਗਿਆਤ ਐਪਲੀਕੇਸ਼ਨ (wayland ਕਲਾਇੰਟ ID {wayland_id})");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+                            "ਤੁਹਾਡਾ XDG_CURRENT_DESKTOP ਵਾਤਾਵਰਣ ਵੇਰੀਏਬਲ ਬਾਹਰੀ ਤੌਰ 'ਤੇ ਪ੍ਰਬੰਧਿਤ ਜਾਪਦਾ ਹੈ, ਮੌਜੂਦਾ ਮੁੱਲ: {value}।\nਜਦੋਂ ਤੱਕ ਇਹ ਜਾਣਬੁੱਝ ਕੇ ਨਾ "
+                            "ਕੀਤਾ ਗਿਆ ਹੋਵੇ, ਇਹ ਸਮੱਸਿਆਵਾਂ ਪੈਦਾ ਕਰ ਸਕਦਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_NO_GUIUTILS, "ਤੁਹਾਡੇ ਸਿਸਟਮ ਵਿੱਚ hyprland-guiutils ਇੰਸਟਾਲ ਨਹੀਂ ਹੈ। ਇਹ ਕੁਝ ਡਾਇਲਾਗਸ ਲਈ ਜ਼ਰੂਰੀ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਇਸਨੂੰ ਇੰਸਟਾਲ ਕਰਨ ਬਾਰੇ ਵਿਚਾਰ ਕਰੋ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
+        int assetsNo = std::stoi(vars.at("count"));
+        if (assetsNo <= 1)
+            return "Hyprland {count} ਜ਼ਰੂਰੀ ਸੰਪਤੀ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਿਆ, ਖਰਾਬ ਪੈਕੇਜਿੰਗ ਲਈ ਆਪਣੇ ਡਿਸਟ੍ਰੋ ਪੈਕੇਜਰਾਂ ਨੂੰ ਦੋਸ਼ੀ ਠਹਿਰਾਓ!";
+        return "Hyprland {count} ਜ਼ਰੂਰੀ ਸੰਪਤੀਆਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਿਆ, ਖਰਾਬ ਪੈਕੇਜਿੰਗ ਲਈ ਆਪਣੇ ਡਿਸਟ੍ਰੋ ਪੈਕੇਜਰਾਂ ਨੂੰ ਦੋਸ਼ੀ ਠਹਿਰਾਓ!";
+    });
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT,
+                            "ਤੁਹਾਡਾ ਮਾਨੀਟਰ ਲੇਆਉਟ ਗਲਤ ਤਰੀਕੇ ਨਾਲ ਕੌਂਫਿਗਰ ਕੀਤਾ ਗਿਆ ਹੈ। ਮਾਨੀਟਰ {name} ਲੇਆਉਟ ਵਿੱਚ ਦੂਜੇ ਮਾਨੀਟਰਾਂ ਨਾਲ ਓਵਰਲੈਪ ਕਰ ਰਿਹਾ ਹੈ।\nਹੋਰ "
+                            "ਜਾਣਕਾਰੀ ਲਈ ਵਿਕੀ (Monitors page) ਦੇਖੋ। ਇਸ ਨਾਲ ਸਮੱਸਿਆਵਾਂ <b>ਪੈਦਾ ਹੋਣਗੀਆਂ</b>।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "ਮਾਨੀਟਰ {name} ਕਿਸੇ ਵੀ ਬੇਨਤੀ ਕੀਤੇ ਮੋਡ ਨੂੰ ਸੈੱਟ ਕਰਨ ਵਿੱਚ ਅਸਫਲ ਰਿਹਾ, ਵਾਪਸ ਮੋਡ {mode} 'ਤੇ ਜਾ ਰਿਹਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "ਮਾਨੀਟਰ {name} ਨੂੰ ਅਵੈਧ ਸਕੇਲ ਭੇਜਿਆ ਗਿਆ: {scale}, ਪ੍ਰਸਤਾਵਿਤ ਸਕੇਲ ਦੀ ਵਰਤੋਂ ਕਰ ਰਿਹਾ ਹੈ: {fixed_scale}");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "ਪਲੱਗਇਨ {name} ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ: {error}");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM ਸ਼ੇਡਰ ਮੁੜ-ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ, rgba/rgbx 'ਤੇ ਵਾਪਸ ਜਾ ਰਿਹਾ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "ਮਾਨੀਟਰ {name}: ਵਾਈਡ ਕਲਰ ਗੇਮਟ ਚਾਲੂ ਹੈ ਪਰ ਡਿਸਪਲੇ 10-ਬਿੱਟ ਮੋਡ ਵਿੱਚ ਨਹੀਂ ਹੈ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland ਨੂੰ start-hyprland ਤੋਂ ਬਿਨਾਂ ਸ਼ੁਰੂ ਕੀਤਾ ਗਿਆ ਸੀ। ਜਦੋਂ ਤੱਕ ਤੁਸੀਂ ਡੀਬੱਗਿੰਗ ਵਾਤਾਵਰਣ ਵਿੱਚ ਨਹੀਂ ਹੋ, ਇਸਦੀ ਸਿਫਾਰਸ਼ ਨਹੀਂ ਕੀਤੀ ਜਾਂਦੀ।");
+
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_TITLE, "ਸੁਰੱਖਿਅਤ ਮੋਡ (Safe Mode)");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_DESCRIPTION,
+                            "Hyprland ਸੁਰੱਖਿਅਤ ਮੋਡ ਵਿੱਚ ਸ਼ੁਰੂ ਕੀਤਾ ਗਿਆ ਹੈ, ਜਿਸਦਾ ਮਤਲਬ ਹੈ ਕਿ ਤੁਹਾਡਾ ਪਿਛਲਾ ਸੈਸ਼ਨ ਕ੍ਰੈਸ਼ ਹੋ ਗਿਆ ਸੀ।\nਸੁਰੱਖਿਅਤ ਮੋਡ ਤੁਹਾਡੀ "
+                            "ਕੌਂਫਿਗਰੇਸ਼ਨ ਨੂੰ ਲੋਡ ਹੋਣ ਤੋਂ ਰੋਕਦਾ ਹੈ। ਤੁਸੀਂ ਇਸ ਵਾਤਾਵਰਣ ਵਿੱਚ ਸਮੱਸਿਆ ਦਾ ਨਿਪਟਾਰਾ ਕਰ ਸਕਦੇ ਹੋ, ਜਾਂ ਹੇਠਾਂ ਦਿੱਤੇ ਬਟਨ ਨਾਲ ਆਪਣੀ "
+                            "ਕੌਂਫਿਗਰੇਸ਼ਨ ਲੋਡ ਕਰ ਸਕਦੇ ਹੋ।\nਡਿਫੌਲਟ ਕੀਬਾਈਂਡ ਲਾਗੂ ਹੁੰਦੇ ਹਨ: kitty ਲਈ SUPER+Q, ਬੇਸਿਕ ਰਨਰ ਲਈ SUPER+R, ਬਾਹਰ ਨਿਕਲਣ ਲਈ SUPER+M।\n"
+                            "Hyprland ਨੂੰ ਦੁਬਾਰਾ ਸ਼ੁਰੂ ਕਰਨ ਨਾਲ ਇਹ ਮੁੜ ਆਮ ਮੋਡ ਵਿੱਚ ਚੱਲੇਗਾ।");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "ਕੌਂਫਿਗ ਲੋਡ ਕਰੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "ਕ੍ਰੈਸ਼ ਰਿਪੋਰਟ ਡਾਇਰੈਕਟਰੀ ਖੋਲ੍ਹੋ");
+    huEngine->registerEntry("pa_IN", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "ਸਮਝ ਆ ਗਿਆ, ਇਸਨੂੰ ਬੰਦ ਕਰੋ");
+
     // pl_PL (Polish)
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_TITLE, "Aplikacja Nie Odpowiada");
     huEngine->registerEntry("pl_PL", TXT_KEY_ANR_CONTENT, "Aplikacja {title} - {class} nie odpowiada.\nCo chcesz z nią zrobić?");
@@ -1527,6 +1635,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "<b>{app}</b> программасы билгесез рөхсәт сорый.");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "<b>{app}</b> программасы сезнең экранны яздырырга тели.\n\nРөхсәт бирәсезме?");
+    huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "<b>{app}</b> программасы курсор позициясен күзәтергә тели.\n\nРөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "<b>{app}</b> программасы плагин йөкләргә тели: <b>{plugin}</b>.\n\nРөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Яңа клавиатура табылды: <b>{keyboard}</b>.\n\nАның эшләргә рөхсәт бирәсезме?");
     huEngine->registerEntry("tt_RU", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(билгесез)");
@@ -1553,6 +1662,18 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "{name} плагинны йөкләүдә хата: {error}");
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM шейдерын яңадан йөкләү уңышсыз булды, rgba/rgbx режимына кайтыла.");
     huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Монитор {name}: киң төсләр диапазоны кушылган, ләкин дисплей 10-бит режимында түгел.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_NOTIF_NO_WATCHDOG, "Hyprland start-hyprland ярдәмендә эшләтелмәгән. Бу, төзәтү мохитеннән тыш, бик тәкъдим ителми.");
+
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_TITLE, "Куркынычсыз режим");
+    huEngine->registerEntry(
+        "tt_RU", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland куркынычсыз режимда эшләтелде, димәк сезнең соңгы сессия авария белән тәмамланган.\n"
+        "Куркынычсыз режим сезнең конфигурацияне йөкләүне тыя. Сез бу мохиттә проблемаларны тикшерә аласыз, яки түбәндәге төймә аша конфигурацияне йөкли аласыз.\n"
+        "Килешенгән төймә бәйләнешләре кулланыла: SUPER+Q kitty ачу, SUPER+R лаунчер ачу, SUPER+M чыгу.\n"
+        "Hyprland-ны яңадан эшләтү аны гадәти режимда ачачак.");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Конфигурацияне йөкләү");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Авария хисаплары папкасын ачу");
+    huEngine->registerEntry("tt_RU", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Аңлашылды, ябу");
 
     // uk_UA (Ukrainian)
     huEngine->registerEntry("uk_UA", TXT_KEY_ANR_TITLE, "Програма не відповідає");

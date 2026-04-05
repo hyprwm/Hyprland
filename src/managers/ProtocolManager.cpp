@@ -67,6 +67,7 @@
 #include "../protocols/PointerWarp.hpp"
 #include "../protocols/Fifo.hpp"
 #include "../protocols/CommitTiming.hpp"
+#include "../protocols/XDGForeignV2.hpp"
 
 #include "../helpers/Monitor.hpp"
 #include "../event/EventBus.hpp"
@@ -109,6 +110,7 @@ CProtocolManager::CProtocolManager() {
 
     static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
+    static const auto PCMV1_2   = CConfigValue<Hyprlang::INT>("experimental:wp_cm_1_2");
 
     static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
 
@@ -194,6 +196,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
+    PROTO::xdgForeignExporter  = makeUnique<CXDGForeignExporterProtocolV2>(&zxdg_exporter_v2_interface, 1, "XDGForeignExporter");
+    PROTO::xdgForeignImporter  = makeUnique<CXDGForeignImporterProtocolV2>(&zxdg_importer_v2_interface, 1, "XDGForeignImporter");
 
     if (*PENABLECT)
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
@@ -205,7 +209,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, 1, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 2 : 1, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 
@@ -301,6 +305,8 @@ CProtocolManager::~CProtocolManager() {
     PROTO::extDataDevice.reset();
     PROTO::pointerWarp.reset();
     PROTO::fifo.reset();
+    PROTO::xdgForeignExporter.reset();
+    PROTO::xdgForeignImporter.reset();
     PROTO::commitTiming.reset();
     PROTO::imageCaptureSource.reset();
 
@@ -357,6 +363,8 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
 		PROTO::xdgBell->getGlobal(),
         PROTO::fifo->getGlobal(),
         PROTO::commitTiming->getGlobal(),
+        PROTO::xdgForeignExporter->getGlobal(),
+        PROTO::xdgForeignImporter->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

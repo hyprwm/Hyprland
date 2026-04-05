@@ -32,29 +32,41 @@ uniform vec2  fullSize;
 #include "border.glsl"
 
 layout(location = 0) out vec4 fragColor;
+#if USE_MIRROR
+layout(location = 1) out vec4 mirrorColor;
+#endif
 void main() {
-    fragColor = getBorder(v_texcoord, alpha, fullSizeUntransformed, radiusOuter, thick, radius, roundingPower, topLeft, fullSize, gradientLength, gradient, angle, gradient2Length,
-                          gradient2, angle2, gradientLerp
+#if USE_MIRROR
+    vec4[2] pixColors =
+#else
+    fragColor =
+#endif
+        getBorder(v_texcoord, alpha, fullSizeUntransformed, radiusOuter, thick, radius, roundingPower, topLeft, fullSize, gradientLength, gradient, angle, gradient2Length,
+                  gradient2, angle2, gradientLerp
 #if USE_CM
-                          ,
-                          sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+                  ,
+                  sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                          ,
-                          iccLut3D, iccLutSize
+                  ,
+                  iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                          ,
-                          targetPrimariesXYZ
+                  ,
+                  targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                          ,
-                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                  ,
+                  maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                          ,
-                          sdrSaturation, sdrBrightnessMultiplier
+                  ,
+                  sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
 #endif
-    );
+        );
+#if USE_MIRROR
+    fragColor   = pixColors[0];
+    mirrorColor = pixColors[1];
+#endif
 }

@@ -9,15 +9,17 @@
 #include <vector>
 #include <expected>
 
-#define SDR_MIN_LUMINANCE 0.2
-#define SDR_MAX_LUMINANCE 80.0
-#define SDR_REF_LUMINANCE 80.0
-#define HDR_MIN_LUMINANCE 0.005
-#define HDR_MAX_LUMINANCE 10000.0
-#define HDR_REF_LUMINANCE 203.0
-#define HLG_MAX_LUMINANCE 1000.0
+#define SDR_MIN_LUMINANCE 0.2f
+#define SDR_MAX_LUMINANCE 80.0f
+#define SDR_REF_LUMINANCE 80.0f
+#define HDR_MIN_LUMINANCE 0.005f
+#define HDR_MAX_LUMINANCE 10000.0f
+#define HDR_REF_LUMINANCE 203.0f
+#define HLG_MAX_LUMINANCE 1000.0f
 
-class ITexture;
+namespace Render {
+    class ITexture;
+}
 
 namespace NColorManagement {
     enum eNoShader : uint8_t {
@@ -65,10 +67,16 @@ namespace NColorManagement {
         return sc<ePrimaries>(primaries);
     }
     inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
-        return sc<wpColorManagerV1TransferFunction>(tf);
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            default: return sc<wpColorManagerV1TransferFunction>(tf);
+        }
     }
     inline eTransferFunction convertTransferFunction(wpColorManagerV1TransferFunction tf) {
-        return sc<eTransferFunction>(tf);
+        switch (tf) {
+            case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4: return CM_TRANSFER_FUNCTION_SRGB;
+            default: return sc<eTransferFunction>(tf);
+        }
     }
 
     using SPCPRimaries = Hyprgraphics::SPCPRimaries;
@@ -219,7 +227,7 @@ namespace NColorManagement {
             bool                        present = false;
             size_t                      lutSize = 33;
             std::vector<float>          lutDataPacked;
-            SP<ITexture>                lutTexture;
+            SP<Render::ITexture>        lutTexture;
             std::optional<SVCGTTable16> vcgt;
         } icc;
 
@@ -304,19 +312,19 @@ namespace NColorManagement {
     class CImageDescription {
       public:
         static WP<const CImageDescription> from(const SImageDescription& imageDescription);
-        static WP<const CImageDescription> from(const uint32_t imageDescriptionId);
+        static WP<const CImageDescription> from(const uint64_t imageDescriptionId);
 
         WP<const CImageDescription>        with(const SImageDescription::SPCLuminances& luminances) const;
 
         const SImageDescription&           value() const;
-        uint32_t                           id() const;
+        uint64_t                           id() const;
 
         WP<const CPrimaries>               getPrimaries() const;
 
       private:
-        CImageDescription(const SImageDescription& imageDescription, const uint imageDescriptionId);
-        uint32_t          m_id          = 0;
-        uint32_t          m_primariesId = 0;
+        CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId);
+        uint64_t          m_id          = 0;
+        uint              m_primariesId = 0;
         SImageDescription m_imageDescription;
     };
 
@@ -347,5 +355,11 @@ namespace NColorManagement {
         .luminances       = {.reference = 203},
     });
 
-    static const auto LINEAR_IMAGE_DESCRIPTION = SCRGB_IMAGE_DESCRIPTION; // TODO any reason to use something different?
+    static const auto LINEAR_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_EXT_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
+        .luminances       = {.min = 0, .max = 10000, .reference = 80},
+    });
 }

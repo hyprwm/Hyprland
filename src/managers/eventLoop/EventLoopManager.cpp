@@ -1,9 +1,10 @@
 #include "EventLoopManager.hpp"
 #include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
-#include "../../config/ConfigWatcher.hpp"
+#include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <ranges>
 
@@ -41,7 +42,8 @@ static int timerWrite(int fd, uint32_t mask, void* data) {
         Log::logger->log(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
     else {
         uint64_t expirations;
-        read(fd, &expirations, sizeof(expirations));
+        if (read(fd, &expirations, sizeof(expirations)) < 0)
+            Log::logger->log(Log::ERR, "timerWrite: read failed on fd {}: {}", fd, strerror(errno));
     }
 
     g_pEventLoopManager->onTimerFire();
@@ -55,7 +57,7 @@ static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
 }
 
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
-    g_pConfigWatcher->onInotifyEvent();
+    Config::watcher()->onInotifyEvent();
     return 0;
 }
 
@@ -111,7 +113,7 @@ void CEventLoopManager::onFdReadableFail(SReadableWaiter* waiter) {
 void CEventLoopManager::enterLoop() {
     m_wayland.eventSource = wl_event_loop_add_fd(m_wayland.loop, m_timers.timerfd.get(), WL_EVENT_READABLE, timerWrite, nullptr);
 
-    if (const auto& FD = g_pConfigWatcher->getInotifyFD(); FD.isValid())
+    if (const auto& FD = Config::watcher()->getInotifyFD(); FD.isValid())
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_wayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();

@@ -6,7 +6,9 @@
 #include <map>
 #include <deque>
 
-class IHyprRenderer;
+namespace Render {
+    class IHyprRenderer;
+}
 
 class CHyprMonitorDebugOverlay {
   public:
@@ -25,7 +27,7 @@ class CHyprMonitorDebugOverlay {
     PHLMONITORREF                                  m_monitor;
     CBox                                           m_lastDrawnBox;
 
-    friend class IHyprRenderer;
+    friend class Render::IHyprRenderer;
 };
 
 class CHyprDebugOverlay {
@@ -42,10 +44,10 @@ class CHyprDebugOverlay {
     cairo_surface_t*                                  m_cairoSurface = nullptr;
     cairo_t*                                          m_cairo        = nullptr;
 
-    SP<ITexture>                                      m_texture;
+    SP<Render::ITexture>                              m_texture;
 
     friend class CHyprMonitorDebugOverlay;
-    friend class IHyprRenderer;
+    friend class Render::IHyprRenderer;
 };
 
 inline UP<CHyprDebugOverlay> g_pDebugOverlay;

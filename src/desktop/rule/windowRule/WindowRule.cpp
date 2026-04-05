@@ -5,8 +5,11 @@
 #include "../../../managers/TokenManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
+#include <hyprutils/string/VarList2.hpp>
+
 using namespace Desktop;
 using namespace Desktop::Rule;
+using namespace Hyprutils::String;
 
 CWindowRule::CWindowRule(const std::string& name) : IRule(name) {
     ;

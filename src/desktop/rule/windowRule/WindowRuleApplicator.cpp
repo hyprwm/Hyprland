@@ -7,6 +7,8 @@
 #include "../../../event/EventBus.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/VarList.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 using namespace Hyprutils::String;
 
@@ -147,17 +149,17 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_BORDER_COLOR: {
                 try {
                     // Each vector will only get used if it has at least one color
-                    CGradientValueData activeBorderGradient   = {};
-                    CGradientValueData inactiveBorderGradient = {};
-                    bool               active                 = true;
-                    CVarList           colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
+                    Config::CGradientValueData activeBorderGradient   = {};
+                    Config::CGradientValueData inactiveBorderGradient = {};
+                    bool                       active                 = true;
+                    CVarList                   colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
 
                     // Basic form has only two colors, everything else can be parsed as a gradient
                     if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
                         m_activeBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
+                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
                         m_inactiveBorderColor.first =
-                            Types::COverridableVar(CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
+                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
                         m_activeBorderColor.second |= rule->getPropertiesMask();
                         m_inactiveBorderColor.second |= rule->getPropertiesMask();
                         break;

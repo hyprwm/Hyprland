@@ -12,6 +12,8 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/supplementary/DragController.hpp"
 
+using namespace Render;
+
 // shared things to conserve VRAM
 static SP<ITexture> m_tGradientActive;
 static SP<ITexture> m_tGradientInactive;
@@ -24,16 +26,7 @@ CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindo
     static auto PGRADIENTS = CConfigValue<Hyprlang::INT>("group:groupbar:enabled");
     static auto PENABLED   = CConfigValue<Hyprlang::INT>("group:groupbar:gradients");
 
-    if (!m_tGradientActive)
-        m_tGradientActive = g_pHyprRenderer->createTexture();
-    if (!m_tGradientInactive)
-        m_tGradientInactive = g_pHyprRenderer->createTexture();
-    if (!m_tGradientLockedActive)
-        m_tGradientLockedActive = g_pHyprRenderer->createTexture();
-    if (!m_tGradientLockedInactive)
-        m_tGradientLockedInactive = g_pHyprRenderer->createTexture();
-
-    if (!m_tGradientActive->ok() && *PENABLED && *PGRADIENTS)
+    if (*PENABLED && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
@@ -135,10 +128,10 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     static auto PTEXTOFFSET                = CConfigValue<Hyprlang::INT>("group:groupbar:text_offset");
     static auto PTEXTPADDING               = CConfigValue<Hyprlang::INT>("group:groupbar:text_padding");
     static auto PBLUR                      = CConfigValue<Hyprlang::INT>("group:groupbar:blur");
-    auto* const GROUPCOLACTIVE             = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
-    auto* const GROUPCOLINACTIVE           = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
-    auto* const GROUPCOLACTIVELOCKED       = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
-    auto* const GROUPCOLINACTIVELOCKED     = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLACTIVE             = sc<Config::CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
+    auto* const GROUPCOLINACTIVE           = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
+    auto* const GROUPCOLACTIVELOCKED       = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLINACTIVELOCKED     = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
 
     const auto  ASSIGNEDBOX = assignedBoxGlobal();
 
@@ -179,7 +172,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             if (*PROUNDING) {
                 rectdata.round         = *PROUNDING;
                 rectdata.roundingPower = *PROUNDINGPOWER;
-                if (*PROUNDONLYEDGES) {
+                if (*PROUNDONLYEDGES && barsToDraw > 1) {
                     rectdata.round      = 0;
                     const double offset = *PROUNDING * 2;
                     if (i == 0) {
@@ -205,7 +198,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
             if (*PGRADIENTS) {
                 const auto GRADIENTTEX = (m_dwGroupMembers[WINDOWINDEX] == Desktop::focusState()->window() ? (GROUPLOCKED ? m_tGradientLockedActive : m_tGradientActive) :
                                                                                                              (GROUPLOCKED ? m_tGradientLockedInactive : m_tGradientInactive));
-                if (GRADIENTTEX->ok()) {
+                if (GRADIENTTEX && GRADIENTTEX->ok()) {
                     CTexPassElement::SRenderData data;
                     data.tex  = GRADIENTTEX;
                     data.blur = blur;
@@ -214,7 +207,7 @@ void CHyprGroupBarDecoration::draw(PHLMONITOR pMonitor, float const& a) {
                     if (*PGRADIENTROUNDING) {
                         data.round         = *PGRADIENTROUNDING;
                         data.roundingPower = *PGRADIENTROUNDINGPOWER;
-                        if (*PGRADIENTROUNDINGONLYEDGES) {
+                        if (*PGRADIENTROUNDINGONLYEDGES && barsToDraw > 1) {
                             data.round          = 0;
                             const double offset = *PGRADIENTROUNDING * 2;
                             if (i == 0) {
@@ -298,8 +291,8 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
     static auto      PTITLEFONTWEIGHTACTIVE   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_active");
     static auto      PTITLEFONTWEIGHTINACTIVE = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:font_weight_inactive");
 
-    const auto       FONTWEIGHTACTIVE   = sc<CFontWeightConfigValueData*>((PTITLEFONTWEIGHTACTIVE.ptr())->getData());
-    const auto       FONTWEIGHTINACTIVE = sc<CFontWeightConfigValueData*>((PTITLEFONTWEIGHTINACTIVE.ptr())->getData());
+    const auto       FONTWEIGHTACTIVE   = sc<Config::CFontWeightConfigValueData*>((PTITLEFONTWEIGHTACTIVE.ptr())->getData());
+    const auto       FONTWEIGHTINACTIVE = sc<Config::CFontWeightConfigValueData*>((PTITLEFONTWEIGHTINACTIVE.ptr())->getData());
 
     const CHyprColor COLORACTIVE         = CHyprColor(*PTEXTCOLORACTIVE);
     const CHyprColor COLORINACTIVE       = *PTEXTCOLORINACTIVE == -1 ? COLORACTIVE : CHyprColor(*PTEXTCOLORINACTIVE);
@@ -316,10 +309,10 @@ CTitleTex::CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float 
 #undef RENDER_TEXT
 }
 
-static void renderGradientTo(SP<ITexture> tex, CGradientValueData* grad) {
+static SP<ITexture> renderGradient(Config::CGradientValueData* grad) {
 
     if (!Desktop::focusState()->monitor())
-        return;
+        return nullptr;
 
     const Vector2D& bufferSize = Desktop::focusState()->monitor()->m_pixelSize;
 
@@ -348,11 +341,13 @@ static void renderGradientTo(SP<ITexture> tex, CGradientValueData* grad) {
     cairo_surface_flush(CAIROSURFACE);
 
     // copy the data to an OpenGL texture we have
-    tex = g_pHyprRenderer->createTexture(CAIROSURFACE);
+    auto tex = g_pHyprRenderer->createTexture(CAIROSURFACE);
 
     // delete cairo
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
+
+    return tex;
 }
 
 void refreshGroupBarGradients() {
@@ -363,10 +358,10 @@ void refreshGroupBarGradients() {
     static auto PGROUPCOLINACTIVE       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.inactive");
     static auto PGROUPCOLACTIVELOCKED   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_active");
     static auto PGROUPCOLINACTIVELOCKED = CConfigValue<Hyprlang::CUSTOMTYPE>("group:groupbar:col.locked_inactive");
-    auto* const GROUPCOLACTIVE          = sc<CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
-    auto* const GROUPCOLINACTIVE        = sc<CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
-    auto* const GROUPCOLACTIVELOCKED    = sc<CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
-    auto* const GROUPCOLINACTIVELOCKED  = sc<CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLACTIVE          = sc<Config::CGradientValueData*>((PGROUPCOLACTIVE.ptr())->getData());
+    auto* const GROUPCOLINACTIVE        = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVE.ptr())->getData());
+    auto* const GROUPCOLACTIVELOCKED    = sc<Config::CGradientValueData*>((PGROUPCOLACTIVELOCKED.ptr())->getData());
+    auto* const GROUPCOLINACTIVELOCKED  = sc<Config::CGradientValueData*>((PGROUPCOLINACTIVELOCKED.ptr())->getData());
 
     if (m_tGradientActive && m_tGradientActive->ok()) {
         m_tGradientActive.reset();
@@ -378,10 +373,10 @@ void refreshGroupBarGradients() {
     if (!*PENABLED || !*PGRADIENTS)
         return;
 
-    renderGradientTo(m_tGradientActive, GROUPCOLACTIVE);
-    renderGradientTo(m_tGradientInactive, GROUPCOLINACTIVE);
-    renderGradientTo(m_tGradientLockedActive, GROUPCOLACTIVELOCKED);
-    renderGradientTo(m_tGradientLockedInactive, GROUPCOLINACTIVELOCKED);
+    m_tGradientActive         = renderGradient(GROUPCOLACTIVE);
+    m_tGradientInactive       = renderGradient(GROUPCOLINACTIVE);
+    m_tGradientLockedActive   = renderGradient(GROUPCOLACTIVELOCKED);
+    m_tGradientLockedInactive = renderGradient(GROUPCOLINACTIVELOCKED);
 }
 
 bool CHyprGroupBarDecoration::onBeginWindowDragOnDeco(const Vector2D& pos) {

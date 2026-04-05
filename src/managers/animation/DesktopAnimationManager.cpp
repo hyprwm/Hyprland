@@ -8,10 +8,16 @@
 #include "../../desktop/view/Group.hpp"
 #include "../../desktop/Workspace.hpp"
 
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationTree.hpp"
+
+#include "../../helpers/Monitor.hpp"
 #include "../../Compositor.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
+
+#include <hyprutils/string/VarList.hpp>
+
+using namespace Hyprutils::String;
 
 void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType type, bool force) {
     const bool CLOSE = type == ANIMATION_TYPE_OUT;
@@ -24,13 +30,13 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     }
 
     if (!CLOSE) {
-        pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
     } else {
-        pWindow->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
+        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
     }
 
     std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();
@@ -102,13 +108,13 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         *ls->m_alpha = 0.F;
 
     if (IN) {
-        ls->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
-        ls->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersIn"));
-        ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersIn"));
+        ls->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+        ls->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersIn"));
+        ls->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersIn"));
     } else {
-        ls->m_realPosition->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
-        ls->m_realSize->setConfig(g_pConfigManager->getAnimationPropertyConfig("layersOut"));
-        ls->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeLayersOut"));
+        ls->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+        ls->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("layersOut"));
+        ls->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeLayersOut"));
     }
 
     const auto ANIMSTYLE = ls->m_ruleApplicator->animationStyle().valueOr(ls->m_realPosition->getStyle());
@@ -239,8 +245,8 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
     if (!instant) {
         const std::string ANIMNAME = std::format("{}{}", ws->m_isSpecialWorkspace ? "specialWorkspace" : "workspaces", IN ? "In" : "Out");
 
-        ws->m_alpha->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
-        ws->m_renderOffset->setConfig(g_pConfigManager->getAnimationPropertyConfig(ANIMNAME));
+        ws->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
+        ws->m_renderOffset->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
     }
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
     const auto  PMONITOR      = ws->m_monitor.lock();

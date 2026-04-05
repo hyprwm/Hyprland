@@ -3,14 +3,16 @@
 #include "../Renderer.hpp"
 #include "macros.hpp"
 #include "../Framebuffer.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
+using namespace Render::GL;
 
 CGLFramebuffer::CGLFramebuffer() : IFramebuffer() {}
 CGLFramebuffer::CGLFramebuffer(const std::string& name) : IFramebuffer(name) {}
 
 bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
     g_pHyprOpenGL->makeEGLCurrent();
-
-    bool firstAlloc = false;
 
     if (!m_tex) {
         m_tex = g_pHyprRenderer->createTexture();
@@ -20,39 +22,44 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
         m_tex->setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         m_tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         m_tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        firstAlloc = true;
     }
 
     if (!m_fbAllocated) {
         glGenFramebuffers(1, &m_fb);
         m_fbAllocated = true;
-        firstAlloc    = true;
     }
 
-    if (firstAlloc) {
-        const auto format = NFormatUtils::getPixelFormatFromDRM(drmFormat);
-        m_tex->bind();
+    const auto format = getPixelFormatFromDRM(drmFormat);
+    m_tex->bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
+
+    if (m_mirrorTex) {
+        const auto format = getPixelFormatFromDRM(m_mirrorTex->m_drmFormat);
+        m_mirrorTex->bind();
         glTexImage2D(GL_TEXTURE_2D, 0, format->glInternalFormat ? format->glInternalFormat : format->glFormat, w, h, 0, format->glFormat, format->glType, nullptr);
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_tex->m_texID, 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_mirrorTex->m_texID, 0);
+    } else
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
 
-        if (m_stencilTex && m_stencilTex->ok()) {
-            m_stencilTex->bind();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
+    if (m_stencilTex && m_stencilTex->ok()) {
+        m_stencilTex->bind();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, w, h, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_stencilTex->m_texID, 0);
 
-            glDisable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-        }
-
-        auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {}, GL Error: 0x{:x})", status, sc<int>(glGetError()));
-
-        if (m_stencilTex && m_stencilTex->ok())
-            m_stencilTex->unbind();
-
-        Log::logger->log(Log::DEBUG, "Framebuffer created, status {}", status);
+        glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
     }
+
+    auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    RASSERT((status == GL_FRAMEBUFFER_COMPLETE), "Framebuffer incomplete, couldn't create! (FB status: {}, GL Error: 0x{:x})", status, sc<int>(glGetError()));
+
+    if (m_stencilTex && m_stencilTex->ok())
+        m_stencilTex->unbind();
+
+    Log::logger->log(Log::DEBUG, "Framebuffer \"{}\" created, status {}", m_name, status);
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -86,6 +93,8 @@ void CGLFramebuffer::release() {
     if (m_fbAllocated) {
         glBindFramebuffer(GL_FRAMEBUFFER, m_fb);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+        if (m_mirrorTex)
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, 0, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glDeleteFramebuffers(1, &m_fb);
@@ -103,7 +112,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     auto shm                      = buffer->shm();
     auto [pixelData, fmt, bufLen] = buffer->beginDataPtr(0); // no need for end, cuz it's shm
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
         return false;
@@ -115,7 +124,7 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t packStride = NFormatUtils::minStride(PFORMAT, m_size.x);
+    uint32_t packStride = minStride(PFORMAT, m_size.x);
     int      glFormat   = PFORMAT->glFormat;
 
     if (glFormat == GL_RGBA)
@@ -123,11 +132,9 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
         if (PFORMAT->swizzle.has_value()) {
-            std::array<GLint, 4> RGBA = SWIZZLE_RGBA;
-            std::array<GLint, 4> BGRA = SWIZZLE_BGRA;
-            if (PFORMAT->swizzle == RGBA)
+            if (PFORMAT->swizzle == SWIZZLE_RGBA)
                 glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == BGRA)
+            else if (PFORMAT->swizzle == SWIZZLE_BGRA)
                 glFormat = GL_BGRA_EXT;
             else {
                 LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");

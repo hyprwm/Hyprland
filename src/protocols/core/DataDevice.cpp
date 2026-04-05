@@ -657,10 +657,11 @@ void CWLDataDeviceProtocol::updateDrag() {
     if (m_dnd.focusedDevice)
         m_dnd.focusedDevice->sendLeave();
 
-    if (!g_pSeatManager->m_state.dndPointerFocus)
+    auto surface = g_pSeatManager->m_state.dndPointerFocus.lock();
+    if (!surface)
         return;
 
-    m_dnd.focusedDevice = dataDeviceForClient(g_pSeatManager->m_state.dndPointerFocus->client());
+    m_dnd.focusedDevice = dataDeviceForClient(surface->client());
 
     if (!m_dnd.focusedDevice)
         return;
@@ -695,8 +696,7 @@ void CWLDataDeviceProtocol::updateDrag() {
     m_dnd.focusedDevice->sendDataOffer(offer);
     if (const auto WL = offer->getWayland(); WL)
         WL->sendData();
-    m_dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), g_pSeatManager->m_state.dndPointerFocus.lock(),
-                                   g_pSeatManager->m_state.dndPointerFocus->m_current.size / 2.F, offer);
+    m_dnd.focusedDevice->sendEnter(wl_display_next_serial(g_pCompositor->m_wlDisplay), surface, surface->m_current.size / 2.F, offer);
 }
 
 void CWLDataDeviceProtocol::cleanupDndState(bool resetDevice, bool resetSource, bool simulateInput) {

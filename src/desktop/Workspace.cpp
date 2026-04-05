@@ -1,10 +1,12 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
 #include "../Compositor.hpp"
-#include "../config/ConfigValue.hpp"
-#include "config/ConfigManager.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
+#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../config/supplementary/executor/Executor.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
+#include "../helpers/Monitor.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../event/EventBus.hpp"
@@ -28,16 +30,16 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_self = self;
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), m_renderOffset, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
-                                         self, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+    g_pAnimationManager->createAnimation(
+        Vector2D(0, 0), m_renderOffset, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
                                          AVARDAMAGE_ENTIRE);
 
-    const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
-    if (RULEFORTHIS.defaultName.has_value())
-        m_name = RULEFORTHIS.defaultName.value();
-    if (RULEFORTHIS.animationStyle.has_value())
-        m_animationStyle = RULEFORTHIS.animationStyle.value();
+    const auto RULEFORTHIS = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    if (RULEFORTHIS.m_defaultName.has_value())
+        m_name = RULEFORTHIS.m_defaultName.value();
+    if (RULEFORTHIS.m_animationStyle.has_value())
+        m_animationStyle = RULEFORTHIS.m_animationStyle.value();
 
     m_focusedWindowHook = Event::bus()->m_events.window.close.listen([this](PHLWINDOW pWindow) {
         if (pWindow == m_lastFocusedWindow.lock())
@@ -49,12 +51,12 @@ void CWorkspace::init(PHLWORKSPACE self) {
 
     m_inert = false;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent);
 
     if (self->m_wasCreatedEmpty)
-        if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            CKeybindManager::spawnWithRules(*cmd, self);
+        if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
+            Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
     g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
@@ -485,13 +487,13 @@ void CWorkspace::updateWindowDecos() {
 }
 
 void CWorkspace::updateWindowData() {
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace != m_self)
             continue;
 
-        w->updateWindowData(WORKSPACERULE);
+        w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
     }
 }
 
@@ -511,11 +513,11 @@ void CWorkspace::rename(const std::string& name) {
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent);
 
-    if (WORKSPACERULE.isPersistent)
-        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
+    if (WORKSPACERULE.m_isPersistent)
+        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();

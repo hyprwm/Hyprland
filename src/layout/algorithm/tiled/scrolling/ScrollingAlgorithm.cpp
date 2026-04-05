@@ -8,12 +8,13 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../config/ConfigValue.hpp"
-#include "../../../../config/ConfigManager.hpp"
+#include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../event/EventBus.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -579,7 +580,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
         return;
 
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
-    if (*PFITMETHOD == 1 || input == INPUT_MODE_CLICK)
+    if (*PFITMETHOD == 1)
         m_scrollingData->fitCol(TARGETDATA->column.lock());
     else
         m_scrollingData->centerCol(TARGETDATA->column.lock());
@@ -1357,18 +1358,74 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                     g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
             }
         }
-    } else if (ARGS[0] == "promote") {
+    } else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {
         const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-
         if (!TDATA)
             return std::unexpected("no window focused");
 
-        auto idx = m_scrollingData->idx(TDATA->column.lock());
-        auto col = idx == -1 ? m_scrollingData->add() : m_scrollingData->add(idx);
+        const auto CURRENT_COL = TDATA->column.lock();
+        if (!CURRENT_COL)
+            return std::unexpected("no current col");
 
-        TDATA->column->remove(TDATA->target.lock());
+        // expel a target from srcCol into its own new column at insertIdx
+        auto expelTarget = [&](SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx) {
+            auto col = !insertIdx ? m_scrollingData->add() : m_scrollingData->add(*insertIdx);
+            srcCol->remove(tdata->target.lock());
+            col->add(tdata);
+            m_scrollingData->centerOrFitCol(col);
+        };
 
-        col->add(TDATA);
+        // consume the first target from adjCol into dstCol
+        auto consumeTarget = [&](SP<SColumnData> dstCol, SP<SColumnData> adjCol) {
+            const auto target = adjCol->targetDatas.front();
+            adjCol->remove(target->target.lock());
+            dstCol->add(target);
+            m_scrollingData->centerOrFitCol(dstCol);
+        };
+
+        if (ARGS[0] == "promote") {
+            auto idx = m_scrollingData->idx(CURRENT_COL);
+            expelTarget(TDATA, CURRENT_COL, idx == -1 ? std::nullopt : std::optional<int64_t>{idx});
+        } else if (ARGS[0] == "expel") {
+            if (CURRENT_COL->targetDatas.size() < 2)
+                return std::unexpected("column has only one window");
+
+            const auto lastTarget = CURRENT_COL->targetDatas.back();
+            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
+            const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
+            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
+
+            expelTarget(lastTarget, CURRENT_COL, insertIdx);
+        } else if (ARGS[0] == "consume") {
+            const auto NEXT_COL = m_scrollingData->next(CURRENT_COL);
+            if (!NEXT_COL)
+                return std::unexpected("no next column");
+
+            consumeTarget(CURRENT_COL, NEXT_COL);
+        } else if (ARGS[0] == "consume_or_expel") {
+            if (ARGS.size() < 2)
+                return std::unexpected("not enough args");
+
+            const std::string& direction = ARGS[1];
+            const bool         prev      = direction == "prev";
+            const bool         next      = direction == "next";
+
+            if (!prev && !next)
+                return std::unexpected("invalid direction, expected prev or next");
+
+            if (CURRENT_COL->targetDatas.size() > 1) {
+                const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
+                expelTarget(TDATA, CURRENT_COL, prev ? currentIdx - 1 : currentIdx);
+            } else {
+                const auto ADJ_COL = prev ? m_scrollingData->prev(CURRENT_COL) : m_scrollingData->next(CURRENT_COL);
+                if (!ADJ_COL)
+                    return std::unexpected("no adjacent column");
+
+                CURRENT_COL->remove(TDATA->target.lock());
+                ADJ_COL->add(TDATA);
+                m_scrollingData->centerOrFitCol(ADJ_COL);
+            }
+        }
 
         m_scrollingData->recalculate();
     } else if (ARGS[0] == "swapcol") {
@@ -1488,10 +1545,10 @@ SP<SScrollingTargetData> CScrollingAlgorithm::dataFor(SP<ITarget> t) {
 }
 
 eScrollDirection CScrollingAlgorithm::getDynamicDirection() {
-    const auto  WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_parent->space()->workspace());
+    const auto  WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_parent->space()->workspace());
     std::string directionString;
-    if (WORKSPACERULE.layoutopts.contains("direction"))
-        directionString = WORKSPACERULE.layoutopts.at("direction");
+    if (WORKSPACERULE && WORKSPACERULE->m_layoutopts.contains("direction"))
+        directionString = WORKSPACERULE->m_layoutopts.at("direction");
 
     static const auto PCONFDIRECTION  = CConfigValue<Hyprlang::STRING>("scrolling:direction");
     std::string       configDirection = *PCONFDIRECTION;

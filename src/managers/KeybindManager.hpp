@@ -12,7 +12,6 @@
 #include "../helpers/time/Timer.hpp"
 
 class CInputManager;
-class CConfigManager;
 class CPluginSystem;
 class IKeyboard;
 
@@ -91,6 +90,10 @@ enum eMultiKeyCase : uint8_t {
     MK_FULL_MATCH
 };
 
+namespace Config::Legacy {
+    class CConfigManager;
+}
+
 class CKeybindManager {
   public:
     CKeybindManager();
@@ -168,8 +171,6 @@ class CKeybindManager {
     static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
 
     static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = false);
-    static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace, const std::string& execRuleToken = "");
-    static std::optional<uint64_t>   spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
 
     // -------------- Dispatchers -------------- //
     static SDispatchResult closeActive(std::string);
@@ -231,6 +232,7 @@ class CKeybindManager {
     static SDispatchResult lockGroups(std::string);
     static SDispatchResult lockActiveGroup(std::string);
     static SDispatchResult moveIntoGroup(std::string);
+    static SDispatchResult moveIntoOrCreateGroup(std::string);
     static SDispatchResult moveOutOfGroup(std::string);
     static SDispatchResult moveGroupWindow(std::string);
     static SDispatchResult moveWindowOrGroup(std::string);
@@ -243,7 +245,7 @@ class CKeybindManager {
 
     friend class CCompositor;
     friend class CInputManager;
-    friend class CConfigManager;
+    friend class Config::Legacy::CConfigManager;
     friend class CWorkspace;
     friend class CPointerManager;
 };

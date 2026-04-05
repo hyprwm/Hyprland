@@ -166,7 +166,8 @@ CLinuxDMABUFParamsResource::CLinuxDMABUFParamsResource(UP<CZwpLinuxBufferParamsV
 
         const uint64_t modifier = (sc<uint64_t>(modHi) << 32) | modLo;
 
-        if (m_resource->version() >= 5 && m_attrs->modifier && m_attrs->modifier != modifier) {
+        const bool     anyPlaneSet = std::ranges::any_of(m_attrs->fds, [](int planeFD) { return planeFD != -1; });
+        if (m_resource->version() >= 5 && anyPlaneSet && m_attrs->modifier != modifier) {
             r->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_INVALID_FORMAT, "planes have different modifiers");
             return;
         }
@@ -268,7 +269,7 @@ bool CLinuxDMABUFParamsResource::commence() {
         uint32_t handle = 0;
 
         if (drmPrimeFDToHandle(PROTO::linuxDma->m_mainDeviceFD.get(), m_attrs->fds.at(i), &handle)) {
-            LOGM(Log::ERR, "Failed to import dmabuf fd");
+            LOGM(Log::ERR, "Failed to import dmabuf fd {} on plane {}", m_attrs->fds.at(i), i);
             return false;
         }
 
@@ -311,10 +312,11 @@ bool CLinuxDMABUFParamsResource::verify() {
     }
 
     for (size_t i = 0; i < sc<size_t>(m_attrs->planes); ++i) {
-        if (sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y > UINT32_MAX) {
+        const auto computedSize = sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i)) * m_attrs->size.y;
+        if (computedSize > UINT32_MAX) {
             m_resource->error(ZWP_LINUX_BUFFER_PARAMS_V1_ERROR_OUT_OF_BOUNDS,
                               std::format("size overflow on plane {}: offset {} + stride {} * height {} = {}, overflows UINT32_MAX", i, sc<uint64_t>(m_attrs->offsets.at(i)),
-                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, sc<uint64_t>(m_attrs->offsets.at(i)) + sc<uint64_t>(m_attrs->strides.at(i))));
+                                          sc<uint64_t>(m_attrs->strides.at(i)), m_attrs->size.y, computedSize));
             return false;
         }
     }
@@ -349,7 +351,7 @@ void CLinuxDMABUFFeedbackResource::sendTranche(SDMABUFTranche& tranche) {
     m_resource->sendTrancheFlags(sc<zwpLinuxDmabufFeedbackV1TrancheFlags>(tranche.flags));
 
     wl_array indices = {
-        .size = tranche.indices.size() * sizeof(tranche.indices.at(0)),
+        .size = tranche.indices.size() * sizeof(std::vector<uint16_t>::value_type),
         .data = tranche.indices.data(),
     };
     m_resource->sendTrancheFormats(&indices);

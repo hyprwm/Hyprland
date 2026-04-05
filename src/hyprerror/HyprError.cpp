@@ -2,7 +2,7 @@
 #include "HyprError.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
 #include "../render/pass/TexPassElement.hpp"
 #include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
@@ -13,7 +13,7 @@
 using namespace Hyprutils::Animation;
 
 CHyprError::CHyprError() {
-    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, g_pConfigManager->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    g_pAnimationManager->createAnimation(0.f, m_fadeOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
 
     static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (!m_isCreated)
@@ -37,11 +37,15 @@ void CHyprError::queueCreate(std::string message, const CHyprColor& color) {
     m_queuedColor = color;
 }
 
+void CHyprError::queueError(std::string err) {
+    queueCreate(err + "\nHyprland may not work correctly.", CHyprColor(1.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+}
+
 void CHyprError::createQueued() {
     if (m_isCreated && m_texture)
         m_texture.reset();
 
-    m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeIn"));
+    m_fadeOpacity->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
 
     m_fadeOpacity->setValueAndWarp(0.f);
     *m_fadeOpacity = 1.f;
@@ -198,7 +202,7 @@ void CHyprError::draw() {
 
                 return;
             } else {
-                m_fadeOpacity->setConfig(g_pConfigManager->getAnimationPropertyConfig("fadeOut"));
+                m_fadeOpacity->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
                 *m_fadeOpacity = 0.f;
             }
         }
@@ -240,7 +244,7 @@ float CHyprError::height() {
     return m_lastHeight;
 }
 
-SP<ITexture> CHyprError::texture() {
+SP<Render::ITexture> CHyprError::texture() {
     if (!m_texture)
         m_texture = g_pHyprRenderer->createTexture();
     return m_texture;

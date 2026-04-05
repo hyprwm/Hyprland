@@ -26,13 +26,21 @@
 #include <numeric>
 
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/VarList.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
 using namespace Hyprutils::String;
 using namespace Hyprutils::OS;
 #include <aquamarine/input/Input.hpp>
 
-#include "../config/ConfigDataValues.hpp"
+#include "../config/shared/complex/ComplexDataTypes.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/shared/complex/ComplexDataTypes.hpp"
+#include "../config/shared/inotify/ConfigWatcher.hpp"
+#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../config/shared/monitor/MonitorRuleManager.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
+#include "../config/supplementary/ConfigDescriptions.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../devices/IPointer.hpp"
@@ -62,6 +70,8 @@ using namespace Hyprutils::OS;
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/algorithm/TiledAlgorithm.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+
+using namespace Render::GL;
 
 #if defined(__DragonFly__) || defined(__FreeBSD__)
 #include <sys/ucred.h>
@@ -484,52 +494,53 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     }
 }
 
-static std::string getWorkspaceRuleData(const SWorkspaceRule& r, eHyprCtlOutputFormat format) {
+static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCtlOutputFormat format) {
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
-        const std::string monitor     = r.monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.monitor));
-        const std::string default_    = sc<bool>(r.isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.isDefault)) : "";
-        const std::string persistent  = sc<bool>(r.isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.isPersistent)) : "";
-        const std::string gapsIn      = sc<bool>(r.gapsIn) ?
-            std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.gapsIn.value().m_top, r.gapsIn.value().m_right, r.gapsIn.value().m_bottom, r.gapsIn.value().m_left) :
+        const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
+        const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault)) : "";
+        const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent)) : "";
+        const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
+            std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.m_gapsIn.value().m_top, r.m_gapsIn.value().m_right, r.m_gapsIn.value().m_bottom, r.m_gapsIn.value().m_left) :
             "";
-        const std::string gapsOut     = sc<bool>(r.gapsOut) ?
-            std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.gapsOut.value().m_top, r.gapsOut.value().m_right, r.gapsOut.value().m_bottom, r.gapsOut.value().m_left) :
+        const std::string gapsOut     = sc<bool>(r.m_gapsOut) ?
+            std::format(",\n    \"gapsOut\": [{}, {}, {}, {}]", r.m_gapsOut.value().m_top, r.m_gapsOut.value().m_right, r.m_gapsOut.value().m_bottom, r.m_gapsOut.value().m_left) :
             "";
-        const std::string borderSize  = sc<bool>(r.borderSize) ? std::format(",\n    \"borderSize\": {}", r.borderSize.value()) : "";
-        const std::string border      = sc<bool>(r.noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.noBorder.value())) : "";
-        const std::string rounding    = sc<bool>(r.noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.noRounding.value())) : "";
-        const std::string decorate    = sc<bool>(r.decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.decorate.value())) : "";
-        const std::string shadow      = sc<bool>(r.noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.noShadow.value())) : "";
-        const std::string defaultName = r.defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.defaultName.value())) : "";
+        const std::string borderSize  = sc<bool>(r.m_borderSize) ? std::format(",\n    \"borderSize\": {}", r.m_borderSize.value()) : "";
+        const std::string border      = sc<bool>(r.m_noBorder) ? std::format(",\n    \"border\": {}", boolToString(!r.m_noBorder.value())) : "";
+        const std::string rounding    = sc<bool>(r.m_noRounding) ? std::format(",\n    \"rounding\": {}", boolToString(!r.m_noRounding.value())) : "";
+        const std::string decorate    = sc<bool>(r.m_decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.m_decorate.value())) : "";
+        const std::string shadow      = sc<bool>(r.m_noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.m_noShadow.value())) : "";
+        const std::string defaultName = r.m_defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.m_defaultName.value())) : "";
 
         std::string       result =
             std::format(R"#({{
     "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                        escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, defaultName);
+                        escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, defaultName);
 
         return result;
     } else {
-        const std::string monitor    = std::format("\tmonitor: {}\n", r.monitor.empty() ? "<unset>" : escapeJSONStrings(r.monitor));
-        const std::string default_   = std::format("\tdefault: {}\n", sc<bool>(r.isDefault) ? boolToString(r.isDefault) : "<unset>");
-        const std::string persistent = std::format("\tpersistent: {}\n", sc<bool>(r.isPersistent) ? boolToString(r.isPersistent) : "<unset>");
-        const std::string gapsIn     = sc<bool>(r.gapsIn) ? std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.gapsIn.value().m_top), std::to_string(r.gapsIn.value().m_right),
-                                                                        std::to_string(r.gapsIn.value().m_bottom), std::to_string(r.gapsIn.value().m_left)) :
-                                                            std::format("\tgapsIn: <unset>\n");
-        const std::string gapsOut    = sc<bool>(r.gapsOut) ?
-            std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.gapsOut.value().m_top), std::to_string(r.gapsOut.value().m_right), std::to_string(r.gapsOut.value().m_bottom),
-                        std::to_string(r.gapsOut.value().m_left)) :
+        const std::string monitor     = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
+        const std::string default_    = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault) : "<unset>");
+        const std::string persistent  = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent) : "<unset>");
+        const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
+            std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.m_gapsIn.value().m_top), std::to_string(r.m_gapsIn.value().m_right),
+                        std::to_string(r.m_gapsIn.value().m_bottom), std::to_string(r.m_gapsIn.value().m_left)) :
+            std::format("\tgapsIn: <unset>\n");
+        const std::string gapsOut     = sc<bool>(r.m_gapsOut) ?
+            std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.m_gapsOut.value().m_top), std::to_string(r.m_gapsOut.value().m_right),
+                        std::to_string(r.m_gapsOut.value().m_bottom), std::to_string(r.m_gapsOut.value().m_left)) :
             std::format("\tgapsOut: <unset>\n");
-        const std::string borderSize = std::format("\tborderSize: {}\n", sc<bool>(r.borderSize) ? std::to_string(r.borderSize.value()) : "<unset>");
-        const std::string border     = std::format("\tborder: {}\n", sc<bool>(r.noBorder) ? boolToString(!r.noBorder.value()) : "<unset>");
-        const std::string rounding   = std::format("\trounding: {}\n", sc<bool>(r.noRounding) ? boolToString(!r.noRounding.value()) : "<unset>");
-        const std::string decorate   = std::format("\tdecorate: {}\n", sc<bool>(r.decorate) ? boolToString(r.decorate.value()) : "<unset>");
-        const std::string shadow     = std::format("\tshadow: {}\n", sc<bool>(r.noShadow) ? boolToString(!r.noShadow.value()) : "<unset>");
-        const std::string defaultName = std::format("\tdefaultName: {}\n", r.defaultName.value_or("<unset>"));
+        const std::string borderSize  = std::format("\tborderSize: {}\n", sc<bool>(r.m_borderSize) ? std::to_string(r.m_borderSize.value()) : "<unset>");
+        const std::string border      = std::format("\tborder: {}\n", sc<bool>(r.m_noBorder) ? boolToString(!r.m_noBorder.value()) : "<unset>");
+        const std::string rounding    = std::format("\trounding: {}\n", sc<bool>(r.m_noRounding) ? boolToString(!r.m_noRounding.value()) : "<unset>");
+        const std::string decorate    = std::format("\tdecorate: {}\n", sc<bool>(r.m_decorate) ? boolToString(r.m_decorate.value()) : "<unset>");
+        const std::string shadow      = std::format("\tshadow: {}\n", sc<bool>(r.m_noShadow) ? boolToString(!r.m_noShadow.value()) : "<unset>");
+        const std::string defaultName = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
 
-        std::string       result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                               borderSize, border, rounding, decorate, shadow, defaultName);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                         borderSize, border, rounding, decorate, shadow, defaultName);
 
         return result;
     }
@@ -573,7 +584,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
     std::string result = "";
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& r : g_pConfigManager->getAllWorkspaceRules()) {
+        for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
             result += getWorkspaceRuleData(r, format);
             result += ",";
         }
@@ -581,7 +592,7 @@ static std::string workspaceRulesRequest(eHyprCtlOutputFormat format, std::strin
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& r : g_pConfigManager->getAllWorkspaceRules()) {
+        for (auto const& r : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
             result += getWorkspaceRuleData(r, format);
         }
     }
@@ -681,7 +692,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
 
 static std::string configErrorsRequest(eHyprCtlOutputFormat format, std::string request) {
     std::string result     = "";
-    std::string currErrors = g_pConfigManager->getErrors();
+    std::string currErrors = Config::mgr()->getErrors();
     CVarList    errLines(currErrors, 0, '\n');
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
@@ -886,7 +897,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
     if (format == eHyprCtlOutputFormat::FORMAT_NORMAL) {
         ret += "animations:\n";
 
-        for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
+        for (auto const& ac : Config::animationTree()->getAnimationConfig()) {
             ret += std::format("\n\tname: {}\n\t\toverriden: {}\n\t\tbezier: {}\n\t\tenabled: {}\n\t\tspeed: {:.2f}\n\t\tstyle: {}\n", ac.first, sc<int>(ac.second->overridden),
                                ac.second->internalBezier, ac.second->internalEnabled, ac.second->internalSpeed, ac.second->internalStyle);
         }
@@ -902,7 +913,7 @@ static std::string animationsRequest(eHyprCtlOutputFormat format, std::string re
         // json
 
         ret += "[[";
-        for (auto const& ac : g_pConfigManager->getAnimationConfig()) {
+        for (auto const& ac : Config::animationTree()->getAnimationConfig()) {
             ret += std::format(R"#(
 {{
     "name": "{}",
@@ -1225,7 +1236,7 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
 
     if (g_pHyprCtl && g_pHyprCtl->m_currentRequestParams.sysInfoConfig) {
         result += "\n======Config-Start======\n";
-        result += g_pConfigManager->getConfigString();
+        result += Config::mgr()->getConfigString();
         result += "\n======Config-End========\n";
     }
 
@@ -1254,6 +1265,12 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
 }
 
 static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) {
+
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return "keyword can't work with non-legacy parsers. Use eval.";
+
+    WP<Config::Legacy::CConfigManager> mgr = dynamicPointerCast<Config::Legacy::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
+
     // Find the first space to strip the keyword keyword
     auto const firstSpacePos = in.find_first_of(' ');
     if (firstSpacePos == std::string::npos) // Handle the case where there's no space found (invalid input)
@@ -1277,21 +1294,18 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = true;
 
-    std::string retval = g_pConfigManager->parseKeyword(COMMAND, VALUE);
+    std::string retval = mgr->parseKeyword(COMMAND, VALUE);
 
     g_pHyprCtl->m_currentRequestParams.isDynamicKeyword = false;
 
     if (COMMAND == "source") {
-        g_pConfigManager->m_wantsMonitorReload = true;
-        g_pEventLoopManager->doLater([] { g_pConfigManager->reloadRules(); });
+        Config::monitorRuleMgr()->scheduleReload();
+        g_pEventLoopManager->doLater([mgr] { mgr->reloadRules(); });
     }
 
     // if we are executing a dynamic source we have to reload everything, so every if will have a check for source.
-    if (COMMAND == "monitor")
-        g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
-
-    if (COMMAND.contains("monitorv2"))
-        g_pEventLoopManager->doLater([] { g_pConfigManager->m_wantsMonitorReload = true; });
+    if (COMMAND.contains("monitor"))
+        g_pEventLoopManager->doLater([] { Config::monitorRuleMgr()->scheduleReload(); });
 
     if (COMMAND.contains("input") || COMMAND.contains("device") || COMMAND == "source") {
         g_pInputManager->setKeyboardLayout();     // update kb layout
@@ -1314,7 +1328,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     }
 
     if (COMMAND.contains("misc:disable_autoreload"))
-        g_pConfigManager->updateWatcher();
+        Config::watcher()->update();
 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
@@ -1328,10 +1342,10 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     }
 
     if (COMMAND.contains("windowrule ") || COMMAND.contains("windowrule["))
-        g_pConfigManager->reloadRules();
+        mgr->reloadRules();
 
     if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
-        g_pConfigManager->reloadRules();
+        mgr->reloadRules();
         // Damage all monitors to redraw static layers.
         for (auto const& m : g_pCompositor->m_monitors) {
             g_pHyprRenderer->damageMonitor(m);
@@ -1339,7 +1353,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     }
 
     if (COMMAND.contains("workspace"))
-        g_pConfigManager->ensurePersistentWorkspacesPresent();
+        g_pCompositor->ensurePersistentWorkspacesPresent();
 
     Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 
@@ -1350,13 +1364,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 }
 
 static std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
-
-    const auto REQMODE = request.substr(request.find_last_of(' ') + 1);
-
-    if (REQMODE == "config-only")
-        g_pConfigManager->m_noMonitorReload = true;
-
-    g_pConfigManager->reload();
+    Config::mgr()->reload();
 
     return "ok";
 }
@@ -1600,10 +1608,10 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         const bool  GROUPLOCKED = PWINDOW->m_group ? PWINDOW->m_group->locked() : false;
 
         if (active) {
-            auto* const       ACTIVECOL            = (CGradientValueData*)(PACTIVECOL.ptr())->getData();
-            auto* const       NOGROUPACTIVECOL     = (CGradientValueData*)(PNOGROUPACTIVECOL.ptr())->getData();
-            auto* const       GROUPACTIVECOL       = (CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
-            auto* const       GROUPACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
+            auto* const       ACTIVECOL            = (Config::CGradientValueData*)(PACTIVECOL.ptr())->getData();
+            auto* const       NOGROUPACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPACTIVECOL.ptr())->getData();
+            auto* const       GROUPACTIVECOL       = (Config::CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
+            auto* const       GROUPACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
             const auto* const ACTIVECOLOR =
                 !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
 
@@ -1613,10 +1621,10 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             else
                 return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
         } else {
-            auto* const       INACTIVECOL            = (CGradientValueData*)(PINACTIVECOL.ptr())->getData();
-            auto* const       NOGROUPINACTIVECOL     = (CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
-            auto* const       GROUPINACTIVECOL       = (CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
-            auto* const       GROUPINACTIVELOCKEDCOL = (CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
+            auto* const       INACTIVECOL            = (Config::CGradientValueData*)(PINACTIVECOL.ptr())->getData();
+            auto* const       NOGROUPINACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
+            auto* const       GROUPINACTIVECOL       = (Config::CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
+            auto* const       GROUPINACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
             const auto* const INACTIVECOLOR          = !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) :
                                                                            (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
 
@@ -1745,37 +1753,42 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
     nextItem();
     nextItem();
 
-    const auto VAR = g_pConfigManager->getHyprlangConfigValuePtr(curitem);
+    const auto VAR = Config::mgr()->getConfigValue(curitem);
 
-    if (!VAR)
+    if (!VAR.dataptr)
         return "no such option";
 
-    const auto VAL  = VAR->getValue();
-    const auto TYPE = std::type_index(VAL.type());
+    const auto VAL  = VAR.dataptr;
+    const auto TYPE = std::type_index(*VAR.type);
 
     if (format == FORMAT_NORMAL) {
-        if (TYPE == typeid(Hyprlang::INT))
-            return std::format("int: {}\nset: {}", std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::FLOAT))
-            return std::format("float: {:2f}\nset: {}", std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format("vec2: [{}, {}]\nset: {}", std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y, VAR->m_bSetByUser);
+        if (TYPE == typeid(Config::INTEGER))
+            return std::format("int: {}\nset: {}", **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::FLOAT))
+            return std::format("float: {:2f}\nset: {}", **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::VEC2))
+            return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format("str: {}\nset: {}", std::any_cast<Hyprlang::STRING>(VAL), VAR->m_bSetByUser);
+            return std::format("str: {}\nset: {}", *rc<Hyprlang::STRING const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::STRING))
+            return std::format("str: {}\nset: {}", **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
-            return std::format("custom type: {}\nset: {}", sc<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
+            return std::format("custom type: {}\nset: {}", rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
     } else {
-        if (TYPE == typeid(Hyprlang::INT))
-            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, std::any_cast<Hyprlang::INT>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::FLOAT))
-            return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, std::any_cast<Hyprlang::FLOAT>(VAL), VAR->m_bSetByUser);
-        else if (TYPE == typeid(Hyprlang::VEC2))
-            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, std::any_cast<Hyprlang::VEC2>(VAL).x, std::any_cast<Hyprlang::VEC2>(VAL).y,
-                               VAR->m_bSetByUser);
+        if (TYPE == typeid(Config::INTEGER))
+            return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::FLOAT))
+            return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::VEC2))
+            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
+                               VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
-            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(std::any_cast<Hyprlang::STRING>(VAL)), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, escapeJSONStrings(*rc<Hyprlang::STRING const*>(VAL)), VAR.setByUser);
+        else if (TYPE == typeid(Config::STRING))
+            return std::format(R"({{"option": "{}", "str": "{}", "set": {} }})", curitem, **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
-            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, sc<ICustomConfigValueData*>(std::any_cast<void*>(VAL))->toString(), VAR->m_bSetByUser);
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem,
+                               rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
     }
 
     return "invalid type (internal error)";
@@ -2028,7 +2041,7 @@ static std::string getIsLocked(eHyprCtlOutputFormat format, std::string request)
 
 static std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
     std::string json  = "[";
-    const auto& DESCS = g_pConfigManager->getAllDescriptions();
+    const auto& DESCS = Config::Supplementary::CONFIG_OPTIONS;
 
     for (const auto& d : DESCS) {
         json += d.jsonify() + ",\n";
@@ -2046,7 +2059,7 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
     if (submap.empty())
         submap = "default";
 
-    return format == FORMAT_JSON ? std::format("{{\"{}\"}}\n", escapeJSONStrings(submap)) : (submap + "\n");
+    return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : (submap + "\n");
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
@@ -2183,7 +2196,7 @@ std::string CHyprCtl::getReply(std::string request) {
         return "unknown request";
 
     if (reloadAll) {
-        g_pConfigManager->m_wantsMonitorReload = true; // for monitor keywords
+        Config::monitorRuleMgr()->scheduleReload();
 
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs
@@ -2369,9 +2382,6 @@ static int hyprCtlFDTick(int fd, uint32_t mask, void* data) {
             Log::logger->log(Log::DEBUG, Log::SRollingLogFollow::get().debugInfo());
         } else
             close(ACCEPTEDCONNECTION);
-
-        if (g_pConfigManager->m_wantsMonitorReload)
-            g_pConfigManager->ensureMonitorStatus();
 
         g_pHyprCtl->m_currentRequestParams.pid = 0;
     }

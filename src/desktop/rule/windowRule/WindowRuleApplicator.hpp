@@ -9,7 +9,7 @@
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
 #include "../../../helpers/TagKeeper.hpp"
-#include "../../../config/ConfigDataValues.hpp"
+#include "../../../config/shared/complex/ComplexDataTypes.hpp"
 
 namespace Desktop::Rule {
     class CWindowRule;
@@ -130,8 +130,8 @@ namespace Desktop::Rule {
         DEFINE_PROP(Vector2D, maxSize, Vector2D{}, WINDOW_RULE_EFFECT_MAX_SIZE)
         DEFINE_PROP(Vector2D, minSize, Vector2D{}, WINDOW_RULE_EFFECT_MIN_SIZE)
 
-        DEFINE_PROP(CGradientValueData, activeBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
-        DEFINE_PROP(CGradientValueData, inactiveBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
+        DEFINE_PROP(Config::CGradientValueData, activeBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
+        DEFINE_PROP(Config::CGradientValueData, inactiveBorderColor, {}, WINDOW_RULE_EFFECT_BORDER_COLOR)
 
         std::vector<std::pair<std::string, std::underlying_type_t<eRuleProperty>>> m_dynamicTags;
         CTagKeeper                                                                 m_tagKeeper;

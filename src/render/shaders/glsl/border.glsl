@@ -87,30 +87,35 @@ vec4 getColorForCoord(vec2 normalizedCoord, int gradientLength, vec4 gradient[10
     return okLabAToSrgb(mix(result1, result2, gradientLerp));
 }
 
-vec4 getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, float radiusOuter, float thick, float radius, float roundingPower, vec2 topLeft, vec2 fullSize,
-               int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp
+#if USE_MIRROR
+vec4[2]
+#else
+vec4
+#endif
+    getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, float radiusOuter, float thick, float radius, float roundingPower, vec2 topLeft, vec2 fullSize,
+              int gradientLength, vec4 gradient[10], float angle, int gradient2Length, vec4 gradient2[10], float angle2, float gradientLerp
 #if USE_CM
-               ,
-               int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+              ,
+              int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
-               ,
-               highp sampler3D iccLut3D, float iccLutSize
+              ,
+              highp sampler3D iccLut3D, float iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-               ,
-               mat3 targetPrimariesXYZ
+              ,
+              mat3 targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-               ,
-               float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance
+              ,
+              float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance
 #endif
 #if USE_SDR_MOD
-               ,
-               float sdrSaturation, float sdrBrightnessMultiplier
+              ,
+              float sdrSaturation, float sdrBrightnessMultiplier
 #endif
 #endif
 #endif
-) {
+    ) {
     vec2 pixCoord         = vec2(gl_FragCoord);
     vec2 pixCoordOuter    = pixCoord;
     vec2 originalPixCoord = v_texcoord;
@@ -176,28 +181,38 @@ vec4 getBorder(vec2 v_texcoord, float alpha, vec2 fullSizeUntransformed, float r
     pixColor.rgb *= pixColor[3];
 
 #if USE_CM
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#if USE_MIRROR
+    vec4[2] pixColors =
+#else
+    pixColor =
+#endif
+        doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
-                                 ,
-                                 iccLut3D, iccLutSize
+                          ,
+                          iccLut3D, iccLutSize
 #else
 #if USE_TONEMAP || USE_SDR_MOD
-                                 ,
-                                 targetPrimariesXYZ
+                          ,
+                          targetPrimariesXYZ
 #endif
 #if USE_TONEMAP
-                                 ,
-                                 maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
+                          ,
+                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
 #endif
 #if USE_SDR_MOD
-                                 ,
-                                 sdrSaturation, sdrBrightnessMultiplier
+                          ,
+                          sdrSaturation, sdrBrightnessMultiplier
 #endif
 #endif
-    );
+        );
 #endif
 
+#if USE_MIRROR
+    pixColors[0] *= alpha * additionalAlpha;
+    pixColors[1] *= alpha * additionalAlpha;
+    return pixColors;
+#else
     pixColor *= alpha * additionalAlpha;
-
     return pixColor;
+#endif
 }

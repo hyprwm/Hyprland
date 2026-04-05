@@ -11,9 +11,12 @@
 #include "../../../../Compositor.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 using namespace Layout;
 using namespace Layout::Tiled;
+
+using namespace Hyprutils::String;
 
 struct Layout::Tiled::SDwindleNodeData {
     WP<SDwindleNodeData>                pParent;
@@ -217,7 +220,7 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
                 NEWPARENT->children[1] = OPENINGON;
             }
         }
-    } else if (*PFORCESPLIT == 0 || m_overrideFocalPoint) {
+    } else if (*PFORCESPLIT == 0 || m_overrideFocalPoint || g_layoutManager->dragController()->wasDraggingWindow()) {
         if ((SIDEBYSIDE && MOUSECOORDS.x < NEWPARENT->box.x + (NEWPARENT->box.w / 2.F)) || (!SIDEBYSIDE && MOUSECOORDS.y < NEWPARENT->box.y + (NEWPARENT->box.h / 2.F))) {
             // we are hovering over the first node, make PNODE first.
             NEWPARENT->children[1] = OPENINGON;

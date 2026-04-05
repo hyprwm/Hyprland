@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../defines.hpp"
+#include <vector>
 
 enum ePassElementType : uint8_t {
     EK_UNKNOWN = 0,
@@ -13,13 +14,17 @@ enum ePassElementType : uint8_t {
     EK_SHADOW,
     EK_SURFACE,
     EK_TEXTURE,
-    EK_TEXTURE_MATTE
+    EK_TEXTURE_MATTE,
+    EK_INNER_GLOW,
+    EK_CUSTOM,
 };
 
 class IPassElement {
   public:
     virtual ~IPassElement() = default;
 
+    virtual std::vector<UP<IPassElement>> draw();
+    //
     virtual bool                needsLiveBlur()       = 0;
     virtual bool                needsPrecomputeBlur() = 0;
     virtual const char*         passName()            = 0;
@@ -29,4 +34,8 @@ class IPassElement {
     virtual std::optional<CBox> boundingBox();  // in monitor-local logical coordinates
     virtual CRegion             opaqueRegion(); // in monitor-local logical coordinates
     virtual bool                disableSimplification();
+
+    // cached results, computed once per frame in CRenderPass::render()
+    bool needsLiveBlurCached       = false;
+    bool needsPrecomputeBlurCached = false;
 };

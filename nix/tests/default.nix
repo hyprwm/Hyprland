@@ -81,10 +81,18 @@ in
       exit_status, _out = machine.execute("su - alice -c 'hyprland_gtests 2>&1 | tee /tmp/gtestslog; exit ''${PIPESTATUS[0]}'")
       machine.execute(f'echo {exit_status} > /tmp/exit_status_gtests')
 
+      # Print logs for visibility in CI
+      _, out = machine.execute("cat /tmp/gtestslog")
+      print(f"gtests log:\n{out}")
+
       # Run hyprtester testing framework/suite
       print("Running hyprtester")
       exit_status, _out = machine.execute("su - alice -c 'hyprtester -b ${hyprland}/bin/Hyprland -c /etc/test.conf -p ${hyprland}/lib/hyprtestplugin.so 2>&1 | tee /tmp/testerlog; exit ''${PIPESTATUS[0]}'")
       print(f"Hyprtester exited with {exit_status}")
+
+      # Print logs for visibility in CI
+      _, out = machine.execute("cat /tmp/testerlog")
+      print(f"Hyprtester log:\n{out}")
 
       # Copy logs to host
       machine.execute('cp "$(find /tmp/hypr -name *.log | head -1)" /tmp/hyprlog')
@@ -93,10 +101,6 @@ in
       machine.copy_from_vm("/tmp/testerlog")
       machine.copy_from_vm("/tmp/hyprlog")
       machine.copy_from_vm("/tmp/exit_status")
-
-      # Print logs for visibility in CI
-      _, out = machine.execute("cat /tmp/testerlog")
-      print(f"Hyprtester log:\n{out}")
 
       # Finally - shutdown
       machine.shutdown()

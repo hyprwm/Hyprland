@@ -1,7 +1,7 @@
 #include "WorkspaceAlgoMatcher.hpp"
 
 #include "../../config/ConfigValue.hpp"
-#include "../../config/ConfigManager.hpp"
+#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 
 #include "../algorithm/Algorithm.hpp"
 #include "../space/Space.hpp"
@@ -103,8 +103,8 @@ UP<IFloatingAlgorithm> CWorkspaceAlgoMatcher::algoForNameFloat(const std::string
 std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) {
     static auto PLAYOUT = CConfigValue<Hyprlang::STRING>("general:layout");
 
-    auto        rule = g_pConfigManager->getWorkspaceRuleFor(w);
-    return rule.layout.value_or(*PLAYOUT);
+    auto        rule = Config::workspaceRuleMgr()->getWorkspaceRuleFor(w);
+    return rule && rule->m_layout.has_value() ? rule->m_layout.value() : *PLAYOUT;
 }
 
 SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w) {

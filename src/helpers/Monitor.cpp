@@ -1930,7 +1930,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     if (surfaceIsScRGB)
         reasons |= DS_BLOCK_CM; // block scRGB
     else if (*PNONSHADER != CM_NS_IGNORE) {
-        if (!surfaceIsHDR && needsCM() && !canNoShaderCM())
+        if (!surfaceIsHDR && needsCM() && !canNoShaderCM(true))
             reasons |= DS_BLOCK_CM; // block SDR that needs CM while non-shader CM isn't available
         else if (surfaceIsHDR && !inHDR())
             reasons |= DS_BLOCK_CM; // block HDR while monitor isn't in HDR mode
@@ -2333,7 +2333,7 @@ static bool isCompatibleTF(eTransferFunction sourceTF, eTransferFunction targetT
 }
 
 // TODO support more drm properties
-bool CMonitor::canNoShaderCM() {
+bool CMonitor::canNoShaderCM(bool forDSmode) {
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
     if (*PNONSHADER == CM_NS_DISABLE)
         return false;
@@ -2342,7 +2342,8 @@ bool CMonitor::canNoShaderCM() {
     if (!SRC_DESC.has_value())
         return false;
 
-    if (SRC_DESC.value() == m_imageDescription)
+    const auto& DST_DESC = forDSmode ? m_imageDescription : resources()->m_imageDescription;
+    if (SRC_DESC.value() == DST_DESC)
         return true; // no CM needed
 
     const auto& SRC_DESC_VALUE = SRC_DESC.value()->value();
@@ -2354,9 +2355,9 @@ bool CMonitor::canNoShaderCM() {
 
     // only primaries differ
     return (
-        isCompatibleTF(SRC_DESC_VALUE.transferFunction, m_imageDescription->value().transferFunction) &&
-        SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
-        (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)
+        isCompatibleTF(SRC_DESC_VALUE.transferFunction, DST_DESC->value().transferFunction) //
+        && SRC_DESC_VALUE.transferFunctionPower == DST_DESC->value().transferFunctionPower  //
+        && (!inHDR() || SRC_DESC_VALUE.luminances == DST_DESC->value().luminances)
         // not used by shaders atm
         // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL
     );

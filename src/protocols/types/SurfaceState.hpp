@@ -91,7 +91,7 @@ struct SSurfaceState {
 
     // texture of surface content, used for rendering
     SP<Render::ITexture> texture;
-    void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture);
+    void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture, const CRegion& damage);
 
     // fifo
     bool barrierSet    = false;

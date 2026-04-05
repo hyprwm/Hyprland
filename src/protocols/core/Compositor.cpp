@@ -565,13 +565,14 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     m_current.updateFrom(state);
 
     if (m_current.buffer) {
+        const auto bufferDamage = m_current.accumulateBufferDamage();
+
         if (m_current.buffer->isSynchronous())
-            m_current.updateSynchronousTexture(lastTexture);
+            m_current.updateSynchronousTexture(lastTexture, bufferDamage);
 
         // if the surface is a cursor, update the shm buffer
-        // TODO: don't update the entire texture
         if (m_role->role() == SURFACE_ROLE_CURSOR)
-            updateCursorShm(m_current.accumulateBufferDamage());
+            updateCursorShm(bufferDamage);
     }
 
     if (m_current.texture)
@@ -704,24 +705,33 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     }
 
     damage.intersect(CBox{0, 0, buf->size.x, buf->size.y});
+    if (damage.empty())
+        return;
 
     // no need to end, shm.
     auto [pixelData, fmt, bufLen] = buf->beginDataPtr(0);
+    const auto packedStride       = sc<size_t>(buf->size.x) * 4;
+    const auto packedLen          = packedStride * sc<size_t>(buf->size.y);
+    (void)fmt;
 
-    shmData.resize(bufLen);
+    shmData.resize(packedLen);
 
-    if (const auto RECTS = damage.getRects(); RECTS.size() == 1 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y)
-        memcpy(shmData.data(), pixelData, bufLen);
+    if (const auto RECTS = damage.getRects(); RECTS.size() == 1 && RECTS.at(0).x1 == 0 && RECTS.at(0).y1 == 0 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y &&
+        sc<size_t>(shmAttrs.stride) == packedStride && packedLen <= bufLen)
+        memcpy(shmData.data(), pixelData, packedLen);
     else {
-        damage.forEachRect([&pixelData, &shmData](const auto& box) {
+        damage.forEachRect([&](const auto& box) {
             for (auto y = box.y1; y < box.y2; ++y) {
-                // bpp is 32 INSALLAH
-                auto begin = 4 * box.y1 * (box.x2 - box.x1) + box.x1;
-                auto len   = 4 * (box.x2 - box.x1);
-                memcpy(shmData.data() + begin, pixelData + begin, len);
+                const auto srcBegin = sc<size_t>(y) * shmAttrs.stride + sc<size_t>(box.x1) * 4;
+                const auto dstBegin = sc<size_t>(y) * packedStride + sc<size_t>(box.x1) * 4;
+                const auto len      = sc<size_t>(box.x2 - box.x1) * 4;
+
+                memcpy(shmData.data() + dstBegin, pixelData + srcBegin, len);
             }
         });
     }
+
+    buf->endDataPtr();
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {

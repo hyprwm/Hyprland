@@ -222,7 +222,10 @@ bool CXWaylandServer::tryOpenSockets() {
             continue;
 
         char pidstr[12] = {0};
-        read(fd.get(), pidstr, sizeof(pidstr) - 1);
+        if (read(fd.get(), pidstr, sizeof(pidstr) - 1) < 0) {
+            Log::logger->log(Log::ERR, "Failed to read on fd {}: {}", fd.get(), strerror(errno));
+            continue;
+        }
 
         int32_t pid = 0;
         try {

@@ -96,8 +96,14 @@ void CHyprlandInstance::forceQuit() {
 }
 
 void CHyprlandInstance::clearFd(const Hyprutils::OS::CFileDescriptor& fd) {
+    if (!fd.isReadable()) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "Can't clear a unreadable fd");
+        return;
+    }
+
     static std::array<char, 1024> buf;
-    read(fd.get(), buf.data(), 1023);
+    if (read(fd.get(), buf.data(), 1023) < 0)
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "Failed clearing fd {}: {}", fd.get(), strerror(errno));
 }
 
 void CHyprlandInstance::dispatchHyprlandEvent() {

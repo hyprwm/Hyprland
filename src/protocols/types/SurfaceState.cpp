@@ -35,14 +35,14 @@ CRegion SSurfaceState::accumulateBufferDamage() {
     return bufferDamage;
 }
 
-void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture) {
+void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture, const CRegion& damage) {
     auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);
         auto stride = bufferSize.y ? size / bufferSize.y : 0;
         if (lastTexture && lastTexture->m_isSynchronous && lastTexture->m_size == bufferSize) {
             texture = lastTexture;
-            texture->update(drmFmt, dataPtr, stride, accumulateBufferDamage());
+            texture->update(drmFmt, dataPtr, stride, damage);
         } else
             texture = g_pHyprRenderer->createTexture(drmFmt, dataPtr, stride, bufferSize);
     }

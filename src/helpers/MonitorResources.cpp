@@ -15,6 +15,7 @@ CMonitorResources::CMonitorResources(WP<CMonitor> monitor, DRMFormat format, Vec
     m_blurFB(g_pHyprRenderer->createFB(std::format("Monitor {} blur FB", monitor->m_name))), m_monitor(monitor), m_drmFormat(format), m_size(size),
     m_imageDescription(imageDescription) {
     initFB(m_blurFB);
+    monitor->m_blurFBDirty = true;
 }
 
 void CMonitorResources::initFB(SP<Render::IFramebuffer> fb) {
@@ -104,8 +105,10 @@ void CMonitorResources::enableMirror() {
     m_mirrorTex = g_pHyprRenderer->createTexture();
     m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
     m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
+    m_monitor->m_blurFBDirty        = true;
 }
 
 void CMonitorResources::disableMirror() {
     m_mirrorTex.reset();
+    m_monitor->m_blurFBDirty = true;
 }

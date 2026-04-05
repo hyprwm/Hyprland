@@ -139,12 +139,18 @@ void CHyprlandInstance::dispatchHyprlandEvent() {
 
 bool CHyprlandInstance::run(bool safeMode) {
     int pipefds[2];
-    pipe(pipefds);
+    if (pipe(pipefds) != 0) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "pipe() failed, exiting");
+        exit(1);
+    }
 
     m_fromHlPid = CFileDescriptor{pipefds[0]};
     m_toHlPid   = CFileDescriptor{pipefds[1]};
 
-    pipe(pipefds);
+    if (pipe(pipefds) != 0) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "pipe() failed, exiting");
+        exit(1);
+    }
 
     m_wakeupRead  = CFileDescriptor{pipefds[0]};
     m_wakeupWrite = CFileDescriptor{pipefds[1]};

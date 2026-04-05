@@ -505,7 +505,7 @@ void CDwindleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
         nodeB->pTarget = a;
 }
 
-void CDwindleAlgorithm::recalculate() {
+void CDwindleAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
     calculateWorkspace();
 }
 

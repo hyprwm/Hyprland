@@ -44,6 +44,13 @@ namespace Layout {
         CLayoutManager();
         ~CLayoutManager() = default;
 
+        enum eRecalculateMonitorReason : uint8_t {
+            RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
+            RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
+            RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD,
+            RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN,
+        };
+
         void                             newTarget(SP<ITarget> target, SP<CSpace> space);
         void                             removeTarget(SP<ITarget> target);
 
@@ -75,7 +82,7 @@ namespace Layout {
         void                             performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
 
         void                             invalidateMonitorGeometries(PHLMONITOR);
-        void                             recalculateMonitor(PHLMONITOR);
+        void                             recalculateMonitor(PHLMONITOR, std::optional<eRecalculateMonitorReason> reason = std::nullopt);
 
         const UP<Supplementary::CDragStateController>& dragController();
 

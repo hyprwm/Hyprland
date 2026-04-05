@@ -362,7 +362,7 @@ void CHyprAnimationManager::resetTickState() {
 
 std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& config, const std::string& style) {
     if (config.starts_with("window")) {
-        if (style.starts_with("slide") || style == "gnome" || style == "gnomed")
+        if (style.starts_with("slide") || style == "gnome" || style == "gnomed" || style == "shader")
             return "";
         else if (style.starts_with("popin")) {
             // try parsing

@@ -103,6 +103,7 @@ void main() {
 #if USE_ROUNDING
     pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
 #endif
+    pixColor *= alpha;
 #if USE_BLUR
 #if USE_DISCARD
     pixColor = mix(pixColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, pixColor.rgb, pixColor.a), 1.0),
@@ -112,7 +113,7 @@ void main() {
 #endif
 #endif
 
-    fragColor = pixColor * alpha;
+    fragColor = pixColor;
 #if USE_MIRROR
 #if USE_TINT
     mirrorColor.rgb = mirrorColor.rgb * tint;
@@ -121,6 +122,7 @@ void main() {
 #if USE_ROUNDING
     mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
 #endif
+    mirrorColor = mirrorColor * alpha;
 #if USE_BLUR
 #if USE_DISCARD
     mirrorColor = mix(mirrorColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0),
@@ -130,6 +132,5 @@ void main() {
 #endif
 #endif
 
-    mirrorColor = mirrorColor * alpha;
 #endif
 }

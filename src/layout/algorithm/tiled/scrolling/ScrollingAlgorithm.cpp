@@ -535,7 +535,11 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         if (!TARGET || TARGET->floating())
             return;
 
-        focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
+        // if follow_focus != 0, focuswindow always moves scrolling view
+        if (*PFOLLOW_FOCUS && reason == Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW)
+            focusOnInput(TARGET,INPUT_MODE_HARD);
+        else 
+            focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
     });
 
     // Initialize default widths and direction

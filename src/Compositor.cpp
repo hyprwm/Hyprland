@@ -1292,6 +1292,8 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
 
     if (top)
         pWindow->m_createdOverFullscreen = true;
+    else
+        pWindow->m_createdOverFullscreen = false;
 
     if (pWindow == (top ? m_windows.back() : m_windows.front()))
         return;

@@ -64,7 +64,10 @@ SP<SMonocleTargetData> CMonocleAlgorithm::dataFor(SP<ITarget> t) {
 void CMonocleAlgorithm::newTarget(SP<ITarget> target) {
     const auto DATA = m_targetDatas.emplace_back(makeShared<SMonocleTargetData>(target));
 
-    m_currentVisibleIndex = m_targetDatas.size() - 1;
+    const auto WINDOW = target->window();
+    if (m_targetDatas.size() == 1 || (WINDOW && WINDOW == Desktop::focusState()->window())) {
+        m_currentVisibleIndex = m_targetDatas.size() - 1;
+    }
 
     recalculate();
 }

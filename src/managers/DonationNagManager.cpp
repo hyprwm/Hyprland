@@ -36,7 +36,7 @@ const std::vector<SNagDatePoint> NAG_DATE_POINTS = {
 // clang-format on
 
 CDonationNagManager::CDonationNagManager() {
-    static auto PNONAG = CConfigValue<Hyprlang::INT>("ecosystem:no_donation_nag");
+    static auto PNONAG = CConfigValue<Config::INTEGER>("ecosystem:no_donation_nag");
 
     if (g_pVersionKeeperMgr->fired() || *PNONAG)
         return;

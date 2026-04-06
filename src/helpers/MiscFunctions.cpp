@@ -655,7 +655,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
                 a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
             } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
 
-            return a * sc<Hyprlang::INT>(0x1000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
+            return a * sc<Config::INTEGER>(0x1000000) + *r * sc<Config::INTEGER>(0x10000) + *g * sc<Config::INTEGER>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
             const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
@@ -683,7 +683,7 @@ std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) 
             if (!r || !g || !b)
                 return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
 
-            return sc<Hyprlang::INT>(0xFF000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
+            return sc<Config::INTEGER>(0xFF000000) + *r * sc<Config::INTEGER>(0x10000) + *g * sc<Config::INTEGER>(0x100) + *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
             auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;

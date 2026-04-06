@@ -11,7 +11,7 @@ using namespace Hyprutils::OS;
 static std::string virtualKeyboardNameForWlClient(wl_client* client) {
     std::string name = "hl-virtual-keyboard";
 
-    static auto PVKNAMEPROC = CConfigValue<Hyprlang::INT>("misc:name_vk_after_proc");
+    static auto PVKNAMEPROC = CConfigValue<Config::INTEGER>("misc:name_vk_after_proc");
     if (!*PVKNAMEPROC)
         return name;
 

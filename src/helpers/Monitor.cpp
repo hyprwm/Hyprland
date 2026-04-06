@@ -65,7 +65,7 @@ using namespace Monitor;
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+    static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
     g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, Config::animationTree()->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     g_pAnimationManager->createAnimation(0.F, m_zoomAnimProgress, Config::animationTree()->getAnimationPropertyConfig("monitorAdded"), AVARDAMAGE_NONE);
@@ -625,7 +625,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
 
 bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force) {
 
-    static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
+    static auto PDISABLESCALECHECKS = CConfigValue<Config::INTEGER>("debug:disable_scale_checks");
 
     Log::logger->log(Log::DEBUG, "Applying monitor rule for {}", m_name);
 
@@ -1036,7 +1036,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
             } else {
                 if (!autoScale) {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
-                    static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
+                    static auto PDISABLENOTIFICATION = CConfigValue<Config::INTEGER>("misc:disable_scale_notification");
                     if (!*PDISABLENOTIFICATION)
                         g_pHyprNotificationOverlay->addNotification(
                             I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
@@ -1126,8 +1126,8 @@ void CMonitor::addDamage(const CBox& box) {
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
-    static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
-    static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
+    static auto PNOBREAK = CConfigValue<Config::INTEGER>("cursor:no_break_fs_vrr");
+    static auto PMINRR   = CConfigValue<Config::INTEGER>("cursor:min_refresh_rate");
 
     // skip scheduling extra frames for fullsreen apps with vrr
     const auto FS_WINDOW          = getFullscreenWindow();
@@ -1335,7 +1335,7 @@ float CMonitor::getDefaultScale() {
 }
 
 static bool shouldWraparound(const WORKSPACEID id1, const WORKSPACEID id2) {
-    static auto PWORKSPACEWRAPAROUND = CConfigValue<Hyprlang::INT>("animations:workspace_wraparound");
+    static auto PWORKSPACEWRAPAROUND = CConfigValue<Config::INTEGER>("animations:workspace_wraparound");
 
     if (!*PWORKSPACEWRAPAROUND)
         return false;
@@ -1393,7 +1393,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
         if (!noFocus && !Desktop::focusState()->monitor()->m_activeSpecialWorkspace &&
             !(Desktop::focusState()->window() && Desktop::focusState()->window()->m_pinned && Desktop::focusState()->window()->m_monitor == m_self)) {
-            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             auto        pWindow      = pWorkspace->m_hasFullscreenWindow ? pWorkspace->getFullscreenWindow() : pWorkspace->getLastFocusedWindow();
 
             if (!pWindow) {
@@ -1795,7 +1795,7 @@ void CMonitor::recheckSolitary() {
 uint8_t CMonitor::isTearingBlocked(bool full) {
     uint8_t     reasons = 0;
 
-    static auto PTEARINGENABLED = CConfigValue<Hyprlang::INT>("general:allow_tearing");
+    static auto PTEARINGENABLED = CConfigValue<Config::INTEGER>("general:allow_tearing");
 
     if (!m_tearingState.nextRenderTorn) {
         reasons |= TC_NOT_TORN;
@@ -1849,10 +1849,11 @@ bool CMonitor::updateTearing() {
 }
 
 uint16_t CMonitor::isDSBlocked(bool full) {
-    uint16_t    reasons        = 0;
-    static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
-    static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    uint16_t    reasons = 0;
+
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+    static auto PPASS          = CConfigValue<Config::INTEGER>("render:cm_fs_passthrough");
+    static auto PNONSHADER     = CConfigValue<Config::INTEGER>("render:non_shader_cm");
     const auto  PWORKSPACE     = m_activeWorkspace;
 
     // Fast reject for the hot render path; full=true callers still collect
@@ -1936,8 +1937,8 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 }
 
 bool CMonitor::attemptDirectScanout() {
-    static const auto PSAME     = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer");
-    static const auto PSAMEFIFO = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer_fifo");
+    static const auto PSAME     = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer");
+    static const auto PSAMEFIFO = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer_fifo");
 
     const auto        blockedReason = isDSBlocked();
     if (blockedReason)
@@ -2089,8 +2090,8 @@ bool CMonitor::isMultiGPU() {
 }
 
 bool CMonitor::shouldUseSoftwareCursors() {
-    static auto PNOHW      = CConfigValue<Hyprlang::INT>("cursor:no_hardware_cursors");
-    static auto PINVISIBLE = CConfigValue<Hyprlang::INT>("cursor:invisible");
+    static auto PNOHW      = CConfigValue<Config::INTEGER>("cursor:no_hardware_cursors");
+    static auto PINVISIBLE = CConfigValue<Config::INTEGER>("cursor:invisible");
 
     if (m_tearingState.activelyTearing)
         return true;
@@ -2298,7 +2299,7 @@ NColorManagement::SImageDescription::SPCMasteringLuminances CMonitor::getMasteri
 }
 
 uint32_t CMonitor::getPreferredReadFormat() {
-    static const auto PFORCE8BIT = CConfigValue<Hyprlang::INT>("misc:screencopy_force_8b");
+    static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
 
     auto              monFmt = m_output->state->state().drmFormat;
 
@@ -2317,7 +2318,7 @@ bool CMonitor::needsCM() {
 
 // TODO support more drm properties
 bool CMonitor::canNoShaderCM() {
-    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    static auto PNONSHADER = CConfigValue<Config::INTEGER>("render:non_shader_cm");
     if (*PNONSHADER == CM_NS_DISABLE)
         return false;
 

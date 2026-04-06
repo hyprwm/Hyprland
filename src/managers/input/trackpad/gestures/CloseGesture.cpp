@@ -71,7 +71,7 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 }
 
 void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
-    static const auto PTIMEOUT = CConfigValue<Hyprlang::INT>("gestures:close_max_timeout");
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("gestures:close_max_timeout");
 
     if (!m_window)
         return;
@@ -92,7 +92,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     const auto CURRENT_POS   = m_window->m_realPosition->value();
     const auto CURRENT_SIZE  = m_window->m_realSize->value();
 
-    g_pCompositor->closeWindow(m_window.lock());
+    Desktop::focusState()->window()->sendClose();
 
     m_window->m_alpha->setValueAndWarp(CURRENT_ALPHA);
     m_window->m_realPosition->setValueAndWarp(CURRENT_POS);

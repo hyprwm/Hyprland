@@ -290,7 +290,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
     if (!m_windowOwner.expired() && (!m_windowOwner->m_isMapped || !m_windowOwner->m_workspace->m_visible)) {
         m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
-        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
             Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
         return;

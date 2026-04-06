@@ -359,6 +359,7 @@ namespace Desktop::View {
         std::optional<Vector2D>    maxSize();
         SP<Layout::ITarget>        layoutTarget();
         bool                       canBeGroupedInto(SP<CGroup> group);
+        void                       sendClose();
 
         CBox                       getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

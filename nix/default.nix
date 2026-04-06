@@ -36,6 +36,7 @@
   libxkbcommon,
   libuuid,
   libgbm,
+  lua5_5,
   muparser,
   pango,
   pciutils,
@@ -122,7 +123,7 @@ customStdenv.mkDerivation (finalAttrs: {
             ../systemd
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)
-            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in") ../example)
+            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in" || file.hasExt "lua" ) ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
             (optional withTests [
@@ -190,6 +191,7 @@ customStdenv.mkDerivation (finalAttrs: {
       libuuid
       libxcursor
       libxkbcommon
+      lua5_5
       muparser
       pango
       pciutils

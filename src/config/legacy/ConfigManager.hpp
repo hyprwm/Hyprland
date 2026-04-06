@@ -66,6 +66,8 @@ namespace Config::Legacy {
         virtual void                             handlePluginLoads() override;
         virtual bool                             configVerifPassed() override;
 
+        virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
+
         void                                     addPluginConfigVar(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
         void                                     addPluginKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fun, Hyprlang::SHandlerOptions opts = {});
         void                                     removePluginConfig(HANDLE handle);

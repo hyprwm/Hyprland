@@ -315,7 +315,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
         loadGLProc(&m_proc.eglQueryDisplayAttribEXT, "eglQueryDisplayAttribEXT");
     }
 
-    static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
+    static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");
     if (EGLEXTENSIONS.contains("EGL_KHR_debug") && *GLDEBUG) {
         loadGLProc(&m_proc.eglDebugMessageControlKHR, "eglDebugMessageControlKHR");
         static const EGLAttrib debugAttrs[] = {
@@ -781,7 +781,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 }
 
 void CHyprOpenGLImpl::end() {
-    static auto PZOOMDISABLEAA = CConfigValue<Hyprlang::INT>("cursor:zoom_disable_aa");
+    static auto PZOOMDISABLEAA = CConfigValue<Config::INTEGER>("cursor:zoom_disable_aa");
     auto&       m_renderData   = g_pHyprRenderer->m_renderData;
     const auto  PMONITOR       = m_renderData.pMonitor;
     TRACY_GPU_ZONE("RenderEnd");
@@ -850,7 +850,7 @@ void CHyprOpenGLImpl::end() {
 
     m_renderData.pMonitor.reset();
 
-    static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");
+    static const auto GLDEBUG = CConfigValue<Config::INTEGER>("debug:gl_debugging");
 
     if (*GLDEBUG) {
         // check for gl errors
@@ -874,7 +874,7 @@ const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
 
 bool CHyprOpenGLImpl::initShaders(const std::string& path) {
     auto              shaders = makeShared<SPreparedShaders>();
-    static const auto PCM     = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PCM     = CConfigValue<Config::INTEGER>("render:cm_enabled");
 
     try {
         auto shaderLoader = makeUnique<CShaderLoader>(SHADER_INCLUDES, FRAG_SHADERS, path);
@@ -903,7 +903,7 @@ bool CHyprOpenGLImpl::initShaders(const std::string& path) {
 
 void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
-    static auto PDT = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
+    static auto PDT = CConfigValue<Config::INTEGER>("debug:damage_tracking");
 
     m_finalScreenShader->destroy();
 
@@ -1195,8 +1195,8 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription
 }
 
 WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
-    static const auto PDT            = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
-    static const auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
+    static const auto PDT            = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static const auto PCURSORTIMEOUT = CConfigValue<Config::FLOAT>("cursor:inactive_timeout");
 
     auto&             m_renderData = g_pHyprRenderer->m_renderData;
 
@@ -1268,9 +1268,9 @@ WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
 }
 
 WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STextureRenderData& data, eTextureType texType, const CBox& newBox) {
-    static const auto  PPASS     = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static const auto  PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
-    static auto        PBLEND    = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
+    static const auto  PPASS     = CConfigValue<Config::INTEGER>("render:cm_fs_passthrough");
+    static const auto  PENABLECM = CConfigValue<Config::INTEGER>("render:cm_enabled");
+    static auto        PBLEND    = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
 
     auto&              m_renderData = g_pHyprRenderer->m_renderData;
 
@@ -1632,10 +1632,10 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(MONITORBOX, TRANSFORM);
 
     // get the config settings
-    static auto PBLURSIZE             = CConfigValue<Hyprlang::INT>("decoration:blur:size");
-    static auto PBLURPASSES           = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
-    static auto PBLURVIBRANCY         = CConfigValue<Hyprlang::FLOAT>("decoration:blur:vibrancy");
-    static auto PBLURVIBRANCYDARKNESS = CConfigValue<Hyprlang::FLOAT>("decoration:blur:vibrancy_darkness");
+    static auto PBLURSIZE             = CConfigValue<Config::INTEGER>("decoration:blur:size");
+    static auto PBLURPASSES           = CConfigValue<Config::INTEGER>("decoration:blur:passes");
+    static auto PBLURVIBRANCY         = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy");
+    static auto PBLURVIBRANCYDARKNESS = CConfigValue<Config::FLOAT>("decoration:blur:vibrancy_darkness");
 
     const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
 
@@ -1654,9 +1654,9 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     // Begin with base color adjustments - global brightness and contrast
     // TODO: make this a part of the first pass maybe to save on a drawcall?
     {
-        static auto PBLURCONTRAST   = CConfigValue<Hyprlang::FLOAT>("decoration:blur:contrast");
-        static auto PBLURBRIGHTNESS = CConfigValue<Hyprlang::FLOAT>("decoration:blur:brightness");
-        static auto PBLEND          = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
+        static auto PBLURCONTRAST   = CConfigValue<Config::FLOAT>("decoration:blur:contrast");
+        static auto PBLURBRIGHTNESS = CConfigValue<Config::FLOAT>("decoration:blur:brightness");
+        static auto PBLEND          = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
 
         PMIRRORSWAPFB->bind();
 
@@ -1773,8 +1773,8 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
 
     // finalize the image
     {
-        static auto PBLURNOISE      = CConfigValue<Hyprlang::FLOAT>("decoration:blur:noise");
-        static auto PBLURBRIGHTNESS = CConfigValue<Hyprlang::FLOAT>("decoration:blur:brightness");
+        static auto PBLURNOISE      = CConfigValue<Config::FLOAT>("decoration:blur:noise");
+        static auto PBLURBRIGHTNESS = CConfigValue<Config::FLOAT>("decoration:blur:brightness");
 
         if (currentRenderToFB == PMIRRORFB)
             PMIRRORSWAPFB->bind();
@@ -1839,9 +1839,9 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
 }
 
 void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
-    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
+    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
     if (!*PBLURNEWOPTIMIZE || !pMonitor->m_blurFBDirty || !*PBLUR)
         return;
@@ -1927,7 +1927,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     TRACY_GPU_ZONE("RenderTextureWithBlur");
 
-    static auto PBLEND        = CConfigValue<Hyprlang::INT>("render:use_shader_blur_blend");
+    static auto PBLEND        = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
     const auto  NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
     if (!*PBLEND) {
 
@@ -1977,7 +1977,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                                        transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
                                        transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
 
-        static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
+        static auto PBLURIGNOREOPACITY = CConfigValue<Config::INTEGER>("decoration:blur:ignore_opacity");
 
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
@@ -2226,7 +2226,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     CBox newBox = box;
     g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
 
-    static auto PSHADOWPOWER = CConfigValue<Hyprlang::INT>("decoration:shadow:render_power");
+    static auto PSHADOWPOWER = CConfigValue<Config::INTEGER>("decoration:shadow:render_power");
 
     const auto  SHADOWPOWER = std::clamp(sc<int>(*PSHADOWPOWER), 1, 4);
 

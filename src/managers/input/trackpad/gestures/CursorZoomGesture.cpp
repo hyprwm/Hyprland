@@ -21,7 +21,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     for (auto const& m : g_pCompositor->m_monitors) {
         switch (m_mode) {
             case MODE_TOGGLE:
-                static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+                static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
                 *m->m_cursorZoom        = m_zoomed ? m_zoomValue : *PZOOMFACTOR;
                 break;
             case MODE_MULT: *m->m_cursorZoom = std::clamp(m->m_cursorZoom->goal() * m_zoomValue, 1.0F, 100.0F); break;

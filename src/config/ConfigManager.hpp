@@ -7,6 +7,8 @@
 #include "./shared/Types.hpp"
 #include "../helpers/memory/Memory.hpp"
 
+#include "values/types/IValue.hpp"
+
 namespace Config {
 
     struct SConfigOptionReply {
@@ -55,6 +57,8 @@ namespace Config {
         virtual std::expected<void, std::string> generateDefaultConfig(const std::filesystem::path&, bool safeMode = false) = 0;
 
         virtual void                             handlePluginLoads() = 0;
+
+        virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) = 0;
     };
 
     bool                initConfigManager();

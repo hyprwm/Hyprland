@@ -6,6 +6,7 @@
 #include <ranges>
 #include <algorithm>
 #include "../../config/ConfigValue.hpp"
+#include "../../config/shared/actions/ConfigActions.hpp"
 #include "../../config/legacy/ConfigManager.hpp"
 #include "../../desktop/view/WLSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
@@ -116,7 +117,7 @@ CInputManager::~CInputManager() {
 }
 
 void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
-    static auto PNOACCEL = CConfigValue<Hyprlang::INT>("input:force_no_accel");
+    static auto PNOACCEL = CConfigValue<Config::INTEGER>("input:force_no_accel");
 
     Vector2D    delta   = e.delta;
     Vector2D    unaccel = e.unaccel;
@@ -212,14 +213,14 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (MOUSECOORDSFLOORED == m_lastCursorPosFloored && !refocus)
         return;
 
-    static auto PFOLLOWMOUSE          = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Hyprlang::FLOAT>("input:follow_mouse_threshold");
-    static auto PMOUSEREFOCUS         = CConfigValue<Hyprlang::INT>("input:mouse_refocus");
-    static auto PFOLLOWONDND          = CConfigValue<Hyprlang::INT>("misc:always_follow_on_dnd");
-    static auto PFLOATBEHAVIOR        = CConfigValue<Hyprlang::INT>("input:float_switch_override_focus");
-    static auto PMOUSEFOCUSMON        = CConfigValue<Hyprlang::INT>("misc:mouse_move_focuses_monitor");
-    static auto PRESIZEONBORDER       = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PRESIZECURSORICON     = CConfigValue<Hyprlang::INT>("general:hover_icon_on_border");
+    static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto PFOLLOWMOUSETHRESHOLD = CConfigValue<Config::FLOAT>("input:follow_mouse_threshold");
+    static auto PMOUSEREFOCUS         = CConfigValue<Config::INTEGER>("input:mouse_refocus");
+    static auto PFOLLOWONDND          = CConfigValue<Config::INTEGER>("misc:always_follow_on_dnd");
+    static auto PFLOATBEHAVIOR        = CConfigValue<Config::INTEGER>("input:float_switch_override_focus");
+    static auto PMOUSEFOCUSMON        = CConfigValue<Config::INTEGER>("misc:mouse_move_focuses_monitor");
+    static auto PRESIZEONBORDER       = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto PRESIZECURSORICON     = CConfigValue<Config::INTEGER>("general:hover_icon_on_border");
 
     const auto  FOLLOWMOUSE = *PFOLLOWONDND && PROTO::data->dndActive() ? 1 : *PFOLLOWMOUSE;
 
@@ -765,12 +766,12 @@ void CInputManager::setClickMode(eClickBehaviorMode mode) {
 void CInputManager::processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer> mouse) {
 
     // notify the keybind manager
-    static auto PPASSMOUSE        = CConfigValue<Hyprlang::INT>("binds:pass_mouse_when_bound");
+    static auto PPASSMOUSE        = CConfigValue<Config::INTEGER>("binds:pass_mouse_when_bound");
     const auto  PASS              = g_pKeybindManager->onMouseEvent(e, mouse);
-    static auto PFOLLOWMOUSE      = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PRESIZEONBORDER   = CConfigValue<Hyprlang::INT>("general:resize_on_border");
-    static auto PBORDERSIZE       = CConfigValue<Hyprlang::INT>("general:border_size");
-    static auto PBORDERGRABEXTEND = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+    static auto PFOLLOWMOUSE      = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto PRESIZEONBORDER   = CConfigValue<Config::INTEGER>("general:resize_on_border");
+    static auto PBORDERSIZE       = CConfigValue<Config::INTEGER>("general:border_size");
+    static auto PBORDERGRABEXTEND = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
     const auto  BORDER_GRAB_AREA  = *PRESIZEONBORDER ? *PBORDERSIZE + *PBORDERGRABEXTEND : 0;
 
     if (!PASS && !*PPASSMOUSE)
@@ -871,11 +872,11 @@ void CInputManager::processMouseDownKill(const IPointer::SButtonEvent& e) {
 }
 
 void CInputManager::onMouseWheel(IPointer::SAxisEvent e, SP<IPointer> pointer) {
-    static auto POFFWINDOWAXIS        = CConfigValue<Hyprlang::INT>("input:off_window_axis_events");
-    static auto PINPUTSCROLLFACTOR    = CConfigValue<Hyprlang::FLOAT>("input:scroll_factor");
-    static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Hyprlang::FLOAT>("input:touchpad:scroll_factor");
-    static auto PEMULATEDISCRETE      = CConfigValue<Hyprlang::INT>("input:emulate_discrete_scroll");
-    static auto PFOLLOWMOUSE          = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+    static auto POFFWINDOWAXIS        = CConfigValue<Config::INTEGER>("input:off_window_axis_events");
+    static auto PINPUTSCROLLFACTOR    = CConfigValue<Config::FLOAT>("input:scroll_factor");
+    static auto PTOUCHPADSCROLLFACTOR = CConfigValue<Config::FLOAT>("input:touchpad:scroll_factor");
+    static auto PEMULATEDISCRETE      = CConfigValue<Config::INTEGER>("input:emulate_discrete_scroll");
+    static auto PFOLLOWMOUSE          = CConfigValue<Config::INTEGER>("input:follow_mouse");
 
     const bool  ISTOUCHPADSCROLL = *PTOUCHPADSCROLLFACTOR <= 0.f || e.source == WL_POINTER_AXIS_SOURCE_FINGER;
     auto        factor           = ISTOUCHPADSCROLL ? *PTOUCHPADSCROLLFACTOR : *PINPUTSCROLLFACTOR;
@@ -1021,7 +1022,7 @@ void CInputManager::newVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keyboard) 
 }
 
 void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
-    static auto PDPMS = CConfigValue<Hyprlang::INT>("misc:key_press_enables_dpms");
+    static auto PDPMS = CConfigValue<Config::INTEGER>("misc:key_press_enables_dpms");
 
     m_hids.emplace_back(keeb);
 
@@ -1049,8 +1050,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         if (PKEEB->m_enabled)
             PROTO::idle->onActivity();
 
-        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
-            g_pKeybindManager->dpms("on");
+        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     keeb->m_keyboardEvents.modifiers.listenStatic([this, keeb = keeb.get()] {
@@ -1061,8 +1062,8 @@ void CInputManager::setupKeyboard(SP<IKeyboard> keeb) {
         if (PKEEB->m_enabled)
             PROTO::idle->onActivity();
 
-        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn)
-            g_pKeybindManager->dpms("on");
+        if (PKEEB->m_enabled && *PDPMS && !g_pCompositor->m_dpmsStateOn) // NOLINTNEXTLINE
+            Config::Actions::dpms(Config::Actions::TOGGLE_ACTION_ENABLE, std::nullopt);
     });
 
     keeb->m_keyboardEvents.keymap.listenStatic([keeb = keeb.get()] {
@@ -1959,7 +1960,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
         return;
     }
 
-    static auto PEXTENDBORDERGRAB = CConfigValue<Hyprlang::INT>("general:extend_border_grab_area");
+    static auto PEXTENDBORDERGRAB = CConfigValue<Config::INTEGER>("general:extend_border_grab_area");
     const int   BORDERSIZE        = w->getRealBorderSize();
     const int   ROUNDING          = w->rounding();
 
@@ -2052,7 +2053,7 @@ void CInputManager::setCursorIconOnBorder(PHLWINDOW w) {
 }
 
 void CInputManager::recheckMouseWarpOnMouseInput() {
-    static auto PWARPFORNONMOUSE = CConfigValue<Hyprlang::INT>("cursor:warp_back_after_non_mouse_input");
+    static auto PWARPFORNONMOUSE = CConfigValue<Config::INTEGER>("cursor:warp_back_after_non_mouse_input");
 
     if (!m_lastInputMouse && *PWARPFORNONMOUSE)
         g_pPointerManager->warpTo(m_lastMousePos);

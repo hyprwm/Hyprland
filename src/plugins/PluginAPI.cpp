@@ -431,3 +431,22 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
 
     return true;
 }
+
+APICALL bool HyprlandAPI::addConfigValueV2(HANDLE handle, SP<Config::Values::IValue> value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredApiValues.emplace_back(value);
+
+    auto ret = Config::mgr()->registerPluginValue(handle, value);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to register plugin value \"{}\": {}", value->name(), ret.error());
+        return false;
+    }
+
+    value->commence();
+
+    return true;
+}

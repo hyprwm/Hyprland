@@ -17,6 +17,6 @@ namespace Config {
 
         virtual eConfigValueDataTypes getDataType() = 0;
 
-        virtual std::string           toString() = 0;
+        virtual std::string           toString() const = 0;
     };
 }

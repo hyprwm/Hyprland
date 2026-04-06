@@ -118,12 +118,12 @@ namespace Desktop::Rule {
 
         DEFINE_PROP(int, idleInhibitMode, false, WINDOW_RULE_EFFECT_IDLE_INHIBIT)
 
-        DEFINE_PROP(Hyprlang::INT, borderSize, {std::string("general:border_size") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_BORDER_SIZE)
-        DEFINE_PROP(Hyprlang::INT, rounding, {std::string("decoration:rounding") COMMA sc<Hyprlang::INT>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_ROUNDING)
+        DEFINE_PROP(Config::INTEGER, borderSize, {std::string("general:border_size") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_BORDER_SIZE)
+        DEFINE_PROP(Config::INTEGER, rounding, {std::string("decoration:rounding") COMMA sc<Config::INTEGER>(0) COMMA std::nullopt}, WINDOW_RULE_EFFECT_ROUNDING)
 
-        DEFINE_PROP(Hyprlang::FLOAT, roundingPower, {std::string("decoration:rounding_power")}, WINDOW_RULE_EFFECT_ROUNDING_POWER)
-        DEFINE_PROP(Hyprlang::FLOAT, scrollMouse, {std::string("input:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_MOUSE)
-        DEFINE_PROP(Hyprlang::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD)
+        DEFINE_PROP(Config::FLOAT, roundingPower, {std::string("decoration:rounding_power")}, WINDOW_RULE_EFFECT_ROUNDING_POWER)
+        DEFINE_PROP(Config::FLOAT, scrollMouse, {std::string("input:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_MOUSE)
+        DEFINE_PROP(Config::FLOAT, scrollTouchpad, {std::string("input:touchpad:scroll_factor")}, WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD)
 
         DEFINE_PROP(std::string, animationStyle, std::string(""), WINDOW_RULE_EFFECT_ANIMATION)
 

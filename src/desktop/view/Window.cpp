@@ -1382,11 +1382,11 @@ Vector2D CWindow::realToReportPosition() {
     if (!m_isX11)
         return m_realPosition->goal();
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto                       PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  PMONITOR       = m_monitor.lock();
+    const auto                        PMONITOR = m_monitor.lock();
     const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
-    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
+    const auto preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::waylandToXWaylandCoords(MONITORS, m_realPosition->goal(), *PXWLFORCESCALEZERO, preferredIndex);
 }
@@ -1402,11 +1402,11 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 }
 
 Vector2D CWindow::xwaylandPositionToReal(Vector2D pos) {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto                       PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  PMONITOR       = m_monitor.lock();
+    const auto                        PMONITOR = m_monitor.lock();
     const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
-    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
+    const auto preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
 
     return XWayland::xwaylandToWaylandCoords(MONITORS, pos, *PXWLFORCESCALEZERO, preferredIndex);
 }
@@ -2476,14 +2476,14 @@ void CWindow::unmanagedSetGeometry() {
         return;
     }
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto                       PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-    const auto  PMONITOR       = m_monitor.lock();
+    const auto                        PMONITOR = m_monitor.lock();
     const std::span<const PHLMONITOR> MONITORS = g_pCompositor->m_monitors;
-    const auto  preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
-    const auto  LOGICALPOS     = XWayland::xwaylandToWaylandCoords(MONITORS, m_xwaylandSurface->m_geometry.pos(), *PXWLFORCESCALEZERO, preferredIndex);
-    const auto  XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
-    const auto  LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;
+    const auto preferredIndex = XWayland::preferredMonitorIndex(MONITORS, std::optional<PHLMONITOR>{PMONITOR}, [](const PHLMONITOR& a, const PHLMONITOR& b) { return a == b; });
+    const auto LOGICALPOS     = XWayland::xwaylandToWaylandCoords(MONITORS, m_xwaylandSurface->m_geometry.pos(), *PXWLFORCESCALEZERO, preferredIndex);
+    const auto XWLSCALE       = (*PXWLFORCESCALEZERO && PMONITOR) ? PMONITOR->m_scale : 1.0;
+    const auto LOGICALGEOSIZE = m_xwaylandSurface->m_geometry.size() / XWLSCALE;
 
     if (abs(std::floor(POS.x) - LOGICALPOS.x) > 2 || abs(std::floor(POS.y) - LOGICALPOS.y) > 2 || abs(std::floor(SIZ.x) - LOGICALGEOSIZE.x) > 2 ||
         abs(std::floor(SIZ.y) - LOGICALGEOSIZE.y) > 2) {

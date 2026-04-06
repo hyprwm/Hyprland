@@ -187,7 +187,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 
     static auto               PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
     const auto                XCOORDS            = XWayland::waylandToXWaylandCoords(g_pCompositor->m_monitors, m_lastSurfaceCoords + local, *PXWLFORCESCALEZERO);
-    const uint32_t            coords  = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
+    const uint32_t            coords             = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
 
     xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;

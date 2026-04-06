@@ -264,7 +264,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
     if (m_window->m_isX11) {
         static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
-        Vector2D xy    = {DESIRED_GEOM.x, DESIRED_GEOM.y};
+        Vector2D    xy = {DESIRED_GEOM.x, DESIRED_GEOM.y};
         xy             = XWayland::xwaylandToWaylandCoords(g_pCompositor->m_monitors, xy, *PXWLFORCESCALEZERO);
         requested.pos  = xy;
         DESIRED_GEOM.x = xy.x;

@@ -69,22 +69,23 @@ static std::optional<size_t> selectMonitorGeneric(std::span<const MonitorT> moni
 }
 
 std::optional<size_t> XWayland::selectMonitorForWaylandPoint(std::span<const PHLMONITOR> monitors, const Vector2D& point, bool forceZeroScaling) {
-    return selectMonitorGeneric(monitors, point,
-                                [&](const PHLMONITOR& monitor) {
-                                    const auto local = point - monitor->m_position;
-                                    return containsPoint(local, {}, monitor->m_size);
-                                },
-                                [](const PHLMONITOR& monitor) { return monitor->m_position; }, [](const PHLMONITOR& monitor) { return monitor->m_size; });
+    return selectMonitorGeneric(
+        monitors, point,
+        [&](const PHLMONITOR& monitor) {
+            const auto local = point - monitor->m_position;
+            return containsPoint(local, {}, monitor->m_size);
+        },
+        [](const PHLMONITOR& monitor) { return monitor->m_position; }, [](const PHLMONITOR& monitor) { return monitor->m_size; });
 }
 
 std::optional<size_t> XWayland::selectMonitorForXWaylandPoint(std::span<const PHLMONITOR> monitors, const Vector2D& point, bool forceZeroScaling) {
-    return selectMonitorGeneric(monitors, point,
-                                [&](const PHLMONITOR& monitor) {
-                                    const auto local = point - monitor->m_xwaylandPosition;
-                                    return containsPoint(local, {}, effectiveMonitorSize(monitor, forceZeroScaling));
-                                },
-                                [](const PHLMONITOR& monitor) { return monitor->m_xwaylandPosition; },
-                                [&](const PHLMONITOR& monitor) { return effectiveMonitorSize(monitor, forceZeroScaling); });
+    return selectMonitorGeneric(
+        monitors, point,
+        [&](const PHLMONITOR& monitor) {
+            const auto local = point - monitor->m_xwaylandPosition;
+            return containsPoint(local, {}, effectiveMonitorSize(monitor, forceZeroScaling));
+        },
+        [](const PHLMONITOR& monitor) { return monitor->m_xwaylandPosition; }, [&](const PHLMONITOR& monitor) { return effectiveMonitorSize(monitor, forceZeroScaling); });
 }
 
 Vector2D XWayland::waylandToXWaylandCoords(std::span<const PHLMONITOR> monitors, const Vector2D& point, bool forceZeroScaling, std::optional<size_t> preferred) {

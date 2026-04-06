@@ -80,6 +80,17 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             windowGeometry.y = POS.y;
             posOverridden    = true;
         }
+
+        if (!WINDOW->m_ruleApplicator->static_.centerOver.empty()) {
+            const auto TARGET = g_pCompositor->getWindowByRegex(WINDOW->m_ruleApplicator->static_.centerOver);
+            if (TARGET && TARGET != WINDOW) {
+                const auto TARGET_BOX = TARGET->getWindowMainSurfaceBox();
+                const auto POS        = TARGET_BOX.middle() - windowGeometry.size() / 2.f;
+                windowGeometry.x      = POS.x;
+                windowGeometry.y      = POS.y;
+                posOverridden         = true;
+            }
+        }
     } else if (target->lastFloatingSize().x > 5 && target->lastFloatingSize().y > 5) {
         windowGeometry.w = target->lastFloatingSize().x;
         windowGeometry.h = target->lastFloatingSize().y;

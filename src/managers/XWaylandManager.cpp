@@ -1,4 +1,5 @@
 #include "XWaylandManager.hpp"
+
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../config/ConfigValue.hpp"
@@ -171,78 +172,4 @@ void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscree
         pWindow->m_xwaylandSurface->setFullscreen(fullscreen);
     else if (pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel)
         pWindow->m_xdgSurface->m_toplevel->setFullscreen(fullscreen);
-}
-
-Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
-    return waylandToXWaylandCoords(coord, nullptr);
-}
-
-Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-    PHLMONITOR  pMonitor = preferredMonitor;
-    if (!pMonitor) {
-        double bestDistance = __FLT_MAX__;
-        for (const auto& m : g_pCompositor->m_monitors) {
-            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
-
-            double     distance = vecToRectDistanceSquared(coord, {m->m_position.x, m->m_position.y}, {m->m_position.x + SIZ.x - 1, m->m_position.y + SIZ.y - 1});
-
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                pMonitor     = m;
-            }
-        }
-    }
-
-    if (!pMonitor)
-        return Vector2D{};
-
-    // get local coords
-    Vector2D result = coord - pMonitor->m_position;
-    // if scaled, scale
-    if (*PXWLFORCESCALEZERO)
-        result *= pMonitor->m_scale;
-    // add pos
-    result += pMonitor->m_xwaylandPosition;
-
-    return result;
-}
-
-Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
-    return xwaylandToWaylandCoords(coord, nullptr);
-}
-
-Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
-
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
-
-    PHLMONITOR  pMonitor = preferredMonitor;
-    if (!pMonitor) {
-        double bestDistance = __FLT_MAX__;
-        for (const auto& m : g_pCompositor->m_monitors) {
-            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
-
-            double     distance =
-                vecToRectDistanceSquared(coord, {m->m_xwaylandPosition.x, m->m_xwaylandPosition.y}, {m->m_xwaylandPosition.x + SIZ.x - 1, m->m_xwaylandPosition.y + SIZ.y - 1});
-
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                pMonitor     = m;
-            }
-        }
-    }
-
-    if (!pMonitor)
-        return Vector2D{};
-
-    // get local coords
-    Vector2D result = coord - pMonitor->m_xwaylandPosition;
-    // if scaled, unscale
-    if (*PXWLFORCESCALEZERO)
-        result /= pMonitor->m_scale;
-    // add pos
-    result += pMonitor->m_position;
-
-    return result;
 }

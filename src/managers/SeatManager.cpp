@@ -532,8 +532,14 @@ void CSeatManager::refocusGrab() {
 
             if (m_seatGrab->m_keyboard)
                 setKeyboardFocus(s.lock());
-            if (m_seatGrab->m_pointer)
-                setPointerFocus(s.lock(), MOUSE - b->pos());
+            if (m_seatGrab->m_pointer) {
+                auto local = MOUSE - b->pos();
+
+                if (const auto PWINDOW = g_pCompositor->getWindowFromSurface(s.lock()); PWINDOW && PWINDOW->m_isX11)
+                    local = local * PWINDOW->m_X11SurfaceScaledBy;
+
+                setPointerFocus(s.lock(), local);
+            }
             return;
         }
 

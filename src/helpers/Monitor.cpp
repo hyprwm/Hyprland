@@ -2530,7 +2530,7 @@ bool CMonitor::useFP16() {
 }
 
 WP<CMonitorResources> CMonitor::resources() {
-    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_XRGB16161616F : m_output->state->state().drmFormat;
+    const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
     const auto DESC       = useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription;
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)

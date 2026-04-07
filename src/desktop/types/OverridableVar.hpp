@@ -77,6 +77,12 @@ namespace Desktop::Types {
             m_values[priority] = std::nullopt;
         }
 
+        std::optional<T> valueAt(eOverridePriority p) const {
+            if (static_cast<size_t>(p) >= PRIORITY_END)
+                return std::nullopt;
+            return m_values[static_cast<size_t>(p)];
+        }
+
         bool hasValue() const {
             return std::ranges::any_of(m_values, [](const auto& e) { return e.has_value(); });
         }

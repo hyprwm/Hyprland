@@ -67,6 +67,11 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
     UNSET(scrollMouse)
     UNSET(scrollTouchpad)
     UNSET(animationStyle)
+    UNSET(animationWindowsIn)
+    UNSET(animationWindowsOut)
+    UNSET(animationWindowsMove)
+    UNSET(animationFadeIn)
+    UNSET(animationFadeOut)
     UNSET(maxSize)
     UNSET(minSize)
     UNSET(activeBorderColor)
@@ -144,6 +149,31 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
             case WINDOW_RULE_EFFECT_ANIMATION: {
                 m_animationStyle.first.set(effect, Types::PRIORITY_WINDOW_RULE);
                 m_animationStyle.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_WINDOWS_IN: {
+                m_animationWindowsIn.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationWindowsIn.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_WINDOWS_OUT: {
+                m_animationWindowsOut.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationWindowsOut.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_WINDOWS_MOVE: {
+                m_animationWindowsMove.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationWindowsMove.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_FADE_IN: {
+                m_animationFadeIn.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationFadeIn.second |= rule->getPropertiesMask();
+                break;
+            }
+            case WINDOW_RULE_EFFECT_FADE_OUT: {
+                m_animationFadeOut.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationFadeOut.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_BORDER_COLOR: {

@@ -26,6 +26,7 @@
 #include "../../render/decorations/CHyprBorderDecoration.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../config/ConfigManager.hpp"
+#include "../../config/shared/animation/AnimationNodeOverride.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../managers/TokenManager.hpp"
@@ -895,7 +896,9 @@ bool CWindow::visibleOnMonitor(PHLMONITOR pMonitor) {
 }
 
 void CWindow::setAnimationsToMove() {
-    m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+    const auto CFG = Config::windowAnimationConfigForNode(Config::animOverrideString(m_ruleApplicator->animationWindowsMove()), "windowsMove");
+    m_ruleApplicator->pinStandaloneAnimWindowsMove(CFG);
+    m_realPosition->setConfig(CFG);
     m_animatingIn = false;
 }
 
@@ -1669,17 +1672,6 @@ std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
     return Vector2D{*LHS, *RHS};
 }
 
-static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
-    if (!pav)
-        return;
-
-    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
-    animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
-
-    if (animvar->m_Context.pWindow)
-        animvar->m_Context.pWindow->m_animatingIn = false;
-}
-
 void CWindow::mapWindow() {
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
@@ -2137,9 +2129,6 @@ void CWindow::mapWindow() {
 
     // do animations
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
-
-    m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
-    m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
 
     // recalc the values for this window
     updateDecorationValues();

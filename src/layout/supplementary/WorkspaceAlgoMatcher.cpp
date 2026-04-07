@@ -151,8 +151,14 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
         const auto type = &typeid(*TILED_ALGO.get());
 
         const auto it = m_algoIDs.find(type);
-        if (it != m_algoIDs.end() && it->second == layoutID)
-            continue;
+        if (it != m_algoIDs.end()) {
+            if (layoutID != LayoutID::UNKNOWN && it->second == layoutID)
+                continue;
+
+            // fallback for unknown layouts (plugins)
+            if (layoutID == LayoutID::UNKNOWN && m_algoNames.contains(type) && m_algoNames.at(type) == layoutStr)
+                continue;
+        }
 
         // needs a switchup
         ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(layoutStr));

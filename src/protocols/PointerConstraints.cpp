@@ -125,13 +125,6 @@ void CPointerConstraint::activate() {
     if (m_dead || m_active)
         return;
 
-    // TODO: hack, probably not a super duper great idea
-    if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
-        const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
-    }
-
     if (m_locked)
         m_resourceLocked->sendLocked();
     else
@@ -243,8 +236,9 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_constraints.emplace_back(constraint);
 
-    if (Desktop::focusState()->surface() == OWNER->resource())
+    if (Desktop::focusState()->surface() == OWNER->resource()){
         constraint->activate();
+    }
 }
 
 void CPointerConstraintsProtocol::onLockPointer(CZwpPointerConstraintsV1* pMgr, uint32_t id, wl_resource* surface, wl_resource* pointer, wl_resource* region,

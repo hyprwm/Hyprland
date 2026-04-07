@@ -1879,7 +1879,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
     static auto                                           PSOLDAMAGE          = CConfigValue<Hyprlang::INT>("debug:render_solitary_wo_damage");
-    static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("misc:vfr");
+    static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("debug:vfr");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 

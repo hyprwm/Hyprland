@@ -219,23 +219,7 @@ SBoxExtents CWindow::getFullWindowExtents() const {
     maxExtents.bottomRight.y = std::max(EXTENTS.bottomRight.y, maxExtents.bottomRight.y);
 
     if (m_wlSurface->exists() && !m_isX11 && m_popupHead) {
-        CBox surfaceExtents = {0, 0, 0, 0};
-        // TODO: this could be better, perhaps make a getFullWindowRegion?
-        m_popupHead->breadthfirst(
-            [](WP<Desktop::View::CPopup> popup, void* data) {
-                if (!popup->wlSurface() || !popup->wlSurface()->resource())
-                    return;
-
-                CBox* pSurfaceExtents = sc<CBox*>(data);
-                CBox  surf            = CBox{popup->coordsRelativeToParent(), popup->size()};
-                pSurfaceExtents->x    = std::min(surf.x, pSurfaceExtents->x);
-                pSurfaceExtents->y    = std::min(surf.y, pSurfaceExtents->y);
-                if (surf.x + surf.w > pSurfaceExtents->width)
-                    pSurfaceExtents->width = surf.x + surf.w - pSurfaceExtents->x;
-                if (surf.y + surf.h > pSurfaceExtents->height)
-                    pSurfaceExtents->height = surf.y + surf.h - pSurfaceExtents->y;
-            },
-            &surfaceExtents);
+        const auto& surfaceExtents = m_popupHead->popupTreeExtents();
 
         maxExtents.topLeft.x = std::max(-surfaceExtents.x, maxExtents.topLeft.x);
 

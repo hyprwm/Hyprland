@@ -142,11 +142,16 @@ void CPopup::initAllSignals() {
 void CPopup::onNewPopup(SP<CXDGPopupResource> popup) {
     const auto& POPUP = m_children.emplace_back(CPopup::create(popup, m_self));
     POPUP->m_self     = POPUP;
+
+    invalidateTreeExtentsCache();
+
     Log::logger->log(Log::DEBUG, "New popup at {:x}", rc<uintptr_t>(this));
 }
 
 void CPopup::onDestroy() {
     m_inert = true;
+
+    invalidateTreeExtentsCache();
 
     if (!m_parent)
         return; // head node
@@ -171,6 +176,8 @@ void CPopup::onDestroy() {
 void CPopup::fullyDestroy() {
     Log::logger->log(Log::DEBUG, "popup {:x} fully destroying", rc<uintptr_t>(this));
 
+    invalidateTreeExtentsCache();
+
     std::erase_if(m_parent->m_children, [this](const auto& other) { return other.get() == this; });
 }
 
@@ -189,6 +196,8 @@ void CPopup::onMap() {
     g_pHyprRenderer->damageBox(box);
 
     m_lastPos = coordsRelativeToParent();
+
+    invalidateTreeExtentsCache();
 
     g_pInputManager->simulateMouseMovement();
 
@@ -228,6 +237,8 @@ void CPopup::onUnmap() {
 
     m_lastSize = m_resource->m_surface->m_surface->m_current.size;
     m_lastPos  = coordsRelativeToParent();
+
+    invalidateTreeExtentsCache();
 
     const auto COORDS = coordsGlobal();
 
@@ -288,7 +299,11 @@ void CPopup::onCommit(bool ignoreSiblings) {
     }
 
     if (!m_windowOwner.expired() && (!m_windowOwner->m_isMapped || !m_windowOwner->m_workspace->m_visible)) {
-        m_lastSize = m_resource->m_surface->m_surface->m_current.size;
+        const auto PREV_SIZE = m_lastSize;
+        m_lastSize           = m_resource->m_surface->m_surface->m_current.size;
+
+        if (PREV_SIZE != m_lastSize)
+            invalidateTreeExtentsCache();
 
         static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
         if (*PLOGDAMAGE)
@@ -310,6 +325,8 @@ void CPopup::onCommit(bool ignoreSiblings) {
         g_pHyprRenderer->damageBox(box);
 
         m_lastPos = COORDSLOCAL;
+
+        invalidateTreeExtentsCache();
     }
 
     if (!ignoreSiblings && m_subsurfaceHead)
@@ -331,6 +348,8 @@ void CPopup::onReposition() {
     m_requestedReposition = true;
 
     m_lastPos = coordsRelativeToParent();
+
+    invalidateTreeExtentsCache();
 
     reposition();
 }
@@ -392,6 +411,14 @@ Vector2D CPopup::t1ParentCoords() const {
 
     ASSERT(false);
     return {};
+}
+
+void CPopup::invalidateTreeExtentsCache() {
+    auto head = popupHead();
+    if (!head)
+        return;
+
+    head->m_treeExtentsCacheDirty = true;
 }
 
 void CPopup::recheckTree() {
@@ -464,11 +491,96 @@ void CPopup::breadthfirst(std::function<void(SP<CPopup>, void*)> fn, void* data)
     bfHelper(popups, fn, data);
 }
 
-SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+SP<CPopup> CPopup::popupHead() const {
+    auto head = m_self.lock();
+    while (head && head->m_parent)
+        head = head->m_parent.lock();
+
+    return head;
+}
+
+const CBox& CPopup::popupTreeExtents() const {
+    static const CBox EMPTY = {};
+
+    auto              head = popupHead();
+    if (!head)
+        return EMPTY;
+
+    if (!head->m_treeExtentsCacheDirty)
+        return head->m_cachedTreeExtents;
+
+    head->m_treeExtentsCacheDirty = false;
+    head->m_cachedTreeExtents     = {};
+
     std::vector<SP<CPopup>> popups;
-    breadthfirst([&popups](SP<CPopup> popup, void* data) { popups.push_back(popup); }, &popups);
+    popups.emplace_back(head);
+
+    bool   found = false;
+    double minX  = 0.0;
+    double minY  = 0.0;
+    double maxX  = 0.0;
+    double maxY  = 0.0;
+
+    for (size_t i = 0; i < popups.size(); ++i) {
+        const auto& popup = popups[i];
+        if (!popup)
+            continue;
+
+        if (popup->wlSurface() && popup->wlSurface()->resource()) {
+            const CBox surf = CBox{popup->coordsRelativeToParent(), popup->size()};
+
+            if (!found) {
+                found = true;
+                minX  = surf.x;
+                minY  = surf.y;
+                maxX  = surf.x + surf.w;
+                maxY  = surf.y + surf.h;
+            } else {
+                minX = std::min(minX, surf.x);
+                minY = std::min(minY, surf.y);
+                maxX = std::max(maxX, surf.x + surf.w);
+                maxY = std::max(maxY, surf.y + surf.h);
+            }
+        }
+
+        for (const auto& c : popup->m_children) {
+            popups.emplace_back(c->m_self.lock());
+        }
+    }
+
+    if (!found)
+        return head->m_cachedTreeExtents;
+
+    head->m_cachedTreeExtents = {
+        minX,
+        minY,
+        std::max(0.0, maxX - minX),
+        std::max(0.0, maxY - minY),
+    };
+
+    return head->m_cachedTreeExtents;
+}
+
+SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
+    thread_local std::vector<SP<CPopup>> popups;
+    popups.clear();
+
+    popups.emplace_back(m_self.lock());
+
+    for (size_t i = 0; i < popups.size(); ++i) {
+        const auto& popup = popups[i];
+        if (!popup)
+            continue;
+
+        for (const auto& c : popup->m_children) {
+            popups.emplace_back(c->m_self.lock());
+        }
+    }
 
     for (auto const& p : popups | std::views::reverse) {
+        if (!p)
+            continue;
+
         if (!p->m_resource || !p->m_mapped)
             continue;
 
@@ -482,15 +594,20 @@ SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
                 size = p->size();
 
             const auto BOX = CBox{p->coordsGlobal() + offset, size};
-            if (BOX.containsPoint(globalCoords))
+            if (BOX.containsPoint(globalCoords)) {
+                popups.clear();
                 return p;
+            }
         } else {
             const auto REGION = CRegion{p->wlSurface()->resource()->m_current.input}.intersect(CBox{{}, p->wlSurface()->resource()->m_current.size}).translate(p->coordsGlobal());
-            if (REGION.containsPoint(globalCoords))
+            if (REGION.containsPoint(globalCoords)) {
+                popups.clear();
                 return p;
+            }
         }
     }
 
+    popups.clear();
     return {};
 }
 

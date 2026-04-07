@@ -219,7 +219,7 @@ void CGroup::setCurrent(size_t idx) {
     }
 
     if (WASFOCUS)
-        Desktop::focusState()->rawWindowFocus(current(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
+        Desktop::focusState()->rawWindowFocus(current(), FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE);
 }
 
 void CGroup::setCurrent(PHLWINDOW w) {

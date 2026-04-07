@@ -536,7 +536,8 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
             return;
 
         // if follow_focus != 0, focuswindow always moves scrolling view
-        if (*PFOLLOW_FOCUS && reason == Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW)
+        // if follow_focus != 0, change in a group's current window state always moves scrolling view
+        if (*PFOLLOW_FOCUS && (reason == Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW || reason == Desktop::FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE))
             focusOnInput(TARGET,INPUT_MODE_HARD);
         else 
             focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
@@ -813,8 +814,9 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
 
         if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true)) {
 
-            // guard against unwanted scrolling viewport moves
-            // (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view)
+            /* guard against unwanted scrolling viewport moves - If recalculate() was called, it is assumed that either the INPUT_MODE will be HARD (i.e. it is meant to move the scrolling viewport) or
+            it is not meant to move the scrolling viewport.
+            (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view) */
             if (!reason.has_value() || Layout::isHardRecalculateReason(reason.value()))
                 focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }

@@ -18,6 +18,9 @@ CSurfacePassElement::CSurfacePassElement(const CSurfacePassElement::SRenderData&
 }
 
 CBox CSurfacePassElement::getTexBox() {
+    if (m_texBoxCached)
+        return m_cachedTexBox;
+
     const double outputX = -m_data.pMonitor->m_position.x, outputY = -m_data.pMonitor->m_position.y;
 
     const auto   INTERACTIVERESIZEINPROGRESS = m_data.pWindow && g_layoutManager->dragController()->target() && g_layoutManager->dragController()->mode() == MBIND_RESIZE;
@@ -69,7 +72,10 @@ CBox CSurfacePassElement::getTexBox() {
             windowBox.height = m_data.h - m_data.localPos.y;
     }
 
-    return windowBox;
+    m_cachedTexBox = windowBox;
+    m_texBoxCached = true;
+
+    return m_cachedTexBox;
 }
 
 bool CSurfacePassElement::needsLiveBlur() {

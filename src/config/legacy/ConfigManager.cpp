@@ -504,7 +504,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("misc:splash_font_family", {STRVAL_EMPTY});
     registerConfigVar("misc:font_family", {"Sans"});
     registerConfigVar("misc:force_default_wallpaper", Hyprlang::INT{-1});
-    registerConfigVar("misc:vfr", Hyprlang::INT{1});
     registerConfigVar("misc:vrr", Hyprlang::INT{0});
     registerConfigVar("misc:mouse_move_enables_dpms", Hyprlang::INT{0});
     registerConfigVar("misc:key_press_enables_dpms", Hyprlang::INT{0});
@@ -579,6 +578,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:log_damage", Hyprlang::INT{0});
     registerConfigVar("debug:overlay", Hyprlang::INT{0});
     registerConfigVar("debug:damage_blink", Hyprlang::INT{0});
+    registerConfigVar("debug:vfr", Hyprlang::INT{1});
     registerConfigVar("debug:pass", Hyprlang::INT{0});
     registerConfigVar("debug:gl_debugging", Hyprlang::INT{0});
     registerConfigVar("debug:disable_logs", Hyprlang::INT{1});

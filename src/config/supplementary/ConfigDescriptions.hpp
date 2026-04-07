@@ -1279,12 +1279,6 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SRangeData{-1, -1, 2},
         },
         SConfigOptionDescription{
-            .value       = "misc:vfr",
-            .description = "controls the VFR status of Hyprland. Heavily recommended to leave enabled to conserve resources.",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
-        },
-        SConfigOptionDescription{
             .value       = "misc:vrr",
             .description = "	controls the VRR (Adaptive Sync) of your monitors. 0 - off, 1 - on, 2 - fullscreen only, 3 - fullscreen with game or video content type [0/1/2/3]",
             .type        = CONFIG_OPTION_INT,
@@ -1900,6 +1894,12 @@ namespace Config::Supplementary {
             .description = "disable logging to a file",
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
+        },
+        SConfigOptionDescription{
+            .value       = "debug:vfr",
+            .description = "controls the VFR status of Hyprland. Do not turn off unless debugging.",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{true},
         },
         SConfigOptionDescription{
             .value       = "debug:gl_debugging",

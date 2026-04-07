@@ -19,6 +19,10 @@ static LayoutID layoutIDFromString(const std::string& s) {
         return LayoutID::DWINDLE;
     if (s == "master")
         return LayoutID::MASTER;
+    if (s == "scrolling")
+        return LayoutID::SCROLLING;
+    if (s == "monocle")
+        return LayoutID::MONOCLE;
     if (s == "floating")
         return LayoutID::FLOATING;
     return LayoutID::UNKNOWN;
@@ -57,8 +61,8 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
     m_algoIDs = {
         {&typeid(Tiled::CDwindleAlgorithm), LayoutID::DWINDLE},
         {&typeid(Tiled::CMasterAlgorithm), LayoutID::MASTER},
-        {&typeid(Tiled::CScrollingAlgorithm), LayoutID::UNKNOWN},
-        {&typeid(Tiled::CMonocleAlgorithm), LayoutID::UNKNOWN},
+        {&typeid(Tiled::CScrollingAlgorithm), LayoutID::SCROLLING},
+        {&typeid(Tiled::CMonocleAlgorithm), LayoutID::MONOCLE},
         {&typeid(Floating::CDefaultFloatingAlgorithm), LayoutID::FLOATING},
     };
 }

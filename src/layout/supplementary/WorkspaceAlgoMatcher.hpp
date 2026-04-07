@@ -11,6 +11,8 @@
 enum class LayoutID {
     DWINDLE,
     MASTER,
+    SCROLLING,
+    MONOCLE,
     FLOATING,
     UNKNOWN
 };

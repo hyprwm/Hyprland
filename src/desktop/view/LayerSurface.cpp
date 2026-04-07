@@ -426,12 +426,10 @@ bool CLayerSurface::isFadedOut() {
 }
 
 int CLayerSurface::popupsCount() {
-    if (!m_layerSurface || !m_mapped || m_fadingOut)
+    if (!m_layerSurface || !m_mapped || m_fadingOut || !m_popupHead)
         return 0;
 
-    int no = -1; // we have one dummy
-    m_popupHead->breadthfirst([](WP<Desktop::View::CPopup> p, void* data) { *sc<int*>(data) += 1; }, &no);
-    return no;
+    return m_popupHead->popupTreeCount();
 }
 
 MONITORID CLayerSurface::monitorID() {

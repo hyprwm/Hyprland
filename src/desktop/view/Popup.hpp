@@ -55,6 +55,7 @@ namespace Desktop::View {
         SP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
         SP<Desktop::View::CPopup> popupHead() const;
         const CBox&               popupTreeExtents() const;
+        int                       popupTreeCount() const;
 
         //
         WP<Desktop::View::CPopup> m_self;
@@ -85,8 +86,10 @@ namespace Desktop::View {
 
         bool                      m_inert = false;
 
-        mutable CBox              m_cachedTreeExtents     = {};
-        mutable bool              m_treeExtentsCacheDirty = true;
+        mutable CBox              m_cachedTreeExtents        = {};
+        mutable bool              m_treeExtentsCacheDirty    = true;
+        mutable int               m_cachedTreePopupCount     = 0;
+        mutable bool              m_treePopupCountCacheDirty = true;
 
         //
         std::vector<SP<Desktop::View::CPopup>> m_children;

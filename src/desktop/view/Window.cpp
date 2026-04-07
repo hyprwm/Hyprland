@@ -742,7 +742,10 @@ bool CWindow::isInCurvedCorner(double x, double y) {
 
 // checks if the wayland window has a popup at pos
 bool CWindow::hasPopupAt(const Vector2D& pos) {
-    if (m_isX11)
+    if (m_isX11 || !m_popupHead)
+        return false;
+
+    if (m_popupHead->popupTreeCount() == 0)
         return false;
 
     auto popup = m_popupHead->at(pos);
@@ -933,9 +936,7 @@ int CWindow::popupsCount() {
     if (m_isX11 || !m_popupHead)
         return 0;
 
-    int no = -1;
-    m_popupHead->breadthfirst([](WP<Desktop::View::CPopup> p, void* d) { *sc<int*>(d) += 1; }, &no);
-    return no;
+    return m_popupHead->popupTreeCount();
 }
 
 int CWindow::surfacesCount() {

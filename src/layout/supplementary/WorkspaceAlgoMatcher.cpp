@@ -14,6 +14,16 @@
 
 #include "../../Compositor.hpp"
 
+static LayoutID layoutIDFromString(const std::string& s) {
+    if (s == "dwindle")
+        return LayoutID::DWINDLE;
+    if (s == "master")
+        return LayoutID::MASTER;
+    if (s == "floating")
+        return LayoutID::FLOATING;
+    return LayoutID::UNKNOWN;
+}
+
 using namespace Layout;
 using namespace Layout::Supplementary;
 
@@ -44,6 +54,13 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
         {&typeid(Tiled::CMonocleAlgorithm), "monocle"},
         {&typeid(Floating::CDefaultFloatingAlgorithm), "default"},
     };
+    m_algoIDs = {
+        {&typeid(Tiled::CDwindleAlgorithm), LayoutID::DWINDLE},
+        {&typeid(Tiled::CMasterAlgorithm), LayoutID::MASTER},
+        {&typeid(Tiled::CScrollingAlgorithm), LayoutID::UNKNOWN},
+        {&typeid(Tiled::CMonocleAlgorithm), LayoutID::UNKNOWN},
+        {&typeid(Floating::CDefaultFloatingAlgorithm), LayoutID::FLOATING},
+    };
 }
 
 bool CWorkspaceAlgoMatcher::registerTiledAlgo(const std::string& name, const std::type_info* typeInfo, std::function<UP<ITiledAlgorithm>()>&& factory) {
@@ -52,6 +69,7 @@ bool CWorkspaceAlgoMatcher::registerTiledAlgo(const std::string& name, const std
 
     m_tiledAlgos.emplace(name, std::move(factory));
     m_algoNames.emplace(typeInfo, name);
+    m_algoIDs.emplace(typeInfo, layoutIDFromString(name));
 
     updateWorkspaceLayouts();
 
@@ -64,6 +82,7 @@ bool CWorkspaceAlgoMatcher::registerFloatingAlgo(const std::string& name, const 
 
     m_floatingAlgos.emplace(name, std::move(factory));
     m_algoNames.emplace(typeInfo, name);
+    m_algoIDs.emplace(typeInfo, layoutIDFromString(name));
 
     updateWorkspaceLayouts();
 
@@ -112,7 +131,7 @@ SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
-    // TODO: make this ID-based, string comparison is slow
+
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (!ws)
             continue;
@@ -122,13 +141,17 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
         if (!TILED_ALGO)
             continue;
 
-        const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
+        const auto layoutStr = tiledAlgoForWorkspace(ws.lock());
+        const auto layoutID  = layoutIDFromString(layoutStr);
 
-        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
+        const auto type = &typeid(*TILED_ALGO.get());
+
+        const auto it = m_algoIDs.find(type);
+        if (it != m_algoIDs.end() && it->second == layoutID)
             continue;
 
         // needs a switchup
-        ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));
+        ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(layoutStr));
     }
 }
 

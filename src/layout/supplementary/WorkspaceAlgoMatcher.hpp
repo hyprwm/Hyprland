@@ -3,9 +3,17 @@
 #include "../../desktop/DesktopTypes.hpp"
 
 #include <map>
+#include <unordered_map>
 #include <type_traits>
 #include <functional>
 #include <string>
+
+enum class LayoutID {
+    DWINDLE,
+    MASTER,
+    FLOATING,
+    UNKNOWN
+};
 
 namespace Layout {
     class CAlgorithm;
@@ -40,6 +48,7 @@ namespace Layout::Supplementary {
         std::map<std::string, std::function<UP<IFloatingAlgorithm>()>> m_floatingAlgos;
 
         std::map<const std::type_info*, std::string>                   m_algoNames;
+        std::unordered_map<const std::type_info*, LayoutID>            m_algoIDs;
     };
 
     const UP<CWorkspaceAlgoMatcher>& algoMatcher();

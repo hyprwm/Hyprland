@@ -418,7 +418,8 @@ void CPopup::invalidateTreeExtentsCache() {
     if (!head)
         return;
 
-    head->m_treeExtentsCacheDirty = true;
+    head->m_treeExtentsCacheDirty    = true;
+    head->m_treePopupCountCacheDirty = true;
 }
 
 void CPopup::recheckTree() {
@@ -559,6 +560,37 @@ const CBox& CPopup::popupTreeExtents() const {
     };
 
     return head->m_cachedTreeExtents;
+}
+
+int CPopup::popupTreeCount() const {
+    auto head = popupHead();
+    if (!head)
+        return 0;
+
+    if (!head->m_treePopupCountCacheDirty)
+        return head->m_cachedTreePopupCount;
+
+    head->m_treePopupCountCacheDirty = false;
+    head->m_cachedTreePopupCount     = 0;
+
+    std::vector<SP<CPopup>> popups;
+    popups.emplace_back(head);
+
+    for (size_t i = 0; i < popups.size(); ++i) {
+        const auto& popup = popups[i];
+        if (!popup)
+            continue;
+
+        for (const auto& c : popup->m_children) {
+            if (!c)
+                continue;
+
+            popups.emplace_back(c);
+            head->m_cachedTreePopupCount++;
+        }
+    }
+
+    return head->m_cachedTreePopupCount;
 }
 
 SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {

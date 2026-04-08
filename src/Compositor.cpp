@@ -546,12 +546,12 @@ void CCompositor::stopCompositor() {
     m_isShuttingDown = true;
 }
 
-void CCompositor::handleGPUReset() {
+void CCompositor::handleGPUReset(bool& awaitingReset) {
     // Time to pray
     if (!m_wlDisplay)
         RASSERT(false, "no wayland display and we reset???");
 
-    if (!g_pHyprRenderer->rendererLost())
+    if UNLIKELY (!g_pHyprRenderer->rendererLost())
         return;
 
     for (auto const& m : m_monitors) {
@@ -562,12 +562,14 @@ void CCompositor::handleGPUReset() {
         m->resetResources();
         m->m_background.reset();
         m->m_splash.reset();
+        //m->m_cursorSwapchain.reset();
     }
 
     Render::g_pShaderLoader.reset();
 
     // vulkan reset will go in here too :)
     // g_pHyprOpenGL gets reset here.
+    g_pHyprOpenGL.reset();
     g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
     g_pHyprRenderer->m_renderData.mainFB.reset();
     g_pHyprRenderer->m_renderData.outFB.reset();
@@ -585,6 +587,8 @@ void CCompositor::handleGPUReset() {
         scheduleFrameForMonitor(m, IOutput::scheduleFrameReason::AQ_SCHEDULE_RENDER_MONITOR);
     }
 
+    awaitingReset = false;
+
     // TODO: localize this if this stays.
     g_pHyprNotificationOverlay->addNotification(
         "Warning: Hyprland has recovered from a GPU reset. If you run into issues, consider collecting the logs and submitting them to https://github.com/hyprwm/Hyprland",
@@ -592,7 +596,11 @@ void CCompositor::handleGPUReset() {
 }
 
 void CCompositor::queueRendererReset() {
-    g_pEventLoopManager->doLater([] { g_pCompositor->handleGPUReset(); });
+    static bool awaitingReset = false;
+    if (awaitingReset)
+        return;
+    awaitingReset = true;
+    g_pEventLoopManager->doLater([] { g_pCompositor->handleGPUReset(awaitingReset); });
 }
 
 void CCompositor::cleanup() {

@@ -79,6 +79,9 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 }
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
+    if UNLIKELY (rendererLost())
+        return false;
+
     m_currentRenderbuffer->bind();
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);
@@ -91,6 +94,11 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+
+    if UNLIKELY (rendererLost()) {
+        g_pCompositor->queueRendererReset();
+        return;
+    }
 
     g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
 

@@ -176,7 +176,7 @@ class CCompositor {
     std::string                         m_explicitConfigPath;
 
   private:
-    void                           handleGPUReset();
+    void                           handleGPUReset(bool&);
     void                           initAllSignals();
     void                           removeAllSignals();
     void                           cleanEnvironment();

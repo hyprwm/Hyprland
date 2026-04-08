@@ -1643,7 +1643,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
 
     initRender();
 
-    if (rendererLost())
+    if UNLIKELY (rendererLost())
         return false;
 
     if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
@@ -1888,7 +1888,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
-    if (rendererLost())
+    if UNLIKELY (rendererLost())
         return;
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {

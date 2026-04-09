@@ -286,6 +286,7 @@ pkg_check_modules(deps
   re2
   muparser
   lcms2
+  libcanberra
 )
 
 pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5 lua<5.6)

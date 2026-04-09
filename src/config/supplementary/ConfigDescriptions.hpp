@@ -501,6 +501,12 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{true},
         },
+        SConfigOptionDescription{
+            .value       = "animations:reverse_slide_direction",
+            .description = "reverses the direction of slide animations. Does not affect workspace wraparound animations.",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
 
         /*
      * input:

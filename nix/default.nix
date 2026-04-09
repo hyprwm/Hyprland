@@ -23,6 +23,7 @@
   hyprwayland-scanner,
   hyprwire,
   lcms2,
+  libcanberra,
   libGL,
   libdrm,
   libei,
@@ -190,6 +191,7 @@ customStdenv.mkDerivation (finalAttrs: {
       hyprutils
       hyprwire
       lcms2
+      libcanberra
       libdrm
       libgbm
       libGL

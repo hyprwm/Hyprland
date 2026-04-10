@@ -528,6 +528,8 @@ protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1"
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-export-v1"
             true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-workspace-export-v1"
+            true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)
 protocolnew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)

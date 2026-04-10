@@ -189,8 +189,8 @@ vec4 fromLinear(vec4 color, int tf) {
 }
 
 vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
+    color.rgb = (color.rgb - range[0] * color.a) / (range[1] - range[0]); // @gulafaran
     color.rgb /= max(color.a, 0.001);
-    color.rgb = (color.rgb - range[0]) / (range[1] - range[0]);
     color.rgb = fromLinearRGB(color.rgb, tf);
     color.rgb *= color.a;
     return color;

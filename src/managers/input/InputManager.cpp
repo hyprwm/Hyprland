@@ -255,9 +255,12 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (PMONITOR->m_cursorZoom->value() != 1.f)
         g_pHyprRenderer->damageMonitor(PMONITOR);
 
-    bool skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
+    bool       skipFrameSchedule = PMONITOR->shouldSkipScheduleFrameOnMouseEvent();
 
-    if (!PMONITOR->m_solitaryClient.lock() && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(PMONITOR->m_self.lock()) && !skipFrameSchedule)
+    const auto solitary = PMONITOR->m_solitaryClient.lock();
+    const auto self     = PMONITOR->m_self.lock();
+
+    if (!solitary && g_pHyprRenderer->shouldRenderCursor() && g_pPointerManager->softwareLockedFor(self) && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(PMONITOR, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // constraints
@@ -513,7 +516,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     if (!foundSurface)
         foundSurface = g_pCompositor->vectorToLayerSurface(mouseCoords, &PMONITOR->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND], &surfaceCoords, &pFoundLayerSurface);
 
-    if (g_pPointerManager->softwareLockedFor(PMONITOR->m_self.lock()) > 0 && !skipFrameSchedule)
+    if (g_pPointerManager->softwareLockedFor(self) > 0 && !skipFrameSchedule)
         g_pCompositor->scheduleFrameForMonitor(Desktop::focusState()->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_MOVE);
 
     // FIXME: This will be disabled during DnD operations because we do not exactly follow the spec

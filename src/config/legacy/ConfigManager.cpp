@@ -596,6 +596,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("debug:ds_handle_same_buffer_fifo", Hyprlang::INT{1});
     registerConfigVar("debug:fifo_pending_workaround", Hyprlang::INT{0});
     registerConfigVar("debug:render_solitary_wo_damage", Hyprlang::INT{0});
+    registerConfigVar("debug:invalidate_fp16", Hyprlang::INT{1});
 
     registerConfigVar("decoration:rounding", Hyprlang::INT{0});
     registerConfigVar("decoration:rounding_power", {2.F});

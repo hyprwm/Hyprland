@@ -2008,6 +2008,12 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
         },
+        SConfigOptionDescription{
+            .value       = "debug:invalidate_fp16",
+            .description = "Allow fp16 buffer invalidation",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{true},
+        },
 
         /*
      * layout:

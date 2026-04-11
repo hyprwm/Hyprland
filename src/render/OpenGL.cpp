@@ -2272,7 +2272,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     if (g_pHyprRenderer->m_renderData.currentWindow) {
         auto PWINDOW = g_pHyprRenderer->m_renderData.currentWindow.lock();
         shader->setUniformFloat(SHADER_THICK, PWINDOW->getRealBorderSize() + PWINDOW->rounding());
-        drawRegion.subtract(PWINDOW->surfaceLogicalBox().value());
+        drawRegion.subtract(PWINDOW->surfaceLogicalBox().value().copy().expand(-PWINDOW->rounding()));
     }
 
     if (!drawRegion.empty())

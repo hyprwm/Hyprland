@@ -192,6 +192,7 @@ TEST_CASE(groups) {
 
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
+    OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
 
     NLog::log("{}Spawn kittyProcC", Colors::YELLOW);
     auto kittyProcC = Tests::spawnKitty();
@@ -206,6 +207,7 @@ TEST_CASE(groups) {
         EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
 
+    OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 0 } })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
     OK(getFromSocket("/dispatch hl.dsp.group.active({ index = 1 })"));
     OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));

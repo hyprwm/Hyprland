@@ -2009,12 +2009,8 @@ bool CMonitor::attemptDirectScanout() {
     Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
                      rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
-    // FIXME: verify the buffer comes from the appropriate device on multi-GPU — may implode.
-    // Linear buffers (DRM_FORMAT_MOD_INVALID) are not guaranteed readable by a different GPU's scanout engine.
-    if (isMultiGPU() && params.modifier == DRM_FORMAT_MOD_INVALID) {
-        Log::logger->log(Log::TRACE, "attemptDirectScanout: linear buffer on multi-GPU output, refusing scanout");
-        return false;
-    }
+    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
+    // and comes from the appropriate device. This may implode on multi-gpu!!
 
     // entering into scanout, so save monitor format
     if (m_lastScanout.expired())

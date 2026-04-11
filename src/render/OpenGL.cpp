@@ -1195,6 +1195,11 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription
                    g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
 }
 
+void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const PImageDescription imageDescription, const SCMSettings& settings) {
+    passCMUniforms(shader, imageDescription, g_pHyprRenderer->workBufferImageDescription(), true, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance,
+                   g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance, settings);
+}
+
 WP<CShader> CHyprOpenGLImpl::renderToOutputInternal() {
     static const auto PDT            = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
     static const auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");

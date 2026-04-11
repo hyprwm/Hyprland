@@ -622,7 +622,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("decoration:shadow:enabled", Hyprlang::INT{1});
     registerConfigVar("decoration:shadow:range", Hyprlang::INT{4});
     registerConfigVar("decoration:shadow:render_power", Hyprlang::INT{3});
-    registerConfigVar("decoration:shadow:ignore_window", Hyprlang::INT{1});
     registerConfigVar("decoration:shadow:offset", Hyprlang::VEC2{0, 0});
     registerConfigVar("decoration:shadow:scale", {1.f});
     registerConfigVar("decoration:shadow:sharp", Hyprlang::INT{0});

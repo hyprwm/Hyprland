@@ -193,6 +193,17 @@ class CMonitor {
     bool         m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
     bool         m_scanoutNeedsCursorUpdate = false;
 
+    // DRM test()-verified (format, modifier) scanout verdict. Invalidated on DS exit; re-entry self-heals via test().
+    struct {
+        uint32_t format   = 0;
+        uint64_t modifier = 0;
+        bool     ok       = false;
+        bool     valid    = false;
+    } m_cachedScanoutFormatCheck;
+    void invalidateScanoutFormatCache() {
+        m_cachedScanoutFormatCheck.valid = false;
+    }
+
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
 
@@ -326,6 +337,7 @@ class CMonitor {
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
     bool        canAttemptDirectScanoutFast() const;
+    bool        isFormatScanoutCapable(uint32_t format, uint64_t modifier);
     bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);
     void        onCursorMovedOnMonitor();

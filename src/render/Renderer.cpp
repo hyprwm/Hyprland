@@ -1942,6 +1942,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
             Log::logger->log(Log::DEBUG, "Left a direct scanout.");
             pMonitor->m_lastScanout.reset();
+            pMonitor->invalidateScanoutFormatCache();
             pMonitor->m_directScanoutIsActive = false;
 
             // reset DRM format, but only if needed since it might modeset

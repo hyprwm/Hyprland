@@ -1067,12 +1067,16 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateMatrix();
 
-    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
-        m_resources.reset(); // TODO skip for 10bit change and fp16?
+    const bool resolutionChanged = OLDRES != m_pixelSize;
+    const bool formatChanged     = WAS10B != m_enabled10bit;
 
-        if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
-            g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
-    }
+    // m_resources is geometry-dependent; format-only changes recreate it lazily via resources().
+    if (resolutionChanged)
+        m_resources.reset();
+
+    // GL background cache must be cleared on any format or geometry change.
+    if ((resolutionChanged || formatChanged) && g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     g_pCompositor->scheduleMonitorStateRecheck();
 
@@ -2005,8 +2009,12 @@ bool CMonitor::attemptDirectScanout() {
     Log::logger->log(Log::TRACE, "attemptDirectScanout: surface {:x} passed, will attempt, buffer {} fmt: {} -> {} (mod {})", rc<uintptr_t>(PSURFACE.get()),
                      rc<uintptr_t>(PSURFACE->m_current.buffer.m_buffer.get()), m_drmFormat, params.format, params.modifier);
 
-    // FIXME: make sure the buffer actually follows the available scanout dmabuf formats
-    // and comes from the appropriate device. This may implode on multi-gpu!!
+    // FIXME: verify the buffer comes from the appropriate device on multi-GPU — may implode.
+    // Linear buffers (DRM_FORMAT_MOD_INVALID) are not guaranteed readable by a different GPU's scanout engine.
+    if (isMultiGPU() && params.modifier == DRM_FORMAT_MOD_INVALID) {
+        Log::logger->log(Log::TRACE, "attemptDirectScanout: linear buffer on multi-GPU output, refusing scanout");
+        return false;
+    }
 
     // entering into scanout, so save monitor format
     if (m_lastScanout.expired())

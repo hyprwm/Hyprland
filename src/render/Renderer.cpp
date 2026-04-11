@@ -1947,11 +1947,16 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (canAttemptDirectScanout) {
         if (pMonitor->attemptDirectScanout()) {
-            pMonitor->m_directScanoutIsActive = true;
+            if (!pMonitor->m_directScanoutIsActive) {
+                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
+                pMonitor->m_directScanoutIsActive = true;
+            }
+            handleFullscreenSettings(pMonitor);
             return;
         } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
             Log::logger->log(Log::DEBUG, "Left a direct scanout.");
             pMonitor->m_lastScanout.reset();
+            pMonitor->m_previousFSWindow.reset(); // recalc fs settings
             pMonitor->m_directScanoutIsActive = false;
 
             // reset DRM format, but only if needed since it might modeset
@@ -2193,7 +2198,7 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     };
 }
 
-bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
     static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
     static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
@@ -2326,6 +2331,10 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
+}
+
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+    handleFullscreenSettings(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

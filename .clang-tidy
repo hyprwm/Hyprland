@@ -112,7 +112,6 @@ Checks: >
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-forward-declararion-namespace,
-  -bugprone-forward-declararion-namespace,
   -bugprone-macro-parentheses,
   -bugprone-narrowing-conversions,
   -bugprone-branch-clone,

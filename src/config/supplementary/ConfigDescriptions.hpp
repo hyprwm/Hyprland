@@ -2273,9 +2273,9 @@ namespace Config::Supplementary {
         },
         SConfigOptionDescription{
             .value       = "quirks:skip_non_kms_dmabuf_formats",
-            .description = "Do not report dmabuf formats which cannot be imported into KMS",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
+            .description = "Do not report dmabuf formats which cannot be imported into KMS. 0 - off, 1 - on, 2 - auto (on for nvidia)",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
 
     };

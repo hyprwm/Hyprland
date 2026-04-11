@@ -1923,6 +1923,27 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         reasons |= DS_BLOCK_DMA;
         if (!full)
             return reasons;
+    } else {
+        // Verify the buffer's format+modifier is supported by the output for scanout.
+        const auto& renderFormats = m_output->getRenderFormats();
+        bool        formatOk      = false;
+        for (const auto& fmt : renderFormats) {
+            if (fmt.drmFormat != params.format)
+                continue;
+            for (const auto& mod : fmt.modifiers) {
+                if (mod == params.modifier) {
+                    formatOk = true;
+                    break;
+                }
+            }
+            if (formatOk)
+                break;
+        }
+        if (!formatOk) {
+            reasons |= DS_BLOCK_FORMAT;
+            if (!full)
+                return reasons;
+        }
     }
 
     const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();

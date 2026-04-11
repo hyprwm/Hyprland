@@ -39,6 +39,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
+#include "../protocols/Fifo.hpp"
 #include "Drm.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
@@ -1968,28 +1969,33 @@ bool CMonitor::attemptDirectScanout() {
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
-    // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-        if (m_scanoutNeedsCursorUpdate) {
-            if (!m_state.test()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
-                return false;
-            }
-
-            if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+        // Both cases require re-submitting the same buffer via a new KMS commit:
+        //  - cursor update: CRTC cursor-plane properties changed (crtc_x/y)
+        //  - VRR active:    display refresh is paced by commit cadence, not buffer changes
+        // The commit triggers m_events.presented → CFifoProtocol::onMonitorPresent →
+        // fifo->presented(), so FIFO is unlocked via that path. Return early to avoid a
+        // double presented() call from the explicit unlock below.
+        if (m_scanoutNeedsCursorUpdate || m_output->vrrActive) {
+            m_output->state->setBuffer(PBUFFER);
+            if (!m_state.test() || !m_output->commit()) {
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit {} update", m_scanoutNeedsCursorUpdate ? "cursor" : "VRR same-buffer");
                 m_lastScanout.reset();
                 return false;
             }
-
             m_scanoutNeedsCursorUpdate = false;
+            return true;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
-            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+        // No commit issued — m_events.presented will not fire and onMonitorPresent
+        // will not run. Explicitly unlock FIFO so the same-buffer frame counts as a
+        // presentation and the client's wait_barrier doesn't stall the queue.
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO) {
+            if (const auto fifo = PSURFACE->m_fifo.lock())
+                fifo->presented();
+        }
 
         return true;
     }

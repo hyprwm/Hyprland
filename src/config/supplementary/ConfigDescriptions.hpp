@@ -2010,9 +2010,9 @@ namespace Config::Supplementary {
         },
         SConfigOptionDescription{
             .value       = "debug:invalidate_fp16",
-            .description = "Allow fp16 buffer invalidation",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
+            .description = "Allow fp16 buffer invalidation. 0 - disable, 1 - enabled, 2 - disable on nvidia",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
 
         /*

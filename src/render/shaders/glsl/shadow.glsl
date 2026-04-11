@@ -29,7 +29,8 @@ vec4[2]
 #else
 vec4
 #endif
-    getShadow(vec4 pixColor, vec2 v_texcoord, float radius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight, float decoWidth
+    getShadow(vec4 pixColor, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight,
+              float decoWidth
 #if USE_CM
               ,
               int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
@@ -52,6 +53,7 @@ vec4
 #endif
 #endif
     ) {
+    float radius        = range + borderRadius;
     float originalAlpha = pixColor[3];
 
     bool  done = false;
@@ -64,7 +66,7 @@ vec4
         if (pixCoord[1] < topLeft[1]) {
             // top left
             float distance = distance(vec2(topLeft.x - pixCoord.x, topLeft.y - pixCoord.y), roundingPower);
-            if (distance < decoWidth) {
+            if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
                 pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - topLeft, roundingPower), radius, range, shadowPower);
@@ -73,7 +75,7 @@ vec4
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom left
             float distance = distance(vec2(topLeft.x - pixCoord.x, pixCoord.y - bottomRight.y), roundingPower);
-            if (distance < decoWidth) {
+            if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
                 pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(topLeft[0], bottomRight[1]), roundingPower), radius, range, shadowPower);
@@ -84,7 +86,7 @@ vec4
         if (pixCoord[1] < topLeft[1]) {
             // top right
             float distance = distance(vec2(pixCoord.x - bottomRight.x, topLeft.y - pixCoord.y), roundingPower);
-            if (distance < decoWidth) {
+            if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
                 pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(bottomRight[0], topLeft[1]), roundingPower), radius, range, shadowPower);
@@ -93,7 +95,7 @@ vec4
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom right
             float distance = distance(vec2(pixCoord.x - bottomRight.x, pixCoord.y - bottomRight.y), roundingPower);
-            if (distance < decoWidth) {
+            if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
                 pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - bottomRight, roundingPower), radius, range, shadowPower);

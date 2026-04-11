@@ -2260,23 +2260,26 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO));
 
-    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
-        CRegion damageClip{g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
-                           g_pHyprRenderer->m_renderData.clipBox.height};
-        damageClip.intersect(g_pHyprRenderer->m_renderData.damage);
+    CRegion drawRegion;
 
-        if (!damageClip.empty()) {
-            damageClip.forEachRect([this](const auto& RECT) {
-                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
-                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            });
-        }
-    } else {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([this](const auto& RECT) {
+    if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0) {
+        drawRegion = {g_pHyprRenderer->m_renderData.clipBox.x, g_pHyprRenderer->m_renderData.clipBox.y, g_pHyprRenderer->m_renderData.clipBox.width,
+                      g_pHyprRenderer->m_renderData.clipBox.height};
+        drawRegion.intersect(g_pHyprRenderer->m_renderData.damage);
+    } else
+        drawRegion = g_pHyprRenderer->m_renderData.damage;
+
+    if (g_pHyprRenderer->m_renderData.currentWindow) {
+        auto PWINDOW = g_pHyprRenderer->m_renderData.currentWindow.lock();
+        shader->setUniformFloat(SHADER_THICK, PWINDOW->getRealBorderSize() + PWINDOW->rounding());
+        drawRegion.subtract(PWINDOW->surfaceLogicalBox().value());
+    }
+
+    if (!drawRegion.empty())
+        drawRegion.forEachRect([this](const auto& RECT) {
             scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         });
-    }
 
     glBindVertexArray(0);
 }

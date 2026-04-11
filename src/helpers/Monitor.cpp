@@ -1976,13 +1976,21 @@ bool CMonitor::attemptDirectScanout() {
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
+        // VRR keep-alive throttle: only recommit when the display is actually starved.
+        // Without this, unrelated compositor wakes (overlays, notifications, etc.) turn every same-buffer pass into a fresh KMS commit,
+        // tightening the VRR inter-commit interval and spiking reported refresh above the game's steady frame pace.
+        static const auto PMINRR          = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
+        const float       minRrHz         = *PMINRR > 0 ? sc<float>(*PMINRR) : 24.0f;
+        const bool        vrrKeepaliveDue = m_output->vrrActive && m_lastPresentationTimer.getMillis() > 1000.0f / minRrHz;
+
         // Both cases require re-submitting the same buffer via a new KMS commit:
-        //  - cursor update: CRTC cursor-plane properties changed (crtc_x/y)
-        //  - VRR active:    display refresh is paced by commit cadence, not buffer changes
-        // The commit triggers m_events.presented → CFifoProtocol::onMonitorPresent →
-        // fifo->presented(), so FIFO is unlocked via that path. Return early to avoid a
-        // double presented() call from the explicit unlock below.
-        if (m_scanoutNeedsCursorUpdate || m_output->vrrActive) {
+        //  1) cursor update: CRTC cursor-plane properties changed (crtc_x/y)
+        //  2) VRR keep-alive: display refresh would otherwise fall below min_refresh_rate
+        // The commit triggers m_events.presented -> CFifoProtocol::onMonitorPresent -> fifo->presented(), so FIFO is unlocked via that path.
+        // Return early to avoid a double presented() call from the explicit unlock below.
+        if (m_scanoutNeedsCursorUpdate || vrrKeepaliveDue) {
+            Log::logger->log(Log::TRACE, "attemptDirectScanout: same-buffer recommit cursor={} vrrKeepalive={} sinceLastPresentMs={}", m_scanoutNeedsCursorUpdate, vrrKeepaliveDue,
+                             m_lastPresentationTimer.getMillis());
             m_output->state->setBuffer(PBUFFER);
             if (!m_state.test() || !m_output->commit()) {
                 Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit {} update", m_scanoutNeedsCursorUpdate ? "cursor" : "VRR same-buffer");
@@ -1993,9 +2001,8 @@ bool CMonitor::attemptDirectScanout() {
             return true;
         }
 
-        // No commit issued — m_events.presented will not fire and onMonitorPresent
-        // will not run. Explicitly unlock FIFO so the same-buffer frame counts as a
-        // presentation and the client's wait_barrier doesn't stall the queue.
+        // No commit issued so m_events.presented will not fire and onMonitorPresent will not run.
+        // Explicitly unlock FIFO so the same-buffer frame counts as a presentation and the client's wait_barrier doesn't stall the queue.
         if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO) {
             if (const auto fifo = PSURFACE->m_fifo.lock())
                 fifo->presented();

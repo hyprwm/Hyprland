@@ -208,7 +208,7 @@ void CAlgorithm::updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo) {
         algo->newTarget(TARGET);
     }
 
-    if (FOCUSED_TARGET->space() == m_space && FOCUSED_TARGET->floating())
+    if (FOCUSED_TARGET && FOCUSED_TARGET->space() == m_space && FOCUSED_TARGET->floating())
         Desktop::focusState()->fullWindowFocus(FOCUSED_WINDOW, Desktop::eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_floating = std::move(algo);
@@ -235,7 +235,7 @@ void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
         algo->newTarget(TARGET);
     }
 
-    if (FOCUSED_TARGET->space() == m_space && !FOCUSED_TARGET->floating())
+    if (FOCUSED_TARGET && FOCUSED_TARGET->space() == m_space && !FOCUSED_TARGET->floating())
         Desktop::focusState()->fullWindowFocus(FOCUSED_WINDOW, Desktop::eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_tiled = std::move(algo);

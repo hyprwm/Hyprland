@@ -54,6 +54,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
     setPersistent(WORKSPACERULE.m_isPersistent);
 
+    if (WORKSPACERULE.m_xwaylandScale.has_value())
+        m_xwaylandTargetScale = WORKSPACERULE.m_xwaylandScale.value();
+
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
             Config::Supplementary::executor()->spawnWithRules(*cmd, self);
@@ -546,4 +549,10 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
+}
+
+float CWorkspace::resolveScale(float targetScale, float monitorBaseScale, float monitorDefaultScale) {
+    if (targetScale > 0.f)
+        return targetScale;
+    return monitorBaseScale > 0.1f ? monitorBaseScale : monitorDefaultScale;
 }

@@ -501,6 +501,17 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
 
     m_workspace = pWorkspace;
 
+    // If this is an X11 window and either the old or new workspace has a per-workspace
+    // scale override, reconfigure the X11 surface with the new effective size.
+    if (m_isX11) {
+        const bool OLD_HAD_SCALE = OLDWORKSPACE && OLDWORKSPACE->m_xwaylandTargetScale > 0.f;
+        const bool NEW_HAS_SCALE = pWorkspace && pWorkspace->m_xwaylandTargetScale > 0.f;
+        if (OLD_HAD_SCALE || NEW_HAS_SCALE) {
+            updateX11SurfaceScale();
+            sendWindowSize(true);
+        }
+    }
+
     setAnimationsToMove();
 
     g_pCompositor->updateAllWindowsAnimatedDecorationValues();
@@ -1354,7 +1365,7 @@ Vector2D CWindow::realToReportSize() {
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
         // Keep X11 configure sizes integral to avoid truncation (e.g. 2879.999 -> 2879) later in xcb.
-        return (REPORTSIZE * PMONITOR->m_scale).round();
+        return (REPORTSIZE * effectiveX11Scale()).round();
 
     return REPORTSIZE;
 }
@@ -1371,7 +1382,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 
     const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
-    const auto  SCALE    = *PXWLFORCESCALEZERO && PMONITOR ? PMONITOR->m_scale : 1.0f;
+    const auto  SCALE = *PXWLFORCESCALEZERO ? effectiveX11Scale() : 1.0f;
 
     return SIZE / SCALE;
 }
@@ -1384,10 +1395,34 @@ void CWindow::updateX11SurfaceScale() {
     static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
 
     m_X11SurfaceScaledBy = 1.0f;
-    if (m_isX11 && *PXWLFORCESCALEZERO) {
-        if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            m_X11SurfaceScaledBy = PMONITOR->m_scale;
-    }
+    if (m_isX11 && *PXWLFORCESCALEZERO && m_monitor.lock())
+        m_X11SurfaceScaledBy = effectiveX11Scale();
+}
+
+float CWindow::effectiveX11Scale() {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    const auto  PMONITOR = m_monitor.lock();
+    if (!PMONITOR)
+        return 1.0f;
+
+    // Without force_zero_scaling the normal m_scale path applies — no workspace adjustment.
+    if (!*PXWLFORCESCALEZERO)
+        return PMONITOR->m_scale;
+
+    const float BASE = CWorkspace::resolveScale(0.f, PMONITOR->m_setScale, PMONITOR->getDefaultScale());
+
+    // Per-workspace X11 scale only applies under force_zero_scaling, and only when the
+    // workspace has an xwaylandscale: rule. Outside of those cases we fall back to the monitor base.
+    const auto PWORKSPACE = m_workspace;
+    if (!PWORKSPACE || PWORKSPACE->m_xwaylandTargetScale <= 0.f)
+        return BASE;
+
+    // Derivation: normally an X11 window is configured with logical_size * BASE pixels
+    // and gets a 1:1 pixel mapping on screen. To make it appear (targetScale / BASE)
+    // times larger, we configure it with fewer pixels: logical_size * BASE / ratio,
+    // where ratio = targetScale / BASE. This simplifies to logical_size * BASE^2 / target.
+    return BASE * BASE / PWORKSPACE->m_xwaylandTargetScale;
 }
 
 void CWindow::sendWindowSize(bool force) {

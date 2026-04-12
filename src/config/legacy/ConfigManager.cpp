@@ -1282,6 +1282,25 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
             m->m_activeWorkspace->m_space->recalculate();
     }
 
+    // refresh per-workspace xwayland scale overrides from rules (not on first launch —
+    // monitors and workspaces aren't fully set up yet)
+    if (!m_isFirstLaunch) {
+        for (auto const& wsRef : g_pCompositor->getWorkspaces()) {
+            const auto ws = wsRef.lock();
+            if (!ws || ws->inert())
+                continue;
+            const auto RULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(ws);
+            ws->m_xwaylandTargetScale = RULE.has_value() ? RULE->m_xwaylandScale.value_or(0.f) : 0.f;
+        }
+        g_pCompositor->arrangeMonitors();
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (!w->m_isX11 || !w->m_isMapped || w->isHidden())
+                continue;
+            w->updateX11SurfaceScale();
+            w->sendWindowSize(true);
+        }
+    }
+
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!m_isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
@@ -2035,6 +2054,19 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         } else if ((delim = rule.find("animation:")) != std::string::npos) {
             std::string animationStyle = rule.substr(delim + 10);
             wsRule.m_animationStyle    = std::move(animationStyle);
+        } else if ((delim = rule.find("xwaylandscale:")) != std::string::npos) {
+            static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+            if (!*PXWLFORCESCALEZERO)
+                Log::logger->log(Log::WARN, "workspace rule xwaylandscale: has no effect without xwayland:force_zero_scaling = true");
+            try {
+                float s = std::stof(rule.substr(delim + 14));
+                if (s >= 0.25f)
+                    wsRule.m_xwaylandScale = s;
+                else {
+                    Log::logger->log(Log::ERR, "Invalid workspace rule xwaylandscale: {}, must be >= 0.25", s);
+                    return "Invalid workspace rule xwaylandscale: " + rule.substr(delim + 14);
+                }
+            } catch (...) { return "Error parsing workspace rule xwaylandscale: " + rule.substr(delim + 14); }
         }
 
         return {};

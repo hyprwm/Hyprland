@@ -1,6 +1,7 @@
 #include "Monitor.hpp"
 #include "MiscFunctions.hpp"
 #include "../macros.hpp"
+#include "../desktop/Workspace.hpp"
 #include "SharedDefs.hpp"
 #include "../helpers/TransferFunction.hpp"
 #include "math/Math.hpp"
@@ -1379,6 +1380,28 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     pWorkspace->m_visible = true;
 
     if (!internal) {
+        // Update XWayland virtual monitor if the workspace has a different xwaylandscale
+        {
+            static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+            if (*PXWLFORCESCALEZERO) {
+                const float BASE       = m_setScale > 0.1f ? m_setScale : getDefaultScale();
+                const float OLD_XWLSCALE = m_xwaylandScale;
+                const float NEW_XWLSCALE = pWorkspace->m_xwaylandTargetScale > 0.f ? (BASE * BASE / pWorkspace->m_xwaylandTargetScale) : BASE;
+                if (!DELTALESSTHAN(OLD_XWLSCALE, NEW_XWLSCALE, 0.001f)) {
+                    m_xwaylandScale = NEW_XWLSCALE;
+                    g_pCompositor->arrangeMonitors();
+                    for (auto const& w : g_pCompositor->m_windows) {
+                        if (w->m_monitor != m_self || !w->m_isMapped || w->isHidden())
+                            continue;
+                        if (w->m_isX11) {
+                            w->updateX11SurfaceScale();
+                            w->sendWindowSize(true);
+                        }
+                    }
+                }
+            }
+        }
+
         const auto ANIMTOLEFT = POLDWORKSPACE && (shouldWraparound(pWorkspace->m_id, POLDWORKSPACE->m_id) ^ (pWorkspace->m_id > POLDWORKSPACE->m_id));
         const auto ANIMSTYLE  = pWorkspace->m_animationStyle;
         if (POLDWORKSPACE)

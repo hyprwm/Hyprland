@@ -58,6 +58,9 @@ class CWorkspace {
     bool m_defaultFloating = false;
     bool m_defaultPseudo   = false;
 
+    // per-workspace XWayland scale override. 0 = use monitor default.
+    float m_xwaylandTargetScale = 0.f;
+
     // last monitor (used on reconnect)
     std::string m_lastMonitor = "";
 

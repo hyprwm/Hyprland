@@ -106,6 +106,7 @@ class CMonitor {
 
     Vector2D                    m_position         = Vector2D(-1, -1); // means unset
     Vector2D                    m_xwaylandPosition = Vector2D(-1, -1); // means unset
+    Vector2D                    m_xwaylandSize     = Vector2D(0, 0);  // virtual screen size for XWayland
     Config::eAutoDirs           m_autoDir          = Config::DIR_AUTO_NONE;
     Vector2D                    m_size             = Vector2D(0, 0);
     Vector2D                    m_pixelSize        = Vector2D(0, 0);

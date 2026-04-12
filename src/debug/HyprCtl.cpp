@@ -512,12 +512,13 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string decorate    = sc<bool>(r.m_decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.m_decorate.value())) : "";
         const std::string shadow      = sc<bool>(r.m_noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.m_noShadow.value())) : "";
         const std::string defaultName = r.m_defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.m_defaultName.value())) : "";
+        const std::string xwaylandScale = r.m_xwaylandScale.has_value() ? std::format(",\n    \"xwaylandScale\": {:.2f}", r.m_xwaylandScale.value()) : "";
 
         std::string       result =
             std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                        escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, defaultName);
+                        escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, defaultName, xwaylandScale);
 
         return result;
     } else {
@@ -538,9 +539,10 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string decorate    = std::format("\tdecorate: {}\n", sc<bool>(r.m_decorate) ? boolToString(r.m_decorate.value()) : "<unset>");
         const std::string shadow      = std::format("\tshadow: {}\n", sc<bool>(r.m_noShadow) ? boolToString(!r.m_noShadow.value()) : "<unset>");
         const std::string defaultName = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
+        const std::string xwaylandScale = std::format("\txwaylandScale: {}\n", r.m_xwaylandScale.has_value() ? std::format("{:.2f}", r.m_xwaylandScale.value()) : "<unset>");
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow, defaultName);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                         borderSize, border, rounding, decorate, shadow, defaultName, xwaylandScale);
 
         return result;
     }

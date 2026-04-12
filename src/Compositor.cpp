@@ -1730,7 +1730,7 @@ std::optional<CBox> CCompositor::calculateX11WorkArea() {
     // we ignore monitor->m_position on purpose
     CBox box = M->logicalBoxMinusReserved().translate(-M->m_position);
     if ((*PXWLFORCESCALEZERO))
-        box.scale(M->m_scale);
+        box.scale(M->m_xwaylandScale);
 
     return box.translate(M->m_xwaylandPosition);
 }
@@ -1886,6 +1886,8 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
 
     pMonitorA->m_activeWorkspace = PWORKSPACEB;
     pMonitorB->m_activeWorkspace = PWORKSPACEA;
+
+    g_pCompositor->arrangeMonitors();
 
     g_layoutManager->recalculateMonitor(pMonitorA);
     g_layoutManager->recalculateMonitor(pMonitorB);
@@ -2096,6 +2098,9 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 
         auto oldWorkspace           = pMonitor->m_activeWorkspace;
         pMonitor->m_activeWorkspace = pWorkspace;
+
+        // update XWayland state for the new workspace's scale
+        g_pCompositor->arrangeMonitors();
 
         if (oldWorkspace)
             oldWorkspace->m_events.activeChanged.emit();
@@ -2838,14 +2843,26 @@ void CCompositor::arrangeMonitors() {
     // and set xwayland positions aka auto for all
     maxXOffsetRight = 0;
     for (auto const& m : m_monitors) {
-        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} xwayland [{}, {}]", m->m_name, maxXOffsetRight, 0);
-        m->m_xwaylandPosition = {maxXOffsetRight, 0};
-        maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->m_transformedSize.x : m->m_size.x);
-
-        if (*PXWLFORCESCALEZERO)
-            m->m_xwaylandScale = m->m_scale;
-        else
+        // compute xwayland scale first, then use it for positioning
+        if (*PXWLFORCESCALEZERO) {
+            const float BASE = m->m_setScale > 0.1f ? m->m_setScale : m->getDefaultScale();
+            if (m->m_activeWorkspace && m->m_activeWorkspace->m_xwaylandTargetScale > 0.f)
+                m->m_xwaylandScale = BASE * BASE / m->m_activeWorkspace->m_xwaylandTargetScale;
+            else
+                m->m_xwaylandScale = BASE;
+        } else
             m->m_xwaylandScale = 1.f;
+
+        // compute the XWayland virtual screen size from the scale
+        if (*PXWLFORCESCALEZERO) {
+            const float BASE = m->m_setScale > 0.1f ? m->m_setScale : m->getDefaultScale();
+            m->m_xwaylandSize = (m->m_transformedSize * (m->m_xwaylandScale / BASE)).round();
+        } else
+            m->m_xwaylandSize = m->m_size;
+
+        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} xwayland [{}, {}] xwlscale {:.2f} xwlsize {:X}", m->m_name, maxXOffsetRight, 0, m->m_xwaylandScale, m->m_xwaylandSize);
+        m->m_xwaylandPosition = {maxXOffsetRight, 0};
+        maxXOffsetRight += m->m_xwaylandSize.x;
     }
 
     PROTO::xdgOutput->updateAllOutputs();

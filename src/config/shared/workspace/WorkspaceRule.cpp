@@ -45,4 +45,6 @@ void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
     }
     if (other.m_animationStyle.has_value())
         m_animationStyle = other.m_animationStyle;
+    if (other.m_xwaylandScale.has_value())
+        m_xwaylandScale = other.m_xwaylandScale;
 }

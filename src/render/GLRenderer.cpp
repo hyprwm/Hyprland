@@ -1,4 +1,5 @@
 #include "GLRenderer.hpp"
+#include "Compositor.hpp"
 #include "decorations/CHyprInnerGlowDecoration.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "../config/ConfigValue.hpp"

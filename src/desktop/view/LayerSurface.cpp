@@ -388,7 +388,7 @@ void CLayerSurface::onCommit() {
         if (!WASEXCLUSIVE && ISEXCLUSIVE)
             g_pInputManager->m_exclusiveLSes.push_back(m_self);
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
-            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == m_self.lock(); });
+            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
         // if the surface was focused and interactive but now isn't, refocus
         if (WASLASTFOCUS && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {

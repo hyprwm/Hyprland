@@ -389,8 +389,7 @@ void CLayerSurface::onCommit() {
             g_pInputManager->m_exclusiveLSes.push_back(m_self);
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
             std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) {
-                auto locked = other.lock();
-                return !locked || locked == m_self.lock();
+                return !other || other == m_self;
             });
 
         // if the surface was focused and interactive but now isn't, refocus

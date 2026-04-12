@@ -626,8 +626,11 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
             if (!data->target)
                 continue;
             const auto WINDOW = data->target->window();
-            if (WINDOW)
+            if (WINDOW) {
+                if (!WINDOW->m_animatingIn)
+                    WINDOW->m_realPosition->setCallbackOnEnd(nullptr);
                 WINDOW->setHidden(false);
+            }
         }
     }
     m_configCallback.reset();
@@ -713,9 +716,13 @@ void CScrollingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D
 
 void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     // Unhide before removal so the window is not left hidden when moved to
-    // another workspace, layout, or when closed.
-    if (target->window())
+    // another workspace, layout, or when closed. Cancel any pending deferred-hide
+    // callback first; otherwise it fires after removal and re-hides the window in its new context.
+    if (target->window()) {
+        if (!target->window()->m_animatingIn)
+            target->window()->m_realPosition->setCallbackOnEnd(nullptr);
         target->window()->setHidden(false);
+    }
 
     const auto DATA = dataFor(target);
 
@@ -910,7 +917,7 @@ SP<SScrollingTargetData> CScrollingAlgorithm::closestNode(const Vector2D& posGlo
     double                   distClosest = -1;
     for (auto& c : m_scrollingData->columns) {
         for (auto& n : c->targetDatas) {
-            if (n->target && Desktop::View::validMapped(n->target->window())) {
+            if (n->target && Desktop::View::validMapped(n->target->window()) && !n->target->window()->isHidden()) {
                 auto distAnother = vecToRectDistanceSquared(posGlobglobgabgalab, n->layoutBox.pos(), n->layoutBox.pos() + n->layoutBox.size());
                 if (!res || distAnother < distClosest) {
                     res         = n;

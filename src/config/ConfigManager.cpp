@@ -1363,6 +1363,22 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
             m->m_activeWorkspace->m_space->recalculate();
     }
 
+    // refresh per-workspace X11 scale overrides from rules, then reconfigure any X11
+    // windows whose effective scale may have changed.
+    for (auto const& wsRef : g_pCompositor->getWorkspaces()) {
+        const auto ws = wsRef.lock();
+        if (!ws)
+            continue;
+        const auto RULE = getWorkspaceRuleFor(ws);
+        ws->m_xwaylandTargetScale = RULE.xwaylandScale.value_or(0.f);
+    }
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (!w->m_isX11 || !w->m_isMapped || w->isHidden())
+            continue;
+        w->updateX11SurfaceScale();
+        w->sendWindowSize(true);
+    }
+
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!m_isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
@@ -1667,6 +1683,8 @@ SWorkspaceRule CConfigManager::mergeWorkspaceRules(const SWorkspaceRule& rule1, 
         mergedRule.defaultName = rule2.defaultName;
     if (rule2.layout.has_value())
         mergedRule.layout = rule2.layout;
+    if (rule2.xwaylandScale.has_value())
+        mergedRule.xwaylandScale = rule2.xwaylandScale;
     if (!rule2.layoutopts.empty()) {
         for (const auto& layoutopt : rule2.layoutopts) {
             mergedRule.layoutopts[layoutopt.first] = layoutopt.second;
@@ -2738,6 +2756,19 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         } else if ((delim = rule.find("layout:")) != std::string::npos) {
             std::string layout = rule.substr(delim + 7);
             wsRule.layout      = std::move(layout);
+        } else if ((delim = rule.find("xwaylandscale:")) != std::string::npos) {
+            static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+            if (!*PXWLFORCESCALEZERO)
+                Log::logger->log(Log::WARN, "workspace rule xwaylandscale: has no effect without xwayland:force_zero_scaling = true");
+            try {
+                float s = std::stof(rule.substr(delim + 14));
+                if (s >= 0.25f)
+                    wsRule.xwaylandScale = s;
+                else {
+                    Log::logger->log(Log::ERR, "Invalid workspace rule xwaylandscale: {}, must be >= 0.25", s);
+                    return "Invalid workspace rule xwaylandscale: " + rule.substr(delim + 14);
+                }
+            } catch (...) { return "Error parsing workspace rule xwaylandscale: " + rule.substr(delim + 14); }
         }
 
         return {};

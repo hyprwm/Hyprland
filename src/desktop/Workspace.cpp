@@ -50,6 +50,9 @@ void CWorkspace::init(PHLWORKSPACE self) {
     const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
     setPersistent(WORKSPACERULE.isPersistent);
 
+    if (WORKSPACERULE.xwaylandScale.has_value())
+        m_xwaylandTargetScale = WORKSPACERULE.xwaylandScale.value();
+
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
             CKeybindManager::spawnWithRules(*cmd, self);
@@ -542,4 +545,10 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
+}
+
+float CWorkspace::resolveScale(float targetScale, float monitorBaseScale, float monitorDefaultScale) {
+    if (targetScale > 0.f)
+        return targetScale;
+    return monitorBaseScale > 0.1f ? monitorBaseScale : monitorDefaultScale;
 }

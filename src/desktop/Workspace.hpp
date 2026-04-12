@@ -57,6 +57,11 @@ class CWorkspace {
     bool m_defaultFloating = false;
     bool m_defaultPseudo   = false;
 
+    // per-workspace X11 scale override. 0 means "no override, use monitor base scale".
+    // This is only applied to XWayland windows on this workspace; Wayland clients are untouched.
+    float        m_xwaylandTargetScale = 0.f;
+    static float resolveScale(float targetScale, float monitorBaseScale, float monitorDefaultScale);
+
     // last monitor (used on reconnect)
     std::string m_lastMonitor = "";
 

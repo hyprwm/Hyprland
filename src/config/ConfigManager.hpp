@@ -47,6 +47,7 @@ struct SWorkspaceRule {
     std::optional<std::string>         onCreatedEmptyRunCmd;
     std::optional<std::string>         defaultName;
     std::optional<std::string>         layout;
+    std::optional<float>               xwaylandScale;
     std::map<std::string, std::string> layoutopts;
 };
 
@@ -284,6 +285,8 @@ class CConfigManager {
     void                       storeFloatingSize(PHLWINDOW window, const Vector2D& size);
     std::optional<Vector2D>    getStoredFloatingSize(PHLWINDOW window);
 
+    static SWorkspaceRule      mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
+
   private:
     UP<Hyprlang::CConfig>                            m_config;
 
@@ -323,7 +326,6 @@ class CConfigManager {
     void                                      reloadRuleConfigs();
 
     void                                      postConfigReload(const Hyprlang::CParseResult& result);
-    SWorkspaceRule                            mergeWorkspaceRules(const SWorkspaceRule&, const SWorkspaceRule&);
 
     void                                      registerConfigVar(const char* name, const Hyprlang::INT& val);
     void                                      registerConfigVar(const char* name, const Hyprlang::FLOAT& val);

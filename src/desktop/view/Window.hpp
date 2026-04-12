@@ -330,6 +330,12 @@ namespace Desktop::View {
         Vector2D                   xwaylandSizeToReal(Vector2D size);
         Vector2D                   xwaylandPositionToReal(Vector2D size);
         void                       updateX11SurfaceScale();
+        // Effective X11 scale factor for this window under force_zero_scaling.
+        // Normally equals the monitor's base scale. When the window's workspace has an
+        // xwaylandscale: rule, returns (baseScale^2 / workspaceTargetScale), which causes
+        // the X11 surface to be configured with fewer pixels and subsequently upscaled by
+        // the renderer — making X11 content appear larger without touching m_scale.
+        float                      effectiveX11Scale();
         void                       sendWindowSize(bool force = false);
         NContentType::eContentType getContentType();
         void                       setContentType(NContentType::eContentType contentType);

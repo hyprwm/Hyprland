@@ -633,8 +633,6 @@ void CMonitor::applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& m
     m_state.updateSwapchain();
 }
 
-
-
 bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");

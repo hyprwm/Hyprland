@@ -104,10 +104,10 @@ vec4 blur1(vec2 v_texcoord, sampler2D tex, float radius, vec2 halfpixel, int pas
     // That garbage maps to 0.0-1.0 range with UINT8 buffer and doesn't have any significant impact on the end result.
     // FP16 garbage maps to -65,504 - 65,504 and defines the end result. Clamp it here to 0.0 - 1.0 to get the same quality outcome as with UINT8.
     // Rerendering an undamaged area to get some insignificant color accuracy increase on blur edges isn't worth it.
-    sum += clamp(texture(tex, uv - halfpixel.xy * radius), 0.0, 1.0);
-    sum += clamp(texture(tex, uv + halfpixel.xy * radius), 0.0, 1.0);
-    sum += clamp(texture(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius), 0.0, 1.0);
-    sum += clamp(texture(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius), 0.0, 1.0);
+    sum += texture(tex, uv - halfpixel.xy * radius);
+    sum += texture(tex, uv + halfpixel.xy * radius);
+    sum += texture(tex, uv + vec2(halfpixel.x, -halfpixel.y) * radius);
+    sum += texture(tex, uv - vec2(halfpixel.x, -halfpixel.y) * radius);
 
     vec4 color = sum / 8.0;
 

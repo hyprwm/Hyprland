@@ -1660,6 +1660,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         static auto PBLEND          = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
 
         PMIRRORSWAPFB->bind();
+        GLFB(PMIRRORSWAPFB)->clearAfterInvalidation();
 
         glActiveTexture(GL_TEXTURE0);
 
@@ -1754,6 +1755,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     // draw the things.
     // first draw is swap -> mirr
     PMIRRORFB->bind();
+    GLFB(PMIRRORFB)->clearAfterInvalidation();
     PMIRRORSWAPFB->getTexture()->bind();
 
     // damage region will be scaled, make a temp

@@ -837,6 +837,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
             m_customDrmMode = mode->modeInfo.value();
         } else {
             m_output->state->setMode(mode);
+            m_state.updateSwapchain();
 
             if (!m_state.test()) {
                 Log::logger->log(Log::ERR, "Monitor {}: REJECTED available mode {}!", m_name, modeStr);
@@ -871,6 +872,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
         m_output->state->setCustomMode(mode);
+        m_state.updateSwapchain();
 
         if (m_state.test()) {
             Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);

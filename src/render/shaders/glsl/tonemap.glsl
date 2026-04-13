@@ -50,21 +50,16 @@ vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance,
     float E         = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_INV_M2);
     float luminance = pow((max(E - PQ_C1, 0.0)) / (PQ_C2 - PQ_C3 * E), PQ_INV_M1) * HDR_MAX_LUMINANCE;
 
-    float linearPart         = min(luminance, dstRefLuminance);
-    float luminanceAboveRef  = max(luminance - dstRefLuminance, 0.0);
-    float maxExcessLuminance = max(maxLuminance - dstRefLuminance, 1.0);
-    float shoulder           = log((luminanceAboveRef / maxExcessLuminance + 1.0) * (M_E - 1.0));
-    float mappedHigh         = shoulder * (dstMaxLuminance - dstRefLuminance);
-    float newLum             = clamp(linearPart + mappedHigh, 0.0, dstMaxLuminance);
+    float luminanceRatio = max(luminance / dstRefLuminance, 0.0);
+    float srcScale       = maxLuminance / dstRefLuminance;
+    float dstScale       = dstMaxLuminance / dstRefLuminance;
+    float v              = (dstScale * (1.0 + srcScale) - srcScale) / pow(srcScale, 2.0);
+    float newLuminance   = (luminanceRatio * (1.0 + luminanceRatio * v) / (1.0 + luminanceRatio)) * dstRefLuminance;
 
-    // scale src to dst reference
-    float refScale = dstRefLuminance / srcRefLuminance;
+    E        = pow(clamp(newLuminance / HDR_MAX_LUMINANCE, 0.0, 1.0), PQ_M1);
+    ICtCp[0] = pow((PQ_C1 + PQ_C2 * E) / (1.0 + PQ_C3 * E), PQ_M2);
 
-    // kind of works but doesn't use newLum at all
-    return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE * refScale, color[3]);
-    // breaks with overriden monitor luminances. might be caused by incorrect imput values
-    // @gulafaran
-    // vec3 outRGB = fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
-    // outRGB *= (newLum / max(luminance, 0.0001)); // actually apply the tone mapping
-    // return vec4(clamp(outRGB * HDR_MAX_LUMINANCE * refScale, 0.0, dstMaxLuminance), color[3]);
+    color = vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE, color[3]);
+
+    return clamp(color, 0.0, dstMaxLuminance);
 }

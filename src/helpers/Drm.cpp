@@ -4,11 +4,14 @@
 #include <mutex>
 #include <optional>
 #include <sys/stat.h>
-#include <libsync.h>
 
 #if defined(__linux__)
 #include <linux/dma-buf.h>
+#include <linux/sync_file.h>
 #endif
+
+#include <libsync.h>
+#include <sys/ioctl.h>
 
 #include "Drm.hpp"
 
@@ -117,5 +120,19 @@ CFileDescriptor DRM::mergeFence(int fence1, int fence2) {
     return CFileDescriptor{fence1};
 #else
     return {};
+#endif
+}
+
+void DRM::setDeadline(const Time::steady_tp& deadline, const Hyprutils::OS::CFileDescriptor& fence) {
+#ifdef SYNC_IOC_SET_DEADLINE
+    if (!fence.isValid())
+        return;
+
+    sync_set_deadline args{
+        .deadline_ns = uint64_t(deadline.time_since_epoch().count()),
+        .pad         = 0,
+    };
+
+    doIoctl(fence.get(), SYNC_IOC_SET_DEADLINE, &args);
 #endif
 }

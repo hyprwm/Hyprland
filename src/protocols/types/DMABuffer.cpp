@@ -89,7 +89,7 @@ void CDMABuffer::closeFDs() {
 
 // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file
 // returns a sync file that will be signalled when dmabuf is ready to be read
-CFileDescriptor CDMABuffer::exportSyncFile() {
+std::vector<CFileDescriptor> CDMABuffer::exportSyncFiles() {
     if (!good())
         return {};
 
@@ -99,7 +99,8 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
     std::vector<CFileDescriptor> syncFds;
     syncFds.reserve(m_attrs.fds.size());
 
-    for (const auto& fd : m_attrs.fds) {
+    for (auto i = 0ul; i < m_attrs.fds.size(); i++) {
+        auto fd = m_attrs.fds[i];
         if (fd == -1)
             continue;
 
@@ -111,24 +112,10 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
         }
 
         auto fence = DRM::exportFence(fd);
-
         if (fence.isValid())
             syncFds.emplace_back(std::move(fence));
     }
 
-    if (syncFds.empty())
-        return {};
-
-    CFileDescriptor syncFd;
-    for (auto& fd : syncFds) {
-        if (!syncFd.isValid()) {
-            syncFd = std::move(fd);
-            continue;
-        }
-
-        syncFd = DRM::mergeFence(syncFd.take(), fd.take());
-    }
-
-    return syncFd;
+    return syncFds;
 #endif
 }

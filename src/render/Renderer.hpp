@@ -271,12 +271,16 @@ namespace Render {
         bool                              m_cursorHidden            = false;
         bool                              m_cursorHiddenByCondition = false;
         bool                              m_cursorHasSurface        = false;
-        SP<Aquamarine::IBuffer>           m_currentBuffer           = nullptr;
         eRenderMode                       m_renderMode              = RENDER_MODE_NORMAL;
         bool                              m_nvidia                  = false;
         bool                              m_intel                   = false;
         bool                              m_software                = false;
         bool                              m_mgpu                    = false;
+
+        struct SBuffer {
+            SP<Aquamarine::IBuffer>        buffer = nullptr;
+            Hyprutils::OS::CFileDescriptor fence;
+        } m_currentBuffer;
 
         struct {
             bool hiddenOnTouch    = false;

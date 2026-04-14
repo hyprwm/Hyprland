@@ -11,6 +11,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../debug/Overlay.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/Drm.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "../debug/log/Logger.hpp"
@@ -49,7 +50,7 @@ void CHyprGLRenderer::initRender() {
 
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     try {
-        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
+        m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer.buffer, fmt);
     } catch (std::exception& e) {
         Log::logger->log(Log::ERR, "getOrCreateRenderbuffer failed for {}", NFormatUtils::drmFormatName(fmt));
         return false;
@@ -72,6 +73,7 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
 
+    m_currentBuffer.fence = DRM::exportFence(m_currentBuffer.buffer->dmabuf().fds[0]);
     m_currentRenderbuffer->bind();
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);
@@ -91,7 +93,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         if (m_currentRenderbuffer)
             m_currentRenderbuffer->unbind();
         m_currentRenderbuffer = nullptr;
-        m_currentBuffer       = nullptr;
+        m_currentBuffer       = {};
     });
 
     if (m_renderMode != RENDER_MODE_TO_BUFFER_READ_ONLY)
@@ -106,7 +108,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
         return;
 
     if (m_renderMode == RENDER_MODE_NORMAL)
-        PMONITOR->m_output->state->setBuffer(m_currentBuffer);
+        PMONITOR->m_output->state->setBuffer(m_currentBuffer.buffer);
 
     if (!explicitSyncSupported()) {
         Log::logger->log(Log::TRACE, "renderer: Explicit sync unsupported, falling back to implicit in endRender");

@@ -35,6 +35,7 @@
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/Drm.hpp"
 #include "macros.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "pass/TexPassElement.hpp"
@@ -1654,17 +1655,17 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer) {
+        m_currentBuffer.buffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_currentBuffer.buffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
-        m_currentBuffer = buffer;
+        m_currentBuffer.buffer = buffer;
 
     initRender();
 
-    if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
+    if (!initRenderBuffer(m_currentBuffer.buffer, pMonitor->m_output->state->state().drmFormat)) {
         Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
@@ -2347,6 +2348,13 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     handleFullscreenSettings(pMonitor);
+
+    auto deadline =
+        pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ? Time::steadyNow() : pMonitor->m_estimatedNextVblank;
+    if (deadline) {
+        DRM::setDeadline(deadline.value(), m_currentBuffer.fence);
+        pMonitor->m_estimatedNextVblank = std::nullopt;
+    }
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

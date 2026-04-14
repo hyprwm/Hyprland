@@ -8,6 +8,7 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/Drm.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../types/DMABuffer.hpp"
@@ -148,10 +149,50 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         // fifo and fences first
         m_events.stateCommit.emit(state);
 
-        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
-            state->buffer->m_syncFds = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFiles();
-            if (!state->buffer->m_syncFds.empty())
-                m_stateQueue.lock(state, LOCK_REASON_FENCE);
+        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
+            Time::steady_tp deadline = Time::steadyNow();
+            if (g_pHyprRenderer->explicitSyncSupported()) {
+                if (m_enteredOutputs.empty() && m_hlSurface) {
+                    for (const auto& m : g_pCompositor->m_monitors) {
+                        if (!m || !m->m_enabled)
+                            continue;
+
+                        auto box = m_hlSurface->getSurfaceBoxGlobal();
+                        if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                            if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank || !m->m_estimatedNextVblank.has_value())
+                                continue; // dont estimate vblank on tearing or vrr.
+
+                            deadline = m->m_estimatedNextVblank.value();
+                            break;
+                        }
+                    }
+                } else {
+                    for (const auto& m : m_enteredOutputs) {
+                        if (!m)
+                            continue;
+
+                        if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank || !m->m_estimatedNextVblank.has_value())
+                            continue; // dont estimate vblank on tearing or vrr
+
+                        deadline = m->m_estimatedNextVblank.value();
+                        break;
+                    }
+                }
+
+                if (state->updated.bits.acquire) {
+                    DRM::setDeadline(deadline, state->acquire.exportAsFD());
+                } else {
+                    state->buffer->m_syncFds = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFiles();
+                    if (!state->buffer->m_syncFds.empty()) {
+                        for (auto& fence : state->buffer->m_syncFds) {
+                            if (fence.isValid())
+                                DRM::setDeadline(deadline, fence);
+                        }
+
+                        m_stateQueue.lock(state, LOCK_REASON_FENCE);
+                    }
+                }
+            }
         }
 
         // now for timer.

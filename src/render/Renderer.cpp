@@ -1395,6 +1395,8 @@ SP<ITexture> IHyprRenderer::loadAsset(const std::string& filename) {
 }
 
 SP<ITexture> IHyprRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
+    if (!pMonitor || !pMonitor->resources()->m_blurFB)
+        return nullptr;
     return pMonitor->resources()->m_blurFB->getTexture();
 }
 
@@ -1721,9 +1723,10 @@ Mat3x3 IHyprRenderer::projectBoxToTarget(const CBox& box, std::optional<eTransfo
 }
 
 SP<ITexture> IHyprRenderer::blurMainFramebuffer(float a, CRegion* originalDamage) {
-    if (!m_renderData.currentFB->getTexture()) {
+    if (!m_renderData.currentFB || !m_renderData.currentFB->getTexture()) {
         Log::logger->log(Log::ERR, "BUG THIS: null fb texture while attempting to blur main fb?! (introspection off?!)");
-        return m_renderData.pMonitor->resources()->m_blurFB->getTexture(); // return something to sample from at least
+        auto blurFB = m_renderData.pMonitor->resources()->m_blurFB;
+        return blurFB ? blurFB->getTexture() : nullptr;
     }
 
     auto guard = bindTempFB(m_renderData.currentFB); // blurFramebuffer messes with FB bindings
@@ -1735,6 +1738,10 @@ void IHyprRenderer::preBlurForCurrentMonitor(CRegion* fakeDamage) {
     const auto blurredTex = blurMainFramebuffer(1, fakeDamage);
 
     // render onto blurFB
+    if (!m_renderData.pMonitor->resources()->m_blurFB) {
+        Log::logger->log(Log::ERR, "preBlurForCurrentMonitor: blurFB is null, skipping blur.");
+        return;
+    }
     auto       guard          = bindTempFB(m_renderData.pMonitor->resources()->m_blurFB);
     const auto SAVE_TRANSFORM = blurredTex->m_transform;
     blurredTex->m_transform   = Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform));

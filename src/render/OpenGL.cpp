@@ -1046,7 +1046,12 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     CRegion damage{g_pHyprRenderer->m_renderData.damage};
     damage.intersect(box);
 
-    auto blurredBG = data.xray ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB->getTexture() : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
+    auto blurFB    = g_pHyprRenderer->m_renderData.pMonitor->resources()->m_blurFB;
+    auto blurredBG = data.xray ? (blurFB ? blurFB->getTexture() : nullptr) : g_pHyprRenderer->blurMainFramebuffer(data.blurA, &damage);
+    if (!blurredBG) {
+        Log::logger->log(Log::ERR, "renderTextureWithBlur: blur texture unavailable (likely GPU reset). Skipping blur.");
+        return;
+    }
 
     CBox MONITORBOX = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_transformedSize.y};
     g_pHyprRenderer->pushMonitorTransformEnabled(true);

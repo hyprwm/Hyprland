@@ -551,8 +551,10 @@ void CCompositor::handleGPUReset(bool& awaitingReset) {
     if (!m_wlDisplay)
         RASSERT(false, "no wayland display and we reset???");
 
-    if UNLIKELY (!g_pHyprRenderer->rendererLost())
+    if UNLIKELY (!g_pHyprRenderer->rendererLost()) {
+        awaitingReset = false;
         return;
+    }
 
     for (auto const& m : m_monitors) {
         g_pHyprOpenGL->destroyMonitorResources(m);
@@ -581,6 +583,7 @@ void CCompositor::handleGPUReset(bool& awaitingReset) {
             continue;
 
         auto cpy = m->m_activeMonitorRule;
+        m->m_forceFullFrames = 5;
         m->m_state.clearSwapchain();
         // force reconfigure the monitors
         m->applyMonitorRule(std::move(cpy), true);

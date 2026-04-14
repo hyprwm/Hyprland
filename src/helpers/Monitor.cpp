@@ -623,8 +623,6 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
     }
 }
 
-
-
 bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Hyprlang::INT>("debug:disable_scale_checks");
@@ -2489,7 +2487,6 @@ void CMonitorState::applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMod
     m_owner->m_output->state->setCustomMode(mode);
     updateSwapchain();
 }
-
 
 bool CMonitor::needsACopyFB() {
     return !m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_self.lock());

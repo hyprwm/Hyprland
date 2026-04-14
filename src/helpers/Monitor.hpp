@@ -92,6 +92,8 @@ class CMonitorState {
     bool commit();
     bool test();
     bool updateSwapchain();
+    void applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
+    void applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
 
   private:
     void      ensureBufferPresent();

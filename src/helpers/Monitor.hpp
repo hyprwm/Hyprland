@@ -92,6 +92,8 @@ class CMonitorState {
     bool commit();
     bool test();
     bool updateSwapchain();
+    void applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
+    void applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
 
   private:
     void      ensureBufferPresent();
@@ -299,8 +301,6 @@ class CMonitor {
     void        onDisconnect(bool destroy = false);
     void        applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
     bool        applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force = false);
-    void        applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
-    void        applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
     void        addDamage(const pixman_region32_t* rg);
     void        addDamage(const CRegion& rg);
     void        addDamage(const CBox& box);

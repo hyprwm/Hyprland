@@ -663,8 +663,27 @@ EGLImageKHR CHyprOpenGLImpl::createEGLImage(const Aquamarine::SDMABUFAttrs& attr
     return image;
 }
 
+bool CHyprOpenGLImpl::attemptContextReset() {
+    Log::logger->log(Log::ERR, "GPU reset: attempting EGL context recovery...");
+    eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    if (eglMakeCurrent(m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, m_eglContext) != EGL_TRUE) {
+        Log::logger->log(Log::ERR, "GPU reset: eglMakeCurrent failed, context may be lost");
+        return false;
+    }
+    m_shadersInitialized = false;
+    Log::logger->log(Log::WARN, "GPU reset: EGL context re-established, shaders will reinitialize on next frame.");
+    return true;
+}
+
 void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP<IRenderbuffer> rb, SP<IFramebuffer> fb) {
     g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
+
+    if (m_gpuResetCooldown > 0) {
+        m_gpuResetCooldown--;
+        Log::logger->log(Log::WARN, "GPU reset recovery cooldown, skipping frame ({} remaining)", m_gpuResetCooldown);
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
+        return;
+    }
 
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
@@ -675,7 +694,14 @@ void CHyprOpenGLImpl::beginSimple(PHLMONITOR pMonitor, const CRegion& damage, SP
             case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
             default: errStr = "UNKNOWN??"; break;
         }
-        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
+        Log::logger->log(Log::ERR, "GPU reset detected in beginSimple: {}. Attempting EGL context recovery.", errStr);
+        if (!attemptContextReset()) {
+            Log::logger->log(Log::ERR, "GPU reset recovery failed. Skipping frames for cooldown.");
+            m_gpuResetCooldown = 60;
+        } else {
+            Log::logger->log(Log::WARN, "GPU reset recovery succeeded. Skipping current frame to reinitialize.");
+        }
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
         return;
     }
 
@@ -714,6 +740,13 @@ void CHyprOpenGLImpl::makeEGLCurrent() {
 void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFramebuffer> fb, std::optional<CRegion> finalDamage) {
     g_pHyprRenderer->m_renderData.pMonitor = pMonitor;
 
+    if (m_gpuResetCooldown > 0) {
+        m_gpuResetCooldown--;
+        Log::logger->log(Log::WARN, "GPU reset recovery cooldown, skipping frame ({} remaining)", m_gpuResetCooldown);
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
+        return;
+    }
+
     const GLenum RESETSTATUS = glGetGraphicsResetStatus();
     if (RESETSTATUS != GL_NO_ERROR) {
         std::string errStr = "";
@@ -723,7 +756,14 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
             case GL_UNKNOWN_CONTEXT_RESET: errStr = "GL_UNKNOWN_CONTEXT_RESET"; break;
             default: errStr = "UNKNOWN??"; break;
         }
-        RASSERT(false, "Aborting, glGetGraphicsResetStatus returned {}. Cannot continue until proper GPU reset handling is implemented.", errStr);
+        Log::logger->log(Log::ERR, "GPU reset detected in begin: {}. Attempting EGL context recovery.", errStr);
+        if (!attemptContextReset()) {
+            Log::logger->log(Log::ERR, "GPU reset recovery failed. Skipping frames for cooldown.");
+            m_gpuResetCooldown = 60;
+        } else {
+            Log::logger->log(Log::WARN, "GPU reset recovery succeeded. Skipping current frame to reinitialize.");
+        }
+        g_pHyprRenderer->m_renderData.pMonitor.reset();
         return;
     }
 
@@ -856,8 +896,10 @@ void CHyprOpenGLImpl::end() {
         // check for gl errors
         const GLenum ERR = glGetError();
 
-        if UNLIKELY (ERR == GL_CONTEXT_LOST) /* We don't have infra to recover from this */
-            RASSERT(false, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Cannot continue until proper GPU reset handling is implemented.");
+        if UNLIKELY (ERR == GL_CONTEXT_LOST) {
+            Log::logger->log(Log::ERR, "glGetError at Opengl::end() returned GL_CONTEXT_LOST. Recovery will trigger on next begin().");
+            m_gpuResetCooldown = 60;
+        }
     }
 }
 
@@ -1443,8 +1485,13 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
 
 void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
-    RASSERT(tex, "Attempted to draw nullptr texture!");
-    RASSERT(tex->ok(), "Attempted to draw invalid texture!");
+
+    if UNLIKELY (!tex || !tex->ok()) {
+        // After a GPU reset, textures become invalid. Skip the draw
+        // instead of aborting — recovery will happen on the next begin().
+        Log::logger->log(Log::ERR, "renderTextureInternal: invalid texture (likely GPU reset). Skipping draw.");
+        return;
+    }
 
     TRACY_GPU_ZONE("RenderTextureInternalWithDamage");
 

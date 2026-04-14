@@ -313,6 +313,8 @@ namespace Render::GL {
         bool                             m_applyFinalShader     = false;
         bool                             m_blend                = false;
         bool                             m_offloadedFramebuffer = false;
+        int                              m_gpuResetCooldown     = 0;
+        bool                             attemptContextReset();
         bool                             m_cmSupported          = true;
 
         SP<CShader>                      m_finalScreenShader;

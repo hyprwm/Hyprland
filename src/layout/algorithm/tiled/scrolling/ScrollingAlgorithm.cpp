@@ -1485,6 +1485,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             return std::unexpected("no current col");
 
         m_scrollingData->centerCol(CURRENT_COL);
+        m_scrollingData->recalculate();
     } else
         return std::unexpected("no such layoutmsg for scrolling");
 

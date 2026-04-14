@@ -172,9 +172,11 @@ class CCompositor {
     bool                                shouldChangePreferredImageDescription();
 
     bool                                supportsDrmSyncobjTimeline() const;
+    void                                queueRendererReset();
     std::string                         m_explicitConfigPath;
 
   private:
+    void                           handleGPUReset(bool&);
     void                           initAllSignals();
     void                           removeAllSignals();
     void                           cleanEnvironment();

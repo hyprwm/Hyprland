@@ -1,4 +1,5 @@
 #include "GLRenderer.hpp"
+#include "Compositor.hpp"
 #include "decorations/CHyprInnerGlowDecoration.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "../config/ConfigValue.hpp"
@@ -47,6 +48,10 @@ void CHyprGLRenderer::initRender() {
     g_pHyprRenderer->m_renderData.pMonitor = renderData().pMonitor;
 }
 
+bool CHyprGLRenderer::rendererLost() {
+    return g_pHyprOpenGL->gpuResetDetected();
+}
+
 bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt) {
     try {
         m_currentRenderbuffer = getOrCreateRenderbuffer(m_currentBuffer, fmt);
@@ -61,16 +66,22 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {
     initRender();
 
+    if UNLIKELY (rendererLost())
+        return false;
+
     RASSERT(fb, "Cannot render FULL_FAKE without a provided fb!");
     bindFB(fb);
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, nullptr, fb);
     else
         g_pHyprOpenGL->begin(pMonitor, damage, fb);
+
     return true;
 }
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
+    if UNLIKELY (rendererLost())
+        return false;
 
     m_currentRenderbuffer->bind();
     if (simple)
@@ -84,6 +95,11 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+
+    if UNLIKELY (rendererLost()) {
+        g_pCompositor->queueRendererReset();
+        return;
+    }
 
     g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
 

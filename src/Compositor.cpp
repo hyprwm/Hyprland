@@ -546,6 +546,66 @@ void CCompositor::stopCompositor() {
     m_isShuttingDown = true;
 }
 
+void CCompositor::handleGPUReset(bool& awaitingReset) {
+    // Time to pray
+    if (!m_wlDisplay)
+        RASSERT(false, "no wayland display and we reset???");
+
+    if UNLIKELY (!g_pHyprRenderer->rendererLost()) {
+        awaitingReset = false;
+        return;
+    }
+
+    for (auto const& m : m_monitors) {
+        g_pHyprOpenGL->destroyMonitorResources(m);
+
+        // These are invalid, I am pretty sure
+        // Invalidate IFramebuffers
+        m->resetResources();
+        m->m_background.reset();
+        m->m_splash.reset();
+        //m->m_cursorSwapchain.reset();
+    }
+
+    Render::g_pShaderLoader.reset();
+
+    // vulkan reset will go in here too :)
+    // g_pHyprOpenGL gets reset here.
+    g_pHyprOpenGL.reset();
+    g_pHyprOpenGL = makeUnique<CHyprOpenGLImpl>();
+    g_pHyprRenderer->m_renderData.mainFB.reset();
+    g_pHyprRenderer->m_renderData.outFB.reset();
+    g_pHyprRenderer->m_renderData.currentFB.reset();
+
+    // Okay, try from a fresh start.
+    for (auto const& m : m_monitors) {
+        if (!m->m_enabled)
+            continue;
+
+        auto cpy = m->m_activeMonitorRule;
+        m->m_forceFullFrames = 5;
+        m->m_state.clearSwapchain();
+        // force reconfigure the monitors
+        m->applyMonitorRule(std::move(cpy), true);
+        scheduleFrameForMonitor(m, IOutput::scheduleFrameReason::AQ_SCHEDULE_RENDER_MONITOR);
+    }
+
+    awaitingReset = false;
+
+    // TODO: localize this if this stays.
+    g_pHyprNotificationOverlay->addNotification(
+        "Warning: Hyprland has recovered from a GPU reset. If you run into issues, consider collecting the logs and submitting them to https://github.com/hyprwm/Hyprland",
+        CHyprColor{1.0, 0.1, 0.1, 1.0}, 20000, ICON_WARNING);
+}
+
+void CCompositor::queueRendererReset() {
+    static bool awaitingReset = false;
+    if (awaitingReset)
+        return;
+    awaitingReset = true;
+    g_pEventLoopManager->doLater([] { g_pCompositor->handleGPUReset(awaitingReset); });
+}
+
 void CCompositor::cleanup() {
     if (!m_wlDisplay)
         return;

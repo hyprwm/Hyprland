@@ -1504,20 +1504,21 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     bool wasActive = false;
     //close if open elsewhere
     const auto PMONITORWORKSPACEOWNER = pWorkspace->m_monitor.lock();
-    if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
-        PMWSOWNER->m_activeSpecialWorkspace.reset();
-        g_layoutManager->recalculateMonitor(PMWSOWNER);
-        g_pHyprRenderer->damageMonitor(PMWSOWNER);
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
+
+    if (PMONITORWORKSPACEOWNER && PMONITORWORKSPACEOWNER->m_activeSpecialWorkspace == pWorkspace) {
+        PMONITORWORKSPACEOWNER->m_activeSpecialWorkspace.reset();
+        g_layoutManager->recalculateMonitor(PMONITORWORKSPACEOWNER);
+        g_pHyprRenderer->damageMonitor(PMONITORWORKSPACEOWNER);
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITORWORKSPACEOWNER->m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMONITORWORKSPACEOWNER->m_name});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : g_pCompositor->m_layers) {
-            if (ls->m_monitor == PMWSOWNER)
+            if (ls->m_monitor == PMONITORWORKSPACEOWNER)
                 ls->m_aboveFullscreen = false;
         }
 
-        const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
+        const auto PACTIVEWORKSPACE = PMONITORWORKSPACEOWNER->m_activeWorkspace;
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
                                                                PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
                                                                                                                              CDesktopAnimationManager::ANIMATION_TYPE_OUT);

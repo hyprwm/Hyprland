@@ -987,8 +987,19 @@ void CConfigManager::reloadRuleConfigs() {
 std::optional<std::string> CConfigManager::verifyConfigExists() {
     auto mainConfigPath = Supplementary::Jeremy::getMainConfigPath();
 
-    if (!mainConfigPath || !std::filesystem::exists(*mainConfigPath))
-        return "broken config dir?";
+    if (!mainConfigPath)
+        return "Broken config directory";
+
+    std::error_code ec;
+    const bool      VALID_CFG = std::filesystem::exists(*mainConfigPath, ec) && !ec;
+
+    if (!VALID_CFG && !g_pCompositor->m_explicitConfigPath.empty())
+        return "Invalid config file provided as explicit";
+
+    if (!VALID_CFG) {
+        if (const auto res = generateDefaultConfig(*mainConfigPath, g_pCompositor->m_safeMode); !res)
+            return res.error();
+    }
 
     return {};
 }

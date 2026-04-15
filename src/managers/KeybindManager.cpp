@@ -2478,7 +2478,7 @@ SDispatchResult CKeybindManager::pinActive(std::string args) {
         return {.success = false, .error = "pin: window not found"};
     }
 
-    PWINDOW->moveToWorkspace(PMONITOR->m_activeWorkspace);
+    PWINDOW->layoutTarget()->assignToSpace(PMONITOR->m_activeWorkspace->m_space);
 
     PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);
 

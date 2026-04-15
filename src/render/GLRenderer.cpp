@@ -97,7 +97,7 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
     static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
 
     if UNLIKELY (rendererLost()) {
-        g_pCompositor->queueRendererReset();
+        //g_pCompositor->queueRendererReset();
         return;
     }
 

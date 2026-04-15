@@ -546,11 +546,10 @@ void CCompositor::stopCompositor() {
     m_isShuttingDown = true;
 }
 
+#include <protocols/types/DMABuffer.hpp>
+
 void CCompositor::handleGPUReset(bool& awaitingReset) {
     // Time to pray
-    if (!m_wlDisplay)
-        RASSERT(false, "no wayland display and we reset???");
-
     if UNLIKELY (!g_pHyprRenderer->rendererLost()) {
         awaitingReset = false;
         return;
@@ -559,12 +558,11 @@ void CCompositor::handleGPUReset(bool& awaitingReset) {
     for (auto const& m : m_monitors) {
         g_pHyprOpenGL->destroyMonitorResources(m);
 
-        // These are invalid, I am pretty sure
-        // Invalidate IFramebuffers
+        // Get rid of framebuffers as these will be referencing GPU mem
         m->resetResources();
         m->m_background.reset();
         m->m_splash.reset();
-        //m->m_cursorSwapchain.reset();
+        m->m_cursorSwapchain.reset();
     }
 
     Render::g_pShaderLoader.reset();
@@ -576,22 +574,46 @@ void CCompositor::handleGPUReset(bool& awaitingReset) {
     g_pHyprRenderer->m_renderData.mainFB.reset();
     g_pHyprRenderer->m_renderData.outFB.reset();
     g_pHyprRenderer->m_renderData.currentFB.reset();
+    g_pHyprRenderer->m_renderPass = {};
+    g_pHyprRenderer->clearRenderBuffers();
 
-    // Okay, try from a fresh start.
-    for (auto const& m : m_monitors) {
-        if (!m->m_enabled)
-            continue;
+    // Clear out the monitor swap chains as those buffers should be regenerated.
+    for (auto const& m : m_monitors | std::views::filter([](auto const& m) { return m->m_enabled; }))
+        m->m_state.clearSwapchain();
 
+    PROTO::compositor->forEachSurface([&](SP<CWLSurfaceResource> surf) {
+        auto& buf = surf->m_current.buffer;
+        if (!buf || !buf.m_buffer) {
+            if (surf->m_current.texture) {
+                surf->m_current.texture.reset();
+            }
+            return;
+        }
+
+        // DMA BUFs are toast, right?
+        if (buf.m_buffer->type() == Aquamarine::eBufferType::BUFFER_TYPE_DMABUF) {
+            auto dmaBuf = dc<CDMABuffer*>(buf.m_buffer.get());
+            dmaBuf->m_resource->sendRelease();
+        } else {
+            auto shm = buf.m_buffer->shm();
+            Log::logger->log(Log::DEBUG, "GPU Reset: invalidating SHM surface (mapped={}, size={}x{}, shm.success={}, fmt=0x{:x})", surf->m_mapped, surf->m_current.size.x,
+                             surf->m_current.size.y, shm.success, shm.format);
+            buf.m_buffer->m_texture.reset();
+            surf->m_current.texture.reset();
+        }
+    });
+
+    // Everything has been reset into a state that we should be ready to recover.
+    // Spin the frames back up.
+    for (auto const& m : m_monitors | std::views::filter([](auto const& m) { return m->m_enabled; })) {
         auto cpy = m->m_activeMonitorRule;
         m->m_forceFullFrames = 5;
-        m->m_state.clearSwapchain();
-        // force reconfigure the monitors
+        // force reconfigure the monitors, this should schedule frame for us
         m->applyMonitorRule(std::move(cpy), true);
-        scheduleFrameForMonitor(m, IOutput::scheduleFrameReason::AQ_SCHEDULE_RENDER_MONITOR);
+        scheduleFrameForMonitor(m, IOutput::scheduleFrameReason::AQ_SCHEDULE_DAMAGE);
     }
 
     awaitingReset = false;
-
     // TODO: localize this if this stays.
     g_pHyprNotificationOverlay->addNotification(
         "Warning: Hyprland has recovered from a GPU reset. If you run into issues, consider collecting the logs and submitting them to https://github.com/hyprwm/Hyprland",

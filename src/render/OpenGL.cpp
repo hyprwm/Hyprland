@@ -718,6 +718,7 @@ void CHyprOpenGLImpl::makeEGLCurrent() {
         eglMakeCurrent(g_pHyprOpenGL->m_eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, g_pHyprOpenGL->m_eglContext);
 
     if UNLIKELY (const auto gpuResetErr = glGPUResetDetected(); gpuResetErr.has_value()) {
+        g_pCompositor->queueRendererReset();
         m_gpuReset = true;
         Log::logger->log(Log::CRIT, "GPU Reset Detected! glGetGraphicsResetStatus returned {}! Attempting to recover...", gpuResetErr.value());
         return;

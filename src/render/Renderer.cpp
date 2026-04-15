@@ -2000,13 +2000,15 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+
+        if UNLIKELY (rendererLost())
+            ; //g_pCompositor->queueRendererReset();
+
         return;
     }
 
-    if UNLIKELY (rendererLost()) {
-        g_pCompositor->queueRendererReset();
+    if UNLIKELY (rendererLost())
         return;
-    }
 
     // if we have no tracking or full tracking, invalidate the entire monitor
     if (*PDAMAGETRACKINGMODE == DAMAGE_TRACKING_NONE || *PDAMAGETRACKINGMODE == DAMAGE_TRACKING_MONITOR || pMonitor->m_forceFullFrames > 0 || damageBlinkCleanup > 0)
@@ -2893,6 +2895,10 @@ bool IHyprRenderer::beginRenderToBuffer(PHLMONITOR pMonitor, CRegion& damage, SP
 
 void IHyprRenderer::onRenderbufferDestroy(IRenderbuffer* rb) {
     std::erase_if(m_renderbuffers, [&](const auto& rbo) { return rbo.get() == rb; });
+}
+
+void IHyprRenderer::clearRenderBuffers() {
+    m_renderbuffers.clear();
 }
 
 bool IHyprRenderer::isNvidia() {

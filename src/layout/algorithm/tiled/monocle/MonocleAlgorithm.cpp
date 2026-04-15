@@ -211,7 +211,7 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
     if (!t || !t->space() || !t->space()->workspace())
         return;
 
-    const auto PMONITOR = t->space()->workspace()->m_monitor.lock();
+    const auto PMONITOR  = t->space()->workspace()->m_monitor.lock();
     const auto PMONINDIR = g_pCompositor->getMonitorInDirection(PMONITOR, dir);
 
     // if we found a monitor, move the window there

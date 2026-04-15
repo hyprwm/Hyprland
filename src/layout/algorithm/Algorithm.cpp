@@ -6,6 +6,7 @@
 #include "../space/Space.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/history/WindowHistoryTracker.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../helpers/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 
@@ -190,6 +191,9 @@ void CAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool
 void CAlgorithm::updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo) {
     algo->m_parent = m_self;
 
+    const auto FOCUSED_WINDOW = Desktop::focusState()->window();
+    const auto FOCUSED_TARGET = FOCUSED_WINDOW ? FOCUSED_WINDOW->layoutTarget() : nullptr;
+
     for (const auto& t : m_floatingTargets) {
         const auto TARGET = t.lock();
         if (!TARGET)
@@ -204,11 +208,17 @@ void CAlgorithm::updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo) {
         algo->newTarget(TARGET);
     }
 
+    if (FOCUSED_TARGET && FOCUSED_TARGET->space() == m_space && FOCUSED_TARGET->floating())
+        Desktop::focusState()->fullWindowFocus(FOCUSED_WINDOW, Desktop::eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
+
     m_floating = std::move(algo);
 }
 
 void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
     algo->m_parent = m_self;
+
+    const auto FOCUSED_WINDOW = Desktop::focusState()->window();
+    const auto FOCUSED_TARGET = FOCUSED_WINDOW ? FOCUSED_WINDOW->layoutTarget() : nullptr;
 
     for (const auto& t : m_tiledTargets) {
         const auto TARGET = t.lock();
@@ -224,6 +234,9 @@ void CAlgorithm::updateTiledAlgo(UP<ITiledAlgorithm>&& algo) {
         m_tiled->removeTarget(TARGET);
         algo->newTarget(TARGET);
     }
+
+    if (FOCUSED_TARGET && FOCUSED_TARGET->space() == m_space && !FOCUSED_TARGET->floating())
+        Desktop::focusState()->fullWindowFocus(FOCUSED_WINDOW, Desktop::eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 
     m_tiled = std::move(algo);
 }

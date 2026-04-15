@@ -140,6 +140,31 @@ static bool testFocusMRUAfterClose() {
     return true;
 }
 
+static bool testFocusPreservedLayoutChange() {
+    NLog::log("{}Testing focus is preserved on layout change", Colors::GREEN);
+
+    OK(getFromSocket("/keyword general:layout master"));
+
+    EXPECT(!!Tests::spawnKitty("kitty_A"), true);
+    EXPECT(!!Tests::spawnKitty("kitty_B"), true);
+    EXPECT(!!Tests::spawnKitty("kitty_C"), true);
+    EXPECT(!!Tests::spawnKitty("kitty_D"), true);
+
+    OK(getFromSocket("/dispatch focuswindow class:kitty_C"));
+
+    OK(getFromSocket("/keyword general:layout monocle"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_C"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing layout generic", Colors::GREEN);
 
@@ -153,6 +178,7 @@ static bool test() {
     testCrashOnGeomUpdate();
     testPosPreserve();
     testFocusMRUAfterClose();
+    testFocusPreservedLayoutChange();
 
     // clean up
     NLog::log("Cleaning up", Colors::YELLOW);

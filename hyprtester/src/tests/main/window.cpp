@@ -679,6 +679,24 @@ static bool testContentRules() {
     return true;
 }
 
+static bool test14038() {
+    NLog::log("{}Testing #14038 crash", Colors::YELLOW);
+
+    if (!spawnKitty("kitty_14038"))
+        return false;
+
+    OK(getFromSocket("/dispatch movetoworkspacesilent special:a,class:kitty_14038"));
+    OK(getFromSocket("/dispatch togglefloating class:kitty_14038"));
+    OK(getFromSocket("/dispatch pin class:kitty_14038"));
+    OK(getFromSocket("/dispatch togglefloating class:kitty_14038"));
+
+    // this should not crash hyprland. If we are alive, we good.
+
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -1144,6 +1162,7 @@ static bool test() {
     testPinnedWorkspacesValid();
     testWindowRuleWorkspaceEmpty();
     testContentRules();
+    test14038();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

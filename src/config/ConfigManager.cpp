@@ -36,12 +36,6 @@ bool Config::initConfigManager() {
             Log::logger->log(Log::CRIT, "Couldn't load config: {}", ec.message());
             return false;
         }
-
-        // generate default
-        if (const auto v = g_mgr->generateDefaultConfig(filePath); !v) {
-            Log::logger->log(Log::CRIT, "Couldn't generate default config: {}", v.error());
-            return false;
-        }
     }
 
     return true;

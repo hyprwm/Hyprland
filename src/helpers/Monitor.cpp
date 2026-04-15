@@ -828,7 +828,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         std::string modeStr = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
         if (mode->modeInfo.has_value() && mode->modeInfo->type == DRM_MODE_TYPE_USERDEF) {
-            m_output->state->setCustomMode(mode);
+            m_state.applyCustomModeWithSwapchain(mode);
 
             if (!m_state.test()) {
                 Log::logger->log(Log::ERR, "Monitor {}: REJECTED custom mode {}!", m_name, modeStr);
@@ -837,7 +837,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
             m_customDrmMode = mode->modeInfo.value();
         } else {
-            m_output->state->setMode(mode);
+            m_state.applyModeWithSwapchain(mode);
 
             if (!m_state.test()) {
                 Log::logger->log(Log::ERR, "Monitor {}: REJECTED available mode {}!", m_name, modeStr);
@@ -871,7 +871,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         auto        mode        = makeShared<Aquamarine::SOutputMode>(Aquamarine::SOutputMode{.pixelSize = RULE->m_resolution, .refreshRate = refreshRate});
         std::string modeStr     = std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f);
 
-        m_output->state->setCustomMode(mode);
+        m_state.applyCustomModeWithSwapchain(mode);
 
         if (m_state.test()) {
             Log::logger->log(Log::DEBUG, "Monitor {}: requested {}, using custom mode {}", m_name, requestedStr, modeStr);
@@ -889,7 +889,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     // try any of the modes if none of the above work
     if (!success) {
         for (auto const& mode : m_output->modes) {
-            m_output->state->setMode(mode);
+            m_state.applyModeWithSwapchain(mode);
 
             if (!m_state.test())
                 continue;
@@ -2515,6 +2515,15 @@ bool CMonitorState::updateSwapchain() {
     options.length  = 3;
     options.size    = MODE->pixelSize;
     return m_owner->m_output->swapchain->reconfigure(options);
+}
+void CMonitorState::applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode) {
+    m_owner->m_output->state->setMode(mode);
+    updateSwapchain();
+}
+
+void CMonitorState::applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode) {
+    m_owner->m_output->state->setCustomMode(mode);
+    updateSwapchain();
 }
 
 bool CMonitor::needsACopyFB() {

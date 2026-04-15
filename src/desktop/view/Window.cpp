@@ -2256,7 +2256,7 @@ void CWindow::unmapWindow() {
         PHLWINDOW   candidate    = nextInGroup;
 
         if (!candidate) {
-            if (*FOCUSONCLOSE)
+            if (*FOCUSONCLOSE == 1)
                 candidate = (g_pCompositor->vectorToWindowUnified(g_pInputManager->getMouseCoordsInternal(),
                                                                   Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING));
             else {

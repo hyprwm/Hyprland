@@ -5,6 +5,8 @@
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
+#include "color-management-v1.hpp"
+#include "desktop/DesktopTypes.hpp"
 
 using namespace Screenshare;
 
@@ -14,6 +16,14 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) 
 
     init();
 }
+
+CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* client) : m_type(SHARE_WORKSPACE), m_workspace(workspace), m_client(client) {
+    if UNLIKELY (!m_workspace)
+        return;
+    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] { stop(); });
+    init();
+}
+
 
 CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client) : m_type(SHARE_WINDOW), m_window(window), m_client(client) {
     if UNLIKELY (!m_window)
@@ -66,7 +76,16 @@ bool CScreenshareSession::isActive() {
 }
 
 void CScreenshareSession::init() {
-    uintptr_t ptr = m_type == SHARE_WINDOW && !m_window.expired() ? (uintptr_t)m_window.get() : (m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get());
+    uintptr_t ptr;
+    if (m_type == SHARE_WINDOW && !m_window.expired()) {
+        ptr = (uintptr_t)m_window.get();
+    }
+    else if (m_type == SHARE_WORKSPACE && !m_workspace.expired()) {
+        ptr = (uintptr_t)m_workspace.get();
+    }
+    else {
+        ptr = m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get();
+    }
     LOGM(Log::TRACE, "Created screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);
 
     m_shareStopTimer = makeShared<CEventLoopTimer>(
@@ -83,6 +102,10 @@ void CScreenshareSession::init() {
     // scale capture box since it's in logical coords; round to integer pixel
     // dims so m_bufferSize matches the int32 size we send to the client
     m_captureBox.scale(monitor()->m_scale).round();
+//=======
+//    // scale capture box since it's in logical coords
+//    m_captureBox.scale(monitor()->m_scale); // TODO: the monitor return for SHARE_WORKSPACE might be nullptr
+//>>>>>>> 48d5ca1d (feat: added SHARE_WORKSPACE cases)
 
     m_listeners.monitorDestroyed   = monitor()->m_events.disconnect.listen([this]() { stop(); });
     m_listeners.monitorModeChanged = monitor()->m_events.modeChanged.listen([this]() {
@@ -115,6 +138,10 @@ void CScreenshareSession::calculateConstraints() {
         case SHARE_MONITOR:
             m_bufferSize = PMONITOR->m_pixelSize;
             m_name       = PMONITOR->m_name;
+            break;
+        case SHARE_WORKSPACE:
+            m_bufferSize = PMONITOR->m_pixelSize;
+            m_name       = m_workspace->m_name;
             break;
         case SHARE_WINDOW:
             m_bufferSize = (m_window->m_realSize->value() * PMONITOR->m_scale).round();
@@ -163,6 +190,14 @@ Vector2D CScreenshareSession::bufferSize() const {
 PHLMONITOR CScreenshareSession::monitor() const {
     if (m_type == SHARE_WINDOW && m_window.expired())
         return nullptr;
+    if (m_type == SHARE_WORKSPACE) {
+        for(auto& mon : g_pCompositor->m_monitors) {
+            if(mon->m_activeWorkspace == m_workspace) {
+                return mon;
+            }
+        }
+        return nullptr;
+    }
     PHLMONITORREF mon = m_type == SHARE_WINDOW ? m_window->m_monitor : m_monitor;
     return mon.expired() ? nullptr : mon.lock();
 }

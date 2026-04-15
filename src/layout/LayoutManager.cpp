@@ -1,5 +1,6 @@
 #include "LayoutManager.hpp"
 
+#include "managers/EventManager.hpp"
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
@@ -30,6 +31,12 @@ void CLayoutManager::changeFloatingMode(SP<ITarget> target) {
         return;
 
     target->space()->toggleTargetFloating(target);
+
+    g_pEventManager->postEvent(SHyprIPCEvent({
+        .event = "changefloatingmode",
+        .data  = std::format("{:x},{}", rc<uintptr_t>(target->window().get()), sc<int>(target->floating())),
+    }));
+    Event::bus()->m_events.window.floating.emit(target->window());
 }
 
 void CLayoutManager::beginDragTarget(SP<ITarget> target, eMouseBindMode mode) {

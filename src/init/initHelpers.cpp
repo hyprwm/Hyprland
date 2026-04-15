@@ -1,3 +1,6 @@
+#include <linux/capability.h>
+#include <sys/prctl.h>
+
 #include "initHelpers.hpp"
 
 bool NInit::isSudo() {
@@ -20,6 +23,10 @@ void NInit::gainRealTime() {
         Log::logger->log(Log::WARN, "Failed to change process scheduling strategy");
         return;
     }
+
+    // NixOS-specific fix to prevent all children from inheriting
+    // CAP_SYS_NICE due to how the security wrapper works.
+    prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
 
     pthread_atfork(nullptr, nullptr, []() {
         const struct sched_param param = {.sched_priority = 0};

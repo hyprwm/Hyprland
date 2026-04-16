@@ -1034,6 +1034,12 @@ namespace Config::Supplementary {
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
         },
+        SConfigOptionDescription{
+            .value       = "group:disband_on_empty",
+            .description = "whether to automatically disband a group when only one window remains",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
 
         /*
      * group:groupbar:

@@ -545,6 +545,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("group:auto_group", Hyprlang::INT{1});
     registerConfigVar("group:drag_into_group", Hyprlang::INT{1});
     registerConfigVar("group:group_on_movetoworkspace", Hyprlang::INT{0});
+    registerConfigVar("group:disband_on_empty", Hyprlang::INT{0});
     registerConfigVar("group:groupbar:enabled", Hyprlang::INT{1});
     registerConfigVar("group:groupbar:font_family", {STRVAL_EMPTY});
     registerConfigVar("group:groupbar:font_weight_active", Hyprlang::CConfigCustomValueType{&configHandleFontWeightSet, configHandleFontWeightDestroy, "normal"});

@@ -58,5 +58,6 @@ namespace Config {
 
         drmModeModeInfo    m_drmMode = {};
         std::optional<int> m_vrr;
+        int                m_vrrMinHz = 24;
     };
 };

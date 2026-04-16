@@ -1285,6 +1285,13 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 3},
         },
         SConfigOptionDescription{
+            .value       = "monitor:vrr_min_hz",
+            .description = "per-monitor minimum refresh rate floor for VRR keepalive (cursor scheduling and direct scanout). When VRR is active, a keepalive commit fires if no "
+                           "frame was presented within this interval. Defaults to 24 Hz when not set. Set in monitor= or monitorv2 block.",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 24, .min = 10, .max = 500},
+        },
+        SConfigOptionDescription{
             .value       = "misc:mouse_move_enables_dpms",
             .description = "If DPMS is set to off, wake up the monitors if the mouse move",
             .type        = CONFIG_OPTION_BOOL,

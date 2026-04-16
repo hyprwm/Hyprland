@@ -19,6 +19,7 @@ namespace Config {
         bool                       parseSDRBrightness(const std::string& value);
         bool                       parseSDRSaturation(const std::string& value);
         bool                       parseVRR(const std::string& value);
+        bool                       parseVrrMinHz(const std::string& value);
         bool                       parseICC(const std::string& value);
 
         void                       setDisabled();

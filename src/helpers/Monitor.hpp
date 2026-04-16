@@ -136,6 +136,7 @@ class CMonitor {
     bool                        m_scheduledRecalc = false;
     wl_output_transform         m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       m_xwaylandScale   = 1.f;
+    int                         m_vrrMinHz        = 24; // Hz
 
     std::optional<Vector2D>     m_forceSize;
     SP<Aquamarine::SOutputMode> m_currentMode;

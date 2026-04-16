@@ -893,6 +893,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("monitorv2", "sdrbrightness", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "sdrsaturation", Hyprlang::FLOAT{1.0});
     m_config->addSpecialConfigValue("monitorv2", "vrr", Hyprlang::INT{0});
+    m_config->addSpecialConfigValue("monitorv2", "vrr_min_hz", Hyprlang::INT{24});
     m_config->addSpecialConfigValue("monitorv2", "transform", {STRVAL_EMPTY}); // TODO use correct type
     m_config->addSpecialConfigValue("monitorv2", "supports_wide_color", Hyprlang::INT{0});
     m_config->addSpecialConfigValue("monitorv2", "supports_hdr", Hyprlang::INT{0});
@@ -1158,6 +1159,12 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "vrr", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.rule().m_vrr = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    VAL = m_config->getSpecialConfigValuePtr("monitorv2", "vrr_min_hz", output.c_str());
+    if (VAL && VAL->m_bSetByUser) {
+        const int v = std::any_cast<Hyprlang::INT>(VAL->getValue());
+        if (v > 0)
+            parser.rule().m_vrrMinHz = v;
+    }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.parseTransform(std::any_cast<Hyprlang::STRING>(VAL->getValue()));
@@ -1672,6 +1679,9 @@ std::optional<std::string> CConfigManager::handleMonitor(const std::string& comm
             argno++;
         } else if (ARGS[argno] == "vrr") {
             parser.parseVRR(std::string(ARGS[argno + 1]));
+            argno++;
+        } else if (ARGS[argno] == "vrr_min_hz") {
+            parser.parseVrrMinHz(std::string(ARGS[argno + 1]));
             argno++;
         } else if (ARGS[argno] == "icc") {
             parser.parseICC(std::string(ARGS[argno + 1]));

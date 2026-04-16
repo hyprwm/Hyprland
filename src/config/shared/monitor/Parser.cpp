@@ -271,6 +271,21 @@ bool CMonitorRuleParser::parseVRR(const std::string& value) {
     return true;
 }
 
+bool CMonitorRuleParser::parseVrrMinHz(const std::string& value) {
+    if (!isNumber(value)) {
+        m_error += "invalid vrr_min_hz ";
+        return false;
+    }
+
+    const int hz = std::stoi(value);
+    if (hz <= 0) {
+        m_error += "invalid vrr_min_hz ";
+        return false;
+    }
+    m_rule.m_vrrMinHz = hz;
+    return true;
+}
+
 bool CMonitorRuleParser::parseICC(const std::string& val) {
     if (val.empty()) {
         m_error += "invalid icc ";

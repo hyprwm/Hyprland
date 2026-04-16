@@ -2,7 +2,7 @@
 #include <cmath>
 #include <numeric>
 #include <pango/pangocairo.h>
-#include "HyprNotificationOverlay.hpp"
+#include "NotificationOverlay.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../render/pass/RectPassElement.hpp"
@@ -11,6 +11,8 @@
 
 #include "../managers/animation/AnimationManager.hpp"
 #include "../render/Renderer.hpp"
+
+using namespace Notification;
 
 static inline auto iconBackendFromLayout(PangoLayout* layout) {
     // preference: Nerd > FontAwesome > text
@@ -24,18 +26,23 @@ static inline auto iconBackendFromLayout(PangoLayout* layout) {
     return ICONS_BACKEND_NONE;
 }
 
-static constexpr auto ANIM_DURATION_MS   = 600.F;
-static constexpr auto ANIM_LAG_MS        = 100.F;
-static constexpr auto NOTIF_LEFTBAR_SIZE = 5.F;
-static constexpr auto NOTIF_PAD_X        = 20.F;
-static constexpr auto NOTIF_PAD_Y        = 10.F;
-static constexpr auto NOTIF_OFFSET_Y     = 10.F;
-static constexpr auto NOTIF_GAP_Y        = 10.F;
-static constexpr auto NOTIF_DAMAGE_PAD_X = 20.F;
-static constexpr auto ICON_PAD           = 3.F;
-static constexpr auto ICON_SCALE         = 0.9F;
+static constexpr auto     ANIM_DURATION_MS   = 600.F;
+static constexpr auto     ANIM_LAG_MS        = 100.F;
+static constexpr auto     NOTIF_LEFTBAR_SIZE = 5.F;
+static constexpr auto     NOTIF_PAD_X        = 20.F;
+static constexpr auto     NOTIF_PAD_Y        = 10.F;
+static constexpr auto     NOTIF_OFFSET_Y     = 10.F;
+static constexpr auto     NOTIF_GAP_Y        = 10.F;
+static constexpr auto     NOTIF_DAMAGE_PAD_X = 20.F;
+static constexpr auto     ICON_PAD           = 3.F;
+static constexpr auto     ICON_SCALE         = 0.9F;
 
-CHyprNotificationOverlay::CHyprNotificationOverlay() {
+UP<CNotificationOverlay>& Notification::overlay() {
+    static UP<CNotificationOverlay> p = makeUnique<CNotificationOverlay>();
+    return p;
+}
+
+CNotificationOverlay::CNotificationOverlay() {
     static auto P = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         if (m_notifications.empty())
             return;
@@ -44,9 +51,9 @@ CHyprNotificationOverlay::CHyprNotificationOverlay() {
     });
 }
 
-CHyprNotificationOverlay::~CHyprNotificationOverlay() = default;
+CNotificationOverlay::~CNotificationOverlay() = default;
 
-eIconBackend CHyprNotificationOverlay::iconBackendForFont(const std::string& fontFamily) {
+eIconBackend CNotificationOverlay::iconBackendForFont(const std::string& fontFamily) {
     if (m_iconBackendValid && m_cachedIconBackendFontFamily == fontFamily)
         return m_cachedIconBackend;
 
@@ -72,7 +79,7 @@ eIconBackend CHyprNotificationOverlay::iconBackendForFont(const std::string& fon
     return m_cachedIconBackend;
 }
 
-void CHyprNotificationOverlay::ensureNotificationCache(SNotification& notif, PHLMONITOR pMonitor, const std::string& fontFamily) {
+void CNotificationOverlay::ensureNotificationCache(SNotification& notif, PHLMONITOR pMonitor, const std::string& fontFamily) {
     const auto iconBackend = iconBackendForFont(fontFamily);
     const auto fontSizePx  = std::clamp(sc<int>(notif.fontSize * ((pMonitor->m_pixelSize.x * pMonitor->m_scale) / 1920.f)), 8, 40);
 
@@ -102,7 +109,7 @@ void CHyprNotificationOverlay::ensureNotificationCache(SNotification& notif, PHL
     }
 }
 
-void CHyprNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
+void CNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
     const auto PNOTIF = m_notifications.emplace_back(makeUnique<SNotification>()).get();
 
     PNOTIF->text  = text;
@@ -117,7 +124,7 @@ void CHyprNotificationOverlay::addNotification(const std::string& text, const CH
     }
 }
 
-void CHyprNotificationOverlay::dismissNotifications(const int amount) {
+void CNotificationOverlay::dismissNotifications(const int amount) {
     if (amount == -1)
         m_notifications.clear();
     else {
@@ -133,7 +140,7 @@ void CHyprNotificationOverlay::dismissNotifications(const int amount) {
     }
 }
 
-CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
+CBox CNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
     float       offsetY  = NOTIF_OFFSET_Y;
     float       maxWidth = 0;
 
@@ -223,7 +230,7 @@ CBox CHyprNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
                 sc<int>(offsetY + NOTIF_OFFSET_Y)};
 }
 
-void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
+void CNotificationOverlay::draw(PHLMONITOR pMonitor) {
     // Draw the notifications
     if (m_notifications.empty()) {
         if (m_lastDamage.width > 0 && m_lastDamage.height > 0)
@@ -242,6 +249,6 @@ void CHyprNotificationOverlay::draw(PHLMONITOR pMonitor) {
     m_lastDamage = damage;
 }
 
-bool CHyprNotificationOverlay::hasAny() {
+bool CNotificationOverlay::hasAny() {
     return !m_notifications.empty();
 }

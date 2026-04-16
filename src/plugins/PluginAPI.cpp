@@ -4,7 +4,7 @@
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/legacy/ConfigManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include <dlfcn.h>
@@ -113,7 +113,7 @@ APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text
     if (!PLUGIN)
         return false;
 
-    g_pHyprNotificationOverlay->addNotification(text, color, timeMs);
+    Notification::overlay()->addNotification(text, color, timeMs);
 
     return true;
 }
@@ -301,7 +301,7 @@ APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::stri
         if (iterator != data.end())
             icon = std::any_cast<eIcons>(iterator->second);
 
-        g_pHyprNotificationOverlay->addNotification(text, COLOR, TIME, icon);
+        Notification::overlay()->addNotification(text, COLOR, TIME, icon);
 
     } catch (std::exception& e) {
         // bad any_cast most likely, plugin error

@@ -65,7 +65,7 @@ vec4
     if (pixCoord[0] < topLeft[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top left
-            float distance = distance(vec2(topLeft.x - pixCoord.x, topLeft.y - pixCoord.y), roundingPower);
+            float distance = distanceWithRounding(vec2(topLeft.x - pixCoord.x, topLeft.y - pixCoord.y), roundingPower);
             if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
@@ -74,7 +74,7 @@ vec4
             done = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom left
-            float distance = distance(vec2(topLeft.x - pixCoord.x, pixCoord.y - bottomRight.y), roundingPower);
+            float distance = distanceWithRounding(vec2(topLeft.x - pixCoord.x, pixCoord.y - bottomRight.y), roundingPower);
             if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
@@ -85,7 +85,7 @@ vec4
     } else if (pixCoord[0] > bottomRight[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top right
-            float distance = distance(vec2(pixCoord.x - bottomRight.x, topLeft.y - pixCoord.y), roundingPower);
+            float distance = distanceWithRounding(vec2(pixCoord.x - bottomRight.x, topLeft.y - pixCoord.y), roundingPower);
             if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {
@@ -94,7 +94,7 @@ vec4
             done = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom right
-            float distance = distance(vec2(pixCoord.x - bottomRight.x, pixCoord.y - bottomRight.y), roundingPower);
+            float distance = distanceWithRounding(vec2(pixCoord.x - bottomRight.x, pixCoord.y - bottomRight.y), roundingPower);
             if (borderRadius > 0.0 && distance < decoWidth) {
                 pixColor[3] = 0.0;
             } else {

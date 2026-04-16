@@ -122,7 +122,7 @@ void CGroup::add(PHLWINDOW w) {
     m_target->recalc();
 }
 
-void CGroup::remove(PHLWINDOW w, Math::eDirection dir, std::optional<eRemoveFromGroupReason> reason) {
+void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason reason) {
     std::optional<size_t> idx;
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {

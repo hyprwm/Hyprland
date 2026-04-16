@@ -14,6 +14,7 @@
 namespace Layout {
 
     enum eRecalculateReason : uint8_t {
+        RECALCULATE_REASON_UNKNOWN, // when the recalculate reason is unknown or not important to preserve
         RECALCULATE_REASON_WORKSPACE_CHANGE,
         RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
         RECALCULATE_REASON_HYPRCTL_KEYWORD,
@@ -22,7 +23,7 @@ namespace Layout {
         RECALCULATE_REASON_RENDER_MOINTOR,
     };
 
-    std::optional<eRecalculateReason> recalcMonitorReasontoRecalcReason(CLayoutManager::eRecalculateMonitorReason reason);
+    eRecalculateReason recalcMonitorReasonToRecalcReason(CLayoutManager::eRecalculateMonitorReason reason);
 
     class ITarget;
     class CAlgorithm;
@@ -46,7 +47,7 @@ namespace Layout {
 
         void                            moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        void                             recalculate(std::optional<eRecalculateReason> reason = std::nullopt);
+        void                             recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
         void                            toggleTargetFloating(SP<ITarget> t);
 

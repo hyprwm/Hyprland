@@ -146,7 +146,7 @@ SP<CAlgorithm> CSpace::algorithm() const {
     return m_algorithm;
 }
 
-void CSpace::recalculate(std::optional<eRecalculateReason> reason) {
+void CSpace::recalculate(eRecalculateReason reason) {
     recheckWorkArea();
 
     if (m_algorithm)
@@ -211,13 +211,13 @@ const std::vector<WP<ITarget>>& CSpace::targets() const {
     return m_targets;
 }
 
-std::optional<eRecalculateReason> Layout::recalcMonitorReasontoRecalcReason(CLayoutManager::eRecalculateMonitorReason reason) {
+eRecalculateReason Layout::recalcMonitorReasonToRecalcReason(CLayoutManager::eRecalculateMonitorReason reason) {
     // If eRecalculateMonitorReason doesn't have a eRecalculateReason pair, it'll return nullopt
     switch (reason) {
         case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE: return RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE;
         case CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE: return RECALCULATE_REASON_WORKSPACE_CHANGE;
         case CLayoutManager::RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD: return RECALCULATE_REASON_HYPRCTL_KEYWORD;
         case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN: return RECALCULATE_REASON_TOGGLE_FULLSCREEN;
-        default: return std::nullopt;
+        default: return RECALCULATE_REASON_UNKNOWN;
     }
 }

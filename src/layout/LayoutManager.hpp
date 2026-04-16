@@ -46,6 +46,7 @@ namespace Layout {
         ~CLayoutManager() = default;
 
         enum eRecalculateMonitorReason : uint8_t {
+            RECALCULATE_MONITOR_REASON_UNKNOWN, // when the recalculate monitor reason is unknown or not important to preserve
             RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
             RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
             RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD,
@@ -83,7 +84,7 @@ namespace Layout {
         void                    performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
 
         void                             invalidateMonitorGeometries(PHLMONITOR);
-        void                             recalculateMonitor(PHLMONITOR, std::optional<eRecalculateMonitorReason> reason = std::nullopt);
+        void                             recalculateMonitor(PHLMONITOR, eRecalculateMonitorReason reason = RECALCULATE_MONITOR_REASON_UNKNOWN);
 
         const UP<Supplementary::CDragStateController>& dragController();
 

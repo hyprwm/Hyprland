@@ -804,7 +804,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     m_scrollingData->recalculate(true);
 }
 
-void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
+void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
     // guard against recalculation during transitional monitor states
     // (e.g. monitor reconnecting after suspend where workspace/monitor may not be ready)
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
@@ -820,7 +820,7 @@ void CScrollingAlgorithm::recalculate(std::optional<eRecalculateReason> reason) 
             /* guard against unwanted scrolling viewport moves - If recalculate() was called, it is assumed that either the INPUT_MODE will be HARD (i.e. it is meant to move the scrolling viewport) or
             it is not meant to move the scrolling viewport.
             (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view) */
-            if (!reason.has_value() || Layout::isHardRecalculateReason(reason.value()))
+            if (Layout::isHardRecalculateReason(reason))
                 focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
         }
     }

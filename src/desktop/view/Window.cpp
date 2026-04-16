@@ -2313,7 +2313,7 @@ void CWindow::unmapWindow() {
 
     // swallowing
     if (const auto SWALLOWEE = m_swallowee.lock()) {
-        if (SWALLOWEE->m_currentlySwallowed) {
+        if (SWALLOWEE->m_isMapped && SWALLOWEE->m_currentlySwallowed) {
             SWALLOWEE->m_currentlySwallowed = false;
             SWALLOWEE->setHidden(false);
 

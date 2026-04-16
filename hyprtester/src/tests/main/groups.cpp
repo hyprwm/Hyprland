@@ -25,6 +25,65 @@ static bool test() {
     NLog::log("{}Dispatching workspace `groups`", Colors::YELLOW);
     getFromSocket("/dispatch workspace name:groups");
 
+    NLog::log("{}Testing movewindoworgroup from group to group", Colors::YELLOW);
+    auto kittyA = Tests::spawnKitty("kittyA");
+    if (!kittyA) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    // check kitty properties. One kitty should take the entire screen, minus the gaps.
+    NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
+    }
+
+    auto kittyB = Tests::spawnKitty("kittyB");
+    if (!kittyB) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:kittyB"));
+    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/dispatch focuswindow class:kittyA"));
+    OK(getFromSocket("/dispatch togglegroup"));
+
+    NLog::log("{}Check kittyB dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
+    }
+
+    auto kittyC = Tests::spawnKitty("kittyC");
+    if (!kittyC) {
+        NLog::log("{}Error: kitty did not spawn", Colors::RED);
+        return false;
+    }
+
+    NLog::log("{}Check kittyC dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
+    }
+
+    OK(getFromSocket("/dispatch movewindoworgroup r"));
+    NLog::log("{}Check that dimensions remain the same after move", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
+    }
+
+    // kill all
+    NLog::log("{}Kill windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
     NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty();
     if (!kittyProcA) {

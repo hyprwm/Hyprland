@@ -2625,6 +2625,8 @@ void CKeybindManager::moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowIn
         pWindow->m_monitor = pWindowInDirection->m_monitor;
     }
 
+    if (pWindow->m_group)
+        pWindow->m_group->remove(pWindow);
     pWindowInDirection->m_group->add(pWindow);
 
     pWindowInDirection->m_group->setCurrent(pWindow);

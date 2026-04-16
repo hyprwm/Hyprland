@@ -63,7 +63,7 @@ using namespace Hyprutils::OS;
 #include "../managers/XWaylandManager.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../layout/space/Space.hpp"
@@ -2002,7 +2002,7 @@ static std::string dispatchNotify(eHyprCtlOutputFormat format, std::string reque
 
     const auto MESSAGE = vars.join(" ", msgidx);
 
-    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, sc<eIcons>(icon), fontsize);
+    Notification::overlay()->addNotification(MESSAGE, color, time, sc<eIcons>(icon), fontsize);
 
     return "ok";
 }
@@ -2022,7 +2022,7 @@ static std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::strin
         } catch (std::exception& e) { return "invalid arg 1"; }
     }
 
-    g_pHyprNotificationOverlay->dismissNotifications(amount);
+    Notification::overlay()->dismissNotifications(amount);
 
     return "ok";
 }

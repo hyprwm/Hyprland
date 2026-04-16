@@ -43,7 +43,7 @@
 #include "Drm.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
-#include "debug/HyprNotificationOverlay.hpp"
+#include "notification/NotificationOverlay.hpp"
 #include "MonitorFrameScheduler.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
@@ -899,7 +899,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
             auto errorMessage = I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
                                                              {{"name", m_name}, {"mode", std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f)}});
             Log::logger->log(Log::WARN, errorMessage);
-            g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
+            Notification::overlay()->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
             m_refreshRate   = mode->refreshRate / 1000.f;
             m_size          = mode->pixelSize;
@@ -1041,11 +1041,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
                 if (!autoScale) {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
                     static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
-                    if (!*PDISABLENOTIFICATION)
-                        g_pHyprNotificationOverlay->addNotification(
+                    if (!*PDISABLENOTIFICATION) {
+                        Notification::overlay()->addNotification(
                             I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
                                                          {{"name", m_name}, {"scale", std::format("{:.2f}", m_scale)}, {"fixed_scale", std::format("{:.2f}", searchScale)}}),
                             CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
+                    }
                 }
                 m_scale = searchScale;
             }
@@ -1513,21 +1514,22 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     bool wasActive = false;
     //close if open elsewhere
-    const auto PMONITORWORKSPACEOWNER = pWorkspace->m_monitor.lock();
-    if (const auto PMWSOWNER = pWorkspace->m_monitor.lock(); PMWSOWNER && PMWSOWNER->m_activeSpecialWorkspace == pWorkspace) {
-        PMWSOWNER->m_activeSpecialWorkspace.reset();
-        g_layoutManager->recalculateMonitor(PMWSOWNER);
-        g_pHyprRenderer->damageMonitor(PMWSOWNER);
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMWSOWNER->m_name});
-        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMWSOWNER->m_name});
+    const auto PMONITOR = pWorkspace->m_monitor.lock();
+
+    if (PMONITOR && PMONITOR->m_activeSpecialWorkspace == pWorkspace) {
+        PMONITOR->m_activeSpecialWorkspace.reset();
+        g_layoutManager->recalculateMonitor(PMONITOR);
+        g_pHyprRenderer->damageMonitor(PMONITOR);
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITOR->m_name});
+        g_pEventManager->postEvent(SHyprIPCEvent{"activespecialv2", ",," + PMONITOR->m_name});
 
         // Reset layer surfaces on the old monitor when special workspace is stolen
         for (auto const& ls : g_pCompositor->m_layers) {
-            if (ls->m_monitor == PMWSOWNER)
+            if (ls->m_monitor == PMONITOR)
                 ls->m_aboveFullscreen = false;
         }
 
-        const auto PACTIVEWORKSPACE = PMWSOWNER->m_activeWorkspace;
+        const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
                                                                PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
                                                                                                                              CDesktopAnimationManager::ANIMATION_TYPE_OUT);
@@ -1549,7 +1551,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     if (POLDSPECIAL)
         POLDSPECIAL->m_events.activeChanged.emit();
 
-    if (PMONITORWORKSPACEOWNER != m_self)
+    if (PMONITOR != m_self)
         pWorkspace->m_events.monitorChanged.emit();
 
     if (!wasActive)
@@ -1692,7 +1694,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprNotificationOverlay->hasAny()) {
+    if (Notification::overlay()->hasAny()) {
         reasons |= SC_NOTIFICATION;
         if (!full)
             return reasons;

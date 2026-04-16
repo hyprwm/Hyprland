@@ -626,8 +626,11 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             m_lastFocusOnLS = false;
             return; // don't enter any new surfaces
         } else {
-            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || m_lastMouseFocus.lock() != pFoundWindow)) || refocus)) {
-                if (m_lastMouseFocus.lock() != pFoundWindow || Desktop::focusState()->window() != pFoundWindow || Desktop::focusState()->surface() != foundSurface || refocus) {
+            auto lastFocus = m_lastMouseFocus.lock();
+
+            if (allowKeyboardRefocus && ((FOLLOWMOUSE != 3 && (*PMOUSEREFOCUS || lastFocus != pFoundWindow)) || refocus)) {
+                if (lastFocus != pFoundWindow || Desktop::focusState()->window() != pFoundWindow || Desktop::focusState()->surface() != foundSurface || refocus) {
+
                     m_lastMouseFocus = pFoundWindow;
 
                     // TODO: this looks wrong. When over a popup, it constantly is switching.

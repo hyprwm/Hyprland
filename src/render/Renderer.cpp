@@ -26,7 +26,7 @@
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../hyprerror/HyprError.hpp"
 #include "../debug/HyprDebugOverlay.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
@@ -2040,7 +2040,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderLockscreen(pMonitor, NOW, renderBox);
 
             if (pMonitor == Desktop::focusState()->monitor()) {
-                g_pHyprNotificationOverlay->draw(pMonitor);
+                Notification::overlay()->draw(pMonitor);
                 g_pHyprError->draw();
             }
 
@@ -2261,8 +2261,8 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             Log::logger->log(Log::WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
             static bool shown = false;
             if (!shown) {
-                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
-                                                            ICON_WARNING);
+                Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
+                                                         ICON_WARNING);
                 shown = true;
             }
         }
@@ -2834,8 +2834,8 @@ std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
-                                                ICON_INFO);
+    Notification::overlay()->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
+                                             ICON_INFO);
 
     g_pHyprRenderer->m_crashingDistort += 0.5f;
 
@@ -2848,7 +2848,7 @@ static int handleCrashLoop(void* data) {
 }
 
 void IHyprRenderer::initiateManualCrash() {
-    g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
+    Notification::overlay()->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
 
     m_crashingLoop = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, handleCrashLoop, nullptr);
     wl_event_source_timer_update(m_crashingLoop, 1000);

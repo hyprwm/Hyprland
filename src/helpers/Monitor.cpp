@@ -42,7 +42,7 @@
 #include "Drm.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
-#include "debug/HyprNotificationOverlay.hpp"
+#include "notification/NotificationOverlay.hpp"
 #include "MonitorFrameScheduler.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
@@ -896,7 +896,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
             auto errorMessage = I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_MODE_FAIL,
                                                              {{"name", m_name}, {"mode", std::format("{:X0}@{:.2f}Hz", mode->pixelSize, mode->refreshRate / 1000.f)}});
             Log::logger->log(Log::WARN, errorMessage);
-            g_pHyprNotificationOverlay->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
+            Notification::overlay()->addNotification(errorMessage, CHyprColor(0xff0000ff), 5000, ICON_WARNING);
 
             m_refreshRate   = mode->refreshRate / 1000.f;
             m_size          = mode->pixelSize;
@@ -1037,11 +1037,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
                 if (!autoScale) {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} found suggestion {}", m_scale, searchScale);
                     static auto PDISABLENOTIFICATION = CConfigValue<Hyprlang::INT>("misc:disable_scale_notification");
-                    if (!*PDISABLENOTIFICATION)
-                        g_pHyprNotificationOverlay->addNotification(
+                    if (!*PDISABLENOTIFICATION) {
+                        Notification::overlay()->addNotification(
                             I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
                                                          {{"name", m_name}, {"scale", std::format("{:.2f}", m_scale)}, {"fixed_scale", std::format("{:.2f}", searchScale)}}),
                             CHyprColor(1.0, 0.0, 0.0, 1.0), 5000, ICON_WARNING);
+                    }
                 }
                 m_scale = searchScale;
             }
@@ -1682,7 +1683,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprNotificationOverlay->hasAny()) {
+    if (Notification::overlay()->hasAny()) {
         reasons |= SC_NOTIFICATION;
         if (!full)
             return reasons;

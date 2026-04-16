@@ -34,7 +34,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/permissions/DynamicPermissionManager.hpp"
-#include "../../debug/HyprNotificationOverlay.hpp"
+#include "../../notification/NotificationOverlay.hpp"
 #include "../../plugins/PluginSystem.hpp"
 
 #include "../../managers/input/trackpad/TrackpadGestures.hpp"
@@ -1360,8 +1360,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
         m_manualCrashInitiated = true;
-        g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CHyprColor(0), 5000,
-                                                    ICON_INFO);
+        Notification::overlay()->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CHyprColor(0), 5000,
+                                                 ICON_INFO);
     } else if (m_manualCrashInitiated && !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash"))) {
         // cowabunga it is
         g_pHyprRenderer->initiateManualCrash();
@@ -1428,10 +1428,8 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     // manual crash
     if (std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash")) && !m_manualCrashInitiated) {
         m_manualCrashInitiated = true;
-        if (g_pHyprNotificationOverlay) {
-            g_pHyprNotificationOverlay->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CHyprColor(0), 5000,
-                                                        ICON_INFO);
-        }
+        Notification::overlay()->addNotification("Manual crash has been set up. Set debug:manual_crash back to 0 in order to crash the compositor.", CHyprColor(0), 5000,
+                                                 ICON_INFO);
     } else if (m_manualCrashInitiated && !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:manual_crash"))) {
         // cowabunga it is
         g_pHyprRenderer->initiateManualCrash();

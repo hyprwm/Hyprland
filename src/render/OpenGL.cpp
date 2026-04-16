@@ -32,7 +32,7 @@
 #include "../i18n/Engine.hpp"
 #include "../event/EventBus.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"

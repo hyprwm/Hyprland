@@ -268,6 +268,10 @@
 ---| "input.tablet.region_size"
 ---| "input.tablet.relative_input"
 ---| "input.tablet.transform"
+---| "input.tablettool.eraser_button_mode"
+---| "input.tablettool.eraser_button_override"
+---| "input.tablettool.pressure_range_max"
+---| "input.tablettool.pressure_range_min"
 ---| "input.touchdevice.enabled"
 ---| "input.touchdevice.output"
 ---| "input.touchdevice.transform"
@@ -1097,6 +1101,10 @@ hl = {}
 ---@field ['input.tablet.region_size'] HL.Vec2Like
 ---@field ['input.tablet.relative_input'] boolean
 ---@field ['input.tablet.transform'] integer|boolean
+---@field ['input.tablettool.eraser_button_mode'] integer|boolean
+---@field ['input.tablettool.eraser_button_override'] integer|boolean
+---@field ['input.tablettool.pressure_range_max'] number|boolean
+---@field ['input.tablettool.pressure_range_min'] number|boolean
 ---@field ['input.touchdevice.enabled'] boolean
 ---@field ['input.touchdevice.output'] string
 ---@field ['input.touchdevice.transform'] integer|boolean

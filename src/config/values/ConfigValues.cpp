@@ -361,6 +361,25 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                  {.validator = vec2Range(0, 0, 500, 500), .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
 
         /*
+         * input:tablettool:
+         */
+
+        MS<Int>("input:tablettool:eraser_button_mode",
+                "Change the eraser button behavior on the tool. When set to 0, use the default hardware behavior of the tool. "
+                "When set to 1, the eraser button on the tool sends a button event instead.",
+                0, {.min = 0, .max = 6, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Int>("input:tablettool:eraser_button_override",
+                "Set a button to be button event when eraser_button_mode is set to 1. Has to be an int, cannot be a string. Must be a valid button (e.g. BTN_STYLUS) "
+                "excluding fake buttons (e.g. BTN_TOOL_*) and keys (KEY_*). Check wev if you have any doubts regarding the ID. 0 means default.",
+                0, {.min = 0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Float>("input:tablettool:pressure_range_min",
+                  "Set the minimum pressure range for the tool, a negative number will set the default minimum pressure value. This is usually 0.0",
+                  -1.0, {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+        MS<Float>("input:tablettool:pressure_range_max",
+                  "Set the maximum pressure range for the tool, a negative number will set the default maximum pressure value. This is usually 1.0",
+                  -1.0, {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+
+        /*
          * gestures:
          */
 

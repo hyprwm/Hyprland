@@ -31,6 +31,8 @@
 #include "Framebuffer.hpp"
 #include "Texture.hpp"
 
+#include <hyprgraphics/resource/resources/TextResource.hpp>
+
 struct SMonitorRule;
 class CWorkspace;
 class CInputPopup;
@@ -164,6 +166,7 @@ namespace Render {
         virtual SP<ITexture>         createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
         virtual SP<ITexture>         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0,
                                                 int weight = 400);
+        virtual SP<ITexture>         renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
         SP<ITexture>                 loadAsset(const std::string& filename);
         virtual bool                 shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
         virtual bool                 explicitSyncSupported()                                                                              = 0;

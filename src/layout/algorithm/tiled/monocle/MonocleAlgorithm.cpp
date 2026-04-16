@@ -211,10 +211,11 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
     if (!t || !t->space() || !t->space()->workspace())
         return;
 
-    const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
+    const auto PMONITOR  = t->space()->workspace()->m_monitor.lock();
+    const auto PMONINDIR = g_pCompositor->getMonitorInDirection(PMONITOR, dir);
 
     // if we found a monitor, move the window there
-    if (PMONINDIR && PMONINDIR != t->space()->workspace()->m_monitor.lock()) {
+    if (PMONINDIR && PMONINDIR != PMONITOR) {
         const auto TARGETWS = PMONINDIR->m_activeWorkspace;
 
         if (t->window())

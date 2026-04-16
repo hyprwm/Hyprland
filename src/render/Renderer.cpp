@@ -1942,6 +1942,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
             Log::logger->log(Log::DEBUG, "Left a direct scanout.");
             pMonitor->m_lastScanout.reset();
+            pMonitor->invalidateScanoutFormatCache();
             pMonitor->m_directScanoutIsActive = false;
 
             // reset DRM format, but only if needed since it might modeset
@@ -2118,10 +2119,14 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;
 
-    if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->m_pendingFrame)
+    const uint32_t DAMAGE_REASON_BIT = (1 << Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+    const bool     OTHER_REASONS     = pMonitor->m_pendingFrameReasons & ~DAMAGE_REASON_BIT;
+    const bool     DAMAGE_NEEDED     = (pMonitor->m_pendingFrameReasons & DAMAGE_REASON_BIT) && pMonitor->m_damage.lastDamageTime() > pMonitor->m_damage.lastRotationTime();
+
+    if (*PDAMAGEBLINK || *PVFR == 0 || OTHER_REASONS || DAMAGE_NEEDED)
         g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
 
-    pMonitor->m_pendingFrame = false;
+    pMonitor->m_pendingFrameReasons = 0;
 
     if (*PDEBUGOVERLAY == 1) {
         const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;

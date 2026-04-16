@@ -72,9 +72,9 @@ void CMonitorFrameScheduler::onPresented() {
             return;
         g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
 
-        // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
-        // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
-        if (m->m_damage.hasChanged())
+        // schedule a frame: we might have some missed damage, which got added after our render begun.
+        // we check against lastRotationTime because that's when the damage was actually 'consumed' for the frame we just presented.
+        if (m->m_damage.lastDamageTime() > m->m_damage.lastRotationTime())
             g_pCompositor->scheduleFrameForMonitor(m);
     });
 }
@@ -98,8 +98,6 @@ void CMonitorFrameScheduler::onFrame() {
     }
 
     if (!newSchedulingEnabled()) {
-        PMONITOR->m_lastPresentationTimer.reset();
-
         g_pHyprRenderer->renderMonitor(PMONITOR);
         return;
     }

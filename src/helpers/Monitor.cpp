@@ -39,6 +39,7 @@
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
+#include "../protocols/Fifo.hpp"
 #include "Drm.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
@@ -159,6 +160,8 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         m_frameScheduler->onPresented();
+
+        m_lastPresentationTimer.reset();
 
         m_events.presented.emit();
     });
@@ -913,6 +916,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         Log::logger->log(Log::ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->m_resolution, RULE->m_refreshRate);
         return true;
     }
+    m_vrrMinHz = RULE->m_vrrMinHz;
 
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync
@@ -1067,12 +1071,16 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateMatrix();
 
-    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
-        m_resources.reset(); // TODO skip for 10bit change and fp16?
+    const bool resolutionChanged = OLDRES != m_pixelSize;
+    const bool formatChanged     = WAS10B != m_enabled10bit;
 
-        if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
-            g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
-    }
+    // m_resources is geometry-bound; keep it across format-only toggles.
+    if (resolutionChanged)
+        m_resources.reset();
+
+    // GL background cache must be cleared on any format or geometry change.
+    if ((resolutionChanged || formatChanged) && g_pHyprRenderer && g_pHyprRenderer->glBackend())
+        g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
 
     g_pCompositor->scheduleMonitorStateRecheck();
 
@@ -1126,24 +1134,26 @@ void CMonitor::addDamage(const CBox& box) {
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
-bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+bool CMonitor::shouldSuppressCursorCommit() {
     static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
-    static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
-    // skip scheduling extra frames for fullsreen apps with vrr
-    const auto FS_WINDOW          = getFullscreenWindow();
-    const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
-    const bool noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
-    const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+    const auto  FS_WINDOW          = getFullscreenWindow();
+    const bool  shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
+    const bool  noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
+    return (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+}
 
-    // keep requested minimum refresh rate
-    if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
-        // damage whole screen because some previous cursor box damages were skipped
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    if (!shouldSuppressCursorCommit())
+        return false;
+
+    // keepalive due: flip to not-skip, damage entire so skipped cursor box regions are repainted
+    if (m_vrrMinHz && isVrrKeepaliveDue()) {
         m_damage.damageEntire();
         return false;
     }
 
-    return shouldSkip;
+    return true;
 }
 
 bool CMonitor::isMirror() {
@@ -1925,6 +1935,18 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         reasons |= DS_BLOCK_DMA;
         if (!full)
             return reasons;
+    } else {
+        // test() in attemptDirectScanout is the format authority; we only cache its verdict.
+        // Reporting path runs the loop so hyprctl can show DS_BLOCK_FORMAT before any DS attempt.
+        auto& cache = m_cachedScanoutFormatCheck;
+        if (cache.valid && cache.format == params.format && cache.modifier == params.modifier) {
+            if (!cache.ok) {
+                reasons |= DS_BLOCK_FORMAT;
+                if (!full)
+                    return reasons;
+            }
+        } else if (full && !isFormatScanoutCapable(params.format, params.modifier))
+            reasons |= DS_BLOCK_FORMAT;
     }
 
     const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();
@@ -1935,6 +1957,16 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         reasons |= DS_BLOCK_CM;
 
     return reasons;
+}
+
+bool CMonitor::isVrrKeepaliveDue() {
+    if (!m_output || !m_output->state->state().adaptiveSync)
+        return false;
+
+    const float elapsedMs          = m_lastPresentationTimer.getMillis();
+    const float timeoutThresholdMs = 1000.0f / m_vrrMinHz;
+
+    return elapsedMs > timeoutThresholdMs;
 }
 
 bool CMonitor::attemptDirectScanout() {
@@ -1949,28 +1981,27 @@ bool CMonitor::attemptDirectScanout() {
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
-    // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-        if (m_scanoutNeedsCursorUpdate) {
-            if (!m_state.test()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
-                return false;
-            }
-
-            if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+        // VRR keep-alive throttle: without this, unrelated compositor wakes turn every same-buffer
+        // pass into a fresh KMS commit, tightening VRR intervals and spiking refresh above frame pace.
+        // commit path unlocks FIFO via onMonitorPresent; return early to avoid a double presented().
+        if ((m_scanoutNeedsCursorUpdate && !shouldSuppressCursorCommit()) || isVrrKeepaliveDue()) {
+            m_output->state->setBuffer(PBUFFER);
+            if (!m_state.test() || !m_output->commit()) {
                 m_lastScanout.reset();
                 return false;
             }
-
             m_scanoutNeedsCursorUpdate = false;
+            return true;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
-            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+        // No commit this pass, so onMonitorPresent won't fire, so unlock FIFO explicitly.
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO) {
+            if (const auto fifo = PSURFACE->m_fifo.lock())
+                fifo->presented();
+        }
 
         return true;
     }
@@ -1999,8 +2030,13 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!m_state.test()) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
+        // Negative-cache only format-attributable failures; transient causes (bandwidth, fence, HDR) must retry.
+        if (!isFormatScanoutCapable(params.format, params.modifier))
+            m_cachedScanoutFormatCheck = {.format = params.format, .modifier = params.modifier, .ok = false, .valid = true};
         return false;
     }
+
+    m_cachedScanoutFormatCheck = {.format = params.format, .modifier = params.modifier, .ok = true, .valid = true};
 
     PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
@@ -2051,6 +2087,19 @@ bool CMonitor::attemptDirectScanout() {
 
 bool CMonitor::canAttemptDirectScanoutFast() const {
     return !m_solitaryClient.expired() || !m_lastScanout.expired() || m_directScanoutIsActive;
+}
+
+bool CMonitor::isFormatScanoutCapable(uint32_t format, uint64_t modifier) {
+    const auto& renderFormats = m_output->getRenderFormats();
+    for (const auto& fmt : renderFormats) {
+        if (fmt.drmFormat != format)
+            continue;
+        for (const auto& mod : fmt.modifiers) {
+            if (mod == modifier)
+                return true;
+        }
+    }
+    return false;
 }
 
 bool CMonitor::isMultiGPU() {

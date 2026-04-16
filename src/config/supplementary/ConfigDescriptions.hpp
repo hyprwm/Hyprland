@@ -1285,6 +1285,13 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SRangeData{.value = 0, .min = 0, .max = 3},
         },
         SConfigOptionDescription{
+            .value       = "monitor:vrr_min_hz",
+            .description = "per-monitor minimum refresh rate floor for VRR keepalive (cursor scheduling and direct scanout). When VRR is active, a keepalive commit fires if no "
+                           "frame was presented within this interval. Defaults to 24 Hz when not set. Set in monitor= or monitorv2 block.",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 24, .min = 10, .max = 500},
+        },
+        SConfigOptionDescription{
             .value       = "misc:mouse_move_enables_dpms",
             .description = "If DPMS is set to off, wake up the monitors if the mouse move",
             .type        = CONFIG_OPTION_BOOL,
@@ -1737,12 +1744,6 @@ namespace Config::Supplementary {
                 "0 - off, 1 - on, 2 - auto (on with content type 'game')",
             .type = CONFIG_OPTION_INT,
             .data = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
-        },
-        SConfigOptionDescription{
-            .value       = "cursor:min_refresh_rate",
-            .description = "minimum refresh rate for cursor movement when no_break_fs_vrr is active. Set to minimum supported refresh rate or higher",
-            .type        = CONFIG_OPTION_INT,
-            .data        = SConfigOptionDescription::SRangeData{24, 10, 500},
         },
         SConfigOptionDescription{
             .value       = "cursor:hotspot_padding",
@@ -2273,9 +2274,9 @@ namespace Config::Supplementary {
         },
         SConfigOptionDescription{
             .value       = "quirks:skip_non_kms_dmabuf_formats",
-            .description = "Do not report dmabuf formats which cannot be imported into KMS",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
+            .description = "Do not report dmabuf formats which cannot be imported into KMS. 0 - off, 1 - on, 2 - auto (on for nvidia)",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
 
     };

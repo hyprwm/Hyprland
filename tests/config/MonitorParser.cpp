@@ -201,6 +201,21 @@ TEST(Config, monitorParserICC) {
     EXPECT_TRUE(p2.getError().has_value());
 }
 
+TEST(Config, monitorParserVrrMinHz) {
+    CMonitorRuleParser p1("DP-1");
+    EXPECT_TRUE(p1.parseVrrMinHz("48"));
+    EXPECT_EQ(p1.rule().m_vrrMinHz, 48);
+
+    CMonitorRuleParser p2("DP-1");
+    EXPECT_TRUE(p2.parseVrrMinHz("24"));
+    EXPECT_EQ(p2.rule().m_vrrMinHz, 24);
+
+    CMonitorRuleParser p3("DP-1");
+    EXPECT_FALSE(p3.parseVrrMinHz("abc"));
+    EXPECT_TRUE(p3.getError().has_value());
+    EXPECT_EQ(p3.rule().m_vrrMinHz, 24); // parse failed, default unchanged
+}
+
 TEST(Config, monitorParserSetDisabled) {
     CMonitorRuleParser parser("DP-1");
     parser.setDisabled();

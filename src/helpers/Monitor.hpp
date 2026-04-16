@@ -136,6 +136,7 @@ class CMonitor {
     bool                        m_scheduledRecalc = false;
     wl_output_transform         m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       m_xwaylandScale   = 1.f;
+    int                         m_vrrMinHz        = 24; // Hz
 
     std::optional<Vector2D>     m_forceSize;
     SP<Aquamarine::SOutputMode> m_currentMode;
@@ -159,8 +160,8 @@ class CMonitor {
 
     SP<CEventLoopTimer>         m_dpmsRetryTimer;
 
-    bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
-    bool                        m_renderingActive = false;
+    uint32_t                    m_pendingFrameReasons = 0; // if we schedule a frame during rendering, reschedule it after
+    bool                        m_renderingActive     = false;
 
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;
@@ -194,6 +195,17 @@ class CMonitor {
     PHLWINDOWREF m_lastScanout;
     bool         m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
     bool         m_scanoutNeedsCursorUpdate = false;
+
+    // DRM test()-verified (format, modifier) scanout verdict. Invalidated on DS exit; re-entry self-heals via test().
+    struct {
+        uint32_t format   = 0;
+        uint64_t modifier = 0;
+        bool     ok       = false;
+        bool     valid    = false;
+    } m_cachedScanoutFormatCheck;
+    void invalidateScanoutFormatCache() {
+        m_cachedScanoutFormatCheck.valid = false;
+    }
 
     // for special fade/blur
     PHLANIMVAR<float> m_specialFade;
@@ -251,6 +263,7 @@ class CMonitor {
         DS_BLOCK_DMA       = (1 << 10),
         DS_BLOCK_FAILED    = (1 << 11),
         DS_BLOCK_CM        = (1 << 12),
+        DS_BLOCK_FORMAT    = (1 << 13),
 
         DS_CHECKS_COUNT = 14,
     };
@@ -305,6 +318,8 @@ class CMonitor {
     void        addDamage(const CRegion& rg);
     void        addDamage(const CBox& box);
     bool        shouldSkipScheduleFrameOnMouseEvent();
+    bool        shouldSuppressCursorCommit();
+    bool        isVrrKeepaliveDue();
     void        setMirror(const std::string&);
     bool        isMirror();
     bool        matchesStaticSelector(const std::string& selector) const;
@@ -327,6 +342,7 @@ class CMonitor {
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
     bool        canAttemptDirectScanoutFast() const;
+    bool        isFormatScanoutCapable(uint32_t format, uint64_t modifier);
     bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);
     void        onCursorMovedOnMonitor();

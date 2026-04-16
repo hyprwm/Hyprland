@@ -2298,7 +2298,7 @@ void CCompositor::scheduleFrameForMonitor(PHLMONITOR pMonitor, IOutput::schedule
         return;
 
     if (pMonitor->m_renderingActive)
-        pMonitor->m_pendingFrame = true;
+        pMonitor->m_pendingFrameReasons |= (1 << reason);
 
     pMonitor->m_output->scheduleFrame(reason);
 }

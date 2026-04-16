@@ -160,8 +160,8 @@ class CMonitor {
 
     SP<CEventLoopTimer>         m_dpmsRetryTimer;
 
-    bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
-    bool                        m_renderingActive = false;
+    uint32_t                    m_pendingFrameReasons = 0; // if we schedule a frame during rendering, reschedule it after
+    bool                        m_renderingActive     = false;
 
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;

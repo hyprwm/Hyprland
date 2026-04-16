@@ -424,7 +424,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
     }
 }
 
-void CMasterAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
+void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
 }
 

@@ -101,7 +101,7 @@ size_t CAlgorithm::floatingTargets() const {
     return m_floatingTargets.size();
 }
 
-void CAlgorithm::recalculate(std::optional<eRecalculateReason> reason) {
+void CAlgorithm::recalculate(eRecalculateReason reason) {
     m_tiled->recalculate(reason);
     m_floating->recalculate(reason);
 

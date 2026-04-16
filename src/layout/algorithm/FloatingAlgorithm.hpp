@@ -22,7 +22,7 @@ namespace Layout {
 
         virtual void recenter(SP<ITarget> t);
 
-        virtual void recalculate(std::optional<eRecalculateReason> reason = std::nullopt);
+        virtual void recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
       protected:
         IFloatingAlgorithm() = default;

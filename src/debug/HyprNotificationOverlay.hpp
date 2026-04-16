@@ -7,8 +7,6 @@
 
 #include <vector>
 
-#include <cairo/cairo.h>
-
 enum eIconBackend : uint8_t {
     ICONS_BACKEND_NONE = 0,
     ICONS_BACKEND_NF,
@@ -27,6 +25,19 @@ static const std::array<CHyprColor, ICON_NONE + 1> ICONS_COLORS = {CHyprColor{1.
                                                                    CHyprColor{0, 0, 0, 1.0}};
 
 struct SNotification {
+    struct SRenderCache {
+        SP<Render::ITexture> textTex;
+        SP<Render::ITexture> iconTex;
+
+        Vector2D             textSize = {};
+        Vector2D             iconSize = {};
+
+        PHLMONITORREF        monitor;
+        std::string          fontFamily;
+        int                  fontSizePx  = -1;
+        eIconBackend         iconBackend = ICONS_BACKEND_NONE;
+    } cache;
+
     std::string text = "";
     CHyprColor  color;
     CTimer      started;
@@ -46,18 +57,16 @@ class CHyprNotificationOverlay {
     bool hasAny();
 
   private:
+    void                           ensureNotificationCache(SNotification& notif, PHLMONITOR pMonitor, const std::string& fontFamily);
+    eIconBackend                   iconBackendForFont(const std::string& fontFamily);
     CBox                           drawNotifications(PHLMONITOR pMonitor);
     CBox                           m_lastDamage;
 
     std::vector<UP<SNotification>> m_notifications;
 
-    cairo_surface_t*               m_cairoSurface = nullptr;
-    cairo_t*                       m_cairo        = nullptr;
-
-    PHLMONITORREF                  m_lastMonitor;
-    Vector2D                       m_lastSize = Vector2D(-1, -1);
-
-    SP<Render::ITexture>           m_texture;
+    std::string                    m_cachedIconBackendFontFamily;
+    eIconBackend                   m_cachedIconBackend = ICONS_BACKEND_NONE;
+    bool                           m_iconBackendValid  = false;
 };
 
 inline UP<CHyprNotificationOverlay> g_pHyprNotificationOverlay;

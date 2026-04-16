@@ -1639,12 +1639,6 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SRangeData{2, 0, 2},
         },
         SConfigOptionDescription{
-            .value       = "render:cm_fs_passthrough",
-            .description = "Passthrough color settings for fullscreen apps when possible",
-            .type        = CONFIG_OPTION_INT,
-            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
-        },
-        SConfigOptionDescription{
             .value       = "render:cm_enabled",
             .description = "Enable Color Management pipelines (requires restart to fully take effect)",
             .type        = CONFIG_OPTION_BOOL,
@@ -1657,11 +1651,10 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SBoolData{true},
         },
         SConfigOptionDescription{
-            .value = "render:cm_auto_hdr",
-            .description =
-                "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid (cm_fs_passthrough can switch to hdr even when this setting is off)",
-            .type = CONFIG_OPTION_INT,
-            .data = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
+            .value       = "render:cm_auto_hdr",
+            .description = "Auto-switch to hdr mode when fullscreen app is in hdr, 0 - off, 1 - hdr, 2 - hdredid",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 1, .min = 0, .max = 2},
         },
         SConfigOptionDescription{
             .value       = "render:new_render_scheduling",
@@ -1674,6 +1667,12 @@ namespace Config::Supplementary {
             .description = "Enable CM without shader. 0 - disable, 1 - whenever possible, 2 - DS and passthrough only, 3 - disable and ignore CM issues",
             .type        = CONFIG_OPTION_CHOICE,
             .data        = SConfigOptionDescription::SChoiceData{0, "disable,always,ondemand,ignore"},
+        },
+        SConfigOptionDescription{
+            .value       = "render:non_shader_cm_interop",
+            .description = "non_shader_cm interaction with ctm proto (hyprsunset and similar). 0 - disable, 1 - enable, 2 - auto (enabled for unknown content type)",
+            .type        = CONFIG_OPTION_CHOICE,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
         SConfigOptionDescription{
             .value = "render:cm_sdr_eotf",
@@ -2008,6 +2007,12 @@ namespace Config::Supplementary {
             .description = "Render solitary window with empty damage",
             .type        = CONFIG_OPTION_BOOL,
             .data        = SConfigOptionDescription::SBoolData{false},
+        },
+        SConfigOptionDescription{
+            .value       = "debug:invalidate_fp16",
+            .description = "Allow fp16 buffer invalidation. 0 - disable, 1 - enabled, 2 - disable on nvidia",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
 
         /*

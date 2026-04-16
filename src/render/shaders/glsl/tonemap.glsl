@@ -60,5 +60,11 @@ vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance,
     // scale src to dst reference
     float refScale = dstRefLuminance / srcRefLuminance;
 
+    // kind of works but doesn't use newLum at all
     return vec4(fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb * HDR_MAX_LUMINANCE * refScale, color[3]);
+    // breaks with overriden monitor luminances. might be caused by incorrect imput values
+    // @gulafaran
+    // vec3 outRGB = fromLMS * toLinear(vec4(ICtCpPQInv * ICtCp, 1.0), CM_TRANSFER_FUNCTION_ST2084_PQ).rgb;
+    // outRGB *= (newLum / max(luminance, 0.0001)); // actually apply the tone mapping
+    // return vec4(clamp(outRGB * HDR_MAX_LUMINANCE * refScale, 0.0, dstMaxLuminance), color[3]);
 }

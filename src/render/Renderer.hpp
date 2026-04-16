@@ -190,7 +190,8 @@ namespace Render {
         void                            preBlurForCurrentMonitor(CRegion* fakeDamage);
 
         SCMSettings                     getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
+                                                      bool shouldUseSurface = false);
         void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 
@@ -233,6 +234,8 @@ namespace Render {
         SP<ITexture>                       m_lockTtyTextTexture;
         bool                               m_monitorTransformEnabled = false; // do not modify directly
         std::stack<bool>                   m_monitorTransformStack;
+
+        void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

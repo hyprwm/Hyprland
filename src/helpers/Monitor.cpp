@@ -62,7 +62,7 @@ using namespace NColorManagement;
 using namespace Render::GL;
 using namespace Monitor;
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(DEFAULT_IMAGE_DESCRIPTION) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
@@ -511,9 +511,9 @@ static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
     const auto sdrEOTF = NTransferFunction::fromConfig();
 
     switch (tf) {
-        case NTransferFunction::TF_DEFAULT:
         case NTransferFunction::TF_GAMMA22:
         case NTransferFunction::TF_FORCED_GAMMA22: return NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22;
+        case NTransferFunction::TF_DEFAULT:
         case NTransferFunction::TF_SRGB: return NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
 
         case NTransferFunction::TF_AUTO: // use global setting
@@ -949,7 +949,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     m_enabled10bit = set10bit;
 
-    m_supportsWideColor = RULE->m_supportsHDR;
+    m_supportsWideColor = RULE->m_supportsWideColor;
     m_supportsHDR       = RULE->m_supportsHDR;
 
     if (RULE->m_iccFile.empty()) {
@@ -1853,7 +1853,6 @@ bool CMonitor::updateTearing() {
 uint16_t CMonitor::isDSBlocked(bool full) {
     uint16_t    reasons        = 0;
     static auto PDIRECTSCANOUT = CConfigValue<Hyprlang::INT>("render:direct_scanout");
-    static auto PPASS          = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static auto PNONSHADER     = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
     const auto  PWORKSPACE     = m_activeWorkspace;
 
@@ -1930,9 +1929,14 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     const bool surfaceIsHDR   = PSURFACE->m_colorManagement.valid() && PSURFACE->m_colorManagement->isHDR();
     const bool surfaceIsScRGB = surfaceIsHDR && PSURFACE->m_colorManagement->isWindowsScRGB();
 
-    if (needsCM() && (*PNONSHADER != CM_NS_IGNORE || surfaceIsScRGB) && !canNoShaderCM() &&
-        ((inHDR() && (*PPASS == 0 || !surfaceIsHDR || surfaceIsScRGB)) || (!inHDR() && (*PPASS != 1 || surfaceIsHDR))))
-        reasons |= DS_BLOCK_CM;
+    if (surfaceIsScRGB)
+        reasons |= DS_BLOCK_CM; // block scRGB
+    else if (*PNONSHADER != CM_NS_IGNORE) {
+        if (!surfaceIsHDR && needsCM() && !canNoShaderCM(true))
+            reasons |= DS_BLOCK_CM; // block SDR that needs CM while non-shader CM isn't available
+        else if (surfaceIsHDR && !inHDR())
+            reasons |= DS_BLOCK_CM; // block HDR while monitor isn't in HDR mode
+    }
 
     return reasons;
 }
@@ -1987,6 +1991,7 @@ bool CMonitor::attemptDirectScanout() {
     if (m_lastScanout.expired())
         m_prevDrmFormat = m_drmFormat;
 
+    const bool NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
     if (m_drmFormat != params.format) {
         m_output->state->setFormat(params.format);
         m_drmFormat = params.format;
@@ -1997,7 +2002,7 @@ bool CMonitor::attemptDirectScanout() {
     m_output->state->setPresentationMode(m_tearingState.activelyTearing ? Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_IMMEDIATE :
                                                                           Aquamarine::eOutputPresentationMode::AQ_OUTPUT_PRESENTATION_VSYNC);
 
-    if (!m_state.test()) {
+    if (NEEDS_TEST && !m_state.test()) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
         return false;
     }
@@ -2278,7 +2283,7 @@ std::optional<NColorManagement::PImageDescription> CMonitor::getFSImageDescripti
 
     const auto ROOT_SURF = FS_WINDOW->wlSurface()->resource();
     const auto SURF      = ROOT_SURF->findWithCM();
-    return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : DEFAULT_IMAGE_DESCRIPTION;
+    return SURF ? NColorManagement::CImageDescription::from(SURF->m_colorManagement->imageDescription()) : getDefaultImageDescription();
 }
 
 NColorManagement::SPCPRimaries CMonitor::getMasteringPrimaries() {
@@ -2317,8 +2322,20 @@ bool CMonitor::needsCM() {
     return SRC_DESC.has_value() && SRC_DESC.value() != m_imageDescription;
 }
 
+static bool isCompatibleTF(eTransferFunction sourceTF, eTransferFunction targetTF) {
+    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+    const auto  sdrEOTF    = NTransferFunction::fromConfig();
+    return sourceTF == targetTF                                                                                                         // same
+        || (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB                  // forced source gamma22 to output gamma22
+            && targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)                                                              //
+        || (*PNONSHADER == CM_NS_ONDEMAND                                                                                               // FIXME incorrect but good enough for DS
+            && (sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || sourceTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)  //
+            && (targetTF == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 || targetTF == NColorManagement::CM_TRANSFER_FUNCTION_SRGB)) //
+        ;
+}
+
 // TODO support more drm properties
-bool CMonitor::canNoShaderCM() {
+bool CMonitor::canNoShaderCM(bool forDSmode) {
     static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
     if (*PNONSHADER == CM_NS_DISABLE)
         return false;
@@ -2327,22 +2344,22 @@ bool CMonitor::canNoShaderCM() {
     if (!SRC_DESC.has_value())
         return false;
 
-    if (SRC_DESC.value() == m_imageDescription)
+    const auto& DST_DESC = forDSmode ? m_imageDescription : resources()->m_imageDescription;
+    if (SRC_DESC.value() == DST_DESC)
         return true; // no CM needed
 
-    const auto SRC_DESC_VALUE = SRC_DESC.value()->value();
+    const auto& SRC_DESC_VALUE = SRC_DESC.value()->value();
 
     if (m_imageDescription->value().icc.present)
         return false;
 
-    const auto sdrEOTF = NTransferFunction::fromConfig();
+    Log::logger->log(Log::TRACE, "CM: can no shder compares src={} to output={}", SRC_DESC_VALUE, m_imageDescription->value());
+
     // only primaries differ
     return (
-        (SRC_DESC_VALUE.transferFunction == m_imageDescription->value().transferFunction ||
-         (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && SRC_DESC_VALUE.transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_SRGB &&
-          m_imageDescription->value().transferFunction == NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22)) &&
-        SRC_DESC_VALUE.transferFunctionPower == m_imageDescription->value().transferFunctionPower &&
-        (!inHDR() || SRC_DESC_VALUE.luminances == m_imageDescription->value().luminances)
+        isCompatibleTF(SRC_DESC_VALUE.transferFunction, DST_DESC->value().transferFunction) //
+        && SRC_DESC_VALUE.transferFunctionPower == DST_DESC->value().transferFunctionPower  //
+        && (!inHDR() || SRC_DESC_VALUE.luminances == DST_DESC->value().luminances)
         // not used by shaders atm
         // && SRC_DESC_VALUE.masteringLuminances == m_imageDescription->value().masteringLuminances && SRC_DESC_VALUE.maxCLL == m_imageDescription->value().maxCLL && SRC_DESC_VALUE.maxFALL == m_imageDescription->value().maxFALL
     );
@@ -2505,6 +2522,7 @@ bool CMonitor::needsUnmodifiedCopy() {
     if (!HAS_MODS)
         return false;
 
+    // TODO handle some FP16 cases
     if (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_ST2084_PQ && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_HLG)
         return false;
 
@@ -2512,15 +2530,25 @@ bool CMonitor::needsUnmodifiedCopy() {
 }
 
 bool CMonitor::useFP16() {
-    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
-    return *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+    static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
+    bool              shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
+    static bool       usedBefore = shouldUse;
+    if (usedBefore != shouldUse) {
+        usedBefore    = shouldUse;
+        m_blurFBDirty = true;
+    }
+    return shouldUse;
 }
 
 WP<CMonitorResources> CMonitor::resources() {
     const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
+    const auto DESC       = useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription;
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
-        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription);
+        m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, DESC);
+
+    if (m_resources->m_imageDescription != DESC)
+        m_resources->setImageDescription(DESC);
 
     return m_resources;
 }

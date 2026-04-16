@@ -9,7 +9,7 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "../debug/HyprDebugOverlay.hpp"
+#include "../debug/Overlay.hpp"
 #include "../helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"

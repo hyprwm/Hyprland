@@ -25,7 +25,7 @@
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../hyprerror/HyprError.hpp"
-#include "../debug/HyprDebugOverlay.hpp"
+#include "../debug/Overlay.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
@@ -1523,6 +1523,17 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     return tex;
 }
 
+SP<ITexture> IHyprRenderer::renderText(Hyprgraphics::CTextResource::STextResourceData&& data) {
+    auto res = makeAtomicShared<Hyprgraphics::CTextResource>(std::move(data));
+    g_pAsyncResourceGatherer->enqueue(res);
+    g_pAsyncResourceGatherer->await(res);
+
+    if (!res->m_asset.cairoSurface)
+        return nullptr;
+
+    return createTexture(res->m_asset.pixelSize.x, res->m_asset.pixelSize.y, res->m_asset.cairoSurface->data());
+}
+
 void IHyprRenderer::ensureLockTexturesRendered(bool load) {
     static bool loaded = false;
 
@@ -1913,7 +1924,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (*PDEBUGOVERLAY == 1) {
         renderStart = std::chrono::high_resolution_clock::now();
-        g_pDebugOverlay->frameData(pMonitor);
+        Debug::overlay()->frameData(pMonitor);
     }
 
     if (!g_pCompositor->m_sessionActive)
@@ -2062,7 +2073,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             // for drawing the debug overlay
             if (pMonitor == g_pCompositor->m_monitors.front() && *PDEBUGOVERLAY == 1) {
                 renderStartOverlay = std::chrono::high_resolution_clock::now();
-                g_pDebugOverlay->draw();
+                Debug::overlay()->draw();
                 endRenderOverlay = std::chrono::high_resolution_clock::now();
             }
 
@@ -2140,13 +2151,13 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (*PDEBUGOVERLAY == 1) {
         const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-        g_pDebugOverlay->renderData(pMonitor, durationUs);
+        Debug::overlay()->renderData(pMonitor, durationUs);
 
         if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
+            Debug::overlay()->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, durationUs);
+            Debug::overlay()->renderDataNoOverlay(pMonitor, durationUs);
     }
 }
 
@@ -2850,7 +2861,7 @@ bool IHyprRenderer::shouldRenderCursor() {
 }
 
 std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
-    const auto POVERLAY = &g_pDebugOverlay->m_monitorOverlays[pMonitor];
+    const auto POVERLAY = &Debug::overlay()->m_monitorOverlays[pMonitor];
 
     float      avgRenderTime = 0;
     float      maxRenderTime = 0;

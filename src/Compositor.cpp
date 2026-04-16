@@ -74,7 +74,7 @@
 #include "plugins/PluginSystem.hpp"
 #include "hyprerror/HyprError.hpp"
 #include "notification/NotificationOverlay.hpp"
-#include "debug/HyprDebugOverlay.hpp"
+#include "debug/Overlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
@@ -591,7 +591,7 @@ void CCompositor::cleanup() {
     g_pCursorManager.reset();
     g_pPluginSystem.reset();
     Notification::overlay().reset();
-    g_pDebugOverlay.reset();
+    Debug::overlay().reset();
     g_pEventManager.reset();
     g_pSessionLockManager.reset();
     g_pHyprRenderer.reset();
@@ -694,8 +694,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the SessionLockManager!");
             g_pSessionLockManager = makeUnique<CSessionLockManager>();
 
-            Log::logger->log(Log::DEBUG, "Creating the HyprDebugOverlay!");
-            g_pDebugOverlay = makeUnique<CHyprDebugOverlay>();
+            Log::logger->log(Log::DEBUG, "Creating the Debug Overlay!");
+            Debug::overlay();
 
             Log::logger->log(Log::DEBUG, "Creating the NotificationOverlay!");
             Notification::overlay();

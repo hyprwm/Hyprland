@@ -161,6 +161,8 @@ void CMonitor::onConnect(bool noRule) {
 
         m_frameScheduler->onPresented();
 
+        m_lastPresentationTimer.reset();
+
         m_events.presented.emit();
     });
 
@@ -914,6 +916,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         Log::logger->log(Log::ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->m_resolution, RULE->m_refreshRate);
         return true;
     }
+    m_vrrMinHz = RULE->m_vrrMinHz;
 
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync
@@ -1130,24 +1133,26 @@ void CMonitor::addDamage(const CBox& box) {
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
-bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+bool CMonitor::shouldSuppressCursorCommit() {
     static auto PNOBREAK = CConfigValue<Hyprlang::INT>("cursor:no_break_fs_vrr");
-    static auto PMINRR   = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
 
-    // skip scheduling extra frames for fullsreen apps with vrr
-    const auto FS_WINDOW          = getFullscreenWindow();
-    const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
-    const bool noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
-    const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+    const auto  FS_WINDOW          = getFullscreenWindow();
+    const bool  shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
+    const bool  noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
+    return (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+}
 
-    // keep requested minimum refresh rate
-    if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
-        // damage whole screen because some previous cursor box damages were skipped
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    if (!shouldSuppressCursorCommit())
+        return false;
+
+    // keepalive due: flip to not-skip, damage entire so skipped cursor box regions are repainted
+    if (m_vrrMinHz && isVrrKeepaliveDue()) {
         m_damage.damageEntire();
         return false;
     }
 
-    return shouldSkip;
+    return true;
 }
 
 bool CMonitor::isMirror() {
@@ -1952,6 +1957,17 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     return reasons;
 }
 
+bool CMonitor::isVrrKeepaliveDue() {
+    if (!m_output || !m_vrrActive) {
+        return false;
+    }
+
+    const float elapsedMs          = m_lastPresentationTimer.getMillis();
+    const float timeoutThresholdMs = 1000.0f / m_vrrMinHz;
+
+    return elapsedMs > timeoutThresholdMs;
+}
+
 bool CMonitor::attemptDirectScanout() {
     static const auto PSAME     = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer");
     static const auto PSAMEFIFO = CConfigValue<Hyprlang::INT>("debug:ds_handle_same_buffer_fifo");
@@ -1969,12 +1985,8 @@ bool CMonitor::attemptDirectScanout() {
 
         // VRR keep-alive throttle: without this, unrelated compositor wakes turn every same-buffer
         // pass into a fresh KMS commit, tightening VRR intervals and spiking refresh above frame pace.
-        static const auto PMINRR          = CConfigValue<Hyprlang::INT>("cursor:min_refresh_rate");
-        const float       minRrHz         = *PMINRR > 0 ? sc<float>(*PMINRR) : 24.0f;
-        const bool        vrrKeepaliveDue = m_output->vrrActive && m_lastPresentationTimer.getMillis() > 1000.0f / minRrHz;
-
         // commit path unlocks FIFO via onMonitorPresent; return early to avoid a double presented().
-        if (m_scanoutNeedsCursorUpdate || vrrKeepaliveDue) {
+        if ((m_scanoutNeedsCursorUpdate && !shouldSuppressCursorCommit()) || isVrrKeepaliveDue()) {
             m_output->state->setBuffer(PBUFFER);
             if (!m_state.test() || !m_output->commit()) {
                 m_lastScanout.reset();

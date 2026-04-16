@@ -777,7 +777,6 @@ CConfigManager::CConfigManager() {
     registerConfigVar("cursor:invisible", Hyprlang::INT{0});
     registerConfigVar("cursor:no_hardware_cursors", Hyprlang::INT{2});
     registerConfigVar("cursor:no_break_fs_vrr", Hyprlang::INT{2});
-    registerConfigVar("cursor:min_refresh_rate", Hyprlang::INT{24});
     registerConfigVar("cursor:hotspot_padding", Hyprlang::INT{0});
     registerConfigVar("cursor:inactive_timeout", {0.f});
     registerConfigVar("cursor:no_warps", Hyprlang::INT{0});

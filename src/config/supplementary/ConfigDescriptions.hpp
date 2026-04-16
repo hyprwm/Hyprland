@@ -1746,12 +1746,6 @@ namespace Config::Supplementary {
             .data = SConfigOptionDescription::SRangeData{.value = 2, .min = 0, .max = 2},
         },
         SConfigOptionDescription{
-            .value       = "cursor:min_refresh_rate",
-            .description = "minimum refresh rate for cursor movement when no_break_fs_vrr is active. Set to minimum supported refresh rate or higher",
-            .type        = CONFIG_OPTION_INT,
-            .data        = SConfigOptionDescription::SRangeData{24, 10, 500},
-        },
-        SConfigOptionDescription{
             .value       = "cursor:hotspot_padding",
             .description = "the padding, in logical px, between screen edges and the cursor",
             .type        = CONFIG_OPTION_INT,

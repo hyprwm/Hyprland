@@ -9,6 +9,7 @@
 #include "../../layout/LayoutManager.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../Compositor.hpp"
+#include "managers/EventManager.hpp"
 
 #include <algorithm>
 
@@ -60,6 +61,8 @@ void CGroup::init() {
     }
 
     updateWindowVisibility();
+
+    g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("1,{:x}", rc<uintptr_t>(m_windows.at(0).get()))}));
 }
 
 void CGroup::destroy() {
@@ -71,6 +74,8 @@ void CGroup::destroy() {
 
         remove(m_windows.at(0).lock());
     }
+
+    g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(m_windows.at(0).get()))}));
 }
 
 CGroup::~CGroup() {

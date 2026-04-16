@@ -1139,7 +1139,7 @@ bool CMonitor::shouldSuppressCursorCommit() {
     const auto  FS_WINDOW          = getFullscreenWindow();
     const bool  shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
     const bool  noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
-    return (!shouldRenderCursor || noBreak) && m_output->vrrActive;
+    return (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
@@ -1958,7 +1958,7 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 }
 
 bool CMonitor::isVrrKeepaliveDue() {
-    if (!m_output || !m_output->vrrActive)
+    if (!m_output || !m_output->state->state().adaptiveSync)
         return false;
 
     const float elapsedMs          = m_lastPresentationTimer.getMillis();

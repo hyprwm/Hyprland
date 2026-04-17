@@ -1475,6 +1475,17 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
 
         m_scrollingData->centerOrFitCol(CURRENT_COL);
         m_scrollingData->recalculate();
+    } else if (ARGS[0] == "center") {
+        const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        if (!TDATA)
+            return std::unexpected("no window");
+
+        const auto CURRENT_COL = TDATA->column.lock();
+        if (!CURRENT_COL)
+            return std::unexpected("no current col");
+
+        m_scrollingData->centerCol(CURRENT_COL);
+        m_scrollingData->recalculate();
     } else
         return std::unexpected("no such layoutmsg for scrolling");
 

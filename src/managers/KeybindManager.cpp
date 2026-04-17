@@ -1034,6 +1034,9 @@ static SDispatchResult toggleActiveFloatingCore(std::string args, std::optional<
 
     g_layoutManager->changeFloatingMode(PWINDOW->layoutTarget());
 
+    if (PWINDOW->m_isFloating)
+        g_pCompositor->changeWindowZOrder(PWINDOW, true);
+
     if (PWINDOW->m_workspace) {
         PWINDOW->m_workspace->updateWindows();
         PWINDOW->m_workspace->updateWindowData();

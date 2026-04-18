@@ -37,34 +37,14 @@
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using Path = std::filesystem::path;
 
 #define SP CSharedPointer
 
-static int               ret = 0;
-static SP<CProcess>      hyprlandProc;
-static const auto cwd = std::filesystem::current_path();
+static int          ret = 0;
+static SP<CProcess> hyprlandProc;
 
-static bool launchHyprland(std::string configPath, std::string binaryPath) {
-    if (binaryPath == "") {
-        std::error_code ec;
-        if (!std::filesystem::exists(cwd / "../build/Hyprland", ec) || ec) {
-            NLog::log("{}No Hyprland binary", Colors::RED);
-            return false;
-        }
-
-        binaryPath = cwd / "../build/Hyprland";
-    }
-
-    if (configPath == "") {
-        std::error_code ec;
-        if (!std::filesystem::exists(cwd / "test.lua", ec) || ec) {
-            NLog::log("{}No test config", Colors::RED);
-            return false;
-        }
-
-        configPath = cwd / "test.lua";
-    }
-
+static bool         launchHyprland(Path configPath, Path binaryPath) {
     NLog::log("{}Launching Hyprland", Colors::YELLOW);
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
@@ -79,117 +59,100 @@ static bool hyprlandAlive() {
     return kill(hyprlandProc->pid(), 0) == 0 || errno != ESRCH;
 }
 
-static void help() {
+[[noreturn]] static void helpAndDie(int exit_code) {
     NLog::log("usage: hyprtester [arg [...]].\n");
     NLog::log(R"(Arguments:
     --help              -h       - Show this message again
-    --config FILE       -c FILE  - Specify config file to use
-    --binary FILE       -b FILE  - Specify Hyprland binary to use
-    --plugin FILE       -p FILE  - Specify the location of the test plugin)");
+    --config FILE       -c FILE  - Specify config file to use (default: './test.lua')
+    --binary FILE       -b FILE  - Specify Hyprland binary to use (default: '../build/Hyprland')
+    --plugin FILE       -p FILE  - Specify the location of the test plugin (default: './'))");
+
+    std::exit(exit_code);
+}
+
+static Path validatePathOrDie(Path path) {
+    Path canonicalized;
+    try {
+        canonicalized = std::filesystem::canonical(path);
+        if (!std::filesystem::is_regular_file(canonicalized)) {
+            throw std::exception();
+        }
+    } catch (...) {
+        std::println(stderr, "[ ERROR ] File '{}' is not accessible or not a regular file", canonicalized.string());
+        helpAndDie(EXIT_FAILURE);
+    }
+    return canonicalized;
+}
+
+namespace {
+    struct SSettings {
+        Path configPath;
+        Path binaryPath;
+        Path pluginPath;
+    };
+}
+
+static SSettings parseSettings(const std::span<const char*> args) {
+    static const auto cwd = std::filesystem::current_path();
+    SSettings         settings{};
+
+    for (auto it = args.begin(); it < args.end(); it++) {
+        std::string_view value = *it;
+
+        if (value == "--config" || value == "-c") {
+            if (std::next(it) == args.end()) {
+                helpAndDie(EXIT_FAILURE);
+            }
+
+            settings.configPath = validatePathOrDie(*std::next(it));
+            it++;
+        } else if (value == "--binary" || value == "-b") {
+            if (std::next(it) == args.end()) {
+                helpAndDie(EXIT_FAILURE);
+            }
+
+            settings.binaryPath = validatePathOrDie(*std::next(it));
+            it++;
+        } else if (value == "--plugin" || value == "-p") {
+            if (std::next(it) == args.end()) {
+                helpAndDie(EXIT_FAILURE);
+            }
+
+            settings.pluginPath = validatePathOrDie(*std::next(it));
+            it++;
+        } else if (value == "--help" || value == "-h") {
+            helpAndDie(EXIT_SUCCESS);
+        } else {
+            std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
+            helpAndDie(EXIT_SUCCESS);
+        }
+    }
+
+    // Default options
+    if (settings.configPath.empty())
+        settings.configPath = validatePathOrDie(cwd / "test.lua");
+    if (settings.binaryPath.empty())
+        settings.binaryPath = validatePathOrDie(cwd / "../build/Hyprland");
+    if (settings.pluginPath.empty())
+        settings.pluginPath = cwd;
+
+    return settings;
+}
+
+static void runTests(std::vector<std::function<bool()>>& tests) {
+
+    for (const auto& fn : tests) {
+        EXPECT(fn(), true);
+    }
 }
 
 int main(int argc, char** argv, char** envp) {
 
-    std::string configPath = "";
-    std::string binaryPath = "";
-    std::string pluginPath = std::filesystem::current_path().string();
-
-    if (argc > 1) {
-        std::span<char*> args{argv + 1, sc<std::size_t>(argc - 1)};
-
-        for (auto it = args.begin(); it != args.end(); it++) {
-            std::string_view value = *it;
-
-            if (value == "--config" || value == "-c") {
-                if (std::next(it) == args.end()) {
-                    help();
-
-                    return 1;
-                }
-
-                configPath = *std::next(it);
-
-                try {
-                    configPath = std::filesystem::canonical(configPath);
-
-                    if (!std::filesystem::is_regular_file(configPath)) {
-                        throw std::exception();
-                    }
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] Config file '{}' is not accessible or not a regular file", configPath);
-                    help();
-
-                    return 1;
-                }
-
-                it++;
-
-                continue;
-            } else if (value == "--binary" || value == "-b") {
-                if (std::next(it) == args.end()) {
-                    help();
-
-                    return 1;
-                }
-
-                binaryPath = *std::next(it);
-
-                try {
-                    binaryPath = std::filesystem::canonical(binaryPath);
-
-                    if (!std::filesystem::is_regular_file(binaryPath)) {
-                        throw std::exception();
-                    }
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] Binary '{}' is not accessible or not a regular file", binaryPath);
-                    help();
-
-                    return 1;
-                }
-
-                it++;
-
-                continue;
-            } else if (value == "--plugin" || value == "-p") {
-                if (std::next(it) == args.end()) {
-                    help();
-
-                    return 1;
-                }
-
-                pluginPath = *std::next(it);
-
-                try {
-                    pluginPath = std::filesystem::canonical(pluginPath);
-
-                    if (!std::filesystem::is_regular_file(pluginPath)) {
-                        throw std::exception();
-                    }
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] plugin '{}' is not accessible or not a regular file", pluginPath);
-                    help();
-
-                    return 1;
-                }
-
-                it++;
-
-                continue;
-            } else if (value == "--help" || value == "-h") {
-                help();
-
-                return 0;
-            } else {
-                std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
-                help();
-
-                return 1;
-            }
-        }
-    }
+    std::span<const char*> args{const_cast<const char**>(argv + 1), sc<std::size_t>(argc - 1)};
+    const SSettings        settings = parseSettings(args);
 
     NLog::log("{}launching hl", Colors::YELLOW);
-    if (!launchHyprland(configPath, binaryPath)) {
+    if (!launchHyprland(settings.configPath, settings.binaryPath)) {
         NLog::log("{}well it failed", Colors::RED);
         return 1;
     }
@@ -217,7 +180,7 @@ int main(int argc, char** argv, char** envp) {
     getFromSocket("/output create headless");
 
     NLog::log("{}trying to load plugin", Colors::YELLOW);
-    if (const auto R = getFromSocket(std::format("/plugin load {}", pluginPath)); R != "ok") {
+    if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {
         NLog::log("{}Failed to load the test plugin: {}", Colors::RED, R);
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
@@ -226,16 +189,10 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
     NLog::log("{}Running main tests", Colors::YELLOW);
-
-    for (const auto& fn : testFns) {
-        EXPECT(fn(), true);
-    }
+    runTests(testFns);
 
     NLog::log("{}Running protocol client tests", Colors::YELLOW);
-
-    for (const auto& fn : clientTestFns) {
-        EXPECT(fn(), true);
-    }
+    runTests(clientTestFns);
 
     NLog::log("{}running plugin test", Colors::YELLOW);
     EXPECT(testPlugin(), true);

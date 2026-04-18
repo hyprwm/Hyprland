@@ -58,17 +58,7 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     applyOffset(shadowBox);
 
-    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
-    const auto  ROUNDING            = PWINDOW->rounding();
-    const auto  ROUNDINGSIZE        = ROUNDING - M_SQRT1_2 * ROUNDING + 1;
-
-    CRegion     shadowRegion(shadowBox);
-    if (*PSHADOWIGNOREWINDOW) {
-        CBox surfaceBox = PWINDOW->getWindowMainSurfaceBox();
-        applyOffset(surfaceBox);
-        surfaceBox.expand(-ROUNDINGSIZE);
-        shadowRegion.subtract(CRegion(surfaceBox));
-    }
+    CRegion shadowRegion(shadowBox);
 
     for (auto const& m : g_pCompositor->m_monitors) {
         if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m)) {
@@ -125,10 +115,9 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
 
     const auto  PWINDOW = m_window.lock();
 
-    static auto PSHADOWSIZE         = CConfigValue<Hyprlang::INT>("decoration:shadow:range");
-    static auto PSHADOWIGNOREWINDOW = CConfigValue<Hyprlang::INT>("decoration:shadow:ignore_window");
-    static auto PSHADOWSCALE        = CConfigValue<Hyprlang::FLOAT>("decoration:shadow:scale");
-    static auto PSHADOWOFFSET       = CConfigValue<Hyprlang::VEC2>("decoration:shadow:offset");
+    static auto PSHADOWSIZE   = CConfigValue<Hyprlang::INT>("decoration:shadow:range");
+    static auto PSHADOWSCALE  = CConfigValue<Hyprlang::FLOAT>("decoration:shadow:scale");
+    static auto PSHADOWOFFSET = CConfigValue<Hyprlang::VEC2>("decoration:shadow:offset");
 
     const auto  BORDERSIZE       = PWINDOW->getRealBorderSize();
     const auto  ROUNDINGBASE     = PWINDOW->rounding();
@@ -173,43 +162,11 @@ SShadowRenderData CHyprDropShadowDecoration::getRenderData(PHLMONITOR pMonitor, 
 
     g_pHyprRenderer->m_renderData.currentWindow = m_window;
 
-    CBox    windowBox;
-    CRegion saveDamage;
     fullBox.scale(pMonitor->m_scale).round();
-    if (*PSHADOWIGNOREWINDOW) {
-        windowBox      = m_lastWindowBox;
-        CBox withDecos = m_lastWindowBoxWithDecos;
-
-        // get window box
-        windowBox.translate(-pMonitor->m_position + WORKSPACEOFFSET);
-        withDecos.translate(-pMonitor->m_position + WORKSPACEOFFSET);
-
-        windowBox.translate(PWINDOW->m_floatingOffset);
-        withDecos.translate(PWINDOW->m_floatingOffset);
-
-        auto scaledExtentss = withDecos.extentsFrom(windowBox);
-        scaledExtentss      = scaledExtentss * pMonitor->m_scale;
-        scaledExtentss      = scaledExtentss.round();
-
-        // add extents
-        windowBox.scale(pMonitor->m_scale).round().addExtents(scaledExtentss);
-
-        if (windowBox.width < 1 || windowBox.height < 1)
-            return {}; // prevent assert failed
-
-        saveDamage = g_pHyprRenderer->m_renderData.damage;
-
-        g_pHyprRenderer->m_renderData.damage = fullBox;
-        g_pHyprRenderer->m_renderData.damage.subtract(windowBox.copy().expand(-ROUNDING * pMonitor->m_scale)).intersect(saveDamage);
-        g_pHyprRenderer->m_renderData.renderModif.applyToRegion(g_pHyprRenderer->m_renderData.damage);
-    }
 
     return {
-        .ignoreWindow  = *PSHADOWIGNOREWINDOW,
         .valid         = true,
         .fullBox       = fullBox,
-        .windowBox     = windowBox,
-        .saveDamage    = saveDamage,
         .rounding      = ROUNDING,
         .roundingPower = ROUNDINGPOWER,
         .size          = *PSHADOWSIZE,
@@ -233,58 +190,7 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     g_pHyprRenderer->disableScissor();
 
-    if (data.ignoreWindow) {
-        const auto alphaFB     = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
-        const auto alphaSwapFB = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
-
-        CBox       monbox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
-
-        auto       guard = g_pHyprRenderer->bindTempFB(alphaFB); // store current FB inside guard
-
-        // TODO not needed for 8bpc and 16fp?
-        // build the matte
-        // 10-bit formats have dogshit alpha channels, so we have to use the matte to its fullest.
-        // first, clear region of interest with black (fully transparent)
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = CHyprColor(0, 0, 0, 1), .round = 0}, monbox);
-
-        // render white shadow with the alpha of the shadow color (otherwise we clear with alpha later and shit it to 2 bit)
-        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale,
-                           CHyprColor(1, 1, 1, PWINDOW->m_realShadowColor->value().a), a);
-
-        // render black window box ("clip")
-        g_pHyprRenderer->draw(
-            CRectPassElement::SRectData{
-                .box           = data.windowBox,
-                .color         = CHyprColor(0, 0, 0, 1),
-                .round         = (data.rounding + 1 /* This fixes small pixel gaps. */) * pMonitor->m_scale,
-                .roundingPower = data.roundingPower,
-            },
-            monbox);
-
-        g_pHyprRenderer->bindFB(alphaSwapFB);
-
-        // alpha swap just has the shadow color. It will be the "texture" to render.
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{.box = data.fullBox, .color = PWINDOW->m_realShadowColor->value().stripA(), .round = 0}, monbox);
-
-        guard.reset(); // restore FB
-
-        g_pHyprRenderer->pushMonitorTransformEnabled(true);
-        g_pHyprRenderer->m_renderData.renderModif.enabled = false;
-
-        g_pHyprRenderer->draw(
-            CTextureMatteElement::STextureMatteData{
-                .box = monbox,
-                .tex = alphaSwapFB->getTexture(),
-                .fb  = alphaFB,
-            },
-            {});
-
-        g_pHyprRenderer->m_renderData.renderModif.enabled = true;
-        g_pHyprRenderer->popMonitorTransformEnabled();
-
-        g_pHyprRenderer->m_renderData.damage = data.saveDamage;
-    } else
-        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
+    drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
 
     reposition();
 }

@@ -280,12 +280,6 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SBoolData{false},
         },
         SConfigOptionDescription{
-            .value       = "decoration:shadow:ignore_window",
-            .description = "if true, the shadow will not be rendered behind the window itself, only around it.",
-            .type        = CONFIG_OPTION_BOOL,
-            .data        = SConfigOptionDescription::SBoolData{true},
-        },
-        SConfigOptionDescription{
             .value       = "decoration:shadow:color",
             .description = "shadow's color. Alpha dictates shadow's opacity.",
             .type        = CONFIG_OPTION_COLOR,

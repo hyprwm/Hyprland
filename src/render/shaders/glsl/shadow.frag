@@ -19,6 +19,7 @@ uniform float radius;
 uniform float roundingPower;
 uniform float range;
 uniform float shadowPower;
+uniform float thick;
 
 #if USE_CM
 #include "cm_helpers.glsl"
@@ -38,7 +39,7 @@ void main() {
 #else
     fragColor =
 #endif
-        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight
+        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, thick
 #if USE_CM
                   ,
                   sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange

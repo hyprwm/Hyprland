@@ -24,7 +24,6 @@
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/memory/Casts.hpp>
-using namespace Hyprutils::Memory;
 
 #include <csignal>
 #include <cerrno>
@@ -43,28 +42,27 @@ using namespace Hyprutils::Memory;
 
 static int               ret = 0;
 static SP<CProcess>      hyprlandProc;
-static const std::string cwd = std::filesystem::current_path().string();
+static const auto cwd = std::filesystem::current_path();
 
-//
 static bool launchHyprland(std::string configPath, std::string binaryPath) {
     if (binaryPath == "") {
         std::error_code ec;
-        if (!std::filesystem::exists(cwd + "/../build/Hyprland", ec) || ec) {
+        if (!std::filesystem::exists(cwd / "../build/Hyprland", ec) || ec) {
             NLog::log("{}No Hyprland binary", Colors::RED);
             return false;
         }
 
-        binaryPath = cwd + "/../build/Hyprland";
+        binaryPath = cwd / "../build/Hyprland";
     }
 
     if (configPath == "") {
         std::error_code ec;
-        if (!std::filesystem::exists(cwd + "/test.lua", ec) || ec) {
+        if (!std::filesystem::exists(cwd / "test.lua", ec) || ec) {
             NLog::log("{}No test config", Colors::RED);
             return false;
         }
 
-        configPath = cwd + "/test.lua";
+        configPath = cwd / "test.lua";
     }
 
     NLog::log("{}Launching Hyprland", Colors::YELLOW);
@@ -119,7 +117,7 @@ int main(int argc, char** argv, char** envp) {
                         throw std::exception();
                     }
                 } catch (...) {
-                    std::println(stderr, "[ ERROR ] Config file '{}' doesn't exist!", configPath);
+                    std::println(stderr, "[ ERROR ] Config file '{}' is not accessible or not a regular file", configPath);
                     help();
 
                     return 1;
@@ -144,7 +142,7 @@ int main(int argc, char** argv, char** envp) {
                         throw std::exception();
                     }
                 } catch (...) {
-                    std::println(stderr, "[ ERROR ] Binary '{}' doesn't exist!", binaryPath);
+                    std::println(stderr, "[ ERROR ] Binary '{}' is not accessible or not a regular file", binaryPath);
                     help();
 
                     return 1;
@@ -169,7 +167,7 @@ int main(int argc, char** argv, char** envp) {
                         throw std::exception();
                     }
                 } catch (...) {
-                    std::println(stderr, "[ ERROR ] plugin '{}' doesn't exist!", pluginPath);
+                    std::println(stderr, "[ ERROR ] plugin '{}' is not accessible or not a regular file", pluginPath);
                     help();
 
                     return 1;

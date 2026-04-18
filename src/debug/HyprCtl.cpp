@@ -262,7 +262,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "sdrBrightness": {:.2f},
     "sdrSaturation": {:.2f},
     "sdrMinLuminance": {:.2f},
-    "sdrMaxLuminance": {}
+    "sdrMaxLuminance": {},
+    "hardwareCursorsInUse": {}
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
@@ -275,7 +276,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"),
             getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"),
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
-            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
+            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance),
+            (!m->shouldUseSoftwareCursors() ? "true" : "false"));
 
     } else {
         result += std::format(
@@ -284,7 +286,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\ttearingBlockedBy: {}\n\tdirectScanoutTo: "
             "{:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
             "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
-            "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {:.2f}\n\tsdrSaturation: {:.2f}\n\tsdrMinLuminance: {:.2f}\n\tsdrMaxLuminance: {}\n\n",
+            "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {:.2f}\n\tsdrSaturation: {:.2f}\n\tsdrMinLuminance: {:.2f}\n\tsdrMaxLuminance: "
+            "{}\n\thardwareCursorsInUse: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
@@ -293,7 +296,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
-            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
+            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()));
     }
 
     return result;

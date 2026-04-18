@@ -718,6 +718,8 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
                 // bpp is 32 INSALLAH
                 auto begin = 4 * box.y1 * (box.x2 - box.x1) + box.x1;
                 auto len   = 4 * (box.x2 - box.x1);
+                if (len == 0 || begin > shmData.size() || len > shmData.size() - begin)
+                    return;
                 memcpy(shmData.data() + begin, pixelData + begin, len);
             }
         });

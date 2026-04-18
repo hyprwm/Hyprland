@@ -63,7 +63,9 @@ Aquamarine::SSHMAttrs CWLSHMBuffer::shm() {
 }
 
 std::tuple<uint8_t*, uint32_t, size_t> CWLSHMBuffer::beginDataPtr(uint32_t flags) {
-    return {sc<uint8_t*>(m_pool->m_data) + m_offset, m_fmt, m_stride * size.y};
+    const size_t maxAvailable = m_pool->m_size > (size_t)m_offset ? m_pool->m_size - (size_t)m_offset : 0;
+    const size_t bufLen       = (size_t)m_stride * (size_t)size.y;
+    return {sc<uint8_t*>(m_pool->m_data) + m_offset, m_fmt, std::min(bufLen, maxAvailable)};
 }
 
 void CWLSHMBuffer::endDataPtr() {

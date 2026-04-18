@@ -76,8 +76,7 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
 
 static bool hyprlandAlive() {
     NLog::log("{}hyprlandAlive", Colors::YELLOW);
-    kill(hyprlandProc->pid(), 0);
-    return errno != ESRCH;
+    return kill(hyprlandProc->pid(), 0) == 0 || errno != ESRCH;
 }
 
 static void help() {

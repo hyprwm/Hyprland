@@ -19,7 +19,9 @@
 #include "tests/main/tests.hpp"
 #include "tests/clients/tests.hpp"
 #include "tests/plugin/plugin.hpp"
+#include "tests/shared.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
@@ -137,9 +139,41 @@ static SSettings parseSettings(const std::span<const char*> args) {
     return settings;
 }
 
-static void runTests(std::vector<std::function<bool()>>& tests) {
+static bool preTestCleanup() {
+    bool failed = false;
 
+    if (!Tests::killAllWindows()) {
+        NLog::log("{}Internal failure: failed to kill all windows", Colors::RED);
+        failed = true;
+    }
+    if (!Tests::killAllLayers()) {
+        NLog::log("{}Internal failure: failed to kill all layers", Colors::RED);
+        failed = true;
+    }
+    if (getFromSocket("/reload") != "ok") {
+        NLog::log("{}Internal failure: failed to reload", Colors::RED);
+        failed = true;
+    }
+    if (!getFromSocket("/activeworkspace").contains("workspace ID 1 (1)")) {
+        if (getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })") != "ok") {
+            NLog::log("{}Internal failure: failed to switch to workspace 1", Colors::RED);
+            failed = true;
+        }
+    }
+    if (getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })") != "ok") {
+        NLog::log("{}Internal failure: failed to reset cursor position", Colors::RED);
+        failed = true;
+    }
+
+    return !failed;
+}
+
+static void runTests(std::vector<std::function<bool()>>& tests) {
     for (const auto& fn : tests) {
+        // Clean up before every test
+        NLog::log("{}Cleaning up", Colors::YELLOW);
+        (void)preTestCleanup();
+
         EXPECT(fn(), true);
     }
 }

@@ -72,7 +72,7 @@
 #include "managers/WelcomeManager.hpp"
 #include "render/AsyncResourceGatherer.hpp"
 #include "plugins/PluginSystem.hpp"
-#include "hyprerror/HyprError.hpp"
+#include "errorOverlay/Overlay.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "debug/Overlay.hpp"
 #include "helpers/MonitorFrameScheduler.hpp"
@@ -600,7 +600,7 @@ void CCompositor::cleanup() {
     Render::g_pShaderLoader.reset();
     Config::mgr().reset();
     g_layoutManager.reset();
-    g_pHyprError.reset();
+    ErrorOverlay::overlay().reset();
     g_pKeybindManager.reset();
     g_pXWaylandManager.reset();
     g_pPointerManager.reset();
@@ -643,8 +643,8 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             if (!Config::initConfigManager())
                 exit(1);
 
-            Log::logger->log(Log::DEBUG, "Creating the CHyprError!");
-            g_pHyprError = makeUnique<CHyprError>();
+            Log::logger->log(Log::DEBUG, "Creating the Error Overlay!");
+            ErrorOverlay::overlay();
 
             Log::logger->log(Log::DEBUG, "Creating the LayoutManager!");
             g_layoutManager = makeUnique<Layout::CLayoutManager>();

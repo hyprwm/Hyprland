@@ -18,6 +18,9 @@ namespace Config {
             m_colors.push_back(col);
             updateColorsOk();
         };
+        CGradientValueData(std::vector<CHyprColor>&& cols, float ang) : m_colors(std::move(cols)), m_angle(ang) {
+            updateColorsOk();
+        };
         virtual ~CGradientValueData() = default;
 
         virtual eConfigValueDataTypes getDataType() {

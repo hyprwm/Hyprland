@@ -33,7 +33,7 @@
 #include "../event/EventBus.hpp"
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
-#include "hyprerror/HyprError.hpp"
+#include "errorOverlay/Overlay.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -916,16 +916,16 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
     std::error_code ec;
     if (!std::filesystem::is_regular_file(absPath, ec)) {
         if (ec)
-            g_pHyprError->queueError("Screen shader parser: Failed to check screen shader path: " + ec.message());
+            ErrorOverlay::overlay()->queueError("Screen shader parser: Failed to check screen shader path: " + ec.message());
         else
-            g_pHyprError->queueError("Screen shader parser: Screen shader path is not a regular file");
+            ErrorOverlay::overlay()->queueError("Screen shader parser: Screen shader path is not a regular file");
         return;
     }
 
     std::ifstream infile(absPath);
 
     if (!infile.good()) {
-        g_pHyprError->queueError("Screen shader parser: Failed to open screen shader");
+        ErrorOverlay::overlay()->queueError("Screen shader parser: Failed to open screen shader");
         return;
     }
 
@@ -952,9 +952,9 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
 
         // The screen shader uses the uniform
         // Since the screen shader could change every frame, damage tracking *needs* to be disabled
-        g_pHyprError->queueError(std::format("Screen shader: Screen shader uses uniform '{}', which requires debug:damage_tracking to be switched off.\n"
-                                             "WARNING:(Disabling damage tracking will *massively* increase GPU utilization!",
-                                             name));
+        ErrorOverlay::overlay()->queueError(std::format("Screen shader: Screen shader uses uniform '{}', which requires debug:damage_tracking to be switched off.\n"
+                                                        "WARNING:(Disabling damage tracking will *massively* increase GPU utilization!",
+                                                        name));
     };
 
     // Allow glitch shader to use time uniform whighout damage tracking

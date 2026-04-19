@@ -24,7 +24,7 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
-#include "../hyprerror/HyprError.hpp"
+#include "../errorOverlay/Overlay.hpp"
 #include "../debug/Overlay.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "../layout/LayoutManager.hpp"
@@ -159,7 +159,7 @@ IHyprRenderer::IHyprRenderer() {
 
     static auto P3 = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         g_pEventLoopManager->doLater([this]() {
-            if (!g_pHyprError->active())
+            if (!ErrorOverlay::overlay()->active())
                 return;
             for (auto& m : g_pCompositor->m_monitors) {
                 arrangeLayersForMonitor(m->m_id);
@@ -2067,7 +2067,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
             if (pMonitor == Desktop::focusState()->monitor()) {
                 Notification::overlay()->draw(pMonitor);
-                g_pHyprError->draw();
+                ErrorOverlay::overlay()->draw();
             }
 
             // for drawing the debug overlay

@@ -17,9 +17,9 @@ layout(push_constant, row_major) uniform UBOPush {
     float                     angle2;
     float                     alpha;
     float                     _junk;
-#if USE_ROUNDING
+    // #if USE_ROUNDING
     SRounding rounding;
-#endif
+// #endif
 #if USE_CM
     SShaderCM cm;
 #endif

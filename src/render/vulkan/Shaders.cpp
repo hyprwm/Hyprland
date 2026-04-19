@@ -14,11 +14,11 @@ static const std::vector<std::string> SHADER_INCLUDES = {
     "gain.glsl", "border.glsl", "shadow.glsl", "blurprepare.glsl", "blur1.glsl",    "blur2.glsl", "blurFinish.glsl",
 };
 
-// TODO vulkan ext.frag, glitch.frag
+// TODO vulkan ext.frag, glitch.frag, inner_glow.frag
 // order matters, see ePreparedFragmentShader
 const std::array<std::string, SH_FRAG_LAST> FRAG_SHADERS = {
-    "vk_quad.frag",        "vk_pass.frag",       "vk_matte.frag",  "ext.frag",    "vk_blur1.frag",  "vk_blur2.frag",
-    "vk_blurprepare.frag", "vk_blurfinish.frag", "vk_shadow.frag", "vk_tex.frag", "vk_border.frag", "glitch.frag",
+    "vk_quad.frag",       "vk_pass.frag",   "vk_matte.frag",   "ext.frag",    "vk_blur1.frag",  "vk_blur2.frag", "vk_blurprepare.frag",
+    "vk_blurfinish.frag", "vk_shadow.frag", "inner_glow.frag", "vk_tex.frag", "vk_border.frag", "glitch.frag",
 };
 
 #define VK_PUSH_MIN_SIZE 128

@@ -289,7 +289,6 @@ void CVKElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& 
 
 void CVKElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage) {
     auto&             m_renderData = m_renderer->m_renderData;
-    static const auto PPASS        = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
     static const auto PCM          = CConfigValue<Hyprlang::INT>("render:cm_enabled");
     const auto        sdrEOTF      = NTransferFunction::fromConfig();
 
@@ -386,9 +385,7 @@ void CVKElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
     if (roundingData.radius > 0)
         usedFeatures |= SH_FEAT_ROUNDING;
 
-    const auto surface           = m_renderer->m_renderData.surface;
-    const bool isHDRSurface      = surface.valid() && surface->m_colorManagement.valid() ? surface->m_colorManagement->isHDR() : false;
-    const bool canPassHDRSurface = isHDRSurface && !surface->m_colorManagement->isWindowsScRGB(); // windows scRGB requires CM shader
+    const auto surface = m_renderer->m_renderData.surface;
 
     const auto imageDescription = surface.valid() && surface->m_colorManagement.valid() ?
         NColorManagement::CImageDescription::from(surface->m_colorManagement->imageDescription()) :
@@ -397,12 +394,9 @@ void CVKElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
     auto       chosenSdrEotf          = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
     const auto targetImageDescription = data.cmBackToSRGB ? NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = chosenSdrEotf}) :
                                                             m_renderData.pMonitor->m_imageDescription;
-    const bool skipCM                 = !*PCM                                             /* CM unsupported or disabled */
-        || m_renderData.pMonitor->doesNoShaderCM()                                        /* no shader needed */
-        || (imageDescription->id() == targetImageDescription->id() && !data.cmBackToSRGB) /* Source and target have the same image description */
-        || (((*PPASS && canPassHDRSurface) ||
-             (*PPASS == 1 && !isHDRSurface && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR && m_renderData.pMonitor->m_cmType != NCMType::CM_HDR_EDID)) &&
-            m_renderData.pMonitor->inFullscreenMode()) /* Fullscreen window with pass cm enabled */;
+    const bool skipCM                 = !*PCM                                              /* CM unsupported or disabled */
+        || m_renderData.pMonitor->doesNoShaderCM()                                         /* no shader needed */
+        || (imageDescription->id() == targetImageDescription->id() && !data.cmBackToSRGB); /* Source and target have the same image description */
     SShaderCM              cmData;
     SShaderTonemap         tonemapData;
     SShaderTargetPrimaries primariesData;

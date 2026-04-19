@@ -20,7 +20,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
         case EK_RECT: drawRect(dynamicPointerCast<CRectPassElement>(element), damage); break;
         case EK_HINTS: drawHints(dynamicPointerCast<CRendererHintsPassElement>(element), damage); break;
         case EK_SHADOW: draw(dynamicPointerCast<CShadowPassElement>(element), damage); break;
-        case EK_INNER_GLOW: draw(dynamicPointerCast<CInnerGlowPassElement>(element), damage); break;
+        case EK_INNER_GLOW: drawGlow(dynamicPointerCast<CInnerGlowPassElement>(element), damage); break;
         case EK_SURFACE: preDrawSurface(dynamicPointerCast<CSurfacePassElement>(element), damage); break;
         case EK_TEXTURE: drawTex(dynamicPointerCast<CTexPassElement>(element), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dynamicPointerCast<CTextureMatteElement>(element), damage); break;
@@ -388,6 +388,14 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
     m_renderData.useNearestNeighbor = false;
     g_pHyprRenderer->popMonitorTransformEnabled();
     m_renderData.currentWindow.reset();
+}
+
+void IElementRenderer::drawGlow(WP<CInnerGlowPassElement> element, const CRegion& damage) {
+    static auto PGLOW = CConfigValue<Hyprlang::INT>("decoration:glow:enabled");
+    if (!*PGLOW)
+        return;
+
+    draw(element, damage);
 }
 
 void IElementRenderer::drawTex(WP<CTexPassElement> element, const CRegion& damage) {

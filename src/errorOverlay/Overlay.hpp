@@ -11,12 +11,12 @@
 namespace ErrorOverlay {
 
     namespace Colors {
-        constexpr const float                   DEG45 = M_PI / 4.F;
+        constexpr const float                   ANGLE_30 = 0.52359877;
 
         static const Config::CGradientValueData ERROR =
-            Config::CGradientValueData{std::vector<CHyprColor>{*configStringToInt("0xffff4d4d"), *configStringToInt("0xffff8080")}, DEG45};
+            Config::CGradientValueData{std::vector<CHyprColor>{*configStringToInt("0xffff6666"), *configStringToInt("0xff800000")}, ANGLE_30};
         static const Config::CGradientValueData WARNING =
-            Config::CGradientValueData{std::vector<CHyprColor>{*configStringToInt("0xffffd11a"), *configStringToInt("0xffffdb4d")}, DEG45};
+            Config::CGradientValueData{std::vector<CHyprColor>{*configStringToInt("0xffffdb4d"), *configStringToInt("0xff665200")}, ANGLE_30};
     };
 
     class COverlay {

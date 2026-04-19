@@ -212,12 +212,16 @@ void CHyprError::draw() {
 
     m_monitorChanged = false;
 
+    if (!m_texture)
+        return;
+
     CTexPassElement::SRenderData data;
     data.tex = texture();
     data.box = monbox;
     data.a   = m_fadeOpacity->value();
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
+    if (data.tex->ok())
+        g_pHyprRenderer->m_renderPass.add(makeUnique<CTexPassElement>(data));
 }
 
 void CHyprError::destroy() {
@@ -236,7 +240,5 @@ float CHyprError::height() {
 }
 
 SP<Render::ITexture> CHyprError::texture() {
-    if (!m_texture)
-        m_texture = g_pHyprRenderer->createTexture();
     return m_texture;
 }

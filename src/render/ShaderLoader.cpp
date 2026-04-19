@@ -155,6 +155,7 @@ const std::map<std::string, std::string>& CShaderLoader::includes() {
 
 // TODO notify user if bundled shader is newer than ~/.config override
 std::string CShaderLoader::loadShader(const std::string& filename) {
+    Log::logger->log(Log::DEBUG, "Loading shader {}", filename);
     if (m_shaderPath.length()) {
         std::filesystem::path path = m_shaderPath;
         const auto            src  = NFsUtils::readFileAsString(path / filename);

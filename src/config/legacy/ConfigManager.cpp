@@ -825,6 +825,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("render:use_shader_blur_blend", Hyprlang::INT{0});
     registerConfigVar("render:use_fp16", Hyprlang::INT{2});
     registerConfigVar("render:keep_unmodified_copy", Hyprlang::INT{2});
+    registerConfigVar("render:use_vulkan", Hyprlang::INT{0});
 
     registerConfigVar("ecosystem:no_update_news", Hyprlang::INT{0});
     registerConfigVar("ecosystem:no_donation_nag", Hyprlang::INT{0});

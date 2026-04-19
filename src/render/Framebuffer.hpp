@@ -32,6 +32,7 @@ namespace Render {
         void                                setImageDescription(NColorManagement::PImageDescription desc);
 
         virtual void                        addStencil(SP<ITexture> tex) = 0;
+        virtual void                        setName(const std::string& name);
 
         Vector2D                            m_size;
         DRMFormat                           m_drmFormat = DRM_FORMAT_INVALID;

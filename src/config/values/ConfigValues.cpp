@@ -673,6 +673,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", false),
+        MS<Bool>("experimental:deadline_client_buffer", "set deadline on client buffers", false),
+        MS<Bool>("experimental:deadline_main_buffer", "set deadline on main buffers", false),
 
         /*
          * quirks:

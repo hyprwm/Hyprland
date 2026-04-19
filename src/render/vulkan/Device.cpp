@@ -227,7 +227,7 @@ std::optional<const SVkFormatProps> CHyprVulkanDevice::getFormat(const DRMFormat
 
 void CHyprVulkanDevice::loadFormats() {
     for (const auto& format : Render::VK::FORMATS) {
-        const auto props = getFormat(format.first);
+        const auto props = getFormat(format.second);
         if (props.has_value()) {
             Log::logger->log(Log::DEBUG, "Loaded format {}", NFormatUtils::drmFormatName(format.first));
             m_formats.emplace_back(props.value());

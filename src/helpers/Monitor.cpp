@@ -30,7 +30,7 @@
 #include "../managers/animation/AnimationManager.hpp"
 #include "../managers/animation/DesktopAnimationManager.hpp"
 #include "../managers/input/InputManager.hpp"
-#include "../hyprerror/HyprError.hpp"
+#include "../errorOverlay/Overlay.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
@@ -981,12 +981,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         auto image = NColorManagement::SImageDescription::fromICC(RULE->m_iccFile);
         if (!image) {
             Log::logger->log(Log::ERR, "icc for {} ({}) failed: {}", m_name, RULE->m_iccFile, image.error());
-            g_pHyprError->queueError(std::format("failed to apply icc {} to {}: {}", RULE->m_iccFile, m_name, image.error()));
+            ErrorOverlay::overlay()->queueError(std::format("failed to apply icc {} to {}: {}", RULE->m_iccFile, m_name, image.error()));
         } else {
             m_imageDescription = CImageDescription::from(*image);
             if (!m_imageDescription) {
                 Log::logger->log(Log::ERR, "icc for {} ({}) failed 2: {}", m_name, RULE->m_iccFile, image.error());
-                g_pHyprError->queueError(std::format("failed to apply icc {} to {}: {}", RULE->m_iccFile, m_name, image.error()));
+                ErrorOverlay::overlay()->queueError(std::format("failed to apply icc {} to {}: {}", RULE->m_iccFile, m_name, image.error()));
                 m_imageDescription = CImageDescription::from(SImageDescription{});
             }
         }
@@ -1030,7 +1030,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
                     m_scale = std::round(scaleZero);
                 else {
                     Log::logger->log(Log::ERR, "Invalid scale passed to monitor, {} failed to find a clean divisor", m_scale);
-                    g_pHyprError->queueError("Invalid scale passed to monitor " + m_name + ", failed to find a clean divisor");
+                    ErrorOverlay::overlay()->queueError("Invalid scale passed to monitor " + m_name + ", failed to find a clean divisor");
                     m_scale = getDefaultScale();
                 }
             } else {
@@ -1690,7 +1690,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    if (g_pHyprError->active() && Desktop::focusState()->monitor() == m_self) {
+    if (ErrorOverlay::overlay()->active() && Desktop::focusState()->monitor() == m_self) {
         reasons |= SC_ERRORBAR;
         if (!full)
             return reasons;

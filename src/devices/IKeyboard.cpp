@@ -4,7 +4,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../helpers/MiscFunctions.hpp"
-#include "../hyprerror/HyprError.hpp"
+#include "../errorOverlay/Overlay.hpp"
 #include <sys/mman.h>
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -99,8 +99,8 @@ void IKeyboard::setKeymap(const SStringRuleNames& rules) {
         m_xkbKeymap = xkb_keymap_new_from_names2(CONTEXT, &XKBRULES, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
     if (!m_xkbKeymap) {
-        g_pHyprError->queueError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
-                                 ", options: " + rules.options + ", layout: " + rules.layout + " )");
+        ErrorOverlay::overlay()->queueError("Invalid keyboard layout passed. ( rules: " + rules.rules + ", model: " + rules.model + ", variant: " + rules.variant +
+                                            ", options: " + rules.options + ", layout: " + rules.layout + " )");
 
         Log::logger->log(Log::ERR, "Keyboard layout {} with variant {} (rules: {}, model: {}, options: {}) couldn't have been loaded.", rules.layout, rules.variant, rules.rules,
                          rules.model, rules.options);

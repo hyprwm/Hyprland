@@ -1224,6 +1224,41 @@ SDispatchResult CKeybindManager::fullscreenActive(std::string args) {
     return {};
 }
 
+/// Logically toggles the `toggleMode` state in the `oldMode` state and returns the new mode.
+/// Corresponds to the `fullscreenstate` dispatcher.
+static enum eFullscreenMode fullscreenModeToggle(enum eFullscreenMode oldMode, enum eFullscreenMode toggleMode) {
+    static_assert(FSMODE_MAX == 3, "Update this function's logic if new fullscreen states are introduced");
+
+    switch (toggleMode) {
+        case FSMODE_MAXIMIZED | FSMODE_FULLSCREEN:
+            // When the request is to toggle two bits at the same time, we assume the user wants to sync the states of
+            // maximizedness and fullscreenness (enable both or disable both).
+            //
+            // If we interpreted this as bit toggling, in case the old window mode is either maximized or fullscreen,
+            // toggling both would continuosuly switch the window between maximized and fullscreen. It's unlikely to be
+            // the user's intention.
+            return oldMode == toggleMode ? FSMODE_NONE : toggleMode;
+        case FSMODE_FULLSCREEN:
+            // When the request is to toggle fullscreenness, we assume the user wants to toggle the fullscreenness bit,
+            // regardless of whether the window is also maximized.
+            return sc<eFullscreenMode>(oldMode ^ FSMODE_FULLSCREEN);
+        case FSMODE_MAXIMIZED:
+            // When the request is to toggle maximizedness, but the window is already fullscreen, we assume the user
+            // wants to *switch* to the maximized state.
+            //
+            // If we interpreted this as bit toggling, the window would continuously switch between fullscreen and
+            // fullscreen+maximized, which has no observable effect. It's unlikely to be the user's intention.
+            return oldMode & FSMODE_FULLSCREEN ? FSMODE_MAXIMIZED : sc<eFullscreenMode>(oldMode ^ FSMODE_MAXIMIZED);
+        case FSMODE_NONE:
+            // Toggling zero does not do anything
+            return oldMode;
+        default:
+            Log::logger->log(Log::ERR, "Invalid value of `toggleMode` in `fullscreenModeToggle`");
+            // Return whatever to prevent UB
+            return oldMode;
+    }
+}
+
 SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
     const auto PWINDOW = Desktop::focusState()->window();
     const auto ARGS    = CVarList(args, 3, ' ');
@@ -1241,21 +1276,28 @@ SDispatchResult CKeybindManager::fullscreenStateActive(std::string args) {
         clientMode = std::stoi(ARGS[1]);
     } catch (std::exception& e) { clientMode = -1; }
 
-    const Desktop::View::SFullscreenState STATE =
-        Desktop::View::SFullscreenState{.internal = (internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal),
-                                        .client   = (clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client)};
-
     if (ARGS.size() <= 2 || ARGS[2] == "toggle") {
-        if (internalMode != -1 && clientMode != -1 && PWINDOW->m_fullscreenState.internal == STATE.internal && PWINDOW->m_fullscreenState.client == STATE.client)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
-        else if (internalMode != -1 && clientMode == -1 && PWINDOW->m_fullscreenState.internal == STATE.internal)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = PWINDOW->m_fullscreenState.client});
-        else if (internalMode == -1 && clientMode != -1 && PWINDOW->m_fullscreenState.client == STATE.client)
-            g_pCompositor->setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = FSMODE_NONE});
-        else
-            g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
+        if (internalMode == -1)
+            internalMode = FSMODE_NONE;
+        if (clientMode == -1)
+            clientMode = FSMODE_NONE;
+
+        g_pCompositor->setWindowFullscreenState(PWINDOW,
+                                                Desktop::View::SFullscreenState{
+                                                    .internal = fullscreenModeToggle(PWINDOW->m_fullscreenState.internal, sc<eFullscreenMode>(internalMode)),
+                                                    .client   = fullscreenModeToggle(PWINDOW->m_fullscreenState.client, sc<eFullscreenMode>(clientMode)),
+                                                });
     } else if (ARGS[2] == "set") {
-        g_pCompositor->setWindowFullscreenState(PWINDOW, STATE);
+        if (internalMode == -1)
+            internalMode = PWINDOW->m_fullscreenState.internal;
+        if (clientMode == -1)
+            clientMode = PWINDOW->m_fullscreenState.client;
+
+        g_pCompositor->setWindowFullscreenState(PWINDOW,
+                                                Desktop::View::SFullscreenState{
+                                                    .internal = (sc<eFullscreenMode>(internalMode)),
+                                                    .client   = (sc<eFullscreenMode>(clientMode)),
+                                                });
     }
 
     PWINDOW->m_ruleApplicator->syncFullscreenOverride(
@@ -1339,7 +1381,7 @@ SDispatchResult CKeybindManager::moveActiveToWorkspaceSilent(std::string args) {
 
     const auto& [WORKSPACEID, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
     if (WORKSPACEID == WORKSPACE_INVALID) {
-        Log::logger->log(Log::ERR, "Error in moveActiveToWorkspaceSilent, invalid value");
+        Log::logger->log(Log::ERR, "BUG THIS: Error in moveActiveToWorkspaceSilent, invalid value");
         return {.success = false, .error = "Error in moveActiveToWorkspaceSilent, invalid value"};
     }
 

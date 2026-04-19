@@ -1,4 +1,3 @@
-#include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
@@ -17,8 +16,6 @@ using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define SP CSharedPointer
-
-static int  ret = 0;
 
 static bool waitForWindow(SP<CProcess> proc, int windowsBefore) {
     int counter = 0;
@@ -107,18 +104,18 @@ bool CClient::createChild() {
     return true;
 }
 
-static bool test() {
+TEST_CASE(childWindow) {
     {
         std::optional<CClient> client;
         try {
             client.emplace();
-        } catch (...) { return false; }
+        } catch (...) { FAIL_TEST("Couldn't start the client"); }
 
         OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:child-test-parent' })"));
         OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = 'class:child-test-parent' })"));
 
         client->createChild();
-        EXPECT(Tests::windowCount(), 2)
+        EXPECT(Tests::windowCount(), 2);
         EXPECT_COUNT_STRING(getFromSocket("/clients"), "pinned: 1", 2);
     }
 
@@ -131,8 +128,7 @@ static bool test() {
     NLog::log("{}Test child windows are not auto-grouped", Colors::GREEN);
     auto kitty = Tests::spawnKitty();
     if (!kitty) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Couldn't spawn kitty");
     }
 
     // create group and enable auto-grouping
@@ -143,7 +139,7 @@ static bool test() {
         std::optional<CClient> client2;
         try {
             client2.emplace();
-        } catch (...) { return false; }
+        } catch (...) { FAIL_TEST("Couldn't start the client"); }
 
         EXPECT(Tests::windowCount(), 2);
         client2->createChild();
@@ -155,8 +151,4 @@ static bool test() {
 
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
-
-    return !ret;
 }
-
-REGISTER_CLIENT_TEST_FN(test);

@@ -17,7 +17,9 @@
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/main/tests.hpp"
+#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/clients/tests.hpp"
+#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/plugin/plugin.hpp"
 #include "tests/shared.hpp"
 
@@ -43,7 +45,6 @@ using Path = std::filesystem::path;
 
 #define SP CSharedPointer
 
-static int          ret = 0;
 static SP<CProcess> hyprlandProc;
 
 static bool         launchHyprland(Path configPath, Path binaryPath) {
@@ -168,14 +169,28 @@ static bool preTestCleanup() {
     return !failed;
 }
 
-static void runTests(std::vector<std::function<bool()>>& tests) {
-    for (const auto& fn : tests) {
+static void runTests(std::map<const char*, CTestCase&>& testCases) {
+    for (auto& [name, tc] : testCases) {
         // Clean up before every test
         NLog::log("{}Cleaning up", Colors::YELLOW);
         (void)preTestCleanup();
 
-        EXPECT(fn(), true);
+        NLog::log("{}Running test {}", Colors::BLUE, name);
+        tc.test();
+        if (tc.failed)
+            NLog::log("{}Test failed: {}", Colors::RED, name);
+        else
+            NLog::log("{}Test passed: {}", Colors::GREEN, name);
     }
+}
+
+static long long countFailed(const std::map<const char*, CTestCase&>& testCases) {
+    long long ans = 0;
+    for (const auto& [_, tc] : testCases) {
+        if (tc.failed)
+            ans++;
+    }
+    return ans;
 }
 
 int main(int argc, char** argv, char** envp) {
@@ -220,28 +235,50 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
+    long long failedTests = 0, totalTests = 0;
+
     NLog::log("{}Running main tests", Colors::YELLOW);
-    runTests(testFns);
+    runTests(mainTestCases);
+    failedTests += countFailed(mainTestCases);
+    totalTests += mainTestCases.size();
 
     NLog::log("{}Running protocol client tests", Colors::YELLOW);
-    runTests(clientTestFns);
+    runTests(clientTestCases);
+    failedTests += countFailed(clientTestCases);
+    totalTests += clientTestCases.size();
+
+    // TODO: the two tests below should not be hardcoded, include them somewhere
 
     NLog::log("{}running plugin test", Colors::YELLOW);
-    EXPECT(testPlugin(), true);
+    if (!testPlugin()) {
+        NLog::log("{}Test failed: plugin test", Colors::RED);
+        failedTests++;
+    } else {
+        NLog::log("{}Test passed: plugin test", Colors::GREEN);
+    }
+    totalTests++;
 
     NLog::log("{}running vkb test from plugin", Colors::YELLOW);
-    EXPECT(testVkb(), true);
+    if (!testVkb()) {
+        NLog::log("{}Test failed: vkb test from plugin", Colors::RED);
+        failedTests++;
+    } else {
+        NLog::log("{}Test passed: vkb test from plugin", Colors::GREEN);
+    }
+    totalTests++;
 
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.exit()");
 
-    NLog::log("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,
-              TESTS_FAILED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, (TESTS_FAILED > 0 ? std::string{Colors::RED} + "\nSome tests failed.\n" : ""));
+    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, totalTests - failedTests, Colors::RESET, totalTests);
+    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, failedTests, Colors::RESET, totalTests);
+    if (failedTests > 0)
+        NLog::log("{}Some tests failed.", Colors::RED);
 
     kill(hyprlandProc->pid(), SIGKILL);
 
     hyprlandProc.reset();
 
-    return ret || TESTS_FAILED;
+    return failedTests > 0;
 }

@@ -7,29 +7,25 @@
 #include <hyprutils/memory/WeakPtr.hpp>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static bool test() {
-    NLog::log("{}Testing solitary clients", Colors::GREEN);
-
+TEST_CASE(solitaryClients) {
     OK(getFromSocket("/eval hl.config({ general = { allow_tearing = false } })"));
     OK(getFromSocket("/eval hl.config({ render = { direct_scanout = 0 } })"));
     OK(getFromSocket("/eval hl.config({ cursor = { no_hardware_cursors = 1 } })"));
     NLog::log("{}Expecting blocked solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "solitary: 0\n");
-        EXPECT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
-        EXPECT_CONTAINS(str, "activelyTearing: false");
-        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
-        EXPECT_CONTAINS(str, "directScanoutTo: 0\n");
-        EXPECT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
+        ASSERT_CONTAINS(str, "solitary: 0\n");
+        ASSERT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
+        ASSERT_CONTAINS(str, "activelyTearing: false");
+        ASSERT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
+        ASSERT_CONTAINS(str, "directScanoutTo: 0\n");
+        ASSERT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
     }
 
     // FIXME: need a reliable client with solitary opaque surface in fullscreen. kitty doesn't work all the time
@@ -50,27 +46,16 @@ static bool test() {
     // NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
     // {
     //     auto str = getFromSocket("/monitors");
-    //     EXPECT_NOT_CONTAINS(str, "solitary: 0\n");
-    //     EXPECT_CONTAINS(str, "solitaryBlockedBy: null");
-    //     EXPECT_CONTAINS(str, "activelyTearing: false");
-    //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
+    //     ASSERT_NOT_CONTAINS(str, "solitary: 0\n");
+    //     ASSERT_CONTAINS(str, "solitaryBlockedBy: null");
+    //     ASSERT_CONTAINS(str, "activelyTearing: false");
+    //     ASSERT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
     // }
 
     // OK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'active', prop = 'immediate', value = '1' })"));
     // NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
     // {
     //     auto str = getFromSocket("/monitors");
-    //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor\n");
+    //     ASSERT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor\n");
     // }
-
-    // // kill all
-    // NLog::log("{}Killing all windows", Colors::YELLOW);
-    // Tests::killAllWindows();
-
-    NLog::log("{}Reloading the config", Colors::YELLOW);
-    OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

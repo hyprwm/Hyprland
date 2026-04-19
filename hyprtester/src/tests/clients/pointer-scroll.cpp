@@ -1,4 +1,3 @@
-#include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
@@ -31,7 +30,6 @@ namespace {
         int getLastDelta();
     };
 }
-static int ret = 0;
 
 CClient::CClient() {
     this->proc = makeShared<CProcess>(binaryDir + "/pointer-scroll", std::vector<std::string>{});
@@ -127,11 +125,11 @@ static bool sendScroll(int delta) {
     return getFromSocket(std::format("/eval hl.plugin.test.scroll({})", delta)) == "ok";
 }
 
-static bool test() {
+TEST_CASE(pointerScroll) {
     std::optional<CClient> client;
     try {
         client.emplace();
-    } catch (...) { return false; }
+    } catch (...) { FAIL_TEST("Couldn't start the client"); }
 
     EXPECT(getFromSocket("r/eval hl.config({ input = { emulate_discrete_scroll = 0 } })"), "ok");
 
@@ -152,8 +150,4 @@ static bool test() {
 
     NLog::log("{}Reloading the config", Colors::YELLOW);
     OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_CLIENT_TEST_FN(test);

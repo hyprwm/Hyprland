@@ -8,8 +8,6 @@
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
-
-static int         ret      = 0;
 static std::string flagFile = "/tmp/hyprtester-keybinds.txt";
 
 static std::string pluginKeybindCmd(bool pressed, uint32_t modifier, uint32_t key) {
@@ -88,48 +86,51 @@ static CUniquePointer<CProcess> spawnRemoteControlKitty() {
     return kittyProc;
 }
 
-static void testBind() {
-    EXPECT(checkFlag(), false);
+// All the `SUBTEST`s below are supposed to be independent `TEST_CASE`s.
+// But if isolated trivially, some of them fail.
+// TODO: investigate and isolate tests by turning `SUBTEST`s into `TEST_CASE`s.
+
+SUBTEST(bind) {
+    ASSERT(checkFlag(), false);
     EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await flag
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testBindKey() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
+SUBTEST(bindKey) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'))"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // await flag
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
 }
 
-static void testLongPress() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+SUBTEST(longPress) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // check no flag on short press
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
-
-static void testKeyLongPress() {
+SUBTEST(keyLongPress) {
     EXPECT(checkFlag(), false);
     EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
@@ -137,16 +138,31 @@ static void testKeyLongPress() {
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // check no flag on short press
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
 }
-
-static void testLongPressRelease() {
+SUBTEST(longPressRelease) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+    // press keybind
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
+    // check no flag on short press
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    ASSERT(checkFlag(), false);
+    // release keybind
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    // await repeat delay
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+}
+SUBTEST(longPressOnlyKeyRelease) {
     EXPECT(checkFlag(), false);
     EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
@@ -154,74 +170,57 @@ static void testLongPressRelease() {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // check no flag on short press
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), false);
-    // release keybind
-    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    // await repeat delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
-}
-
-static void testLongPressOnlyKeyRelease() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { long_press = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
-    // press keybind
-    OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
-    // check no flag on short press
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     // release key, keep modifier
     OK(getFromSocket(pluginKeybindCmd(false, 7, 29)));
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testRepeat() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+SUBTEST(repeat) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await flag
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // check that it continues repeating
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testKeyRepeat() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+SUBTEST(keyRepeat) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // await flag
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // check that it continues repeating
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
 }
 
-static void testRepeatRelease() {
+SUBTEST(repeatRelease) {
     // wait until flag becomes false (CI timing can vary)
     bool ok = false;
     for (int i = 0; i < 20; ++i) {
@@ -232,59 +231,57 @@ static void testRepeatRelease() {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    EXPECT(ok, true);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+    ASSERT(ok, true);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await flag
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     clearFlag();
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     // check that it is not repeating
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testRepeatOnlyKeyRelease() {
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+SUBTEST(repeatOnlyKeyRelease) {
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await flag
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), true);
+    ASSERT(checkFlag(), true);
     // release key, keep modifier
     OK(getFromSocket(pluginKeybindCmd(false, 7, 29)));
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     clearFlag();
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     // check that it is not repeating
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT(checkFlag(), false);
+    ASSERT(checkFlag(), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testShortcutBind() {
+SUBTEST(shortcutBind) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // release keybind
@@ -292,21 +289,19 @@ static void testShortcutBind() {
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     const std::string output = readKittyOutput();
-    EXPECT_COUNT_STRING(output, "y", 0);
-    EXPECT(output.find("q") != std::string::npos, true);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT_COUNT_STRING(output, "y", 0);
+    ASSERT(output.find("q") != std::string::npos, true);
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testShortcutBindKey() {
+SUBTEST(shortcutBindKey) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }))"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 0, 29)));
     // release keybind
@@ -314,24 +309,22 @@ static void testShortcutBindKey() {
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     const std::string output = readKittyOutput();
-    EXPECT_COUNT_STRING(output, "y", 0);
+    ASSERT_COUNT_STRING(output, "y", 0);
     // disabled: doesn't work in CI
     // EXPECT_COUNT_STRING(output, "q", 1);
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testShortcutLongPress() {
+SUBTEST(shortcutLongPress) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { long_press = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 10 } })"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { long_press = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 10 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await repeat delay
@@ -344,23 +337,21 @@ static void testShortcutLongPress() {
     // keybind press sends 1 y immediately
     // then repeat triggers, sending 1 y
     // final release stop repeats, and shouldn't send any more
-    EXPECT(true, yCount == 1 || yCount == 2);
-    EXPECT_COUNT_STRING(output, "q", 1);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(true, yCount == 1 || yCount == 2);
+    ASSERT_COUNT_STRING(output, "q", 1);
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testShortcutLongPressKeyRelease() {
+SUBTEST(shortcutLongPressKeyRelease) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { long_press = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 10 } })"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { long_press = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 10 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -370,24 +361,22 @@ static void testShortcutLongPressKeyRelease() {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     const std::string output = readKittyOutput();
     // disabled: doesn't work on CI
-    // EXPECT_COUNT_STRING(output, "y", 1);
-    EXPECT_COUNT_STRING(output, "q", 0);
+    // ASSERT_COUNT_STRING(output, "y", 1);
+    ASSERT_COUNT_STRING(output, "q", 0);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testShortcutRepeat() {
+SUBTEST(shortcutRepeat) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 5 } })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 200 } })"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 5 } })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 200 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     // await repeat
@@ -396,28 +385,26 @@ static void testShortcutRepeat() {
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(450));
     const std::string output = readKittyOutput();
-    EXPECT_COUNT_STRING(output, "y", 0);
+    ASSERT_COUNT_STRING(output, "y", 0);
     int qCount = Tests::countOccurrences(output, "q");
     // sometimes 2, sometimes 3, not sure why
     // keybind press sends 1 q immediately
     // then repeat triggers, sending 1 q
     // final release stop repeats, and shouldn't send any more
-    EXPECT(true, qCount == 2 || qCount == 3);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(true, qCount == 2 || qCount == 3);
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testShortcutRepeatKeyRelease() {
+SUBTEST(shortcutRepeatKeyRelease) {
     auto kittyProc = spawnRemoteControlKitty();
     if (!kittyProc) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        ret = 1;
-        return;
+        FAIL_TEST("Could not spawn kitty");
     }
-    EXPECT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { repeating = true })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 5 } })"), "ok");
-    EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 200 } })"), "ok");
+    ASSERT(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:keybinds_test' })"), "ok");
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.send_shortcut({ mods = '', key = 'q', window = 'activewindow' }), { repeating = true })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_rate = 5 } })"), "ok");
+    ASSERT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 200 } })"), "ok");
     // press keybind
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     std::this_thread::sleep_for(std::chrono::milliseconds(210));
@@ -427,19 +414,19 @@ static void testShortcutRepeatKeyRelease() {
     std::this_thread::sleep_for(std::chrono::milliseconds(450));
     // release modifier
     const std::string output = readKittyOutput();
-    EXPECT_COUNT_STRING(output, "y", 0);
+    ASSERT_COUNT_STRING(output, "y", 0);
     int qCount = Tests::countOccurrences(output, "q");
     // sometimes 2, sometimes 3, not sure why
     // keybind press sends 1 q immediately
     // then repeat triggers, sending 1 q
     // final release stop repeats, and shouldn't send any more
-    EXPECT(true, qCount == 2 || qCount == 3);
+    ASSERT(true, qCount == 2 || qCount == 3);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }
 
-static void testSubmap() {
+SUBTEST(submap) {
     const auto press = [](const uint32_t key, const uint32_t mod = 0) {
         // +8 because udev -> XKB keycode.
         getFromSocket(pluginKeybindCmd(true, mod, key + 8));
@@ -449,32 +436,32 @@ static void testSubmap() {
     NLog::log("{}Testing submaps", Colors::GREEN);
     // submap 1 no resets
     press(KEY_U, MOD_META);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
     press(KEY_O);
     Tests::waitUntilWindowsN(1);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
     // submap 2 resets to submap 1
     press(KEY_U);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap2");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap2");
     press(KEY_O);
     Tests::waitUntilWindowsN(2);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
     // submap 3 resets to default
     press(KEY_I);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap3");
     press(KEY_O);
     Tests::waitUntilWindowsN(3);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "default");
     // submap 1 reset via keybind
     press(KEY_U, MOD_META);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
     press(KEY_P);
-    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "default");
 
     Tests::killAllWindows();
 }
 
-static void testBindsAfterScroll() {
+SUBTEST(bindsAfterScroll) {
     NLog::log("{}Testing binds after scroll", Colors::GREEN);
 
     clearFlag();
@@ -483,7 +470,7 @@ static void testBindsAfterScroll() {
     // press keybind before scroll
     OK(getFromSocket(pluginKeybindCmd(true, 0, 108))); // Alt_R press
     OK(getFromSocket(pluginKeybindCmd(true, 4, 25)));  // w press
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 4, 25)));  // w release
     OK(getFromSocket(pluginKeybindCmd(false, 0, 108))); // Alt_R release
 
@@ -495,7 +482,7 @@ static void testBindsAfterScroll() {
     // press keybind after scroll
     OK(getFromSocket(pluginKeybindCmd(true, 0, 108))); // Alt_R press
     OK(getFromSocket(pluginKeybindCmd(true, 4, 25)));  // w press
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 4, 25)));  // w release
     OK(getFromSocket(pluginKeybindCmd(false, 0, 108))); // Alt_R release
 
@@ -503,92 +490,84 @@ static void testBindsAfterScroll() {
     OK(getFromSocket("/eval hl.unbind('ALT', 'w')"));
 }
 
-static void testSubmapUniversal() {
+SUBTEST(submapUniversal) {
     NLog::log("{}Testing submap universal", Colors::GREEN);
 
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { submap_universal = true })"), "ok");
-    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { submap_universal = true })"), "ok");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "default");
 
     // keybind works on default submap
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     OK(getFromSocket(pluginKeybindCmd(false, 7, 29)));
-    EXPECT(attemptCheckFlag(30, 5), true);
+    ASSERT(attemptCheckFlag(30, 5), true);
 
     // keybind works on submap1
     getFromSocket(pluginKeybindCmd(true, 7, 30));
     getFromSocket(pluginKeybindCmd(false, 7, 30));
-    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "submap1");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     OK(getFromSocket(pluginKeybindCmd(false, 7, 29)));
-    EXPECT(attemptCheckFlag(30, 5), true);
+    ASSERT(attemptCheckFlag(30, 5), true);
 
     // reset to default submap
     getFromSocket(pluginKeybindCmd(true, 0, 33));
     getFromSocket(pluginKeybindCmd(false, 0, 33));
-    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+    ASSERT_CONTAINS(getFromSocket("/submap"), "default");
 
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static void testPerDeviceKeybind() {
+SUBTEST(perDeviceKeybind) {
     NLog::log("{}Testing per-device binds", Colors::GREEN);
 
     // Inclusive
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-keyboard-1' } } })"), "ok");
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-keyboard-1' } } })"), "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 
     // Exclusive
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = false, list = { 'test-keyboard-1' } } })"), "ok");
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = false, list = { 'test-keyboard-1' } } })"), "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
-    EXPECT(attemptCheckFlag(20, 50), false);
+    ASSERT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 
     // With description
-    EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile +
+    ASSERT(checkFlag(), false);
+    ASSERT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile +
                          "'), { description = 'test description', device = { inclusive = true, list = { 'test-keyboard-1' } } })"),
            "ok");
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
-    EXPECT(attemptCheckFlag(20, 50), true);
+    ASSERT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    ASSERT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
 }
 
-static bool test() {
-    NLog::log("{}Testing keybinds", Colors::GREEN);
-
-    clearFlag();
-
-    testBind();
-    testBindKey();
-    testLongPress();
-    testKeyLongPress();
-    testLongPressRelease();
-    testLongPressOnlyKeyRelease();
-    testRepeat();
-    testKeyRepeat();
-    testRepeatRelease();
-    testRepeatOnlyKeyRelease();
-    testShortcutBind();
-    testShortcutBindKey();
-    testShortcutLongPress();
-    testShortcutLongPressKeyRelease();
-    testShortcutRepeat();
-    testShortcutRepeatKeyRelease();
-    testSubmap();
-    testSubmapUniversal();
-    testBindsAfterScroll();
-    testPerDeviceKeybind();
-
-    clearFlag();
-    return !ret;
+// TODO: remove this test after subtests above are properly isolated into independent tests
+TEST_CASE(keybinds) {
+    CALL_SUBTEST(bind);
+    CALL_SUBTEST(bindKey);
+    CALL_SUBTEST(longPress);
+    CALL_SUBTEST(keyLongPress);
+    CALL_SUBTEST(longPressRelease);
+    CALL_SUBTEST(longPressOnlyKeyRelease);
+    CALL_SUBTEST(repeat);
+    CALL_SUBTEST(keyRepeat);
+    CALL_SUBTEST(repeatRelease);
+    CALL_SUBTEST(repeatOnlyKeyRelease);
+    CALL_SUBTEST(shortcutBind);
+    CALL_SUBTEST(shortcutBindKey);
+    CALL_SUBTEST(shortcutLongPress);
+    CALL_SUBTEST(shortcutLongPressKeyRelease);
+    CALL_SUBTEST(shortcutRepeat);
+    CALL_SUBTEST(shortcutRepeatKeyRelease);
+    CALL_SUBTEST(submap);
+    CALL_SUBTEST(submapUniversal);
+    CALL_SUBTEST(bindsAfterScroll);
+    CALL_SUBTEST(perDeviceKeybind);
 }
-
-REGISTER_TEST_FN(test)

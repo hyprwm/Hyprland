@@ -1,4 +1,3 @@
-#include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
@@ -31,8 +30,6 @@ namespace {
         ~CClient();
     };
 }
-
-static int ret = 0;
 
 CClient::CClient() {
     Tests::killAllWindows();
@@ -144,12 +141,12 @@ static bool attemptCheckFlag(int attempts, int intervalMs) {
     return false;
 }
 
-static bool test() {
+TEST_CASE(shortcutInhibitor) {
     std::optional<CClient> client;
 
     try {
         client.emplace();
-    } catch (...) { return false; }
+    } catch (...) { FAIL_TEST("Couldn't start the client"); }
 
     NLog::log("{}Testing keybinds", Colors::GREEN);
     //basic keybind test
@@ -176,11 +173,4 @@ static bool test() {
     //gesture bypass flag test
     OK(getFromSocket("/eval hl.plugin.test.gesture('right', 2)"));
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "floating: 1");
-
-    NLog::log("{}Reloading the config", Colors::YELLOW);
-    OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_CLIENT_TEST_FN(test);

@@ -6,8 +6,6 @@
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
@@ -20,34 +18,18 @@ static bool spawnLayer(const std::string& namespace_) {
     return true;
 }
 
-static bool test() {
-    NLog::log("{}Testing plugin layerrules", Colors::GREEN);
+TEST_CASE(plugin_layerrules) {
 
-    if (!spawnLayer("rule-layer"))
-        return false;
+    ASSERT(spawnLayer("rule-layer"), true);
 
     OK(getFromSocket("/eval hl.plugin.test.add_layer_rule()"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/eval hl.layer_rule({ match = { namespace = 'rule-layer' }, plugin_rule = 'effect' })"));
 
-    if (!spawnLayer("rule-layer"))
-        return false;
+    ASSERT(spawnLayer("rule-layer"), true);
 
-    if (!spawnLayer("norule-layer"))
-        return false;
+    ASSERT(spawnLayer("norule-layer"), true);
 
     OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
-
-    OK(getFromSocket("/reload"));
-
-    NLog::log("{}Killing all layers", Colors::YELLOW);
-    Tests::killAllLayers();
-
-    NLog::log("{}Expecting 0 layers", Colors::YELLOW);
-    EXPECT(Tests::layerCount(), 0);
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

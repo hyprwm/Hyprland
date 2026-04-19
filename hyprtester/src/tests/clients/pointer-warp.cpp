@@ -1,4 +1,3 @@
-#include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
@@ -31,8 +30,6 @@ namespace {
         bool sendWarp(int x, int y);
     };
 }
-
-static int ret = 0;
 
 CClient::CClient() {
     this->proc = makeShared<CProcess>(binaryDir + "/pointer-warp", std::vector<std::string>{});
@@ -153,12 +150,12 @@ static bool isCursorPos(int x, int y) {
     return clientX == x && clientY == y;
 }
 
-static bool test() {
+TEST_CASE(pointerWarp) {
     std::optional<CClient> client;
 
     try {
         client.emplace();
-    } catch (...) { return false; }
+    } catch (...) { FAIL_TEST("Couldn't start the client"); }
 
     EXPECT(client->sendWarp(100, 100), true);
     EXPECT(isCursorPos(100, 100), true);
@@ -189,11 +186,4 @@ static bool test() {
 
     EXPECT(client->sendWarp(-1, 1), true);
     EXPECT(isCursorPos(13, 37), true);
-
-    NLog::log("{}Reloading the config", Colors::YELLOW);
-    OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_CLIENT_TEST_FN(test);

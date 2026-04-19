@@ -150,43 +150,48 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.stateCommit.emit(state);
 
         if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
-            Time::steady_tp deadline = Time::steadyNow();
+            static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_client_buffer");
+            Time::steady_tp   deadline = Time::steadyNow();
             if (g_pHyprRenderer->explicitSyncSupported()) {
-                if (m_enteredOutputs.empty() && m_hlSurface) {
-                    for (const auto& m : g_pCompositor->m_monitors) {
-                        if (!m || !m->m_enabled)
-                            continue;
+                if (*DEADLINE) {
+                    if (m_enteredOutputs.empty() && m_hlSurface) {
+                        for (const auto& m : g_pCompositor->m_monitors) {
+                            if (!m || !m->m_enabled)
+                                continue;
 
-                        auto box = m_hlSurface->getSurfaceBoxGlobal();
-                        if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                            auto box = m_hlSurface->getSurfaceBoxGlobal();
+                            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                                if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank || !m->m_estimatedNextVblank.has_value())
+                                    continue; // dont estimate vblank on tearing or vrr.
+
+                                deadline = m->m_estimatedNextVblank.value();
+                                break;
+                            }
+                        }
+                    } else {
+                        for (const auto& m : m_enteredOutputs) {
+                            if (!m)
+                                continue;
+
                             if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank || !m->m_estimatedNextVblank.has_value())
-                                continue; // dont estimate vblank on tearing or vrr.
+                                continue; // dont estimate vblank on tearing or vrr
 
                             deadline = m->m_estimatedNextVblank.value();
                             break;
                         }
                     }
-                } else {
-                    for (const auto& m : m_enteredOutputs) {
-                        if (!m)
-                            continue;
-
-                        if (m->m_tearingState.activelyTearing || m->m_vrrActive || !m->m_estimatedNextVblank || !m->m_estimatedNextVblank.has_value())
-                            continue; // dont estimate vblank on tearing or vrr
-
-                        deadline = m->m_estimatedNextVblank.value();
-                        break;
-                    }
                 }
 
-                if (state->updated.bits.acquire) {
+                if (state->updated.bits.acquire && *DEADLINE) {
                     DRM::setDeadline(deadline, state->acquire.exportAsFD());
                 } else {
                     state->buffer->m_syncFds = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFiles();
                     if (!state->buffer->m_syncFds.empty()) {
-                        for (auto& fence : state->buffer->m_syncFds) {
-                            if (fence.isValid())
-                                DRM::setDeadline(deadline, fence);
+                        if (*DEADLINE) {
+                            for (auto& fence : state->buffer->m_syncFds) {
+                                if (fence.isValid())
+                                    DRM::setDeadline(deadline, fence);
+                            }
                         }
 
                         m_stateQueue.lock(state, LOCK_REASON_FENCE);

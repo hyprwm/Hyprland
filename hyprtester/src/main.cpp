@@ -71,17 +71,15 @@ static bool hyprlandAlive() {
 }
 
 static Path validatePathOrDie(Path path) {
-    Path canonicalized;
     try {
-        canonicalized = std::filesystem::canonical(path);
-        if (!std::filesystem::is_regular_file(canonicalized)) {
+        if (!std::filesystem::is_regular_file(path)) {
             throw std::exception();
         }
     } catch (...) {
-        std::println(stderr, "[ ERROR ] File '{}' is not accessible or not a regular file", canonicalized.string());
+        std::println(stderr, "[ ERROR ] File '{}' is not accessible or not a regular file", path.string());
         helpAndDie(EXIT_FAILURE);
     }
-    return canonicalized;
+    return path;
 }
 
 namespace {

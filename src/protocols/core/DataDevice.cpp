@@ -606,8 +606,10 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
     });
 
     m_dnd.mouseMove = Event::bus()->m_events.input.mouse.move.listen([this](Vector2D pos, Event::SCallbackInfo&) {
-        if (m_dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
-            auto surf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
+        auto focused = g_pSeatManager->m_state.dndPointerFocus.lock();
+
+        if (m_dnd.focusedDevice && focused) {
+            auto surf = Desktop::View::CWLSurface::fromResource(focused);
 
             if (!surf)
                 return;
@@ -621,10 +623,11 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             LOGM(Log::DEBUG, "Drag motion {}", pos - box->pos());
         }
     });
-
     m_dnd.touchMove = Event::bus()->m_events.input.touch.motion.listen([this](ITouch::SMotionEvent e, Event::SCallbackInfo&) {
-        if (m_dnd.focusedDevice && g_pSeatManager->m_state.dndPointerFocus) {
-            auto surf = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.dndPointerFocus.lock());
+        auto focused = g_pSeatManager->m_state.dndPointerFocus.lock();
+
+        if (m_dnd.focusedDevice && focused) {
+            auto surf = Desktop::View::CWLSurface::fromResource(focused);
 
             if (!surf)
                 return;
@@ -638,7 +641,6 @@ void CWLDataDeviceProtocol::initiateDrag(WP<CWLDataSourceResource> currentSource
             LOGM(Log::DEBUG, "Drag motion {}", e.pos);
         }
     });
-
     // unfocus the pointer from the surface, this is part of """standard""" wayland procedure and gtk will freak out if this isn't happening.
     // BTW, the spec does NOT require this explicitly...
     // Fuck you gtk.

@@ -45,6 +45,8 @@
 ---| "binds.movefocus_cycles_fullscreen"
 ---| "binds.movefocus_cycles_groupfirst"
 ---| "binds.pass_mouse_when_bound"
+---| "binds.repeat_delay"
+---| "binds.repeat_rate"
 ---| "binds.scroll_event_delay"
 ---| "binds.window_direction_monitor_fallback"
 ---| "binds.workspace_back_and_forth"
@@ -854,6 +856,8 @@ hl = {}
 ---@field ['binds.movefocus_cycles_fullscreen'] boolean
 ---@field ['binds.movefocus_cycles_groupfirst'] boolean
 ---@field ['binds.pass_mouse_when_bound'] boolean
+---@field ['binds.repeat_delay'] integer|boolean
+---@field ['binds.repeat_rate'] integer|boolean
 ---@field ['binds.scroll_event_delay'] integer|boolean
 ---@field ['binds.window_direction_monitor_fallback'] boolean
 ---@field ['binds.workspace_back_and_forth'] boolean

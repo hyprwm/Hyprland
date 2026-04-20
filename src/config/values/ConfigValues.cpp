@@ -499,6 +499,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("binds:allow_pin_fullscreen", "Allows fullscreen to pinned windows, and restore their pinned status afterwards", false),
         MS<Int>("binds:drag_threshold", "Movement threshold in pixels for window dragging and c/g bind flags. 0 to disable.", 0,
                 {.min = 0, .max = std::numeric_limits<int>::max()}),
+        MS<Int>("binds:repeat_rate", "if 0, will use input:repeat_rate / how frequently bind repeats", 0),
+        MS<Int>("binds:repeat_delay", "if 0, will use input:repeat_delay / delay before bind starts repeating", 0),
 
         /*
          * xwayland:

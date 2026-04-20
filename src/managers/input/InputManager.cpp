@@ -419,7 +419,8 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
     PHLWINDOW  pWindowIdeal;
     const auto getWindowIdeal = [&]() -> const PHLWINDOW& {
         if (!windowIdealQueried) {
-            pWindowIdeal       = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
+            pWindowIdeal = g_pCompositor->vectorToWindowUnified(
+                mouseCoords, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING | Desktop::View::FOLLOW_MOUSE_CHECK);
             windowIdealQueried = true;
         }
 

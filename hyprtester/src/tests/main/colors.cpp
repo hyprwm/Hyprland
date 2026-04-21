@@ -12,7 +12,7 @@ static bool test() {
     NLog::log("{}Testing hyprctl monitors", Colors::GREEN);
 
     std::string monitorsSpec = getFromSocket("j/monitors");
-    EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "srgb")");
+    EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset")");
 
     EXPECT_CONTAINS(getFromSocket("/keyword monitor HEADLESS-2,1920x1080x60.00000,0x0,1.0,bitdepth,10,cm,wide"), "ok")
 

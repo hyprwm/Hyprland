@@ -1468,6 +1468,11 @@ int SXSelection::onRead(int fd, uint32_t mask) {
     ssize_t bytesRead = read(fd, transfer->data.data() + oldSize, INCR_CHUNK_SIZE - 1);
 
     if (bytesRead < 0) {
+        if (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK) {
+            transfer->data.resize(oldSize);
+            return 1;
+        }
+
         Log::logger->log(Log::ERR, "[xwm] readDataSource died");
         g_pXWayland->m_wm->selectionSendNotify(&transfer->request, false);
         transfers.erase(it);

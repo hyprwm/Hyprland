@@ -214,7 +214,7 @@ static void testKeyRepeat() {
 }
 
 static void testRepeatRelease() {
-    // wait until flag becomes false (CI timing can vary)  
+    // wait until flag becomes false (CI timing can vary)
     bool ok = false;
     for (int i = 0; i < 20; ++i) {
         if (!checkFlag()) {

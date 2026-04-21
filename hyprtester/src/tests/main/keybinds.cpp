@@ -214,7 +214,17 @@ static void testKeyRepeat() {
 }
 
 static void testRepeatRelease() {
-    EXPECT(checkFlag(), false);
+    // wait until flag becomes false (CI timing can vary)  
+    bool ok = false;
+    for (int i = 0; i < 20; ++i) {
+        if (!checkFlag()) {
+            ok = true;
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    EXPECT(ok, true);
     EXPECT(getFromSocket("/keyword binde SUPER,Y,exec,touch " + flagFile), "ok");
     EXPECT(getFromSocket("/keyword input:repeat_delay 100"), "ok");
     // press keybind

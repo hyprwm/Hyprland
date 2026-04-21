@@ -302,5 +302,5 @@ void CFocusState::resetWindowFocus() {
 
 bool Desktop::isHardInputFocusReason(eFocusReason r) {
     return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK || r == FOCUS_REASON_DESKTOP_STATE_CHANGE ||
-        r == FOCUS_REASON_UNMAP_WINDOW_TILING;
+        r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
 }

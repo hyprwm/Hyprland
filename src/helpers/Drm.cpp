@@ -129,7 +129,7 @@ void DRM::setDeadline(const Time::steady_tp& deadline, const Hyprutils::OS::CFil
         return;
 
     sync_set_deadline args{
-        .deadline_ns = uint64_t(deadline.time_since_epoch().count()),
+        .deadline_ns = uint64_t(duration_cast<std::chrono::nanoseconds>(deadline.time_since_epoch()).count()),
         .pad         = 0,
     };
 

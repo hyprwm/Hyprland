@@ -403,6 +403,9 @@ bool CWorkspace::isVisible() {
 
 bool CWorkspace::isVisibleNotCovered() {
     const auto PMONITOR = m_monitor.lock();
+    if (!PMONITOR)
+        return false;
+
     if (PMONITOR->m_activeSpecialWorkspace)
         return PMONITOR->m_activeSpecialWorkspace->m_id == m_id;
 

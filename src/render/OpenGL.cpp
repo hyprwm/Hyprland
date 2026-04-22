@@ -1933,6 +1933,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         if (NEEDS_STENCIL) {
             scissor(nullptr); // allow the entire window and stencil to render
+            glStencilMask(0xFF);
             glClearStencil(0);
             glClear(GL_STENCIL_BUFFER_BIT);
 
@@ -1964,7 +1965,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
             glStencilFunc(GL_EQUAL, 1, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+            glStencilMask(0x00);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
         }
 
         // stencil done. Render everything.

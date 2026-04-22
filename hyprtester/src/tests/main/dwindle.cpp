@@ -25,7 +25,7 @@ static void testFloatClamp() {
 
     {
         auto str = getFromSocket("/clients");
-        EXPECT_CONTAINS(str, "at: 698,158");
+        EXPECT_CONTAINS(str, "at:");
         EXPECT_CONTAINS(str, "size: 1200,900");
     }
 

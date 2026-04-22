@@ -226,19 +226,11 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     m_listeners.pointerSurfaceDestroy.reset();
 
-    if (m_state.pointerFocusResource) {
-        auto client = m_state.pointerFocusResource->client();
-        for (auto const& s : m_seatResources) {
-            if (s->resource->client() != client)
-                continue;
+    for (auto const& p : PROTO::seat->m_pointers) {
+        if (!p)
+            continue;
 
-            for (auto const& p : s->resource->m_pointers) {
-                if (!p)
-                    continue;
-
-                p->sendLeave();
-            }
-        }
+        p->sendLeave();
     }
 
     auto lastPointerFocusResource = m_state.pointerFocusResource;

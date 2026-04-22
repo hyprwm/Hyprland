@@ -51,6 +51,7 @@ commands:
     setprop ...         → Sets a window property
     getprop ...         → Gets a window property
     splash              → Get the current splash
+    status              → Get internal status information
     switchxkblayout ... → Sets the xkb layout index for a keyboard
     systeminfo          → Get system info
     version             → Prints the hyprland version, meaning flags, commit

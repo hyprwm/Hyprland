@@ -29,7 +29,7 @@ const std::vector<std::pair<CWindowRule::storageType, std::string>>& CWindowRule
 }
 
 bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
-    if (m_matchEngines.empty())
+    if (m_matchEngines.empty() || !m_enabled)
         return false;
 
     for (const auto& [prop, engine] : m_matchEngines) {
@@ -165,4 +165,12 @@ SP<CWindowRule> CWindowRule::buildFromExecString(std::string&& s) {
 
 const std::unordered_set<CWindowRule::storageType>& CWindowRule::effectsSet() {
     return m_effectSet;
+}
+
+void CWindowRule::setEnabled(bool enable) {
+    m_enabled = enable;
+}
+
+bool CWindowRule::isEnabled() const {
+    return m_enabled;
 }

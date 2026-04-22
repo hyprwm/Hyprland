@@ -75,12 +75,12 @@ static bool startClient(SClient& client) {
         }
     }
 
-    if (getFromSocket(std::format("/dispatch setprop pid:{} no_anim 1", client.proc->pid())) != "ok") {
+    if (getFromSocket(std::format("/dispatch hl.dsp.window.set_prop({{ window = 'pid:{}', prop = 'no_anim', value = '1' }})", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to disable animations for client window", Colors::RED, ret);
         return false;
     }
 
-    if (getFromSocket(std::format("/dispatch focuswindow pid:{}", client.proc->pid())) != "ok") {
+    if (getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", client.proc->pid())) != "ok") {
         NLog::log("{}Failed to focus pointer-scroll client", Colors::RED, ret);
         return false;
     }
@@ -119,7 +119,7 @@ static int getLastDelta(SClient& client) {
 }
 
 static bool sendScroll(int delta) {
-    return getFromSocket(std::format("/dispatch plugin:test:scroll {}", delta)) == "ok";
+    return getFromSocket(std::format("/eval hl.plugin.test.scroll({})", delta)) == "ok";
 }
 
 static bool test() {
@@ -128,20 +128,20 @@ static bool test() {
     if (!startClient(client))
         return false;
 
-    EXPECT(getFromSocket("/keyword input:emulate_discrete_scroll 0"), "ok");
+    EXPECT(getFromSocket("r/eval hl.config({ input = { emulate_discrete_scroll = 0 } })"), "ok");
 
     EXPECT(sendScroll(10), true);
     EXPECT(getLastDelta(client), 10);
 
-    EXPECT(getFromSocket("/keyword input:scroll_factor 2"), "ok");
+    EXPECT(getFromSocket("r/eval hl.config({ input = { scroll_factor = 2 } })"), "ok");
     EXPECT(sendScroll(10), true);
     EXPECT(getLastDelta(client), 20);
 
-    EXPECT(getFromSocket("r/keyword device[test-mouse-1]:scroll_factor 3"), "ok");
+    EXPECT(getFromSocket("r/eval hl.device({ name = 'test-mouse-1', scroll_factor = 3 })"), "ok");
     EXPECT(sendScroll(10), true);
     EXPECT(getLastDelta(client), 30);
 
-    EXPECT(getFromSocket("r/dispatch setprop active scroll_mouse 4"), "ok");
+    EXPECT(getFromSocket("r/dispatch hl.dsp.window.set_prop({ window = 'active', prop = 'scroll_mouse', value = '4' })"), "ok");
     EXPECT(sendScroll(10), true);
     EXPECT(getLastDelta(client), 40);
 

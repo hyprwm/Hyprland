@@ -128,7 +128,7 @@ TEST(Config, monitorParserTransformValid) {
     for (int i = 0; i <= 7; i++) {
         CMonitorRuleParser parser("DP-1");
         EXPECT_TRUE(parser.parseTransform(std::to_string(i)));
-        EXPECT_EQ(parser.rule().m_transform, static_cast<wl_output_transform>(i));
+        EXPECT_EQ(parser.rule().m_transform, sc<wl_output_transform>(i));
     }
 }
 

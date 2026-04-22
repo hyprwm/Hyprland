@@ -14,7 +14,7 @@ static bool test() {
     std::string monitorsSpec = getFromSocket("j/monitors");
     EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset")");
 
-    EXPECT_CONTAINS(getFromSocket("/keyword monitor HEADLESS-2,1920x1080x60.00000,0x0,1.0,bitdepth,10,cm,wide"), "ok")
+    EXPECT_CONTAINS(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', bitdepth = 10, cm = 'wide' })"), "ok")
 
     // monitor settings are applied after a frame is pushed.
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -22,7 +22,7 @@ static bool test() {
     monitorsSpec = getFromSocket("j/monitors");
     EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "wide")");
 
-    EXPECT_CONTAINS(getFromSocket("/keyword monitor HEADLESS-2,1920x1080x60.00000,0x0,1.0,bitdepth,10,cm,srgb,sdrbrightness,1.2,sdrsaturation,0.98"), "ok")
+    EXPECT_CONTAINS(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', bitdepth = 10, cm = 'srgb', sdrbrightness = 1.2, sdrsaturation = 0.98 })"), "ok")
     monitorsSpec = getFromSocket("j/monitors");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

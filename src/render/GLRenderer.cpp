@@ -83,7 +83,7 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 
 void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
-    static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+    static auto PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
 
     g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
 

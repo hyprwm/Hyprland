@@ -143,7 +143,6 @@ class CCompositor {
     PHLWINDOW              getWindowByRegex(const std::string&);
     void                   warpCursorTo(const Vector2D&, bool force = false);
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
-    void                   closeWindow(PHLWINDOW);
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     [[nodiscard]] PHLWORKSPACE          createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
                                                            bool isEmpty = true); // will be deleted next frame if left empty and unfocused!

@@ -22,9 +22,9 @@ static bool test() {
     NLog::log("{}Testing moveintoorcreategroup", Colors::GREEN);
 
     NLog::log("{}Dispatching workspace `moveintoorcreategroup`", Colors::YELLOW);
-    getFromSocket("/dispatch workspace name:moveintoorcreategroup");
+    getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:moveintoorcreategroup' })");
 
-    OK(getFromSocket("/keyword group:auto_group false"));
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
 
     NLog::log("{}Spawning kittyA", Colors::YELLOW);
     auto kittyA = Tests::spawnKitty("kitty_A");
@@ -48,10 +48,10 @@ static bool test() {
         EXPECT_CONTAINS(str, "grouped: 0");
     }
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
 
     NLog::log("{}Move kittyA into group with kittyB (creates group)", Colors::YELLOW);
-    OK(getFromSocket("/dispatch moveintoorcreategroup r"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_or_create_group = 'right' })"));
 
     {
         auto str = getFromSocket("/clients");
@@ -82,13 +82,13 @@ static bool test() {
     NLog::log("{}Expecting 3 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 3);
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_D"));
-    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_D' })"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_E"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_E' })"));
 
     NLog::log("{}Move kittyE into existing group with kittyD", Colors::YELLOW);
-    OK(getFromSocket("/dispatch moveintoorcreategroup l"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_or_create_group = 'left' })"));
 
     {
         auto str = getFromSocket("/clients");
@@ -103,7 +103,7 @@ static bool test() {
 
     NLog::log("{}Kill windows", Colors::YELLOW);
     Tests::killAllWindows();
-    OK(getFromSocket("/keyword group:auto_group true"));
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));
 
     return !ret;
 }

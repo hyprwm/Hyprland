@@ -248,7 +248,7 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         ws->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
         ws->m_renderOffset->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
     }
-    static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto PWORKSPACEGAP = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
     const auto  PMONITOR      = ws->m_monitor.lock();
     const auto  ANIMSTYLE     = style.value_or(ws->m_alpha->getStyle());
 

@@ -18,9 +18,9 @@ using namespace Hyprutils::Memory;
 static bool test() {
     NLog::log("{}Testing solitary clients", Colors::GREEN);
 
-    OK(getFromSocket("/keyword general:allow_tearing false"));
-    OK(getFromSocket("/keyword render:direct_scanout 0"));
-    OK(getFromSocket("/keyword cursor:no_hardware_cursors 1"));
+    OK(getFromSocket("/eval hl.config({ general = { allow_tearing = false } })"));
+    OK(getFromSocket("/eval hl.config({ render = { direct_scanout = 0 } })"));
+    OK(getFromSocket("/eval hl.config({ cursor = { no_hardware_cursors = 1 } })"));
     NLog::log("{}Expecting blocked solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
@@ -41,10 +41,10 @@ static bool test() {
     //     return false;
     // }
 
-    // OK(getFromSocket("/keyword general:allow_tearing true"));
-    // OK(getFromSocket("/keyword render:direct_scanout 1"));
+    // OK(getFromSocket("/eval hl.config({ general = { allow_tearing = true } })"));
+    // OK(getFromSocket("/eval hl.config({ render = { direct_scanout = 1 } })"));
     // NLog::log("{}", getFromSocket("/clients"));
-    // OK(getFromSocket("/dispatch fullscreen"));
+    // OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
     // NLog::log("{}", getFromSocket("/clients"));
     // std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // NLog::log("{}Expecting kitty to almost pass for solitary/DS/tearing", Colors::YELLOW);
@@ -56,7 +56,7 @@ static bool test() {
     //     EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,not supported by monitor,window settings");
     // }
 
-    // OK(getFromSocket("/dispatch setprop active immediate 1"));
+    // OK(getFromSocket("/dispatch hl.dsp.window.set_prop({ window = 'active', prop = 'immediate', value = '1' })"));
     // NLog::log("{}Expecting kitty to almost pass for tearing", Colors::YELLOW);
     // {
     //     auto str = getFromSocket("/monitors");

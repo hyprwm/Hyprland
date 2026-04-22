@@ -11,7 +11,7 @@
 #include "../shared.hpp"
 
 bool testPlugin() {
-    const auto RESPONSE = getFromSocket("/dispatch plugin:test:test");
+    const auto RESPONSE = getFromSocket("/eval hl.plugin.test.test()");
 
     if (RESPONSE != "ok") {
         NLog::log("{}Plugin tests failed, plugin returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);
@@ -21,7 +21,7 @@ bool testPlugin() {
 }
 
 bool testVkb() {
-    const auto RESPONSE = getFromSocket("/dispatch plugin:test:vkb");
+    const auto RESPONSE = getFromSocket("/eval hl.plugin.test.vkb()");
 
     if (RESPONSE != "ok") {
         NLog::log("{}Vkb tests failed, tests returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);

@@ -135,7 +135,7 @@ std::string CShaderLoader::process(const std::string& filename, const std::map<s
 }
 
 std::string CShaderLoader::getVariantSource(ePreparedFragmentShader frag, ShaderFeatureFlags features) {
-    static const auto PCM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
+    static const auto PCM = CConfigValue<Config::INTEGER>("render:cm_enabled");
     if (!*PCM)
         features &= ~(SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD);
 

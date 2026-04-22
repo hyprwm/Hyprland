@@ -92,7 +92,7 @@ static bool createChild(SClient& client) {
     if (!waitForWindow(client.proc, Tests::windowCount()))
         NLog::log("{}Child window took too long to open", Colors::RED);
 
-    if (getFromSocket("/dispatch focuswindow class:child-test-child") != "ok") {
+    if (getFromSocket("/dispatch hl.dsp.focus({ window = 'class:child-test-child' })") != "ok") {
         NLog::log("{}Failed to focus child window", Colors::RED);
         return false;
     }
@@ -105,8 +105,8 @@ static bool test() {
 
     if (!startClient(client))
         return false;
-    OK(getFromSocket("/dispatch setfloating class:child-test-parent"));
-    OK(getFromSocket("/dispatch pin class:child-test-parent"));
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:child-test-parent' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'set', window = 'class:child-test-parent' })"));
 
     createChild(client);
     EXPECT(Tests::windowCount(), 2)
@@ -127,8 +127,8 @@ static bool test() {
     }
 
     // create group and enable auto-grouping
-    OK(getFromSocket("/dispatch togglegroup"));
-    OK(getFromSocket("/keyword group:auto_group true"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));
 
     SClient client2;
     if (!startClient(client2))

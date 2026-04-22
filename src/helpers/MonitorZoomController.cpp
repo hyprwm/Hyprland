@@ -69,11 +69,11 @@ void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::
 }
 
 void CMonitorZoomController::applyZoomTransform(CBox& monbox, const Render::SRenderData& m_renderData) {
-    static auto PZOOMRIGID          = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
-    static auto PZOOMDETACHEDCAMERA = CConfigValue<Hyprlang::INT>("cursor:zoom_detached_camera");
+    static auto PZOOMRIGID          = CConfigValue<Config::INTEGER>("cursor:zoom_rigid");
+    static auto PZOOMDETACHEDCAMERA = CConfigValue<Config::INTEGER>("cursor:zoom_detached_camera");
     const auto  ZOOM                = g_pHyprRenderer->m_renderData.mouseZoomFactor;
 
-    if (ZOOM == 1.0f)
+    if (ZOOM == 1.F)
         return;
 
     const auto m        = m_renderData.pMonitor;

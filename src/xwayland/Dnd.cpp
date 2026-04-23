@@ -1,4 +1,7 @@
 #include "Dnd.hpp"
+#include "MonitorSelection.hpp"
+#include "../Compositor.hpp"
+#include "../config/ConfigValue.hpp"
 #ifndef NO_XWAYLAND
 #include "XWM.hpp"
 #include "XWayland.hpp"
@@ -146,7 +149,9 @@ void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, con
         return;
     }
 
-    m_lastSurfaceCoords = g_pXWaylandManager->xwaylandToWaylandCoords(XSURF->m_geometry.pos());
+    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+
+    m_lastSurfaceCoords = XWayland::xwaylandToWaylandCoords(g_pCompositor->m_monitors, XSURF->m_geometry.pos(), *PXWLFORCESCALEZERO);
 #endif
 }
 
@@ -180,8 +185,9 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 
     xcb_window_t              targetWindow = getProxyWindow(m_lastSurface->m_xID);
 
-    const auto                XCOORDS = g_pXWaylandManager->waylandToXWaylandCoords(m_lastSurfaceCoords + local);
-    const uint32_t            coords  = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
+    static auto               PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    const auto                XCOORDS            = XWayland::waylandToXWaylandCoords(g_pCompositor->m_monitors, m_lastSurfaceCoords + local, *PXWLFORCESCALEZERO);
+    const uint32_t            coords             = (sc<uint32_t>(XCOORDS.x) << 16) | sc<uint32_t>(XCOORDS.y);
 
     xcb_client_message_data_t data = {{0}};
     data.data32[0]                 = g_pXWayland->m_wm->m_dndSelection.window;

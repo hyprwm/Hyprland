@@ -31,9 +31,10 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!WINDOW)
             return;
 
-        const auto SURFBOX   = WINDOW->getWindowMainSurfaceBox().expand(1);
-        const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
-        const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
+        const auto SURFBOX         = WINDOW->getWindowMainSurfaceBox().expand(1);
+        const auto CLIENTLOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
+        const auto LOGICALLOCALPOS = WINDOW->m_isX11 ? CLIENTLOCALPOS / WINDOW->m_X11SurfaceScaledBy : CLIENTLOCALPOS;
+        const auto GLOBALPOS       = LOGICALLOCALPOS + SURFBOX.pos();
         if (!SURFBOX.containsPoint(GLOBALPOS))
             return;
 
@@ -44,7 +45,7 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         LOGM(Log::DEBUG, "warped pointer to {}", GLOBALPOS);
 
         g_pPointerManager->warpTo(GLOBALPOS);
-        g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCALPOS);
+        g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), CLIENTLOCALPOS);
     });
 }
 

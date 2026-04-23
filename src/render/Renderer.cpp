@@ -3288,12 +3288,15 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     if (!*PBLUR)
         return false;
 
+    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
+    if (DONT_BLUR)
+        return false;
+
     auto surface = w->wlSurface();
     if (surface && surface->m_hasBackgroundEffect)
         return !surface->m_blurRegion.empty();
 
-    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
-    return !DONT_BLUR;
+    return true;
 }
 
 bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {

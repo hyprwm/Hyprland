@@ -1981,6 +1981,19 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
 
+        // handle ext-background-effect-v1 blur region if specified
+        CRegion blurClipRegion = data.clipRegion;
+        auto    PSURFACE       = Desktop::View::CWLSurface::fromResource(data.surface);
+        if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
+            CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
+            protocolBlur.scale(m_renderData.pMonitor->m_scale);
+            protocolBlur.translate(box.pos());
+            if (blurClipRegion.empty())
+                blurClipRegion = protocolBlur;
+            else
+                blurClipRegion.intersect(protocolBlur);
+        }
+
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
         if (!data.blockBlurOptimization)
@@ -1999,7 +2012,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                                   .wrapY          = data.wrapY,
                                   .discardMode    = data.discardMode,
                                   .discardOpacity = data.discardOpacity,
-                                  .clipRegion     = data.clipRegion,
+                                  .clipRegion     = blurClipRegion,
                                   .currentLS      = data.currentLS,
 
                                   .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
@@ -2012,62 +2025,6 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         if (NEEDS_STENCIL)
             setCapStatus(GL_STENCIL_TEST, false);
     }
-
-    // stencil done. Render everything.
-    const auto LASTTL = m_renderData.primarySurfaceUVTopLeft;
-    const auto LASTBR = m_renderData.primarySurfaceUVBottomRight;
-
-    CBox       transformedBox = box;
-    transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
-                             m_renderData.pMonitor->m_transformedSize.y);
-
-    CBox monitorSpaceBox = {transformedBox.pos().x / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.pos().y / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y,
-                            transformedBox.width / m_renderData.pMonitor->m_pixelSize.x * m_renderData.pMonitor->m_transformedSize.x,
-                            transformedBox.height / m_renderData.pMonitor->m_pixelSize.y * m_renderData.pMonitor->m_transformedSize.y};
-
-    m_renderData.primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize;
-    m_renderData.primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize;
-
-    static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
-
-    // handle ext-background-effect-v1 blur region if specified
-    CRegion savedClipRegion = m_renderData.clipRegion;
-    auto    PSURFACE        = Desktop::View::CWLSurface::fromResource(data.surface);
-    if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
-        CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
-        protocolBlur.scale(m_renderData.pMonitor->m_scale);
-        protocolBlur.translate(box.pos());
-        if (m_renderData.clipRegion.empty())
-            m_renderData.clipRegion = protocolBlur;
-        else
-            m_renderData.clipRegion.intersect(protocolBlur);
-    }
-
-    pushMonitorTransformEnabled(true);
-    if (!USENEWOPTIMIZE)
-        setRenderModifEnabled(false);
-    renderTextureInternal(POUTFB->getTexture(), box,
-                          STextureRenderData{
-                              .damage        = &texDamage,
-                              .a             = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
-                              .round         = data.round,
-                              .roundingPower = data.roundingPower,
-                              .discardActive = false,
-                              .allowCustomUV = true,
-                              .noAA          = false,
-                              .wrapX         = data.wrapX,
-                              .wrapY         = data.wrapY,
-                          });
-    if (!USENEWOPTIMIZE)
-        setRenderModifEnabled(true);
-    popMonitorTransformEnabled();
-
-    // restore clipRegion so the surface texture renders with the original clip
-    m_renderData.clipRegion = savedClipRegion;
-
-    m_renderData.primarySurfaceUVTopLeft     = LASTTL;
-    m_renderData.primarySurfaceUVBottomRight = LASTBR;
 
     // draw window
     renderTextureInternal(tex, box,

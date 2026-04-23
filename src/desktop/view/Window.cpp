@@ -575,8 +575,11 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0)
-        m_lastWorkspace = m_monitor->activeWorkspaceID();
+    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0) {
+        const auto PMONITOR = m_monitor.lock();
+        if (PMONITOR)
+            m_lastWorkspace = PMONITOR->activeWorkspaceID();
+    }
 
     if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();

@@ -1654,17 +1654,6 @@ std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
     return Vector2D{*LHS, *RHS};
 }
 
-static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
-    if (!pav)
-        return;
-
-    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
-    animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
-
-    if (animvar->m_Context.pWindow)
-        animvar->m_Context.pWindow->m_animatingIn = false;
-}
-
 void CWindow::mapWindow() {
     static auto PINACTIVEALPHA     = CConfigValue<Hyprlang::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA       = CConfigValue<Hyprlang::FLOAT>("decoration:active_opacity");
@@ -2122,9 +2111,6 @@ void CWindow::mapWindow() {
 
     // do animations
     g_pDesktopAnimationManager->startAnimation(m_self.lock(), CDesktopAnimationManager::ANIMATION_TYPE_IN);
-
-    m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
-    m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
 
     // recalc the values for this window
     updateDecorationValues();

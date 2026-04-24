@@ -19,24 +19,38 @@
 
 using namespace Hyprutils::String;
 
+static void setVector2DAnimToMove(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav) {
+    if (!pav)
+        return;
+
+    CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
+    animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
+
+    if (animvar->m_Context.pWindow)
+        animvar->m_Context.pWindow->m_animatingIn = false;
+}
+
+static void warpCloseAlphaToZero(PHLWINDOW pWindow) {
+    *pWindow->m_alpha = 0.F;
+    pWindow->m_alpha->warp(true, false);
+}
+
 void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType type, bool force) {
     const bool CLOSE = type == ANIMATION_TYPE_OUT;
 
-    if (CLOSE)
-        *pWindow->m_alpha = 0.F;
-    else {
-        pWindow->m_alpha->setValueAndWarp(0.F);
-        *pWindow->m_alpha = 1.F;
-    }
-
-    if (!CLOSE) {
-        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
-    } else {
+    if (CLOSE) {
         pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
         pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
         pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
+
+        if (pWindow->m_alpha->enabled())
+            *pWindow->m_alpha = 0.F;
+    } else {
+        pWindow->m_alpha->setValueAndWarp(0.F);
+        *pWindow->m_alpha = 1.F;
+        pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
+        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
     }
 
     std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();
@@ -45,12 +59,18 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
     CVarList animList(ANIMSTYLE, 0, 's');
 
     // if the window is not being animated, that means the layout set a fixed size for it, don't animate.
-    if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated() && !force)
+    if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated() && !force) {
+        if (CLOSE && !pWindow->m_alpha->enabled())
+            warpCloseAlphaToZero(pWindow);
         return;
+    }
 
     // if the animation is disabled and we are leaving, ignore the anim to prevent the snapshot being fucked
-    if (!pWindow->m_realPosition->enabled() && !force)
+    if (!pWindow->m_realPosition->enabled() && !force) {
+        if (CLOSE && !pWindow->m_alpha->enabled())
+            warpCloseAlphaToZero(pWindow);
         return;
+    }
 
     if (pWindow->m_ruleApplicator->animationStyle().hasValue()) {
         const auto STYLE = pWindow->m_ruleApplicator->animationStyle().value();
@@ -94,6 +114,34 @@ void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType 
             }
 
             animationPopin(pWindow, CLOSE, minPerc / 100.f);
+        }
+    }
+
+    // set the default on end callbacks
+    pWindow->m_realPosition->setCallbackOnEnd(setVector2DAnimToMove);
+    pWindow->m_realSize->setCallbackOnEnd(setVector2DAnimToMove);
+
+    // set the opacity to 0 when the windowOut animation is finished, and fadeOut is disabled
+    if (CLOSE && !pWindow->m_alpha->enabled()) {
+        // if the window is not being animated, set the opacity to 0
+        if (!pWindow->m_realPosition->isBeingAnimated() && !pWindow->m_realSize->isBeingAnimated())
+            warpCloseAlphaToZero(pWindow);
+        // if the window is being animated, set the opacity to 0 when the animation is finished
+        else {
+            const auto onVector2DAnimEnd = [weak = PHLWINDOWREF{pWindow}](WP<Hyprutils::Animation::CBaseAnimatedVariable> pav) {
+                const auto PW = weak.lock();
+                if (!PW)
+                    return;
+
+                if (PW->m_fadingOut && !PW->m_realPosition->isBeingAnimated() && !PW->m_realSize->isBeingAnimated()) {
+                    warpCloseAlphaToZero(PW);
+                }
+
+                setVector2DAnimToMove(pav);
+            };
+
+            pWindow->m_realPosition->setCallbackOnEnd(onVector2DAnimEnd, false);
+            pWindow->m_realSize->setCallbackOnEnd(onVector2DAnimEnd, false);
         }
     }
 }

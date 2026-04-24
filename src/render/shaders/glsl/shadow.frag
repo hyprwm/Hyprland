@@ -14,6 +14,8 @@ uniform mat3  targetPrimariesXYZ;
 
 uniform vec2  topLeft;
 uniform vec2  bottomRight;
+uniform vec2  windowTopLeft;
+uniform vec2  windowBottomRight;
 uniform vec2  fullSize;
 uniform float radius;
 uniform float roundingPower;
@@ -39,7 +41,7 @@ void main() {
 #else
     fragColor =
 #endif
-        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, thick
+        getShadow(pixColor, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, windowTopLeft, windowBottomRight, thick
 #if USE_CM
                   ,
                   sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange

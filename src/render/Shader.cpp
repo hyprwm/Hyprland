@@ -161,8 +161,10 @@ void CShader::getUniformLocations() {
         m_uniformLocations[SHADER_SHADER_VBO_POS]
         m_uniformLocations[SHADER_SHADER_VBO_UV]
         */
-    m_uniformLocations[SHADER_TOP_LEFT]     = getUniform("topLeft");
-    m_uniformLocations[SHADER_BOTTOM_RIGHT] = getUniform("bottomRight");
+    m_uniformLocations[SHADER_TOP_LEFT]            = getUniform("topLeft");
+    m_uniformLocations[SHADER_BOTTOM_RIGHT]        = getUniform("bottomRight");
+    m_uniformLocations[SHADER_WINDOW_TOP_LEFT]     = getUniform("windowTopLeft");
+    m_uniformLocations[SHADER_WINDOW_BOTTOM_RIGHT] = getUniform("windowBottomRight");
 
     // compat for screenshaders
     auto fullSize = getUniform("fullSize");

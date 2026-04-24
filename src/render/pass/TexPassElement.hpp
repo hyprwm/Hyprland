@@ -31,7 +31,6 @@ class CTexPassElement : public IPassElement {
         std::optional<float>   ignoreAlpha;
         std::optional<bool>    blockBlurOptimization;
         bool                   cmBackToSRGB = false;
-        SP<CMonitor>           cmBackToSRGBSource;
 
         bool                   discardActive = false;
         bool                   allowCustomUV = false;

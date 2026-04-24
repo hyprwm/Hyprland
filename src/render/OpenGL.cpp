@@ -1298,7 +1298,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shaderFeatures &= ~SH_FEAT_RGBA;
 
     const auto surface                       = g_pHyprRenderer->m_renderData.surface;
-    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->workBufferImageDescription();
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->m_renderData.pMonitor->workBufferImageDescription();
 
     // chosenSdrEotf contains the valid eotf for this display
 
@@ -1311,7 +1311,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             return CImageDescription::from(surface->m_colorManagement->imageDescription());
 
         if (data.cmBackToSRGB)
-            return g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription;
+            return tex->m_imageDescription ? tex->m_imageDescription : WORK_BUFFER_IMAGE_DESCRIPTION;
 
         // otherwise, if we are CM'ing back into source, use chosen, because that's what our work buffer is in
         // the same applies to the final monitor CM
@@ -1348,14 +1348,6 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         || g_pHyprRenderer->m_renderData.pMonitor->doesNoShaderCM()     /* no shader needed */
         || !SOURCE_IMAGE_DESCRIPTION->needsCM(TARGET_IMAGE_DESCRIPTION) /* Source and target have matching image descriptions */
         ;
-
-    const auto sourceTF                    = SOURCE_IMAGE_DESCRIPTION->value().transferFunction;
-    const bool sourceIsUnmanagedSDRSurface = surface.valid() && !surface->m_colorManagement.valid() &&
-        (sourceTF == CM_TRANSFER_FUNCTION_SRGB || sourceTF == CM_TRANSFER_FUNCTION_GAMMA22 || sourceTF == CM_TRANSFER_FUNCTION_EXT_SRGB || sourceTF == CM_TRANSFER_FUNCTION_BT1886);
-    const bool targetIsLinearWorkBuffer = TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
-
-    if (!skipCM && !data.finalMonitorCM && !data.cmBackToSRGB && sourceIsUnmanagedSDRSurface && targetIsLinearWorkBuffer)
-        shaderFeatures |= SH_FEAT_SDR_PREMUL_COMPAT;
 
     if (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB())
         Log::logger->log(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
@@ -2395,7 +2387,8 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
         Log::logger->log(Log::ERR, "Invalid source texture for mirror");
         return;
     }
-    auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
+    auto fb    = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB();
+    auto guard = g_pHyprRenderer->bindTempFB(fb);
 
     Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
@@ -2408,7 +2401,6 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
                       .round         = 0,
                       .discardActive = false,
                       .allowCustomUV = false,
-                      .cmBackToSRGB  = true,
                   });
 
     blend(true);

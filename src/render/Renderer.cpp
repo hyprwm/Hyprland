@@ -3275,6 +3275,9 @@ NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() 
     // const auto  sdrEOTF         = NTransferFunction::fromConfig(IS_MONITOR_ICC);
     // const auto  CHOSEN_SDR_EOTF = sdrEOTF != NTransferFunction::TF_SRGB ? NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22 : NColorManagement::CM_TRANSFER_FUNCTION_SRGB;
 
+    if (!m_renderData.pMonitor)
+        return LINEAR_IMAGE_DESCRIPTION;
+
     return m_renderData.pMonitor->useFP16() ?
         LINEAR_IMAGE_DESCRIPTION :
         m_renderData.pMonitor->m_imageDescription; //CImageDescription::from(NColorManagement::SImageDescription{.transferFunction = CHOSEN_SDR_EOTF});

@@ -1349,6 +1349,14 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         || !SOURCE_IMAGE_DESCRIPTION->needsCM(TARGET_IMAGE_DESCRIPTION) /* Source and target have matching image descriptions */
         ;
 
+    const auto sourceTF                    = SOURCE_IMAGE_DESCRIPTION->value().transferFunction;
+    const bool sourceIsUnmanagedSDRSurface = surface.valid() && !surface->m_colorManagement.valid() &&
+        (sourceTF == CM_TRANSFER_FUNCTION_SRGB || sourceTF == CM_TRANSFER_FUNCTION_GAMMA22 || sourceTF == CM_TRANSFER_FUNCTION_EXT_SRGB || sourceTF == CM_TRANSFER_FUNCTION_BT1886);
+    const bool targetIsLinearWorkBuffer = TARGET_IMAGE_DESCRIPTION->value().transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+
+    if (!skipCM && !data.finalMonitorCM && !data.cmBackToSRGB && sourceIsUnmanagedSDRSurface && targetIsLinearWorkBuffer)
+        shaderFeatures |= SH_FEAT_SDR_PREMUL_COMPAT;
+
     if (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB())
         Log::logger->log(Log::TRACE, "CM: render to FB skip={} {} -> {}", skipCM, SOURCE_IMAGE_DESCRIPTION->value(), TARGET_IMAGE_DESCRIPTION->value());
 

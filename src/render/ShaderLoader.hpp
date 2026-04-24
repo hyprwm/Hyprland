@@ -11,16 +11,17 @@ namespace Render {
     enum ePreparedFragmentShaderFeature : uint16_t {
         SH_FEAT_UNKNOWN = 0, // all features just in case
 
-        SH_FEAT_RGBA     = (1 << 0), // RGBA/RGBX texture sampling
-        SH_FEAT_DISCARD  = (1 << 1), // RGBA/RGBX texture sampling
-        SH_FEAT_TINT     = (1 << 2), // uniforms: tint; condition: applyTint
-        SH_FEAT_ROUNDING = (1 << 3), // uniforms: radius, roundingPower, topLeft, fullSize; condition: radius > 0
-        SH_FEAT_CM       = (1 << 4), // uniforms: srcTFRange, dstTFRange, srcRefLuminance, convertMatrix; condition: !skipCM
-        SH_FEAT_TONEMAP  = (1 << 5), // uniforms: maxLuminance, dstMaxLuminance, dstRefLuminance; condition: maxLuminance < dstMaxLuminance * 1.01
-        SH_FEAT_SDR_MOD  = (1 << 6), // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
-        SH_FEAT_BLUR     = (1 << 7), // condition: render:use_shader_blur_blend
-        SH_FEAT_ICC      = (1 << 8), //
-        SH_FEAT_MIRROR   = (1 << 9), // condition: mirror or screenshare
+        SH_FEAT_RGBA              = (1 << 0),  // RGBA/RGBX texture sampling
+        SH_FEAT_DISCARD           = (1 << 1),  // RGBA/RGBX texture sampling
+        SH_FEAT_TINT              = (1 << 2),  // uniforms: tint; condition: applyTint
+        SH_FEAT_ROUNDING          = (1 << 3),  // uniforms: radius, roundingPower, topLeft, fullSize; condition: radius > 0
+        SH_FEAT_CM                = (1 << 4),  // uniforms: srcTFRange, dstTFRange, srcRefLuminance, convertMatrix; condition: !skipCM
+        SH_FEAT_TONEMAP           = (1 << 5),  // uniforms: maxLuminance, dstMaxLuminance, dstRefLuminance; condition: maxLuminance < dstMaxLuminance * 1.01
+        SH_FEAT_SDR_MOD           = (1 << 6),  // uniforms: sdrSaturation, sdrBrightnessMultiplier; condition: SDR <-> HDR && (sdrSaturation != 1 || sdrBrightnessMultiplier != 1)
+        SH_FEAT_BLUR              = (1 << 7),  // condition: render:use_shader_blur_blend
+        SH_FEAT_ICC               = (1 << 8),  //
+        SH_FEAT_MIRROR            = (1 << 9),  // condition: mirror or screenshare
+        SH_FEAT_SDR_PREMUL_COMPAT = (1 << 10), // condition: unmanaged SDR surfaces drawn into linear workbuffer
 
         // uniforms: targetPrimariesXYZ; condition: SH_FEAT_TONEMAP || SH_FEAT_SDR_MOD
     };

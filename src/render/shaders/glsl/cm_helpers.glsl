@@ -224,15 +224,25 @@ vec4
 #endif
 #endif
     ) {
+#if USE_SDR_PREMUL_COMPAT
+    // Compatibility path for unmanaged SDR translucent surfaces rendered into a linear workbuffer.
+    // Keep premultiplication during source TF decoding to avoid low-alpha hue/opacity drift.
+    pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
+#else
     pixColor.rgb /= max(pixColor.a, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
+#endif
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);
     pixColor.rgb *= pixColor.a;
 #else
     pixColor.rgb = convertMatrix * pixColor.rgb;
+#if USE_SDR_PREMUL_COMPAT
+    pixColor.rgb = pixColor.rgb * (srcTFRange[1] - srcTFRange[0]) + srcTFRange[0] * pixColor.a;
+#else
     pixColor     = toNit(pixColor, srcTFRange);
     pixColor.rgb *= pixColor.a;
+#endif
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);
 #endif

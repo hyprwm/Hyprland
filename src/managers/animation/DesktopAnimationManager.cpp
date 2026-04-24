@@ -249,8 +249,10 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         ws->m_renderOffset->setConfig(Config::animationTree()->getAnimationPropertyConfig(ANIMNAME));
     }
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto PREVERSESLIDE = CConfigValue<Hyprlang::INT>("animations:reverse_slide_direction");
     const auto  PMONITOR      = ws->m_monitor.lock();
     const auto  ANIMSTYLE     = style.value_or(ws->m_alpha->getStyle());
+    const auto  REVERSESLIDE  = *PREVERSESLIDE;
 
     float       movePerc = 100.f;
     // inverted for some reason. TODO: fix the cause
@@ -300,26 +302,38 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         ws->m_renderOffset->setValueAndWarp(Vector2D(0, 0));
 
         if (vert) {
+            float yIn  = (left ? PMONITOR->m_size.y : -PMONITOR->m_size.y) * (movePerc / 100.f);
+            float yOut = (left ? -PMONITOR->m_size.y : PMONITOR->m_size.y) * (movePerc / 100.f);
+            if (REVERSESLIDE) {
+                yIn  = -yIn;
+                yOut = -yOut;
+            }
             if (IN) {
                 ws->m_alpha->setValueAndWarp(0.f);
-                ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, (left ? PMONITOR->m_size.y : -PMONITOR->m_size.y) * (movePerc / 100.f)));
+                ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, yIn));
                 *ws->m_alpha        = 1.f;
                 *ws->m_renderOffset = Vector2D(0, 0);
             } else {
                 ws->m_alpha->setValueAndWarp(1.f);
                 *ws->m_alpha        = 0.f;
-                *ws->m_renderOffset = Vector2D(0.0, (left ? -PMONITOR->m_size.y : PMONITOR->m_size.y) * (movePerc / 100.f));
+                *ws->m_renderOffset = Vector2D(0.0, yOut);
             }
         } else {
+            float xIn  = (left ? PMONITOR->m_size.x : -PMONITOR->m_size.x) * (movePerc / 100.f);
+            float xOut = (left ? -PMONITOR->m_size.x : PMONITOR->m_size.x) * (movePerc / 100.f);
+            if (REVERSESLIDE) {
+                xIn  = -xIn;
+                xOut = -xOut;
+            }
             if (IN) {
                 ws->m_alpha->setValueAndWarp(0.f);
-                ws->m_renderOffset->setValueAndWarp(Vector2D((left ? PMONITOR->m_size.x : -PMONITOR->m_size.x) * (movePerc / 100.f), 0.0));
+                ws->m_renderOffset->setValueAndWarp(Vector2D(xIn, 0.0));
                 *ws->m_alpha        = 1.f;
                 *ws->m_renderOffset = Vector2D(0, 0);
             } else {
                 ws->m_alpha->setValueAndWarp(1.f);
                 *ws->m_alpha        = 0.f;
-                *ws->m_renderOffset = Vector2D((left ? -PMONITOR->m_size.x : PMONITOR->m_size.x) * (movePerc / 100.f), 0.0);
+                *ws->m_renderOffset = Vector2D(xOut, 0.0);
             }
         }
     } else if (ANIMSTYLE == "fade") {
@@ -336,11 +350,17 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         const auto YDISTANCE = (PMONITOR->m_size.y + *PWORKSPACEGAP) * (movePerc / 100.f);
         ws->m_alpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
+        float yIn  = (left ? YDISTANCE : -YDISTANCE);
+        float yOut = (left ? -YDISTANCE : YDISTANCE);
+        if (REVERSESLIDE) {
+            yIn  = -yIn;
+            yOut = -yOut;
+        }
         if (IN) {
-            ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, left ? YDISTANCE : -YDISTANCE));
+            ws->m_renderOffset->setValueAndWarp(Vector2D(0.0, yIn));
             *ws->m_renderOffset = Vector2D(0, 0);
         } else {
-            *ws->m_renderOffset = Vector2D(0.0, left ? -YDISTANCE : YDISTANCE);
+            *ws->m_renderOffset = Vector2D(0.0, yOut);
         }
 
     } else {
@@ -348,11 +368,17 @@ void CDesktopAnimationManager::startAnimation(PHLWORKSPACE ws, eAnimationType ty
         const auto XDISTANCE = (PMONITOR->m_size.x + *PWORKSPACEGAP) * (movePerc / 100.f);
         ws->m_alpha->setValueAndWarp(1.f); // fix a bug, if switching from fade -> slide.
 
+        float xIn  = (left ? XDISTANCE : -XDISTANCE);
+        float xOut = (left ? -XDISTANCE : XDISTANCE);
+        if (REVERSESLIDE) {
+            xIn  = -xIn;
+            xOut = -xOut;
+        }
         if (IN) {
-            ws->m_renderOffset->setValueAndWarp(Vector2D(left ? XDISTANCE : -XDISTANCE, 0.0));
+            ws->m_renderOffset->setValueAndWarp(Vector2D(xIn, 0.0));
             *ws->m_renderOffset = Vector2D(0, 0);
         } else {
-            *ws->m_renderOffset = Vector2D(left ? -XDISTANCE : XDISTANCE, 0.0);
+            *ws->m_renderOffset = Vector2D(xOut, 0.0);
         }
     }
 

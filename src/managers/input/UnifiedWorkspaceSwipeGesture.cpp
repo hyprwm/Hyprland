@@ -41,10 +41,12 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     static auto  PSWIPEFOREVER          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_forever");
     static auto  PSWIPEUSER             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto  PWORKSPACEGAP          = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto  PREVERSESLIDE          = CConfigValue<Hyprlang::INT>("animations:reverse_slide_direction");
 
     const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
     const auto   XDISTANCE     = m_monitor->m_size.x + *PWORKSPACEGAP;
     const auto   YDISTANCE     = m_monitor->m_size.y + *PWORKSPACEGAP;
+    const int    REVERSESLIDE  = *PREVERSESLIDE;
     const auto   ANIMSTYLE     = m_workspaceBegin->m_renderOffset->getStyle();
     const bool   VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
     const double d             = m_delta - delta;
@@ -88,10 +90,17 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
-                if (VERTANIMS)
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
-                else
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+                if (VERTANIMS) {
+                    float y = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE;
+                    if (REVERSESLIDE)
+                        y = -y;
+                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, y));
+                } else {
+                    float x = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE;
+                    if (REVERSESLIDE)
+                        x = -x;
+                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(x, 0.0));
+                }
 
                 m_workspaceBegin->updateWindowDecos();
                 return;
@@ -113,11 +122,23 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         }
 
         if (VERTANIMS) {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE - YDISTANCE));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+            float y1 = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE - YDISTANCE;
+            float y2 = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE;
+            if (REVERSESLIDE) {
+                y1 = -y1;
+                y2 = -y2;
+            }
+            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, y1));
+            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, y2));
         } else {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE - XDISTANCE, 0.0));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+            float x1 = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE - XDISTANCE;
+            float x2 = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE;
+            if (REVERSESLIDE) {
+                x1 = -x1;
+                x2 = -x2;
+            }
+            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(x1, 0.0));
+            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(x2, 0.0));
         }
 
         PWORKSPACE->updateWindowDecos();
@@ -128,10 +149,17 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
             if (*PSWIPENEW) {
                 g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
-                if (VERTANIMS)
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
-                else
-                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+                if (VERTANIMS) {
+                    float y = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE;
+                    if (REVERSESLIDE)
+                        y = -y;
+                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, y));
+                } else {
+                    float x = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE;
+                    if (REVERSESLIDE)
+                        x = -x;
+                    m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(x, 0.0));
+                }
 
                 m_workspaceBegin->updateWindowDecos();
                 return;
@@ -153,11 +181,23 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         }
 
         if (VERTANIMS) {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE + YDISTANCE));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, ((-m_delta) / SWIPEDISTANCE) * YDISTANCE));
+            float y1 = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE + YDISTANCE;
+            float y2 = ((-m_delta) / SWIPEDISTANCE) * YDISTANCE;
+            if (REVERSESLIDE) {
+                y1 = -y1;
+                y2 = -y2;
+            }
+            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(0.0, y1));
+            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(0.0, y2));
         } else {
-            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE + XDISTANCE, 0.0));
-            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(((-m_delta) / SWIPEDISTANCE) * XDISTANCE, 0.0));
+            float x1 = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE + XDISTANCE;
+            float x2 = ((-m_delta) / SWIPEDISTANCE) * XDISTANCE;
+            if (REVERSESLIDE) {
+                x1 = -x1;
+                x2 = -x2;
+            }
+            PWORKSPACE->m_renderOffset->setValueAndWarp(Vector2D(x1, 0.0));
+            m_workspaceBegin->m_renderOffset->setValueAndWarp(Vector2D(x2, 0.0));
         }
 
         PWORKSPACE->updateWindowDecos();
@@ -185,8 +225,10 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
     static auto PSWIPEUSER    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
     static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto PREVERSESLIDE = CConfigValue<Hyprlang::INT>("animations:reverse_slide_direction");
     const auto  ANIMSTYLE     = m_workspaceBegin->m_renderOffset->getStyle();
     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
+    const int   REVERSESLIDE  = *PREVERSESLIDE;
 
     // commit
     auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
@@ -220,19 +262,32 @@ void CUnifiedWorkspaceSwipeGesture::end() {
                 // to left
 
                 if (PWORKSPACEL) {
-                    if (VERTANIMS)
-                        *PWORKSPACEL->m_renderOffset = Vector2D{0.0, -YDISTANCE};
-                    else
-                        *PWORKSPACEL->m_renderOffset = Vector2D{-XDISTANCE, 0.0};
+                    if (VERTANIMS) {
+                        float y = -YDISTANCE;
+                        if (REVERSESLIDE)
+                            y = -y;
+                        *PWORKSPACEL->m_renderOffset = Vector2D{0.0, y};
+                    } else {
+                        float x = -XDISTANCE;
+                        if (REVERSESLIDE)
+                            x = -x;
+                        *PWORKSPACEL->m_renderOffset = Vector2D{x, 0.0};
+                    }
                 }
             } else if (PWORKSPACER) {
                 // to right
-                if (VERTANIMS)
-                    *PWORKSPACER->m_renderOffset = Vector2D{0.0, YDISTANCE};
-                else
-                    *PWORKSPACER->m_renderOffset = Vector2D{XDISTANCE, 0.0};
+                if (VERTANIMS) {
+                    float y = YDISTANCE;
+                    if (REVERSESLIDE)
+                        y = -y;
+                    *PWORKSPACER->m_renderOffset = Vector2D{0.0, y};
+                } else {
+                    float x = XDISTANCE;
+                    if (REVERSESLIDE)
+                        x = -x;
+                    *PWORKSPACER->m_renderOffset = Vector2D{x, 0.0};
+                }
             }
-
             *m_workspaceBegin->m_renderOffset = Vector2D();
         }
 
@@ -252,10 +307,17 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         PWORKSPACEL->m_alpha->setValueAndWarp(1.f);
 
         m_workspaceBegin->m_renderOffset->setValue(RENDEROFFSETMIDDLE);
-        if (VERTANIMS)
-            *m_workspaceBegin->m_renderOffset = Vector2D(0.0, YDISTANCE);
-        else
-            *m_workspaceBegin->m_renderOffset = Vector2D(XDISTANCE, 0.0);
+        if (VERTANIMS) {
+            float y = YDISTANCE;
+            if (REVERSESLIDE)
+                y = -y;
+            *m_workspaceBegin->m_renderOffset = Vector2D(0.0, y);
+        } else {
+            float x = XDISTANCE;
+            if (REVERSESLIDE)
+                x = -x;
+            *m_workspaceBegin->m_renderOffset = Vector2D(x, 0.0);
+        }
         m_workspaceBegin->m_alpha->setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();
@@ -278,10 +340,17 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         PWORKSPACER->m_alpha->setValueAndWarp(1.f);
 
         m_workspaceBegin->m_renderOffset->setValue(RENDEROFFSETMIDDLE);
-        if (VERTANIMS)
-            *m_workspaceBegin->m_renderOffset = Vector2D(0.0, -YDISTANCE);
-        else
-            *m_workspaceBegin->m_renderOffset = Vector2D(-XDISTANCE, 0.0);
+        if (VERTANIMS) {
+            float y = -YDISTANCE;
+            if (REVERSESLIDE)
+                y = -y;
+            *m_workspaceBegin->m_renderOffset = Vector2D(0.0, y);
+        } else {
+            float x = -XDISTANCE;
+            if (REVERSESLIDE)
+                x = -x;
+            *m_workspaceBegin->m_renderOffset = Vector2D(x, 0.0);
+        }
         m_workspaceBegin->m_alpha->setValueAndWarp(1.f);
 
         g_pInputManager->unconstrainMouse();

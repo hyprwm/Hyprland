@@ -30,7 +30,7 @@ SUBTEST(expectSnapMove, double fromX, double fromY, double toX, double toY) {
 
     OK(getFromSocket(std::format("/dispatch hl.dsp.window.move({{ x = {}, y = {} }})", FROM.x, FROM.y)));
     OK(getFromSocket("/eval hl.plugin.test.snapmove()"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), std::format("at: {},{}", TO.x, TO.y));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("at: {},{}", TO.x, TO.y));
 }
 
 SUBTEST(expectNoSnapMove, double x, double y) {

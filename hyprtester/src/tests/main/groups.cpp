@@ -32,9 +32,9 @@ TEST_CASE(groups) {
     NLog::log("{}Check kittyA dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        ASSERT_COUNT_STRING(str, "at: 22,22", 1);
-        ASSERT_COUNT_STRING(str, "size: 1876,1036", 1);
-        ASSERT_COUNT_STRING(str, "fullscreen: 0", 1);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     auto kittyB = Tests::spawnKitty("kittyB");
@@ -50,8 +50,8 @@ TEST_CASE(groups) {
     NLog::log("{}Check kittyB dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_COUNT_STRING(str, "size: 931,1015", 1);
-        ASSERT_COUNT_STRING(str, "fullscreen: 0", 1);
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     auto kittyC = Tests::spawnKitty("kittyC");
@@ -62,16 +62,16 @@ TEST_CASE(groups) {
     NLog::log("{}Check kittyC dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_COUNT_STRING(str, "size: 931,1015", 1);
-        ASSERT_COUNT_STRING(str, "fullscreen: 0", 1);
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right', group_aware = true })"));
     NLog::log("{}Check that dimensions remain the same after move", Colors::YELLOW);
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_COUNT_STRING(str, "size: 931,1015", 1);
-        ASSERT_COUNT_STRING(str, "fullscreen: 0", 1);
+        EXPECT_COUNT_STRING(str, "size: 931,1015", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     // kill all
@@ -91,9 +91,9 @@ TEST_CASE(groups) {
     NLog::log("{}Check kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        ASSERT_COUNT_STRING(str, "at: 22,22", 1);
-        ASSERT_COUNT_STRING(str, "size: 1876,1036", 1);
-        ASSERT_COUNT_STRING(str, "fullscreen: 0", 1);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 1);
+        EXPECT_COUNT_STRING(str, "size: 1876,1036", 1);
+        EXPECT_COUNT_STRING(str, "fullscreen: 0", 1);
     }
 
     // group the kitty
@@ -105,8 +105,8 @@ TEST_CASE(groups) {
     NLog::log("{}Recheck kitty dimensions", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "at: 22,43");
-        ASSERT_CONTAINS(str, "size: 1876,1015");
+        EXPECT_CONTAINS(str, "at: 22,43");
+        EXPECT_CONTAINS(str, "size: 1876,1015");
     }
 
     // disable the groupbar for ease of testing for now
@@ -130,8 +130,8 @@ TEST_CASE(groups) {
     NLog::log("{}Check kitty dimensions 2", Colors::YELLOW);
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
     }
 
     NLog::log("{}Spawn kittyProcB", Colors::YELLOW);
@@ -176,7 +176,7 @@ TEST_CASE(groups) {
         OK(getFromSocket("/dispatch hl.dsp.group.move_window({ forward = true })"));
         str                  = getFromSocket("/activewindow");
         auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
-        ASSERT(activeAfterMove, activeBeforeMove);
+        EXPECT(activeAfterMove, activeBeforeMove);
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
 
     // and backwards
@@ -187,7 +187,7 @@ TEST_CASE(groups) {
         OK(getFromSocket("/dispatch hl.dsp.group.move_window({ forward = false })"));
         str                  = getFromSocket("/activewindow");
         auto activeAfterMove = std::stoull(str.substr(7, str.find(" -> ") - 7), nullptr, 16);
-        ASSERT(activeAfterMove, activeBeforeMove);
+        EXPECT(activeAfterMove, activeBeforeMove);
     } catch (...) { FAIL_TEST("Could not extract the active window id"); }
 
     NLog::log("{}Disable autogrouping", Colors::YELLOW);
@@ -203,7 +203,7 @@ TEST_CASE(groups) {
     ASSERT(Tests::windowCount(), 3);
     {
         auto str = getFromSocket("/clients");
-        ASSERT_COUNT_STRING(str, "at: 22,22", 2);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
@@ -224,7 +224,7 @@ TEST_CASE(groups) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, std::format("pid: {}", kittyProcD->pid()));
+        EXPECT_CONTAINS(str, std::format("pid: {}", kittyProcD->pid()));
     }
 
     // kill all
@@ -255,7 +255,7 @@ TEST_CASE(groups) {
         // both windows should be grouped at the same position
         {
             auto str = getFromSocket("/clients");
-            ASSERT_COUNT_STRING(str, "at: 22,22", 2);
+            EXPECT_COUNT_STRING(str, "at: 22,22", 2);
         }
 
         // move active window out of group to the right
@@ -265,7 +265,7 @@ TEST_CASE(groups) {
         // the group should stay at x=22, the extracted window should be to the right
         {
             auto str = getFromSocket("/clients");
-            ASSERT_COUNT_STRING(str, "at: 22,22", 1);
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
         }
 
         // move it back into the group
@@ -278,7 +278,7 @@ TEST_CASE(groups) {
         // the group should stay at y=22, the extracted window should be below
         {
             auto str = getFromSocket("/clients");
-            ASSERT_COUNT_STRING(str, "at: 22,22", 1);
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
         }
 
         Tests::killAllWindows();
@@ -314,8 +314,8 @@ TEST_CASE(groups) {
             auto entryStart  = clients.rfind("Window ", classPos);
             auto entryEnd    = clients.find("\n\n", classPos);
             auto windowEntry = clients.substr(entryStart, entryEnd - entryStart);
-            ASSERT_CONTAINS(windowEntry, "floating: 1");
-            ASSERT_CONTAINS(windowEntry, "grouped: 0");
+            EXPECT_CONTAINS(windowEntry, "floating: 1");
+            EXPECT_CONTAINS(windowEntry, "grouped: 0");
         }
     }
 
@@ -344,7 +344,7 @@ TEST_CASE(groups) {
         // Verify it DID merge into a group
         {
             auto str = getFromSocket("/clients");
-            ASSERT_COUNT_STRING(str, "at: 22,22", 2);
+            EXPECT_COUNT_STRING(str, "at: 22,22", 2);
         }
     }
 
@@ -369,7 +369,7 @@ TEST_CASE(groups) {
         // Verify it did NOT merge into the locked group
         {
             auto str = getFromSocket("/clients");
-            ASSERT_COUNT_STRING(str, "at: 22,22", 1);
+            EXPECT_COUNT_STRING(str, "at: 22,22", 1);
         }
     }
 
@@ -393,7 +393,7 @@ TEST_CASE(groups) {
 
         // Verify it DID merge into the locked group
         auto str = getFromSocket("/clients");
-        ASSERT_COUNT_STRING(str, "at: 22,22", 2);
+        EXPECT_COUNT_STRING(str, "at: 22,22", 2);
     }
 
     Tests::killAllWindows();

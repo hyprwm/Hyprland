@@ -195,5 +195,5 @@ TEST_CASE(scrollWindowRule) {
     ASSERT(Tests::windowCount(), 2);
 
     // not the greatest test, but as long as res and gaps don't change, we good.
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }

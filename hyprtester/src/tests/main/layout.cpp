@@ -10,8 +10,8 @@ TEST_CASE(single_window_aspect_ratio) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 442,22");
-        ASSERT_CONTAINS(str, "size: 1036,1036");
+        EXPECT_CONTAINS(str, "at: 442,22");
+        EXPECT_CONTAINS(str, "size: 1036,1036");
     }
 
     Tests::spawnKitty();
@@ -22,8 +22,8 @@ TEST_CASE(single_window_aspect_ratio) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 442,22");
-        ASSERT_CONTAINS(str, "size: 1036,1036");
+        EXPECT_CONTAINS(str, "at: 442,22");
+        EXPECT_CONTAINS(str, "size: 1036,1036");
     }
 
     // don't use swar on maximized
@@ -31,8 +31,8 @@ TEST_CASE(single_window_aspect_ratio) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
     }
 }
 
@@ -59,8 +59,8 @@ TEST_CASE(posPreserve) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 420,420");
-        ASSERT_CONTAINS(str, "size: 1337,69");
+        EXPECT_CONTAINS(str, "at: 420,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
@@ -68,15 +68,15 @@ TEST_CASE(posPreserve) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "size: 1337,69");
+        EXPECT_CONTAINS(str, "size: 1337,69");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 581,420");
-        ASSERT_CONTAINS(str, "size: 1337,69");
+        EXPECT_CONTAINS(str, "at: 581,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
@@ -84,8 +84,8 @@ TEST_CASE(posPreserve) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 581,420");
-        ASSERT_CONTAINS(str, "size: 1337,69");
+        EXPECT_CONTAINS(str, "at: 581,420");
+        EXPECT_CONTAINS(str, "size: 1337,69");
     }
 }
 
@@ -109,7 +109,7 @@ TEST_CASE(focusMRUAfterClose) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT(str.contains("class: kitty_B"), true);
+        EXPECT(str.contains("class: kitty_B"), true);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.kill()"));
@@ -117,7 +117,7 @@ TEST_CASE(focusMRUAfterClose) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT(str.contains("class: kitty_A"), true);
+        EXPECT(str.contains("class: kitty_A"), true);
     }
 }
 
@@ -135,6 +135,6 @@ TEST_CASE(focusPreservedLayoutChange) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT(str.contains("class: kitty_C"), true);
+        EXPECT(str.contains("class: kitty_C"), true);
     }
 }

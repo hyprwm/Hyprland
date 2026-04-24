@@ -173,18 +173,18 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
-        ASSERT_CONTAINS(str, "kitty_A");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     Tests::spawnKitty("kitty_B");
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
-        ASSERT_CONTAINS(str, "kitty_A");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
@@ -192,9 +192,9 @@ TEST_CASE(misc) {
     {
         // should be ignored as per focus_under_fullscreen 0
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
-        ASSERT_CONTAINS(str, "kitty_A");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
@@ -203,9 +203,9 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
-        ASSERT_CONTAINS(str, "kitty_C");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "kitty_C");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
@@ -214,9 +214,9 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
-        ASSERT_CONTAINS(str, "fullscreenClient: 0");
-        ASSERT_CONTAINS(str, "kitty_D");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "kitty_D");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
@@ -234,8 +234,8 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'activewindow' })"));
@@ -243,8 +243,8 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
-        ASSERT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     Tests::spawnKitty("kitty_B");
@@ -256,8 +256,8 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     Tests::killAllWindows();
@@ -272,80 +272,80 @@ TEST_CASE(misc) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen', action = 'unset' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
-        ASSERT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'toggle' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 1");
-        ASSERT_CONTAINS(str, "fullscreenClient: 1");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'maximized', action = 'toggle' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
-        ASSERT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 3, client = 3, action = 'set' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 3");
-        ASSERT_CONTAINS(str, "fullscreenClient: 3");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 3, client = 3, action = 'set' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 3");
-        ASSERT_CONTAINS(str, "fullscreenClient: 3");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'set' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'toggle' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
-        ASSERT_CONTAINS(str, "fullscreenClient: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen_state({ internal = 2, client = 2, action = 'toggle' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
-        ASSERT_CONTAINS(str, "fullscreenClient: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 }
 

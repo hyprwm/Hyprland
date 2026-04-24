@@ -45,35 +45,35 @@ TEST_CASE(gestures) {
     OK(getFromSocket("/eval hl.plugin.test.gesture('right', 5)"));
     OK(getFromSocket("/eval hl.plugin.test.gesture('right', 4)"));
 
-    ASSERT(waitForWindowCount(0, "Gesture sent paste exit + enter to kitty"), true);
+    EXPECT(waitForWindowCount(0, "Gesture sent paste exit + enter to kitty"), true);
 
-    ASSERT(Tests::windowCount(), 0);
+    EXPECT(Tests::windowCount(), 0);
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
-    ASSERT(waitForWindowCount(1, "Gesture spawned kitty"), true);
+    EXPECT(waitForWindowCount(1, "Gesture spawned kitty"), true);
 
-    ASSERT(Tests::windowCount(), 1);
+    EXPECT(Tests::windowCount(), 1);
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "floating: 1");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.alt(1)"));
@@ -82,14 +82,14 @@ TEST_CASE(gestures) {
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_CONTAINS(str, "ID 2 (2)");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_NOT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
     }
 
     // check for crashes
@@ -97,7 +97,7 @@ TEST_CASE(gestures) {
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_NOT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
     }
 
     OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_invert = 0 } })"));
@@ -106,14 +106,14 @@ TEST_CASE(gestures) {
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_CONTAINS(str, "ID 2 (2)");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_NOT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
     }
 
     OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_invert = 1 } })"));
@@ -123,22 +123,22 @@ TEST_CASE(gestures) {
 
     {
         auto str = getFromSocket("/workspaces");
-        ASSERT_NOT_CONTAINS(str, "ID 2 (2)");
-        ASSERT_CONTAINS(str, "ID 1 (1)");
+        EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
+        EXPECT_CONTAINS(str, "ID 1 (1)");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "floating: 0");
+        EXPECT_CONTAINS(str, "floating: 0");
     }
 
     OK(getFromSocket("/eval hl.plugin.test.alt(0)"));
 
     OK(getFromSocket("/eval hl.plugin.test.gesture('up', 3)"));
 
-    ASSERT(waitForWindowCount(0, "Gesture closed kitty"), true);
+    EXPECT(waitForWindowCount(0, "Gesture closed kitty"), true);
 
     ASSERT(Tests::windowCount(), 0);
 
@@ -150,7 +150,7 @@ TEST_CASE(gestures) {
     OK(getFromSocket("/eval hl.plugin.test.gesture('left', 4)"));
     const std::string cursorPos2 = getFromSocket("/cursorpos");
     // The cursor should have moved because of the gesture
-    ASSERT(cursorPos1 != cursorPos2, true);
+    EXPECT(cursorPos1 != cursorPos2, true);
 
     // Test that `workspace previous` works correctly after a workspace gesture.
     {
@@ -167,14 +167,14 @@ TEST_CASE(gestures) {
         OK(getFromSocket("/eval hl.plugin.test.alt(1)"));
         OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
         OK(getFromSocket("/eval hl.plugin.test.alt(0)"));
-        ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
 
         // Must return to 1 rather than 3
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'previous' })"));
-        ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "ID 1 (1)");
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 1 (1)");
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'previous' })"));
-        ASSERT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     }

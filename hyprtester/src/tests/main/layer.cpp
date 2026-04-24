@@ -20,16 +20,16 @@ static bool spawnLayer(const std::string& namespace_) {
 
 TEST_CASE(plugin_layerrules) {
 
-    ASSERT(spawnLayer("rule-layer"), true);
+    EXPECT(spawnLayer("rule-layer"), true);
 
     OK(getFromSocket("/eval hl.plugin.test.add_layer_rule()"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/eval hl.layer_rule({ match = { namespace = 'rule-layer' }, plugin_rule = 'effect' })"));
 
-    ASSERT(spawnLayer("rule-layer"), true);
+    EXPECT(spawnLayer("rule-layer"), true);
 
-    ASSERT(spawnLayer("norule-layer"), true);
+    EXPECT(spawnLayer("norule-layer"), true);
 
     OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
 }

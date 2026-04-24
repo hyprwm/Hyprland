@@ -34,12 +34,12 @@ TEST_CASE(processSpawning) {
 
         const std::string sleepParentComm = Tests::execAndGet("cat \"/proc/$(ps -o ppid:1= -p " + sleepPidS + ")/comm\"");
         NLog::log("{}Expecting that sleep's parent is Hyprland", Colors::YELLOW);
-        ASSERT_CONTAINS(sleepParentComm, "Hyprland");
+        EXPECT_CONTAINS(sleepParentComm, "Hyprland");
 
         std::this_thread::sleep_for(std::chrono::seconds(duration));
 
         // Ensure that sleep did not become a zombie
-        ASSERT(Tests::processAlive(sleepPid), false);
+        EXPECT(Tests::processAlive(sleepPid), false);
 
         // Test succeeded
         return;

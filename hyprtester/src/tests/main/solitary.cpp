@@ -20,12 +20,12 @@ TEST_CASE(solitaryClients) {
     NLog::log("{}Expecting blocked solitary/DS/tearing", Colors::YELLOW);
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_CONTAINS(str, "solitary: 0\n");
-        ASSERT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
-        ASSERT_CONTAINS(str, "activelyTearing: false");
-        ASSERT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
-        ASSERT_CONTAINS(str, "directScanoutTo: 0\n");
-        ASSERT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
+        EXPECT_CONTAINS(str, "solitary: 0\n");
+        EXPECT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
+        EXPECT_CONTAINS(str, "activelyTearing: false");
+        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
+        EXPECT_CONTAINS(str, "directScanoutTo: 0\n");
+        EXPECT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
     }
 
     // FIXME: need a reliable client with solitary opaque surface in fullscreen. kitty doesn't work all the time

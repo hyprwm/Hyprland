@@ -46,8 +46,8 @@ TEST_CASE(focusMasterPrevious) {
     // top
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876");
     }
 
     // cycle = top, right, bottom, center, left
@@ -56,32 +56,32 @@ TEST_CASE(focusMasterPrevious) {
     OK(getFromSocket("/dispatch hl.dsp.layout('orientationnext')"));
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 873,22");
-        ASSERT_CONTAINS(str, "size: 1025,1036");
+        EXPECT_CONTAINS(str, "at: 873,22");
+        EXPECT_CONTAINS(str, "size: 1025,1036");
     }
 
     // bottom
     OK(getFromSocket("/dispatch hl.dsp.layout('orientationnext')"));
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,495");
-        ASSERT_CONTAINS(str, "size: 1876");
+        EXPECT_CONTAINS(str, "at: 22,495");
+        EXPECT_CONTAINS(str, "size: 1876");
     }
 
     // center
     OK(getFromSocket("/dispatch hl.dsp.layout('orientationnext')"));
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 450,22");
-        ASSERT_CONTAINS(str, "size: 1020,1036");
+        EXPECT_CONTAINS(str, "at: 450,22");
+        EXPECT_CONTAINS(str, "size: 1020,1036");
     }
 
     // left
     OK(getFromSocket("/dispatch hl.dsp.layout('orientationnext')"));
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1025,1036");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1025,1036");
     }
 }
 
@@ -102,9 +102,9 @@ TEST_CASE(fsBehavior) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876,1036");
-        ASSERT_CONTAINS(str, "class: master");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: master");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 1 } })"));
@@ -113,10 +113,10 @@ TEST_CASE(fsBehavior) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876,1036");
-        ASSERT_CONTAINS(str, "class: new_master");
-        ASSERT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: new_master");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 0 } })"));
@@ -125,10 +125,10 @@ TEST_CASE(fsBehavior) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "at: 22,22");
-        ASSERT_CONTAINS(str, "size: 1876,1036");
-        ASSERT_CONTAINS(str, "class: new_master");
-        ASSERT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+        EXPECT_CONTAINS(str, "class: new_master");
+        EXPECT_CONTAINS(str, "fullscreen: 1");
     }
 
     OK(getFromSocket("/eval hl.config({ misc = { on_focus_under_fullscreen = 2 } })"));
@@ -137,7 +137,7 @@ TEST_CASE(fsBehavior) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: vaxwashere");
-        ASSERT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "class: vaxwashere");
+        EXPECT_CONTAINS(str, "fullscreen: 0");
     }
 }

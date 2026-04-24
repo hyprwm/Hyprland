@@ -39,7 +39,7 @@ TEST_CASE(moveIntoOrCreateGroup) {
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "grouped: 0");
+        EXPECT_CONTAINS(str, "grouped: 0");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
@@ -49,13 +49,13 @@ TEST_CASE(moveIntoOrCreateGroup) {
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "grouped:");
+        EXPECT_CONTAINS(str, "grouped:");
     }
 
     NLog::log("{}Verify active window is kitty_A (the moved window)", Colors::YELLOW);
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "kitty_A");
+        EXPECT_CONTAINS(str, "kitty_A");
     }
 
     NLog::log("{}Kill windows", Colors::YELLOW);
@@ -86,12 +86,12 @@ TEST_CASE(moveIntoOrCreateGroup) {
 
     {
         auto str = getFromSocket("/clients");
-        ASSERT_CONTAINS(str, "grouped:");
+        EXPECT_CONTAINS(str, "grouped:");
     }
 
     NLog::log("{}Verify active window is kitty_E (the moved window)", Colors::YELLOW);
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "kitty_E");
+        EXPECT_CONTAINS(str, "kitty_E");
     }
 }

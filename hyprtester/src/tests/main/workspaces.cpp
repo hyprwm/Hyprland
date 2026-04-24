@@ -47,20 +47,20 @@ SUBTEST(specialWorkspaceFullscreen) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: kitty_special");
-        ASSERT_CONTAINS(str, "(special:test_fs_special)");
+        EXPECT_CONTAINS(str, "class: kitty_special");
+        EXPECT_CONTAINS(str, "(special:test_fs_special)");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({ mode = 'fullscreen' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_CONTAINS(str, "(special:test_fs_special)");
+        EXPECT_CONTAINS(str, "(special:test_fs_special)");
     }
 
     NLog::log("{}Test 2: Special workspace fullscreen precedence", Colors::YELLOW);
@@ -76,8 +76,8 @@ SUBTEST(specialWorkspaceFullscreen) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: kitty_regular");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "class: kitty_regular");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('test_fs_special')"));
@@ -85,7 +85,7 @@ SUBTEST(specialWorkspaceFullscreen) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: kitty_special");
+        EXPECT_CONTAINS(str, "class: kitty_special");
     }
 
     NLog::log("{}Test 3: Toggle special workspace hides it", Colors::YELLOW);
@@ -95,13 +95,13 @@ SUBTEST(specialWorkspaceFullscreen) {
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: kitty_regular");
-        ASSERT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "class: kitty_regular");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
     {
         auto str = getFromSocket("/monitors");
-        ASSERT_CONTAINS(str, "special workspace: 0 ()");
+        EXPECT_CONTAINS(str, "special workspace: 0 ()");
     }
 }
 
@@ -126,9 +126,9 @@ SUBTEST(asymmetricGaps) {
 
     NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_A' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_B' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
 
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
@@ -141,9 +141,9 @@ SUBTEST(asymmetricGaps) {
 
     NLog::log("{}Expecting vertical split (B above A)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_B' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_A' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
 
     NLog::log("{}Expecting horizontal split (C left of B)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_B' })"));
@@ -152,9 +152,9 @@ SUBTEST(asymmetricGaps) {
         FAIL_TEST("Could not spawn kitty");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_C' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_B' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
 
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
@@ -167,9 +167,9 @@ SUBTEST(asymmetricGaps) {
 
     NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_A' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_B' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
 
     NLog::log("{}Expecting horizontal split (C right of A)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_A' })"));
@@ -178,9 +178,9 @@ SUBTEST(asymmetricGaps) {
         FAIL_TEST("Could not spawn kitty");
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_A' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:gaps_kitty_C' })"));
-    ASSERT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
 
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
@@ -204,12 +204,12 @@ SUBTEST(workspaceHistoryMultiMon) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 11");
+        EXPECT_CONTAINS(str, "workspace ID 11");
     }
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'previous_per_monitor' })"));
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 10");
+        EXPECT_CONTAINS(str, "workspace ID 10");
     }
 
     NLog::log("{}Killing all windows", Colors::YELLOW);
@@ -239,7 +239,7 @@ SUBTEST(multimonBAF) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 2 ");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '4' })"));
@@ -247,14 +247,14 @@ SUBTEST(multimonBAF) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 2 ");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 4 ");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '3' })"));
@@ -262,7 +262,7 @@ SUBTEST(multimonBAF) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 4 ");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
@@ -272,7 +272,7 @@ SUBTEST(multimonBAF) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 3 ");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
     }
 
     Tests::killAllWindows();
@@ -298,43 +298,43 @@ SUBTEST(multimonFocus) {
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 7 ");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
     }
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: b");
+        EXPECT_CONTAINS(str, "class: b");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 8 ");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
     }
 
     Tests::spawnKitty("c");
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: c");
+        EXPECT_CONTAINS(str, "class: c");
     }
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 8 ");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
     {
         auto str = getFromSocket("/activewindow");
-        ASSERT_CONTAINS(str, "class: b");
+        EXPECT_CONTAINS(str, "class: b");
     }
 
     {
         auto str = getFromSocket("/activeworkspace");
-        ASSERT_CONTAINS(str, "workspace ID 7 ");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));

@@ -2549,9 +2549,29 @@ bool CMonitor::useFP16() {
     return shouldUse;
 }
 
+PImageDescription CMonitor::workBufferImageDescription() {
+    if (!useFP16())
+        return m_imageDescription;
+
+    const auto& value = m_imageDescription->value();
+
+    const bool  isHDRLikeTF =
+        value.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || value.transferFunction == CM_TRANSFER_FUNCTION_HLG || value.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+
+    if (isHDRLikeTF || value.windowsScRGB)
+        return LINEAR_IMAGE_DESCRIPTION;
+
+    return CImageDescription::from(SImageDescription{
+        .transferFunction = chooseTF(m_sdrEotf),
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+        .primaries        = NColorPrimaries::BT2020,
+    });
+}
+
 WP<CMonitorResources> CMonitor::resources() {
     const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
-    const auto DESC       = useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription;
+    const auto DESC       = workBufferImageDescription();
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
         m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, DESC);

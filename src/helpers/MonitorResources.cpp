@@ -32,7 +32,7 @@ void CMonitorResources::setImageDescription(NColorManagement::PImageDescription 
     for (const auto& res : m_workBuffers)
         res.buffer->setImageDescription(imageDescription);
     if (m_monitorMirrorFB)
-        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
+        m_monitorMirrorFB->setImageDescription(getMirrorTexImageDescription());
     if (m_mirrorTex)
         m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
 }
@@ -78,8 +78,8 @@ SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
         m_monitorMirrorFB = g_pHyprRenderer->createFB(std::format("Monitor {} mirror FB", m_monitor->m_name));
 
     if (!m_monitorMirrorFB->isAllocated()) {
-        m_monitorMirrorFB->alloc(m_size.x, m_size.y, DRM_FORMAT_XRGB8888);
-        m_monitorMirrorFB->setImageDescription(NColorManagement::getDefaultImageDescription());
+        m_monitorMirrorFB->alloc(m_size.x, m_size.y, m_monitor->m_activeMonitorRule.m_enable10bit ? DRM_FORMAT_XRGB2101010 : DRM_FORMAT_XRGB8888);
+        m_monitorMirrorFB->setImageDescription(getMirrorTexImageDescription());
     }
 
     return m_monitorMirrorFB;
@@ -90,20 +90,16 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
 }
 
 NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
-    return CImageDescription::from(SImageDescription{
-        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
-        .primariesNameSet = m_imageDescription->value().primariesNameSet,
-        .primariesNamed   = m_imageDescription->value().primariesNamed,
-        .primaries        = m_imageDescription->value().primaries,
-        .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
-    });
+    if (!m_monitor)
+        return DEFAULT_SRGB_IMAGE_DESCRIPTION;
+    return m_monitor->workBufferImageDescription();
 }
 
 void CMonitorResources::enableMirror() {
     if (m_mirrorTex)
         return;
     m_mirrorTex = g_pHyprRenderer->createTexture();
-    m_mirrorTex->allocate({m_size.x, m_size.y}, DRM_FORMAT_XRGB8888);
+    m_mirrorTex->allocate({m_size.x, m_size.y}, m_monitor->m_activeMonitorRule.m_enable10bit ? DRM_FORMAT_XRGB2101010 : DRM_FORMAT_XRGB8888);
     m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
     m_monitor->m_blurFBDirty        = true;
 }

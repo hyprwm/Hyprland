@@ -393,10 +393,11 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
-    bool                           needsACopyFB();
-    bool                           needsUnmodifiedCopy();
-    bool                           useFP16();
-    WP<Monitor::CMonitorResources> resources();
+    bool                                needsACopyFB();
+    bool                                needsUnmodifiedCopy();
+    bool                                useFP16();
+    NColorManagement::PImageDescription workBufferImageDescription();
+    WP<Monitor::CMonitorResources>      resources();
 
   private:
     void                    updateMatrix();

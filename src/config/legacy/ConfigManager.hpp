@@ -54,6 +54,7 @@ namespace Config::Legacy {
         virtual bool                             deviceConfigExists(const std::string&) override;
 
         virtual SConfigOptionReply               getConfigValue(const std::string&) override;
+        virtual SConfigOptionReply               getAnyConfigValue(const std::string&) override;
 
         virtual std::string                      getMainConfigPath() override;
         virtual std::string                      getErrors() override;

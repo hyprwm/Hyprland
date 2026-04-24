@@ -1162,6 +1162,14 @@ SConfigOptionReply CConfigManager::getConfigValue(const std::string& val) {
     return {.dataptr = VAL->getDataStaticPtr(), .type = &VAL->getValue().type(), .setByUser = VAL->m_bSetByUser};
 }
 
+SConfigOptionReply CConfigManager::getAnyConfigValue(const std::string& val) {
+    const auto VAL = m_config->getAnyConfigValuePtr(val.c_str());
+    if (!VAL)
+        return {};
+
+    return {.dataptr = VAL->getDataStaticPtr(), .type = &VAL->getValue().type(), .setByUser = VAL->m_bSetByUser};
+}
+
 Hyprlang::CConfigValue* CConfigManager::getHyprlangConfigValuePtr(const std::string& name, const std::string& specialCat) {
     if (!specialCat.empty())
         return m_config->getSpecialConfigValuePtr(specialCat.c_str(), name.c_str(), nullptr);

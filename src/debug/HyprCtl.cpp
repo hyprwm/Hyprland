@@ -1786,7 +1786,7 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
     nextItem();
     nextItem();
 
-    const auto VAR = Config::mgr()->getConfigValue(curitem);
+    const auto VAR = Config::mgr()->getAnyConfigValue(curitem);
 
     if (!VAR.dataptr)
         return "no such option";

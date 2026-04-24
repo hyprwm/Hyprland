@@ -51,7 +51,8 @@ namespace Config {
         virtual bool                             deviceConfigExplicitlySet(const std::string&, const std::string&)                         = 0;
         virtual bool                             deviceConfigExists(const std::string&)                                                    = 0;
 
-        virtual SConfigOptionReply               getConfigValue(const std::string&) = 0;
+        virtual SConfigOptionReply               getConfigValue(const std::string&)    = 0;
+        virtual SConfigOptionReply               getAnyConfigValue(const std::string&) = 0;
 
         virtual std::string                      getMainConfigPath() = 0;
         virtual std::string                      currentConfigPath() = 0;

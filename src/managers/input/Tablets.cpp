@@ -7,6 +7,7 @@
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../config/ConfigManager.hpp"
 
 static void unfocusTool(SP<CTabletTool> tool) {
     if (!tool->getSurface())
@@ -105,14 +106,20 @@ static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeAre
 
     return newPos;
 }
-
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
+
+    const auto PTAB = e.tablet;
+
+    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
+
+    if (!ENABLED)
+        return;
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.axis.emit(e, info);
     if (info.cancelled)
         return;
 
-    const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
     if (PTOOL->m_active && (e.updatedAxes & (CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_X | CTablet::eTabletToolAxes::HID_TABLET_TOOL_AXIS_Y))) {
@@ -176,12 +183,19 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
+
+    const auto PTAB = e.tablet;
+
+    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
+
+    if (!ENABLED)
+        return;
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.tip.emit(e, info);
     if (info.cancelled)
         return;
 
-    const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
     const auto POS   = e.tip;
 
@@ -204,6 +218,14 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 }
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
+
+    const auto PTAB = e.tablet;
+
+    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
+
+    if (!ENABLED)
+        return;
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.button.emit(e, info);
     if (info.cancelled)
@@ -223,12 +245,19 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 }
 
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
+
+    const auto PTAB = e.tablet;
+
+    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
+
+    if (!ENABLED)
+        return;
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.proximity.emit(e, info);
     if (info.cancelled)
         return;
 
-    const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
     PTOOL->m_active = e.in;

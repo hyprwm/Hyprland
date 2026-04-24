@@ -3049,6 +3049,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->setImageDescription(workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
 
@@ -3090,6 +3091,7 @@ void IHyprRenderer::makeSnapshot(PHLLS pLayer) {
     const auto PFRAMEBUFFER = pLayer->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->setImageDescription(workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
 
@@ -3132,6 +3134,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
     const auto PFRAMEBUFFER = popup->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
+    PFRAMEBUFFER->setImageDescription(workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
 

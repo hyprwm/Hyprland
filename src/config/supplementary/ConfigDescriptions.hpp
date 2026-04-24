@@ -1263,6 +1263,12 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SColorData{0xffffffff},
         },
         SConfigOptionDescription{
+            .value       = "misc:bell_sound",
+            .description = "`default`: play the system bell sound, `none`: stay silent locally but still emit the socket2 bell event, any other value: treat it as a sound file path.",
+            .type        = CONFIG_OPTION_STRING_SHORT,
+            .data        = SConfigOptionDescription::SStringData{"default"},
+        },
+        SConfigOptionDescription{
             .value       = "misc:font_family",
             .description = "Set the global default font to render the text including debug fps/notification, config error messages and etc., selected from system fonts.",
             .type        = CONFIG_OPTION_STRING_SHORT,

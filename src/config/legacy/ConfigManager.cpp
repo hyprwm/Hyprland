@@ -498,6 +498,7 @@ CConfigManager::CConfigManager() {
     registerConfigVar("general:modal_parent_blocking", Hyprlang::INT{1});
     registerConfigVar("general:locale", {""});
 
+    registerConfigVar("misc:bell_sound", {"default"});
     registerConfigVar("misc:disable_hyprland_logo", Hyprlang::INT{0});
     registerConfigVar("misc:disable_splash_rendering", Hyprlang::INT{0});
     registerConfigVar("misc:col.splash", Hyprlang::INT{0x55ffffff});

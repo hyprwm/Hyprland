@@ -25,6 +25,10 @@ CEis::CEis(std::string socketName) {
     }
 
     m_eisCtx = eis_new(nullptr);
+    if (!m_eisCtx) {
+        Log::logger->log(Log::ERR, "[EIS] Cannot create eis context");
+        return;
+    }
 
     if (eis_setup_backend_socket(m_eisCtx, socketPath.c_str())) {
         Log::logger->log(Log::ERR, "[EIS] Cannot init eis socket on {}", socketPath);
@@ -37,12 +41,19 @@ CEis::CEis(std::string socketName) {
 }
 
 CEis::~CEis() {
-    wl_event_source_remove(m_eventSource);
-    Log::logger->log(Log::INFO, "[EIS] Server fd {} destroyed", eis_get_fd(m_eisCtx));
-    eis_unref(m_eisCtx);
+    if (m_eventSource)
+        wl_event_source_remove(m_eventSource);
+
+    if (m_eisCtx) {
+        Log::logger->log(Log::INFO, "[EIS] Server fd {} destroyed", eis_get_fd(m_eisCtx));
+        eis_unref(m_eisCtx);
+    }
 }
 
 int CEis::pollEvents() {
+    if (!m_eisCtx)
+        return 0;
+
     eis_dispatch(m_eisCtx);
 
     //Pull every available events
@@ -139,6 +150,8 @@ int CEis::onEvent(eis_event* e) {
 void CEis::ensurePointer() {
     if (m_client.pointer)
         return;
+    if (!m_client.seat)
+        return;
 
     Log::logger->log(Log::INFO, "[EIS] Creating pointer");
     eis_device* pointer = eis_seat_new_device(m_client.seat);
@@ -165,6 +178,8 @@ void CEis::ensurePointer() {
 
 void CEis::ensureKeyboard() {
     if (m_client.keyboard)
+        return;
+    if (!m_client.seat)
         return;
 
     Log::logger->log(Log::INFO, "[EIS] Creating keyboard");
@@ -225,6 +240,9 @@ void CEis::clearKeyboard() {
 }
 
 int CEis::getFileDescriptor() {
+    if (!m_eisCtx)
+        return -1;
+
     return eis_backend_fd_add_client(m_eisCtx);
 }
 

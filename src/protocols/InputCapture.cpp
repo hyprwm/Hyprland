@@ -3,8 +3,11 @@
 #include "Compositor.hpp"
 #include "config/ConfigValue.hpp"
 #include "debug/log/Logger.hpp"
+#include "devices/IKeyboard.hpp"
 #include "event/EventBus.hpp"
 #include "hyprland-input-capture-v1.hpp"
+#include "managers/SeatManager.hpp"
+#include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "protocols/WaylandProtocol.hpp"
 #include "render/Renderer.hpp"
@@ -38,7 +41,28 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
 
     m_eis = makeUnique<CEis>("eis-" + std::to_string(eisCounter++));
 
-    m_resource->sendEisFd(m_eis->getFileDescriptor());
+    const int EISFD = m_eis->getFileDescriptor();
+    if (EISFD >= 0)
+        m_resource->sendEisFd(EISFD);
+    else
+        Log::logger->log(Log::ERR, "[input-capture]({}) failed to create EIS client fd", m_sessionId.c_str());
+
+    m_keyRepeatTimer = makeShared<CEventLoopTimer>(
+        std::nullopt,
+        [this](SP<CEventLoopTimer> self, void* data) {
+            if (!m_keyRepeat.active || m_status != CLIENT_STATUS_ACTIVATED || !m_eis)
+                return;
+
+            m_eis->sendKey(m_keyRepeat.key, false);
+            m_eis->sendKey(m_keyRepeat.key, true);
+
+            if (m_keyRepeat.rate > 0)
+                self->updateTimeout(std::chrono::milliseconds(1000 / m_keyRepeat.rate));
+        },
+        nullptr);
+
+    if (g_pEventLoopManager)
+        g_pEventLoopManager->addTimer(m_keyRepeatTimer);
 
     m_monitorCallback = Event::bus()->m_events.monitor.layoutChanged.listen([this] {
         onClearBarriers();
@@ -48,6 +72,13 @@ CInputCaptureResource::CInputCaptureResource(SP<CHyprlandInputCaptureV1> resourc
 }
 
 CInputCaptureResource::~CInputCaptureResource() {
+    stopKeyRepeat();
+
+    if (m_keyRepeatTimer && g_pEventLoopManager) {
+        g_pEventLoopManager->removeTimer(m_keyRepeatTimer);
+        m_keyRepeatTimer.reset();
+    }
+
     if (m_status == CLIENT_STATUS_ACTIVATED)
         PROTO::inputCapture->forceRelease();
 
@@ -202,6 +233,7 @@ void CInputCaptureResource::deactivate() {
         return;
 
     Log::logger->log(Log::INFO, "[input-capture]({}) Input released", m_sessionId.c_str());
+    stopKeyRepeat();
     m_status = CLIENT_STATUS_ENABLED;
     m_eis->stopEmulating();
     PROTO::inputCapture->release();
@@ -210,6 +242,8 @@ void CInputCaptureResource::deactivate() {
 }
 
 void CInputCaptureResource::disable() {
+    stopKeyRepeat();
+
     if (m_status == CLIENT_STATUS_ACTIVATED)
         deactivate();
     if (m_status != CLIENT_STATUS_ENABLED)
@@ -225,6 +259,11 @@ void CInputCaptureResource::motion(double dx, double dy) {
 
 void CInputCaptureResource::key(uint32_t key, bool pressed) {
     m_eis->sendKey(key, pressed);
+
+    if (pressed)
+        startKeyRepeat(key);
+    else if (m_keyRepeat.active && m_keyRepeat.key == key)
+        stopKeyRepeat();
 }
 
 void CInputCaptureResource::modifiers(uint32_t modsDepressed, uint32_t modsLatched, uint32_t modsLocked, uint32_t group) {
@@ -422,5 +461,39 @@ void CInputCaptureProtocol::frame() {
 
 void CInputCaptureResource::updateKeymap() {
     Log::logger->log(Log::INFO, "[input-capture] Got new keymap, reseting keyboard");
+    stopKeyRepeat();
     m_eis->resetKeyboard();
+}
+
+bool CInputCaptureResource::keyRepeats(uint32_t key) {
+    const auto KEYBOARD = g_pSeatManager->m_keyboard.lock();
+    if (!KEYBOARD || !KEYBOARD->m_xkbKeymap || KEYBOARD->m_repeatRate <= 0)
+        return false;
+
+    return xkb_keymap_key_repeats(KEYBOARD->m_xkbKeymap, key + 8);
+}
+
+void CInputCaptureResource::startKeyRepeat(uint32_t key) {
+    const auto KEYBOARD = g_pSeatManager->m_keyboard.lock();
+    if (!KEYBOARD || KEYBOARD->m_repeatRate <= 0) {
+        stopKeyRepeat();
+        return;
+    }
+
+    if (!keyRepeats(key))
+        return;
+
+    m_keyRepeat.active = true;
+    m_keyRepeat.key    = key;
+    m_keyRepeat.rate   = KEYBOARD->m_repeatRate;
+
+    if (m_keyRepeatTimer)
+        m_keyRepeatTimer->updateTimeout(std::chrono::milliseconds(std::max(0, KEYBOARD->m_repeatDelay)));
+}
+
+void CInputCaptureResource::stopKeyRepeat() {
+    m_keyRepeat.active = false;
+
+    if (m_keyRepeatTimer)
+        m_keyRepeatTimer->updateTimeout(std::nullopt);
 }

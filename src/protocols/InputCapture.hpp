@@ -27,6 +27,8 @@ struct SBarrier {
     int         y2        = 0;
 };
 
+class CEventLoopTimer;
+
 class CInputCaptureResource {
   public:
     CInputCaptureResource(SP<CHyprlandInputCaptureV1> resource_, std::string handle);
@@ -58,14 +60,24 @@ class CInputCaptureResource {
     void onDisable();
     void onRelease(uint32_t activationId, double x, double y);
     void onClearBarriers();
+    void startKeyRepeat(uint32_t key);
+    void stopKeyRepeat();
+    bool keyRepeats(uint32_t key);
 
     //
     SP<CHyprlandInputCaptureV1> m_resource;
     UP<CEis>                    m_eis;
+    SP<CEventLoopTimer>         m_keyRepeatTimer;
 
     uint32_t                    m_activationId = 0;
     eClientStatus               m_status       = eClientStatus::CLIENT_STATUS_CREATED;
     CHyprSignalListener         m_monitorCallback;
+
+    struct {
+        bool     active = false;
+        uint32_t key    = 0;
+        int      rate   = 0;
+    } m_keyRepeat;
 };
 
 class CInputCaptureProtocol : public IWaylandProtocol {

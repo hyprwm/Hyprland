@@ -58,5 +58,5 @@ class CEis {
         eis_device* keyboard = nullptr;
     } m_client;
 
-    wl_event_source* m_eventSource;
+    wl_event_source* m_eventSource = nullptr;
 };

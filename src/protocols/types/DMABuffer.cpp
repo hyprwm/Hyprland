@@ -1,8 +1,9 @@
 #include "DMABuffer.hpp"
 #include "WLBuffer.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
 #if defined(__linux__)
 #include <linux/dma-buf.h>
@@ -11,36 +12,34 @@
 #include <sys/ioctl.h>
 
 using namespace Hyprutils::OS;
+using namespace Hyprgraphics::Egl;
 
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
-    g_pHyprRenderer->makeEGLCurrent();
-
     m_listeners.resourceDestroy = events.destroy.listen([this] {
         closeFDs();
         m_listeners.resourceDestroy.reset();
     });
 
-    size          = m_attrs.size;
-    m_resource    = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
-    auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
+    size       = m_attrs.size;
+    m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
+    m_opaque   = isDrmFormatOpaque(m_attrs.format);
+    m_texture  = g_pHyprRenderer->createTexture(m_attrs, m_opaque); // texture takes ownership of the eglImage
 
-    if UNLIKELY (!eglImage) {
-        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
+    if UNLIKELY (!m_texture) {
+        Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
         m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
-        eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
+        m_texture        = g_pHyprRenderer->createTexture(m_attrs, m_opaque);
 
-        if UNLIKELY (!eglImage) {
-            Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
+        if UNLIKELY (!m_texture) {
+            Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage");
             return;
         }
     }
 
-    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
-    m_opaque  = NFormatUtils::isFormatOpaque(m_attrs.format);
-    m_success = m_texture->m_texID;
+    m_success = m_texture->ok();
 
     if UNLIKELY (!m_success)
-        Debug::log(ERR, "Failed to create a dmabuf: texture is null");
+        Log::logger->log(Log::ERR, "Failed to create a dmabuf: texture is null");
 }
 
 CDMABuffer::~CDMABuffer() {

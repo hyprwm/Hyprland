@@ -1,18 +1,16 @@
 #pragma once
 #include "PassElement.hpp"
-#include <optional>
-#include "../OpenGL.hpp"
+#include "../types.hpp"
 
 class CRendererHintsPassElement : public IPassElement {
   public:
     struct SData {
-        std::optional<SRenderModifData> renderModif;
+        std::optional<Render::SRenderModifData> renderModif;
     };
 
     CRendererHintsPassElement(const SData& data);
     virtual ~CRendererHintsPassElement() = default;
 
-    virtual void        draw(const CRegion& damage);
     virtual bool        needsLiveBlur();
     virtual bool        needsPrecomputeBlur();
     virtual bool        undiscardable();
@@ -21,6 +19,9 @@ class CRendererHintsPassElement : public IPassElement {
         return "CRendererHintsPassElement";
     }
 
-  private:
+    virtual ePassElementType type() {
+        return EK_HINTS;
+    };
+
     SData m_data;
 };

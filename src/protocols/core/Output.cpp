@@ -30,8 +30,12 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
 
     updateState();
 
-    PROTO::compositor->forEachSurface([](SP<CWLSurfaceResource> surf) {
-        auto HLSurf = CWLSurface::fromResource(surf);
+    const auto PMONITOR = m_monitor.lock();
+    if (!PMONITOR)
+        return;
+
+    PROTO::compositor->forEachSurface([PMONITOR](SP<CWLSurfaceResource> surf) {
+        auto HLSurf = Desktop::View::CWLSurface::fromResource(surf);
 
         if (!HLSurf)
             return;
@@ -41,12 +45,10 @@ CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonito
         if (!GEOMETRY.has_value())
             return;
 
-        for (auto& m : g_pCompositor->m_monitors) {
-            if (!m->logicalBox().expand(-4).overlaps(*GEOMETRY))
-                continue;
+        if (!PMONITOR->logicalBox().expand(-4).overlaps(*GEOMETRY))
+            return;
 
-            surf->enter(m);
-        }
+        surf->enter(PMONITOR);
     });
 }
 
@@ -95,7 +97,7 @@ CWLOutputProtocol::CWLOutputProtocol(const wl_interface* iface, const int& ver, 
 
 void CWLOutputProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     if UNLIKELY (m_defunct)
-        Debug::log(WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
+        Log::logger->log(Log::WARN, "[wl_output] Binding a wl_output that's inert?? Possible client bug.");
 
     const auto RESOURCE = m_outputs.emplace_back(makeShared<CWLOutputResource>(makeShared<CWlOutput>(client, ver, id), m_monitor.lock()));
 
@@ -117,15 +119,17 @@ void CWLOutputProtocol::destroyResource(CWLOutputResource* resource) {
         PROTO::outputs.erase(m_name);
 }
 
-SP<CWLOutputResource> CWLOutputProtocol::outputResourceFrom(wl_client* client) {
+std::vector<SP<CWLOutputResource>> CWLOutputProtocol::outputResourcesFrom(wl_client* client) {
+    std::vector<SP<CWLOutputResource>> ret;
+
     for (auto const& r : m_outputs) {
         if (r->client() != client)
             continue;
 
-        return r;
+        ret.emplace_back(r);
     }
 
-    return nullptr;
+    return ret;
 }
 
 void CWLOutputProtocol::remove() {

@@ -15,17 +15,17 @@
 #include "../../render/Texture.hpp"
 #include "../types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
-#include "../types/ColorManagement.hpp"
+#include "../../helpers/cm/ColorManagement.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
 
 class CWLOutputResource;
 class CMonitor;
-class CWLSurface;
 class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
@@ -33,7 +33,6 @@ class CDRMSyncobjSurfaceResource;
 class CFifoResource;
 class CCommitTimerResource;
 class CColorManagementSurface;
-class CFrogColorManagementSurface;
 class CContentType;
 
 class CWLCallbackResource {
@@ -109,7 +108,7 @@ class CWLSurfaceResource {
     CSurfaceStateQueue                     m_stateQueue;
 
     WP<CWLSurfaceResource>                 m_self;
-    WP<CWLSurface>                         m_hlSurface;
+    WP<Desktop::View::CWLSurface>          m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;
     bool                                   m_mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
@@ -126,9 +125,10 @@ class CWLSurfaceResource {
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
-    NColorManagement::SImageDescription    getPreferredImageDescription();
+    NColorManagement::PImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();
     bool                                   hasVisibleSubsurface();
+    bool                                   isTearing();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

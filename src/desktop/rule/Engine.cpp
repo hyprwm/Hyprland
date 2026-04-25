@@ -1,6 +1,6 @@
 #include "Engine.hpp"
 #include "Rule.hpp"
-#include "../LayerSurface.hpp"
+#include "../view/LayerSurface.hpp"
 #include "../../Compositor.hpp"
 
 using namespace Desktop;

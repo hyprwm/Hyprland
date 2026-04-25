@@ -6,6 +6,7 @@
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 #include <csignal>
 #include <cerrno>
 #include "../shared.hpp"
@@ -14,9 +15,412 @@ static int ret = 0;
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::Utils;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
+
+static bool testSpecialWorkspaceFullscreen() {
+    NLog::log("{}Testing special workspace fullscreen detection", Colors::YELLOW);
+
+    CScopeGuard guard = {[&]() {
+        NLog::log("{}Cleaning up special workspace fullscreen test", Colors::YELLOW);
+        // Close special workspace if open
+        auto monitors = getFromSocket("/monitors");
+        if (monitors.contains("(special:test_fs_special)") && !monitors.contains("special workspace: 0 ()"))
+            getFromSocket("/dispatch togglespecialworkspace test_fs_special");
+        Tests::killAllWindows();
+        OK(getFromSocket("/reload"));
+    }};
+
+    getFromSocket("/dispatch workspace 1");
+    EXPECT(Tests::windowCount(), 0);
+
+    NLog::log("{}Test 1: Fullscreen detection on special workspace", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch workspace special:test_fs_special"));
+
+    if (!Tests::spawnKitty("kitty_special"))
+        return false;
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_special");
+        EXPECT_CONTAINS(str, "(special:test_fs_special)");
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 0"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    {
+        auto str = getFromSocket("/monitors");
+        EXPECT_CONTAINS(str, "(special:test_fs_special)");
+    }
+
+    NLog::log("{}Test 2: Special workspace fullscreen precedence", Colors::YELLOW);
+
+    // Close special workspace before spawning on regular workspace
+    OK(getFromSocket("/dispatch togglespecialworkspace test_fs_special"));
+    getFromSocket("/dispatch workspace 1");
+
+    if (!Tests::spawnKitty("kitty_regular"))
+        return false;
+
+    OK(getFromSocket("/dispatch fullscreen 0"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_regular");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    OK(getFromSocket("/dispatch togglespecialworkspace test_fs_special"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_special"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_special");
+    }
+
+    NLog::log("{}Test 3: Toggle special workspace hides it", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch togglespecialworkspace test_fs_special"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_regular"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: kitty_regular");
+        EXPECT_CONTAINS(str, "fullscreen: 2");
+    }
+
+    {
+        auto str = getFromSocket("/monitors");
+        EXPECT_CONTAINS(str, "special workspace: 0 ()");
+    }
+
+    return true;
+}
+
+static bool testAsymmetricGaps() {
+    NLog::log("{}Testing asymmetric gap splits", Colors::YELLOW);
+    {
+
+        CScopeGuard guard = {[&]() {
+            NLog::log("{}Cleaning up asymmetric gap test", Colors::YELLOW);
+            Tests::killAllWindows();
+            OK(getFromSocket("/reload"));
+        }};
+
+        OK(getFromSocket("/dispatch workspace name:gap_split_test"));
+        OK(getFromSocket("r/keyword general:gaps_in 0"));
+        OK(getFromSocket("r/keyword general:border_size 0"));
+        OK(getFromSocket("r/keyword dwindle:split_width_multiplier 1.0"));
+        OK(getFromSocket("r/keyword workspace name:gap_split_test,gapsout:0 1000 0 0"));
+
+        NLog::log("{}Testing default split (force_split = 0)", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 0"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A") || !Tests::spawnKitty("gaps_kitty_B"))
+            return false;
+
+        NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        NLog::log("{}Testing force_split = 1", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 1"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A") || !Tests::spawnKitty("gaps_kitty_B"))
+            return false;
+
+        NLog::log("{}Expecting vertical split (B above A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        NLog::log("{}Expecting horizontal split (C left of B)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+
+        if (!Tests::spawnKitty("gaps_kitty_C"))
+            return false;
+
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_C"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+
+        NLog::log("{}Testing force_split = 2", Colors::YELLOW);
+        OK(getFromSocket("r/keyword dwindle:force_split 2"));
+
+        if (!Tests::spawnKitty("gaps_kitty_A") || !Tests::spawnKitty("gaps_kitty_B"))
+            return false;
+
+        NLog::log("{}Expecting vertical split (B below A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_B"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,540");
+
+        NLog::log("{}Expecting horizontal split (C right of A)", Colors::YELLOW);
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+
+        if (!Tests::spawnKitty("gaps_kitty_C"))
+            return false;
+
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_A"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 0,0");
+        OK(getFromSocket("/dispatch focuswindow class:gaps_kitty_C"));
+        EXPECT_CONTAINS(getFromSocket("/activewindow"), "at: 460,0");
+    }
+
+    // kill all
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    return true;
+}
+
+static void testWorkspaceHistoryMultiMon() {
+    NLog::log("{}Testing multimon workspace history tracker", Colors::YELLOW);
+
+    // Initial state:
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 10"));
+    Tests::spawnKitty();
+    OK(getFromSocket("/dispatch workspace 11"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 12"));
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 11");
+    }
+    OK(getFromSocket("/dispatch workspace previous_per_monitor"));
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 10");
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+}
+
+static void testMultimonBAF() {
+    NLog::log("{}Testing multimon back and forth", Colors::YELLOW);
+
+    OK(getFromSocket("/keyword binds:workspace_back_and_forth 1"));
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch workspace 2"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    Tests::spawnKitty();
+
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 4"));
+    OK(getFromSocket("/dispatch workspace 4"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 2"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 3"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 4 ");
+    }
+
+    OK(getFromSocket("/dispatch workspace 2"));
+    OK(getFromSocket("/dispatch workspace 3"));
+    OK(getFromSocket("/dispatch workspace 1"));
+    OK(getFromSocket("/dispatch workspace 1"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
+    }
+
+    Tests::killAllWindows();
+}
+
+static void testMultimonFocus() {
+    NLog::log("{}Testing multimon focus and move", Colors::YELLOW);
+
+    OK(getFromSocket("/keyword input:follow_mouse 0"));
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-3"));
+    OK(getFromSocket("/dispatch workspace 8"));
+    OK(getFromSocket("/dispatch focusmonitor HEADLESS-2"));
+    OK(getFromSocket("/dispatch workspace 7"));
+
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
+            ++TESTS_FAILED;
+            ret = 1;
+            return;
+        }
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    Tests::spawnKitty("c");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: c");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus l"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 7 ");
+    }
+
+    OK(getFromSocket("/dispatch movewindow r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus r"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: c");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movefocus l"));
+
+    OK(getFromSocket("/keyword general:no_focus_fallback true"));
+    OK(getFromSocket("/keyword binds:window_direction_monitor_fallback false"));
+
+    EXPECT_NOT(getFromSocket("/dispatch movefocus l"), "ok");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/dispatch movewindow l"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "class: b");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 8 ");
+    }
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+}
+
+static void testDynamicWsEffects() {
+    // test dynamic workspace effects, they shouldn't lag
+
+    OK(getFromSocket("/dispatch workspace 69"));
+
+    Tests::spawnKitty("bitch");
+
+    OK(getFromSocket("r/keyword workspace 69,bordersize:20"));
+    OK(getFromSocket("r/keyword workspace 69,rounding:false"));
+
+    EXPECT(getFromSocket("/getprop class:bitch border_size"), "20");
+    EXPECT(getFromSocket("/getprop class:bitch rounding"), "0");
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+}
 
 static bool test() {
     NLog::log("{}Testing workspaces", Colors::GREEN);
@@ -352,12 +756,20 @@ static bool test() {
         EXPECT_CONTAINS(str, "class: kitty_B");
     }
 
-    // destroy the headless output
-    OK(getFromSocket("/output remove HEADLESS-3"));
-
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
+
+    testMultimonBAF();
+    testMultimonFocus();
+    testWorkspaceHistoryMultiMon();
+
+    // destroy the headless output
+    OK(getFromSocket("/output remove HEADLESS-3"));
+
+    testSpecialWorkspaceFullscreen();
+    testAsymmetricGaps();
+    testDynamicWsEffects();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     EXPECT(Tests::windowCount(), 0);

@@ -1,10 +1,14 @@
 #pragma once
 
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
+#include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
 
-class CTexture;
+namespace Render {
+    class ITexture;
+}
 class CDRMSyncPointState;
 class CWLCallbackResource;
 
@@ -48,6 +52,7 @@ struct SSurfaceState {
             bool acquire : 1;
             bool acked : 1;
             bool frame : 1;
+            bool fifo : 1;
         } bits;
     } updated;
 
@@ -85,8 +90,17 @@ struct SSurfaceState {
     eLockReason        lockMask = LOCK_REASON_NONE;
 
     // texture of surface content, used for rendering
-    SP<CTexture> texture;
-    void         updateSynchronousTexture(SP<CTexture> lastTexture);
+    SP<Render::ITexture> texture;
+    void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture);
+
+    // fifo
+    bool barrierSet    = false;
+    bool surfaceLocked = false;
+    bool fifoScheduled = false;
+
+    // commit timing
+    std::optional<Time::steady_dur> pendingTimeout;
+    SP<CEventLoopTimer>             timer;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

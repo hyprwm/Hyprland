@@ -17,6 +17,7 @@ namespace Time {
 
     steady_tp                     fromTimespec(const timespec*);
     struct timespec               toTimespec(const steady_tp& tp);
+    steady_dur                    till(const timespec& ts);
 
     uint64_t                      millis(const steady_tp& tp);
     uint64_t                      millis(const system_tp& tp);

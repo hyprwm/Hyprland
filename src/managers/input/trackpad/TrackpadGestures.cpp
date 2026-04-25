@@ -1,6 +1,8 @@
 #include "TrackpadGestures.hpp"
 
 #include "../InputManager.hpp"
+#include "../../../config/ConfigValue.hpp"
+#include "../../../protocols/ShortcutsInhibit.hpp"
 
 #include <ranges>
 
@@ -54,7 +56,7 @@ const char* CTrackpadGestures::stringForDir(eTrackpadGestureDirection dir) {
 }
 
 std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGesture>&& gesture, size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask,
-                                                               float deltaScale) {
+                                                               float deltaScale, bool disableInhibit) {
     for (const auto& g : m_gestures) {
         if (g->fingerCount != fingerCount)
             continue;
@@ -84,14 +86,16 @@ std::expected<void, std::string> CTrackpadGestures::addGesture(UP<ITrackpadGestu
         }
     }
 
-    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale));
+    m_gestures.emplace_back(makeShared<CTrackpadGestures::SGestureData>(std::move(gesture), fingerCount, modMask, direction, deltaScale, disableInhibit));
 
     return {};
 }
 
-std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale) {
-    const auto IT = std::ranges::find_if(
-        m_gestures, [&](const auto& g) { return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale; });
+std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerCount, eTrackpadGestureDirection direction, uint32_t modMask, float deltaScale,
+                                                                  bool disableInhibit) {
+    const auto IT = std::ranges::find_if(m_gestures, [&](const auto& g) {
+        return g->fingerCount == fingerCount && g->direction == direction && g->modMask == modMask && g->deltaScale == deltaScale && g->disableInhibit == disableInhibit;
+    });
 
     if (IT == m_gestures.end())
         return std::unexpected("Can't remove a non-existent gesture");
@@ -103,7 +107,7 @@ std::expected<void, std::string> CTrackpadGestures::removeGesture(size_t fingerC
 
 void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
     if (m_activeGesture) {
-        Debug::log(ERR, "CTrackpadGestures::gestureBegin (swipe) but m_activeGesture is already present");
+        Log::logger->log(Log::ERR, "CTrackpadGestures::gestureBegin (swipe) but m_activeGesture is already present");
         return;
     }
 
@@ -114,6 +118,8 @@ void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
+    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+
     if (m_gestureFindFailed)
         return;
 
@@ -121,7 +127,7 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
 
     // 5 was chosen because I felt like that's a good number.
     if (!m_activeGesture && (std::abs(m_currentTotalDelta.x) < 5 && std::abs(m_currentTotalDelta.y) < 5)) {
-        Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (swipe): gesture delta too small to start considering, waiting");
+        Log::logger->log(Log::TRACE, "CTrackpadGestures::gestureUpdate (swipe): gesture delta too small to start considering, waiting");
         return;
     }
 
@@ -146,6 +152,9 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
                 continue;
 
             if (g->modMask != MODS)
+                continue;
+
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT && !g->disableInhibit)
                 continue;
 
             m_activeGesture     = g;
@@ -174,7 +183,7 @@ void CTrackpadGestures::gestureEnd(const IPointer::SSwipeEndEvent& e) {
 
 void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {
     if (m_activeGesture) {
-        Debug::log(ERR, "CTrackpadGestures::gestureBegin (pinch) but m_activeGesture is already present");
+        Log::logger->log(Log::ERR, "CTrackpadGestures::gestureBegin (pinch) but m_activeGesture is already present");
         return;
     }
 
@@ -184,12 +193,14 @@ void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
+    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+
     if (m_gestureFindFailed)
         return;
 
     // 0.1 was chosen because I felt like that's a good number.
     if (!m_activeGesture && std::abs(e.scale - 1.F) < 0.1) {
-        Debug::log(TRACE, "CTrackpadGestures::gestureUpdate (pinch): gesture delta too small to start considering, waiting");
+        Log::logger->log(Log::TRACE, "CTrackpadGestures::gestureUpdate (pinch): gesture delta too small to start considering, waiting");
         return;
     }
 
@@ -209,6 +220,9 @@ void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
                 continue;
 
             if (g->modMask != MODS)
+                continue;
+
+            if (PROTO::shortcutsInhibit->isInhibited() && !*PDISABLEINHIBIT && !g->disableInhibit)
                 continue;
 
             m_activeGesture     = g;

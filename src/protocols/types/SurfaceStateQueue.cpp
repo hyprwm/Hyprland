@@ -21,6 +21,7 @@ void CSurfaceStateQueue::dropState(const WP<SSurfaceState>& state) {
 }
 
 void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, eLockReason reason) {
+    ASSERT(reason != LOCK_REASON_NONE);
     auto it = find(weakState);
     if (it == m_queue.end())
         return;
@@ -29,6 +30,7 @@ void CSurfaceStateQueue::lock(const WP<SSurfaceState>& weakState, eLockReason re
 }
 
 void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, eLockReason reason) {
+    ASSERT(reason != LOCK_REASON_NONE);
     auto it = find(state);
     if (it == m_queue.end())
         return;
@@ -38,6 +40,7 @@ void CSurfaceStateQueue::unlock(const WP<SSurfaceState>& state, eLockReason reas
 }
 
 void CSurfaceStateQueue::unlockFirst(eLockReason reason) {
+    ASSERT(reason != LOCK_REASON_NONE);
     for (auto& it : m_queue) {
         if ((it->lockMask & reason) != LOCK_REASON_NONE) {
             it->lockMask &= ~reason;
@@ -65,6 +68,9 @@ auto CSurfaceStateQueue::find(const WP<SSurfaceState>& state) -> std::deque<UP<S
 void CSurfaceStateQueue::tryProcess() {
     while (!m_queue.empty()) {
         auto& front = m_queue.front();
+        if (front->lockMask & LOCK_REASON_FIFO && !m_surface->m_current.barrierSet)
+            front->lockMask &= ~LOCK_REASON_FIFO;
+
         if (front->lockMask != LOCK_REASON_NONE)
             return;
 

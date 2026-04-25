@@ -4,7 +4,6 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
-#include "../../managers/HookSystemManager.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -85,6 +84,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     data.roundingPower = ROUNDINGPOWER;
     data.a             = a;
     data.borderSize    = borderSize;
+    data.window        = m_window;
 
     if (ANIMATED) {
         data.hasGrad2 = true;
@@ -115,30 +115,26 @@ void CHyprBorderDecoration::updateWindow(PHLWINDOW) {
 }
 
 void CHyprBorderDecoration::damageEntire() {
-    if (!validMapped(m_window))
+    if (!validMapped(m_window) || m_window->m_fullscreenState.internal == FSMODE_FULLSCREEN)
         return;
 
-    auto       surfaceBox   = m_window->getWindowMainSurfaceBox();
-    const auto ROUNDING     = m_window->rounding();
-    const auto ROUNDINGSIZE = ROUNDING - M_SQRT1_2 * ROUNDING + 2;
-    const auto BORDERSIZE   = m_window->getRealBorderSize() + 1;
+    const auto GLOBAL_BOX = assignedBoxGlobal();
+    const auto ROUNDING   = m_window->rounding();
+    const auto BORDERSIZE = m_window->getRealBorderSize() + 1;
 
-    const auto PWINDOWWORKSPACE = m_window->m_workspace;
-    if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !m_window->m_pinned)
-        surfaceBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
-    surfaceBox.translate(m_window->m_floatingOffset);
+    CRegion    borderRegion(GLOBAL_BOX);
+    borderRegion.subtract(GLOBAL_BOX.copy().expand(-(BORDERSIZE + ROUNDING)));
+    borderRegion.expand(2); // pad
 
-    CBox surfaceBoxExpandedBorder = surfaceBox;
-    surfaceBoxExpandedBorder.expand(BORDERSIZE);
-    CBox surfaceBoxShrunkRounding = surfaceBox;
-    surfaceBoxShrunkRounding.expand(-ROUNDINGSIZE);
-
-    CRegion borderRegion(surfaceBoxExpandedBorder);
-    borderRegion.subtract(surfaceBoxShrunkRounding);
+    const CBox borderExtents = borderRegion.getExtents();
 
     for (auto const& m : g_pCompositor->m_monitors) {
+        const CBox monitorBox = {m->m_position, m->m_size};
+        if (borderExtents.intersection(monitorBox).empty())
+            continue;
+
         if (!g_pHyprRenderer->shouldRenderWindow(m_window.lock(), m)) {
-            const CRegion monitorRegion({m->m_position, m->m_size});
+            const CRegion monitorRegion(monitorBox);
             borderRegion.subtract(monitorRegion);
         }
     }

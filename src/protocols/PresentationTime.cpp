@@ -1,7 +1,7 @@
 #include "PresentationTime.hpp"
 #include <algorithm>
 #include "../helpers/Monitor.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../event/EventBus.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
 #include <aquamarine/output/Output.hpp>
@@ -40,46 +40,45 @@ bool CPresentationFeedback::good() {
     return m_resource->resource();
 }
 
-void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationFeedback::sendQueued(WP<CQueuedPresentationData> data, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     auto client = m_resource->client();
 
     if LIKELY (PROTO::outputs.contains(data->m_monitor->m_name) && data->m_wasPresented) {
-        if LIKELY (auto outputResource = PROTO::outputs.at(data->m_monitor->m_name)->outputResourceFrom(client); outputResource)
-            m_resource->sendSyncOutput(outputResource->getResource()->resource());
+        if LIKELY (auto outputResources = PROTO::outputs.at(data->m_monitor->m_name)->outputResourcesFrom(client); !outputResources.empty()) {
+            for (const auto& r : outputResources) {
+                m_resource->sendSyncOutput(r->getResource()->resource());
+            }
+        }
     }
 
-    uint32_t flags = 0;
-    if (!data->m_monitor->m_tearingState.activelyTearing)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
-    if (data->m_zeroCopy)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
-    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
-    if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
-        flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
+    if (data->m_wasPresented) {
+        uint32_t flags = 0;
+        if (!data->m_monitor->m_tearingState.activelyTearing)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_VSYNC;
+        if (data->m_zeroCopy)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_ZERO_COPY;
+        if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_CLOCK;
+        if (reportedFlags & Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_COMPLETION)
+            flags |= WP_PRESENTATION_FEEDBACK_KIND_HW_COMPLETION;
 
-    const auto TIMESPEC = Time::toTimespec(when);
+        time_t tv_sec = 0;
+        if (sizeof(time_t) > 4)
+            tv_sec = when.tv_sec >> 32;
 
-    time_t     tv_sec = 0;
-    if (sizeof(time_t) > 4)
-        tv_sec = TIMESPEC.tv_sec >> 32;
+        uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
 
-    uint32_t refreshNs = m_resource->version() == 1 && data->m_monitor->m_vrrActive && data->m_monitor->m_output->vrrCapable ? 0 : untilRefreshNs;
-
-    if (data->m_wasPresented)
-        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(TIMESPEC.tv_sec & 0xFFFFFFFF), sc<uint32_t>(TIMESPEC.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
+        m_resource->sendPresented(sc<uint32_t>(tv_sec), sc<uint32_t>(when.tv_sec & 0xFFFFFFFF), sc<uint32_t>(when.tv_nsec), refreshNs, sc<uint32_t>(seq >> 32),
                                   sc<uint32_t>(seq & 0xFFFFFFFF), sc<wpPresentationFeedbackKind>(flags));
-    else
+    } else
         m_resource->sendDiscarded();
 
     m_done = true;
 }
 
 CPresentationProtocol::CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorRemoved", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PMONITOR = PHLMONITORREF{std::any_cast<PHLMONITOR>(param)};
-        std::erase_if(m_queue, [PMONITOR](const auto& other) { return !other->m_surface || other->m_monitor == PMONITOR; });
-    });
+    static auto P = Event::bus()->m_events.monitor.removed.listen(
+        [this](PHLMONITOR mon) { std::erase_if(m_queue, [mon](const auto& other) { return !other->m_surface || other->m_monitor == mon; }); });
 }
 
 void CPresentationProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -88,6 +87,7 @@ void CPresentationProtocol::bindManager(wl_client* client, void* data, uint32_t 
 
     RESOURCE->setDestroy([this](CWpPresentation* pMgr) { this->onManagerResourceDestroy(pMgr->resource()); });
     RESOURCE->setFeedback([this](CWpPresentation* pMgr, wl_resource* surf, uint32_t id) { this->onGetFeedback(pMgr, surf, id); });
+    RESOURCE->sendClockId(CLOCK_MONOTONIC);
 }
 
 void CPresentationProtocol::onManagerResourceDestroy(wl_resource* res) {
@@ -110,7 +110,7 @@ void CPresentationProtocol::onGetFeedback(CWpPresentation* pMgr, wl_resource* su
     }
 }
 
-void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_tp& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
+void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags) {
     for (auto const& feedback : m_feedbacks) {
         if (!feedback->m_surface)
             continue;
@@ -126,7 +126,7 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
     }
 
     if (m_feedbacks.size() > 10000) {
-        LOGM(ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
+        LOGM(Log::ERR, "FIXME: presentation has a feedback leak, and has grown to {} pending entries!!! Dropping!!!!!", m_feedbacks.size());
 
         // Move the elements from the 9000th position to the end of the vector.
         std::vector<UP<CPresentationFeedback>> newFeedbacks;
@@ -145,4 +145,8 @@ void CPresentationProtocol::onPresented(PHLMONITOR pMonitor, const Time::steady_
 
 void CPresentationProtocol::queueData(UP<CQueuedPresentationData>&& data) {
     m_queue.emplace_back(std::move(data));
+}
+
+bool CPresentationProtocol::hasPendingFeedbacks() const {
+    return !m_feedbacks.empty();
 }

@@ -1,7 +1,7 @@
 #include "VirtualKeyboard.hpp"
 #include "../defines.hpp"
 #include "../protocols/VirtualKeyboard.hpp"
-#include "../config/ConfigManager.hpp"
+#include "../config/legacy/ConfigManager.hpp"
 #include <wayland-server-protocol.h>
 
 SP<CVirtualKeyboard> CVirtualKeyboard::create(SP<CVirtualKeyboardV1Resource> keeb) {
@@ -46,7 +46,7 @@ CVirtualKeyboard::CVirtualKeyboard(SP<CVirtualKeyboardV1Resource> keeb_) : m_key
 
     m_deviceName = keeb_->m_name;
 
-    const auto SHARESTATES = g_pConfigManager->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
+    const auto SHARESTATES = Config::mgr()->getDeviceInt(m_deviceName, "share_states", "input:virtualkeyboard:share_states");
     m_shareStates          = SHARESTATES != 0;
     m_shareStatesAuto      = SHARESTATES == 2;
 }

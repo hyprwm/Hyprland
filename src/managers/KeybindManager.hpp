@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <unordered_map>
 #include <functional>
 #include <xkbcommon/xkbcommon.h>
@@ -11,7 +12,6 @@
 #include "../helpers/time/Timer.hpp"
 
 class CInputManager;
-class CConfigManager;
 class CPluginSystem;
 class IKeyboard;
 
@@ -26,30 +26,32 @@ struct SSubmap {
 };
 
 struct SKeybind {
-    std::string            key             = "";
-    std::set<xkb_keysym_t> sMkKeys         = {};
-    uint32_t               keycode         = 0;
-    bool                   catchAll        = false;
-    uint32_t               modmask         = 0;
-    std::set<xkb_keysym_t> sMkMods         = {};
-    std::string            handler         = "";
-    std::string            arg             = "";
-    bool                   locked          = false;
-    SSubmap                submap          = {};
-    std::string            description     = "";
-    bool                   release         = false;
-    bool                   repeat          = false;
-    bool                   longPress       = false;
-    bool                   mouse           = false;
-    bool                   nonConsuming    = false;
-    bool                   transparent     = false;
-    bool                   ignoreMods      = false;
-    bool                   multiKey        = false;
-    bool                   hasDescription  = false;
-    bool                   dontInhibit     = false;
-    bool                   click           = false;
-    bool                   drag            = false;
-    bool                   submapUniversal = false;
+    std::string                     key             = "";
+    std::set<xkb_keysym_t>          sMkKeys         = {};
+    uint32_t                        keycode         = 0;
+    bool                            catchAll        = false;
+    uint32_t                        modmask         = 0;
+    std::set<xkb_keysym_t>          sMkMods         = {};
+    std::string                     handler         = "";
+    std::string                     arg             = "";
+    bool                            locked          = false;
+    SSubmap                         submap          = {};
+    std::string                     description     = "";
+    bool                            release         = false;
+    bool                            repeat          = false;
+    bool                            longPress       = false;
+    bool                            mouse           = false;
+    bool                            nonConsuming    = false;
+    bool                            transparent     = false;
+    bool                            ignoreMods      = false;
+    bool                            multiKey        = false;
+    bool                            hasDescription  = false;
+    bool                            dontInhibit     = false;
+    bool                            click           = false;
+    bool                            drag            = false;
+    bool                            submapUniversal = false;
+    bool                            deviceInclusive = false;
+    std::unordered_set<std::string> devices         = {};
 
     // DO NOT INITIALIZE
     bool shadowed = false;
@@ -88,14 +90,18 @@ enum eMultiKeyCase : uint8_t {
     MK_FULL_MATCH
 };
 
+namespace Config::Legacy {
+    class CConfigManager;
+}
+
 class CKeybindManager {
   public:
     CKeybindManager();
     ~CKeybindManager();
 
     bool                                                                         onKeyEvent(std::any, SP<IKeyboard>);
-    bool                                                                         onAxisEvent(const IPointer::SAxisEvent&);
-    bool                                                                         onMouseEvent(const IPointer::SButtonEvent&);
+    bool                                                                         onAxisEvent(const IPointer::SAxisEvent&, SP<IPointer>);
+    bool                                                                         onMouseEvent(const IPointer::SButtonEvent&, SP<IPointer>);
     void                                                                         resizeWithBorder(const IPointer::SButtonEvent&);
     void                                                                         onSwitchEvent(const std::string&);
     void                                                                         onSwitchOnEvent(const std::string&);
@@ -145,7 +151,7 @@ class CKeybindManager {
 
     CTimer                           m_scrollTimer;
 
-    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>);
+    SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>, SP<IHID>);
 
     std::set<xkb_keysym_t>           m_mkKeys = {};
     std::set<xkb_keysym_t>           m_mkMods = {};
@@ -164,9 +170,7 @@ class CKeybindManager {
     static void                      moveWindowOutOfGroup(PHLWINDOW pWindow, const std::string& dir = "");
     static void                      moveWindowIntoGroup(PHLWINDOW pWindow, PHLWINDOW pWindowInDirection);
 
-    static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool preserveFocusHistory = false, bool forceFSCycle = false);
-    static uint64_t                  spawnRawProc(std::string, PHLWORKSPACE pInitialWorkspace, const std::string& execRuleToken = "");
-    static uint64_t                  spawnWithRules(std::string, PHLWORKSPACE pInitialWorkspace);
+    static void                      switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = false);
 
     // -------------- Dispatchers -------------- //
     static SDispatchResult closeActive(std::string);
@@ -194,10 +198,7 @@ class CKeybindManager {
     static SDispatchResult swapActive(std::string);
     static SDispatchResult toggleGroup(std::string);
     static SDispatchResult changeGroupActive(std::string);
-    static SDispatchResult alterSplitRatio(std::string);
     static SDispatchResult focusMonitor(std::string);
-    static SDispatchResult toggleSplit(std::string);
-    static SDispatchResult swapSplit(std::string);
     static SDispatchResult moveCursorToCorner(std::string);
     static SDispatchResult moveCursor(std::string);
     static SDispatchResult workspaceOpt(std::string);
@@ -231,6 +232,7 @@ class CKeybindManager {
     static SDispatchResult lockGroups(std::string);
     static SDispatchResult lockActiveGroup(std::string);
     static SDispatchResult moveIntoGroup(std::string);
+    static SDispatchResult moveIntoOrCreateGroup(std::string);
     static SDispatchResult moveOutOfGroup(std::string);
     static SDispatchResult moveGroupWindow(std::string);
     static SDispatchResult moveWindowOrGroup(std::string);
@@ -243,7 +245,7 @@ class CKeybindManager {
 
     friend class CCompositor;
     friend class CInputManager;
-    friend class CConfigManager;
+    friend class Config::Legacy::CConfigManager;
     friend class CWorkspace;
     friend class CPointerManager;
 };

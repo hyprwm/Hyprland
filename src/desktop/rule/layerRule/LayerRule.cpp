@@ -1,6 +1,6 @@
 #include "LayerRule.hpp"
-#include "../../../debug/Log.hpp"
-#include "../../LayerSurface.hpp"
+#include "../../../debug/log/Logger.hpp"
+#include "../../view/LayerSurface.hpp"
 
 using namespace Desktop;
 using namespace Desktop::Rule;
@@ -28,7 +28,7 @@ bool CLayerRule::matches(PHLLS ls) {
     for (const auto& [prop, engine] : m_matchEngines) {
         switch (prop) {
             default: {
-                Debug::log(TRACE, "CLayerRule::matches: skipping prop entry {}", sc<std::underlying_type_t<eRuleProperty>>(prop));
+                Log::logger->log(Log::TRACE, "CLayerRule::matches: skipping prop entry {}", sc<std::underlying_type_t<eRuleProperty>>(prop));
                 break;
             }
 

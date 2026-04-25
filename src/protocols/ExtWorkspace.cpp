@@ -1,9 +1,8 @@
 #include "ExtWorkspace.hpp"
 #include "../Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../event/EventBus.hpp"
 #include <algorithm>
-#include <any>
 #include <utility>
 #include "core/Output.hpp"
 
@@ -27,12 +26,20 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
 
     const auto& output = PROTO::outputs.at(m_monitor->m_name);
 
-    if (auto resource = output->outputResourceFrom(m_resource->client()))
-        m_resource->sendOutputEnter(resource->getResource()->resource());
+    if (auto resources = output->outputResourcesFrom(m_resource->client()); !resources.empty()) {
+        for (const auto& r : resources) {
+            m_resource->sendOutputEnter(r->getResource()->resource());
+        }
+    }
 
     m_listeners.outputBound = output->m_events.outputBound.listen([this](const SP<CWLOutputResource>& output) {
-        if (output->client() == m_resource->client())
-            m_resource->sendOutputEnter(output->getResource()->resource());
+        if (output->client() != m_resource->client())
+            return;
+
+        m_resource->sendOutputEnter(output->getResource()->resource());
+
+        if (m_manager)
+            m_manager->scheduleDone();
     });
 }
 
@@ -273,7 +280,7 @@ void CExtWorkspaceManagerResource::onMonitorCreated(const PHLMONITOR& monitor) {
     group->sendToWorkspaces();
 
     if UNLIKELY (!group->good()) {
-        LOGM(ERR, "Couldn't create a workspace group object");
+        LOGM(Log::ERR, "Couldn't create a workspace group object");
         wl_client_post_no_memory(m_resource->client());
         return;
     }
@@ -287,24 +294,20 @@ void CExtWorkspaceManagerResource::onWorkspaceCreated(const PHLWORKSPACE& worksp
     ws->m_self = ws;
 
     if UNLIKELY (!ws->good()) {
-        LOGM(ERR, "Couldn't create a workspace object");
+        LOGM(Log::ERR, "Couldn't create a workspace object");
         wl_client_post_no_memory(m_resource->client());
         return;
     }
 }
 
 CExtWorkspaceProtocol::CExtWorkspaceProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P1 = g_pHookSystem->hookDynamic("createWorkspace", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto workspace = std::any_cast<CWorkspace*>(data)->m_self.lock();
-
+    static auto P1 = Event::bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF workspace) {
         for (auto const& m : m_managers) {
-            m->onWorkspaceCreated(workspace);
+            m->onWorkspaceCreated(workspace.lock());
         }
     });
 
-    static auto P2 = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any data) {
-        auto monitor = std::any_cast<PHLMONITOR>(data);
-
+    static auto P2 = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         for (auto const& m : m_managers) {
             m->onMonitorCreated(monitor);
         }
@@ -316,7 +319,7 @@ void CExtWorkspaceProtocol::bindManager(wl_client* client, void* data, uint32_t 
     manager->init(manager);
 
     if UNLIKELY (!manager->good()) {
-        LOGM(ERR, "Couldn't create a workspace manager");
+        LOGM(Log::ERR, "Couldn't create a workspace manager");
         wl_client_post_no_memory(client);
         return;
     }

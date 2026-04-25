@@ -14,16 +14,16 @@ CExtDataOffer::CExtDataOffer(SP<CExtDataControlOfferV1> resource_, SP<IDataSourc
     m_resource->setReceive([this](CExtDataControlOfferV1* r, const char* mime, int32_t fd) {
         CFileDescriptor sendFd{fd};
         if (!m_source) {
-            LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
         if (m_dead) {
-            LOGM(WARN, "Possible bug: Receive on an offer that's dead");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         m_source->send(mime, std::move(sendFd));
     });
@@ -79,7 +79,7 @@ std::vector<std::string> CExtDataSource::mimes() {
 
 void CExtDataSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
-        LOGM(ERR, "Compositor/App bug: CExtDataSource::sendAskSend with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CExtDataSource::sendAskSend with non-existent mime");
         return;
     }
 
@@ -88,7 +88,7 @@ void CExtDataSource::send(const std::string& mime, CFileDescriptor fd) {
 
 void CExtDataSource::accepted(const std::string& mime) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end())
-        LOGM(ERR, "Compositor/App bug: CExtDataSource::sendAccepted with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CExtDataSource::sendAccepted with non-existent mime");
 
     // ext has no accepted
 }
@@ -113,34 +113,34 @@ CExtDataDevice::CExtDataDevice(SP<CExtDataControlDeviceV1> resource_) : m_resour
     m_resource->setSetSelection([](CExtDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CExtDataSource::fromResource(sourceR) : CSharedPointer<CExtDataSource>{};
         if (!source) {
-            LOGM(LOG, "ext reset selection received");
+            LOGM(Log::DEBUG, "ext reset selection received");
             g_pSeatManager->setCurrentSelection(nullptr);
             return;
         }
 
         if (source && source->used())
-            LOGM(WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
-        LOGM(LOG, "ext manager requests selection to {:x}", (uintptr_t)source.get());
+        LOGM(Log::DEBUG, "ext manager requests selection to {:x}", (uintptr_t)source.get());
         g_pSeatManager->setCurrentSelection(source);
     });
 
     m_resource->setSetPrimarySelection([](CExtDataControlDeviceV1* r, wl_resource* sourceR) {
         auto source = sourceR ? CExtDataSource::fromResource(sourceR) : CSharedPointer<CExtDataSource>{};
         if (!source) {
-            LOGM(LOG, "ext reset primary selection received");
+            LOGM(Log::DEBUG, "ext reset primary selection received");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 
         if (source && source->used())
-            LOGM(WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
-        LOGM(LOG, "ext manager requests primary selection to {:x}", (uintptr_t)source.get());
+        LOGM(Log::DEBUG, "ext manager requests primary selection to {:x}", (uintptr_t)source.get());
         g_pSeatManager->setCurrentPrimarySelection(source);
     });
 }
@@ -197,7 +197,7 @@ CExtDataControlManagerResource::CExtDataControlManagerResource(SP<CExtDataContro
 
         RESOURCE->sendInitialSelections();
 
-        LOGM(LOG, "New ext data device bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New ext data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setCreateDataSource([this](CExtDataControlManagerV1* r, uint32_t id) {
@@ -213,13 +213,13 @@ CExtDataControlManagerResource::CExtDataControlManagerResource(SP<CExtDataContro
         }
 
         if (!m_device)
-            LOGM(WARN, "New data source before a device was created");
+            LOGM(Log::WARN, "New data source before a device was created");
 
         RESOURCE->m_self = RESOURCE;
 
         m_sources.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New ext data source bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New ext data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
@@ -240,7 +240,7 @@ void CExtDataDeviceProtocol::bindManager(wl_client* client, void* data, uint32_t
         return;
     }
 
-    LOGM(LOG, "New ext_data_control_manager at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New ext_data_control_manager at {:x}", (uintptr_t)RESOURCE.get());
 }
 
 void CExtDataDeviceProtocol::destroyResource(CExtDataControlManagerResource* resource) {
@@ -278,7 +278,7 @@ void CExtDataDeviceProtocol::sendSelectionToDevice(SP<CExtDataDevice> dev, SP<ID
 
     OFFER->m_primary = primary;
 
-    LOGM(LOG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
+    LOGM(Log::DEBUG, "New {}offer {:x} for data source {:x}", primary ? "primary " : " ", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
 
     dev->sendDataOffer(OFFER);
     OFFER->sendData();
@@ -298,7 +298,7 @@ void CExtDataDeviceProtocol::setSelection(SP<IDataSource> source, bool primary) 
     }
 
     if (!source) {
-        LOGM(LOG, "resetting {}selection", primary ? "primary " : " ");
+        LOGM(Log::DEBUG, "resetting {}selection", primary ? "primary " : " ");
 
         for (auto const& d : m_devices) {
             sendSelectionToDevice(d, nullptr, primary);
@@ -307,7 +307,7 @@ void CExtDataDeviceProtocol::setSelection(SP<IDataSource> source, bool primary) 
         return;
     }
 
-    LOGM(LOG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
+    LOGM(Log::DEBUG, "New {}selection for data source {:x}", primary ? "primary" : "", (uintptr_t)source.get());
 
     for (auto const& d : m_devices) {
         sendSelectionToDevice(d, source, primary);

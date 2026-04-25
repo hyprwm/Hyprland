@@ -1,8 +1,8 @@
 #include "Fifo.hpp"
 #include "Compositor.hpp"
 #include "core/Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -18,7 +18,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        m_pending.barrierSet = true;
+        m_surface->m_pending.barrierSet        = true;
+        m_surface->m_pending.updated.bits.fifo = true;
     });
 
     m_resource->setWaitBarrier([this](CWpFifoV1* r) {
@@ -27,49 +28,37 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
         }
 
-        if (!m_pending.barrierSet)
-            return;
+        if (!m_surface->m_current.barrierSet) {
+            // that might mean an empty commit with a barrier_set alone
+            static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
+            if (!m_surface->m_pending.fifoScheduled)
+                m_surface->m_pending.fifoScheduled = checkMonitors(*PPEND);
 
-        m_pending.surfaceLocked = true;
+            return;
+        }
+
+        m_surface->m_pending.surfaceLocked = true;
     });
 
     m_listeners.surfaceStateCommit = m_surface->m_events.stateCommit.listen([this](auto state) {
-        if (!m_pending.surfaceLocked)
+        if (!state || !state->surfaceLocked)
             return;
+
+        static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
 
         //#TODO:
         // this feels wrong, but if we have no pending frames, presented might never come because
         // we are waiting on the barrier to unlock and no damage is around.
-        if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
-            for (auto& m : g_pCompositor->m_monitors) {
-                if (!m || !m->m_enabled)
-                    continue;
+        // unlock on timeout instead?
+        if (!state->fifoScheduled)
+            state->fifoScheduled = checkMonitors(*PPEND);
 
-                auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
-                if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
-                    if (m->m_tearingState.activelyTearing)
-                        return; // dont fifo lock on tearing.
-
-                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-                }
-            }
-        } else {
-            for (auto& m : m_surface->m_enteredOutputs) {
-                if (!m)
-                    continue;
-
-                if (m->m_tearingState.activelyTearing)
-                    return; // dont fifo lock on tearing.
-
-                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
-            }
-        }
+        if (!state->fifoScheduled)
+            return;
 
         // only lock once its mapped.
         if (m_surface->m_mapped)
             m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
-
-        m_pending = {};
     });
 }
 
@@ -82,7 +71,39 @@ bool CFifoResource::good() {
 }
 
 void CFifoResource::presented() {
+    m_surface->m_current.barrierSet = false;
     m_surface->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+}
+
+bool CFifoResource::checkMonitors(bool needsSchedule) {
+    if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
+        for (auto& m : g_pCompositor->m_monitors) {
+            if (!m || !m->m_enabled)
+                continue;
+
+            auto box = m_surface->m_hlSurface->getSurfaceBoxGlobal();
+            if (box && !box->intersection({m->m_position, m->m_size}).empty()) {
+                if (m->m_tearingState.activelyTearing)
+                    return false; // dont fifo lock on tearing.
+
+                if (needsSchedule)
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+            }
+        }
+    } else {
+        for (auto& m : m_surface->m_enteredOutputs) {
+            if (!m)
+                continue;
+
+            if (m->m_tearingState.activelyTearing)
+                return false; // dont fifo lock on tearing.
+
+            if (needsSchedule)
+                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+        }
+    }
+
+    return true;
 }
 
 CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m_resource(std::move(resource_)) {
@@ -119,7 +140,7 @@ CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m
         }
 
         surf->m_fifo = RESOURCE;
-        LOGM(LOG, "New fifo at {:x} for surface {:x}", (uintptr_t)RESOURCE, (uintptr_t)surf.get());
+        LOGM(Log::DEBUG, "New fifo at {:x} for surface {:x}", (uintptr_t)RESOURCE, (uintptr_t)surf.get());
     });
 }
 
@@ -132,9 +153,7 @@ bool CFifoManagerResource::good() {
 }
 
 CFifoProtocol::CFifoProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P = g_pHookSystem->hookDynamic("monitorAdded", [this](void* self, SCallbackInfo& info, std::any param) {
-        auto M = std::any_cast<PHLMONITOR>(param);
-
+    static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
         M->m_events.presented.listenStatic([this, m = PHLMONITORREF{M}]() {
             if (!m || !PROTO::fifo)
                 return;

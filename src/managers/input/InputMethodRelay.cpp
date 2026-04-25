@@ -1,14 +1,13 @@
 #include "InputMethodRelay.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../event/EventBus.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/TextInputV1.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../managers/HookSystemManager.hpp"
 
 CInputMethodRelay::CInputMethodRelay() {
-    static auto P =
-        g_pHookSystem->hookDynamic("keyboardFocus", [&](void* self, SCallbackInfo& info, std::any param) { onKeyboardFocus(std::any_cast<SP<CWLSurfaceResource>>(param)); });
+    static auto P = Event::bus()->m_events.input.keyboard.focus.listen([&](SP<CWLSurfaceResource> surf) { onKeyboardFocus(surf); });
 
     m_listeners.newTIV3 = PROTO::textInputV3->m_events.newTextInput.listen([this](const auto& input) { onNewTextInput(input); });
     m_listeners.newTIV1 = PROTO::textInputV1->m_events.newTextInput.listen([this](const auto& input) { onNewTextInput(input); });
@@ -17,7 +16,7 @@ CInputMethodRelay::CInputMethodRelay() {
 
 void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     if (!m_inputMethod.expired()) {
-        Debug::log(ERR, "Cannot register 2 IMEs at once!");
+        Log::logger->log(Log::ERR, "Cannot register 2 IMEs at once!");
 
         pIME->unavailable();
 
@@ -30,7 +29,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
         const auto PTI = getFocusedTextInput();
 
         if (!PTI) {
-            Debug::log(LOG, "No focused TextInput on IME Commit");
+            Log::logger->log(Log::DEBUG, "No focused TextInput on IME Commit");
             return;
         }
 
@@ -40,7 +39,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
     m_listeners.destroyIME = pIME->m_events.destroy.listen([this] {
         const auto PTI = getFocusedTextInput();
 
-        Debug::log(LOG, "IME Destroy");
+        Log::logger->log(Log::DEBUG, "IME Destroy");
 
         if (PTI)
             PTI->leave();
@@ -50,7 +49,7 @@ void CInputMethodRelay::onNewIME(SP<CInputMethodV2> pIME) {
 
     m_listeners.newPopup = pIME->m_events.newPopup.listen([this](const SP<CInputMethodPopupV2>& popup) {
         m_inputMethodPopups.emplace_back(makeUnique<CInputPopup>(popup));
-        Debug::log(LOG, "New input popup");
+        Log::logger->log(Log::DEBUG, "New input popup");
     });
 
     if (!Desktop::focusState()->surface())
@@ -74,6 +73,11 @@ void CInputMethodRelay::removePopup(CInputPopup* pPopup) {
 CTextInput* CInputMethodRelay::getFocusedTextInput() {
     if (!Desktop::focusState()->surface())
         return nullptr;
+
+    for (auto const& ti : m_textInputs) {
+        if (ti->focusedSurface() == Desktop::focusState()->surface() && ti->isEnabled())
+            return ti.get();
+    }
 
     for (auto const& ti : m_textInputs) {
         if (ti->focusedSurface() == Desktop::focusState()->surface())

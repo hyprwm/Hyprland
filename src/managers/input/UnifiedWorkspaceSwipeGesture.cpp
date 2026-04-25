@@ -15,7 +15,7 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
 
     const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
-    Debug::log(LOG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
+    Log::logger->log(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
 
     m_workspaceBegin = PWORKSPACE;
     m_delta          = 0;
@@ -246,7 +246,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_monitor->m_id));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
-            PWORKSPACEL->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
@@ -261,7 +260,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the left");
+        Log::logger->log(Log::DEBUG, "Ended swipe to the left");
 
         pSwitchedTo = PWORKSPACEL;
     } else {
@@ -273,7 +272,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_monitor->m_id));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
-            PWORKSPACER->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
@@ -288,11 +286,10 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the right");
+        Log::logger->log(Log::DEBUG, "Ended swipe to the right");
 
         pSwitchedTo = PWORKSPACER;
     }
-    m_workspaceBegin->rememberPrevWorkspace(pSwitchedTo);
 
     g_pHyprRenderer->damageMonitor(m_monitor.lock());
 

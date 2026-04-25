@@ -1,5 +1,5 @@
 #include "VersionKeeperManager.hpp"
-#include "../debug/Log.hpp"
+#include "../debug/log/Logger.hpp"
 #include "../macros.hpp"
 #include "../version.h"
 #include "../helpers/MiscFunctions.hpp"
@@ -34,20 +34,20 @@ CVersionKeeperManager::CVersionKeeperManager() {
         return;
     }
 
-    if (!isVersionOlderThanRunning(*LASTVER)) {
-        Debug::log(LOG, "CVersionKeeperManager: Read version {} matches or is older than running.", *LASTVER);
+    if (!isMajorVersionOlderThanRunning(*LASTVER)) {
+        Log::logger->log(Log::DEBUG, "CVersionKeeperManager: Read version {} matches or is older than running major.", *LASTVER);
         return;
     }
 
     NFsUtils::writeToFile(*DATAROOT + "/" + VERSION_FILE_NAME, HYPRLAND_VERSION);
 
     if (*PNONOTIFY) {
-        Debug::log(LOG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
+        Log::logger->log(Log::DEBUG, "CVersionKeeperManager: updated, but update news is disabled in the config :(");
         return;
     }
 
     if (!NFsUtils::executableExistsInPath("hyprland-update-screen")) {
-        Debug::log(ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
+        Log::logger->log(Log::ERR, "CVersionKeeperManager: hyprland-update-screen doesn't seem to exist, skipping notif about update...");
         return;
     }
 
@@ -59,24 +59,20 @@ CVersionKeeperManager::CVersionKeeperManager() {
     });
 }
 
-bool CVersionKeeperManager::isVersionOlderThanRunning(const std::string& ver) {
+bool CVersionKeeperManager::isMajorVersionOlderThanRunning(const std::string& ver) {
     const CVarList        verStrings(ver, 0, '.', true);
 
     const int             V1 = configStringToInt(verStrings[0]).value_or(0);
     const int             V2 = configStringToInt(verStrings[1]).value_or(0);
-    const int             V3 = configStringToInt(verStrings[2]).value_or(0);
 
     static const CVarList runningStrings(HYPRLAND_VERSION, 0, '.', true);
 
     static const int      R1 = configStringToInt(runningStrings[0]).value_or(0);
     static const int      R2 = configStringToInt(runningStrings[1]).value_or(0);
-    static const int      R3 = configStringToInt(runningStrings[2]).value_or(0);
 
     if (R1 > V1)
         return true;
     if (R2 > V2)
-        return true;
-    if (R3 > V3)
         return true;
     return false;
 }

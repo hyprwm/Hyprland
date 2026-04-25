@@ -1,6 +1,7 @@
 #include "SurfaceState.hpp"
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
+#include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
 Vector2D SSurfaceState::sourceSize() {
@@ -29,12 +30,12 @@ CRegion SSurfaceState::accumulateBufferDamage() {
 
     Vector2D trc = transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
 
-    bufferDamage = surfaceDamage.scale(scale).transform(wlTransformToHyprutils(invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
+    bufferDamage = surfaceDamage.scale(scale).transform(Math::wlTransformToHyprutils(Math::invertTransform(transform)), trc.x, trc.y).add(bufferDamage);
     damage.clear();
     return bufferDamage;
 }
 
-void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
+void SSurfaceState::updateSynchronousTexture(SP<Render::ITexture> lastTexture) {
     auto [dataPtr, fmt, size] = buffer->beginDataPtr(0);
     if (dataPtr) {
         auto drmFmt = NFormatUtils::shmToDRM(fmt);
@@ -43,7 +44,7 @@ void SSurfaceState::updateSynchronousTexture(SP<CTexture> lastTexture) {
             texture = lastTexture;
             texture->update(drmFmt, dataPtr, stride, accumulateBufferDamage());
         } else
-            texture = makeShared<CTexture>(drmFmt, dataPtr, stride, bufferSize);
+            texture = g_pHyprRenderer->createTexture(drmFmt, dataPtr, stride, bufferSize);
     }
     buffer->endDataPtr();
 }
@@ -63,6 +64,13 @@ void SSurfaceState::reset() {
 
     callbacks.clear();
     lockMask = LOCK_REASON_NONE;
+
+    barrierSet    = false;
+    surfaceLocked = false;
+    fifoScheduled = false;
+
+    pendingTimeout.reset();
+    timer.reset(); // CEventLoopManager::nudgeTimers should handle it eventually
 }
 
 void SSurfaceState::updateFrom(SSurfaceState& ref) {
@@ -112,4 +120,7 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         callbacks.insert(callbacks.end(), std::make_move_iterator(ref.callbacks.begin()), std::make_move_iterator(ref.callbacks.end()));
         ref.callbacks.clear();
     }
+
+    if (ref.barrierSet)
+        barrierSet = ref.barrierSet;
 }

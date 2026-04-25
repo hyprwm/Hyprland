@@ -1,44 +1,70 @@
 #include "LayerRuleApplicator.hpp"
 #include "LayerRule.hpp"
 #include "../Engine.hpp"
-#include "../../LayerSurface.hpp"
+#include "../../view/LayerSurface.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
+#include "../../../event/EventBus.hpp"
+#include <tuple>
 
 using namespace Desktop;
 using namespace Desktop::Rule;
+
+namespace {
+    template <typename T>
+    void resetRuleProp(std::pair<Desktop::Types::COverridableVar<T>, std::underlying_type_t<Desktop::Rule::eRuleProperty>>& prop,
+                       std::underlying_type_t<Desktop::Rule::eRuleProperty> props, Desktop::Types::eOverridePriority prio) {
+        auto& [value, propMask] = prop;
+
+        if (!(propMask & props))
+            return;
+
+        if (prio == Desktop::Types::PRIORITY_WINDOW_RULE)
+            propMask &= ~props;
+
+        value.unset(prio);
+    }
+}
 
 CLayerRuleApplicator::CLayerRuleApplicator(PHLLS ls) : m_ls(ls) {
     ;
 }
 
 void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
-    // TODO: fucking kill me, is there a better way to do this?
+    std::apply([&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
+               std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));
 
-#define UNSET(x)                                                                                                                                                                   \
-    if (m_##x.second & props) {                                                                                                                                                    \
-        if (prio == Types::PRIORITY_WINDOW_RULE)                                                                                                                                   \
-            m_##x.second &= ~props;                                                                                                                                                \
-        m_##x.first.unset(prio);                                                                                                                                                   \
-    }
-
-    UNSET(noanim)
-    UNSET(blur)
-    UNSET(blurPopups)
-    UNSET(dimAround)
-    UNSET(xray)
-    UNSET(noScreenShare)
-    UNSET(order)
-    UNSET(aboveLock)
-    UNSET(ignoreAlpha)
-    UNSET(animationStyle)
+    if (prio == Types::PRIORITY_WINDOW_RULE)
+        std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
 }
 
 void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
     for (const auto& [key, effect] : rule->effects()) {
         switch (key) {
+            default: {
+                if (key <= LAYER_RULE_EFFECT_LAST_STATIC) {
+                    Log::logger->log(Log::TRACE, "CLayerRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eLayerRuleEffect>>(key));
+                    break;
+                }
+
+                // custom type, add to our vec
+                if (!m_otherProps.props.contains(key)) {
+                    m_otherProps.props.emplace(key,
+                                               makeUnique<SCustomPropContainer>(SCustomPropContainer{
+                                                   .idx      = key,
+                                                   .propMask = rule->getPropertiesMask(),
+                                                   .effect   = effect,
+                                               }));
+                } else {
+                    auto& e = m_otherProps.props[key];
+                    e->propMask |= rule->getPropertiesMask();
+                    e->effect = effect;
+                }
+
+                break;
+            }
             case LAYER_RULE_EFFECT_NONE: {
-                Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
+                Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
                 break;
             }
             case LAYER_RULE_EFFECT_NO_ANIM: {
@@ -73,23 +99,23 @@ void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
             }
             case LAYER_RULE_EFFECT_ORDER: {
                 try {
-                    m_noScreenShare.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_noScreenShare.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                    m_order.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
+                    m_order.second |= rule->getPropertiesMask();
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_ABOVE_LOCK: {
                 try {
                     m_aboveLock.first.set(std::clamp(std::stoull(effect), 0ULL, 2ULL), Types::PRIORITY_WINDOW_RULE);
                     m_aboveLock.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_IGNORE_ALPHA: {
                 try {
                     m_ignoreAlpha.first.set(std::clamp(std::stof(effect), 0.F, 1.F), Types::PRIORITY_WINDOW_RULE);
                     m_ignoreAlpha.second |= rule->getPropertiesMask();
-                } catch (...) { Debug::log(ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
+                } catch (...) { Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: invalid order {}", effect); }
                 break;
             }
             case LAYER_RULE_EFFECT_ANIMATION: {
@@ -125,4 +151,7 @@ void CLayerRuleApplicator::propertiesChanged(std::underlying_type_t<eRulePropert
 
         applyDynamicRule(wr);
     }
+
+    // for plugins
+    Event::bus()->m_events.layer.updateRules.emit(m_ls.lock());
 }

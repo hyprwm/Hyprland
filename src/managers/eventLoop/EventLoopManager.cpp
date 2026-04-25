@@ -1,9 +1,10 @@
 #include "EventLoopManager.hpp"
-#include "../../debug/Log.hpp"
+#include "../../debug/log/Logger.hpp"
 #include "../../Compositor.hpp"
-#include "../../config/ConfigWatcher.hpp"
+#include "../../config/shared/inotify/ConfigWatcher.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <ranges>
 
@@ -26,10 +27,7 @@ CEventLoopManager::~CEventLoopManager() {
         wl_event_source_remove(eventSourceData.eventSource);
     }
 
-    for (auto const& w : m_readableWaiters) {
-        if (w->source != nullptr)
-            wl_event_source_remove(w->source);
-    }
+    m_readableWaiters.clear();
 
     if (m_wayland.eventSource)
         wl_event_source_remove(m_wayland.eventSource);
@@ -40,29 +38,45 @@ CEventLoopManager::~CEventLoopManager() {
 }
 
 static int timerWrite(int fd, uint32_t mask, void* data) {
+    if (!CFileDescriptor::isReadable(fd))
+        Log::logger->log(Log::ERR, "timerWrite: triggered a non readable event on fd : {}", fd);
+    else {
+        uint64_t expirations;
+        if (read(fd, &expirations, sizeof(expirations)) < 0)
+            Log::logger->log(Log::ERR, "timerWrite: read failed on fd {}: {}", fd, strerror(errno));
+    }
+
     g_pEventLoopManager->onTimerFire();
-    return 1;
+    return 0;
 }
 
 static int aquamarineFDWrite(int fd, uint32_t mask, void* data) {
     auto POLLFD = sc<Aquamarine::SPollFD*>(data);
     POLLFD->onSignal();
-    return 1;
+    return 0;
 }
 
 static int configWatcherWrite(int fd, uint32_t mask, void* data) {
-    g_pConfigWatcher->onInotifyEvent();
+    Config::watcher()->onInotifyEvent();
     return 0;
 }
 
 static int handleWaiterFD(int fd, uint32_t mask, void* data) {
+    auto waiter = sc<CEventLoopManager::SReadableWaiter*>(data);
+
+    if (!waiter) {
+        Log::logger->log(Log::ERR, "handleWaiterFD: failed casting waiter");
+        return 0;
+    }
+
     if (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) {
-        Debug::log(ERR, "handleWaiterFD: readable waiter error");
+        Log::logger->log(Log::ERR, "handleWaiterFD: readable waiter error");
+        g_pEventLoopManager->onFdReadableFail(waiter);
         return 0;
     }
 
     if (mask & WL_EVENT_READABLE)
-        g_pEventLoopManager->onFdReadable(sc<CEventLoopManager::SReadableWaiter*>(data));
+        g_pEventLoopManager->onFdReadable(waiter);
 
     return 0;
 }
@@ -74,6 +88,11 @@ void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
     if (it == m_readableWaiters.end())
         return;
 
+    if (waiter->source) { // remove even_source if fn() somehow causes a reentry
+        wl_event_source_remove(waiter->source);
+        waiter->source = nullptr;
+    }
+
     UP<SReadableWaiter> taken = std::move(*it);
     m_readableWaiters.erase(it);
 
@@ -81,10 +100,20 @@ void CEventLoopManager::onFdReadable(SReadableWaiter* waiter) {
         taken->fn();
 }
 
+void CEventLoopManager::onFdReadableFail(SReadableWaiter* waiter) {
+    auto it = std::ranges::find_if(m_readableWaiters, [waiter](const UP<SReadableWaiter>& w) { return waiter == w.get() && w->fd == waiter->fd && w->source == waiter->source; });
+
+    // ???
+    if (it == m_readableWaiters.end())
+        return;
+
+    m_readableWaiters.erase(it);
+}
+
 void CEventLoopManager::enterLoop() {
     m_wayland.eventSource = wl_event_loop_add_fd(m_wayland.loop, m_timers.timerfd.get(), WL_EVENT_READABLE, timerWrite, nullptr);
 
-    if (const auto& FD = g_pConfigWatcher->getInotifyFD(); FD.isValid())
+    if (const auto& FD = Config::watcher()->getInotifyFD(); FD.isValid())
         m_configWatcherInotifySource = wl_event_loop_add_fd(m_wayland.loop, FD.get(), WL_EVENT_READABLE, configWatcherWrite, nullptr);
 
     syncPollFDs();
@@ -96,7 +125,7 @@ void CEventLoopManager::enterLoop() {
 
     wl_display_run(m_wayland.display);
 
-    Debug::log(LOG, "Kicked off the event loop! :(");
+    Log::logger->log(Log::DEBUG, "Kicked off the event loop! :(");
 }
 
 void CEventLoopManager::onTimerFire() {
@@ -182,12 +211,12 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
         m_wayland.loop,
         [](void* data) {
             auto IDLE = sc<CEventLoopManager::SIdleData*>(data);
-            auto cpy  = IDLE->fns;
+            auto fns  = std::move(IDLE->fns);
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;
-            for (auto const& c : cpy) {
-                if (c)
-                    c();
+            for (auto& f : fns) {
+                if (f)
+                    f();
             }
         },
         &m_idle);

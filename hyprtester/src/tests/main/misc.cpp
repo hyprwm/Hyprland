@@ -18,6 +18,121 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+// Uncomment once test vm can run hyprland-dialog
+// static void testAnrDialogs() {
+//     NLog::log("{}Testing ANR dialogs", Colors::YELLOW);
+//
+//     OK(getFromSocket("/keyword misc:enable_anr_dialog true"));
+//     OK(getFromSocket("/keyword misc:anr_missed_pings 1"));
+//
+//     NLog::log("{}ANR dialog: regular workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace 2"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "workspace: 2");
+//         }
+//
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "workspace: 2");
+//         }
+//     }
+//
+//     Tests::killAllWindows();
+//
+//     NLog::log("{}ANR dialog: named workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace name:yummy"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "yummy");
+//         }
+//
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "yummy");
+//         }
+//     }
+//
+//     Tests::killAllWindows();
+//
+//     NLog::log("{}ANR dialog: special workspaces", Colors::YELLOW);
+//     {
+//         OK(getFromSocket("/dispatch workspace special:apple"));
+//
+//         auto kitty = Tests::spawnKitty("bad_kitty");
+//
+//         if (!kitty) {
+//             ret = 1;
+//             return;
+//         }
+//
+//         {
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "special:apple");
+//         }
+//
+//         OK(getFromSocket("/dispatch togglespecialworkspace apple"));
+//         OK(getFromSocket("/dispatch workspace 1"));
+//
+//         ::kill(kitty->pid(), SIGSTOP);
+//         Tests::waitUntilWindowsN(2);
+//
+//         {
+//             auto str = getFromSocket("/activeworkspace");
+//             EXPECT_CONTAINS(str, "windows: 0");
+//         }
+//
+//         {
+//             OK(getFromSocket("/dispatch focuswindow class:hyprland-dialog"))
+//             auto str = getFromSocket("/activewindow");
+//             EXPECT_CONTAINS(str, "special:apple");
+//         }
+//     }
+//
+//     OK(getFromSocket("/reload"));
+//     Tests::killAllWindows();
+// }
+
 static bool test() {
     NLog::log("{}Testing config: misc:", Colors::GREEN);
 
@@ -62,6 +177,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -70,6 +186,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -79,6 +196,7 @@ static bool test() {
         // should be ignored as per focus_under_fullscreen 0
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_A");
     }
 
@@ -89,6 +207,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
         EXPECT_CONTAINS(str, "kitty_C");
     }
 
@@ -99,6 +218,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
         EXPECT_CONTAINS(str, "kitty_D");
     }
 
@@ -118,6 +238,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -126,6 +247,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     Tests::spawnKitty("kitty_B");
@@ -138,6 +260,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     Tests::killAllWindows();
@@ -153,6 +276,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreen 0 unset"));
@@ -160,6 +284,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch fullscreen 1 toggle"));
@@ -167,6 +292,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 1");
+        EXPECT_CONTAINS(str, "fullscreenClient: 1");
     }
 
     OK(getFromSocket("/dispatch fullscreen 1 toggle"));
@@ -174,6 +300,23 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 3 3 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
+    }
+
+    OK(getFromSocket("/dispatch fullscreenstate 3 3 set"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(str, "fullscreen: 3");
+        EXPECT_CONTAINS(str, "fullscreenClient: 3");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
@@ -181,6 +324,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 set"));
@@ -188,6 +332,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
@@ -195,6 +340,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+        EXPECT_CONTAINS(str, "fullscreenClient: 0");
     }
 
     OK(getFromSocket("/dispatch fullscreenstate 2 2 toggle"));
@@ -202,6 +348,7 @@ static bool test() {
     {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "fullscreen: 2");
+        EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
 
     // Ensure that the process autostarted in the config does not

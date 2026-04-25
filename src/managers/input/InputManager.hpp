@@ -7,6 +7,7 @@
 #include "../../helpers/time/Timer.hpp"
 #include "InputMethodRelay.hpp"
 #include "../../helpers/signal/Signal.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../devices/IPointer.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../devices/IKeyboard.hpp"
@@ -15,7 +16,6 @@
 #include "../SeatManager.hpp"
 
 class CPointerConstraint;
-class CWindow;
 class CIdleInhibitor;
 class CVirtualKeyboardV1Resource;
 class CVirtualPointerV1Resource;
@@ -89,8 +89,9 @@ class CInputManager {
 
     void               onMouseMoved(IPointer::SMotionEvent);
     void               onMouseWarp(IPointer::SMotionAbsoluteEvent);
-    void               onMouseButton(IPointer::SButtonEvent);
+    void               onMouseButton(IPointer::SButtonEvent, SP<IPointer>);
     void               onMouseWheel(IPointer::SAxisEvent, SP<IPointer> pointer = nullptr);
+    void               onPointerFrame();
     void               onKeyboardKey(const IKeyboard::SKeyEvent&, SP<IKeyboard>);
     void               onKeyboardMod(SP<IKeyboard>);
 
@@ -153,12 +154,6 @@ class CInputManager {
 
     STouchData         m_touchData;
 
-    // for dragging floating windows
-    PHLWINDOWREF   m_currentlyDraggedWindow;
-    eMouseBindMode m_dragMode             = MBIND_INVALID;
-    bool           m_wasDraggingWindow    = false;
-    bool           m_dragThresholdReached = false;
-
     // for refocus to be forced
     PHLWINDOWREF                 m_forcedFocus;
 
@@ -208,6 +203,9 @@ class CInputManager {
     // for hiding cursor on touch
     bool m_lastInputTouch = false;
 
+    // for hiding cursor on tablet
+    bool m_lastInputTablet = false;
+
     // for tracking mouse refocus
     PHLWINDOWREF m_lastMouseFocus;
 
@@ -235,7 +233,7 @@ class CInputManager {
     void               setupKeyboard(SP<IKeyboard> keeb);
     void               setupMouse(SP<IPointer> mauz);
 
-    void               processMouseDownNormal(const IPointer::SButtonEvent& e);
+    void               processMouseDownNormal(const IPointer::SButtonEvent& e, SP<IPointer>);
     void               processMouseDownKill(const IPointer::SButtonEvent& e);
 
     bool               cursorImageUnlocked();
@@ -281,10 +279,10 @@ class CInputManager {
 
     // cursor surface
     struct {
-        bool           hidden = false; // null surface = hidden
-        SP<CWLSurface> wlSurface;
-        Vector2D       vHotspot;
-        std::string    name; // if not empty, means set by name.
+        bool                          hidden = false; // null surface = hidden
+        SP<Desktop::View::CWLSurface> wlSurface;
+        Vector2D                      vHotspot;
+        std::string                   name; // if not empty, means set by name.
     } m_cursorSurfaceInfo;
 
     void restoreCursorIconToApp(); // no-op if restored
@@ -296,6 +294,7 @@ class CInputManager {
         uint32_t lastEventTime     = 0;
         uint32_t accumulatedScroll = 0;
     } m_scrollWheelState;
+    bool                  m_pointerAxisFramePending = false;
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);
     uint32_t              shareModsFromAllKBs(uint32_t depressed);
@@ -303,7 +302,7 @@ class CInputManager {
     uint32_t              m_lastMods = 0;
 
     friend class CKeybindManager;
-    friend class CWLSurface;
+    friend class Desktop::View::CWLSurface;
     friend class CWorkspaceSwipeGesture;
 };
 

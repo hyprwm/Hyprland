@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "../desktop/Subsurface.hpp"
-#include "../desktop/Popup.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/Subsurface.hpp"
+#include "../desktop/view/Popup.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../macros.hpp"
 #include "../desktop/DesktopTypes.hpp"
 #include "memory/Memory.hpp"

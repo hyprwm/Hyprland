@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "helpers/memory/Memory.hpp"
-#include "debug/Log.hpp"
+#include "debug/log/Logger.hpp"
 
 #ifndef NDEBUG
 #ifdef HYPRLAND_DEBUG
@@ -34,13 +34,6 @@
 // max value 32 because killed is a int uniform
 #define POINTER_PRESSED_HISTORY_LENGTH 32
 
-#define LISTENER(name)                                                                                                                                                             \
-    void               listener_##name(wl_listener*, void*);                                                                                                                       \
-    inline wl_listener listen_##name = {.notify = listener_##name}
-#define DYNLISTENFUNC(name)    void listener_##name(void*, void*)
-#define DYNLISTENER(name)      CHyprWLListener hyprListener_##name
-#define DYNMULTILISTENER(name) wl_listener listen_##name
-
 #define VECINRECT(vec, x1, y1, x2, y2)    ((vec).x >= (x1) && (vec).x < (x2) && (vec).y >= (y1) && (vec).y < (y2))
 #define VECNOTINRECT(vec, x1, y1, x2, y2) ((vec).x < (x1) || (vec).x >= (x2) || (vec).y < (y1) || (vec).y >= (y2))
 
@@ -52,9 +45,9 @@
 
 #define RASSERT(expr, reason, ...)                                                                                                                                                 \
     if (!(expr)) {                                                                                                                                                                 \
-        Debug::log(CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",            \
-                   std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                                   \
-                   ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                       \
+        Log::logger->log(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}", \
+                         std::format(reason, ##__VA_ARGS__), __LINE__,                                                                                                             \
+                         ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })());                                 \
         std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");                                                                                      \
         raise(SIGABRT);                                                                                                                                                            \
     }
@@ -90,7 +83,7 @@
 #if ISDEBUG
 #define UNREACHABLE()                                                                                                                                                              \
     {                                                                                                                                                                              \
-        Debug::log(CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                                     \
+        Log::logger->log(Log::CRIT, "\n\nMEMORY CORRUPTED: Unreachable failed! (Reached an unreachable position, memory corruption!!!)");                                          \
         raise(SIGABRT);                                                                                                                                                            \
         std::unreachable();                                                                                                                                                        \
     }
@@ -103,10 +96,13 @@
 #define GLCALL(__CALL__)                                                                                                                                                           \
     {                                                                                                                                                                              \
         __CALL__;                                                                                                                                                                  \
-        auto err = glGetError();                                                                                                                                                   \
-        if (err != GL_NO_ERROR) {                                                                                                                                                  \
-            Debug::log(ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                                     \
-                       ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                              \
+        static const auto GLDEBUG = CConfigValue<Hyprlang::INT>("debug:gl_debugging");                                                                                             \
+        if (*GLDEBUG) {                                                                                                                                                            \
+            auto err = glGetError();                                                                                                                                               \
+            if (err != GL_NO_ERROR) {                                                                                                                                              \
+                Log::logger->log(Log::ERR, "[GLES] Error in call at {}@{}: 0x{:x}", __LINE__,                                                                                      \
+                                 ([]() constexpr -> std::string { return std::string(__FILE__).substr(std::string(__FILE__).find_last_of('/') + 1); })(), err);                    \
+            }                                                                                                                                                                      \
         }                                                                                                                                                                          \
     }
 

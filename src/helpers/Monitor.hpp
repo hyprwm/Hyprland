@@ -11,17 +11,29 @@
 #include "CMType.hpp"
 
 #include <xf86drmMode.h>
+#include "MonitorZoomController.hpp"
+#include "../render/Texture.hpp"
+#include "../render/Framebuffer.hpp"
+#include "MonitorResources.hpp"
 #include "time/Timer.hpp"
 #include "math/Math.hpp"
+#include "../desktop/reserved/ReservedArea.hpp"
 #include <optional>
-#include "../protocols/types/ColorManagement.hpp"
+#include "cm/ColorManagement.hpp"
 #include "signal/Signal.hpp"
 #include "DamageRing.hpp"
 #include <aquamarine/output/Output.hpp>
 #include <aquamarine/allocator/Swapchain.hpp>
 #include <hyprutils/os/FileDescriptor.hpp>
+#include <sys/types.h>
+
+#include "../helpers/TransferFunction.hpp"
+#include "../config/shared/monitor/MonitorRule.hpp"
 
 class CMonitorFrameScheduler;
+namespace Monitor {
+    class CMonitorResources;
+}
 
 // Enum for the different types of auto directions, e.g. auto-left, auto-up.
 enum eAutoDirs : uint8_t {
@@ -37,25 +49,27 @@ enum eAutoDirs : uint8_t {
 };
 
 struct SMonitorRule {
-    eAutoDirs           autoDir       = DIR_AUTO_NONE;
-    std::string         name          = "";
-    Vector2D            resolution    = Vector2D(1280, 720);
-    Vector2D            offset        = Vector2D(0, 0);
-    float               scale         = 1;
-    float               refreshRate   = 60; // Hz
-    bool                disabled      = false;
-    wl_output_transform transform     = WL_OUTPUT_TRANSFORM_NORMAL;
-    std::string         mirrorOf      = "";
-    bool                enable10bit   = false;
-    NCMType::eCMType    cmType        = NCMType::CM_SRGB;
-    int                 sdrEotf       = 0;
-    float               sdrSaturation = 1.0f; // SDR -> HDR
-    float               sdrBrightness = 1.0f; // SDR -> HDR
+    eAutoDirs              autoDir       = DIR_AUTO_NONE;
+    std::string            name          = "";
+    Vector2D               resolution    = Vector2D(1280, 720);
+    Vector2D               offset        = Vector2D(0, 0);
+    float                  scale         = 1;
+    float                  refreshRate   = 60; // Hz
+    bool                   disabled      = false;
+    wl_output_transform    transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+    std::string            mirrorOf      = "";
+    bool                   enable10bit   = false;
+    NCMType::eCMType       cmType        = NCMType::CM_SRGB;
+    NTransferFunction::eTF sdrEotf       = NTransferFunction::TF_DEFAULT;
+    float                  sdrSaturation = 1.0f; // SDR -> HDR
+    float                  sdrBrightness = 1.0f; // SDR -> HDR
+    Desktop::CReservedArea reservedArea;
+    std::string            iccFile;
 
-    bool                supportsWideColor = false; // false does nothing, true overrides EDID
-    bool                supportsHDR       = false; // false does nothing, true overrides EDID
-    float               sdrMinLuminance   = 0.2f;  // SDR -> HDR
-    int                 sdrMaxLuminance   = 80;    // SDR -> HDR
+    int                    supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    int                    supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+    float                  sdrMinLuminance   = 0.2f; // SDR -> HDR
+    int                    sdrMaxLuminance   = 80;   // SDR -> HDR
 
     // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
     float              minLuminance    = -1.0f; // >= 0 overrides EDID
@@ -68,7 +82,6 @@ struct SMonitorRule {
 
 class CMonitor;
 class CSyncTimeline;
-class CEGLSync;
 class CEventLoopTimer;
 
 class CMonitorState {
@@ -79,6 +92,8 @@ class CMonitorState {
     bool commit();
     bool test();
     bool updateSwapchain();
+    void applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
+    void applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode);
 
   private:
     void      ensureBufferPresent();
@@ -93,7 +108,7 @@ class CMonitor {
 
     Vector2D                    m_position         = Vector2D(-1, -1); // means unset
     Vector2D                    m_xwaylandPosition = Vector2D(-1, -1); // means unset
-    eAutoDirs                   m_autoDir          = DIR_AUTO_NONE;
+    Config::eAutoDirs           m_autoDir          = Config::DIR_AUTO_NONE;
     Vector2D                    m_size             = Vector2D(0, 0);
     Vector2D                    m_pixelSize        = Vector2D(0, 0);
     Vector2D                    m_transformedSize  = Vector2D(0, 0);
@@ -108,10 +123,9 @@ class CMonitor {
     std::string                 m_description      = "";
     std::string                 m_shortDescription = "";
 
-    Vector2D                    m_reservedTopLeft     = Vector2D(0, 0);
-    Vector2D                    m_reservedBottomRight = Vector2D(0, 0);
-
     drmModeModeInfo             m_customDrmMode = {};
+
+    Desktop::CReservedArea      m_reservedArea;
 
     CMonitorState               m_state;
     CDamageRing                 m_damage;
@@ -122,18 +136,20 @@ class CMonitor {
     bool                        m_scheduledRecalc = false;
     wl_output_transform         m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
     float                       m_xwaylandScale   = 1.f;
-    Mat3x3                      m_projMatrix;
+
     std::optional<Vector2D>     m_forceSize;
     SP<Aquamarine::SOutputMode> m_currentMode;
     SP<Aquamarine::CSwapchain>  m_cursorSwapchain;
     uint32_t                    m_drmFormat     = DRM_FORMAT_INVALID;
     uint32_t                    m_prevDrmFormat = DRM_FORMAT_INVALID;
 
+    CMonitorZoomController      m_zoomController;
+
     bool                        m_dpmsStatus       = true;
     bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
     bool                        m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
     NCMType::eCMType            m_cmType           = NCMType::CM_SRGB;
-    int                         m_sdrEotf          = 0;
+    NTransferFunction::eTF      m_sdrEotf          = NTransferFunction::TF_DEFAULT;
     float                       m_sdrSaturation    = 1.0f;
     float                       m_sdrBrightness    = 1.0f;
     float                       m_sdrMinLuminance  = 0.2f;
@@ -151,7 +167,10 @@ class CMonitor {
 
     bool                        m_isBeingLeased = false;
 
-    SMonitorRule                m_activeMonitorRule;
+    Config::CMonitorRule        m_activeMonitorRule;
+
+    SP<Render::ITexture>        m_splash;
+    SP<Render::ITexture>        m_background;
 
     // explicit sync
     Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor
@@ -173,6 +192,7 @@ class CMonitor {
 
     // for direct scanout
     PHLWINDOWREF m_lastScanout;
+    bool         m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
     bool         m_scanoutNeedsCursorUpdate = false;
 
     // for special fade/blur
@@ -203,6 +223,7 @@ class CMonitor {
     } m_tearingState;
 
     struct {
+        CSignalT<> commit;
         CSignalT<> destroy;
         CSignalT<> connect;
         CSignalT<> disconnect;
@@ -228,9 +249,8 @@ class CMonitor {
         DS_BLOCK_SURFACE   = (1 << 8),
         DS_BLOCK_TRANSFORM = (1 << 9),
         DS_BLOCK_DMA       = (1 << 10),
-        DS_BLOCK_TEARING   = (1 << 11),
-        DS_BLOCK_FAILED    = (1 << 12),
-        DS_BLOCK_CM        = (1 << 13),
+        DS_BLOCK_FAILED    = (1 << 11),
+        DS_BLOCK_CM        = (1 << 12),
 
         DS_CHECKS_COUNT = 14,
     };
@@ -271,15 +291,16 @@ class CMonitor {
         TC_SUPPORT   = (1 << 4),
         TC_CANDIDATE = (1 << 5),
         TC_WINDOW    = (1 << 6),
+        TC_HW_CURSOR = (1 << 7),
 
-        TC_CHECKS_COUNT = 7,
+        TC_CHECKS_COUNT = 8,
     };
 
     // methods
     void        onConnect(bool noRule);
     void        onDisconnect(bool destroy = false);
-    void        applyCMType(NCMType::eCMType cmType, int cmSdrEotf);
-    bool        applyMonitorRule(SMonitorRule* pMonitorRule, bool force = false);
+    void        applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdrEotf);
+    bool        applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force = false);
     void        addDamage(const pixman_region32_t* rg);
     void        addDamage(const CRegion& rg);
     void        addDamage(const CBox& box);
@@ -294,11 +315,10 @@ class CMonitor {
     void        setSpecialWorkspace(const WORKSPACEID& id);
     void        moveTo(const Vector2D& pos);
     Vector2D    middle();
-    void        updateMatrix();
     WORKSPACEID activeWorkspaceID();
     WORKSPACEID activeSpecialWorkspaceID();
     CBox        logicalBox();
-    CBox        logicalBoxMinusExtents();
+    CBox        logicalBoxMinusReserved();
     void        scheduleDone();
     uint32_t    isSolitaryBlocked(bool full = false);
     void        recheckSolitary();
@@ -306,37 +326,66 @@ class CMonitor {
     bool        updateTearing();
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
+    bool        canAttemptDirectScanoutFast() const;
+    bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);
     void        onCursorMovedOnMonitor();
     void        setDPMS(bool on);
+    bool        shouldUseSoftwareCursors();
 
-    void        debugLastPresentation(const std::string& message);
+    //
+    const Mat3x3& getTransformMatrix();
+    const Mat3x3& getScaleMatrix();
 
-    bool        supportsWideColor();
-    bool        supportsHDR();
-    float       minLuminance(float defaultValue = 0);
-    int         maxLuminance(int defaultValue = 80);
-    int         maxAvgLuminance(int defaultValue = 80);
+    void          debugLastPresentation(const std::string& message);
 
-    bool        wantsWideColor();
-    bool        wantsHDR();
+    bool          supportsWideColor();
+    bool          supportsHDR();
+    float         minLuminance(float defaultValue = 0);
+    int           maxLuminance(int defaultValue = 80);
+    int           maxAvgLuminance(int defaultValue = 80);
+    float         maxFALL();
+    float         maxCLL();
 
-    bool        inHDR();
+    bool          wantsWideColor();
+    bool          wantsHDR();
 
-    /// Has an active workspace with a real fullscreen window
-    bool                                               inFullscreenMode();
-    std::optional<NColorManagement::SImageDescription> getFSImageDescription();
+    bool          inHDR();
+    bool          gammaRampsInUse();
 
-    bool                                               needsCM();
-    /// Can do CM without shader
-    bool                                canNoShaderCM();
+    /// Has an active workspace with a real fullscreen window (includes special workspace)
+    bool inFullscreenMode();
+    /// Get fullscreen window from active or special workspace
+    PHLWINDOW                                                   getFullscreenWindow();
+    std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
+
+    NColorManagement::SPCPRimaries                              getMasteringPrimaries();
+    NColorManagement::SImageDescription::SPCMasteringLuminances getMasteringLuminances();
+
+    uint32_t                                                    getPreferredReadFormat();
+
+    bool                                                        needsCM();
+    /// Can do CM without shader (forDSmode ? check output image description : check workbuffer image description)
+    bool                                canNoShaderCM(bool forDSmode = false);
     bool                                doesNoShaderCM();
 
     bool                                m_enabled             = false;
     bool                                m_renderingInitPassed = false;
-    WP<CWindow>                         m_previousFSWindow;
-    NColorManagement::SImageDescription m_imageDescription;
-    bool                                m_noShaderCTM = false; // sets drm CTM, restore needed
+
+    PHLWINDOWREF                        m_previousFSWindow;
+    bool                                m_needsHDRupdate = false;
+
+    std::optional<dev_t>                m_cachedAllocatorDRMDev;
+    std::optional<dev_t>                m_cachedCompositorDRMDev;
+    int                                 m_cachedAllocatorDRMFD  = -1;
+    int                                 m_cachedCompositorDRMFD = -1;
+    std::optional<bool>                 m_cachedSameGPU;
+
+    NColorManagement::PImageDescription m_imageDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
+    bool                                m_noShaderCTM      = false; // sets drm CTM, restore needed
+
+    bool                                m_blurFBDirty        = true;
+    bool                                m_blurFBShouldRender = false;
 
     // For the list lookup
 
@@ -344,17 +393,27 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
-    // workspace previous per monitor functionality
-    SWorkspaceIDName getPrevWorkspaceIDName(const WORKSPACEID id);
-    void             addPrevWorkspaceID(const WORKSPACEID id);
+    bool                           needsACopyFB();
+    bool                           needsUnmodifiedCopy();
+    bool                           useFP16();
+    WP<Monitor::CMonitorResources> resources();
 
   private:
-    void                    setupDefaultWS(const SMonitorRule&);
+    void                    updateMatrix();
+    Mat3x3                  m_projMatrix;
+    Mat3x3                  m_projOutputMatrix;
+
+    void                    setupDefaultWS(const Config::CMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
     void                    commitDPMSState(bool state);
+    void                    updateVCGTRamps();
 
     bool                    m_doneScheduled = false;
+    bool                    m_vcgtRampsSet  = false;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
+
+    // Resources
+    UP<Monitor::CMonitorResources> m_resources;
 
     struct {
         CHyprSignalListener frame;
@@ -365,8 +424,8 @@ class CMonitor {
         CHyprSignalListener commit;
     } m_listeners;
 
-    bool  m_supportsWideColor = false;
-    bool  m_supportsHDR       = false;
+    int   m_supportsWideColor = 0;
+    int   m_supportsHDR       = 0;
     float m_minLuminance      = -1.0f;
     int   m_maxLuminance      = -1;
     int   m_maxAvgLuminance   = -1;

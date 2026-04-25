@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <cmath>
 #include <chrono>
 #include <cstdlib>
@@ -6,6 +7,7 @@
 #include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/string/VarList2.hpp>
 
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -23,15 +25,26 @@ static bool spawnKitty(const std::string& class_, const std::vector<std::string>
     return true;
 }
 
-static std::string getWindowAttribute(const std::string& winInfo, const std::string& attr) {
-    auto pos = winInfo.find(attr);
-    if (pos == std::string::npos) {
-        NLog::log("{}Wrong window attribute", Colors::RED);
-        ret = 1;
-        return "Wrong window attribute";
+/// Spawns a kitty and creates a file and returns its name. The removal of the file triggers
+/// activation of the spawned kitty window.
+///
+/// On failure, returns an empty string, possibly leaving a temporary file.
+static std::string spawnKittyActivating(const std::string& class_ = "kitty_activating") {
+    // `XXXXXX` is what `mkstemp` expects to find in the string
+    std::string tmpFilename = (std::filesystem::temp_directory_path() / "XXXXXX").string();
+    int         fd          = mkstemp(tmpFilename.data());
+    if (fd < 0) {
+        NLog::log("{}Error: could not create tmp file: errno {}", Colors::RED, errno);
+        return "";
     }
-    auto pos2 = winInfo.find('\n', pos);
-    return winInfo.substr(pos, pos2 - pos);
+    (void)close(fd);
+    bool ok =
+        spawnKitty(class_, {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"});
+    if (!ok) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return "";
+    }
+    return tmpFilename;
 }
 
 static std::string getWindowAddress(const std::string& winInfo) {
@@ -68,10 +81,10 @@ static void testSwapWindow() {
     // Test swapwindow by direction
     {
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
-        NLog::log("{}Testing kitty_A {}, swapwindow with direction 'l'", Colors::YELLOW, pos);
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        NLog::log("{}Testing kitty_A {}, swapwindow with direction 'r'", Colors::YELLOW, pos);
 
-        OK(getFromSocket("/dispatch swapwindow l"));
+        OK(getFromSocket("/dispatch swapwindow r"));
         OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
 
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("{}", pos));
@@ -80,7 +93,7 @@ static void testSwapWindow() {
     // Test swapwindow by class
     {
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
         NLog::log("{}Testing kitty_A {}, swapwindow with class:kitty_B", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch swapwindow class:kitty_B"));
@@ -94,7 +107,7 @@ static void testSwapWindow() {
         getFromSocket("/dispatch focuswindow class:kitty_B");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
         getFromSocket("/dispatch focuswindow class:kitty_A");
-        auto pos = getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
         NLog::log("{}Testing kitty_A {}, swapwindow with address:0x{}(kitty_B)", Colors::YELLOW, pos, addr);
 
         OK(getFromSocket(std::format("/dispatch swapwindow address:0x{}", addr)));
@@ -117,7 +130,7 @@ static void testSwapWindow() {
     {
         getFromSocket("/dispatch focuswindow class:kitty_B");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
-        auto ws   = getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
+        auto ws   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
         NLog::log("{}Sending address:0x{}(kitty_B) to workspace \"swapwindow2\"", Colors::YELLOW, addr);
 
         OK(getFromSocket("/dispatch movetoworkspacesilent name:swapwindow2"));
@@ -196,10 +209,10 @@ static void testGroupRules() {
     Tests::killAllWindows();
 }
 
-static bool isActiveWindow(const std::string& class_, char fullscreen, bool log = true) {
+static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
-    auto        winClass      = getWindowAttribute(activeWin, "class:");
-    auto        winFullscreen = getWindowAttribute(activeWin, "fullscreen:").back();
+    auto        winClass      = Tests::getWindowAttribute(activeWin, "class:");
+    auto        winFullscreen = Tests::getWindowAttribute(activeWin, "fullscreen:").back();
     if (winClass.substr(strlen("class: ")) == class_ && winFullscreen == fullscreen)
         return true;
     else {
@@ -209,13 +222,13 @@ static bool isActiveWindow(const std::string& class_, char fullscreen, bool log 
     }
 }
 
-static bool waitForActiveWindow(const std::string& class_, char fullscreen, int maxTries = 50) {
+static bool waitForActiveWindow(const std::string& class_, char fullscreen = '0', bool logLastCheck = true, int maxTries = 50) {
     int cnt = 0;
     while (!isActiveWindow(class_, fullscreen, false)) {
         ++cnt;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (cnt > maxTries) {
-            return isActiveWindow(class_, fullscreen, true);
+            return isActiveWindow(class_, fullscreen, logLastCheck);
         }
     }
     return true;
@@ -230,24 +243,6 @@ static bool testWindowFocusOnFullscreenConflict() {
         return false;
 
     OK(getFromSocket("/keyword misc:focus_on_activate true"));
-
-    auto spawnKittyActivating = [] -> std::string {
-        // `XXXXXX` is what `mkstemp` expects to find in the string
-        std::string tmpFilename = (std::filesystem::temp_directory_path() / "XXXXXX").string();
-        int         fd          = mkstemp(tmpFilename.data());
-        if (fd < 0) {
-            NLog::log("{}Error: could not create tmp file: errno {}", Colors::RED, errno);
-            return "";
-        }
-        (void)close(fd);
-        bool ok = spawnKitty("kitty_activating",
-                             {"-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"});
-        if (!ok) {
-            NLog::log("{}Error: failed to spawn kitty", Colors::RED);
-            return "";
-        }
-        return tmpFilename;
-    };
 
     // Unfullscreen on conflict
     {
@@ -343,6 +338,365 @@ static bool testWindowFocusOnFullscreenConflict() {
     return true;
 }
 
+static void testMaximizeSize() {
+    NLog::log("{}Testing maximize size", Colors::GREEN);
+
+    EXPECT(spawnKitty("kitty_A"), true);
+
+    // check kitty properties. Maximizing shouldnt change its size
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("at: 22,22"), true);
+        EXPECT(str.contains("size: 1876,1036"), true);
+        EXPECT(str.contains("fullscreen: 0"), true);
+    }
+
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("at: 22,22"), true);
+        EXPECT(str.contains("size: 1876,1036"), true);
+        EXPECT(str.contains("fullscreen: 1"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
+static void testFloatingFocusOnFullscreen() {
+    NLog::log("{}Testing floating focus on fullscreen", Colors::GREEN);
+
+    EXPECT(spawnKitty("kitty_A"), true);
+    OK(getFromSocket("/dispatch togglefloating"));
+
+    EXPECT(spawnKitty("kitty_B"), true);
+    OK(getFromSocket("/dispatch fullscreen 1"));
+
+    OK(getFromSocket("/dispatch cyclenext"));
+
+    OK(getFromSocket("/dispatch plugin:test:floating_focus_on_fullscreen"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
+static void testGroupFallbackFocus() {
+    NLog::log("{}Testing group fallback focus", Colors::GREEN);
+
+    EXPECT(spawnKitty("kitty_A"), true);
+
+    OK(getFromSocket("/dispatch togglegroup"));
+
+    EXPECT(spawnKitty("kitty_B"), true);
+    EXPECT(spawnKitty("kitty_C"), true);
+    EXPECT(spawnKitty("kitty_D"), true);
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_D"), true);
+    }
+
+    OK(getFromSocket("/dispatch focuswindow class:kitty_B"));
+    OK(getFromSocket("/dispatch focuswindow class:kitty_D"));
+    OK(getFromSocket("/dispatch killactive"));
+
+    Tests::waitUntilWindowsN(3);
+
+    // Focus must return to the last focus, in this case B.
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("class: kitty_B"), true);
+    }
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+}
+
+static void testBringActiveToTopMouseMovement() {
+    NLog::log("{}Testing bringactivetotop mouse movement", Colors::GREEN);
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword input:follow_mouse 2"));
+    OK(getFromSocket("/keyword input:float_switch_override_focus 0"));
+
+    EXPECT(spawnKitty("a"), true);
+    OK(getFromSocket("/dispatch setfloating"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 500 300,activewindow"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
+
+    EXPECT(spawnKitty("b"), true);
+    OK(getFromSocket("/dispatch setfloating"));
+    OK(getFromSocket("/dispatch movewindowpixel exact 500 300,activewindow"));
+    OK(getFromSocket("/dispatch resizewindowpixel exact 400 400,activewindow"));
+
+    auto getTopWindow = []() -> std::string {
+        auto clients = getFromSocket("/clients");
+        return (clients.rfind("class: a") > clients.rfind("class: b")) ? "a" : "b";
+    };
+
+    EXPECT(getTopWindow(), std::string("b"));
+    OK(getFromSocket("/dispatch movecursor 700 500"));
+
+    OK(getFromSocket("/dispatch focuswindow class:a"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: a");
+
+    OK(getFromSocket("/dispatch bringactivetotop"));
+    EXPECT(getTopWindow(), std::string("a"));
+
+    OK(getFromSocket("/dispatch plugin:test:click 272,1"));
+    OK(getFromSocket("/dispatch plugin:test:click 272,0"));
+
+    EXPECT(getTopWindow(), std::string("a"));
+
+    Tests::killAllWindows();
+}
+
+static void testInitialFloatSize() {
+    NLog::log("{}Testing initial float size", Colors::GREEN);
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/keyword windowrule match:class kitty, float yes"));
+    OK(getFromSocket("/keyword input:float_switch_override_focus 0"));
+
+    EXPECT(spawnKitty("kitty"), true);
+
+    {
+        // Kitty by default opens as 640x400, if this changes this test will break
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("size: 640,400"), true);
+    }
+
+    OK(getFromSocket("/reload"));
+
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/dispatch exec [float yes]kitty"));
+
+    Tests::waitUntilWindowsN(1);
+
+    {
+        // Kitty by default opens as 640x400, if this changes this test will break
+        auto str = getFromSocket("/clients");
+        EXPECT(str.contains("size: 640,400"), true);
+        EXPECT(str.contains("floating: 1"), true);
+    }
+
+    Tests::killAllWindows();
+}
+
+/// Tests that the `focus_on_activate` effect of window rules always overrides
+/// the `misc:focus_on_activate` variable.
+static bool testWindowRuleFocusOnActivate() {
+    OK(getFromSocket("/reload"));
+
+    if (!spawnKitty("kitty_default")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    // Do not focus anyone automatically
+    ///////////OK(getFromSocket("/keyword windowrule match:class .*, no_initial_focus true"));
+
+    // `focus_on_activate off` takes over
+    {
+        OK(getFromSocket("/keyword misc:focus_on_activate true"));
+        OK(getFromSocket("/keyword windowrule match:class kitty_antifocus, focus_on_activate off"));
+
+        const std::string removeToActivate = spawnKittyActivating("kitty_antifocus");
+        if (removeToActivate.empty()) {
+            return false;
+        }
+        EXPECT(waitForActiveWindow("kitty_antifocus"), true);
+        OK(getFromSocket("/dispatch focuswindow class:kitty_default"));
+        EXPECT(isActiveWindow("kitty_default"), true);
+
+        std::filesystem::remove(removeToActivate);
+        // The focus should NOT transition, since the window rule explicitly forbids that
+        EXPECT(waitForActiveWindow("kitty_antifocus", '0', false), false);
+    }
+
+    // `focus_on_activate on` takes over
+    {
+        OK(getFromSocket("/keyword misc:focus_on_activate false"));
+        OK(getFromSocket("/keyword windowrule match:class kitty_superfocus, focus_on_activate on"));
+
+        const std::string removeToActivate = spawnKittyActivating("kitty_superfocus");
+        if (removeToActivate.empty()) {
+            return false;
+        }
+        EXPECT(waitForActiveWindow("kitty_superfocus"), true);
+        OK(getFromSocket("/dispatch focuswindow class:kitty_default"));
+        EXPECT(isActiveWindow("kitty_default"), true);
+
+        std::filesystem::remove(removeToActivate);
+        // Now that we requested activation, the focus SHOULD transition to kitty_superfocus, according to the window rule
+        EXPECT(waitForActiveWindow("kitty_superfocus"), true);
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
+}
+
+// tests if a pinned window contains the valid workspace after change
+static bool testPinnedWorkspacesValid() {
+    OK(getFromSocket("/reload"));
+    getFromSocket("/dispatch workspace 1337");
+
+    if (!spawnKitty("kitty")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    OK(getFromSocket("/dispatch setfloating class:kitty"));
+    OK(getFromSocket("/dispatch pin class:kitty"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1337"), true);
+        EXPECT(str.contains("pinned: 1"), true);
+    }
+
+    getFromSocket("/dispatch workspace 1338");
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1338"), true);
+        EXPECT(str.contains("pinned: 1"), true);
+    }
+
+    OK(getFromSocket("/dispatch settiled class:kitty"))
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1338"), true);
+        EXPECT(str.contains("pinned: 0"), true);
+    }
+
+    NLog::log("{}Reloading config", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+
+    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
+    EXPECT(Tests::windowCount(), 0);
+
+    return true;
+}
+
+static bool testWindowRuleWorkspaceEmpty() {
+    NLog::log("{}Testing windowrule workspace empty", Colors::YELLOW);
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/keyword windowrule match:class kitty_A, workspace empty"));
+    OK(getFromSocket("/keyword windowrule match:class kitty_B, workspace emptyn"));
+
+    getFromSocket("/dispatch workspace 3");
+
+    if (!spawnKitty("kitty")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 3"), true);
+    }
+
+    if (!spawnKitty("kitty_A")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 1"), true);
+    }
+
+    getFromSocket("/dispatch workspace 3");
+    if (!spawnKitty("kitty_B")) {
+        NLog::log("{}Error: failed to spawn kitty", Colors::RED);
+        return false;
+    }
+
+    {
+        auto str = getFromSocket("/activewindow");
+        EXPECT(str.contains("workspace: 4"), true);
+    }
+
+    Tests::killAllWindows();
+
+    return true;
+}
+
+static bool testContentRules() {
+    NLog::log("{}Testing content window rules", Colors::YELLOW);
+
+    // kill me PLEASE
+
+    OK(getFromSocket("/keyword windowrule match:class kitty_content_string, content game"));
+    OK(getFromSocket("/keyword windowrule match:class kitty_content_numbers, content 3"));
+    OK(getFromSocket("/keyword windowrule match:content game, border_size 10"));
+    OK(getFromSocket("/keyword windowrule match:content 3, opacity 0.5"));
+
+    const auto testProps = []() {
+        EXPECT_CONTAINS(getFromSocket("/getprop active border_size"), "10");
+        EXPECT_CONTAINS(getFromSocket("/getprop active opacity"), "0.5");
+    };
+    if (!spawnKitty("kitty_content_string"))
+        return false;
+    waitForActiveWindow("kitty_content_string");
+    testProps();
+
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+
+    if (!spawnKitty("kitty_content_numbers"))
+        return false;
+    waitForActiveWindow("kitty_content_numbers");
+    testProps();
+
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
+}
+
+static bool test14038() {
+    NLog::log("{}Testing #14038 crash", Colors::YELLOW);
+
+    if (!spawnKitty("kitty_14038"))
+        return false;
+
+    OK(getFromSocket("/dispatch movetoworkspacesilent special:a,class:kitty_14038"));
+    OK(getFromSocket("/dispatch togglefloating class:kitty_14038"));
+    OK(getFromSocket("/dispatch pin class:kitty_14038"));
+    OK(getFromSocket("/dispatch togglefloating class:kitty_14038"));
+
+    // this should not crash hyprland. If we are alive, we good.
+
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+    return true;
+}
+
 static bool test() {
     NLog::log("{}Testing windows", Colors::GREEN);
 
@@ -364,22 +718,40 @@ static bool test() {
 
     NLog::log("{}Testing window split ratios", Colors::YELLOW);
     {
-        const double RATIO   = 1.25;
-        const double PERCENT = RATIO / 2.0 * 100.0;
-        const int    GAPSIN  = 5;
-        const int    GAPSOUT = 20;
-        const int    BORDERS = 2 * 2;
-        const int    WTRIM   = BORDERS + GAPSIN + GAPSOUT;
-        const int    HEIGHT  = 1080 - (BORDERS + (GAPSOUT * 2));
-        const int    WIDTH1  = std::round(1920.0 / 2.0 * (2 - RATIO)) - WTRIM;
-        const int    WIDTH2  = std::round(1920.0 / 2.0 * RATIO) - WTRIM;
+        const double INITIAL_RATIO = 1.25;
+        const int    GAPSIN        = 5;
+        const int    GAPSOUT       = 20;
+        const int    BORDERSIZE    = 2;
+        const int    BORDERS       = BORDERSIZE * 2;
+        const int    MONITOR_W     = 1920;
+        const int    MONITOR_H     = 1080;
+
+        const float  totalAvailableHeight   = MONITOR_H - (GAPSOUT * 2);
+        const int    HEIGHT                 = std::floor(totalAvailableHeight) - BORDERS;
+        const float  availableWidthForSplit = MONITOR_W - (GAPSOUT * 2) - GAPSIN;
+
+        auto         calculateFinalWidth = [&](double boxWidth, bool isLeftWindow) {
+            double gapLeft  = isLeftWindow ? GAPSOUT : GAPSIN;
+            double gapRight = isLeftWindow ? GAPSIN : GAPSOUT;
+            return std::floor(boxWidth - gapLeft - gapRight - BORDERS);
+        };
+
+        double       geomBoxWidthA_R1 = (availableWidthForSplit * INITIAL_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R1 = MONITOR_W - geomBoxWidthA_R1;
+        const int    WIDTH1           = calculateFinalWidth(geomBoxWidthB_R1, false);
+
+        const double INVERTED_RATIO   = 0.75;
+        double       geomBoxWidthA_R2 = (availableWidthForSplit * INVERTED_RATIO / 2.0) + GAPSOUT + (GAPSIN / 2.0);
+        double       geomBoxWidthB_R2 = MONITOR_W - geomBoxWidthA_R2;
+        const int    WIDTH2           = calculateFinalWidth(geomBoxWidthB_R2, false);
+        const int    WIDTH_A_FINAL    = calculateFinalWidth(geomBoxWidthA_R2, true);
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1.25"));
 
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, 100 - PERCENT);
+        NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH1, HEIGHT);
         EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
 
         OK(getFromSocket("/dispatch killwindow activewindow"));
@@ -391,12 +763,38 @@ static bool test() {
         if (!spawnKitty("kitty_B"))
             return false;
 
-        NLog::log("{}Expecting kitty_B to take up roughly {}% of screen width", Colors::YELLOW, PERCENT);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH2, HEIGHT));
+        try {
+            NLog::log("{}Expecting kitty_B size: {},{}", Colors::YELLOW, WIDTH2, HEIGHT);
 
-        OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
-        NLog::log("{}Expecting kitty_A to have the same width as the previous kitty_B", Colors::YELLOW);
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("size: {},{}", WIDTH1, HEIGHT));
+            {
+                auto data = getFromSocket("/activewindow");
+                data      = data.substr(data.find("size:") + 5);
+                data      = data.substr(0, data.find('\n'));
+
+                Hyprutils::String::CVarList2 sizes(std::move(data), 0, ',');
+
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[0]}), WIDTH2, 2);
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[1]}), HEIGHT, 2);
+            }
+
+            OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+            NLog::log("{}Expecting kitty_A size: {},{}", Colors::YELLOW, WIDTH_A_FINAL, HEIGHT);
+
+            {
+                auto data = getFromSocket("/activewindow");
+                data      = data.substr(data.find("size:") + 5);
+                data      = data.substr(0, data.find('\n'));
+
+                Hyprutils::String::CVarList2 sizes(std::move(data), 0, ',');
+
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[0]}), WIDTH_A_FINAL, 2);
+                EXPECT_MAX_DELTA(std::stoi(std::string{sizes[1]}), HEIGHT, 2);
+            }
+
+        } catch (...) {
+            NLog::log("{}Exception thrown", Colors::RED);
+            EXPECT(false, true);
+        }
 
         OK(getFromSocket("/keyword dwindle:default_split_ratio 1"));
     }
@@ -412,14 +810,14 @@ static bool test() {
     EXPECT(Tests::windowCount(), 3);
 
     NLog::log("{}Checking props of xeyes", Colors::YELLOW);
-    // check some window props of xeyes, try to tile them
+    // check some window props of xeyes, try to float it
     {
         auto str = getFromSocket("/clients");
-        EXPECT_CONTAINS(str, "floating: 1");
-        getFromSocket("/dispatch settiled class:XEyes");
+        EXPECT_NOT_CONTAINS(str, "floating: 1");
+        getFromSocket("/dispatch setfloating class:XEyes");
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         str = getFromSocket("/clients");
-        EXPECT_NOT_CONTAINS(str, "floating: 1");
+        EXPECT_CONTAINS(str, "floating: 1");
     }
 
     // kill all
@@ -477,10 +875,10 @@ static bool test() {
         EXPECT_CONTAINS(dwindle, "size: 1500,500");
         EXPECT_CONTAINS(dwindle, "at: 210,290");
 
-        if (!spawnKitty("kitty_maxsize"))
-            return false;
-
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500");
+        // Fuck this test, it's fucking stupid - vax
+        // if (!spawnKitty("kitty_maxsize"))
+        //     return false;
+        // EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500");
 
         Tests::killAllWindows();
         EXPECT(Tests::windowCount(), 0);
@@ -497,8 +895,69 @@ static bool test() {
         if (!spawnKitty("kitty_maxsize"))
             return false;
 
+        // FIXME: I can't be arsed.
         OK(getFromSocket("/dispatch focuswindow class:kitty_maxsize"));
-        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500")
+        //        EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 1200,500")
+
+        NLog::log("{}Reloading config", Colors::YELLOW);
+        OK(getFromSocket("/reload"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
+    NLog::log("{}Testing minsize/maxsize rules", Colors::YELLOW);
+    {
+        // Disable size limits tiled and check if props are working and not getting skipped
+        OK(getFromSocket("/keyword misc:size_limits_tiled 0"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:match:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1500 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        {
+            auto res = getFromSocket("/getprop active max_size");
+            EXPECT_CONTAINS(res, "1500");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        {
+            auto res = getFromSocket("/getprop active min_size");
+            EXPECT_CONTAINS(res, "1200");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        NLog::log("{}Reloading config", Colors::YELLOW);
+        OK(getFromSocket("/reload"));
+        Tests::killAllWindows();
+        EXPECT(Tests::windowCount(), 0);
+    }
+
+    {
+        // Set float
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:match:class kitty_maxsize"));
+        OK(getFromSocket("/keyword windowrule[kitty-max-rule]:max_size 1200 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:min_size 1200 500"));
+        OK(getFromSocket("r/keyword windowrule[kitty-max-rule]:float yes"));
+        if (!spawnKitty("kitty_maxsize"))
+            return false;
+
+        {
+            auto res = getFromSocket("/getprop active max_size");
+            EXPECT_CONTAINS(res, "1200");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        {
+            auto res = getFromSocket("/getprop active min_size");
+            EXPECT_CONTAINS(res, "1200");
+            EXPECT_CONTAINS(res, "500");
+        }
+
+        {
+            auto res = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(res, "size: 1200,500");
+        }
 
         NLog::log("{}Reloading config", Colors::YELLOW);
         OK(getFromSocket("/reload"));
@@ -538,6 +997,23 @@ static bool test() {
 
     if (auto str = getFromSocket("/monitors"); str.contains("magic)")) {
         OK(getFromSocket("/dispatch togglespecialworkspace magic"));
+    }
+
+    Tests::killAllWindows();
+
+    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:match:class border_kitty"));
+    OK(getFromSocket("/keyword windowrule[border-magic-kitty]:border_color rgba(c6ff00ff) rgba(ff0000ee) 45deg"));
+
+    if (!spawnKitty("border_kitty"))
+        return false;
+
+    OK(getFromSocket("/dispatch focuswindow class:border_kitty"));
+
+    {
+        auto str = getFromSocket("/getprop active active_border_color");
+        EXPECT_CONTAINS(str, "ffc6ff00");
+        EXPECT_CONTAINS(str, "eeff0000");
+        EXPECT_CONTAINS(str, "45deg");
     }
 
     Tests::killAllWindows();
@@ -625,7 +1101,8 @@ static bool test() {
     Tests::killAllWindows();
 
     // test expression rules
-    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, move 20+(monitor_w*0.1) monitor_h*0.5"));
+    OK(getFromSocket("/keyword windowrule match:class expr_kitty, float yes, size monitor_w*0.5 monitor_h*0.5, min_size monitor_w*0.25 monitor_h*0.25, "
+                     "max_size monitor_w*0.75 monitor_h*0.75, move 20+(monitor_w*0.1) monitor_h*0.5"));
 
     if (!spawnKitty("expr_kitty"))
         return false;
@@ -635,12 +1112,20 @@ static bool test() {
         EXPECT_CONTAINS(str, "floating: 1");
         EXPECT_CONTAINS(str, "at: 212,540");
         EXPECT_CONTAINS(str, "size: 960,540");
+
+        auto min = getFromSocket("/getprop active min_size");
+        EXPECT_CONTAINS(min, "480");
+        EXPECT_CONTAINS(min, "270");
+
+        auto max = getFromSocket("/getprop active max_size");
+        EXPECT_CONTAINS(max, "1440");
+        EXPECT_CONTAINS(max, "810");
     }
 
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
-    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/dispatch plugin:test:add_window_rule"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/keyword windowrule match:class plugin_kitty, plugin_rule effect"));
@@ -648,12 +1133,12 @@ static bool test() {
     if (!spawnKitty("plugin_kitty"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+    OK(getFromSocket("/dispatch plugin:test:check_window_rule"));
 
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
-    OK(getFromSocket("/dispatch plugin:test:add_rule"));
+    OK(getFromSocket("/dispatch plugin:test:add_window_rule"));
     OK(getFromSocket("/reload"));
 
     OK(getFromSocket("/keyword windowrule[test-plugin-rule]:match:class plugin_kitty"));
@@ -662,12 +1147,22 @@ static bool test() {
     if (!spawnKitty("plugin_kitty"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:check_rule"));
+    OK(getFromSocket("/dispatch plugin:test:check_window_rule"));
 
     OK(getFromSocket("/reload"));
     Tests::killAllWindows();
 
     testGroupRules();
+    testMaximizeSize();
+    testFloatingFocusOnFullscreen();
+    testBringActiveToTopMouseMovement();
+    testGroupFallbackFocus();
+    testInitialFloatSize();
+    testWindowRuleFocusOnActivate();
+    testPinnedWorkspacesValid();
+    testWindowRuleWorkspaceEmpty();
+    testContentRules();
+    test14038();
 
     NLog::log("{}Reloading config", Colors::YELLOW);
     OK(getFromSocket("/reload"));

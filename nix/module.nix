@@ -1,18 +1,21 @@
-inputs: {
+inputs:
+{
   config,
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (pkgs.stdenv.hostPlatform) system;
   selflib = import ./lib.nix lib;
   cfg = config.programs.hyprland;
-in {
+in
+{
   options = {
     programs.hyprland = {
       plugins = lib.mkOption {
         type = with lib.types; listOf (either package path);
-        default = [];
+        default = [ ];
         description = ''
           List of Hyprland plugins to use. Can either be packages or
           absolute plugin paths.
@@ -20,23 +23,25 @@ in {
       };
 
       settings = lib.mkOption {
-        type = with lib.types; let
-          valueType =
-            nullOr (oneOf [
-              bool
-              int
-              float
-              str
-              path
-              (attrsOf valueType)
-              (listOf valueType)
-            ])
-            // {
-              description = "Hyprland configuration value";
-            };
-        in
+        type =
+          with lib.types;
+          let
+            valueType =
+              nullOr (oneOf [
+                bool
+                int
+                float
+                str
+                path
+                (attrsOf valueType)
+                (listOf valueType)
+              ])
+              // {
+                description = "Hyprland configuration value";
+              };
+          in
           valueType;
-        default = {};
+        default = { };
         description = ''
           Hyprland configuration written in Nix. Entries with the same key
           should be written as lists. Variables' and colors' names should be
@@ -92,8 +97,15 @@ in {
 
       topPrefixes = lib.mkOption {
         type = with lib.types; listOf str;
-        default = ["$" "bezier"];
-        example = ["$" "bezier" "source"];
+        default = [
+          "$"
+          "bezier"
+        ];
+        example = [
+          "$"
+          "bezier"
+          "source"
+        ];
         description = ''
           List of prefix of attributes to put at the top of the config.
         '';
@@ -101,8 +113,8 @@ in {
 
       bottomPrefixes = lib.mkOption {
         type = with lib.types; listOf str;
-        default = [];
-        example = ["source"];
+        default = [ ];
+        example = [ "source" ];
         description = ''
           List of prefix of attributes to put at the bottom of the config.
         '';
@@ -117,35 +129,36 @@ in {
       };
     }
     (lib.mkIf cfg.enable {
-      environment.etc."xdg/hypr/hyprland.conf" = let
-        shouldGenerate = cfg.extraConfig != "" || cfg.settings != {} || cfg.plugins != [];
+      environment.etc."xdg/hypr/hyprland.conf" =
+        let
+          shouldGenerate = cfg.extraConfig != "" || cfg.settings != { } || cfg.plugins != [ ];
 
-        pluginsToHyprlang = plugins:
-          selflib.toHyprlang {
-            topCommandsPrefixes = cfg.topPrefixes;
-            bottomCommandsPrefixes = cfg.bottomPrefixes;
-          }
-          {
-            "exec-once" = let
-              mkEntry = entry:
-                if lib.types.package.check entry
-                then "${entry}/lib/lib${entry.pname}.so"
-                else entry;
-              hyprctl = lib.getExe' config.programs.hyprland.package "hyprctl";
-            in
-              map (p: "${hyprctl} plugin load ${mkEntry p}") cfg.plugins;
-          };
-      in
-        lib.mkIf shouldGenerate {
-          text =
-            lib.optionalString (cfg.plugins != [])
-            (pluginsToHyprlang cfg.plugins)
-            + lib.optionalString (cfg.settings != {})
-            (selflib.toHyprlang {
+          pluginsToHyprlang =
+            _plugins:
+            selflib.toHyprlang
+              {
                 topCommandsPrefixes = cfg.topPrefixes;
                 bottomCommandsPrefixes = cfg.bottomPrefixes;
               }
-              cfg.settings)
+              {
+                "exec-once" =
+                  let
+                    mkEntry =
+                      entry: if lib.types.package.check entry then "${entry}/lib/lib${entry.pname}.so" else entry;
+                    hyprctl = lib.getExe' config.programs.hyprland.package "hyprctl";
+                  in
+                  map (p: "${hyprctl} plugin load ${mkEntry p}") cfg.plugins;
+              };
+        in
+        lib.mkIf shouldGenerate {
+          text =
+            lib.optionalString (cfg.plugins != [ ]) (pluginsToHyprlang cfg.plugins)
+            + lib.optionalString (cfg.settings != { }) (
+              selflib.toHyprlang {
+                topCommandsPrefixes = cfg.topPrefixes;
+                bottomCommandsPrefixes = cfg.bottomPrefixes;
+              } cfg.settings
+            )
             + lib.optionalString (cfg.extraConfig != "") cfg.extraConfig;
         };
     })

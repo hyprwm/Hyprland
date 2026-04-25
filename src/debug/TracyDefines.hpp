@@ -2,7 +2,7 @@
 
 #ifdef USE_TRACY_GPU
 
-#include "Log.hpp"
+#include "log/Logger.hpp"
 
 #include <GL/gl.h>
 #include <GLES2/gl2ext.h>

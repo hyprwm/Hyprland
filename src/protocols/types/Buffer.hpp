@@ -26,7 +26,7 @@ class IHLBuffer : public Aquamarine::IBuffer {
     void                                  onBackendRelease(const std::function<void()>& fn);
     void                                  addReleasePoint(CDRMSyncPointState& point);
 
-    SP<CTexture>                          m_texture;
+    SP<Render::ITexture>                  m_texture;
     bool                                  m_opaque = false;
     SP<CWLBufferResource>                 m_resource;
     std::vector<UP<CSyncReleaser>>        m_syncReleasers;
@@ -49,10 +49,13 @@ class CHLBufferReference {
   public:
     CHLBufferReference();
     CHLBufferReference(const CHLBufferReference& other);
+    CHLBufferReference(CHLBufferReference&& other) noexcept;
     CHLBufferReference(SP<IHLBuffer> buffer);
     ~CHLBufferReference();
 
     CHLBufferReference& operator=(const CHLBufferReference& other);
+    CHLBufferReference& operator=(CHLBufferReference&& other);
+
     bool                operator==(const CHLBufferReference& other) const;
     bool                operator==(const SP<IHLBuffer>& other) const;
     bool                operator==(const SP<Aquamarine::IBuffer>& other) const;

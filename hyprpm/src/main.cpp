@@ -13,25 +13,26 @@ using namespace Hyprutils::Utils;
 
 constexpr std::string_view HELP = R"#(┏ hyprpm, a Hyprland Plugin Manager
 ┃
-┣ add [url] [git rev]    → Install a new plugin repository from git. Git revision
-┃                          is optional, when set, commit locks are ignored.
-┣ remove [url/name]      → Remove an installed plugin repository.
-┣ enable [name]          → Enable a plugin.
-┣ disable [name]         → Disable a plugin.
-┣ update                 → Check and update all plugins if needed.
-┣ reload                 → Reload hyprpm state. Ensure all enabled plugins are loaded.
-┣ list                   → List all installed plugins.
-┣ purge-cache            → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
+┣ add <url> [git rev]           → Install a new plugin repository from git. Git revision
+┃                                 is optional, when set, commit locks are ignored.
+┣ remove <url|name|author/name> → Remove an installed plugin repository.
+┣ enable <name|author/name>     → Enable a plugin.
+┣ disable <name|author/name>    → Disable a plugin.
+┣ update                        → Check and update all plugins if needed.
+┣ reload                        → Reload hyprpm state. Ensure all enabled plugins are loaded.
+┣ list                          → List all installed plugins.
+┣ purge-cache                   → Remove the entire hyprpm cache, built plugins, hyprpm settings and headers.
 ┃
 ┣ Flags:
 ┃
-┣ --notify       | -n    → Send a hyprland notification confirming successful plugin load.
-┃                          Warnings/Errors trigger notifications regardless of this flag.
-┣ --help         | -h    → Show this menu.
-┣ --verbose      | -v    → Enable too much logging.
-┣ --force        | -f    → Force an operation ignoring checks (e.g. update -f).
-┣ --no-shallow   | -s    → Disable shallow cloning of Hyprland sources.
-┣ --hl-url       |       → Pass a custom hyprland source url.
+┣ --no-nix       |              → Disable `nix develop` for build commands, even if Hyprland is nix.
+┣ --notify       | -n           → Send a hyprland notification confirming successful plugin load.
+┃                                 Warnings/Errors trigger notifications regardless of this flag.
+┣ --help         | -h           → Show this menu.
+┣ --verbose      | -v           → Enable too much logging.
+┣ --force        | -f           → Force an operation ignoring checks (e.g. update -f).
+┣ --no-shallow   | -s           → Disable shallow cloning of Hyprland sources.
+┣ --hl-url       |              → Pass a custom hyprland source url.
 ┗
 )#";
 
@@ -47,7 +48,7 @@ int                        main(int argc, char** argv, char** envp) {
     }
 
     std::vector<std::string> command;
-    bool                     notify = false, verbose = false, force = false, noShallow = false;
+    bool                     notify = false, verbose = false, force = false, noShallow = false, noNix = false;
     std::string              customHlUrl;
 
     for (int i = 1; i < argc; ++i) {
@@ -63,6 +64,8 @@ int                        main(int argc, char** argv, char** envp) {
                 g_pPluginManager->notify(ICON_INFO, 0, 10000, "[hyprpm] -n flag is deprecated, see hyprpm --help.");
             } else if (ARGS[i] == "--verbose" || ARGS[i] == "-v") {
                 verbose = true;
+            } else if (ARGS[i] == "--no-nix") {
+                noNix = true;
             } else if (ARGS[i] == "--no-shallow" || ARGS[i] == "-s") {
                 noShallow = true;
             } else if (ARGS[i] == "--hl-url") {
@@ -91,7 +94,9 @@ int                        main(int argc, char** argv, char** envp) {
     g_pPluginManager                  = std::make_unique<CPluginManager>();
     g_pPluginManager->m_bVerbose      = verbose;
     g_pPluginManager->m_bNoShallow    = noShallow;
+    g_pPluginManager->m_bNoNix        = noNix;
     g_pPluginManager->m_szCustomHlUrl = customHlUrl;
+    g_pPluginManager->m_szArgv0       = argv[0];
 
     if (command[0] == "add") {
         if (command.size() < 2) {
@@ -106,7 +111,7 @@ int                        main(int argc, char** argv, char** envp) {
         const auto HLVER       = g_pPluginManager->getHyprlandVersion();
         auto       GLOBALSTATE = DataState::getGlobalState();
 
-        if (GLOBALSTATE.headersHashCompiled != HLVER.hash) {
+        if (GLOBALSTATE.headersAbiCompiled != HLVER.abiHash) {
             std::println(stderr, "{}", failureString("Headers outdated, please run hyprpm update."));
             return 1;
         }
@@ -126,7 +131,7 @@ int                        main(int argc, char** argv, char** envp) {
         NSys::root::cacheSudo();
         CScopeGuard x([] { NSys::root::dropSudo(); });
 
-        return g_pPluginManager->removePluginRepo(command[1]) ? 0 : 1;
+        return g_pPluginManager->removePluginRepo(SPluginRepoIdentifier::fromString(command[1])) ? 0 : 1;
     } else if (command[0] == "update") {
         NSys::root::cacheSudo();
         CScopeGuard x([] { NSys::root::dropSudo(); });
@@ -137,7 +142,7 @@ int                        main(int argc, char** argv, char** envp) {
         if (headers) {
             const auto HLVER            = g_pPluginManager->getHyprlandVersion(false);
             auto       GLOBALSTATE      = DataState::getGlobalState();
-            const auto COMPILEDOUTDATED = HLVER.hash != GLOBALSTATE.headersHashCompiled;
+            const auto COMPILEDOUTDATED = HLVER.abiHash != GLOBALSTATE.headersAbiCompiled;
 
             bool       ret1 = g_pPluginManager->updatePlugins(!headersValid || force || COMPILEDOUTDATED);
 
@@ -160,7 +165,7 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        if (!g_pPluginManager->enablePlugin(command[1])) {
+        if (!g_pPluginManager->enablePlugin(SPluginRepoIdentifier::fromString(command[1]))) {
             std::println(stderr, "{}", failureString("Couldn't enable plugin (missing?)"));
             return 1;
         }
@@ -181,7 +186,7 @@ int                        main(int argc, char** argv, char** envp) {
             return 1;
         }
 
-        if (!g_pPluginManager->disablePlugin(command[1])) {
+        if (!g_pPluginManager->disablePlugin(SPluginRepoIdentifier::fromString(command[1]))) {
             std::println(stderr, "{}", failureString("Couldn't disable plugin (missing?)"));
             return 1;
         }

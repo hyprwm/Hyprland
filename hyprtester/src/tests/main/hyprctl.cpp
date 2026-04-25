@@ -77,6 +77,16 @@ static bool testGetprop() {
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size"), "100 50");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size -j"), R"({"min_size": [100,50]})");
 
+    // expr-based min/max _size
+    getFromSocket("/dispatch setfloating class:kitty");                 // need to set floating for tests below
+    getFromSocket("/dispatch setprop class:kitty max_size 90+10 25*2"); // set max to the same as min above, forcing window to 100*50
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size"), "100 50");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size -j"), R"({"max_size": [100,50]})");
+    getFromSocket("/dispatch setprop class:kitty min_size window_w*0.5 window_h-10");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size"), "50 40");
+    EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size -j"), R"({"min_size": [50,40]})");
+    getFromSocket("/dispatch settiled class:kitty"); // go back to tiled for consistency
+
     // opacity
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity"), "1");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity -j"), R"({"opacity": 1})");
@@ -163,6 +173,13 @@ static bool testGetprop() {
     return true;
 }
 
+static void testSubmap() {
+    NLog::log("{}Testing hyprctl submap", Colors::GREEN);
+
+    EXPECT(getCommandStdOut("hyprctl submap"), "default\n");
+    EXPECT(getCommandStdOut("hyprctl submap -j | jq -r \".\""), "default");
+}
+
 static bool test() {
     NLog::log("{}Testing hyprctl", Colors::GREEN);
 
@@ -176,6 +193,7 @@ static bool test() {
 
     testGetprop();
     testDevicesActiveLayoutIndex();
+    testSubmap();
     getFromSocket("/reload");
 
     return !ret;

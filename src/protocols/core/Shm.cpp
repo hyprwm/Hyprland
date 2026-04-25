@@ -7,6 +7,9 @@
 #include "../types/WLBuffer.hpp"
 #include "../../helpers/Format.hpp"
 #include "../../render/Renderer.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 using namespace Hyprutils::OS;
 
 CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t offset_, const Vector2D& size_, int32_t stride_, uint32_t fmt_) {
@@ -16,14 +19,12 @@ CWLSHMBuffer::CWLSHMBuffer(WP<CWLSHMPoolResource> pool_, uint32_t id, int32_t of
     if UNLIKELY (!pool_->m_pool->m_data)
         return;
 
-    g_pHyprRenderer->makeEGLCurrent();
-
     size     = size_;
     m_pool   = pool_->m_pool;
     m_stride = stride_;
     m_fmt    = fmt_;
     m_offset = offset_;
-    m_opaque = NFormatUtils::isFormatOpaque(NFormatUtils::shmToDRM(fmt_));
+    m_opaque = isDrmFormatOpaque(NFormatUtils::shmToDRM(fmt_));
 
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(pool_->m_resource->client(), 1, id));
 
@@ -87,7 +88,7 @@ CSHMPool::~CSHMPool() {
 }
 
 void CSHMPool::resize(size_t size_) {
-    LOGM(LOG, "Resizing a SHM pool from {} to {}", m_size, size_);
+    LOGM(Log::DEBUG, "Resizing a SHM pool from {} to {}", m_size, size_);
 
     if (m_data != MAP_FAILED)
         munmap(m_data, m_size);
@@ -96,13 +97,13 @@ void CSHMPool::resize(size_t size_) {
     m_data = mmap(nullptr, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fd.get(), 0);
 
     if UNLIKELY (m_data == MAP_FAILED)
-        LOGM(ERR, "Couldn't mmap {} bytes from fd {} of shm client", m_size, m_fd.get());
+        LOGM(Log::ERR, "Couldn't mmap {} bytes from fd {} of shm client", m_size, m_fd.get());
 }
 
 static int shmIsSizeValid(CFileDescriptor& fd, size_t size) {
     struct stat st;
     if UNLIKELY (fstat(fd.get(), &st) == -1) {
-        LOGM(ERR, "Couldn't get stat for fd {} of shm client", fd.get());
+        LOGM(Log::ERR, "Couldn't get stat for fd {} of shm client", fd.get());
         return 0;
     }
 
@@ -176,6 +177,7 @@ CWLSHMResource::CWLSHMResource(UP<CWlShm>&& resource_) : m_resource(std::move(re
     if UNLIKELY (!good())
         return;
 
+    m_resource->setRelease([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
     m_resource->setOnDestroy([this](CWlShm* r) { PROTO::shm->destroyResource(this); });
 
     m_resource->setCreatePool([](CWlShm* r, uint32_t id, int32_t fd, int32_t size) {

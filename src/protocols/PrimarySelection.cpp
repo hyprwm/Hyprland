@@ -15,16 +15,16 @@ CPrimarySelectionOffer::CPrimarySelectionOffer(SP<CZwpPrimarySelectionOfferV1> r
     m_resource->setReceive([this](CZwpPrimarySelectionOfferV1* r, const char* mime, int32_t fd) {
         CFileDescriptor sendFd{fd};
         if (!m_source) {
-            LOGM(WARN, "Possible bug: Receive on an offer w/o a source");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer w/o a source");
             return;
         }
 
         if (m_dead) {
-            LOGM(WARN, "Possible bug: Receive on an offer that's dead");
+            LOGM(Log::WARN, "Possible bug: Receive on an offer that's dead");
             return;
         }
 
-        LOGM(LOG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
+        LOGM(Log::DEBUG, "Offer {:x} asks to send data from source {:x}", (uintptr_t)this, (uintptr_t)m_source.get());
 
         m_source->send(mime, std::move(sendFd));
     });
@@ -80,7 +80,7 @@ std::vector<std::string> CPrimarySelectionSource::mimes() {
 
 void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end()) {
-        LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CPrimarySelectionSource::sendAskSend with non-existent mime");
         return;
     }
 
@@ -89,7 +89,7 @@ void CPrimarySelectionSource::send(const std::string& mime, CFileDescriptor fd) 
 
 void CPrimarySelectionSource::accepted(const std::string& mime) {
     if (std::ranges::find(m_mimeTypes, mime) == m_mimeTypes.end())
-        LOGM(ERR, "Compositor/App bug: CPrimarySelectionSource::sendAccepted with non-existent mime");
+        LOGM(Log::ERR, "Compositor/App bug: CPrimarySelectionSource::sendAccepted with non-existent mime");
 
     // primary sel has no accepted
 }
@@ -115,24 +115,24 @@ CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1
         static auto PPRIMARYSEL = CConfigValue<Hyprlang::INT>("misc:middle_click_paste");
 
         if (!*PPRIMARYSEL) {
-            LOGM(LOG, "Ignoring primary selection: disabled in config");
+            LOGM(Log::DEBUG, "Ignoring primary selection: disabled in config");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 
         auto source = sourceR ? CPrimarySelectionSource::fromResource(sourceR) : CSharedPointer<CPrimarySelectionSource>{};
         if (!source) {
-            LOGM(LOG, "wlr reset selection received");
+            LOGM(Log::DEBUG, "wlr reset selection received");
             g_pSeatManager->setCurrentPrimarySelection(nullptr);
             return;
         }
 
         if (source && source->used())
-            LOGM(WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
+            LOGM(Log::WARN, "setSelection on a used resource. By protocol, this is a violation, but firefox et al insist on doing this.");
 
         source->markUsed();
 
-        LOGM(LOG, "wlr manager requests selection to {:x}", (uintptr_t)source.get());
+        LOGM(Log::DEBUG, "wlr manager requests selection to {:x}", (uintptr_t)source.get());
         g_pSeatManager->setCurrentPrimarySelection(source);
     });
 }
@@ -181,7 +181,7 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
             s->m_device = RESOURCE;
         }
 
-        LOGM(LOG, "New primary selection data device bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New primary selection data device bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 
     m_resource->setCreateSource([this](CZwpPrimarySelectionDeviceManagerV1* r, uint32_t id) {
@@ -197,13 +197,13 @@ CPrimarySelectionManager::CPrimarySelectionManager(SP<CZwpPrimarySelectionDevice
         }
 
         if (!m_device)
-            LOGM(WARN, "New data source before a device was created");
+            LOGM(Log::WARN, "New data source before a device was created");
 
         RESOURCE->m_self = RESOURCE;
 
         m_sources.emplace_back(RESOURCE);
 
-        LOGM(LOG, "New primary selection data source bound at {:x}", (uintptr_t)RESOURCE.get());
+        LOGM(Log::DEBUG, "New primary selection data source bound at {:x}", (uintptr_t)RESOURCE.get());
     });
 }
 
@@ -224,7 +224,7 @@ void CPrimarySelectionProtocol::bindManager(wl_client* client, void* data, uint3
         return;
     }
 
-    LOGM(LOG, "New primary_seletion_manager at {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New primary_seletion_manager at {:x}", (uintptr_t)RESOURCE.get());
 
     // we need to do it here because protocols come before seatMgr
     if (!m_listeners.onPointerFocusChange)
@@ -262,7 +262,7 @@ void CPrimarySelectionProtocol::sendSelectionToDevice(SP<CPrimarySelectionDevice
         return;
     }
 
-    LOGM(LOG, "New offer {:x} for data source {:x}", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
+    LOGM(Log::DEBUG, "New offer {:x} for data source {:x}", (uintptr_t)OFFER.get(), (uintptr_t)sel.get());
 
     dev->sendDataOffer(OFFER);
     OFFER->sendData();
@@ -277,7 +277,7 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
     }
 
     if (!source) {
-        LOGM(LOG, "resetting selection");
+        LOGM(Log::DEBUG, "resetting selection");
 
         if (!g_pSeatManager->m_state.pointerFocusResource)
             return;
@@ -289,7 +289,7 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
         return;
     }
 
-    LOGM(LOG, "New selection for data source {:x}", (uintptr_t)source.get());
+    LOGM(Log::DEBUG, "New selection for data source {:x}", (uintptr_t)source.get());
 
     if (!g_pSeatManager->m_state.pointerFocusResource)
         return;
@@ -297,7 +297,7 @@ void CPrimarySelectionProtocol::setSelection(SP<IDataSource> source) {
     auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
 
     if (!DESTDEVICE) {
-        LOGM(LOG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
+        LOGM(Log::DEBUG, "CWLDataDeviceProtocol::setSelection: cannot send selection to a client without a data_device");
         g_pSeatManager->m_selection.currentPrimarySelection.reset();
         return;
     }
@@ -313,7 +313,7 @@ void CPrimarySelectionProtocol::updateSelection() {
     auto DESTDEVICE = dataDeviceForClient(g_pSeatManager->m_state.pointerFocusResource->client());
 
     if (!selection || !DESTDEVICE) {
-        LOGM(LOG, "CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device");
+        LOGM(Log::DEBUG, "CPrimarySelectionProtocol::updateSelection: cannot send selection to a client without a data_device");
         return;
     }
 

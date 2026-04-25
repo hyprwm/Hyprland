@@ -26,7 +26,7 @@ void CFractionalScaleProtocol::onManagerResourceDestroy(wl_resource* res) {
 void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1* pMgr, uint32_t id, SP<CWLSurfaceResource> surface) {
     for (auto const& [k, v] : m_addons) {
         if (k == surface) {
-            LOGM(ERR, "Surface {:x} already has a fractionalScale addon", (uintptr_t)surface.get());
+            LOGM(Log::ERR, "Surface {:x} already has a fractionalScale addon", (uintptr_t)surface.get());
             pMgr->error(WP_FRACTIONAL_SCALE_MANAGER_V1_ERROR_FRACTIONAL_SCALE_EXISTS, "Fractional scale already exists");
             return;
         }

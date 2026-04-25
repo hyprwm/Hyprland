@@ -32,16 +32,23 @@ src/render/shaders/*.inc
 src/render/shaders/Shaders.hpp
 
 hyprctl/hyprctl
+hyprctl/hw-protocols/*.c*
+hyprctl/hw-protocols/*.h*
 
 gmon.out
 *.out
 *.tar.gz
+perf.data
+flame.svg
 
 PKGBUILD
 
 src/version.h
 hyprpm/Makefile
 hyprctl/Makefile
+example/hyprland.desktop
 
 **/.#*.*
 **/#*.*#
+
+debug-tools/flamegraph

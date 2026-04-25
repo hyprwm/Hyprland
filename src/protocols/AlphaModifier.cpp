@@ -1,5 +1,5 @@
 #include "AlphaModifier.hpp"
-#include "../desktop/WLSurface.hpp"
+#include "../desktop/view/WLSurface.hpp"
 #include "../render/Renderer.hpp"
 #include "alpha-modifier-v1.hpp"
 #include "core/Compositor.hpp"
@@ -31,7 +31,7 @@ void CAlphaModifier::setResource(UP<CWpAlphaModifierSurfaceV1>&& resource) {
     });
 
     m_listeners.surfaceCommitted = m_surface->m_events.commit.listen([this] {
-        auto surface = CWLSurface::fromResource(m_surface.lock());
+        auto surface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
 
         if (surface && surface->m_alphaModifier != m_alpha) {
             surface->m_alphaModifier = m_alpha;
@@ -85,7 +85,7 @@ void CAlphaModifierProtocol::getSurface(CWpAlphaModifierV1* manager, uint32_t id
 
     if (iter != m_alphaModifiers.end()) {
         if (iter->second->m_resource) {
-            LOGM(ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
+            LOGM(Log::ERR, "AlphaModifier already present for surface {:x}", (uintptr_t)surface.get());
             manager->error(WP_ALPHA_MODIFIER_V1_ERROR_ALREADY_CONSTRUCTED, "AlphaModifier already present");
             return;
         } else {

@@ -65,6 +65,7 @@ class CEventLoopManager {
     // takes ownership of fd
     void doOnReadable(Hyprutils::OS::CFileDescriptor fd, std::function<void()>&& fn);
     void onFdReadable(SReadableWaiter* waiter);
+    void onFdReadableFail(SReadableWaiter* waiter);
 
   private:
     // Manages the event sources after AQ pollFDs change.

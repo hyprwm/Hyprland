@@ -160,6 +160,33 @@ static bool test() {
     // The cursor should have moved because of the gesture
     EXPECT(cursorPos1 != cursorPos2, true);
 
+    // Test that `workspace previous` works correctly after a workspace gesture.
+    {
+        OK(getFromSocket("/keyword gestures:workspace_swipe_invert 0"));
+        OK(getFromSocket("/keyword gestures:workspace_swipe_create_new 1"));
+        OK(getFromSocket("/dispatch workspace 3"));
+
+        // Come to workspace 5 from workspace 3: 5 will remember that.
+        OK(getFromSocket("/dispatch workspace 5"));
+        Tests::spawnKitty(); // Keep workspace 5 open
+
+        // Swipe from 1 to 5: 5 shall remember that.
+        OK(getFromSocket("/dispatch workspace 1"));
+        OK(getFromSocket("/dispatch plugin:test:alt 1"));
+        OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+        OK(getFromSocket("/dispatch plugin:test:alt 0"));
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
+
+        // Must return to 1 rather than 3
+        OK(getFromSocket("/dispatch workspace previous"));
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 1 (1)");
+
+        OK(getFromSocket("/dispatch workspace previous"));
+        EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
+
+        OK(getFromSocket("/dispatch workspace 1"));
+    }
+
     // kill all
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();

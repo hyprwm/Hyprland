@@ -12,13 +12,13 @@ class CTitleTex {
     CTitleTex(PHLWINDOW pWindow, const Vector2D& bufferSize, const float monitorScale);
     ~CTitleTex() = default;
 
-    SP<CTexture> m_texActive;
-    SP<CTexture> m_texInactive;
-    SP<CTexture> m_texLockedActive;
-    SP<CTexture> m_texLockedInactive;
-    std::string  m_content;
+    SP<Render::ITexture> m_texActive;
+    SP<Render::ITexture> m_texInactive;
+    SP<Render::ITexture> m_texLockedActive;
+    SP<Render::ITexture> m_texLockedInactive;
+    std::string          m_content;
 
-    PHLWINDOWREF m_windowOwner;
+    PHLWINDOWREF         m_windowOwner;
 };
 
 void refreshGroupBarGradients();

@@ -1,12 +1,12 @@
 #include "InputManager.hpp"
-#include "../../desktop/Window.hpp"
+#include "../../desktop/view/Window.hpp"
 #include "../../protocols/Tablet.hpp"
 #include "../../devices/Tablet.hpp"
-#include "../../managers/HookSystemManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/SeatManager.hpp"
 #include "../../protocols/PointerConstraints.hpp"
 #include "../../protocols/core/DataDevice.hpp"
+#include "../../event/EventBus.hpp"
 
 static void unfocusTool(SP<CTabletTool> tool) {
     if (!tool->getSurface())
@@ -38,7 +38,7 @@ static void focusTool(SP<CTabletTool> tool, SP<CTablet> tablet, SP<CWLSurfaceRes
 }
 
 static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = false) {
-    const auto LASTHLSURFACE = CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
+    const auto LASTHLSURFACE = Desktop::View::CWLSurface::fromResource(g_pSeatManager->m_state.pointerFocus.lock());
 
     if (!LASTHLSURFACE || !tool->m_active) {
         if (tool->getSurface())
@@ -63,6 +63,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
     if (!motion)
         return;
 
+    const auto WINDOW = Desktop::View::CWindow::fromView(LASTHLSURFACE->view());
+
     if (LASTHLSURFACE->constraint() && tool->aq()->type != Aquamarine::ITabletTool::AQ_TABLET_TOOL_TYPE_MOUSE) {
         // cursor logic will completely break here as the cursor will be locked.
         // let's just "map" the desired position to the constraint area.
@@ -70,13 +72,13 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
         Vector2D local;
 
         // yes, this technically ignores any regions set by the app. Too bad!
-        if (LASTHLSURFACE->getWindow())
-            local = tool->m_absolutePos * LASTHLSURFACE->getWindow()->m_realSize->goal();
+        if (WINDOW)
+            local = tool->m_absolutePos * WINDOW->m_realSize->goal();
         else
             local = tool->m_absolutePos * BOX->size();
 
-        if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
-            local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
+        if (WINDOW && WINDOW->m_isX11)
+            local = local * WINDOW->m_X11SurfaceScaledBy;
 
         PROTO::tablet->motion(tool, local);
         return;
@@ -84,8 +86,8 @@ static void refocusTablet(SP<CTablet> tab, SP<CTabletTool> tool, bool motion = f
 
     auto local = CURSORPOS - BOX->pos();
 
-    if (LASTHLSURFACE->getWindow() && LASTHLSURFACE->getWindow()->m_isX11)
-        local = local * LASTHLSURFACE->getWindow()->m_X11SurfaceScaledBy;
+    if (WINDOW && WINDOW->m_isX11)
+        local = local * WINDOW->m_X11SurfaceScaledBy;
 
     PROTO::tablet->motion(tool, local);
 }
@@ -105,6 +107,11 @@ static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeAre
 }
 
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.axis.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
@@ -169,7 +176,10 @@ void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 }
 
 void CInputManager::onTabletTip(CTablet::STipEvent e) {
-    EMIT_HOOK_EVENT_CANCELLABLE("tabletTip", e);
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.tip.emit(e, info);
+    if (info.cancelled)
+        return;
 
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
@@ -194,6 +204,11 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 }
 
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.button.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
     if (e.down)
@@ -208,15 +223,22 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 }
 
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
+    Event::SCallbackInfo info;
+    Event::bus()->m_events.input.tablet.proximity.emit(e, info);
+    if (info.cancelled)
+        return;
+
     const auto PTAB  = e.tablet;
     const auto PTOOL = ensureTabletToolPresent(e.tool);
 
     PTOOL->m_active = e.in;
 
     if (!e.in) {
+        m_lastInputTablet = false;
         if (PTOOL->getSurface())
             unfocusTool(PTOOL);
     } else {
+        m_lastInputTablet = true;
         simulateMouseMovement();
         refocusTablet(PTAB, PTOOL);
     }
@@ -229,7 +251,7 @@ void CInputManager::newTablet(SP<Aquamarine::ITablet> pDevice) {
     try {
         PNEWTABLET->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());
     } catch (std::exception& e) {
-        Debug::log(ERR, "Tablet had no name???"); // logic error
+        Log::logger->log(Log::ERR, "Tablet had no name???"); // logic error
     }
 
     g_pPointerManager->attachTablet(PNEWTABLET);
@@ -255,7 +277,7 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
     try {
         PTOOL->m_hlName = g_pInputManager->getNameForNewDevice(pTool->getName());
     } catch (std::exception& e) {
-        Debug::log(ERR, "Tablet had no name???"); // logic error
+        Log::logger->log(Log::ERR, "Tablet had no name???"); // logic error
     }
 
     PTOOL->m_events.destroy.listenStatic([this, tool = PTOOL.get()] {
@@ -273,7 +295,7 @@ void CInputManager::newTabletPad(SP<Aquamarine::ITabletPad> pDevice) {
     try {
         PNEWPAD->m_hlName = g_pInputManager->getNameForNewDevice(pDevice->getName());
     } catch (std::exception& e) {
-        Debug::log(ERR, "Pad had no name???"); // logic error
+        Log::logger->log(Log::ERR, "Pad had no name???"); // logic error
     }
 
     PNEWPAD->m_events.destroy.listenStatic([this, pad = PNEWPAD.get()] {

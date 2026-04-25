@@ -1,5 +1,5 @@
 #include "Rule.hpp"
-#include "../../debug/Log.hpp"
+#include "../../debug/log/Logger.hpp"
 #include <re2/re2.h>
 
 #include "matchEngine/RegexMatchEngine.hpp"
@@ -48,10 +48,11 @@ static const std::unordered_map<eRuleProperty, eRuleMatchEngine> RULE_ENGINES = 
     {RULE_PROP_FULLSCREENSTATE_INTERNAL, RULE_MATCH_ENGINE_INT}, //
     {RULE_PROP_FULLSCREENSTATE_CLIENT, RULE_MATCH_ENGINE_INT},   //
     {RULE_PROP_ON_WORKSPACE, RULE_MATCH_ENGINE_WORKSPACE},       //
-    {RULE_PROP_CONTENT, RULE_MATCH_ENGINE_INT},                  //
+    {RULE_PROP_CONTENT, RULE_MATCH_ENGINE_REGEX},                //
     {RULE_PROP_XDG_TAG, RULE_MATCH_ENGINE_REGEX},                //
     {RULE_PROP_NAMESPACE, RULE_MATCH_ENGINE_REGEX},              //
     {RULE_PROP_EXEC_TOKEN, RULE_MATCH_ENGINE_REGEX},             //
+    {RULE_PROP_EXEC_PID, RULE_MATCH_ENGINE_INT},                 //
 };
 
 const std::vector<std::string>& Rule::allMatchPropStrings() {
@@ -84,7 +85,7 @@ IRule::IRule(const std::string& name) : m_name(name) {
 
 void IRule::registerMatch(eRuleProperty p, const std::string& s) {
     if (!RULE_ENGINES.contains(p)) {
-        Debug::log(ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
+        Log::logger->log(Log::ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
         return;
     }
 
@@ -125,10 +126,11 @@ const std::string& IRule::name() {
     return m_name;
 }
 
-void IRule::markAsExecRule(const std::string& token, bool persistent) {
+void IRule::markAsExecRule(const std::string& token, uint64_t pid, bool persistent) {
     m_execData.isExecRule       = true;
     m_execData.isExecPersistent = persistent;
     m_execData.token            = token;
+    m_execData.pid              = pid;
     m_execData.expiresAt        = Time::steadyNow() + std::chrono::minutes(1);
 }
 

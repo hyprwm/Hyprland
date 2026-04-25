@@ -1,11 +1,24 @@
 #pragma once
 
 #include "../DesktopTypes.hpp"
-#include "../../SharedDefs.hpp"
+#include "../../helpers/signal/Signal.hpp"
 
 class CWLSurfaceResource;
 
 namespace Desktop {
+    enum eFocusReason : uint8_t {
+        FOCUS_REASON_UNKNOWN = 0,
+        FOCUS_REASON_FFM,
+        FOCUS_REASON_KEYBIND,
+        FOCUS_REASON_CLICK,
+        FOCUS_REASON_OTHER,
+        FOCUS_REASON_DESKTOP_STATE_CHANGE,
+        FOCUS_REASON_NEW_WINDOW,
+        FOCUS_REASON_GHOSTS,
+    };
+
+    bool isHardInputFocusReason(eFocusReason r);
+
     class CFocusState {
       public:
         CFocusState();
@@ -15,28 +28,23 @@ namespace Desktop {
         CFocusState(CFocusState&)       = delete;
         CFocusState(const CFocusState&) = delete;
 
-        void                             fullWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr, bool preserveFocusHistory = false, bool forceFSCycle = false);
-        void                             rawWindowFocus(PHLWINDOW w, SP<CWLSurfaceResource> surface = nullptr, bool preserveFocusHistory = false);
-        void                             rawSurfaceFocus(SP<CWLSurfaceResource> s, PHLWINDOW pWindowOwner = nullptr);
-        void                             rawMonitorFocus(PHLMONITOR m);
+        void                   fullWindowFocus(PHLWINDOW w, eFocusReason reason, SP<CWLSurfaceResource> surface = nullptr, bool forceFSCycle = false);
+        void                   rawWindowFocus(PHLWINDOW w, eFocusReason reason, SP<CWLSurfaceResource> surface = nullptr);
+        void                   rawSurfaceFocus(SP<CWLSurfaceResource> s, PHLWINDOW pWindowOwner = nullptr);
+        void                   rawMonitorFocus(PHLMONITOR m);
 
-        SP<CWLSurfaceResource>           surface();
-        PHLWINDOW                        window();
-        PHLMONITOR                       monitor();
-        const std::vector<PHLWINDOWREF>& windowHistory();
+        void                   resetWindowFocus();
 
-        void                             addWindowToHistory(PHLWINDOW w);
+        SP<CWLSurfaceResource> surface();
+        PHLWINDOW              window();
+        PHLMONITOR             monitor();
 
       private:
-        void                      removeWindowFromHistory(PHLWINDOW w);
-        void                      moveWindowToLatestInHistory(PHLWINDOW w);
+        WP<CWLSurfaceResource> m_focusSurface;
+        PHLWINDOWREF           m_focusWindow;
+        PHLMONITORREF          m_focusMonitor;
 
-        WP<CWLSurfaceResource>    m_focusSurface;
-        PHLWINDOWREF              m_focusWindow;
-        PHLMONITORREF             m_focusMonitor;
-        std::vector<PHLWINDOWREF> m_windowFocusHistory; // first element is the most recently focused
-
-        SP<HOOK_CALLBACK_FN>      m_windowOpen, m_windowClose;
+        CHyprSignalListener    m_windowOpen, m_windowClose;
     };
 
     SP<CFocusState> focusState();

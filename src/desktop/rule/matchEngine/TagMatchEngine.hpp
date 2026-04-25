@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MatchEngine.hpp"
+#include <string>
 
 namespace Desktop::Rule {
     class CTagMatchEngine : public IMatchEngine {

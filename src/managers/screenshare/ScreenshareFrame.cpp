@@ -441,6 +441,7 @@ bool CScreenshareFrame::copyShm() {
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");
         m_callback(RESULT_COPIED);
+        m_copied = true;
     }
 
     return true;

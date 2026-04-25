@@ -1,8 +1,11 @@
 #include "tests.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include <thread>
+#include <algorithm>
 #include <chrono>
+#include <ranges>
+#include <set>
+#include <thread>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include "../shared.hpp"
@@ -13,6 +16,13 @@ using namespace Hyprutils::Memory;
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+SUBTEST(expectBlockedByAll, const std::string& blockedByLine, const std::set<std::string>& expectedBlockedBy) {
+    const std::set<std::string> blockedBy = blockedByLine | std::ranges::views::split(',') | std::ranges::to<std::set<std::string>>();
+    NLog::log("blockedBy = {}", blockedBy);
+    NLog::log("expectedBlockedBy = {}", expectedBlockedBy);
+    ASSERT(std::ranges::includes(blockedBy, expectedBlockedBy), true);
+}
+
 TEST_CASE(solitaryClients) {
     OK(getFromSocket("/eval hl.config({ general = { allow_tearing = false } })"));
     OK(getFromSocket("/eval hl.config({ render = { direct_scanout = 0 } })"));
@@ -21,11 +31,12 @@ TEST_CASE(solitaryClients) {
     {
         auto str = getFromSocket("/monitors");
         EXPECT_CONTAINS(str, "solitary: 0\n");
-        EXPECT_CONTAINS(str, "solitaryBlockedBy: windowed mode,missing candidate");
+        CALL_SUBTEST(expectBlockedByAll, Tests::getAttribute(str, "solitaryBlockedBy"), {"windowed mode", "missing candidate"});
         EXPECT_CONTAINS(str, "activelyTearing: false");
-        EXPECT_CONTAINS(str, "tearingBlockedBy: next frame is not torn,user settings,not supported by monitor,missing candidate");
+        CALL_SUBTEST(expectBlockedByAll, Tests::getAttribute(str, "tearingBlockedBy"),
+                     {"next frame is not torn", "user settings", "not supported by monitor", "missing candidate"});
         EXPECT_CONTAINS(str, "directScanoutTo: 0\n");
-        EXPECT_CONTAINS(str, "directScanoutBlockedBy: user settings,software renders/cursors,missing candidate");
+        CALL_SUBTEST(expectBlockedByAll, Tests::getAttribute(str, "directScanoutBlockedBy"), {"user settings", "software renders/cursors", "missing candidate"});
     }
 
     // FIXME: need a reliable client with solitary opaque surface in fullscreen. kitty doesn't work all the time

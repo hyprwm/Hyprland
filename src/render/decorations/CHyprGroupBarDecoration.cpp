@@ -40,10 +40,12 @@ SDecorationPositioningInfo CHyprGroupBarDecoration::getPositioningInfo() {
     static auto                PSTACKED         = CConfigValue<Hyprlang::INT>("group:groupbar:stacked");
     static auto                POUTERGAP        = CConfigValue<Hyprlang::INT>("group:groupbar:gaps_out");
     static auto                PKEEPUPPERGAP    = CConfigValue<Hyprlang::INT>("group:groupbar:keep_upper_gap");
+    static auto                PPOSITION        = CConfigValue<Hyprlang::INT>("group:groupbar:position");
+
 
     SDecorationPositioningInfo info;
     info.policy   = DECORATION_POSITION_STICKY;
-    info.edges    = DECORATION_EDGE_TOP;
+    info.edges    = PPOSITION == 1 ? DECORATION_EDGE_BOTTOM : DECORATION_EDGE_TOP;
     info.priority = *PPRIORITY;
     info.reserved = true;
 
@@ -517,8 +519,10 @@ std::string CHyprGroupBarDecoration::getDisplayName() {
 }
 
 CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
+    const auto PPOSITION = CConfigValue<Hyprlang::INT>("group:groupbar:position");
+
     CBox box = m_assignedBox;
-    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(DECORATION_EDGE_TOP, m_window));
+    box.translate(g_pDecorationPositioner->getEdgeDefinedPoint(PPOSITION == 1 ? DECORATION_EDGE_BOTTOM : DECORATION_EDGE_TOP, m_window));
 
     const auto PWORKSPACE = m_window->m_workspace;
 

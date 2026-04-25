@@ -1048,6 +1048,12 @@ namespace Config::Supplementary {
             .data        = SConfigOptionDescription::SBoolData{true},
         },
         SConfigOptionDescription{
+            .value       = "group:groupbar:position",
+            .description = "sets the position of the groupbar. top - 0, bottom - 1",
+            .type        = CONFIG_OPTION_INT,
+            .data        = SConfigOptionDescription::SRangeData{0, 0, 1},
+        },
+        SConfigOptionDescription{
             .value       = "group:groupbar:font_family",
             .description = "font used to display groupbar titles, use misc:font_family if not specified",
             .type        = CONFIG_OPTION_STRING_SHORT,

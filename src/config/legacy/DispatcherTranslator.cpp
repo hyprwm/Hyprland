@@ -39,9 +39,9 @@ static SDispatchResult wrap(ActionResult res) {
 }
 
 // helper: resolve window from regex string, or focused if empty/active
-static PHLWINDOW windowFromArg(const std::string& arg) {
+static std::optional<PHLWINDOW> windowFromArg(const std::string& arg) {
     if (arg.empty() || arg == "active")
-        return nullptr; // will use xtract(nullopt) -> focused window
+        return std::nullopt; // will use xtract(nullopt) -> focused window
     return g_pCompositor->getWindowByRegex(arg);
 }
 

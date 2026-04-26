@@ -176,6 +176,9 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
 APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
+
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
 
@@ -192,6 +195,9 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
 APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
+
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
 
@@ -204,6 +210,9 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
 
 APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return nullptr;
 
     if (!PLUGIN)
         return nullptr;

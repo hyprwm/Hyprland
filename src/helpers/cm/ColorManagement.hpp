@@ -3,8 +3,9 @@
 #include "color-management-v1.hpp"
 #include <format>
 #include <hyprgraphics/color/Color.hpp>
-#include "../../helpers/memory/Memory.hpp"
-#include "../../helpers/math/Math.hpp"
+#include "../memory/Memory.hpp"
+#include "../math/Math.hpp"
+#include "../Color.hpp"
 #include "../../debug/log/Logger.hpp"
 
 #include <filesystem>
@@ -357,7 +358,31 @@ namespace NColorManagement {
         SImageDescription m_imageDescription;
     };
 
+    union RGBAColor {
+        struct {
+            double r = 0, g = 0, b = 0, a = 0;
+        } c;
+        double     v[4];
+
+        RGBAColor& operator*=(double value) {
+            c.r *= value;
+            c.g *= value;
+            c.b *= value;
+            return *this;
+        }
+
+        RGBAColor& operator/=(double value) {
+            c.r /= value;
+            c.g /= value;
+            c.b /= value;
+            return *this;
+        }
+    };
+
     using PImageDescription = WP<const CImageDescription>;
+
+    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
+    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
 
     PImageDescription getDefaultImageDescription();
 

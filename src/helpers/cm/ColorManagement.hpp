@@ -5,6 +5,7 @@
 #include <hyprgraphics/color/Color.hpp>
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/math/Math.hpp"
+#include "../../debug/log/Logger.hpp"
 
 #include <filesystem>
 #include <string>
@@ -45,6 +46,7 @@ namespace NColorManagement {
     };
 
     enum eTransferFunction : uint8_t {
+        CM_TRANSFER_FUNCTION_LINEAR     = 0,
         CM_TRANSFER_FUNCTION_BT1886     = 1,
         CM_TRANSFER_FUNCTION_GAMMA22    = 2,
         CM_TRANSFER_FUNCTION_GAMMA28    = 3,
@@ -68,9 +70,14 @@ namespace NColorManagement {
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
         return sc<ePrimaries>(primaries);
     }
-    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
+    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf, bool useV1SRGB = true) {
         switch (tf) {
-            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            case CM_TRANSFER_FUNCTION_LINEAR:
+                Log::logger->log(Log::TRACE,
+                                 "CM_TRANSFER_FUNCTION_LINEAR is internal and buffers with this TF shouldn't go outside. Returning "
+                                 "WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR for preferred description instead");
+                return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+            case CM_TRANSFER_FUNCTION_SRGB: return useV1SRGB ? WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB : WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
             default: return sc<wpColorManagerV1TransferFunction>(tf);
         }
     }

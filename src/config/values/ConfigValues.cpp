@@ -331,7 +331,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("input:touchdevice:transform", "Transform the input from touchdevices.", 0, {.min = 0, .max = 6, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<String>("input:touchdevice:output", "The monitor to bind touch devices.", "[[Auto]]", {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Bool>("input:touchdevice:enabled", "Whether input is enabled for touch devices.", true, {.refresh = Supplementary::REFRESH_INPUT_DEVICES}),
-
+        MS<Bool>("input:tablet:enabled", "enable/disable tablet input", true),
         /*
          * input:virtualkeyboard:
          */

@@ -8,6 +8,9 @@
 #include "../../protocols/core/DataDevice.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../config/ConfigManager.hpp"
+static bool isTabletEnabled(const SP<CTablet>& tab) {
+    return Config::mgr()->getDeviceInt(tab->m_hlName, "enabled", "input:tablet:enabled");
+}
 
 static void unfocusTool(SP<CTabletTool> tool) {
     if (!tool->getSurface())
@@ -109,10 +112,7 @@ static Vector2D transformToActiveRegion(const Vector2D pos, const CBox activeAre
 void CInputManager::onTabletAxis(CTablet::SAxisEvent e) {
 
     const auto PTAB = e.tablet;
-
-    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
-
-    if (!ENABLED)
+    if (!isTabletEnabled(PTAB))
         return;
 
     Event::SCallbackInfo info;
@@ -186,9 +186,7 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 
     const auto PTAB = e.tablet;
 
-    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
-
-    if (!ENABLED)
+    if (!isTabletEnabled(PTAB))
         return;
 
     Event::SCallbackInfo info;
@@ -220,12 +218,9 @@ void CInputManager::onTabletTip(CTablet::STipEvent e) {
 void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 
     const auto PTAB = e.tablet;
-
-    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
-
-    if (!ENABLED)
+    if (!isTabletEnabled(PTAB))
         return;
-
+     
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.button.emit(e, info);
     if (info.cancelled)
@@ -247,12 +242,9 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
 void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
 
     const auto PTAB = e.tablet;
-
-    const auto ENABLED = Config::mgr()->getDeviceInt(PTAB->m_hlName, "enabled", "input:tablet:enabled");
-
-    if (!ENABLED)
+    if (!isTabletEnabled(PTAB))
         return;
-
+    
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.proximity.emit(e, info);
     if (info.cancelled)

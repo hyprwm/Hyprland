@@ -2982,14 +2982,23 @@ SDispatchResult CKeybindManager::setProp(std::string args) {
             else
                 PWINDOW->m_ruleApplicator->inactiveBorderColorOverride(Desktop::Types::COverridableVar(colorData, Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity") {
+            const float ALPHA = VAL.starts_with("relative") ?
+                std::clamp(PWINDOW->m_ruleApplicator->alpha().valueOrDefault().alpha + std::stof(VAL.substr(VAL.find(' ') + 1)), 0.f, 1.f) :
+                std::stof(VAL);
             PWINDOW->m_ruleApplicator->alphaOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alpha().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+                Desktop::Types::SAlphaValue{ALPHA, PWINDOW->m_ruleApplicator->alpha().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_inactive") {
+            const float ALPHA = VAL.starts_with("relative") ?
+                std::clamp(PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().alpha + std::stof(VAL.substr(VAL.find(' ') + 1)), 0.f, 1.f) :
+                std::stof(VAL);
             PWINDOW->m_ruleApplicator->alphaInactiveOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+                Desktop::Types::SAlphaValue{ALPHA, PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_fullscreen") {
+            const float ALPHA = VAL.starts_with("relative") ?
+                std::clamp(PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().alpha + std::stof(VAL.substr(VAL.find(' ') + 1)), 0.f, 1.f) :
+                std::stof(VAL);
             PWINDOW->m_ruleApplicator->alphaFullscreenOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
+                Desktop::Types::SAlphaValue{ALPHA, PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_override") {
             PWINDOW->m_ruleApplicator->alphaOverride(Desktop::Types::COverridableVar(
                 Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alpha().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},

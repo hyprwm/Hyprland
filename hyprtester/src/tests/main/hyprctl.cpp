@@ -31,11 +31,15 @@ static std::string getCommandStdOut(std::string command) {
     return stdOut.substr(0, stdOut.length() - 1);
 }
 
+static void setWindowProp(const std::string& selector, const std::string& prop, const std::string& value) {
+    getFromSocket("/dispatch hl.dsp.window.set_prop({ window = '" + selector + "', prop = '" + prop + "', value = '" + value + "' })");
+}
+
 static bool testDevicesActiveLayoutIndex() {
     NLog::log("{}Testing hyprctl devices active_layout_index", Colors::GREEN);
 
     // configure layouts
-    getFromSocket("/keyword input:kb_layout us,pl,ua");
+    OK(getFromSocket("r/eval hl.config({ input = { kb_layout = \"us,pl,ua\" } })"));
 
     for (uint8_t i = 0; i < 3; i++) {
         // set layout
@@ -59,101 +63,101 @@ static bool testGetprop() {
     // animation
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation"), "(unset)");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation -j"), R"({"animation": ""})");
-    getFromSocket("/dispatch setprop class:kitty animation teststyle");
+    setWindowProp("class:kitty", "animation", "teststyle");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation"), "teststyle");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty animation -j"), R"({"animation": "teststyle"})");
 
     // max_size
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size"), "inf inf");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size -j"), R"({"max_size": [null,null]})");
-    getFromSocket("/dispatch setprop class:kitty max_size 200 150");
+    setWindowProp("class:kitty", "max_size", "200 150");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size"), "200 150");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size -j"), R"({"max_size": [200,150]})");
 
     // min_size
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size"), "20 20");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size -j"), R"({"min_size": [20,20]})");
-    getFromSocket("/dispatch setprop class:kitty min_size 100 50");
+    setWindowProp("class:kitty", "min_size", "100 50");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size"), "100 50");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size -j"), R"({"min_size": [100,50]})");
 
     // expr-based min/max _size
-    getFromSocket("/dispatch setfloating class:kitty");                 // need to set floating for tests below
-    getFromSocket("/dispatch setprop class:kitty max_size 90+10 25*2"); // set max to the same as min above, forcing window to 100*50
+    getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty' })"); // need to set floating for tests below
+    setWindowProp("class:kitty", "max_size", "90+10 25*2");                                     // set max to the same as min above, forcing window to 100*50
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size"), "100 50");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty max_size -j"), R"({"max_size": [100,50]})");
-    getFromSocket("/dispatch setprop class:kitty min_size window_w*0.5 window_h-10");
+    setWindowProp("class:kitty", "min_size", "window_w*0.5 window_h-10");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size"), "50 40");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty min_size -j"), R"({"min_size": [50,40]})");
-    getFromSocket("/dispatch settiled class:kitty"); // go back to tiled for consistency
+    getFromSocket("/dispatch hl.dsp.window.float({ action = 'unset', window = 'class:kitty' })"); // go back to tiled for consistency
 
     // opacity
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity"), "1");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity -j"), R"({"opacity": 1})");
-    getFromSocket("/dispatch setprop class:kitty opacity 0.3");
+    setWindowProp("class:kitty", "opacity", "0.3");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity"), "0.3");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity -j"), R"({"opacity": 0.3})");
 
     // opacity_inactive
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive"), "1");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive -j"), R"({"opacity_inactive": 1})");
-    getFromSocket("/dispatch setprop class:kitty opacity_inactive 0.5");
+    setWindowProp("class:kitty", "opacity_inactive", "0.5");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive"), "0.5");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive -j"), R"({"opacity_inactive": 0.5})");
 
     // opacity_fullscreen
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen"), "1");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen -j"), R"({"opacity_fullscreen": 1})");
-    getFromSocket("/dispatch setprop class:kitty opacity_fullscreen 0.75");
+    setWindowProp("class:kitty", "opacity_fullscreen", "0.75");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen"), "0.75");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen -j"), R"({"opacity_fullscreen": 0.75})");
 
     // opacity_override
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_override"), "false");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_override -j"), R"({"opacity_override": false})");
-    getFromSocket("/dispatch setprop class:kitty opacity_override true");
+    setWindowProp("class:kitty", "opacity_override", "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_override"), "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_override -j"), R"({"opacity_override": true})");
 
     // opacity_inactive_override
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive_override"), "false");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive_override -j"), R"({"opacity_inactive_override": false})");
-    getFromSocket("/dispatch setprop class:kitty opacity_inactive_override true");
+    setWindowProp("class:kitty", "opacity_inactive_override", "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive_override"), "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_inactive_override -j"), R"({"opacity_inactive_override": true})");
 
     // opacity_fullscreen_override
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen_override"), "false");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen_override -j"), R"({"opacity_fullscreen_override": false})");
-    getFromSocket("/dispatch setprop class:kitty opacity_fullscreen_override true");
+    setWindowProp("class:kitty", "opacity_fullscreen_override", "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen_override"), "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty opacity_fullscreen_override -j"), R"({"opacity_fullscreen_override": true})");
 
     // active_border_color
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty active_border_color"), "ee33ccff ee00ff99 45deg");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty active_border_color -j"), R"({"active_border_color": "ee33ccff ee00ff99 45deg"})");
-    getFromSocket("/dispatch setprop class:kitty active_border_color rgb(abcdef)");
+    setWindowProp("class:kitty", "active_border_color", "rgb(abcdef)");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty active_border_color"), "ffabcdef 0deg");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty active_border_color -j"), R"({"active_border_color": "ffabcdef 0deg"})");
 
     // bool window properties
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty allows_input"), "false");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty allows_input -j"), R"({"allows_input": false})");
-    getFromSocket("/dispatch setprop class:kitty allows_input true");
+    setWindowProp("class:kitty", "allows_input", "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty allows_input"), "true");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty allows_input -j"), R"({"allows_input": true})");
 
     // int window properties
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding"), "10");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding -j"), R"({"rounding": 10})");
-    getFromSocket("/dispatch setprop class:kitty rounding 4");
+    setWindowProp("class:kitty", "rounding", "4");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding"), "4");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding -j"), R"({"rounding": 4})");
 
     // float window properties
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power"), "2");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power -j"), R"({"rounding_power": 2})");
-    getFromSocket("/dispatch setprop class:kitty rounding_power 1.25");
+    setWindowProp("class:kitty", "rounding_power", "1.25");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power"), "1.25");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty rounding_power -j"), R"({"rounding_power": 1.25})");
 

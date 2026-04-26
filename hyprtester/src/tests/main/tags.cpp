@@ -21,21 +21,21 @@ static bool testTags() {
 
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
 
-    OK(getFromSocket("/keyword windowrule[tag-test-1]:tag +testTag"));
-    OK(getFromSocket("/keyword windowrule[tag-test-1]:match:class tagged"));
-    OK(getFromSocket("/keyword windowrule[tag-test-2]:match:tag negative:testTag"));
-    OK(getFromSocket("/keyword windowrule[tag-test-2]:no_shadow true"));
-    OK(getFromSocket("/keyword windowrule[tag-test-3]:match:tag testTag"));
-    OK(getFromSocket("/keyword windowrule[tag-test-3]:no_dim true"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-1', tag = '+testTag' })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-1', match = { class = 'tagged' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-2', match = { tag = 'negative:testTag' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-2', no_shadow = true })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-3', match = { tag = 'testTag' } })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-3', no_dim = true })"));
 
     EXPECT(Tests::windowCount(), 2);
-    OK(getFromSocket("/dispatch focuswindow class:tagged"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:tagged' })"));
     NLog::log("{}Testing tagged window for no_dim 0 & no_shadow", Colors::YELLOW);
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "testTag");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "true");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "false");
     NLog::log("{}Testing untagged window for no_dim & no_shadow", Colors::YELLOW);
-    OK(getFromSocket("/dispatch focuswindow class:untagged"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:untagged' })"));
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "testTag");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");

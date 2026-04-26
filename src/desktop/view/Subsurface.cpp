@@ -162,7 +162,7 @@ void CSubsurface::onCommit() {
     if (!m_windowParent.expired() && (!m_windowParent->m_isMapped || !m_windowParent->m_workspace->m_visible)) {
         m_lastSize = m_wlSurface->resource()->m_current.size;
 
-        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
             Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowParent.lock());
         return;

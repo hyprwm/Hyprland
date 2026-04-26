@@ -118,7 +118,7 @@ void CTrackpadGestures::gestureBegin(const IPointer::SSwipeBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SSwipeUpdateEvent& e) {
-    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+    static auto PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
 
     if (m_gestureFindFailed)
         return;
@@ -193,7 +193,7 @@ void CTrackpadGestures::gestureBegin(const IPointer::SPinchBeginEvent& e) {
 }
 
 void CTrackpadGestures::gestureUpdate(const IPointer::SPinchUpdateEvent& e) {
-    static auto PDISABLEINHIBIT = CConfigValue<Hyprlang::INT>("binds:disable_keybind_grabbing");
+    static auto PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
 
     if (m_gestureFindFailed)
         return;

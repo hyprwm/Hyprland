@@ -26,10 +26,10 @@ static bool test() {
     if (!spawnLayer("rule-layer"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:add_layer_rule"));
+    OK(getFromSocket("/eval hl.plugin.test.add_layer_rule()"));
     OK(getFromSocket("/reload"));
 
-    OK(getFromSocket("/keyword layerrule match:namespace rule-layer, plugin_rule effect"));
+    OK(getFromSocket("/eval hl.layer_rule({ match = { namespace = 'rule-layer' }, plugin_rule = 'effect' })"));
 
     if (!spawnLayer("rule-layer"))
         return false;
@@ -37,7 +37,7 @@ static bool test() {
     if (!spawnLayer("norule-layer"))
         return false;
 
-    OK(getFromSocket("/dispatch plugin:test:check_layer_rule"));
+    OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
 
     OK(getFromSocket("/reload"));
 

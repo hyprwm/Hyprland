@@ -526,6 +526,8 @@ int main(int argc, char** argv) {
         exitStatus = request(fullRequest, 2);
     else if (fullRequest.contains("/decorations"))
         exitStatus = request(fullRequest, 1);
+    else if (fullRequest.contains("/eval"))
+        exitStatus = request(fullRequest, 1);
     else if (fullRequest.contains("/--help"))
         std::println("{}", USAGE);
     else if (fullRequest.contains("/rollinglog") && needRoll)

@@ -108,9 +108,9 @@ void COverlay::createQueued() {
     const float       SCALE    = PMONITOR->m_scale;
     const int         FONTSIZE = std::clamp(sc<int>(10.f * ((PMONITOR->m_pixelSize.x * SCALE) / 1920.f)), 8, 40);
 
-    static auto       LINELIMIT    = CConfigValue<Hyprlang::INT>("debug:error_limit");
-    static auto       BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
-    static auto       FONT_FAMILY  = CConfigValue<std::string>("misc:font_family");
+    static auto       LINELIMIT    = CConfigValue<Config::INTEGER>("debug:error_limit");
+    static auto       BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
+    static auto       FONT_FAMILY  = CConfigValue<Config::STRING>("misc:font_family");
 
     const bool        TOPBAR      = *BAR_POSITION == 0;
     const std::string visibleText = buildVisibleText(m_queued, *LINELIMIT);
@@ -199,7 +199,7 @@ void COverlay::draw() {
     if (!PMONITOR)
         return;
 
-    static auto BAR_POSITION = CConfigValue<Hyprlang::INT>("debug:error_position");
+    static auto BAR_POSITION = CConfigValue<Config::INTEGER>("debug:error_position");
     const bool  TOPBAR       = *BAR_POSITION == 0;
 
     const float barWidth = std::max<float>(1.F, sc<float>(PMONITOR->m_pixelSize.x) - m_outerPad * 2.F);

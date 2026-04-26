@@ -109,7 +109,7 @@ COverlay::COverlay() {
 }
 
 void CMonitorOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -125,7 +125,7 @@ void CMonitorOverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void CMonitorOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -141,7 +141,7 @@ void CMonitorOverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs)
 }
 
 void CMonitorOverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -249,7 +249,7 @@ void CMonitorOverlay::rebuildCache() {
     const float IDEALFPS = std::max(1.F, PMONITOR->m_refreshRate);
     const float TICKTPS  = ANIMATIONTICKMETRICS.avg <= 0.F ? 0.F : 1000.F / ANIMATIONTICKMETRICS.avg;
 
-    static auto FONTFAMILY = CConfigValue<std::string>("misc:font_family");
+    static auto FONTFAMILY = CConfigValue<Config::STRING>("misc:font_family");
 
     CHyprColor  fpsColor = CHyprColor{1.F, 0.2F, 0.2F, 1.F};
     if (FPS > IDEALFPS * 0.95F)
@@ -326,7 +326,7 @@ Vector2D CMonitorOverlay::size() const {
 }
 
 void COverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -335,7 +335,7 @@ void COverlay::renderData(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void COverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -344,7 +344,7 @@ void COverlay::renderDataNoOverlay(PHLMONITOR pMonitor, float durationUs) {
 }
 
 void COverlay::frameData(PHLMONITOR pMonitor) {
-    static auto PDEBUGOVERLAY = CConfigValue<Hyprlang::INT>("debug:overlay");
+    static auto PDEBUGOVERLAY = CConfigValue<Config::INTEGER>("debug:overlay");
 
     if (!*PDEBUGOVERLAY)
         return;
@@ -362,7 +362,7 @@ void COverlay::createWarningTexture(float maxW) {
     if (maxW == m_warningTextureMaxW)
         return;
 
-    static auto FONT = CConfigValue<std::string>("misc:font_family");
+    static auto FONT = CConfigValue<Config::STRING>("misc:font_family");
 
     m_warningTexture = g_pHyprRenderer->renderText(Hyprgraphics::CTextResource::STextResourceData{
         .text     = "[!] FPS might be below your monitor's refresh rate if there are no content updates",

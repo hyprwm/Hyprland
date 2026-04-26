@@ -108,4 +108,4 @@ format-fix:
 
 test:
 	$(MAKE) debug
-	./build/hyprtester/hyprtester -c hyprtester/test.conf -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so
+	./build/hyprtester/hyprtester -c hyprtester/test.lua -b ./build/Hyprland -p hyprtester/plugin/hyprtestplugin.so

@@ -25,12 +25,12 @@ static bool test() {
 
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    getFromSocket("/dispatch workspace 1"); // no OK: we might be on 1 already
+    getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"); // no OK: we might be on 1 already
 
-    OK(getFromSocket("/keyword workspace 5, monitor:HEADLESS-2, persistent:1"));
-    OK(getFromSocket("/keyword workspace 6, monitor:HEADLESS-PERSISTENT-TEST, persistent:1"));
-    OK(getFromSocket("/keyword workspace name:PERSIST, monitor:HEADLESS-PERSISTENT-TEST, persistent:1"));
-    OK(getFromSocket("/keyword workspace name:PERSIST-2, monitor:HEADLESS-PERSISTENT-TEST, persistent:1"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '5', monitor = 'HEADLESS-2', persistent = true })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = '6', monitor = 'HEADLESS-PERSISTENT-TEST', persistent = true })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:PERSIST', monitor = 'HEADLESS-PERSISTENT-TEST', persistent = true })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:PERSIST-2', monitor = 'HEADLESS-PERSISTENT-TEST', persistent = true })"));
 
     {
         auto str = getFromSocket("/workspaces");
@@ -45,7 +45,7 @@ static bool test() {
         EXPECT_CONTAINS(str, "HEADLESS-PERSISTENT-TEST");
     }
 
-    OK(getFromSocket("/dispatch focusmonitor HEADLESS-PERSISTENT-TEST"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-PERSISTENT-TEST' })"));
 
     {
         auto str = getFromSocket("/workspaces");

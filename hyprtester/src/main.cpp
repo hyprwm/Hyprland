@@ -59,12 +59,12 @@ static bool launchHyprland(std::string configPath, std::string binaryPath) {
 
     if (configPath == "") {
         std::error_code ec;
-        if (!std::filesystem::exists(cwd + "/test.conf", ec) || ec) {
+        if (!std::filesystem::exists(cwd + "/test.lua", ec) || ec) {
             NLog::log("{}No test config", Colors::RED);
             return false;
         }
 
-        configPath = cwd + "/test.conf";
+        configPath = cwd + "/test.lua";
     }
 
     NLog::log("{}Launching Hyprland", Colors::YELLOW);
@@ -222,7 +222,7 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}trying to load plugin", Colors::YELLOW);
     if (const auto R = getFromSocket(std::format("/plugin load {}", pluginPath)); R != "ok") {
         NLog::log("{}Failed to load the test plugin: {}", Colors::RED, R);
-        getFromSocket("/dispatch exit 1");
+        getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
 
@@ -248,7 +248,7 @@ int main(int argc, char** argv, char** envp) {
 
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);
-    getFromSocket("/dispatch exit");
+    getFromSocket("/dispatch hl.dsp.exit()");
 
     NLog::log("\n{}Summary:\n\tPASSED: {}{}{}/{}\n\tFAILED: {}{}{}/{}\n{}", Colors::RESET, Colors::GREEN, TESTS_PASSED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, Colors::RED,
               TESTS_FAILED, Colors::RESET, TESTS_PASSED + TESTS_FAILED, (TESTS_FAILED > 0 ? std::string{Colors::RED} + "\nSome tests failed.\n" : ""));

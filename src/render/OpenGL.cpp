@@ -34,6 +34,7 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "errorOverlay/Overlay.hpp"
+#include "helpers/Color.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -1079,7 +1080,10 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
-    shader->setUniformFloat4(SHADER_COLOR, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    const auto premultiplied = CHyprColor(col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    const auto converted     = convertColor(premultiplied, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, premultiplied.r, premultiplied.g, premultiplied.b, premultiplied.a);
 
     CBox transformedBox = box;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,

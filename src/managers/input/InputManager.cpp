@@ -1260,7 +1260,7 @@ void CInputManager::setPointerConfigs() {
         const auto HASCONFIG = Config::mgr()->deviceConfigExists(devname);
 
         if (HASCONFIG) {
-            const auto ENABLED = Config::mgr()->getDeviceInt(devname, "enabled");
+            const auto ENABLED = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "enabled") ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
             if (ENABLED && !m->m_connected) {
                 g_pPointerManager->attachPointer(m);
                 m->m_connected = true;

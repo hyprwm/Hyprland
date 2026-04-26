@@ -70,8 +70,8 @@ static bool startClient(SClient& client) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if (counter > 100) {
-            NLog::log("{}pointer-warp client took too long to open", Colors::RED);
-            return false;
+            NLog::log("{}pointer-warp client took too long to open, continuing", Colors::YELLOW);
+            break;
         }
     }
 

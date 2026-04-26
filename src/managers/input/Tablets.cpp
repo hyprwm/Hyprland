@@ -220,7 +220,7 @@ void CInputManager::onTabletButton(CTablet::SButtonEvent e) {
     const auto PTAB = e.tablet;
     if (!isTabletEnabled(PTAB))
         return;
-     
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.button.emit(e, info);
     if (info.cancelled)
@@ -244,7 +244,7 @@ void CInputManager::onTabletProximity(CTablet::SProximityEvent e) {
     const auto PTAB = e.tablet;
     if (!isTabletEnabled(PTAB))
         return;
-    
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.tablet.proximity.emit(e, info);
     if (info.cancelled)

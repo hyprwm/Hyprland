@@ -603,7 +603,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("debug:fifo_pending_workaround", "Fifo workaround for empty pending list", false),
         MS<Bool>("debug:render_solitary_wo_damage", "Render solitary window with empty damage", false),
         MS<Bool>("debug:vfr", "controls the VFR status of Hyprland. Do not turn off unless debugging", true),
-        MS<Int>("debug:invalidate_fp16", "allow fp16 buffer invalidation.", 2, {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
+        MS<Int>("debug:invalidate_fp16", "allow fp16 buffer invalidation.", 1, {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
 
         /*
          * layout:

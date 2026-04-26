@@ -5,7 +5,6 @@
 #ifndef SHADOW_GLSL
 #define SHADOW_GLSL
 
-#include "cm_helpers.glsl"
 #include "rounding.glsl"
 
 float pixAlphaRoundedDistance(float distanceToCorner, float radius, float range, float shadowPower) {
@@ -54,30 +53,8 @@ vec4[2]
 #else
 vec4
 #endif
-    getShadow(vec4 pixColor, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight,
-              vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius
-#if USE_CM
-              ,
-              int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
-#if USE_ICC
-              ,
-              highp sampler3D iccLut3D, float iccLutSize
-#else
-#if USE_TONEMAP || USE_SDR_MOD
-              ,
-              mat3 targetPrimariesXYZ
-#endif
-#if USE_TONEMAP
-              ,
-              float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance
-#endif
-#if USE_SDR_MOD
-              ,
-              float sdrSaturation, float sdrBrightnessMultiplier
-#endif
-#endif
-#endif
-    ) {
+    getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight,
+              vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius) {
     float radius        = range + borderRadius;
     float originalAlpha = pixColor[3];
 
@@ -144,33 +121,12 @@ vec4
     // premultiply
     pixColor.rgb *= pixColor[3];
 
-#if USE_CM
 #if USE_MIRROR
-    vec4[2] pixColors =
-#else
-    pixColor =
-#endif
-        doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
-#if USE_ICC
-                          ,
-                          iccLut3D, iccLutSize
-#else
-#if USE_TONEMAP || USE_SDR_MOD
-                          ,
-                          targetPrimariesXYZ
-#endif
-#if USE_TONEMAP
-                          ,
-                          maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance
-#endif
-#if USE_SDR_MOD
-                          ,
-                          sdrSaturation, sdrBrightnessMultiplier
-#endif
-#endif
-        );
-#endif
-#if USE_MIRROR
+    vec4[2] pixColors;
+    pixColors[0] = pixColor;
+    pixColors[1] = colorSRGB;
+    pixColors[1].a = pixColor.a;
+    pixColors[1].rgb *= pixColors[1].a;
     return pixColors;
 #else
     return pixColor;

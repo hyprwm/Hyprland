@@ -126,6 +126,7 @@ void CShader::getUniformLocations() {
 
     m_uniformLocations[SHADER_PROJ]        = getUniform("proj");
     m_uniformLocations[SHADER_COLOR]       = getUniform("color");
+    m_uniformLocations[SHADER_COLOR_SRGB]  = getUniform("colorSRGB");
     m_uniformLocations[SHADER_ALPHA_MATTE] = getUniform("texMatte");
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 

@@ -2243,14 +2243,12 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
-    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
-    if (!skipCM)
-        passCMUniforms(shader, getDefaultImageDescription());
+    auto shader = useShader(getShaderVariant(SH_FRAG_SHADOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
+    const auto converted = convertColor(col, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a * a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));

@@ -128,7 +128,7 @@ static std::string dirToString(Math::eDirection dir) {
 ActionResult Actions::closeWindow(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->m_closeableSince > Time::steadyNow())
         return std::unexpected("can't close window, it's not closeable yet (noclosefor)");
@@ -141,7 +141,7 @@ ActionResult Actions::closeWindow(std::optional<PHLWINDOW> w) {
 ActionResult Actions::killWindow(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     kill(window->getPID(), SIGKILL);
 
@@ -151,7 +151,7 @@ ActionResult Actions::killWindow(std::optional<PHLWINDOW> w) {
 ActionResult Actions::signalWindow(int sig, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (sig < 1 || sig > 31)
         return std::unexpected(std::format("Invalid signal number {}", sig));
@@ -164,7 +164,7 @@ ActionResult Actions::signalWindow(int sig, std::optional<PHLWINDOW> w) {
 ActionResult Actions::floatWindow(eTogglableAction action, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     bool wantFloat = false;
     switch (action) {
@@ -197,7 +197,7 @@ ActionResult Actions::floatWindow(eTogglableAction action, std::optional<PHLWIND
 ActionResult Actions::pseudoWindow(eTogglableAction action, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     bool wantPseudo = false;
     switch (action) {
@@ -214,7 +214,7 @@ ActionResult Actions::pseudoWindow(eTogglableAction action, std::optional<PHLWIN
 ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!window->m_isFloating || window->isFullscreen())
         return std::unexpected("Window does not qualify to be pinned");
@@ -253,7 +253,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
 ActionResult Actions::fullscreenWindow(eFullscreenMode mode, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isEffectiveInternalFSMode(mode))
         g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
@@ -266,7 +266,7 @@ ActionResult Actions::fullscreenWindow(eFullscreenMode mode, std::optional<PHLWI
 ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     window->m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_SET_PROP));
 
@@ -286,7 +286,7 @@ ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreen
 ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!ws)
         return std::unexpected("Invalid workspace");
@@ -416,7 +416,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
 
 ActionResult Actions::focus(PHLWINDOW window) {
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     const auto PWORKSPACE = window->m_workspace;
     if (!PWORKSPACE)
@@ -437,7 +437,7 @@ ActionResult Actions::focus(PHLWINDOW window) {
 ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         return std::unexpected("Can't move fullscreen window");
@@ -453,7 +453,7 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
 ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         return std::unexpected("Can't swap fullscreen window");
@@ -473,7 +473,7 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
 ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!other)
         return std::unexpected("No window to swap with");
@@ -535,7 +535,7 @@ ActionResult Actions::center(std::optional<PHLWINDOW> w) {
 ActionResult Actions::moveCursorToCorner(int corner, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (corner < 0 || corner > 3)
         return std::unexpected("Corner must be 0-3");
@@ -557,7 +557,7 @@ ActionResult Actions::moveCursorToCorner(int corner, std::optional<PHLWINDOW> w)
 ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         return std::unexpected("Window is fullscreen");
@@ -578,7 +578,7 @@ ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<
 ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         return std::unexpected("Window is fullscreen");
@@ -593,7 +593,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
 ActionResult Actions::tag(const std::string& tagStr, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->m_ruleApplicator->m_tagKeeper.applyTag(tagStr)) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_TAG);
@@ -606,7 +606,7 @@ ActionResult Actions::tag(const std::string& tagStr, std::optional<PHLWINDOW> w)
 ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     const auto PLASTCYCLED =
         validMapped(window->m_lastCycledWindow) && window->m_lastCycledWindow->m_workspace == window->m_workspace ? window->m_lastCycledWindow.lock() : nullptr;
@@ -629,7 +629,7 @@ ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
 ActionResult Actions::alterZOrder(const std::string& mode, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (mode == "top")
         g_pCompositor->changeWindowZOrder(window, true);
@@ -679,7 +679,7 @@ static void parsePropTrivial(Desktop::Types::COverridableVar<T>& prop, const std
 ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, std::optional<PHLWINDOW> w) {
     auto PWINDOW = xtract(w);
     if (!PWINDOW)
-        return std::unexpected("No target found.");
+        return {};
 
     try {
         if (PROP == "max_size") {
@@ -832,7 +832,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
 ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
@@ -848,7 +848,7 @@ ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
 ActionResult Actions::changeGroupActive(bool forward, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!window->m_group)
         return std::unexpected("Window is not in a group");
@@ -864,7 +864,7 @@ ActionResult Actions::changeGroupActive(bool forward, std::optional<PHLWINDOW> w
 ActionResult Actions::setGroupActive(int index, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!window->m_group)
         return std::unexpected("Window is not in a group");
@@ -1287,7 +1287,7 @@ ActionResult Actions::moveIntoGroup(Math::eDirection direction, std::optional<PH
 
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
 
@@ -1310,7 +1310,7 @@ ActionResult Actions::moveOutOfGroup(Math::eDirection direction, std::optional<P
 
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!window->m_group)
         return std::unexpected("Window not in a group");
@@ -1341,7 +1341,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
 
     auto        window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (window->isFullscreen())
         return {};
@@ -1403,7 +1403,7 @@ ActionResult Actions::denyWindowFromGroup(eTogglableAction action) {
 ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
-        return std::unexpected("No target found.");
+        return {};
 
     if (!g_pSeatManager->m_keyboard)
         return std::unexpected("No keyboard");

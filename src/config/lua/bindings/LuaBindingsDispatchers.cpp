@@ -485,7 +485,7 @@ static int dsp_fullscreenWindowWithAction(lua_State* L) {
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
     if (!target)
-        return Internal::configError(L, "No target found.");
+        return 0;
 
     const bool currentlyMode = target->isEffectiveInternalFSMode(mode);
 
@@ -512,7 +512,7 @@ static int dsp_fullscreenState(lua_State* L) {
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
     if (!target)
-        return Internal::configError(L, "No target found.");
+        return 0;
 
     const auto CURRENT        = target->m_fullscreenState;
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;

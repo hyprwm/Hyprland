@@ -415,6 +415,9 @@ class CMonitor {
 
     // Resources
     UP<Monitor::CMonitorResources> m_resources;
+    // cached should contain one of predefined descriptions: BT2020 primaries with variable TF and SDR luminances or SRGB primaries with linear TF and variable luminances.
+    // avoids lookup for an id when ::from is used
+    NColorManagement::PImageDescription m_cachedInternalDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
 
     struct {
         CHyprSignalListener frame;

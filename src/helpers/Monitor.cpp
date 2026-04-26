@@ -2558,15 +2558,25 @@ PImageDescription CMonitor::workBufferImageDescription() {
     const bool  isHDRLikeTF =
         value.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || value.transferFunction == CM_TRANSFER_FUNCTION_HLG || value.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
 
-    if (isHDRLikeTF || value.windowsScRGB)
-        return LINEAR_IMAGE_DESCRIPTION;
+    const auto& cached = m_cachedInternalDescription->value();
 
-    return CImageDescription::from(SImageDescription{
-        .transferFunction = chooseTF(m_sdrEotf),
-        .primariesNameSet = true,
-        .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-        .primaries        = NColorPrimaries::BT2020,
-    });
+    // HDR
+    if (isHDRLikeTF || value.windowsScRGB) {
+        if (cached.primariesNamed != NColorManagement::CM_PRIMARIES_SRGB || cached.luminances != value.luminances)
+            m_cachedInternalDescription = LINEAR_IMAGE_DESCRIPTION->with(value.luminances);
+        return m_cachedInternalDescription;
+    }
+
+    // SDR
+    if (cached.primariesNamed != NColorManagement::CM_PRIMARIES_BT2020 || cached.transferFunction != chooseTF(m_sdrEotf))
+        m_cachedInternalDescription = CImageDescription::from(SImageDescription{
+            .transferFunction = chooseTF(m_sdrEotf),
+            .primariesNameSet = true,
+            .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
+            .primaries        = NColorPrimaries::BT2020,
+        });
+
+    return m_cachedInternalDescription;
 }
 
 WP<CMonitorResources> CMonitor::resources() {

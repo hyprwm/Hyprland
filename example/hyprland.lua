@@ -83,9 +83,7 @@ hl.config({
 
         layout = "dwindle",
     },
-})
 
-hl.config({
     decoration = {
         rounding       = 10,
         rounding_power = 2,
@@ -108,9 +106,7 @@ hl.config({
             vibrancy  = 0.1696,
         },
     },
-})
 
-hl.config({
     animations = {
         enabled = true,
     },

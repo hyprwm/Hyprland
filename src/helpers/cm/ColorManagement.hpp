@@ -89,6 +89,7 @@ namespace NColorManagement {
     }
     inline std::string tfToString(eTransferFunction tf) {
         switch (tf) {
+            case CM_TRANSFER_FUNCTION_LINEAR: return "TF:INTERNAL LINEAR NOT NORMALISED";
             case CM_TRANSFER_FUNCTION_BT1886: return "TF:BT1886";
             case CM_TRANSFER_FUNCTION_GAMMA22: return "TF:GAMMA22";
             case CM_TRANSFER_FUNCTION_GAMMA28: return "TF:GAMMA28";
@@ -399,6 +400,17 @@ namespace NColorManagement {
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,
         .luminances       = {.min = 0, .max = 10000, .reference = 80},
+    });
+
+    // For internal use only
+    // not normalised to 0.0 - 1.0
+    // luminance values should be set to default SDR settings in SDR mode and to output settings in HDR mode
+    // keep srgb primaries to avoid conversions for image exports
+    static const auto LINEAR_NN_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
     });
 }
 

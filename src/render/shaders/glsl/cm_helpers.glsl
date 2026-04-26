@@ -127,6 +127,7 @@ vec3 tfST240(vec3 color) {
 
 vec3 toLinearRGB(vec3 color, int tf) {
     switch (tf) {
+        case CM_TRANSFER_FUNCTION_LINEAR: return color;
         case CM_TRANSFER_FUNCTION_EXT_LINEAR: return color;
         case CM_TRANSFER_FUNCTION_ST2084_PQ: return tfInvPQ(color);
         case CM_TRANSFER_FUNCTION_GAMMA22: return pow(max(color, vec3(0.0)), vec3(2.2));
@@ -179,7 +180,7 @@ vec3 fromLinearRGB(vec3 color, int tf) {
 }
 
 vec4 fromLinear(vec4 color, int tf) {
-    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR || tf == CM_TRANSFER_FUNCTION_LINEAR)
         return color;
 
     color.rgb /= max(color.a, 0.001);
@@ -189,6 +190,9 @@ vec4 fromLinear(vec4 color, int tf) {
 }
 
 vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
+    if (tf == CM_TRANSFER_FUNCTION_LINEAR)
+        return color;
+
     color.rgb = (color.rgb - range[0] * color.a) / (range[1] - range[0]); // @gulafaran
     color.rgb /= max(color.a, 0.001);
     color.rgb = fromLinearRGB(color.rgb, tf);
@@ -231,7 +235,8 @@ vec4
     pixColor.rgb *= pixColor.a;
 #else
     pixColor.rgb = convertMatrix * pixColor.rgb;
-    pixColor     = toNit(pixColor, srcTFRange);
+    if (srcTF != CM_TRANSFER_FUNCTION_LINEAR)
+        pixColor = toNit(pixColor, srcTFRange);
     pixColor.rgb *= pixColor.a;
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);

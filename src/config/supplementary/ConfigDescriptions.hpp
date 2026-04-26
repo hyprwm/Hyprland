@@ -2269,9 +2269,24 @@ namespace Config::Supplementary {
         },
 
         /*
-     * Quirks
-    */
+         * Inputcapture
+        */
+        SConfigOptionDescription{
+            .value       = "inputcapture:capture_modifiers",
+            .description = "when enabled, modifiers are also captured and sent to the program",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{false},
+        },
+        SConfigOptionDescription{
+            .value       = "inputcapture:enforce_barriers",
+            .description = "if enabled, throw a wayland error when a invalid barrier is received",
+            .type        = CONFIG_OPTION_BOOL,
+            .data        = SConfigOptionDescription::SBoolData{true},
+        },
 
+        /*
+         * Quirks
+        */
         SConfigOptionDescription{
             .value       = "quirks:prefer_hdr",
             .description = "Prefer HDR mode. 0 - off, 1 - always, 2 - gamescope only",

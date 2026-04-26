@@ -833,6 +833,9 @@ CConfigManager::CConfigManager() {
 
     registerConfigVar("experimental:wp_cm_1_2", Hyprlang::INT{0});
 
+    registerConfigVar("inputcapture:capture_modifiers", Hyprlang::INT{0});
+    registerConfigVar("inputcapture:enforce_barriers", Hyprlang::INT{1});
+
     registerConfigVar("quirks:prefer_hdr", Hyprlang::INT{0});
     registerConfigVar("quirks:skip_non_kms_dmabuf_formats", Hyprlang::INT{0});
 
@@ -2181,6 +2184,8 @@ std::optional<std::string> CConfigManager::handlePermission(const std::string& c
         type = PERMISSION_TYPE_PLUGIN;
     else if (data[1] == "keyboard" || data[1] == "keeb")
         type = PERMISSION_TYPE_KEYBOARD;
+    else if (data[1] == "input-capture")
+        type = PERMISSION_TYPE_INPUT_CAPTURE;
 
     if (data[2] == "ask")
         mode = PERMISSION_RULE_ALLOW_MODE_ASK;

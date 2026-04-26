@@ -1203,7 +1203,7 @@ static int dsp_swapActiveWorkspaces(lua_State* L) {
 }
 
 static int hlWorkspaceToggleSpecial(lua_State* L) {
-    lua_pushstring(L, lua_tostring(L, lua_upvalueindex(1)));
+    lua_pushstring(L, lua_tostring(L, 1));
     lua_pushcclosure(L, dsp_toggleSpecial, 1);
     return 1;
 }

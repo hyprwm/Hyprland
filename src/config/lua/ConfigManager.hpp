@@ -139,9 +139,10 @@ namespace Config::Lua {
         void                                  cleanTimers();
         void                                  clearHeldLuaRefs();
         std::string                           luaConfigValueName(const std::string& s);
-        std::expected<void, std::string>      registerPluginLuaFunctionInState(uint64_t id, const std::string& nameSpace, const std::string& name);
-        std::expected<void, std::string>      unregisterPluginLuaFunctionInState(const std::string& nameSpace, const std::string& name);
+        std::expected<void, std::string>      registerPluginLuaFunctionInState(uint64_t id, const std::string& namespace_, const std::string& name);
+        std::expected<void, std::string>      unregisterPluginLuaFunctionInState(const std::string& namespace_, const std::string& name);
         void                                  erasePluginLuaFunction(uint64_t id);
+        void                                  reregisterLuaPluginFns();
 
         static void                           watchdogHook(lua_State* L, lua_Debug* ar);
 
@@ -170,17 +171,13 @@ namespace Config::Lua {
         struct SPluginLuaFunction {
             uint64_t              id     = 0;
             void*                 handle = nullptr;
-            std::string           nameSpace;
+            std::string           namespace_;
             std::string           name;
             Config::PLUGIN_LUA_FN fn = nullptr;
         };
+        std::vector<SPluginLuaFunction> m_pluginLuaFunctions;
 
-        std::unordered_map<uint64_t, SPluginLuaFunction>              m_pluginLuaFunctionsByID;
-        std::unordered_map<std::string, uint64_t>                     m_pluginLuaFunctionIDByPath;
-        std::unordered_map<void* /* HANDLE */, std::vector<uint64_t>> m_pluginLuaFunctionIDsByHandle;
-        uint64_t                                                      m_nextPluginLuaFunctionID = 1;
-
-        ILuaConfigValue*                                              findDeviceValue(const std::string& dev, const std::string& field);
+        ILuaConfigValue*                findDeviceValue(const std::string& dev, const std::string& field);
 
         friend class CConfigManagerPluginLuaTestAccessor;
     };

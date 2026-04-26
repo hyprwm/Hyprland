@@ -574,3 +574,14 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
 
     return rule;
 }
+
+bool Internal::hasTableField(lua_State* L, int tableIdx, const char* field) {
+    lua_getfield(L, tableIdx, field);
+    if (lua_isnoneornil(L, -1)) {
+        lua_pop(L, 1);
+        return false;
+    }
+
+    lua_pop(L, 1);
+    return true;
+}

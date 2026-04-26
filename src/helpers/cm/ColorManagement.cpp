@@ -7,6 +7,7 @@
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <map>
 #include <vector>
+#include <numeric>
 
 using namespace NColorManagement;
 using namespace NTransferFunction;

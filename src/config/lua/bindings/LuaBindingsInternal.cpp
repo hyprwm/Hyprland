@@ -208,7 +208,7 @@ std::optional<std::string> Internal::windowSelectorFromLuaSelectorOrObject(lua_S
             return std::nullopt;
         }
 
-        return std::format("0x{:x}", reinterpret_cast<uintptr_t>(w.get()));
+        return std::format("address:0x{:x}", reinterpret_cast<uintptr_t>(w.get()));
     }
 
     if (lua_isstring(L, idx) || lua_isnumber(L, idx))

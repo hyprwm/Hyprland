@@ -1,6 +1,7 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 //enum eTransferFunction
+#define CM_TRANSFER_FUNCTION_LINEAR     0 // not normalised
 #define CM_TRANSFER_FUNCTION_BT1886     1
 #define CM_TRANSFER_FUNCTION_GAMMA22    2
 #define CM_TRANSFER_FUNCTION_GAMMA28    3

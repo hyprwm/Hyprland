@@ -250,7 +250,7 @@ static int hlDefineSubmap(lua_State* L) {
 
     lua_pushvalue(L, fnIdx);
     if (mgr->guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, std::format("hl.define_submap(\"{}\")", name)) != LUA_OK) {
-        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", name ,lua_tostring(L, -1)));
+        mgr->addError(std::format("hl.define_submap: error in submap \"{}\": {}", name, lua_tostring(L, -1)));
         lua_pop(L, 1);
     }
 

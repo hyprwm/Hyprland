@@ -110,12 +110,15 @@ void CXDGForeignExporterProtocolV2::destroyExported(CXDGExportedResourceV2* r) {
 
 CXDGImportedResourceV2::CXDGImportedResourceV2(SP<CZxdgImportedV2> imported, SP<CXDGExportedResourceV2> exported, const std::string& handle) :
     m_resource(imported), m_exported(exported), m_handle(handle) {
-    if UNLIKELY (!m_resource->resource() || m_exported.expired())
+    if UNLIKELY (!good())
         return;
 
     m_resource->setData(this);
 
     m_resource->setSetParentOf([this](CZxdgImportedV2* r, wl_resource* surf) {
+        if (m_invalid)
+            return;
+
         const auto CHILDTOPLEVEL = xdgToplevelFromWlSurface(surf);
 
         if (!CHILDTOPLEVEL) {
@@ -127,13 +130,32 @@ CXDGImportedResourceV2::CXDGImportedResourceV2(SP<CZxdgImportedV2> imported, SP<
             CHILDTOPLEVEL->setNewParent(exportedTopLevel.lock());
     });
 
-    m_listeners.exportedDestroyed = m_exported->m_events.destroy.listen([this]() { PROTO::xdgForeignImporter->destroyImported(this); });
+    if (exported)
+        m_listeners.exportedDestroyed = exported->m_events.destroy.listen([this]() { invalidate(); });
+
     m_resource->setDestroy([this](CZxdgImportedV2*) { PROTO::xdgForeignImporter->destroyImported(this); });
     m_resource->setOnDestroy([this](CZxdgImportedV2*) { PROTO::xdgForeignImporter->destroyImported(this); });
+
+    if (m_exported.expired())
+        invalidate();
 }
 
-CXDGImportedResourceV2::~CXDGImportedResourceV2() {
-    m_resource->sendDestroyed();
+CXDGImportedResourceV2::~CXDGImportedResourceV2() {}
+
+bool CXDGImportedResourceV2::good() const {
+    return m_resource->resource();
+}
+
+void CXDGImportedResourceV2::invalidate() {
+    if (m_invalid)
+        return;
+
+    m_invalid = true;
+
+    if (!m_destroyedSent && m_resource && m_resource->resource()) {
+        m_destroyedSent = true;
+        m_resource->sendDestroyed();
+    }
 }
 
 CXDGForeignImporterProtocolV2::CXDGForeignImporterProtocolV2(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -155,15 +177,11 @@ void CXDGForeignImporterProtocolV2::bindManager(wl_client* client, void* data, u
         auto              imported =
             m_imports.emplace_back(makeUnique<CXDGImportedResourceV2>(makeShared<CZxdgImportedV2>(importer->client(), importer->version(), id), exported, HANDLE)).get();
 
-        if UNLIKELY (!imported->m_resource->resource()) {
+        if UNLIKELY (!imported->good()) {
             wl_client_post_no_memory(importer->client());
             m_imports.pop_back();
             return;
         }
-
-        // Couldn't find the handle.
-        if UNLIKELY (imported->m_exported.expired())
-            destroyImported(imported);
     });
 
     RESOURCE->setDestroy([this](CZxdgImporterV2* r) { onImporterDestroyed(r); });

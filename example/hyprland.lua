@@ -1,11 +1,11 @@
 -- This is an example Hyprland Lua config file.
 -- Refer to the wiki for more information.
--- https://wiki.hypr.land/Configuring/
+-- https://wiki.hypr.land/Configuring/Start/
 
 -- Please note not all available settings / options are set here.
 -- For a full list, see the wiki
 
--- You can split this configuration into multiple files
+-- You can (and should!!) split this configuration into multiple files
 -- Create your files separately and then require them like this:
 -- require("myColors")
 
@@ -14,7 +14,7 @@
 ---- MONITORS ----
 ------------------
 
--- See https://wiki.hypr.land/Configuring/Monitors/
+-- See https://wiki.hypr.land/Configuring/Basics/Monitors/
 hl.monitor({
     output   = "",
     mode     = "preferred",
@@ -27,8 +27,6 @@ hl.monitor({
 ---- MY PROGRAMS ----
 ---------------------
 
--- See https://wiki.hypr.land/Configuring/Keywords/
-
 -- Set programs that you use
 local terminal    = "kitty"
 local fileManager = "dolphin"
@@ -39,6 +37,8 @@ local menu        = "hyprlauncher"
 ---- AUTOSTART ----
 -------------------
 
+-- See https://wiki.hypr.land/Configuring/Basics/Autostart/
+
 -- Autostart necessary processes (like notifications daemons, status bars, etc.)
 -- Or execute your favorite apps at launch like this:
 --
@@ -48,18 +48,12 @@ local menu        = "hyprlauncher"
 --   hl.exec_cmd("waybar & hyprpaper & firefox")
 -- end)
 
--- Timers return an object handle.
--- local demoTimer = hl.timer(function()
---     print("hello from timer")
--- end, { timeout = 1000, type = "repeat" })
--- demoTimer:set_enabled(false)
-
 
 -------------------------------
 ---- ENVIRONMENT VARIABLES ----
 -------------------------------
 
--- See https://wiki.hypr.land/Configuring/Environment-variables/
+-- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Environment-variables/
 
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
@@ -68,9 +62,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 ---- LOOK AND FEEL ----
 -----------------------
 
--- Refer to https://wiki.hypr.land/Configuring/Variables/
-
--- https://wiki.hypr.land/Configuring/Variables/#general
+-- Refer to https://wiki.hypr.land/Configuring/Basics/Variables/
 hl.config({
     general = {
         gaps_in  = 5,
@@ -78,7 +70,6 @@ hl.config({
 
         border_size = 2,
 
-        -- https://wiki.hypr.land/Configuring/Variables/#variable-types for info about colors
         col = {
             active_border   = { colors = {"rgba(33ccffee)", "rgba(00ff99ee)"}, angle = 45 },
             inactive_border = "rgba(595959aa)",
@@ -87,14 +78,13 @@ hl.config({
         -- Set to true to enable resizing windows by clicking and dragging on borders and gaps
         resize_on_border = false,
 
-        -- Please see https://wiki.hypr.land/Configuring/Tearing/ before you turn this on
+        -- Please see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Tearing/ before you turn this on
         allow_tearing = false,
 
         layout = "dwindle",
     },
 })
 
--- https://wiki.hypr.land/Configuring/Variables/#decoration
 hl.config({
     decoration = {
         rounding       = 10,
@@ -111,7 +101,6 @@ hl.config({
             color        = 0xee1a1a1a,
         },
 
-        -- https://wiki.hypr.land/Configuring/Variables/#blur
         blur = {
             enabled   = true,
             size      = 3,
@@ -121,21 +110,19 @@ hl.config({
     },
 })
 
--- https://wiki.hypr.land/Configuring/Variables/#animations
 hl.config({
     animations = {
         enabled = true,
     },
 })
 
--- Default curves, see https://wiki.hypr.land/Configuring/Animations/#curves
+-- Default curves and animations, see https://wiki.hypr.land/Configuring/Advanced-and-Cool/Animations/
 hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1}    } })
 hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1}    } })
 hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1}       } })
 hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1}    } })
 hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1}     } })
 
--- Default animations, see https://wiki.hypr.land/Configuring/Animations/
 hl.animation({ leaf = "global",        enabled = true,  speed = 10,   bezier = "default" })
 hl.animation({ leaf = "border",        enabled = true,  speed = 5.39, bezier = "easeOutQuint" })
 hl.animation({ leaf = "windows",       enabled = true,  speed = 4.79, bezier = "easeOutQuint" })
@@ -154,7 +141,7 @@ hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 1.21, bezier = "
 hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
 hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
 
--- Ref https://wiki.hypr.land/Configuring/Workspace-Rules/
+-- Ref https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 -- "Smart gaps" / "No gaps when only"
 -- uncomment all if you wish to use that.
 -- hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
@@ -172,28 +159,31 @@ hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "
 --     rounding    = 0,
 -- })
 
--- See https://wiki.hypr.land/Configuring/Dwindle-Layout/ for more
+-- See https://wiki.hypr.land/Configuring/Layouts/Dwindle-Layout/ for more
 hl.config({
     dwindle = {
         preserve_split = true, -- You probably want this
     },
 })
 
--- See https://wiki.hypr.land/Configuring/Master-Layout/ for more
+-- See https://wiki.hypr.land/Configuring/Layouts/Master-Layout/ for more
 hl.config({
     master = {
         new_status = "master",
     },
 })
 
--- See https://wiki.hypr.land/Configuring/Scrolling-Layout/ for more
+-- See https://wiki.hypr.land/Configuring/Layouts/Scrolling-Layout/ for more
 hl.config({
     scrolling = {
         fullscreen_on_one_column = true,
     },
 })
 
--- https://wiki.hypr.land/Configuring/Variables/#misc
+----------------
+----  MISC  ----
+----------------
+
 hl.config({
     misc = {
         force_default_wallpaper = -1,    -- Set to 0 or 1 to disable the anime mascot wallpapers
@@ -206,7 +196,6 @@ hl.config({
 ---- INPUT ----
 ---------------
 
--- https://wiki.hypr.land/Configuring/Variables/#input
 hl.config({
     input = {
         kb_layout  = "us",
@@ -225,7 +214,6 @@ hl.config({
     },
 })
 
--- See https://wiki.hypr.land/Configuring/Gestures/
 hl.gesture({
     fingers = 3,
     direction = "horizontal",
@@ -233,7 +221,7 @@ hl.gesture({
 })
 
 -- Example per-device config
--- See https://wiki.hypr.land/Configuring/Keywords/#per-device-input-configs for more
+-- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Devices/ for more
 hl.device({
     name        = "epic-mouse-v1",
     sensitivity = -0.5,
@@ -244,10 +232,9 @@ hl.device({
 ---- KEYBINDINGS ----
 ---------------------
 
--- See https://wiki.hypr.land/Configuring/Keywords/
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
--- Example binds, see https://wiki.hypr.land/Configuring/Binds/ for more
+-- Example binds, see https://wiki.hypr.land/Configuring/Basics/Binds/ for more
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + C", hl.dsp.window.close())
 -- closeWindowBind:set_enabled(false)
@@ -303,8 +290,8 @@ hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = tr
 ---- WINDOWS AND WORKSPACES ----
 --------------------------------
 
--- See https://wiki.hypr.land/Configuring/Window-Rules/ for more
--- See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
+-- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
+-- and https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
 
 -- Example window rules that are useful
 

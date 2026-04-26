@@ -262,6 +262,7 @@
 ---| "input.tablet.absolute_region_position"
 ---| "input.tablet.active_area_position"
 ---| "input.tablet.active_area_size"
+---| "input.tablet.enabled"
 ---| "input.tablet.left_handed"
 ---| "input.tablet.output"
 ---| "input.tablet.region_position"
@@ -1070,6 +1071,7 @@ hl = {}
 ---@field ['input.tablet.absolute_region_position'] boolean
 ---@field ['input.tablet.active_area_position'] HL.Vec2Like
 ---@field ['input.tablet.active_area_size'] HL.Vec2Like
+---@field ['input.tablet.enabled'] boolean
 ---@field ['input.tablet.left_handed'] boolean
 ---@field ['input.tablet.output'] string
 ---@field ['input.tablet.region_position'] HL.Vec2Like

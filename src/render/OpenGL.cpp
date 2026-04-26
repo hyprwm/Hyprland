@@ -1981,6 +1981,19 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         static auto PBLURIGNOREOPACITY = CConfigValue<Hyprlang::INT>("decoration:blur:ignore_opacity");
 
+        // handle ext-background-effect-v1 blur region if specified
+        CRegion blurClipRegion = data.clipRegion;
+        auto    PSURFACE       = Desktop::View::CWLSurface::fromResource(data.surface);
+        if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
+            CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
+            protocolBlur.scale(m_renderData.pMonitor->m_scale);
+            protocolBlur.translate(box.pos());
+            if (blurClipRegion.empty())
+                blurClipRegion = protocolBlur;
+            else
+                blurClipRegion.intersect(protocolBlur);
+        }
+
         g_pHyprRenderer->pushMonitorTransformEnabled(true);
         bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
         if (!data.blockBlurOptimization)
@@ -1999,7 +2012,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                                   .wrapY          = data.wrapY,
                                   .discardMode    = data.discardMode,
                                   .discardOpacity = data.discardOpacity,
-                                  .clipRegion     = data.clipRegion,
+                                  .clipRegion     = blurClipRegion,
                                   .currentLS      = data.currentLS,
 
                                   .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,

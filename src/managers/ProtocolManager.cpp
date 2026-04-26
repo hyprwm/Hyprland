@@ -52,6 +52,7 @@
 #include "../protocols/HyprlandSurface.hpp"
 #include "../protocols/ImageCaptureSource.hpp"
 #include "../protocols/ImageCopyCapture.hpp"
+#include "../protocols/BackgroundEffect.hpp"
 #include "../protocols/core/Seat.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -198,6 +199,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::fifo                = makeUnique<CFifoProtocol>(&wp_fifo_manager_v1_interface, 1, "Fifo");
     PROTO::xdgForeignExporter  = makeUnique<CXDGForeignExporterProtocolV2>(&zxdg_exporter_v2_interface, 1, "XDGForeignExporter");
     PROTO::xdgForeignImporter  = makeUnique<CXDGForeignImporterProtocolV2>(&zxdg_importer_v2_interface, 1, "XDGForeignImporter");
+    PROTO::backgroundEffect    = makeUnique<CBackgroundEffectProtocol>(&ext_background_effect_manager_v1_interface, 1, "BackgroundEffect");
 
     if (*PENABLECT)
         PROTO::commitTiming = makeUnique<CCommitTimingProtocol>(&wp_commit_timing_manager_v1_interface, 1, "CommitTiming");
@@ -309,6 +311,7 @@ CProtocolManager::~CProtocolManager() {
     PROTO::xdgForeignImporter.reset();
     PROTO::commitTiming.reset();
     PROTO::imageCaptureSource.reset();
+    PROTO::backgroundEffect.reset();
 
     for (auto& [_, lease] : PROTO::lease) {
         lease.reset();
@@ -365,6 +368,7 @@ bool CProtocolManager::isGlobalPrivileged(const wl_global* global) {
         PROTO::commitTiming->getGlobal(),
         PROTO::xdgForeignExporter->getGlobal(),
         PROTO::xdgForeignImporter->getGlobal(),
+        PROTO::backgroundEffect->getGlobal(),
         PROTO::sync     ? PROTO::sync->getGlobal()      : nullptr,
         PROTO::mesaDRM  ? PROTO::mesaDRM->getGlobal()   : nullptr,
         PROTO::linuxDma ? PROTO::linuxDma->getGlobal()  : nullptr,

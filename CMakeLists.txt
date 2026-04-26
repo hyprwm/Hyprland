@@ -561,6 +561,7 @@ protocolnew("staging/fifo" "fifo-v1" false)
 protocolnew("staging/commit-timing" "commit-timing-v1" false)
 protocolnew("staging/ext-image-capture-source" "ext-image-capture-source-v1" false)
 protocolnew("staging/ext-image-copy-capture" "ext-image-copy-capture-v1" false)
+protocolnew("staging/ext-background-effect" "ext-background-effect-v1" false)
 
 protocolwayland()
 

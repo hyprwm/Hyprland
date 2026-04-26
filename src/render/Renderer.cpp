@@ -3270,16 +3270,33 @@ bool IHyprRenderer::shouldBlur(PHLLS ls) {
         return false;
 
     static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    return *PBLUR && ls->m_ruleApplicator->blur().valueOrDefault();
+    if (!*PBLUR)
+        return false;
+
+    auto surface = ls->wlSurface();
+    if (surface && surface->m_hasBackgroundEffect)
+        return !surface->m_blurRegion.empty();
+
+    return ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
 bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     if (m_bRenderingSnapshot)
         return false;
 
-    static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    const bool  DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
-    return *PBLUR && !DONT_BLUR;
+    static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    if (!*PBLUR)
+        return false;
+
+    const bool DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
+    if (DONT_BLUR)
+        return false;
+
+    auto surface = w->wlSurface();
+    if (surface && surface->m_hasBackgroundEffect)
+        return !surface->m_blurRegion.empty();
+
+    return true;
 }
 
 bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {

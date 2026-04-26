@@ -1991,7 +1991,8 @@ bool CMonitor::attemptDirectScanout() {
     if (m_lastScanout.expired())
         m_prevDrmFormat = m_drmFormat;
 
-    const bool NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
+    const auto PREV_FORMAT = m_drmFormat;
+    const bool NEEDS_TEST  = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
     if (m_drmFormat != params.format) {
         m_output->state->setFormat(params.format);
         m_drmFormat = params.format;
@@ -2004,6 +2005,10 @@ bool CMonitor::attemptDirectScanout() {
 
     if (NEEDS_TEST && !m_state.test()) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
+        if (m_drmFormat != PREV_FORMAT) {
+            m_output->state->setFormat(PREV_FORMAT);
+            m_drmFormat = PREV_FORMAT;
+        }
         return false;
     }
 
@@ -2029,6 +2034,10 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!ok) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
+        if (m_drmFormat != PREV_FORMAT) {
+            m_output->state->setFormat(PREV_FORMAT);
+            m_drmFormat = PREV_FORMAT;
+        }
         m_lastScanout.reset();
         return false;
     }

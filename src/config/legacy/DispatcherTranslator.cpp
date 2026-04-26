@@ -203,7 +203,7 @@ static SDispatchResult fullscreenstate(const std::string& args) {
 }
 
 static SDispatchResult movetoworkspace(const std::string& args) {
-    PHLWINDOW   PWINDOW = nullptr;
+    PHLWINDOW   PWINDOW = Desktop::focusState()->window();
     std::string wsArgs  = args;
 
     if (args.contains(',')) {
@@ -219,7 +219,7 @@ static SDispatchResult movetoworkspace(const std::string& args) {
 }
 
 static SDispatchResult movetoworkspacesilent(const std::string& args) {
-    PHLWINDOW   PWINDOW = nullptr;
+    PHLWINDOW   PWINDOW = Desktop::focusState()->window();
     std::string wsArgs  = args;
 
     if (args.contains(',')) {

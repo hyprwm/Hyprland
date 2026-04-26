@@ -580,8 +580,24 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                 case MK_FULL_MATCH: found = true;
             }
         } else if (!k->sMkKeys.empty() && key.keyName.empty()) {
-            if (!k->release && mkKeysymSetMatches(k->sMkKeys, m_mkKeys) != MK_FULL_MATCH)
-                continue;
+            // we have a mkKeys array, and no key name.
+            // for binds with one key, use the legacy matching.
+            // for multi-key, use proper matching
+            const bool HAS_MULTIPLE_KEYS = k->sMkKeys.size() > 1;
+
+            if (HAS_MULTIPLE_KEYS) {
+                // check if we match fully and aren't releasing
+                // for multi-key binds, this is a requirement,
+                // but for single-key ones, this would fuck up user's expectations
+                // where SUPER + X could be blocked because you did SUPER + A and haven't released A yet.
+                // the downside? SUPER + K and SUPER + K + A will trigger two binds on SUPER + K + A
+                if (!k->release && mkKeysymSetMatches(k->sMkKeys, m_mkKeys) != MK_FULL_MATCH)
+                    continue;
+            }
+
+            // check for just the one match
+            // this is also needed for multi-key binds so that SUPER + A + K can't
+            // be actuated by SUPER + K + A
             if (key.keysym != k->sMkKeys.back())
                 continue;
         } else if (!key.keyName.empty()) {

@@ -127,7 +127,7 @@ static std::string jsonify(SP<IValue> v) {
         "default": [{}, {}],
         "current": [{}, {}]
     }},)#",
-            x->name(), x->description(), x->defaultVal().x, x->defaultVal().y, x->value().x, x->defaultVal().y);
+            x->name(), x->description(), x->defaultVal().x, x->defaultVal().y, x->value().x, x->value().y);
     }
 
     if (auto x = dc<CColorValue*>(v.get()); x) {

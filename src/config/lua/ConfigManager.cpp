@@ -349,52 +349,66 @@ void CConfigManager::init() {
 void CConfigManager::reload() {
     Event::bus()->m_events.config.preReload.emit();
 
+    Hyprutils::Utils::CScopeGuard x([this] {
+        m_isParsingConfig = false;
+        m_isFirstLaunch   = false;
+    });
+    m_isParsingConfig = true;
+
     m_mainConfigPath = Supplementary::Jeremy::getMainConfigPath()->path;
 
     // reset tracked paths; the searcher hook will re-populate them as require() runs
     m_configPaths.clear();
     m_configPaths.emplace_back(m_mainConfigPath);
 
-    // clear package.loaded for user modules so require() re-executes them and
-    // the searcher hook can re-track their paths.
-    lua_getglobal(m_lua, "package");
-    lua_getfield(m_lua, -1, "loaded");
-    static constexpr std::string_view STDLIB[] = {"_G", "coroutine", "debug", "io", "math", "os", "package", "string", "table", "utf8", "bit32", "jit"};
-    lua_pushnil(m_lua);
-    while (lua_next(m_lua, -2)) {
-        lua_pop(m_lua, 1); // pop value, keep key
-        if (lua_isstring(m_lua, -1)) {
-            std::string_view mod  = lua_tostring(m_lua, -1);
-            bool             skip = false;
-            for (const auto& s : STDLIB) {
-                if (mod == s) {
-                    skip = true;
-                    break;
+    auto phase1Load = [this]() {
+        // clear package.loaded for user modules so require() re-executes them and
+        // the searcher hook can re-track their paths.
+        lua_getglobal(m_lua, "package");
+        lua_getfield(m_lua, -1, "loaded");
+        static constexpr std::string_view STDLIB[] = {"_G", "coroutine", "debug", "io", "math", "os", "package", "string", "table", "utf8", "bit32", "jit"};
+        lua_pushnil(m_lua);
+        while (lua_next(m_lua, -2)) {
+            lua_pop(m_lua, 1); // pop value, keep key
+            if (lua_isstring(m_lua, -1)) {
+                std::string_view mod  = lua_tostring(m_lua, -1);
+                bool             skip = false;
+                for (const auto& s : STDLIB) {
+                    if (mod == s) {
+                        skip = true;
+                        break;
+                    }
+                }
+                if (!skip) {
+                    lua_pushvalue(m_lua, -1); // dup key
+                    lua_pushnil(m_lua);
+                    lua_settable(m_lua, -4); // package.loaded[key] = nil
                 }
             }
-            if (!skip) {
-                lua_pushvalue(m_lua, -1); // dup key
-                lua_pushnil(m_lua);
-                lua_settable(m_lua, -4); // package.loaded[key] = nil
-            }
         }
-    }
-    lua_pop(m_lua, 2); // pop loaded, package
+        lua_pop(m_lua, 2); // pop loaded, package
 
-    // phase 1: check syntax before clearing any state, so a broken syntax
-    // doesn't entirely fucking nuke the config and leave the user
-    // with no binds.
-    //
-    // this won't help if they are launching hyprland,
-    // which will be handled with emergency pcall
-    if (luaL_loadfile(m_lua, m_mainConfigPath.c_str()) != LUA_OK) {
-        m_errors.clear();
-        addError(lua_tostring(m_lua, -1));
-        lua_pop(m_lua, 1);
-        m_lastConfigVerificationWasSuccessful = false;
-        postConfigReload();
-        return;
-    }
+        // phase 1: check syntax before clearing any state, so a broken syntax
+        // doesn't entirely fucking nuke the config and leave the user
+        // with no binds.
+        //
+        // this won't help if they are launching hyprland,
+        // which will be handled with emergency pcall
+        if (luaL_loadfile(m_lua, m_mainConfigPath.c_str()) != LUA_OK) {
+            m_errors.clear();
+            addError(lua_tostring(m_lua, -1));
+            lua_pop(m_lua, 1);
+            m_lastConfigVerificationWasSuccessful = false;
+            postConfigReload();
+            return;
+        }
+    };
+
+    // refresh lua state so we get rid of any stale state
+    reinitLuaState();
+
+    // restart phase 1 load, because our state is gone now.
+    phase1Load();
 
     // phase 2: syntax is valid, reset and load.
     Config::animationTree()->reset();
@@ -410,8 +424,6 @@ void CConfigManager::reload() {
     m_registeredPlugins.clear();
     m_eventHandler->clearEvents();
     clearHeldLuaRefs();
-
-    m_isParsingConfig = true;
 
     if (g_pKeybindManager) {
         for (const auto& kb : g_pKeybindManager->m_keybinds) {
@@ -445,9 +457,6 @@ void CConfigManager::reload() {
     lua_gc(m_lua, LUA_GCCOLLECT, 0);
 
     postConfigReload();
-
-    m_isParsingConfig = false;
-    m_isFirstLaunch   = false;
 }
 
 void CConfigManager::postConfigReload() {
@@ -676,7 +685,7 @@ ILuaConfigValue* CConfigManager::findDeviceValue(const std::string& dev, const s
 
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
-    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field))
+    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field); v && v->setByUser())
         return (int)*sc<const Config::INTEGER*>(v->data());
     if (!fallback.empty() && m_configValues.contains(fallback))
         return (int)*sc<const Config::INTEGER*>(m_configValues.at(fallback)->data());
@@ -685,7 +694,7 @@ int CConfigManager::getDeviceInt(const std::string& dev, const std::string& fiel
 
 float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
-    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field))
+    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field); v && v->setByUser())
         return *sc<const Config::FLOAT*>(v->data());
     if (!fallback.empty() && m_configValues.contains(fallback))
         return *sc<const Config::FLOAT*>(m_configValues.at(fallback)->data());
@@ -695,8 +704,8 @@ float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& 
 Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
     auto        toVec    = [](const Config::VEC2& v) -> Vector2D { return {v.x, v.y}; };
-    if (auto* val = findDeviceValue(normalizeDeviceName(dev), field))
-        return toVec(*sc<const Config::VEC2*>(val->data()));
+    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field); v && v->setByUser())
+        return toVec(*sc<const Config::VEC2*>(v->data()));
     if (!fallback.empty() && m_configValues.contains(fallback))
         return toVec(*sc<const Config::VEC2*>(m_configValues.at(fallback)->data()));
     return {0, 0};
@@ -705,7 +714,7 @@ Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string&
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
     auto        clean    = [](const Config::STRING& s) -> std::string { return s == STRVAL_EMPTY ? "" : s; };
-    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field))
+    if (auto* v = findDeviceValue(normalizeDeviceName(dev), field); v && v->setByUser())
         return clean(*sc<const Config::STRING*>(v->data()));
     if (!fallback.empty() && m_configValues.contains(fallback))
         return clean(*sc<const Config::STRING*>(m_configValues.at(fallback)->data()));
@@ -713,7 +722,8 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 bool CConfigManager::deviceConfigExplicitlySet(const std::string& dev, const std::string& field) {
-    return findDeviceValue(normalizeDeviceName(dev), field) != nullptr;
+    auto v = findDeviceValue(normalizeDeviceName(dev), field);
+    return v && v->setByUser();
 }
 
 bool CConfigManager::deviceConfigExists(const std::string& dev) {
@@ -776,7 +786,7 @@ std::string CConfigManager::getErrors() {
 }
 
 std::string CConfigManager::getConfigString() {
-    return "FIXME:";
+    return "Not supported under lua";
 }
 
 std::string CConfigManager::currentConfigPath() {

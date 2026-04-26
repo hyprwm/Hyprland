@@ -1139,8 +1139,8 @@ void CInputManager::applyConfigToKeyboard(SP<IKeyboard> pKeyboard) {
     const auto VARIANT  = Config::mgr()->getDeviceString(devname, "kb_variant", "input:kb_variant");
     const auto OPTIONS  = Config::mgr()->getDeviceString(devname, "kb_options", "input:kb_options");
 
-    const auto ENABLED    = HASCONFIG ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
-    const auto ALLOWBINDS = HASCONFIG ? Config::mgr()->getDeviceInt(devname, "keybinds") : true;
+    const auto ENABLED    = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "enabled") ? Config::mgr()->getDeviceInt(devname, "enabled") : true;
+    const auto ALLOWBINDS = HASCONFIG && Config::mgr()->deviceConfigExplicitlySet(devname, "keybinds") ? Config::mgr()->getDeviceInt(devname, "keybinds") : true;
 
     pKeyboard->m_enabled           = ENABLED;
     pKeyboard->m_resolveBindsBySym = RESOLVEBINDSBYSYM;

@@ -446,9 +446,9 @@ static int hlEnv(lua_State* L) {
     if (dbus) {
         std::string CMD;
 #ifdef USES_SYSTEMD
-        CMD = "systemctl --user import-environment " + name + " && hash dbus-update-activation-environment 2>/dev/null && ";
+        CMD = "systemctl --user import-environment '" + name + "' && hash dbus-update-activation-environment 2>/dev/null && ";
 #endif
-        CMD += "dbus-update-activation-environment --systemd " + name;
+        CMD += "dbus-update-activation-environment --systemd '" + name + "'";
         if (mgr->isFirstLaunch())
             Config::Supplementary::executor()->addExecOnce({CMD, false});
         else

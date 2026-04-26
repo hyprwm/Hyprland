@@ -402,8 +402,13 @@ static int hlTimer(lua_State* L) {
             }
 
             if (!repeat) {
-                luaL_unref(L, LUA_REGISTRYINDEX, ref);
-                std::erase_if(mgr->m_luaTimers, [&self](const auto& lt) { return lt.timer == self; });
+                const auto HAS = std::ranges::find_if(mgr->m_luaTimers, [&self](const auto& lt) { return lt.timer == self; }) != mgr->m_luaTimers.end();
+
+                // avoid double-unref if this timer triggered a reload
+                if (HAS) {
+                    luaL_unref(L, LUA_REGISTRYINDEX, ref);
+                    std::erase_if(mgr->m_luaTimers, [&self](const auto& lt) { return lt.timer == self; });
+                }
             }
         },
         nullptr);

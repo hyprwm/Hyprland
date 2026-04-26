@@ -819,7 +819,7 @@ static int hlWindowMove(lua_State* L) {
     if (mon) {
         auto follow = Internal::tableOptBool(L, 1, "follow");
         bool silent = follow.has_value() && !*follow;
-        lua_pushstring(L, ws->c_str());
+        lua_pushstring(L, mon->c_str());
         lua_pushboolean(L, silent);
         Internal::pushWindowUpval(L, 1);
         lua_pushcclosure(L, dsp_moveToMonitor, 3);
@@ -1204,7 +1204,7 @@ static int dsp_swapActiveWorkspaces(lua_State* L) {
 
 static int hlWorkspaceToggleSpecial(lua_State* L) {
     lua_pushstring(L, lua_tostring(L, lua_upvalueindex(1)));
-    lua_pushcclosure(L, dsp_toggleSpecial, 2);
+    lua_pushcclosure(L, dsp_toggleSpecial, 1);
     return 1;
 }
 

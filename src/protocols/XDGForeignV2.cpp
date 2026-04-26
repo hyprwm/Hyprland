@@ -46,6 +46,19 @@ std::string_view CXDGExportedResourceV2::handle() const {
 
 CXDGForeignExporterProtocolV2::CXDGForeignExporterProtocolV2(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {}
 
+static SP<CXDGToplevelResource> xdgToplevelFromWlSurface(wl_resource* surface) {
+    const auto wlSurf = CWLSurfaceResource::fromResource(surface);
+
+    if (!wlSurf || !wlSurf->m_role || wlSurf->m_role->role() != SURFACE_ROLE_XDG_SHELL)
+        return nullptr;
+
+    const auto xdgSurfResource = sc<CXDGSurfaceRole*>(wlSurf->m_role.get())->m_xdgSurface.lock();
+    if (!xdgSurfResource || xdgSurfResource->m_toplevel.expired())
+        return nullptr;
+
+    return xdgSurfResource->m_toplevel.lock();
+}
+
 void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
     const auto RESOURCE = m_exporters.emplace_back(makeUnique<CZxdgExporterV2>(client, ver, id)).get();
 
@@ -56,21 +69,16 @@ void CXDGForeignExporterProtocolV2::bindManager(wl_client* client, void* data, u
     }
 
     RESOURCE->setExportToplevel([this](CZxdgExporterV2* exporter, uint32_t id, wl_resource* surface) {
-        auto wlSurf = CWLSurfaceResource::fromResource(surface);
+        auto TOPLEVEL = xdgToplevelFromWlSurface(surface);
 
-        if (wlSurf->m_role != SURFACE_ROLE_XDG_SHELL) {
+        if (!TOPLEVEL) {
             exporter->error(zxdgExporterV2Error::ZXDG_EXPORTER_V2_ERROR_INVALID_SURFACE, "surface must be an xdg_toplevel");
             return;
         }
 
-        auto xdgSurfResource = sc<CXDGSurfaceRole*>(wlSurf->m_role.get())->m_xdgSurface.lock();
-        if (xdgSurfResource->m_toplevel.expired())
-            return;
-
-        auto              xdgSurf = xdgSurfResource->m_toplevel.lock();
-        const std::string HANDLE  = g_pTokenManager->getRandomUUID();
+        const std::string HANDLE = g_pTokenManager->getRandomUUID();
         const auto [ELM, EMPLACED] =
-            m_exported.emplace(HANDLE, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), exporter->version(), id), xdgSurf, HANDLE));
+            m_exported.emplace(HANDLE, makeShared<CXDGExportedResourceV2>(makeShared<CZxdgExportedV2>(exporter->client(), exporter->version(), id), TOPLEVEL, HANDLE));
 
         // This should only happen if we have our generated handles collide.
         if UNLIKELY (!EMPLACED) {
@@ -108,19 +116,15 @@ CXDGImportedResourceV2::CXDGImportedResourceV2(SP<CZxdgImportedV2> imported, SP<
     m_resource->setData(this);
 
     m_resource->setSetParentOf([this](CZxdgImportedV2* r, wl_resource* surf) {
-        const auto CHILDSURF = CWLSurfaceResource::fromResource(surf);
+        const auto CHILDTOPLEVEL = xdgToplevelFromWlSurface(surf);
 
-        if (CHILDSURF->m_role != SURFACE_ROLE_XDG_SHELL) {
+        if (!CHILDTOPLEVEL) {
             m_resource->error(zxdgImportedV2Error::ZXDG_IMPORTED_V2_ERROR_INVALID_SURFACE, "surface must be an xdg_toplevel");
             return;
         }
 
-        const auto CHILDXDGSURF = sc<CXDGSurfaceRole*>(CHILDSURF->m_role.get())->m_xdgSurface.lock();
-        if (CHILDXDGSURF->m_toplevel.expired())
-            return;
-
         if LIKELY (auto exportedTopLevel = m_exported->xdgSurf(); !exportedTopLevel.expired())
-            CHILDXDGSURF->m_toplevel->setNewParent(exportedTopLevel.lock());
+            CHILDTOPLEVEL->setNewParent(exportedTopLevel.lock());
     });
 
     m_listeners.exportedDestroyed = m_exported->m_events.destroy.listen([this]() { PROTO::xdgForeignImporter->destroyImported(this); });

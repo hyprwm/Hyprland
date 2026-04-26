@@ -9,7 +9,7 @@
 #include "../../event/EventBus.hpp"
 #include "../../config/ConfigManager.hpp"
 static bool isTabletEnabled(const SP<CTablet>& tab) {
-    return Config::mgr()->getDeviceInt(tab->m_hlName, "enabled", "input:tablet:enabled");
+    return Config::mgr()->getDeviceInt(tab->m_hlName, "enabled", "input:tablet:enabled") != 0;
 }
 
 static void unfocusTool(SP<CTabletTool> tool) {

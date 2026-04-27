@@ -102,24 +102,61 @@ size_t CAlgorithm::floatingTargets() const {
 }
 
 void CAlgorithm::recalculate() {
-    m_tiled->recalculate();
-    m_floating->recalculate();
+    // Fix for crash when XWayland windows change fullscreen state
+    // Check for null pointers first
+    if (!m_tiled || !m_floating) {
+        Log::logger->log(Log::ERR, "CAlgorithm::recalculate() called with null algorithm pointers");
+        return;
+    }
 
-    const auto PWORKSPACE = m_space->workspace();
-    if (!PWORKSPACE)
+    // Check workspace and monitor state BEFORE recalculating
+    // This prevents the crash when workspace loses monitor during fullscreen transition
+    const auto PSPACE = m_space.lock();
+    if (!PSPACE) {
+        Log::logger->log(Log::WARN, "CAlgorithm::recalculate() called with expired space");
+        return;
+    }
+
+    const auto PWORKSPACE = PSPACE->workspace();
+    if (!PWORKSPACE) {
+        Log::logger->log(Log::WARN, "CAlgorithm::recalculate() called with no workspace");
+        return;
+    }
+
+    if (!PWORKSPACE->m_monitor) {
+        // This is the exact condition that causes the crash
+        Log::logger->log(Log::WARN, "CAlgorithm::recalculate() called with workspace that has no monitor - skipping (fullscreen transition?)");
+        return;
+    }
+
+    // Wrap recalculate calls in exception handler to catch bad_variant_access
+    try {
+        m_tiled->recalculate();
+        m_floating->recalculate();
+    } catch (const std::bad_variant_access& e) {
+        Log::logger->log(Log::ERR, "CAlgorithm::recalculate() caught bad_variant_access - memory corruption detected");
+        return;
+    } catch (const std::exception& e) {
+        Log::logger->log(Log::ERR, "CAlgorithm::recalculate() caught exception: " + std::string(e.what()));
+        return;
+    }
+
+    // Re-check workspace after recalculate in case state changed
+    const auto PWORKSPACE_AFTER = m_space->workspace();
+    if (!PWORKSPACE_AFTER)
         return;
 
-    const auto PMONITOR = PWORKSPACE->m_monitor;
+    const auto PMONITOR = PWORKSPACE_AFTER->m_monitor;
 
-    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
+    if (PWORKSPACE_AFTER->m_hasFullscreenWindow && PMONITOR) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
+        const auto PFULLWINDOW = PWORKSPACE_AFTER->getFullscreenWindow();
 
         if (PFULLWINDOW) {
-            if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+            if (PWORKSPACE_AFTER->m_fullscreenMode == FSMODE_FULLSCREEN) {
                 *PFULLWINDOW->m_realPosition = PMONITOR->m_position;
                 *PFULLWINDOW->m_realSize     = PMONITOR->m_size;
-            } else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED)
+            } else if (PWORKSPACE_AFTER->m_fullscreenMode == FSMODE_MAXIMIZED)
                 PFULLWINDOW->layoutTarget()->setPositionGlobal(m_space->workArea());
         }
 

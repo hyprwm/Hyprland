@@ -42,6 +42,7 @@ struct SKeybind {
     bool                            longPress       = false;
     bool                            mouse           = false;
     bool                            nonConsuming    = false;
+    bool                            autoConsuming   = false;
     bool                            transparent     = false;
     bool                            ignoreMods      = false;
     bool                            multiKey        = false;

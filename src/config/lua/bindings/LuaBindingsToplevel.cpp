@@ -166,6 +166,7 @@ static int hlBind(lua_State* L) {
         kb.locked          = getBool("locked");
         kb.release         = getBool("release");
         kb.nonConsuming    = getBool("non_consuming");
+        kb.autoConsuming   = getBool("auto_consuming");
         kb.transparent     = getBool("transparent");
         kb.ignoreMods      = getBool("ignore_mods");
         kb.dontInhibit     = getBool("dont_inhibit");

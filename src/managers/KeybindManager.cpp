@@ -636,7 +636,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (pressed && k->release && !SPECIALDISPATCHER) {
-            if (k->nonConsuming)
+            if (k->nonConsuming || k->autoConsuming)
                 continue;
 
             found = true; // suppress the event
@@ -655,7 +655,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
                     continue;
 
             } else if (!k->release && !SPECIALDISPATCHER) {
-                if (k->nonConsuming)
+                if (k->nonConsuming || k->autoConsuming)
                     continue;
 
                 found = true; // suppress the event
@@ -720,7 +720,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(KEEB->m_repeatDelay));
         }
 
-        if (!k->nonConsuming)
+        if (!k->nonConsuming && !(k->autoConsuming && !res.success))
             found = true;
     }
 

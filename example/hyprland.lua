@@ -69,7 +69,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 
 -- hl.config({
 --   ecosystem = {
---     enforce_permissions = 1,
+--     enforce_permissions = true,
 --   },
 -- })
 

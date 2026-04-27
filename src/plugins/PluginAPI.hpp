@@ -187,7 +187,7 @@ namespace HyprlandAPI {
 
         returns: the output (as in hyprctl)
     */
-    APICALL std::string invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format = "");
+    APICALL [[nodiscard]] std::string invokeHyprctlCommand(const std::string& call, const std::string& args, const std::string& format = "");
 
     /*
         Adds a layout to Hyprland.
@@ -210,23 +210,23 @@ namespace HyprlandAPI {
     /*
         Algorithm fns. Used for registering and removing. Return success.
     */
-    APICALL bool addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory);
-    APICALL bool addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory);
-    APICALL bool removeAlgo(HANDLE handle, const std::string& name);
+    APICALL [[nodiscard]] bool addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory);
+    APICALL [[nodiscard]] bool addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory);
+    APICALL [[nodiscard]] bool removeAlgo(HANDLE handle, const std::string& name);
 
     /*
         Queues a config reload. Does not take effect immediately.
 
         returns: true on success. False otherwise.
     */
-    APICALL bool reloadConfig();
+    APICALL [[nodiscard]] bool reloadConfig();
 
     /*
         Adds a notification.
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs);
+    APICALL [[nodiscard]] bool addNotification(HANDLE handle, const std::string& text, const CHyprColor& color, const float timeMs);
 
     /*
         Creates a trampoline function hook to an internal hl func.
@@ -235,7 +235,7 @@ namespace HyprlandAPI {
 
         !WARNING! Hooks are *not* guaranteed any API stability. Internal methods may be removed, added, or renamed. Consider preferring the API whenever possible.
     */
-    APICALL CFunctionHook* createFunctionHook(HANDLE handle, const void* source, const void* destination);
+    APICALL [[nodiscard]] CFunctionHook* createFunctionHook(HANDLE handle, const void* source, const void* destination);
 
     /*
         Removes a trampoline function hook. Will unhook if still hooked.
@@ -244,7 +244,7 @@ namespace HyprlandAPI {
 
         !WARNING! Hooks are *not* guaranteed any API stability. Internal methods may be removed, added, or renamed. Consider preferring the API whenever possible.
     */
-    APICALL bool removeFunctionHook(HANDLE handle, CFunctionHook* hook);
+    APICALL [[nodiscard]] bool removeFunctionHook(HANDLE handle, CFunctionHook* hook);
 
     /*
         Gets a function address from a signature.
@@ -261,14 +261,14 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, UP<IHyprWindowDecoration> pDecoration);
+    APICALL [[nodiscard]] bool addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, UP<IHyprWindowDecoration> pDecoration);
 
     /*
         Removes a window decoration
 
         returns: true on success. False otherwise.
     */
-    APICALL bool removeWindowDecoration(HANDLE handle, IHyprWindowDecoration* pDecoration);
+    APICALL [[nodiscard]] bool removeWindowDecoration(HANDLE handle, IHyprWindowDecoration* pDecoration);
 
     /*
         Adds a keybind dispatcher.
@@ -284,14 +284,14 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addDispatcherV2(HANDLE handle, const std::string& name, std::function<SDispatchResult(std::string)> handler);
+    APICALL [[nodiscard]] bool addDispatcherV2(HANDLE handle, const std::string& name, std::function<SDispatchResult(std::string)> handler);
 
     /*
         Removes a keybind dispatcher.
 
         returns: true on success. False otherwise.
     */
-    APICALL bool removeDispatcher(HANDLE handle, const std::string& name);
+    APICALL [[nodiscard]] bool removeDispatcher(HANDLE handle, const std::string& name);
 
     /*
         Adds a notification.
@@ -306,7 +306,7 @@ namespace HyprlandAPI {
 
         returns: true on success. False otherwise.
     */
-    APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data);
+    APICALL [[nodiscard]] bool addNotificationV2(HANDLE handle, const std::unordered_map<std::string, std::any>& data);
 
     /*
         Returns a vector of found functions matching the provided name.
@@ -315,27 +315,27 @@ namespace HyprlandAPI {
 
         Empty means either none found or handle was invalid
     */
-    APICALL std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
+    APICALL [[nodiscard]] std::vector<SFunctionMatch> findFunctionsByName(HANDLE handle, const std::string& name);
 
     /*
         Returns the hyprland version data. It's highly advised to not run plugins compiled
         for a different hash.
     */
-    APICALL SVersionInfo getHyprlandVersion(HANDLE handle);
+    APICALL [[nodiscard]] SVersionInfo getHyprlandVersion(HANDLE handle);
 
     /*
         Registers a hyprctl command
 
         returns: Pointer. Nullptr on fail.
     */
-    APICALL SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
+    APICALL [[nodiscard]] SP<SHyprCtlCommand> registerHyprCtlCommand(HANDLE handle, SHyprCtlCommand cmd);
 
     /*
         Unregisters a hyprctl command
 
         returns: true on success. False otherwise.
     */
-    APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
+    APICALL [[nodiscard]] bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
 
     /*
         Add a new config value. Keep the pointer, you can use it for retrieving the value.

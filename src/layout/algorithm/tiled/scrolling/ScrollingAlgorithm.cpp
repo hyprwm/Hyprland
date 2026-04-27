@@ -1852,6 +1852,161 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
     return {};
 }
 
+void CScrollingAlgorithm::moveTape(float delta) {
+    if (delta == 0.F)
+        return;
+
+    m_scrollingData->controller->adjustOffset(-delta);
+    m_scrollingData->recalculate();
+}
+
+void CScrollingAlgorithm::moveTapeNormalized(double delta) {
+    const double primary = primaryViewportSize();
+    if (primary <= 0.0 || delta == 0.0)
+        return;
+
+    moveTape(delta * primary);
+}
+
+void CScrollingAlgorithm::snapToGrid() {
+    snapToProjectedOffset(normalizedTapeOffset());
+}
+
+SP<SColumnData> CScrollingAlgorithm::snapToProjectedOffset(double projectedNormalizedOffset) {
+    static const auto PFSONONE   = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
+    static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
+
+    const auto        USABLE     = usableArea();
+    auto&             controller = *m_scrollingData->controller;
+
+    if (controller.stripCount() == 0)
+        return nullptr;
+
+    const double usablePrimary = controller.isPrimaryHorizontal() ? USABLE.w : USABLE.h;
+    if (usablePrimary <= 0.0)
+        return nullptr;
+
+    const double maxExtent = controller.calculateMaxExtent(USABLE, *PFSONONE);
+    if (maxExtent <= 0.0)
+        return nullptr;
+
+    const double projectedOffset = projectedNormalizedOffset * usablePrimary;
+
+    double       bestOffset      = 0.0;
+    double       bestDelta       = 0.0;
+    double       bestCenterDelta = 0.0;
+    size_t       bestIndex       = 0;
+    bool         foundSnap       = false;
+
+    auto         centerOffsetFor = [&](size_t index) {
+        const double start = controller.calculateStripStart(index, USABLE, *PFSONONE);
+        const double size  = controller.calculateStripSize(index, USABLE, *PFSONONE);
+
+        return start - (usablePrimary - size) / 2.0;
+    };
+
+    auto fitOffsetFor = [&](size_t index) {
+        const double start = controller.calculateStripStart(index, USABLE, *PFSONONE);
+        const double size  = controller.calculateStripSize(index, USABLE, *PFSONONE);
+        const double lo    = start - usablePrimary + size;
+        const double hi    = start;
+
+        if (lo > hi)
+            return centerOffsetFor(index);
+
+        const double center = centerOffsetFor(index);
+        const double edge   = projectedOffset < center ? lo : hi;
+
+        return std::abs(projectedOffset - center) <= std::abs(projectedOffset - edge) ? center : edge;
+    };
+
+    auto considerColumn = [&](size_t index) {
+        const double offset         = *PFITMETHOD == 1 ? fitOffsetFor(index) : centerOffsetFor(index);
+        const double delta          = std::abs(offset - projectedOffset);
+        const double start          = controller.calculateStripStart(index, USABLE, *PFSONONE);
+        const double size           = controller.calculateStripSize(index, USABLE, *PFSONONE);
+        const double centerDelta    = std::abs((start + size / 2.0) - (projectedOffset + usablePrimary / 2.0));
+        const bool   betterFit      = delta < bestDelta;
+        const bool   betterTieBreak = delta == bestDelta && centerDelta < bestCenterDelta;
+
+        if (!foundSnap || betterFit || betterTieBreak) {
+            bestOffset      = offset;
+            bestDelta       = delta;
+            bestCenterDelta = centerDelta;
+            bestIndex       = index;
+            foundSnap       = true;
+        }
+    };
+
+    for (size_t i = 0; i < controller.stripCount(); ++i)
+        considerColumn(i);
+
+    if (!foundSnap)
+        return nullptr;
+
+    controller.setOffset(bestOffset);
+    m_scrollingData->recalculate();
+
+    if (bestIndex < m_scrollingData->columns.size())
+        return m_scrollingData->columns[bestIndex];
+
+    return nullptr;
+}
+
+void CScrollingAlgorithm::focusColumn(SP<SColumnData> column) {
+    if (!column || column->targetDatas.empty()) {
+        focusTargetUpdate(nullptr);
+        return;
+    }
+
+    auto targetData = column->lastFocusedTarget.lock();
+
+    if (!targetData || targetData->column.lock() != column || !targetData->target || !Desktop::View::validMapped(targetData->target->window())) {
+        targetData = nullptr;
+
+        for (const auto& candidate : column->targetDatas) {
+            if (candidate->target && Desktop::View::validMapped(candidate->target->window())) {
+                targetData = candidate;
+                break;
+            }
+        }
+    }
+
+    focusTargetUpdate(targetData ? targetData->target.lock() : nullptr);
+}
+
+SP<SColumnData> CScrollingAlgorithm::getColumnAtViewportCenter() {
+    return m_scrollingData ? m_scrollingData->atCenter() : nullptr;
+}
+
+SP<SColumnData> CScrollingAlgorithm::currentColumn() {
+    auto focus = Desktop::focusState()->window();
+
+    if (!focus)
+        return nullptr;
+
+    auto data = dataFor(focus->layoutTarget());
+
+    if (!data)
+        return nullptr;
+
+    return data->column.lock();
+}
+
+double CScrollingAlgorithm::primaryViewportSize() {
+    const auto USABLE = usableArea();
+
+    return m_scrollingData->controller->isPrimaryHorizontal() ? USABLE.w : USABLE.h;
+}
+
+double CScrollingAlgorithm::normalizedTapeOffset() {
+    const double primary = primaryViewportSize();
+    if (primary <= 0.0)
+        return 0.0;
+
+    return m_scrollingData->controller->getOffset() / primary;
+}
+
 std::optional<Vector2D> CScrollingAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
 }

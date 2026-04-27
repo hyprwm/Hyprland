@@ -38,6 +38,7 @@
 #include "../../../managers/input/trackpad/gestures/ResizeGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/SpecialWorkspaceGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
+#include "../../../managers/input/trackpad/gestures/ScrollMoveGesture.hpp"
 #include "../../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -721,7 +722,7 @@ static int hlWorkspaceRule(lua_State* L) {
 
 static int hlGesture(lua_State* L) {
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.gesture: expected a table, e.g. { fingers = 3, direction = \"horizontal\", action = \"workspace\" }");
+        return Internal::configError(L, R"(hl.gesture: expected a table, e.g. { fingers = 3, direction = "horizontal", action = "workspace" })");
 
     CLuaConfigInt fingersParser(0, 2, 9);
     auto          fingersErr = Internal::parseTableField(L, 1, "fingers", fingersParser);
@@ -842,8 +843,10 @@ static int hlGesture(lua_State* L) {
             result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
         else if (action == "fullscreen")
             result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "cursorZoom")
+        else if (action == "cursor_zoom" || action == "cursorZoom")
             result = g_pTrackpadGestures->addGesture(makeUnique<CCursorZoomTrackpadGesture>(zoomLevel, mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
+        else if (action == "scroll_move")
+            result = g_pTrackpadGestures->addGesture(makeUnique<CScrollMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
         else if (action == "unset")
             result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
         else

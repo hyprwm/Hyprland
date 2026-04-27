@@ -274,14 +274,14 @@ size_t CScrollTapeController::getStripAtCenter(const CBox& usableArea, bool full
     if (m_strips.empty())
         return 0;
 
-    const double usablePrimary = getPrimary(usableArea.size());
-    double       currentPos    = m_offset;
+    const double viewportCenter = m_offset + getPrimary(usableArea.size()) / 2.0;
+    double       currentPos     = 0.0;
 
     for (size_t i = 0; i < m_strips.size(); ++i) {
         const double stripSize = calculateStripSize(i, usableArea, fullscreenOnOne);
         currentPos += stripSize;
 
-        if (currentPos >= usablePrimary / 2.0 - 2.0)
+        if (currentPos >= viewportCenter - 2.0)
             return i;
     }
 

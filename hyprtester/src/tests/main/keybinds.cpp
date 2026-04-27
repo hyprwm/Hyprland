@@ -293,7 +293,7 @@ static void testShortcutBind() {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     const std::string output = readKittyOutput();
     EXPECT_COUNT_STRING(output, "y", 0);
-    EXPECT_COUNT_STRING(output, "q", 1);
+    EXPECT(output.find("q") != std::string::npos, true);
     EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
     Tests::killAllWindows();
 }

@@ -644,6 +644,8 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
 
     if (ARGS[0] == "togglesplit") {
         if (CURRENT_NODE) {
+            if (!CURRENT_NODE->pParent)
+                return {};
             if (!toggleSplit(CURRENT_NODE))
                 return std::unexpected("can't togglesplit in the current workspace");
         }

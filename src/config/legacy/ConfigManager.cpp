@@ -625,7 +625,7 @@ CConfigManager::CConfigManager() {
         Log::logger->log(
             Log::DEBUG,
             "!!!!HEY YOU, YES YOU!!!!: further logs to stdout / logfile are disabled by default. BEFORE SENDING THIS LOG, ENABLE THEM. Use debug:disable_logs = false to do so: "
-            "https://wiki.hypr.land/Configuring/Variables/#debug");
+            "https://wiki.hypr.land/Configuring/Basics/Variables/#debug");
     }
 
     if (g_pEventLoopManager && ERR.has_value())

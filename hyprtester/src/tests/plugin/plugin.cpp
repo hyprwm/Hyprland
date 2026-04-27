@@ -10,6 +10,16 @@
 #include <cerrno>
 #include "../shared.hpp"
 
+bool testPlugin() {
+    const auto RESPONSE = getFromSocket("/eval hl.plugin.test.test()");
+
+    if (RESPONSE != "ok") {
+        NLog::log("{}Plugin tests failed, plugin returned:\n{}{}", Colors::RED, Colors::RESET, RESPONSE);
+        return false;
+    }
+    return true;
+}
+
 bool testVkb() {
     const auto RESPONSE = getFromSocket("/eval hl.plugin.test.vkb()");
 

@@ -409,7 +409,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     const auto PWINDOWCANDIDATE = g_pCompositor->getWindowInDirection(box, PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace,
-                                                                      dir, PLASTWINDOW, PLASTWINDOW->m_isFloating);
+                                                                      dir, PLASTWINDOW->m_isFloating, PLASTWINDOW, PLASTWINDOW->m_isFloating);
     if (PWINDOWCANDIDATE)
         switchToWindow(PWINDOWCANDIDATE);
 

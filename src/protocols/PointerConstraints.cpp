@@ -127,9 +127,11 @@ void CPointerConstraint::activate() {
 
     // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
-        const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->m_layoutFlags.cantLockCursor) {
+            const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
+            const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
+            g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        }
     }
 
     if (m_locked)

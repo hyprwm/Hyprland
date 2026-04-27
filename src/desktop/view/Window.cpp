@@ -267,7 +267,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS  = m_position;
     auto SIZE = m_size;
 
-    if (isFullscreen()) {
+    if (isFullscreen() && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 

@@ -48,6 +48,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/target/WindowTarget.hpp"
@@ -267,7 +268,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS  = m_position;
     auto SIZE = m_size;
 
-    if (isFullscreen()) {
+    if (isFullscreen() && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 
@@ -748,12 +749,12 @@ bool CWindow::isInputBlocked() const {
     return m_inputBlockReasons != INPUT_BLOCK_NONE;
 }
 
-bool CWindow::isInputBlocked(eWindowInputBlockReason reason) const {
-    return (m_inputBlockReasons & sc<uint32_t>(reason)) != 0;
+bool CWindow::isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const {
+    return (m_inputBlockReasons & reasons) != 0;
 }
 
 bool CWindow::isInputBlockedOnly(eWindowInputBlockReason reason) const {
-    return m_inputBlockReasons == sc<uint32_t>(reason);
+    return m_inputBlockReasons == reason;
 }
 
 bool CWindow::acceptsInput() const {
@@ -772,7 +773,13 @@ bool CWindow::isAllowedOverFullscreen() const {
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
+    if (!m_workspace)
+        return false;
+
+    const auto ALGORITHM             = m_workspace->m_space ? m_workspace->m_space->algorithm() : nullptr;
+    const bool HAS_LAYOUT_FULLSCREEN = ALGORITHM && ALGORITHM->layoutFullscreenCoversMonitor();
+
+    if (!m_workspace->m_hasFullscreenWindow && !HAS_LAYOUT_FULLSCREEN)
         return false;
 
     return !isAllowedOverFullscreen();

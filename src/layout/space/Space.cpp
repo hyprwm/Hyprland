@@ -153,13 +153,29 @@ void CSpace::recalculate() {
         m_algorithm->recalculate();
 }
 
-void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
-    t->setFullscreenMode(mode);
+eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode currentEffectiveMode, eFullscreenMode mode) {
+    if (!t)
+        return FULLSCREEN_REQUEST_DEFAULT;
+
+    const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(t, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
+
+    t->setLayoutManagedFullscreen(REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT && mode == FSMODE_FULLSCREEN);
+    if (REQUEST_RESULT != FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT)
+        t->setFullscreenMode(mode);
+
+    if (REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT) {
+        if (const auto WORKSPACE = workspace()) {
+            WORKSPACE->m_fullscreenMode      = FSMODE_NONE;
+            WORKSPACE->m_hasFullscreenWindow = false;
+        }
+    }
 
     if (mode == FSMODE_NONE && m_algorithm && t->floating())
         m_algorithm->recenter(t);
 
     recalculate();
+
+    return REQUEST_RESULT;
 }
 
 Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {

@@ -1462,10 +1462,10 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, Math::eDirection 
     if (!PWORKSPACE)
         return nullptr; // ??
 
-    return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow, pWindow->m_isFloating);
+    return getWindowInDirection(WINDOWIDEALBB, PWORKSPACE, dir, pWindow->m_isFloating, pWindow, pWindow->m_isFloating);
 }
 
-PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, PHLWINDOW ignoreWindow, bool useVectorAngles) {
+PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, bool floatingPreference, PHLWINDOW ignoreWindow, bool useVectorAngles) {
     if (dir == Math::DIRECTION_DEFAULT)
         return nullptr;
 
@@ -1509,71 +1509,93 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
             return overlap <= std::min(sizeA, sizeB) * MAX_OVERLAP_RATIO;
         };
 
-        for (auto const& w : m_windows) {
-            if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || !w->acceptsInput() || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
-                continue;
+        auto find = [&]() {
+            for (auto const& w : m_windows) {
+                if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
+                    continue;
 
-            if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
-                continue;
+                if (w->isHidden())
+                    continue;
 
-            if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
-                continue;
+                // check if the input is blocked by anything except BELOW_FULLSCREEN
+                if (w->isInputBlocked(INPUT_BLOCK_ALL & (~INPUT_BLOCK_BELOW_FULLSCREEN)))
+                    continue;
 
-            if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
-                continue;
+                if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
+                    continue;
 
-            const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
+                if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
+                    continue;
 
-            const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
-            const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
+                if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
+                    continue;
 
-            double     intersectLength = -1;
+                if (w->m_isFloating != floatingPreference)
+                    continue;
 
-            switch (dir) {
-                case Math::DIRECTION_LEFT:
-                    if (isAdjacent(POSA.x, POSA.x + SIZEA.x, POSB.x, POSB.x + SIZEB.x))
-                        intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                    break;
-                case Math::DIRECTION_RIGHT:
-                    if (isAdjacent(POSB.x, POSB.x + SIZEB.x, POSA.x, POSA.x + SIZEA.x))
-                        intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
-                    break;
-                case Math::DIRECTION_UP:
-                    if (isAdjacent(POSA.y, POSA.y + SIZEA.y, POSB.y, POSB.y + SIZEB.y))
-                        intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                    break;
-                case Math::DIRECTION_DOWN:
-                    if (isAdjacent(POSB.y, POSB.y + SIZEB.y, POSA.y, POSA.y + SIZEA.y))
-                        intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
-                    break;
-                default: break;
-            }
+                const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
 
-            if (*PMETHOD == 0 /* history */) {
-                if (intersectLength > 0) {
+                const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
+                const auto SIZEB = Vector2D(BWINDOWIDEALBB.width, BWINDOWIDEALBB.height);
 
-                    // get idx
-                    int         windowIDX = -1;
-                    const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
-                    for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
-                        if (HISTORY[i] == w) {
-                            windowIDX = i;
-                            break;
+                double     intersectLength = -1;
+
+                switch (dir) {
+                    case Math::DIRECTION_LEFT:
+                        if (isAdjacent(POSA.x, POSA.x + SIZEA.x, POSB.x, POSB.x + SIZEB.x))
+                            intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                        break;
+                    case Math::DIRECTION_RIGHT:
+                        if (isAdjacent(POSB.x, POSB.x + SIZEB.x, POSA.x, POSA.x + SIZEA.x))
+                            intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
+                        break;
+                    case Math::DIRECTION_UP:
+                        if (isAdjacent(POSA.y, POSA.y + SIZEA.y, POSB.y, POSB.y + SIZEB.y))
+                            intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                        break;
+                    case Math::DIRECTION_DOWN:
+                        if (isAdjacent(POSB.y, POSB.y + SIZEB.y, POSA.y, POSA.y + SIZEA.y))
+                            intersectLength = std::max(0.0, std::min(POSA.x + SIZEA.x, POSB.x + SIZEB.x) - std::max(POSA.x, POSB.x));
+                        break;
+                    default: break;
+                }
+
+                if (*PMETHOD == 0 /* history */) {
+                    if (intersectLength > 0) {
+
+                        // get idx
+                        int         windowIDX = -1;
+                        const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
+                        for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
+                            if (HISTORY[i] == w) {
+                                windowIDX = i;
+                                break;
+                            }
+                        }
+
+                        if (windowIDX > leaderValue) {
+                            leaderValue  = windowIDX;
+                            leaderWindow = w;
                         }
                     }
-
-                    if (windowIDX > leaderValue) {
-                        leaderValue  = windowIDX;
+                } else /* length */ {
+                    if (intersectLength > leaderValue) {
+                        leaderValue  = intersectLength;
                         leaderWindow = w;
                     }
                 }
-            } else /* length */ {
-                if (intersectLength > leaderValue) {
-                    leaderValue  = intersectLength;
-                    leaderWindow = w;
-                }
             }
+        };
+
+        // Find the window, then if we don't find one with preferred
+        // float status, try the opposite.
+        find();
+
+        if (!leaderWindow) {
+            floatingPreference = !floatingPreference;
+            find();
         }
+
     } else {
         static const std::unordered_map<Math::eDirection, Vector2D> VECTORS = {
             {Math::DIRECTION_RIGHT, {1, 0}}, {Math::DIRECTION_UP, {0, -1}}, {Math::DIRECTION_DOWN, {0, 1}}, {Math::DIRECTION_LEFT, {-1, 0}}};
@@ -2248,9 +2270,16 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     PWORKSPACE->m_fullscreenMode      = NEW_EFFECTIVE_MODE;
     PWORKSPACE->m_hasFullscreenWindow = NEW_EFFECTIVE_MODE != FSMODE_NONE;
 
-    g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
+    PWORKSPACE->setNoMembersAboveFullscreen();
 
-    PWINDOW->m_fullscreenState.internal = state.internal;
+    const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
+    const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
+
+    if (LAYOUT_HANDLED_FULLSCREEN) {
+        PWORKSPACE->m_fullscreenMode      = FSMODE_NONE;
+        PWORKSPACE->m_hasFullscreenWindow = false;
+    } else
+        PWINDOW->m_fullscreenState.internal = state.internal;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
@@ -2275,8 +2304,9 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
             ls->m_aboveFullscreen = false;
     }
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+    if (!LAYOUT_HANDLED_FULLSCREEN)
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     PWINDOW->sendWindowSize(true);
 
@@ -2290,7 +2320,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
 
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
-    if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME)) {
+    if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {
         auto surf = PWINDOW->getSolitaryResource();
         if (surf)
             g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);

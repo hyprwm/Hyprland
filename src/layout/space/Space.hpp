@@ -30,7 +30,7 @@ namespace Layout {
 
         void                            setAlgorithmProvider(SP<CAlgorithm> algo);
         void                            recheckWorkArea();
-        void                            setFullscreen(SP<ITarget> t, eFullscreenMode mode);
+        eFullscreenRequestResult        setFullscreen(SP<ITarget> t, eFullscreenMode currentEffectiveMode, eFullscreenMode mode);
 
         void                            moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 

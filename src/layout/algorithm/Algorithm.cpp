@@ -154,6 +154,25 @@ void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
         m_floating->moveTarget(Δ, target);
 }
 
+eFullscreenRequestResult CAlgorithm::requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
+    if (!target)
+        return FULLSCREEN_REQUEST_DEFAULT;
+
+    const SFullscreenRequest request = {.target = target, .currentEffectiveMode = currentEffectiveMode, .effectiveMode = effectiveMode};
+    return target->floating() ? m_floating->requestFullscreen(request) : m_tiled->requestFullscreen(request);
+}
+
+SP<ITarget> CAlgorithm::layoutFullscreenTarget() const {
+    if (const auto TARGET = m_tiled->layoutFullscreenTarget(); TARGET)
+        return TARGET;
+
+    return m_floating->layoutFullscreenTarget();
+}
+
+bool CAlgorithm::layoutFullscreenCoversMonitor() const {
+    return m_tiled->layoutFullscreenCoversMonitor() || m_floating->layoutFullscreenCoversMonitor();
+}
+
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto swapFirst = [&a, &b](std::vector<WP<ITarget>>& targets) -> bool {
         auto ia = std::ranges::find(targets, a);

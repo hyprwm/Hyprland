@@ -147,12 +147,8 @@ double CScrollTapeController::calculateStripSize(size_t stripIndex, const CBox& 
     return usablePrimary * m_strips[stripIndex].size;
 }
 
-CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
+CBox CScrollTapeController::calculateStripBox(size_t stripIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
     if (stripIndex >= m_strips.size())
-        return {};
-
-    const auto& strip = m_strips[stripIndex];
-    if (targetIndex >= strip.targetSizes.size())
         return {};
 
     const double usableSecondary = getSecondary(usableArea.size());
@@ -162,13 +158,6 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
     // calculate position along primary axis (strip position)
     double primaryPos  = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     double primarySize = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
-
-    // calculate position along secondary axis (within strip)
-    double secondaryPos = 0.0;
-    for (size_t i = 0; i < targetIndex; ++i) {
-        secondaryPos += strip.targetSizes[i] * usableSecondary;
-    }
-    double secondarySize = strip.targetSizes[targetIndex] * usableSecondary;
 
     // apply camera offset based on direction
     // for RIGHT/DOWN: scroll offset moves content left/up (subtract)
@@ -185,13 +174,42 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
     }
 
     // create the box in primary/secondary coordinates
-    Vector2D pos  = makeVector(primaryPos, secondaryPos);
-    Vector2D size = makeVector(primarySize, secondarySize);
+    Vector2D pos  = makeVector(primaryPos, 0.0);
+    Vector2D size = makeVector(primarySize, usableSecondary);
 
     // translate to workspace position
     pos = pos + workspaceOffset;
 
     return CBox{pos, size};
+}
+
+CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
+    if (stripIndex >= m_strips.size())
+        return {};
+
+    const auto& strip = m_strips[stripIndex];
+    if (targetIndex >= strip.targetSizes.size())
+        return {};
+
+    CBox         stripBox        = calculateStripBox(stripIndex, usableArea, workspaceOffset, fullscreenOnOne);
+    const double usableSecondary = getSecondary(usableArea.size());
+
+    double       secondaryPos = 0.0;
+    for (size_t i = 0; i < targetIndex; ++i) {
+        secondaryPos += strip.targetSizes[i] * usableSecondary;
+    }
+
+    const double secondarySize = strip.targetSizes[targetIndex] * usableSecondary;
+
+    if (isPrimaryHorizontal()) {
+        stripBox.y = workspaceOffset.y + secondaryPos;
+        stripBox.h = secondarySize;
+    } else {
+        stripBox.x = workspaceOffset.x + secondaryPos;
+        stripBox.w = secondarySize;
+    }
+
+    return stripBox;
 }
 
 double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne) {
@@ -275,13 +293,14 @@ size_t CScrollTapeController::getStripAtCenter(const CBox& usableArea, bool full
         return 0;
 
     const double usablePrimary = getPrimary(usableArea.size());
-    double       currentPos    = m_offset;
+    const double viewCenter    = m_offset + usablePrimary / 2.0;
+    double       currentEnd    = 0.0;
 
     for (size_t i = 0; i < m_strips.size(); ++i) {
         const double stripSize = calculateStripSize(i, usableArea, fullscreenOnOne);
-        currentPos += stripSize;
+        currentEnd += stripSize;
 
-        if (currentPos >= usablePrimary / 2.0 - 2.0)
+        if (currentEnd >= viewCenter - 2.0)
             return i;
     }
 

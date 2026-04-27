@@ -30,6 +30,8 @@
 #include "../managers/input/InputManager.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../layout/LayoutManager.hpp"
+#include "../layout/space/Space.hpp"
+#include "../layout/algorithm/Algorithm.hpp"
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "time/Time.hpp"
@@ -1672,7 +1674,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!PWORKSPACE->m_hasFullscreenWindow) {
+    if (!inFullscreenMode()) {
         reasons |= SC_WINDOWED;
         if (!full)
             return reasons;
@@ -1720,7 +1722,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
             return reasons;
     }
 
-    const auto PCANDIDATE = PWORKSPACE->getFullscreenWindow();
+    const auto PCANDIDATE = getFullscreenWindow();
 
     if (!PCANDIDATE) {
         reasons |= SC_CANDIDATE;
@@ -1791,7 +1793,7 @@ void CMonitor::recheckSolitary() {
     if (isSolitaryBlocked())
         return;
 
-    m_solitaryClient = PWORKSPACE->getFullscreenWindow();
+    m_solitaryClient = getFullscreenWindow();
 }
 
 uint8_t CMonitor::isTearingBlocked(bool full) {
@@ -1871,11 +1873,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     }
 
     if (*PDIRECTSCANOUT == 2) {
-        if (!PWORKSPACE || !PWORKSPACE->m_hasFullscreenWindow || PWORKSPACE->m_fullscreenMode != FSMODE_FULLSCREEN) {
+        const auto FSWINDOW = getFullscreenWindow();
+        if (!PWORKSPACE || !inFullscreenMode() || !FSWINDOW) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
-        } else if (PWORKSPACE->getFullscreenWindow()->getContentType() != CONTENT_TYPE_GAME) {
+        } else if (FSWINDOW->getContentType() != CONTENT_TYPE_GAME) {
             reasons |= DS_BLOCK_CONTENT;
             if (!full)
                 return reasons;
@@ -2268,17 +2271,34 @@ bool CMonitor::inHDR() {
 
 bool CMonitor::inFullscreenMode() {
     // Check special workspace first since it renders on top of regular workspaces
-    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+    if (m_activeSpecialWorkspace &&
+        ((m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) ||
+         (m_activeSpecialWorkspace->m_space && m_activeSpecialWorkspace->m_space->algorithm() && m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor())))
         return true;
-    return m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN;
+    return m_activeWorkspace &&
+        ((m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) ||
+         (m_activeWorkspace->m_space && m_activeWorkspace->m_space->algorithm() && m_activeWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()));
 }
 
 PHLWINDOW CMonitor::getFullscreenWindow() {
     // Check special workspace first since it renders on top of regular workspaces
     if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
         return m_activeSpecialWorkspace->getFullscreenWindow();
+
+    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_space && m_activeSpecialWorkspace->m_space->algorithm() &&
+        m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()) {
+        const auto TARGET = m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenTarget();
+        return TARGET ? TARGET->window() : nullptr;
+    }
+
     if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
         return m_activeWorkspace->getFullscreenWindow();
+
+    if (m_activeWorkspace && m_activeWorkspace->m_space && m_activeWorkspace->m_space->algorithm() && m_activeWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()) {
+        const auto TARGET = m_activeWorkspace->m_space->algorithm()->layoutFullscreenTarget();
+        return TARGET ? TARGET->window() : nullptr;
+    }
+
     return nullptr;
 }
 

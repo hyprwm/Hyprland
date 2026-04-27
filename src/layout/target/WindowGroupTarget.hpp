@@ -28,6 +28,8 @@ namespace Layout {
         virtual void                                                damageEntire();
         virtual void                                                warpPositionSize();
         virtual void                                                onUpdateSpace();
+        virtual bool                                                layoutManagedFullscreen() const;
+        virtual void                                                setLayoutManagedFullscreen(bool enabled);
 
       private:
         CWindowGroupTarget(SP<Desktop::View::CGroup> g);

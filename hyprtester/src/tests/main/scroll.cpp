@@ -176,7 +176,7 @@ TEST_CASE(scrollSwapcolWrapping) {
 }
 
 TEST_CASE(scrollWindowRule) {
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     NLog::log("{}Testing Scrolling Width", Colors::GREEN);
 
@@ -195,5 +195,47 @@ TEST_CASE(scrollWindowRule) {
     ASSERT(Tests::windowCount(), 2);
 
     // not the greatest test, but as long as res and gaps don't change, we good.
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
+}
+
+TEST_CASE(scrollFullscreen) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    NLog::log("{}Testing Scrolling FS", Colors::GREEN);
+
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_A"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_B"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_C"), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = \"class:kitty_scroll_B\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_B");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"left\" })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_A");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"right\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"right\" })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_C");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"left\" })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_B");
+    }
 }

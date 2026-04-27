@@ -1,5 +1,6 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
+#include "view/LayerSurface.hpp"
 #include "../Compositor.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
@@ -8,6 +9,7 @@
 #include "../managers/EventManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../layout/space/Space.hpp"
+#include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../event/EventBus.hpp"
 
@@ -539,7 +541,10 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t->fullscreenMode() != FSMODE_NONE; });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
+
+    if (!m_hasFullscreenWindow)
+        m_fullscreenMode = FSMODE_NONE;
 
     for (auto const& t : m_space->targets()) {
         if (t->window())
@@ -561,4 +566,16 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
+}
+
+void CWorkspace::setNoMembersAboveFullscreen() {
+    // make all windows and layers on the same workspace under the fullscreen window
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+            w->m_createdOverFullscreen = false;
+    }
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_monitor)
+            ls->m_aboveFullscreen = false;
+    }
 }

@@ -89,11 +89,13 @@ namespace Desktop::View {
         WINDOW_ALPHA_LAST,
     };
 
-    enum eWindowInputBlockReason : uint32_t {
+    enum eWindowInputBlockReason : uint8_t {
         INPUT_BLOCK_NONE             = 0,
-        INPUT_BLOCK_GROUP_INACTIVE   = 1 << 0,
-        INPUT_BLOCK_MONOCLE_INACTIVE = 1 << 1,
-        INPUT_BLOCK_BELOW_FULLSCREEN = 1 << 2,
+        INPUT_BLOCK_GROUP_INACTIVE   = (1 << 0),
+        INPUT_BLOCK_MONOCLE_INACTIVE = (1 << 1),
+        INPUT_BLOCK_BELOW_FULLSCREEN = (1 << 2),
+
+        INPUT_BLOCK_ALL = std::numeric_limits<std::underlying_type_t<eWindowInputBlockReason>>::max(),
     };
 
     struct SWindowActiveEvent {
@@ -285,6 +287,11 @@ namespace Desktop::View {
         // For the noclosefor windowrule
         Time::steady_tp m_closeableSince = Time::steadyNow();
 
+        // layout-settable flags. These are reset when layout changes.
+        struct {
+            bool cantLockCursor = false;
+        } m_layoutFlags;
+
         // For the list lookup
         bool operator==(const CWindow& rhs) const {
             return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&
@@ -314,7 +321,7 @@ namespace Desktop::View {
         bool                       isHidden() const;
         void                       setInputBlocked(eWindowInputBlockReason reason, bool blocked);
         bool                       isInputBlocked() const;
-        bool                       isInputBlocked(eWindowInputBlockReason reason) const;
+        bool                       isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
         bool                       isInputBlockedOnly(eWindowInputBlockReason reason) const;
         bool                       acceptsInput() const;
         bool                       isAllowedOverFullscreen() const;

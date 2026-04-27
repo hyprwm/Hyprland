@@ -43,7 +43,7 @@ void CWindowTarget::updatePos() {
     if (!m_space)
         return;
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN)
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
         return;
 
     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
@@ -83,7 +83,24 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN)
+    if (fullscreenMode() == FSMODE_FULLSCREEN && layoutManagedFullscreen()) {
+        CBox nodeBox   = m_box.logicalBox;
+        CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
+        nodeBox.round();
+        visualBox.round();
+
+        m_window->m_size     = nodeBox.size();
+        m_window->m_position = nodeBox.pos();
+
+        *m_window->m_realSize     = visualBox.size();
+        *m_window->m_realPosition = visualBox.pos();
+
+        m_window->updateWindowDecos();
+        m_window->sendWindowSize();
+        return;
+    }
+
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
         return;
 
     g_pHyprRenderer->damageWindow(window());
@@ -206,6 +223,7 @@ void CWindowTarget::updatePos() {
     }
 
     m_window->updateWindowDecos();
+    m_window->sendWindowSize();
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
@@ -213,6 +231,8 @@ void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2
         ITarget::assignToSpace(space, focalPoint);
         return;
     }
+
+    m_window->m_layoutFlags = {};
 
     // keep the ref here so that moveToWorkspace doesn't unref the workspace
     // and assignToSpace doesn't think this is a new target because space wp is dead
@@ -235,6 +255,8 @@ bool CWindowTarget::floating() {
 void CWindowTarget::setFloating(bool x) {
     if (x == m_window->m_isFloating)
         return;
+
+    m_window->m_layoutFlags = {};
 
     m_window->m_isFloating = x;
     m_window->m_pinned     = false;

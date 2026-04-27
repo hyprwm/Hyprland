@@ -453,7 +453,9 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         return pWindowIdeal;
     };
 
-    if (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+    const bool HAS_EXCLUSIVE_FULLSCREEN = (PWORKSPACE->m_hasFullscreenWindow && PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) || PMONITOR->inFullscreenMode();
+
+    if (HAS_EXCLUSIVE_FULLSCREEN) {
         const auto IS_LS_UNFOCUSABLE = pFoundLayerSurface &&
             (pFoundLayerSurface->m_layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP ||
              (pFoundLayerSurface->m_layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && !pFoundLayerSurface->m_aboveFullscreen));
@@ -1741,7 +1743,17 @@ void CInputManager::unconstrainMouse() {
 bool CInputManager::isConstrained() {
     return std::ranges::any_of(m_constraints, [](auto const& c) {
         const auto constraint = c.lock();
-        return constraint && constraint->isActive() && constraint->owner()->resource() == Desktop::focusState()->surface();
+
+        if (!constraint || !constraint->isActive() || constraint->owner()->resource() != Desktop::focusState()->surface())
+            return false;
+
+        const auto OWNER  = constraint->owner()->view();
+        const auto WINDOW = Desktop::View::CWindow::fromView(OWNER);
+
+        if (!WINDOW)
+            return false;
+
+        return !WINDOW->m_layoutFlags.cantLockCursor;
     });
 }
 
@@ -1749,7 +1761,15 @@ bool CInputManager::isLocked() {
     if (!isConstrained())
         return false;
 
-    const auto SURF       = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+    const auto SURF = Desktop::View::CWLSurface::fromResource(Desktop::focusState()->surface());
+
+    if (SURF) {
+        const auto WINDOW = Desktop::View::CWindow::fromView(SURF->view());
+
+        if (WINDOW && WINDOW->m_layoutFlags.cantLockCursor)
+            return false;
+    }
+
     const auto CONSTRAINT = SURF ? SURF->constraint() : nullptr;
 
     return CONSTRAINT && CONSTRAINT->isLocked();

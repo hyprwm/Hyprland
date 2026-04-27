@@ -55,6 +55,7 @@ namespace Layout::Tiled {
         double            calculateStripStart(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
         double            calculateStripSize(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
 
+        CBox              calculateStripBox(size_t stripIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
         CBox              calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
 
         double            calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne = false);

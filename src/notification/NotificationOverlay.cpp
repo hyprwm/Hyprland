@@ -124,7 +124,10 @@ CBox CNotificationOverlay::notificationDamageForMonitor(PHLMONITOR pMonitor) {
     if (!pMonitor || m_notifications.empty())
         return {};
 
-    float       offsetY  = NOTIF_OFFSET_Y;
+    const float reservedTop   = pMonitor->m_reservedArea.top();
+    const float reservedRight = pMonitor->m_reservedArea.right();
+
+    float       offsetY  = NOTIF_OFFSET_Y + reservedTop;
     float       maxWidth = 0.F;
 
     static auto fontFamily = CConfigValue<std::string>("misc:font_family");
@@ -145,8 +148,8 @@ CBox CNotificationOverlay::notificationDamageForMonitor(PHLMONITOR pMonitor) {
             maxWidth = NOTIFSIZE.x;
     }
 
-    return CBox{sc<int>(pMonitor->m_position.x + pMonitor->m_size.x - maxWidth - NOTIF_DAMAGE_PAD_X), sc<int>(pMonitor->m_position.y), sc<int>(maxWidth + NOTIF_DAMAGE_PAD_X),
-                sc<int>(offsetY + NOTIF_OFFSET_Y)};
+    return CBox{sc<int>(pMonitor->m_position.x + pMonitor->m_size.x - reservedRight - maxWidth - NOTIF_DAMAGE_PAD_X), sc<int>(pMonitor->m_position.y + reservedTop),
+                sc<int>(maxWidth + NOTIF_DAMAGE_PAD_X), sc<int>(offsetY + NOTIF_OFFSET_Y - reservedTop)};
 }
 
 SP<CNotification> CNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
@@ -196,7 +199,10 @@ std::vector<SP<CNotification>> CNotificationOverlay::getNotifications() const {
 }
 
 CBox CNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
-    float       offsetY  = NOTIF_OFFSET_Y;
+    const float reservedTopPx   = pMonitor->m_reservedArea.top() * pMonitor->m_scale;
+    const float reservedRightPx = pMonitor->m_reservedArea.right() * pMonitor->m_scale;
+
+    float       offsetY  = NOTIF_OFFSET_Y + reservedTopPx;
     float       maxWidth = 0;
 
     const auto  MONSIZE = pMonitor->m_transformedSize;
@@ -237,10 +243,10 @@ CBox CNotificationOverlay::drawNotifications(PHLMONITOR pMonitor) {
         // third rect (horiz, col)
         const float                 THIRDRECTPERC = std::clamp(elapsed / lifeMs, 0.F, 1.F);
 
-        const float                 firstRectX = MONSIZE.x - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC;
+        const float                 firstRectX = MONSIZE.x - reservedRightPx - (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC;
         const float                 firstRectW = (NOTIFSIZE.x + NOTIF_LEFTBAR_SIZE) * FIRSTRECTPERC;
 
-        const float                 secondRectX = MONSIZE.x - NOTIFSIZE.x * SECONDRECTPERC;
+        const float                 secondRectX = MONSIZE.x - reservedRightPx - NOTIFSIZE.x * SECONDRECTPERC;
         const float                 secondRectW = NOTIFSIZE.x * SECONDRECTPERC;
 
         CRectPassElement::SRectData bgData;

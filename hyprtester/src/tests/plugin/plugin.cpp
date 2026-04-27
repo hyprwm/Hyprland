@@ -10,10 +10,6 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-bool testPlugin() {
-    return true;
-}
-
 bool testVkb() {
     const auto RESPONSE = getFromSocket("/eval hl.plugin.test.vkb()");
 

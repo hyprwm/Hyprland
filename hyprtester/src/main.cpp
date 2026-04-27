@@ -240,9 +240,6 @@ int main(int argc, char** argv, char** envp) {
         EXPECT(fn(), true);
     }
 
-    NLog::log("{}running plugin test", Colors::YELLOW);
-    EXPECT(testPlugin(), true);
-
     NLog::log("{}running vkb test from plugin", Colors::YELLOW);
     EXPECT(testVkb(), true);
 

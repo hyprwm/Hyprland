@@ -629,6 +629,10 @@ install(FILES ${INSTALLABLE_ASSETS}
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
+# default lua config
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.lua
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+
 # LuaLS stubs
 install(FILES ${CMAKE_SOURCE_DIR}/meta/hl.meta.lua
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr/stubs)

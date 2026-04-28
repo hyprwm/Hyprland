@@ -7,11 +7,21 @@
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../desktop/Workspace.hpp"
 #include "../../../helpers/math/Direction.hpp"
+#include "../ConfigErrors.hpp"
 
 namespace Config::Actions {
     struct SActionResult {
         bool passEvent = false;
     };
+
+    using eActionErrorLevel = Config::eConfigErrorLevel;
+    using eActionErrorCode  = Config::eConfigErrorCode;
+    using SActionError      = Config::SConfigError;
+    using Config::toString;
+
+    inline std::unexpected<SActionError> actionError(std::string message, eActionErrorLevel level = eActionErrorLevel::ERROR, eActionErrorCode code = eActionErrorCode::UNKNOWN) {
+        return Config::configError(std::move(message), level, code);
+    }
 
     enum eTogglableAction : uint8_t {
         TOGGLE_ACTION_TOGGLE = 0,
@@ -19,7 +29,7 @@ namespace Config::Actions {
         TOGGLE_ACTION_DISABLE,
     };
 
-    using ActionResult = std::expected<SActionResult, std::string>;
+    using ActionResult = std::expected<SActionResult, SActionError>;
 
     ActionResult closeWindow(std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult killWindow(std::optional<PHLWINDOW> window = std::nullopt /* Active */);

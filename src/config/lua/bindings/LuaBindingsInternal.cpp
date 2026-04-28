@@ -327,9 +327,59 @@ void Internal::pushWindowUpval(lua_State* L, int tableIdx) {
         lua_pushnil(L);
 }
 
-void Internal::checkResult(lua_State* L, const CA::ActionResult& r) {
-    if (!r)
-        Internal::configError(L, "{}", r.error());
+static auto logLevelForActionError(CA::eActionErrorLevel level) {
+    switch (level) {
+        case CA::eActionErrorLevel::SILENT: return Log::DEBUG;
+        case CA::eActionErrorLevel::INFO: return Log::INFO;
+        case CA::eActionErrorLevel::WARNING: return Log::WARN;
+        case CA::eActionErrorLevel::ERROR: return Log::ERR;
+    }
+
+    return Log::ERR;
+}
+
+void Internal::reportError(lua_State* L, const CA::SActionError& e) {
+    Log::logger->log(logLevelForActionError(e.level), "Lua {} ({}): {}", CA::toString(e.level), CA::toString(e.code), e.message);
+
+    if (auto mgr = Config::Lua::mgr(); mgr) {
+        mgr->addEvalIssue(e);
+
+        if (e.level == CA::eActionErrorLevel::ERROR)
+            mgr->addError(std::string{e.message});
+    }
+}
+
+int Internal::pushSuccessResult(lua_State* L, const CA::SActionResult& r) {
+    lua_newtable(L);
+    lua_pushboolean(L, true);
+    lua_setfield(L, -2, "ok");
+    lua_pushboolean(L, r.passEvent);
+    lua_setfield(L, -2, "pass_event");
+    return 1;
+}
+
+int Internal::pushErrorResult(lua_State* L, const CA::SActionError& e) {
+    lua_newtable(L);
+    lua_pushboolean(L, false);
+    lua_setfield(L, -2, "ok");
+    lua_pushstring(L, e.message.c_str());
+    lua_setfield(L, -2, "error");
+    lua_pushstring(L, CA::toString(e.level));
+    lua_setfield(L, -2, "level");
+    lua_pushstring(L, CA::toString(e.code));
+    lua_setfield(L, -2, "code");
+    return 1;
+}
+
+int Internal::checkResult(lua_State* L, const CA::ActionResult& r) {
+    if (!r) {
+        auto error    = r.error();
+        error.message = std::format("{}: {}", getSourceInfo(L), std::move(error.message));
+        Internal::reportError(L, error);
+        return Internal::pushErrorResult(L, error);
+    }
+
+    return Internal::pushSuccessResult(L, *r);
 }
 
 PHLWORKSPACE Internal::resolveWorkspaceStr(const std::string& args) {
@@ -408,12 +458,19 @@ void Internal::setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua
     lua_setfield(L, -2, name);
 }
 
-int Internal::configError(lua_State* L, std::string s, int stackLevel) {
+int Internal::configError(lua_State* L, std::string s, CA::eActionErrorLevel level, CA::eActionErrorCode code, int stackLevel) {
     s = std::format("{}: {}", getSourceInfo(L, stackLevel), std::move(s));
 
-    Log::logger->log(Log::ERR, "Error in lua: {}", std::string_view{s});
-    Config::Lua::mgr()->addError(std::move(s));
+    Internal::reportError(L, CA::SActionError{std::move(s), level, code});
     return 0;
+}
+
+int Internal::dispatcherError(lua_State* L, std::string s, CA::eActionErrorLevel level, CA::eActionErrorCode code, int stackLevel) {
+    s = std::format("{}: {}", getSourceInfo(L, stackLevel), std::move(s));
+
+    CA::SActionError error{std::move(s), level, code};
+    Internal::reportError(L, error);
+    return Internal::pushErrorResult(L, error);
 }
 
 std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L) {

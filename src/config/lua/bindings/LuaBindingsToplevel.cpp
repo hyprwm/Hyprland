@@ -287,17 +287,23 @@ static int hlDispatch(lua_State* L) {
     lua_pushvalue(L, 1);
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)
-        status = mgr->guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");
+        status = mgr->guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");
     else
-        status = lua_pcall(L, 0, 0, 0);
+        status = lua_pcall(L, 0, 1, 0);
 
     if (status != LUA_OK) {
         const char* err = lua_tostring(L, -1);
         lua_pop(L, 1);
-        return Internal::configError(L, "hl.dispatch: {}", err ? err : "unknown error");
+        return Internal::dispatcherError(L, std::format("hl.dispatch: {}", err ? err : "unknown error"), Config::Actions::eActionErrorLevel::ERROR,
+                                         Config::Actions::eActionErrorCode::LUA_ERROR);
     }
 
-    return 0;
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        return Internal::pushSuccessResult(L);
+    }
+
+    return 1;
 }
 
 static int hlOn(lua_State* L) {

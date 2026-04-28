@@ -131,7 +131,7 @@ ActionResult Actions::closeWindow(std::optional<PHLWINDOW> w) {
         return {};
 
     if (window->m_closeableSince > Time::steadyNow())
-        return std::unexpected("can't close window, it's not closeable yet (noclosefor)");
+        return actionError("can't close window, it's not closeable yet (noclosefor)", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     window->sendClose();
 
@@ -217,7 +217,7 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
         return {};
 
     if (!window->m_isFloating || window->isFullscreen())
-        return {};
+        return actionError("Window does not qualify to be pinned", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     bool wantPin = false;
     switch (action) {
@@ -289,7 +289,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         return {};
 
     if (!ws)
-        return {};
+        return std::unexpected("Invalid workspace");
 
     if (ws->m_id == window->workspaceID())
         return {};
@@ -373,11 +373,11 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
 
     static auto PNOFALLBACK = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
     if (*PNOFALLBACK)
-        return {};
+        return actionError(std::format("Nothing to focus to in direction {}", Math::toString(dir)), eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     const auto PMONITOR = PLASTWINDOW->m_monitor.lock();
     if (!PMONITOR)
-        return {};
+        return std::unexpected("Window has no monitor");
 
     if (dir == Math::DIRECTION_LEFT || dir == Math::DIRECTION_RIGHT) {
         if (STICKS(PLASTWINDOW->m_position.x, PMONITOR->m_position.x) && STICKS(PLASTWINDOW->m_size.x, PMONITOR->m_size.x))
@@ -440,7 +440,7 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
         return {};
 
     if (window->isFullscreen())
-        return {};
+        return actionError("Can't move fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
 
@@ -456,12 +456,12 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
         return {};
 
     if (window->isFullscreen())
-        return {};
+        return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(window, dir);
 
     if (!PWINDOWTOCHANGETO || PWINDOWTOCHANGETO == window)
-        return {};
+        return actionError("No window to swap with in that direction", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     updateRelativeCursorCoords();
     g_layoutManager->switchTargets(window->layoutTarget(), PWINDOWTOCHANGETO->layoutTarget(), true);
@@ -476,13 +476,13 @@ ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
         return {};
 
     if (!other)
-        return {};
+        return actionError("No window to swap with", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     if (other == window)
-        return {};
+        return actionError("Can't swap a window with itself", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (window->isFullscreen() || other->isFullscreen())
-        return {};
+        return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
     g_layoutManager->switchTargets(window->layoutTarget(), other->layoutTarget(), true);
@@ -495,12 +495,12 @@ ActionResult Actions::focusCurrentOrLast() {
     const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
 
     if (HISTORY.size() <= 1)
-        return {};
+        return actionError("History too short", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     const auto PWINDOWPREV = HISTORY[HISTORY.size() - 2].lock();
 
     if (!PWINDOWPREV)
-        return {};
+        return actionError("Window not found", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     switchToWindow(PWINDOWPREV);
 
@@ -513,7 +513,7 @@ ActionResult Actions::focusUrgentOrLast() {
     const auto  PWINDOWPREV   = Desktop::focusState()->window() ? (HISTORY.size() < 2 ? nullptr : HISTORY[1].lock()) : (HISTORY.empty() ? nullptr : HISTORY[0].lock());
 
     if (!PWINDOWURGENT && !PWINDOWPREV)
-        return {};
+        return actionError("Window not found", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     switchToWindow(PWINDOWURGENT ? PWINDOWURGENT : PWINDOWPREV);
 
@@ -523,7 +523,7 @@ ActionResult Actions::focusUrgentOrLast() {
 ActionResult Actions::center(std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window || !window->m_isFloating || window->isFullscreen())
-        return {};
+        return actionError("No floating window found", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     const auto PMONITOR = window->m_monitor.lock();
 
@@ -560,7 +560,7 @@ ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<
         return {};
 
     if (window->isFullscreen())
-        return {};
+        return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (!relative && (size.x < 1 || size.y < 1))
         return std::unexpected("Invalid size");
@@ -581,7 +581,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
         return {};
 
     if (window->isFullscreen())
-        return {};
+        return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto delta = relative ? pos : pos - window->m_realPosition->goal();
 
@@ -617,7 +617,7 @@ ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
         toSwap = g_pCompositor->getWindowCycle(window, true, std::nullopt, false, !next);
 
     if (!toSwap)
-        return {};
+        return actionError("No window to swap with", eActionErrorLevel::INFO, eActionErrorCode::NOT_FOUND);
 
     g_layoutManager->switchTargets(window->layoutTarget(), toSwap->layoutTarget(), false);
     window->m_lastCycledWindow = toSwap;
@@ -851,10 +851,10 @@ ActionResult Actions::changeGroupActive(bool forward, std::optional<PHLWINDOW> w
         return {};
 
     if (!window->m_group)
-        return {};
+        return actionError("Window is not in a group", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (window->m_group->size() == 1)
-        return {};
+        return actionError("Only one window in group", eActionErrorLevel::INFO, eActionErrorCode::INVALID_STATE);
 
     window->m_group->moveCurrent(forward);
 
@@ -867,15 +867,15 @@ ActionResult Actions::setGroupActive(int index, std::optional<PHLWINDOW> w) {
         return {};
 
     if (!window->m_group)
-        return {};
+        return actionError("Window is not in a group", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (window->m_group->size() == 1)
-        return {};
+        return actionError("Only one window in group", eActionErrorLevel::INFO, eActionErrorCode::INVALID_STATE);
 
     if (index <= 0)
         window->m_group->setCurrent(window->m_group->size() - 1);
     else if (sc<size_t>(index) > window->m_group->size())
-        return {};
+        return actionError("Index out of range", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
     else
         window->m_group->setCurrent(index - 1);
 
@@ -884,14 +884,14 @@ ActionResult Actions::setGroupActive(int index, std::optional<PHLWINDOW> w) {
 
 ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!ws)
-        return {};
+        return std::unexpected("Invalid workspace");
 
     static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
     static auto PWORKSPACECENTERON            = CConfigValue<Config::INTEGER>("binds:workspace_center_on");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
     if (!PMONITOR)
-        return {};
+        return std::unexpected("No monitor");
 
     if (ws->m_isSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(ws);
@@ -905,7 +905,7 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
 
     const auto PMONITORWORKSPACEOWNER = PMONITOR == ws->m_monitor ? PMONITOR : ws->m_monitor.lock();
     if (!PMONITORWORKSPACEOWNER)
-        return {};
+        return std::unexpected("Workspace has no monitor");
 
     updateRelativeCursorCoords();
 
@@ -1219,10 +1219,10 @@ ActionResult Actions::lockGroups(eTogglableAction action) {
 ActionResult Actions::lockActiveGroup(eTogglableAction action) {
     const auto PWINDOW = Desktop::focusState()->window();
     if (!PWINDOW)
-        return {};
+        return actionError("No window found", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
     if (!PWINDOW->m_group)
-        return {};
+        return actionError("Window not in a group", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     switch (action) {
         case TOGGLE_ACTION_TOGGLE: PWINDOW->m_group->setLocked(!PWINDOW->m_group->locked()); break;
@@ -1306,14 +1306,14 @@ ActionResult Actions::moveOutOfGroup(Math::eDirection direction, std::optional<P
     static auto PIGNOREGROUPLOCK = CConfigValue<Config::INTEGER>("binds:ignore_group_lock");
 
     if (!*PIGNOREGROUPLOCK && g_pKeybindManager->m_groupsLocked)
-        return {};
+        return actionError("Groups locked", eActionErrorLevel::INFO, eActionErrorCode::INVALID_STATE);
 
     auto window = xtract(w);
     if (!window)
         return {};
 
     if (!window->m_group)
-        return {};
+        return actionError("Window not in a group", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     moveWindowOutOfGroupHelper(window, direction);
 
@@ -1323,10 +1323,10 @@ ActionResult Actions::moveOutOfGroup(Math::eDirection direction, std::optional<P
 ActionResult Actions::moveGroupWindow(bool forward) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
-        return {};
+        return actionError("No window found", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
     if (!PLASTWINDOW->m_group)
-        return {};
+        return actionError("Window not in a group", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (forward)
         PLASTWINDOW->m_group->swapWithNext();
@@ -1406,7 +1406,7 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
         return {};
 
     if (!g_pSeatManager->m_keyboard)
-        return {};
+        return std::unexpected("No keyboard");
 
     const auto& S             = *Config::Actions::state();
     const auto  XWTOXW        = window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11;
@@ -1474,7 +1474,7 @@ ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWIND
 
     if (window) {
         if (!g_pSeatManager->m_keyboard)
-            return {};
+            return std::unexpected("No keyboard");
 
         if (!isMouse)
             g_pSeatManager->setKeyboardFocus(window->wlSurface()->resource());

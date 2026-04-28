@@ -21,6 +21,7 @@
 
 #include "../../SharedDefs.hpp"
 #include "../../managers/KeybindManager.hpp"
+#include "../shared/ConfigErrors.hpp"
 
 extern "C" {
 #include <lua.h>
@@ -82,6 +83,7 @@ namespace Config::Lua {
         std::expected<void, std::string>         unregisterPluginLuaFunction(void* handle, const std::string& namespace_, const std::string& name);
 
         void                                     addError(std::string&& str);
+        void                                     addEvalIssue(const Config::SConfigError& err);
 
         void                                     registerLuaRef(int ref);
         void                                     callLuaFn(int ref);
@@ -127,6 +129,7 @@ namespace Config::Lua {
 
         std::unordered_map<std::string, SDeviceConfig> m_deviceConfigs;
         std::vector<std::string>                       m_errors, m_configPaths;
+        std::vector<Config::SConfigError>              m_evalIssues;
 
         // named window/layer rules for merge-on-redeclaration
         std::unordered_map<std::string, SP<Desktop::Rule::CWindowRule>> m_luaWindowRules;

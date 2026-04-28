@@ -631,11 +631,20 @@ void CConfigManager::addError(std::string&& str) {
     Notification::overlay()->addNotification(std::format("Runtime error in lua:\n{}", std::move(str)), 0, 5000, ICON_WARNING);
 }
 
+void CConfigManager::addEvalIssue(const Config::SConfigError& err) {
+    if (!m_isEvaluating)
+        return;
+
+    if (err.level == Config::eConfigErrorLevel::WARNING)
+        m_evalIssues.emplace_back(err);
+}
+
 std::optional<std::string> CConfigManager::eval(const std::string& code) {
     if (!m_lua)
-        return "lua state not initialized";
+        return "error: lua state not initialized";
 
     m_errors.clear();
+    m_evalIssues.clear();
     m_isEvaluating = true;
 
     Hyprutils::Utils::CScopeGuard x([this] { m_isEvaluating = false; });
@@ -643,20 +652,26 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
     if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {
         std::string err = lua_tostring(m_lua, -1);
         lua_pop(m_lua, 1);
-        return err;
+        return std::format("error: {}", err);
     }
 
     if (guardedPCall(0, 0, 0, LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
         std::string err = lua_tostring(m_lua, -1);
         lua_pop(m_lua, 1);
-        return err;
+        return std::format("error: {}", err);
     }
 
-    if (!m_errors.empty()) {
+    if (!m_errors.empty() || !m_evalIssues.empty()) {
         std::string out;
         out.reserve(256);
 
+        for (const auto& issue : m_evalIssues) {
+            out += std::format("{}: {}", Config::toString(issue.level), issue.message);
+            out += "\n";
+        }
+
         for (size_t i = 0; i < m_errors.size(); ++i) {
+            out += "error: ";
             out += m_errors.at(i);
             out += "\n";
         }
@@ -667,6 +682,7 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
     }
 
     m_errors.clear();
+    m_evalIssues.clear();
 
     return std::nullopt;
 }

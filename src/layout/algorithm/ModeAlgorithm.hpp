@@ -39,7 +39,7 @@ namespace Layout {
         virtual void moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) = 0;
 
         // optional: handle layout messages
-        virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        virtual Config::ErrorResult layoutMsg(const std::string_view& sv);
 
         // optional: predict new window's size
         virtual std::optional<Vector2D> predictSizeForNewTarget();

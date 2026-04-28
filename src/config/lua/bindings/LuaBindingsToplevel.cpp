@@ -337,23 +337,9 @@ static int hlUnbind(lua_State* L) {
         return 0;
     }
 
-    const char* mods   = luaL_checkstring(L, 1);
-    const char* keyStr = luaL_checkstring(L, 2);
+    const char* str = luaL_checkstring(L, 1);
+    g_pKeybindManager->removeKeybind(str);
 
-    uint32_t    mod = g_pKeybindManager->stringToModMask(mods);
-
-    SParsedKey  key;
-    std::string k = keyStr;
-    if (Hyprutils::String::isNumber(k) && std::stoi(k) > 9)
-        key = {.keycode = (uint32_t)std::stoi(k)};
-    else if (k.starts_with("code:") && Hyprutils::String::isNumber(k.substr(5)))
-        key = {.keycode = (uint32_t)std::stoi(k.substr(5))};
-    else if (k == "catchall")
-        key = {.catchAll = true};
-    else
-        key = {.key = k};
-
-    g_pKeybindManager->removeKeybind(mod, key);
     return 0;
 }
 

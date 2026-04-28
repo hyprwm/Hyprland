@@ -197,6 +197,23 @@ void CKeybindManager::removeKeybind(uint32_t mod, const SParsedKey& key) {
     m_lastLongPressKeybind.reset();
 }
 
+void CKeybindManager::removeKeybind(const std::string& displayKeys) {
+    static auto normalize = [](std::string x) -> std::string {
+        std::string n = x;
+        replaceInString(n, " ", "");
+        std::ranges::transform(n, n.begin(), ::tolower);
+        return n;
+    };
+
+    const auto DISPLAY_KEYS_NORMALIZED = normalize(displayKeys);
+
+    std::erase_if(m_keybinds,
+                  [&displayKeys, &DISPLAY_KEYS_NORMALIZED](const auto& el) { return el->displayKey == displayKeys || DISPLAY_KEYS_NORMALIZED == normalize(el->displayKey); });
+
+    m_activeKeybinds.clear();
+    m_lastLongPressKeybind.reset();
+}
+
 uint32_t CKeybindManager::stringToModMask(std::string mods) {
     uint32_t modMask = 0;
     std::ranges::transform(mods, mods.begin(), ::toupper);

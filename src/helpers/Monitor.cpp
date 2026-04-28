@@ -2550,6 +2550,8 @@ bool CMonitor::useFP16() {
 }
 
 PImageDescription CMonitor::workBufferImageDescription() {
+    static const auto PFP16TF = CConfigValue<Hyprlang::INT>("render:fp16_sdr_tf");
+
     if (!useFP16())
         return m_imageDescription;
 
@@ -2561,19 +2563,20 @@ PImageDescription CMonitor::workBufferImageDescription() {
     const auto& cached = m_cachedInternalDescription->value();
 
     // HDR
-    if (isHDRLikeTF || value.windowsScRGB) {
-        if (cached.primariesNamed != NColorManagement::CM_PRIMARIES_SRGB || cached.luminances != value.luminances)
+    if (isHDRLikeTF || value.windowsScRGB || *PFP16TF != 2) {
+        if (cached.transferFunction != LINEAR_IMAGE_DESCRIPTION->value().transferFunction || cached.luminances != value.luminances)
             m_cachedInternalDescription = LINEAR_IMAGE_DESCRIPTION->with(value.luminances);
         return m_cachedInternalDescription;
     }
 
     // SDR
-    if (cached.primariesNamed != NColorManagement::CM_PRIMARIES_BT2020 || cached.transferFunction != chooseTF(m_sdrEotf))
+    if (cached.transferFunction != chooseTF(m_sdrEotf))
         m_cachedInternalDescription = CImageDescription::from(SImageDescription{
             .transferFunction = chooseTF(m_sdrEotf),
             .primariesNameSet = true,
-            .primariesNamed   = NColorManagement::CM_PRIMARIES_BT2020,
-            .primaries        = NColorPrimaries::BT2020,
+            // render:keep_unmodified_copy and other conditions that trigger MRT for screen sharing expect a work buffer with sRGB primaries
+            .primariesNamed = NColorManagement::CM_PRIMARIES_SRGB,
+            .primaries      = NColorPrimaries::BT709,
         });
 
     return m_cachedInternalDescription;

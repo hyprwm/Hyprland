@@ -539,6 +539,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
         MS<Int>("render:non_shader_cm_interop", "non_shader_cm interaction with ctm proto (hyprsunset and similar).", 2,
                 {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
+        MS<Int>("render:fp16_sdr_tf", "Internal workbuffer transfer function for fp16 in SDR mode", 0,
+                {.min = 0, .max = 2, .map = OptionMap{{"default", 0}, {"linear", 1}, {"monitor", 2}}}),
 
         /*
          * cursor:

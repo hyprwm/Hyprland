@@ -50,10 +50,10 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
         // set this here so that expressions can use it. This could be wrong of course.
         WINDOW->m_realSize->setValueAndWarp(DESIRED_GEOM ? DESIRED_GEOM->size : DEFAULT_SIZE);
 
-        if (!WINDOW->m_ruleApplicator->static_.size.empty()) {
-            const auto COMPUTED = WINDOW->calculateExpression(WINDOW->m_ruleApplicator->static_.size);
+        if (WINDOW->m_ruleApplicator->static_.size) {
+            const auto COMPUTED = WINDOW->calculateExpression(*WINDOW->m_ruleApplicator->static_.size);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.size);
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.size->toString());
             else {
                 windowGeometry.w = COMPUTED->x;
                 windowGeometry.h = COMPUTED->y;
@@ -63,10 +63,10 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
             }
         }
 
-        if (!WINDOW->m_ruleApplicator->static_.position.empty()) {
-            const auto COMPUTED = WINDOW->calculateExpression(WINDOW->m_ruleApplicator->static_.position);
+        if (WINDOW->m_ruleApplicator->static_.position) {
+            const auto COMPUTED = WINDOW->calculateExpression(*WINDOW->m_ruleApplicator->static_.position);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.position);
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", WINDOW->m_ruleApplicator->static_.position->toString());
             else {
                 windowGeometry.x = COMPUTED->x + MONITOR_POS.x;
                 windowGeometry.y = COMPUTED->y + MONITOR_POS.y;

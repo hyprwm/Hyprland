@@ -1076,21 +1076,9 @@ static int hlWindowRule(lua_State* L) {
             continue;
         }
 
-        auto val = UP<ILuaConfigValue>(desc->factory());
-        auto err = val->parse(L);
-        if (err.errorCode != PARSE_ERROR_OK) {
-            const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-            if (allowLegacyString) {
-                auto res = rule->addEffect(desc->effect, lua_tostring(L, -1));
-                if (!res)
-                    self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
-            } else
-                self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, err.message));
-        } else {
-            auto res = rule->addEffect(desc->effect, val->toString());
-            if (!res)
-                self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
-        }
+        auto res = Internal::addWindowRuleEffectFromLua(L, *desc, rule);
+        if (!res)
+            self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
 
         lua_pop(L, 1);
     }

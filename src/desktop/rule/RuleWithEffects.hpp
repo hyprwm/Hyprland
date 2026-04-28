@@ -44,6 +44,13 @@ namespace Desktop::Rule {
 
         virtual std::expected<valueType, std::string> parseEffect(storageType e, const std::string& result) = 0;
 
+        std::expected<void, std::string>              addParsedEffect(storageType e, valueType value, std::string raw = {}) {
+            m_effects.emplace_back(TEffect{.key = e, .raw = std::move(raw), .value = std::move(value)});
+            m_effectSet.emplace(e);
+
+            return {};
+        }
+
       private:
         std::vector<TEffect>            m_effects;
         std::unordered_set<storageType> m_effectSet;

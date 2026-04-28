@@ -168,9 +168,13 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     if (!m_window)
                         break;
 
-                    const auto VEC = m_window->calculateExpression(effect);
+                    const auto& expr = std::get<Math::SExpressionVec2>(value);
+                    if (expr.empty())
+                        break;
+
+                    const auto VEC = m_window->calculateExpression(expr);
                     if (!VEC) {
-                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", effect);
+                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", expr.toString());
                         break;
                     }
                     if (VEC->x < 1 || VEC->y < 1) {
@@ -182,7 +186,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 
                     if (*PCLAMP_TILED || m_window->m_isFloating)
                         m_window->clampWindowSize(std::nullopt, m_maxSize.first.value());
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "maxsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_maxSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -193,9 +197,13 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     if (!m_window)
                         break;
 
-                    const auto VEC = m_window->calculateExpression(effect);
+                    const auto& expr = std::get<Math::SExpressionVec2>(value);
+                    if (expr.empty())
+                        break;
+
+                    const auto VEC = m_window->calculateExpression(expr);
                     if (!VEC) {
-                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", effect);
+                        Log::logger->log(Log::ERR, "failed to parse {} as an expression", expr.toString());
                         break;
                     }
 
@@ -207,7 +215,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                     m_minSize.first = Types::COverridableVar(*VEC, Types::PRIORITY_WINDOW_RULE);
                     if (*PCLAMP_TILED || m_window->m_isFloating)
                         m_window->clampWindowSize(m_minSize.first.value(), std::nullopt);
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", effect, e.what()); }
+                } catch (std::exception& e) { Log::logger->log(Log::ERR, "minsize rule \"{}\" failed with: {}", std::get<Math::SExpressionVec2>(value).toString(), e.what()); }
                 m_minSize.second = rule->getPropertiesMask();
                 break;
             }
@@ -385,15 +393,23 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
             case WINDOW_RULE_EFFECT_MOVE: {
                 static_.center   = std::nullopt;
-                static_.position = std::get<std::string>(value);
+                const auto& expr = std::get<Math::SExpressionVec2>(value);
+                if (expr.empty())
+                    static_.position.reset();
+                else
+                    static_.position = expr;
                 break;
             }
             case WINDOW_RULE_EFFECT_SIZE: {
-                static_.size = std::get<std::string>(value);
+                const auto& expr = std::get<Math::SExpressionVec2>(value);
+                if (expr.empty())
+                    static_.size.reset();
+                else
+                    static_.size = expr;
                 break;
             }
             case WINDOW_RULE_EFFECT_CENTER: {
-                static_.position.clear();
+                static_.position.reset();
                 static_.center = std::get<bool>(value);
                 break;
             }

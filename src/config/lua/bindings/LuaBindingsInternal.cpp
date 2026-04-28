@@ -1,5 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
+#include "../../../desktop/rule/windowRule/WindowRule.hpp"
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
@@ -489,6 +491,24 @@ std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L
     return std::unexpected("value must be a string, bool, or number");
 }
 
+std::expected<void, std::string> Internal::addWindowRuleEffectFromLua(lua_State* L, const SWindowRuleEffectDesc& desc, const SP<Desktop::Rule::CWindowRule>& rule) {
+    auto val = UP<ILuaConfigValue>(desc.factory());
+    auto err = val->parse(L);
+
+    if (err.errorCode != PARSE_ERROR_OK) {
+        const bool allowLegacyString = desc.effect == WE::WINDOW_RULE_EFFECT_BORDER_COLOR && lua_isstring(L, -1);
+        if (!allowLegacyString)
+            return std::unexpected(err.message);
+
+        return rule->addEffect(desc.effect, lua_tostring(L, -1));
+    }
+
+    if (const auto expr = dc<CLuaConfigExpressionVec2*>(val.get()); expr)
+        return rule->addEffect(desc.effect, expr->parsed());
+
+    return rule->addEffect(desc.effect, val->toString());
+}
+
 std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(lua_State* L, int idx) {
     SP<Desktop::Rule::CWindowRule> rule;
 
@@ -538,26 +558,10 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
                 continue;
             }
 
-            auto val = UP<ILuaConfigValue>(desc->factory());
-            auto err = val->parse(L);
-            if (err.errorCode != PARSE_ERROR_OK) {
-                const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-                if (allowLegacyString) {
-                    auto res = rule->addEffect(desc->effect, lua_tostring(L, -1));
-                    if (!res) {
-                        lua_pop(L, 1);
-                        return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
-                    }
-                } else {
-                    lua_pop(L, 1);
-                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, err.message));
-                }
-            } else {
-                auto res = rule->addEffect(desc->effect, val->toString());
-                if (!res) {
-                    lua_pop(L, 1);
-                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
-                }
+            auto res = Internal::addWindowRuleEffectFromLua(L, *desc, rule);
+            if (!res) {
+                lua_pop(L, 1);
+                return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
             }
 
             hasRuleEffects = true;

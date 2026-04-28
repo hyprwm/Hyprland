@@ -1645,12 +1645,16 @@ std::optional<double> CWindow::calculateSingleExpr(const std::string& s) {
 }
 
 std::optional<Vector2D> CWindow::calculateExpression(const std::string& s) {
-    auto spacePos = s.find(' ');
-    if (spacePos == std::string::npos)
+    const auto parsed = Math::parseExpressionVec2(s);
+    if (!parsed)
         return std::nullopt;
 
-    const auto LHS = calculateSingleExpr(s.substr(0, spacePos));
-    const auto RHS = calculateSingleExpr(s.substr(spacePos + 1));
+    return calculateExpression(*parsed);
+}
+
+std::optional<Vector2D> CWindow::calculateExpression(const Math::SExpressionVec2& expr) {
+    const auto LHS = calculateSingleExpr(expr.x);
+    const auto RHS = calculateSingleExpr(expr.y);
 
     if (!LHS || !RHS)
         return std::nullopt;
@@ -2011,10 +2015,10 @@ void CWindow::mapWindow() {
     } else {
         bool setPseudo = false;
 
-        if (!m_ruleApplicator->static_.size.empty()) {
-            const auto COMPUTED = calculateExpression(m_ruleApplicator->static_.size);
+        if (m_ruleApplicator->static_.size) {
+            const auto COMPUTED = calculateExpression(*m_ruleApplicator->static_.size);
             if (!COMPUTED)
-                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size);
+                Log::logger->log(Log::ERR, "failed to parse {} as an expression", m_ruleApplicator->static_.size->toString());
             else {
                 setPseudo = true;
                 m_target->setPseudoSize(*COMPUTED);

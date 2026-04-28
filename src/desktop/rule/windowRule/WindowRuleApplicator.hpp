@@ -8,6 +8,7 @@
 #include "../Rule.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../helpers/math/Math.hpp"
+#include "../../../helpers/math/Expression.hpp"
 #include "../../../helpers/TagKeeper.hpp"
 #include "../../../config/shared/complex/ComplexDataTypes.hpp"
 
@@ -38,25 +39,25 @@ namespace Desktop::Rule {
 
         // static props
         struct {
-            std::string              monitor, workspace, group;
+            std::string                          monitor, workspace, group;
 
-            std::optional<bool>      floating;
-            std::optional<bool>      fullscreen;
-            std::optional<bool>      maximize;
-            std::optional<bool>      pseudo;
-            std::optional<bool>      pin;
-            std::optional<bool>      noInitialFocus;
-            std::optional<bool>      center;
+            std::optional<bool>                  floating;
+            std::optional<bool>                  fullscreen;
+            std::optional<bool>                  maximize;
+            std::optional<bool>                  pseudo;
+            std::optional<bool>                  pin;
+            std::optional<bool>                  noInitialFocus;
+            std::optional<bool>                  center;
 
-            std::optional<int>       fullscreenStateClient;
-            std::optional<int>       fullscreenStateInternal;
-            std::optional<int>       content;
-            std::optional<int>       noCloseFor;
+            std::optional<int>                   fullscreenStateClient;
+            std::optional<int>                   fullscreenStateInternal;
+            std::optional<int>                   content;
+            std::optional<int>                   noCloseFor;
 
-            std::string              size, position;
-            std::optional<float>     scrollingWidth;
+            std::optional<Math::SExpressionVec2> size, position;
+            std::optional<float>                 scrollingWidth;
 
-            std::vector<std::string> suppressEvent;
+            std::vector<std::string>             suppressEvent;
         } static_;
 
         struct SCustomPropContainer {

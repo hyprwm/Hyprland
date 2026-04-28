@@ -259,13 +259,19 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
 
         case WINDOW_RULE_EFFECT_MOVE:
         case WINDOW_RULE_EFFECT_SIZE:
+        case WINDOW_RULE_EFFECT_MAX_SIZE:
+        case WINDOW_RULE_EFFECT_MIN_SIZE: {
+            auto parsed = Math::parseExpressionVec2(raw);
+            if (!parsed)
+                return std::unexpected(std::format("{} rule \"{}\" failed with: {}", EFFECT_NAME, raw, parsed.error()));
+            return *parsed;
+        }
+
         case WINDOW_RULE_EFFECT_MONITOR:
         case WINDOW_RULE_EFFECT_WORKSPACE:
         case WINDOW_RULE_EFFECT_GROUP:
         case WINDOW_RULE_EFFECT_ANIMATION:
-        case WINDOW_RULE_EFFECT_TAG:
-        case WINDOW_RULE_EFFECT_MAX_SIZE:
-        case WINDOW_RULE_EFFECT_MIN_SIZE: return std::string{raw};
+        case WINDOW_RULE_EFFECT_TAG: return std::string{raw};
 
         case WINDOW_RULE_EFFECT_SUPPRESSEVENT: return parseStringList(raw);
 
@@ -332,6 +338,18 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
 
 CWindowRule::CWindowRule(const std::string& name) : CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW>(name) {
     ;
+}
+
+std::expected<void, std::string> CWindowRule::addEffect(CWindowRule::storageType e, const Math::SExpressionVec2& expr) {
+    switch (e) {
+        case WINDOW_RULE_EFFECT_MOVE:
+        case WINDOW_RULE_EFFECT_SIZE:
+        case WINDOW_RULE_EFFECT_MAX_SIZE:
+        case WINDOW_RULE_EFFECT_MIN_SIZE: break;
+        default: return std::unexpected(std::format("{} is not an expression vec2 window rule effect", windowEffects()->get(e)));
+    }
+
+    return addParsedEffect(e, expr, expr.toString());
 }
 
 std::expected<WindowRuleEffectValue, std::string> CWindowRule::parseEffect(CWindowRule::storageType e, const std::string& result) {

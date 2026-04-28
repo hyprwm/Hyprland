@@ -1258,7 +1258,7 @@ static std::string evalRequest(eHyprCtlOutputFormat format, std::string request)
 
     auto err = luaMgr->eval(code);
     if (err)
-        return std::format("error: {}", *err);
+        return *err;
 
     return "ok";
 }
@@ -1269,7 +1269,7 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
 
     if (Config::mgr()->type() == Config::CONFIG_LUA) {
         // For lua, this is just a wrapper for `eval("hl.dispatch(in)")
-        std::string evalStr = std::format("hl.dispatch({})", in);
+        std::string evalStr = std::format("return hl.dispatch({})", in);
         auto        luaMgr  = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
         auto        ret     = luaMgr->eval(evalStr).value_or("ok");
 

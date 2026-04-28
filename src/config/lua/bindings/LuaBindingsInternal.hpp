@@ -127,7 +127,10 @@ namespace Config::Lua::Bindings::Internal {
 
     std::optional<PHLWINDOW>                           windowFromUpval(lua_State* L, int idx);
     void                                               pushWindowUpval(lua_State* L, int tableIdx);
-    void                                               checkResult(lua_State* L, const Config::Actions::ActionResult& r);
+    int                                                checkResult(lua_State* L, const Config::Actions::ActionResult& r);
+    int                                                pushSuccessResult(lua_State* L, const Config::Actions::SActionResult& r = {});
+    int                                                pushErrorResult(lua_State* L, const Config::Actions::SActionError& e);
+    void                                               reportError(lua_State* L, const Config::Actions::SActionError& e);
     PHLWORKSPACE                                       resolveWorkspaceStr(const std::string& args);
     PHLMONITOR                                         resolveMonitorStr(const std::string& args);
     std::string                                        getSourceInfo(lua_State* L, int stackLevel = 1);
@@ -139,7 +142,10 @@ namespace Config::Lua::Bindings::Internal {
     std::expected<std::string, std::string>            ruleValueToString(lua_State* L);
     std::expected<SP<Desktop::Rule::CWindowRule>, int> buildRuleFromTable(lua_State* L, int idx);
 
-    int                                                configError(lua_State* L, std::string s, int stackLevel = 1);
+    int configError(lua_State* L, std::string s, Config::Actions::eActionErrorLevel level = Config::Actions::eActionErrorLevel::ERROR,
+                    Config::Actions::eActionErrorCode code = Config::Actions::eActionErrorCode::UNKNOWN, int stackLevel = 1);
+    int dispatcherError(lua_State* L, std::string s, Config::Actions::eActionErrorLevel level = Config::Actions::eActionErrorLevel::ERROR,
+                        Config::Actions::eActionErrorCode code = Config::Actions::eActionErrorCode::UNKNOWN, int stackLevel = 1);
 
     template <typename... Args>
     int configError(lua_State* L, std::format_string<Args...> fmt, Args&&... args) {
@@ -147,8 +153,13 @@ namespace Config::Lua::Bindings::Internal {
     }
 
     template <typename... Args>
+    int dispatcherError(lua_State* L, Config::Actions::eActionErrorLevel level, Config::Actions::eActionErrorCode code, std::format_string<Args...> fmt, Args&&... args) {
+        return dispatcherError(L, std::format(fmt, std::forward<Args>(args)...), level, code);
+    }
+
+    template <typename... Args>
     int configError(lua_State* L, int stackLevel, std::format_string<Args...> fmt, Args&&... args) {
-        return configError(L, std::format(fmt, std::forward<Args>(args)...), stackLevel);
+        return configError(L, std::format(fmt, std::forward<Args>(args)...), Config::Actions::eActionErrorLevel::ERROR, Config::Actions::eActionErrorCode::UNKNOWN, stackLevel);
     }
 
     template <typename T, size_t N>

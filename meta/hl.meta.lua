@@ -703,15 +703,24 @@ local __HL_Window = {}
 local __HL_WindowRule = {}
 
 ---@class HL.Workspace
+---@field get_windows fun(self: HL.Workspace, ...): any
 ---@field active boolean
+---@field config_name string
+---@field default_floating boolean
+---@field default_pseudo boolean
 ---@field fullscreen_mode integer
+---@field fullscreen_window HL.Window|nil
+---@field groups integer
 ---@field has_fullscreen boolean
 ---@field has_urgent boolean
 ---@field id integer
----@field is_persistent boolean|nil
+---@field is_empty boolean
+---@field is_persistent boolean
+---@field last_window HL.Window|nil
 ---@field monitor HL.Monitor|nil
 ---@field name string
 ---@field special boolean
+---@field tiled_layout string
 ---@field visible boolean
 ---@field windows integer
 local __HL_Workspace = {}

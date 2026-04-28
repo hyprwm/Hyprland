@@ -411,8 +411,9 @@ local __HL_TimerOptions = {}
 ---@field action string
 ---@field mods? string
 ---@field scale? number
----@field arg? string
----@field arg2? string
+---@field mode? string
+---@field zoom_level? number
+---@field workspace_name? string
 ---@field disable_inhibit? boolean
 local __HL_GestureSpec = {}
 

@@ -1066,8 +1066,11 @@ static int hlWindowRule(lua_State* L) {
             auto val = Internal::ruleValueToString(L);
             if (!val)
                 self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, val.error()));
-            else
-                rule->addEffect(*dynamicEffect, *val);
+            else {
+                auto res = rule->addEffect(*dynamicEffect, *val);
+                if (!res)
+                    self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
+            }
 
             lua_pop(L, 1);
             continue;
@@ -1077,12 +1080,17 @@ static int hlWindowRule(lua_State* L) {
         auto err = val->parse(L);
         if (err.errorCode != PARSE_ERROR_OK) {
             const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-            if (allowLegacyString)
-                rule->addEffect(desc->effect, lua_tostring(L, -1));
-            else
+            if (allowLegacyString) {
+                auto res = rule->addEffect(desc->effect, lua_tostring(L, -1));
+                if (!res)
+                    self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
+            } else
                 self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, err.message));
-        } else
-            rule->addEffect(desc->effect, val->toString());
+        } else {
+            auto res = rule->addEffect(desc->effect, val->toString());
+            if (!res)
+                self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
+        }
 
         lua_pop(L, 1);
     }

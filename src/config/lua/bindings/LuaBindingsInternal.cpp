@@ -470,7 +470,11 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
                     return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, val.error()));
                 }
 
-                rule->addEffect(*dynamicEffect, *val);
+                auto res = rule->addEffect(*dynamicEffect, *val);
+                if (!res) {
+                    lua_pop(L, 1);
+                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
+                }
                 hasRuleEffects = true;
 
                 lua_pop(L, 1);
@@ -481,14 +485,23 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
             auto err = val->parse(L);
             if (err.errorCode != PARSE_ERROR_OK) {
                 const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-                if (allowLegacyString)
-                    rule->addEffect(desc->effect, lua_tostring(L, -1));
-                else {
+                if (allowLegacyString) {
+                    auto res = rule->addEffect(desc->effect, lua_tostring(L, -1));
+                    if (!res) {
+                        lua_pop(L, 1);
+                        return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
+                    }
+                } else {
                     lua_pop(L, 1);
                     return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, err.message));
                 }
-            } else
-                rule->addEffect(desc->effect, val->toString());
+            } else {
+                auto res = rule->addEffect(desc->effect, val->toString());
+                if (!res) {
+                    lua_pop(L, 1);
+                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
+                }
+            }
 
             hasRuleEffects = true;
             lua_pop(L, 1);

@@ -895,8 +895,11 @@ std::optional<std::string> CConfigManager::addRuleFromConfigKey(const std::strin
 
     for (const auto& e : Desktop::Rule::windowEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("windowrule", e.c_str(), name.c_str());
-        if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::windowEffects()->get(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        if (VAL && VAL->m_bSetByUser) {
+            auto res = rule->addEffect(Desktop::Rule::windowEffects()->get(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            if (!res)
+                return res.error();
+        }
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -1981,7 +1984,9 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
             const auto EFFECT = Desktop::Rule::windowEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
-            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            auto res = rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            if (!res)
+                return res.error();
         } else
             return std::format("invalid field type {}", FIRST);
     }

@@ -244,10 +244,10 @@ TEST(ConfigLuaValueTypes, vec2ParseValidateAndPush) {
 }
 
 TEST(ConfigLuaValueTypes, expressionVec2AcceptsStringNumberAndTableForms) {
-    CLuaState                  S;
-    const auto                 L = S.get();
+    CLuaState                S;
+    const auto               L = S.get();
 
-    CLuaConfigExpressionVec2   value;
+    CLuaConfigExpressionVec2 value;
 
     lua_pushstring(L, "monitor_w*0.5 monitor_h*0.25");
     auto err = value.parse(L);

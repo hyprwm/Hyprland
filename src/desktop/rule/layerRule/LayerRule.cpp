@@ -5,26 +5,44 @@
 
 #include <algorithm>
 #include <format>
+#include <hyprutils/string/Numeric.hpp>
 
 using namespace Desktop;
 using namespace Desktop::Rule;
+using namespace Hyprutils::String;
+
+static const char* numericParseError(eNumericParseResult r) {
+    switch (r) {
+        case NUMERIC_PARSE_BAD: return "bad input";
+        case NUMERIC_PARSE_GARBAGE: return "garbage input";
+        case NUMERIC_PARSE_OUT_OF_RANGE: return "out of range";
+        case NUMERIC_PARSE_OK: return "ok";
+        default: return "error";
+    }
+}
 
 static std::expected<int64_t, std::string> parseInt(std::string_view effectName, const std::string& raw) {
-    try {
-        return std::stoll(raw);
-    } catch (std::exception& e) { return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, e.what())); }
+    auto parsed = strToNumber<int64_t>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
 }
 
 static std::expected<float, std::string> parseFloat(std::string_view effectName, const std::string& raw) {
-    try {
-        return std::stof(raw);
-    } catch (std::exception& e) { return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, e.what())); }
+    auto parsed = strToNumber<float>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
 }
 
 static std::expected<int64_t, std::string> parseAboveLock(const std::string& raw) {
-    try {
-        return sc<int64_t>(std::clamp(std::stoull(raw), 0ULL, 2ULL));
-    } catch (std::exception& e) { return std::unexpected(std::format("above_lock rule \"{}\" failed with: {}", raw, e.what())); }
+    auto parsed = strToNumber<int64_t>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("above_lock rule \"{}\" failed with: {}", raw, numericParseError(parsed.error())));
+
+    return std::clamp(*parsed, int64_t{0}, int64_t{2});
 }
 
 static std::expected<LayerRuleEffectValue, std::string> parseLayerRuleEffect(CLayerRuleEffectContainer::storageType e, const std::string& raw) {

@@ -1963,15 +1963,6 @@ void CWindow::mapWindow() {
         Log::logger->log(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
     }
 
-    if (PWORKSPACE->m_defaultFloating)
-        m_isFloating = true;
-
-    if (PWORKSPACE->m_defaultPseudo) {
-        CBox desiredGeometry = g_pXWaylandManager->getGeometryForWindow(m_self.lock());
-        m_target->setPseudoSize(Vector2D{desiredGeometry.width, desiredGeometry.height});
-        m_target->setPseudo(true);
-    }
-
     // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
     const auto SWALLOWER = getSwallower();
     m_swallowed          = SWALLOWER;

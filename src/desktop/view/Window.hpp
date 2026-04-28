@@ -356,6 +356,7 @@ namespace Desktop::View {
         SP<CWLSurfaceResource>     getSolitaryResource();
         Vector2D                   getReportedSize();
         std::optional<Vector2D>    calculateExpression(const std::string& s);
+        std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();
         SP<Layout::ITarget>        layoutTarget();

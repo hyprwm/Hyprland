@@ -637,7 +637,7 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getMasterNode() {
     return nullptr;
 }
 
-std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto ARGS = CVarList2(std::string{sv}, 0, ' ');
 
     const auto CURRENT_NODE = getNodeFromWindow(Desktop::focusState()->window());
@@ -645,12 +645,12 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
     if (ARGS[0] == "togglesplit") {
         if (CURRENT_NODE) {
             if (!toggleSplit(CURRENT_NODE))
-                return std::unexpected("can't togglesplit in the current workspace");
+                return Config::configError("can't togglesplit in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
         }
     } else if (ARGS[0] == "swapsplit") {
         if (CURRENT_NODE) {
             if (!swapSplit(CURRENT_NODE))
-                return std::unexpected("can't swapsplit in the current workspace");
+                return Config::configError("can't swapsplit in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
         }
     } else if (ARGS[0] == "rotatesplit") {
         if (CURRENT_NODE) {
@@ -660,7 +660,7 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
                     angle = std::stoi(std::string{ARGS[1]});
                 } catch (const std::exception& e) {
                     Log::logger->log(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
-                    return std::unexpected("Invalid angle argument");
+                    return Config::configError("Invalid angle argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
                 }
             }
             rotateSplit(CURRENT_NODE, angle);
@@ -675,13 +675,13 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
 
         const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
         if (!moveToRoot(node, STABLE))
-            return std::unexpected("can't movetoroot in the current workspace");
+            return Config::configError("can't movetoroot in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
     } else if (ARGS[0] == "preselect") {
         auto direction = ARGS[1];
 
         if (direction.empty()) {
             Log::logger->log(Log::ERR, "Expected direction for preselect");
-            return std::unexpected("No direction for preselect");
+            return Config::configError("No direction for preselect", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
         }
 
         switch (direction.front()) {
@@ -715,15 +715,15 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
         bool exact = ARGS[2].starts_with("exact");
 
         if (ratio.empty())
-            return std::unexpected("splitratio requires an arg");
+            return Config::configError("splitratio requires an arg", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
         auto delta = getPlusMinusKeywordResult(std::string{ratio}, 0.F);
 
         if (!CURRENT_NODE || !CURRENT_NODE->pParent)
-            return std::unexpected("cannot alter split ratio on no / single node");
+            return Config::configError("cannot alter split ratio on no / single node", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
 
         if (!delta)
-            return std::unexpected(std::format("failed to parse \"{}\" as a delta", ratio));
+            return Config::configError(std::format("failed to parse \"{}\" as a delta", ratio), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
         const float newRatio              = exact ? *delta : CURRENT_NODE->pParent->splitRatio + *delta;
         CURRENT_NODE->pParent->splitRatio = std::clamp(newRatio, 0.1F, 1.9F);

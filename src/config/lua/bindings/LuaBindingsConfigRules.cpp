@@ -1066,23 +1066,19 @@ static int hlWindowRule(lua_State* L) {
             auto val = Internal::ruleValueToString(L);
             if (!val)
                 self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, val.error()));
-            else
-                rule->addEffect(*dynamicEffect, *val);
+            else {
+                auto res = rule->addEffect(*dynamicEffect, *val);
+                if (!res)
+                    self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
+            }
 
             lua_pop(L, 1);
             continue;
         }
 
-        auto val = UP<ILuaConfigValue>(desc->factory());
-        auto err = val->parse(L);
-        if (err.errorCode != PARSE_ERROR_OK) {
-            const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-            if (allowLegacyString)
-                rule->addEffect(desc->effect, lua_tostring(L, -1));
-            else
-                self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, err.message));
-        } else
-            rule->addEffect(desc->effect, val->toString());
+        auto res = Internal::addWindowRuleEffectFromLua(L, *desc, rule);
+        if (!res)
+            self->addError(std::format("{}: hl.window_rule: field '{}': {}", sourceInfo, key, res.error()));
 
         lua_pop(L, 1);
     }
@@ -1178,8 +1174,11 @@ static int hlLayerRule(lua_State* L) {
             auto val = Internal::ruleValueToString(L);
             if (!val)
                 self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, val.error()));
-            else
-                rule->addEffect(*dynamicEffect, *val);
+            else {
+                auto res = rule->addEffect(*dynamicEffect, *val);
+                if (!res)
+                    self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, res.error()));
+            }
 
             lua_pop(L, 1);
             continue;
@@ -1191,7 +1190,9 @@ static int hlLayerRule(lua_State* L) {
             self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, err.message));
         else {
             auto str = val->toString();
-            rule->addEffect(desc->effect, str);
+            auto res = rule->addEffect(desc->effect, str);
+            if (!res)
+                self->addError(std::format("{}: hl.layer_rule: field '{}': {}", sourceInfo, key, res.error()));
         }
 
         lua_pop(L, 1);

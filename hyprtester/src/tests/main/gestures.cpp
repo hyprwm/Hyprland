@@ -10,14 +10,13 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+// TODO: refactor and reuse `Tests::waitUntilWindowsN`
 static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectation, int waitMillis = 100, int maxWaitCnt = 50) {
     int counter = 0;
     while (Tests::windowCount() != expectedWindowCnt) {
@@ -32,17 +31,10 @@ static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectati
     return true;
 }
 
-static bool test() {
-    NLog::log("{}Testing gestures", Colors::GREEN);
-
-    EXPECT(Tests::windowCount(), 0);
-
-    // test on workspace "window"
-    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"); // no OK: we might be on 1 already
-
+// TODO: decompose this into multiple test cases
+TEST_CASE(gestures) {
     Tests::spawnKitty();
-    EXPECT(Tests::windowCount(), 1);
+    ASSERT(Tests::windowCount(), 1);
 
     // Give the shell a moment to initialize
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -148,7 +140,7 @@ static bool test() {
 
     EXPECT(waitForWindowCount(0, "Gesture closed kitty"), true);
 
-    EXPECT(Tests::windowCount(), 0);
+    ASSERT(Tests::windowCount(), 0);
 
     // This test ensures that `movecursortocorner`, which expects
     // a single-character direction argument, is parsed correctly.
@@ -186,18 +178,4 @@ static bool test() {
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     }
-
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
-    // reload cfg
-    OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

@@ -10,17 +10,13 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static bool test() {
-    NLog::log("{}Testing moveintoorcreategroup", Colors::GREEN);
-
+TEST_CASE(moveIntoOrCreateGroup) {
     NLog::log("{}Dispatching workspace `moveintoorcreategroup`", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:moveintoorcreategroup' })");
 
@@ -29,19 +25,17 @@ static bool test() {
     NLog::log("{}Spawning kittyA", Colors::YELLOW);
     auto kittyA = Tests::spawnKitty("kitty_A");
     if (!kittyA) {
-        NLog::log("{}Error: kittyA did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty_A");
     }
 
     NLog::log("{}Spawning kittyB", Colors::YELLOW);
     auto kittyB = Tests::spawnKitty("kitty_B");
     if (!kittyB) {
-        NLog::log("{}Error: kittyB did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty_B");
     }
 
     NLog::log("{}Expecting 2 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 2);
+    ASSERT(Tests::windowCount(), 2);
 
     {
         auto str = getFromSocket("/clients");
@@ -68,7 +62,7 @@ static bool test() {
     Tests::killAllWindows();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
+    ASSERT(Tests::windowCount(), 0);
 
     NLog::log("{}Testing moveintoorcreategroup into existing group", Colors::YELLOW);
 
@@ -80,7 +74,7 @@ static bool test() {
     auto kittyE = Tests::spawnKitty("kitty_E");
 
     NLog::log("{}Expecting 3 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 3);
+    ASSERT(Tests::windowCount(), 3);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_D' })"));
     OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
@@ -100,12 +94,4 @@ static bool test() {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "kitty_E");
     }
-
-    NLog::log("{}Kill windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    OK(getFromSocket("/eval hl.config({ group = { auto_group = true } })"));
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

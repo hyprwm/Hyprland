@@ -34,7 +34,7 @@ SDispatchResult CDispatcherTranslator::run(const std::string& d, const std::stri
 // helper: convert ActionResult to SDispatchResult
 static SDispatchResult wrap(ActionResult res) {
     if (!res)
-        return {.success = false, .error = res.error()};
+        return {.success = false, .error = res.error().message};
     return {.passEvent = res->passEvent};
 }
 

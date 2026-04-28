@@ -10,8 +10,6 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
@@ -38,7 +36,7 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "workspace: 2");
+//             ASSERT_CONTAINS(str, "workspace: 2");
 //         }
 //
 //         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
@@ -48,13 +46,13 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activeworkspace");
-//             EXPECT_CONTAINS(str, "windows: 0");
+//             ASSERT_CONTAINS(str, "windows: 0");
 //         }
 //
 //         {
 //             OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:hyprland-dialog' })"))
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "workspace: 2");
+//             ASSERT_CONTAINS(str, "workspace: 2");
 //         }
 //     }
 //
@@ -73,7 +71,7 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "yummy");
+//             ASSERT_CONTAINS(str, "yummy");
 //         }
 //
 //         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
@@ -83,13 +81,13 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activeworkspace");
-//             EXPECT_CONTAINS(str, "windows: 0");
+//             ASSERT_CONTAINS(str, "windows: 0");
 //         }
 //
 //         {
 //             OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:hyprland-dialog' })"))
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "yummy");
+//             ASSERT_CONTAINS(str, "yummy");
 //         }
 //     }
 //
@@ -108,7 +106,7 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "special:apple");
+//             ASSERT_CONTAINS(str, "special:apple");
 //         }
 //
 //         OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('apple')"));
@@ -119,13 +117,13 @@ using namespace Hyprutils::Memory;
 //
 //         {
 //             auto str = getFromSocket("/activeworkspace");
-//             EXPECT_CONTAINS(str, "windows: 0");
+//             ASSERT_CONTAINS(str, "windows: 0");
 //         }
 //
 //         {
 //             OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:hyprland-dialog' })"))
 //             auto str = getFromSocket("/activewindow");
-//             EXPECT_CONTAINS(str, "special:apple");
+//             ASSERT_CONTAINS(str, "special:apple");
 //         }
 //     }
 //
@@ -133,9 +131,8 @@ using namespace Hyprutils::Memory;
 //     Tests::killAllWindows();
 // }
 
-static bool test() {
-    NLog::log("{}Testing config: misc:", Colors::GREEN);
-
+// TODO: decompose this into multiple test cases
+TEST_CASE(misc) {
     NLog::log("{}Testing close_special_on_empty", Colors::YELLOW);
 
     OK(getFromSocket("/eval hl.config({ misc = { close_special_on_empty = false } })"));
@@ -145,14 +142,14 @@ static bool test() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "special workspace: -");
+        ASSERT_CONTAINS(str, "special workspace: -");
     }
 
     Tests::killAllWindows();
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "special workspace: -");
+        ASSERT_CONTAINS(str, "special workspace: -");
     }
 
     Tests::spawnKitty();
@@ -163,7 +160,7 @@ static bool test() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT_NOT_CONTAINS(str, "special workspace: -");
+        ASSERT_NOT_CONTAINS(str, "special workspace: -");
     }
 
     NLog::log("{}Testing new_window_takes_over_fullscreen", Colors::YELLOW);
@@ -350,19 +347,10 @@ static bool test() {
         EXPECT_CONTAINS(str, "fullscreen: 2");
         EXPECT_CONTAINS(str, "fullscreenClient: 2");
     }
-
-    // Ensure that the process autostarted in the config does not
-    // become a zombie even if it terminates very quickly.
-    EXPECT(Tests::execAndGet("pgrep -f 'sleep 0'").empty(), true);
-
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
-    return !ret;
 }
 
-REGISTER_TEST_FN(test);
+TEST_CASE(processesThatDieEarlyAreReaped) {
+    // Ensure that the process autostarted in the config does not
+    // become a zombie even if it terminates very quickly.
+    ASSERT(Tests::execAndGet("pgrep -f 'sleep 0'").empty(), true);
+}

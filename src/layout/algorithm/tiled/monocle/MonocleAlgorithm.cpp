@@ -165,11 +165,11 @@ SP<ITarget> CMonocleAlgorithm::getNextCandidate(SP<ITarget> old) {
     return next->get()->target.lock();
 }
 
-std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
     CVarList2 vars(std::string{sv}, 0, 's');
 
     if (vars.size() < 1)
-        return std::unexpected("layoutmsg requires at least 1 argument");
+        return Config::configError("layoutmsg requires at least 1 argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     const auto COMMAND = vars[0];
 
@@ -181,7 +181,7 @@ std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_
         return {};
     }
 
-    return std::unexpected(std::format("Unknown monocle layoutmsg: {}", COMMAND));
+    return Config::configError(std::format("Unknown monocle layoutmsg: {}", COMMAND), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 }
 
 std::optional<Vector2D> CMonocleAlgorithm::predictSizeForNewTarget() {

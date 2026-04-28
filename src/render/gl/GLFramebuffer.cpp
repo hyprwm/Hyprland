@@ -16,7 +16,7 @@ bool CGLFramebuffer::internalAlloc(int w, int h, uint32_t drmFormat) {
 
     if (!m_tex) {
         m_tex = g_pHyprRenderer->createTexture();
-        m_tex->allocate({w, h});
+        m_tex->allocate({w, h}, drmFormat);
         m_tex->bind();
         m_tex->setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         m_tex->setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -127,21 +127,17 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
     uint32_t packStride = minStride(PFORMAT, m_size.x);
     int      glFormat   = PFORMAT->glFormat;
 
-    if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
-
-    if (glFormat != GL_BGRA_EXT && glFormat != GL_RGB) {
-        if (PFORMAT->swizzle.has_value()) {
-            if (PFORMAT->swizzle == SWIZZLE_RGBA)
-                glFormat = GL_RGBA;
-            else if (PFORMAT->swizzle == SWIZZLE_BGRA)
-                glFormat = GL_BGRA_EXT;
-            else {
-                LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-                glFormat = GL_RGBA;
-            }
+    if (PFORMAT->swizzle.has_value()) {
+        if (PFORMAT->swizzle == SWIZZLE_RGBA)
+            glFormat = GL_RGBA;
+        else if (PFORMAT->swizzle == SWIZZLE_BGRA)
+            glFormat = GL_BGRA_EXT;
+        else {
+            LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
+            glFormat = GL_RGBA;
         }
-    }
+    } else if (glFormat == GL_RGBA)
+        glFormat = GL_BGRA_EXT;
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.

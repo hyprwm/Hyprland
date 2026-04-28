@@ -10,6 +10,10 @@
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
+// Almost everywhere `Tests::spawnKitty` is used, the return value is immediately tested against `nullptr`
+// and the test fails if it is.
+// TODO: add a test macro for that.
+
 CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();
 
@@ -98,7 +102,7 @@ bool Tests::killAllWindows() {
     auto pos = str.find("Window ");
     while (pos != std::string::npos) {
         auto pos2 = str.find(" -> ", pos);
-        getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
+        getFromSocket("/dispatch hl.dsp.window.kill({ window = 'address:0x" + str.substr(pos + 7, pos2 - pos - 7) + "' })");
         pos = str.find("Window ", pos + 5);
     }
 

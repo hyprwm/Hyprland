@@ -305,7 +305,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
         if (PREV_SIZE != m_lastSize)
             invalidateTreeExtentsCache();
 
-        static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+        static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
         if (*PLOGDAMAGE)
             Log::logger->log(Log::DEBUG, "Refusing to commit damage from a subsurface of {} because it's invisible.", m_windowOwner.lock());
         return;

@@ -84,7 +84,7 @@ bool CGroup::has(PHLWINDOW w) const {
 }
 
 void CGroup::add(PHLWINDOW w) {
-    static auto INSERT_AFTER_CURRENT = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+    static auto INSERT_AFTER_CURRENT = CConfigValue<Config::INTEGER>("group:insert_after_current");
 
     if (w->m_group) {
         if (w->m_group == m_self)

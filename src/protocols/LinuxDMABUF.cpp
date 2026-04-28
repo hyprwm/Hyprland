@@ -27,7 +27,7 @@ static std::optional<dev_t> devIDFromFD(int fd) {
 CDMABUFFormatTable::CDMABUFFormatTable(SDMABUFTranche _rendererTranche, std::vector<std::pair<PHLMONITORREF, SDMABUFTranche>> tranches_) :
     m_rendererTranche(_rendererTranche), m_monitorTranches(tranches_) {
 
-    static const auto                       PSKIP_NON_KMS = CConfigValue<Hyprlang::INT>("quirks:skip_non_kms_dmabuf_formats");
+    static const auto                       PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
 
     std::vector<SDMABUFFormatTableEntry>    formatsVec;
     std::set<std::pair<uint32_t, uint64_t>> formats;
@@ -486,7 +486,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             });
 
             static auto configReloaded = Event::bus()->m_events.config.reloaded.listen([this] {
-                static const auto PSKIP_NON_KMS = CConfigValue<Hyprlang::INT>("quirks:skip_non_kms_dmabuf_formats");
+                static const auto PSKIP_NON_KMS = CConfigValue<Config::INTEGER>("quirks:skip_non_kms_dmabuf_formats");
                 static auto       prev          = *PSKIP_NON_KMS;
                 if (prev != *PSKIP_NON_KMS) {
                     prev = *PSKIP_NON_KMS;

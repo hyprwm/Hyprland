@@ -6,8 +6,6 @@
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
@@ -20,34 +18,18 @@ static bool spawnLayer(const std::string& namespace_) {
     return true;
 }
 
-static bool test() {
-    NLog::log("{}Testing plugin layerrules", Colors::GREEN);
+TEST_CASE(plugin_layerrules) {
 
-    if (!spawnLayer("rule-layer"))
-        return false;
+    EXPECT(spawnLayer("rule-layer"), true);
 
-    OK(getFromSocket("/dispatch plugin:test:add_layer_rule"));
+    OK(getFromSocket("/eval hl.plugin.test.add_layer_rule()"));
     OK(getFromSocket("/reload"));
 
-    OK(getFromSocket("/keyword layerrule match:namespace rule-layer, plugin_rule effect"));
+    OK(getFromSocket("/eval hl.layer_rule({ match = { namespace = 'rule-layer' }, plugin_rule = 'effect' })"));
 
-    if (!spawnLayer("rule-layer"))
-        return false;
+    EXPECT(spawnLayer("rule-layer"), true);
 
-    if (!spawnLayer("norule-layer"))
-        return false;
+    EXPECT(spawnLayer("norule-layer"), true);
 
-    OK(getFromSocket("/dispatch plugin:test:check_layer_rule"));
-
-    OK(getFromSocket("/reload"));
-
-    NLog::log("{}Killing all layers", Colors::YELLOW);
-    Tests::killAllLayers();
-
-    NLog::log("{}Expecting 0 layers", Colors::YELLOW);
-    EXPECT(Tests::layerCount(), 0);
-
-    return !ret;
+    OK(getFromSocket("/eval hl.plugin.test.check_layer_rule()"));
 }
-
-REGISTER_TEST_FN(test)

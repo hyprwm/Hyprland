@@ -1,4 +1,5 @@
 #include <helpers/math/Math.hpp>
+#include <helpers/memory/Memory.hpp>
 
 #include <gtest/gtest.h>
 
@@ -19,7 +20,7 @@ TEST(Helpers, mathWlTransformToHyprutils) {
 
 TEST(Helpers, mathWlTransformToHyprutilsInvalid) {
     // Invalid value falls back to NORMAL
-    EXPECT_EQ(wlTransformToHyprutils(static_cast<wl_output_transform>(99)), eTransform::HYPRUTILS_TRANSFORM_NORMAL);
+    EXPECT_EQ(wlTransformToHyprutils(sc<wl_output_transform>(99)), eTransform::HYPRUTILS_TRANSFORM_NORMAL);
 }
 
 // invertTransform
@@ -47,7 +48,7 @@ TEST(Helpers, mathInvertTransformFlippedRotated) {
 TEST(Helpers, mathInvertTransformDoubleInvert) {
     // Double invert returns original for all transforms
     for (int i = 0; i <= 7; i++) {
-        auto t = static_cast<wl_output_transform>(i);
+        auto t = sc<wl_output_transform>(i);
         EXPECT_EQ(invertTransform(invertTransform(t)), t);
     }
 }
@@ -57,7 +58,7 @@ TEST(Helpers, mathInvertTransformDoubleInvert) {
 TEST(Helpers, mathComposeTransformIdentity) {
     // Composing with NORMAL is identity
     for (int i = 0; i <= 7; i++) {
-        auto t = static_cast<eTransform>(i);
+        auto t = sc<eTransform>(i);
         EXPECT_EQ(composeTransform(t, eTransform::HYPRUTILS_TRANSFORM_NORMAL), t);
         EXPECT_EQ(composeTransform(eTransform::HYPRUTILS_TRANSFORM_NORMAL, t), t);
     }

@@ -84,10 +84,10 @@ void CSpace::recheckWorkArea() {
 
     auto        workArea = m_parent->m_monitor->logicalBoxMinusReserved();
 
-    static auto PGAPSOUTDATA   = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
-    static auto PFLOATGAPSDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:float_gaps");
-    auto* const PGAPSOUT       = sc<Config::CCssGapData*>((PGAPSOUTDATA.ptr())->getData());
-    auto*       PFLOATGAPS     = sc<Config::CCssGapData*>(PFLOATGAPSDATA.ptr()->getData());
+    static auto PGAPSOUTDATA   = CConfigValue<Config::IComplexConfigValue>("general:gaps_out");
+    static auto PFLOATGAPSDATA = CConfigValue<Config::IComplexConfigValue>("general:float_gaps");
+    auto* const PGAPSOUT       = sc<Config::CCssGapData*>(PGAPSOUTDATA.ptr());
+    auto*       PFLOATGAPS     = sc<Config::CCssGapData*>(PFLOATGAPSDATA.ptr());
     if (PFLOATGAPS->m_bottom < 0 || PFLOATGAPS->m_left < 0 || PFLOATGAPS->m_right < 0 || PFLOATGAPS->m_top < 0)
         PFLOATGAPS = PGAPSOUT;
 
@@ -162,7 +162,7 @@ void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
     recalculate();
 }
 
-std::expected<void, std::string> CSpace::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {
     if (m_algorithm)
         return m_algorithm->layoutMsg(sv);
 

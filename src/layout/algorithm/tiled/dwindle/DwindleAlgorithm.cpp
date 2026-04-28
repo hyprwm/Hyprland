@@ -18,58 +18,40 @@ using namespace Layout::Tiled;
 
 using namespace Hyprutils::String;
 
-struct Layout::Tiled::SDwindleNodeData {
-    WP<SDwindleNodeData>                pParent;
-    bool                                isNode = false;
-    WP<ITarget>                         pTarget;
-    std::array<WP<SDwindleNodeData>, 2> children = {};
-    WP<SDwindleNodeData>                self;
-    bool                                splitTop               = false; // for preserve_split
-    CBox                                box                    = {0};
-    float                               splitRatio             = 1.f;
-    bool                                valid                  = true;
-    bool                                ignoreFullscreenChecks = false;
+void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
+    if (children[0]) {
+        static auto PSMARTSPLIT       = CConfigValue<Config::INTEGER>("dwindle:smart_split");
+        static auto PPRESERVESPLIT    = CConfigValue<Config::INTEGER>("dwindle:preserve_split");
+        static auto PFLMULT           = CConfigValue<Config::FLOAT>("dwindle:split_width_multiplier");
+        static auto PPRECISEMOUSEMOVE = CConfigValue<Config::INTEGER>("dwindle:precise_mouse_move");
 
-    // For list lookup
-    bool operator==(const SDwindleNodeData& rhs) const {
-        return pTarget.lock() == rhs.pTarget.lock() && box == rhs.box && pParent == rhs.pParent && children[0] == rhs.children[0] && children[1] == rhs.children[1];
-    }
+        if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0 && *PPRECISEMOUSEMOVE == 0)
+            splitTop = box.h * *PFLMULT > box.w;
 
-    void recalcSizePosRecursive(bool force = false, bool horizontalOverride = false, bool verticalOverride = false) {
-        if (children[0]) {
-            static auto PSMARTSPLIT       = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
-            static auto PPRESERVESPLIT    = CConfigValue<Hyprlang::INT>("dwindle:preserve_split");
-            static auto PFLMULT           = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
-            static auto PPRECISEMOUSEMOVE = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
+        if (verticalOverride)
+            splitTop = true;
+        else if (horizontalOverride)
+            splitTop = false;
 
-            if (*PPRESERVESPLIT == 0 && *PSMARTSPLIT == 0 && *PPRECISEMOUSEMOVE == 0)
-                splitTop = box.h * *PFLMULT > box.w;
+        const auto SPLITSIDE = !splitTop;
 
-            if (verticalOverride)
-                splitTop = true;
-            else if (horizontalOverride)
-                splitTop = false;
+        if (SPLITSIDE) {
+            // split left/right
+            const float FIRSTSIZE = box.w / 2.0 * splitRatio;
+            children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
+            children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
+        } else {
+            // split top/bottom
+            const float FIRSTSIZE = box.h / 2.0 * splitRatio;
+            children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
+            children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
+        }
 
-            const auto SPLITSIDE = !splitTop;
-
-            if (SPLITSIDE) {
-                // split left/right
-                const float FIRSTSIZE = box.w / 2.0 * splitRatio;
-                children[0]->box      = CBox{box.x, box.y, FIRSTSIZE, box.h}.noNegativeSize();
-                children[1]->box      = CBox{box.x + FIRSTSIZE, box.y, box.w - FIRSTSIZE, box.h}.noNegativeSize();
-            } else {
-                // split top/bottom
-                const float FIRSTSIZE = box.h / 2.0 * splitRatio;
-                children[0]->box      = CBox{box.x, box.y, box.w, FIRSTSIZE}.noNegativeSize();
-                children[1]->box      = CBox{box.x, box.y + FIRSTSIZE, box.w, box.h - FIRSTSIZE}.noNegativeSize();
-            }
-
-            children[0]->recalcSizePosRecursive(force);
-            children[1]->recalcSizePosRecursive(force);
-        } else
-            pTarget->setPositionGlobal(box);
-    }
-};
+        children[0]->recalcSizePosRecursive(force);
+        children[1]->recalcSizePosRecursive(force);
+    } else
+        pTarget->setPositionGlobal(box);
+}
 
 void CDwindleAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target);
@@ -84,8 +66,8 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     const auto  PMONITOR   = m_parent->space()->workspace()->m_monitor;
     const auto  PWORKSPACE = m_parent->space()->workspace();
 
-    static auto PUSEACTIVE    = CConfigValue<Hyprlang::INT>("dwindle:use_active_for_splits");
-    static auto PDEFAULTSPLIT = CConfigValue<Hyprlang::FLOAT>("dwindle:default_split_ratio");
+    static auto PUSEACTIVE    = CConfigValue<Config::INTEGER>("dwindle:use_active_for_splits");
+    static auto PDEFAULTSPLIT = CConfigValue<Config::FLOAT>("dwindle:default_split_ratio");
 
     // Populate the node with our window's data
     PNODE->pTarget = target;
@@ -154,17 +136,17 @@ void CDwindleAlgorithm::addTarget(SP<ITarget> target) {
     NEWPARENT->isNode     = true; // it is a node
     NEWPARENT->splitRatio = std::clamp(*PDEFAULTSPLIT, 0.1F, 1.9F);
 
-    static auto PWIDTHMULTIPLIER = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+    static auto PWIDTHMULTIPLIER = CConfigValue<Config::FLOAT>("dwindle:split_width_multiplier");
 
     // if cursor over first child, make it first, etc
     const auto SIDEBYSIDE = NEWPARENT->box.w > NEWPARENT->box.h * *PWIDTHMULTIPLIER;
     NEWPARENT->splitTop   = !SIDEBYSIDE;
 
-    static auto PFORCESPLIT                = CConfigValue<Hyprlang::INT>("dwindle:force_split");
-    static auto PERMANENTDIRECTIONOVERRIDE = CConfigValue<Hyprlang::INT>("dwindle:permanent_direction_override");
-    static auto PSMARTSPLIT                = CConfigValue<Hyprlang::INT>("dwindle:smart_split");
-    static auto PSPLITBIAS                 = CConfigValue<Hyprlang::INT>("dwindle:split_bias");
-    static auto PPRECISEMOUSEMOVE          = CConfigValue<Hyprlang::INT>("dwindle:precise_mouse_move");
+    static auto PFORCESPLIT                = CConfigValue<Config::INTEGER>("dwindle:force_split");
+    static auto PERMANENTDIRECTIONOVERRIDE = CConfigValue<Config::INTEGER>("dwindle:permanent_direction_override");
+    static auto PSMARTSPLIT                = CConfigValue<Config::INTEGER>("dwindle:smart_split");
+    static auto PSPLITBIAS                 = CConfigValue<Config::INTEGER>("dwindle:split_bias");
+    static auto PPRECISEMOUSEMOVE          = CConfigValue<Config::INTEGER>("dwindle:precise_mouse_move");
 
     bool        horizontalOverride = false;
     bool        verticalOverride   = false;
@@ -324,8 +306,8 @@ void CDwindleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
     if (!PNODE)
         return;
 
-    static auto PANIMATE       = CConfigValue<Hyprlang::INT>("misc:animate_manual_resizes");
-    static auto PSMARTRESIZING = CConfigValue<Hyprlang::INT>("dwindle:smart_resizing");
+    static auto PANIMATE       = CConfigValue<Config::INTEGER>("misc:animate_manual_resizes");
+    static auto PSMARTRESIZING = CConfigValue<Config::INTEGER>("dwindle:smart_resizing");
 
     // get some data about our window
     const auto PMONITOR         = m_parent->space()->workspace()->m_monitor;
@@ -533,7 +515,7 @@ std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
 
         CBox        box = PNODE->box;
 
-        static auto PFLMULT = CConfigValue<Hyprlang::FLOAT>("dwindle:split_width_multiplier");
+        static auto PFLMULT = CConfigValue<Config::FLOAT>("dwindle:split_width_multiplier");
 
         bool        splitTop = box.h * *PFLMULT > box.w;
 
@@ -553,7 +535,7 @@ std::optional<Vector2D> CDwindleAlgorithm::predictSizeForNewTarget() {
 }
 
 void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto    PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto    PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     const auto     PNODE       = getNodeFromTarget(t);
     const Vector2D originalPos = t->position().middle();
@@ -655,7 +637,7 @@ SP<SDwindleNodeData> CDwindleAlgorithm::getMasterNode() {
     return nullptr;
 }
 
-std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto ARGS = CVarList2(std::string{sv}, 0, ' ');
 
     const auto CURRENT_NODE = getNodeFromWindow(Desktop::focusState()->window());
@@ -663,12 +645,12 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
     if (ARGS[0] == "togglesplit") {
         if (CURRENT_NODE) {
             if (!toggleSplit(CURRENT_NODE))
-                return std::unexpected("can't togglesplit in the current workspace");
+                return Config::configError("can't togglesplit in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
         }
     } else if (ARGS[0] == "swapsplit") {
         if (CURRENT_NODE) {
             if (!swapSplit(CURRENT_NODE))
-                return std::unexpected("can't swapsplit in the current workspace");
+                return Config::configError("can't swapsplit in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
         }
     } else if (ARGS[0] == "rotatesplit") {
         if (CURRENT_NODE) {
@@ -678,7 +660,7 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
                     angle = std::stoi(std::string{ARGS[1]});
                 } catch (const std::exception& e) {
                     Log::logger->log(Log::WARN, "Invalid angle argument for rotatesplit: {}", ARGS[1]);
-                    return std::unexpected("Invalid angle argument");
+                    return Config::configError("Invalid angle argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
                 }
             }
             rotateSplit(CURRENT_NODE, angle);
@@ -693,13 +675,13 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
 
         const auto STABLE = ARGS[2].empty() || ARGS[2] != "unstable";
         if (!moveToRoot(node, STABLE))
-            return std::unexpected("can't movetoroot in the current workspace");
+            return Config::configError("can't movetoroot in the current workspace", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
     } else if (ARGS[0] == "preselect") {
         auto direction = ARGS[1];
 
         if (direction.empty()) {
             Log::logger->log(Log::ERR, "Expected direction for preselect");
-            return std::unexpected("No direction for preselect");
+            return Config::configError("No direction for preselect", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
         }
 
         switch (direction.front()) {
@@ -733,15 +715,15 @@ std::expected<void, std::string> CDwindleAlgorithm::layoutMsg(const std::string_
         bool exact = ARGS[2].starts_with("exact");
 
         if (ratio.empty())
-            return std::unexpected("splitratio requires an arg");
+            return Config::configError("splitratio requires an arg", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
         auto delta = getPlusMinusKeywordResult(std::string{ratio}, 0.F);
 
         if (!CURRENT_NODE || !CURRENT_NODE->pParent)
-            return std::unexpected("cannot alter split ratio on no / single node");
+            return Config::configError("cannot alter split ratio on no / single node", Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE);
 
         if (!delta)
-            return std::unexpected(std::format("failed to parse \"{}\" as a delta", ratio));
+            return Config::configError(std::format("failed to parse \"{}\" as a delta", ratio), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
         const float newRatio              = exact ? *delta : CURRENT_NODE->pParent->splitRatio + *delta;
         CURRENT_NODE->pParent->splitRatio = std::clamp(newRatio, 0.1F, 1.9F);

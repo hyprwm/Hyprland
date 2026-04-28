@@ -365,8 +365,8 @@ class CMonitor {
     uint32_t                                                    getPreferredReadFormat();
 
     bool                                                        needsCM();
-    /// Can do CM without shader
-    bool                                canNoShaderCM();
+    /// Can do CM without shader (forDSmode ? check output image description : check workbuffer image description)
+    bool                                canNoShaderCM(bool forDSmode = false);
     bool                                doesNoShaderCM();
 
     bool                                m_enabled             = false;

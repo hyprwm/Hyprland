@@ -1,28 +1,100 @@
 #include "LayerRule.hpp"
 #include "../../../debug/log/Logger.hpp"
+#include "../../../helpers/MiscFunctions.hpp"
 #include "../../view/LayerSurface.hpp"
+
+#include <algorithm>
+#include <format>
+#include <hyprutils/string/Numeric.hpp>
 
 using namespace Desktop;
 using namespace Desktop::Rule;
+using namespace Hyprutils::String;
 
-CLayerRule::CLayerRule(const std::string& name) : IRule(name) {
+static const char* numericParseError(eNumericParseResult r) {
+    switch (r) {
+        case NUMERIC_PARSE_BAD: return "bad input";
+        case NUMERIC_PARSE_GARBAGE: return "garbage input";
+        case NUMERIC_PARSE_OUT_OF_RANGE: return "out of range";
+        case NUMERIC_PARSE_OK: return "ok";
+        default: return "error";
+    }
+}
+
+static std::expected<int64_t, std::string> parseInt(std::string_view effectName, const std::string& raw) {
+    auto parsed = strToNumber<int64_t>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
+}
+
+static std::expected<float, std::string> parseFloat(std::string_view effectName, const std::string& raw) {
+    auto parsed = strToNumber<float>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
+}
+
+static std::expected<int64_t, std::string> parseAboveLock(const std::string& raw) {
+    auto parsed = strToNumber<int64_t>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("above_lock rule \"{}\" failed with: {}", raw, numericParseError(parsed.error())));
+
+    return std::clamp(*parsed, int64_t{0}, int64_t{2});
+}
+
+static std::expected<LayerRuleEffectValue, std::string> parseLayerRuleEffect(CLayerRuleEffectContainer::storageType e, const std::string& raw) {
+    if (layerEffects()->isEffectDynamic(e))
+        return std::string{raw};
+
+    const auto EFFECT_NAME = layerEffects()->get(e);
+
+    switch (e) {
+        default: return std::unexpected(std::format("unknown layer rule effect {}", e));
+
+        case LAYER_RULE_EFFECT_NONE: return std::monostate{};
+
+        case LAYER_RULE_EFFECT_NO_ANIM:
+        case LAYER_RULE_EFFECT_BLUR:
+        case LAYER_RULE_EFFECT_BLUR_POPUPS:
+        case LAYER_RULE_EFFECT_DIM_AROUND:
+        case LAYER_RULE_EFFECT_XRAY:
+        case LAYER_RULE_EFFECT_NO_SCREEN_SHARE: return truthy(raw);
+
+        case LAYER_RULE_EFFECT_ORDER: {
+            auto parsed = parseInt(EFFECT_NAME, raw);
+            if (!parsed)
+                return std::unexpected(parsed.error());
+            return *parsed;
+        }
+        case LAYER_RULE_EFFECT_ABOVE_LOCK: {
+            auto parsed = parseAboveLock(raw);
+            if (!parsed)
+                return std::unexpected(parsed.error());
+            return *parsed;
+        }
+        case LAYER_RULE_EFFECT_IGNORE_ALPHA: {
+            auto parsed = parseFloat(EFFECT_NAME, raw);
+            if (!parsed)
+                return std::unexpected(parsed.error());
+            return std::clamp(*parsed, 0.F, 1.F);
+        }
+        case LAYER_RULE_EFFECT_ANIMATION: return std::string{raw};
+    }
+}
+
+CLayerRule::CLayerRule(const std::string& name) : CRuleWithEffects<SLayerRuleEffect, RULE_TYPE_LAYER>(name) {
     ;
 }
 
-eRuleType CLayerRule::type() {
-    return RULE_TYPE_LAYER;
-}
-
-void CLayerRule::addEffect(CLayerRule::storageType e, const std::string& result) {
-    m_effects.emplace_back(std::make_pair<>(e, result));
-}
-
-const std::vector<std::pair<CLayerRule::storageType, std::string>>& CLayerRule::effects() {
-    return m_effects;
+std::expected<LayerRuleEffectValue, std::string> CLayerRule::parseEffect(CLayerRule::storageType e, const std::string& result) {
+    return parseLayerRuleEffect(e, result);
 }
 
 bool CLayerRule::matches(PHLLS ls) {
-    if (m_matchEngines.empty())
+    if (!canMatch())
         return false;
 
     for (const auto& [prop, engine] : m_matchEngines) {

@@ -31,6 +31,8 @@
 #include "Framebuffer.hpp"
 #include "Texture.hpp"
 
+#include <hyprgraphics/resource/resources/TextResource.hpp>
+
 struct SMonitorRule;
 class CWorkspace;
 class CInputPopup;
@@ -164,6 +166,7 @@ namespace Render {
         virtual SP<ITexture>         createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
         virtual SP<ITexture>         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0,
                                                 int weight = 400);
+        virtual SP<ITexture>         renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
         SP<ITexture>                 loadAsset(const std::string& filename);
         virtual bool                 shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
         virtual bool                 explicitSyncSupported()                                                                              = 0;
@@ -190,7 +193,8 @@ namespace Render {
         void                            preBlurForCurrentMonitor(CRegion* fakeDamage);
 
         SCMSettings                     getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
+                                                      bool shouldUseSurface = false);
         void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 
@@ -233,6 +237,8 @@ namespace Render {
         SP<ITexture>                       m_lockTtyTextTexture;
         bool                               m_monitorTransformEnabled = false; // do not modify directly
         std::stack<bool>                   m_monitorTransformStack;
+
+        void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

@@ -34,6 +34,7 @@ if(NOT HYPR_SHADER_GEN_RESULT EQUAL 0)
 endif()
 
 find_package(PkgConfig REQUIRED)
+find_package(Python3 COMPONENTS Interpreter QUIET)
 
 # Try to find canihavesomecoffee's udis86 using pkgconfig vmd/udis86 does not
 # provide a .pc file and won't be detected this way
@@ -268,7 +269,8 @@ pkg_check_modules(
   gio-2.0
   re2
   muparser
-  lcms2)
+  lcms2
+  lua55)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -437,6 +439,28 @@ endif()
 
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)
+
+if(Python3_Interpreter_FOUND)
+  add_custom_target(
+    generate-lua-stubs ALL
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/meta/generateLuaStubs.py --root ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Generating Lua API stubs for LuaLS"
+    VERBATIM)
+
+  add_dependencies(hyprland_lib generate-lua-stubs)
+  add_dependencies(Hyprland generate-lua-stubs)
+
+  add_custom_target(
+    check-lua-stubs
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/meta/generateLuaStubs.py --root ${CMAKE_SOURCE_DIR} --check
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Checking Lua API stubs are up to date"
+    VERBATIM)
+else()
+  message(FATAL_ERROR "Python3 interpreter not found, which is required for the build")
+endif()
+
 set(PROTOCOL_SOURCES "")
 
 function(protocolnew protoPath protoName external)
@@ -604,6 +628,14 @@ install(FILES ${INSTALLABLE_ASSETS}
 # default config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+
+# default lua config
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.lua
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+
+# LuaLS stubs
+install(FILES ${CMAKE_SOURCE_DIR}/meta/hl.meta.lua
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr/stubs)
 
 # portal config
 install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf

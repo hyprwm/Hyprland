@@ -58,8 +58,8 @@ CANRManager::CANRManager() {
 }
 
 void CANRManager::onTick() {
-    static auto PENABLEANR    = CConfigValue<Hyprlang::INT>("misc:enable_anr_dialog");
-    static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
+    static auto PENABLEANR    = CConfigValue<Config::INTEGER>("misc:enable_anr_dialog");
+    static auto PANRTHRESHOLD = CConfigValue<Config::INTEGER>("misc:anr_missed_pings");
 
     if (!*PENABLEANR) {
         m_timer->updateTimeout(TIMER_TIMEOUT * 10);
@@ -146,7 +146,7 @@ bool CANRManager::isNotResponding(PHLWINDOW pWindow) {
 }
 
 bool CANRManager::isNotResponding(SP<CANRManager::SANRData> data) {
-    static auto PANRTHRESHOLD = CConfigValue<Hyprlang::INT>("misc:anr_missed_pings");
+    static auto PANRTHRESHOLD = CConfigValue<Config::INTEGER>("misc:anr_missed_pings");
     return data->missedResponses > *PANRTHRESHOLD;
 }
 

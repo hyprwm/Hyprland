@@ -9,7 +9,7 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
-#include "../debug/HyprDebugOverlay.hpp"
+#include "../debug/Overlay.hpp"
 #include "../helpers/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
@@ -83,7 +83,7 @@ bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, 
 
 void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallback) {
     const auto  PMONITOR           = g_pHyprRenderer->m_renderData.pMonitor;
-    static auto PNVIDIAANTIFLICKER = CConfigValue<Hyprlang::INT>("opengl:nvidia_anti_flicker");
+    static auto PNVIDIAANTIFLICKER = CConfigValue<Config::INTEGER>("opengl:nvidia_anti_flicker");
 
     g_pHyprRenderer->m_renderData.damage = m_renderPass.render(g_pHyprRenderer->m_renderData.damage);
 
@@ -199,7 +199,7 @@ SP<ITexture> CHyprGLRenderer::createTexture(const int width, const int height, u
     g_pHyprOpenGL->makeEGLCurrent();
     SP<ITexture> tex = makeShared<CGLTexture>();
 
-    tex->allocate({width, height});
+    tex->allocate({width, height}, DRM_FORMAT_ARGB8888); // FIXME assume DRM_FORMAT_ARGB8888
 
     tex->m_size = {width, height};
     // copy the data to an OpenGL texture we have
@@ -237,6 +237,7 @@ SP<ITexture> CHyprGLRenderer::createTexture(cairo_surface_t* cairo) {
     if (CAIROFORMAT != CAIRO_FORMAT_RGB96F) {
         tex->setTexParameter(GL_TEXTURE_SWIZZLE_R, GL_BLUE);
         tex->setTexParameter(GL_TEXTURE_SWIZZLE_B, GL_RED);
+        tex->m_drmFormat = DRM_FORMAT_ARGB8888;
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, glIFormat, tex->m_size.x, tex->m_size.y, 0, glFormat, glType, DATA);

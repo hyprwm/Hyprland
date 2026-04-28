@@ -24,15 +24,17 @@ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render without begin()!");
 
     TRACY_GPU_ZONE("RenderClear");
-
-    GLCALL(glClearColor(color.r, color.g, color.b, color.a));
+    const std::array<GLfloat, 4> c = {sc<GLfloat>(color.r), sc<GLfloat>(color.g), sc<GLfloat>(color.b), sc<GLfloat>(color.a)};
 
     if (!g_pHyprRenderer->m_renderData.damage.empty()) {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([](const auto& RECT) {
+        g_pHyprRenderer->m_renderData.damage.forEachRect([&c](const auto& RECT) {
             g_pHyprOpenGL->scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClearBufferfv(GL_COLOR, 0, c.data());
         });
-    }
+
+        g_pHyprOpenGL->scissor(nullptr);
+    } else
+        glClearBufferfv(GL_COLOR, 0, c.data());
 };
 
 void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {

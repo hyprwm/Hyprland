@@ -55,7 +55,7 @@ namespace Desktop::View {
         GROUP_DENY        = 1 << 7, // deny
     };
 
-    enum eGetWindowProperties : uint8_t {
+    enum eGetWindowProperties : uint16_t {
         WINDOW_ONLY              = 0,
         RESERVED_EXTENTS         = 1 << 0,
         INPUT_EXTENTS            = 1 << 1,
@@ -65,6 +65,7 @@ namespace Desktop::View {
         USE_PROP_TILED           = 1 << 5,
         SKIP_FULLSCREEN_PRIORITY = 1 << 6,
         FOCUS_PRIORITY           = 1 << 7,
+        FOLLOW_MOUSE_CHECK       = 1 << 8,
     };
 
     enum eSuppressEvents : uint8_t {
@@ -355,10 +356,12 @@ namespace Desktop::View {
         SP<CWLSurfaceResource>     getSolitaryResource();
         Vector2D                   getReportedSize();
         std::optional<Vector2D>    calculateExpression(const std::string& s);
+        std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();
         SP<Layout::ITarget>        layoutTarget();
         bool                       canBeGroupedInto(SP<CGroup> group);
+        void                       sendClose();
 
         CBox                       getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};

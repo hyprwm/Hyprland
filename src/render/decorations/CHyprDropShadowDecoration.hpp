@@ -3,14 +3,11 @@
 #include "IHyprWindowDecoration.hpp"
 
 struct SShadowRenderData {
-    bool    ignoreWindow = false;
-    bool    valid        = false;
-    CBox    fullBox;
-    CBox    windowBox;
-    CRegion saveDamage;
-    float   rounding      = 0;
-    float   roundingPower = 0;
-    int     size          = 0;
+    bool  valid = false;
+    CBox  fullBox;
+    float rounding      = 0;
+    float roundingPower = 0;
+    int   size          = 0;
 };
 
 class CHyprDropShadowDecoration : public IHyprWindowDecoration {

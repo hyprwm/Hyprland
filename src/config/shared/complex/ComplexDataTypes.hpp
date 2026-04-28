@@ -18,6 +18,9 @@ namespace Config {
             m_colors.push_back(col);
             updateColorsOk();
         };
+        CGradientValueData(std::vector<CHyprColor>&& cols, float ang) : m_colors(std::move(cols)), m_angle(ang) {
+            updateColorsOk();
+        };
         virtual ~CGradientValueData() = default;
 
         virtual eConfigValueDataTypes getDataType() {
@@ -63,7 +66,7 @@ namespace Config {
             return true;
         }
 
-        virtual std::string toString() {
+        virtual std::string toString() const {
             std::string result;
             for (auto& c : m_colors) {
                 result += std::format("{:x} ", c.getAsHex());
@@ -127,7 +130,7 @@ namespace Config {
             return CVD_TYPE_CSS_VALUE;
         }
 
-        virtual std::string toString() {
+        virtual std::string toString() const {
             return std::format("{} {} {} {}", m_top, m_right, m_bottom, m_left);
         }
     };
@@ -138,6 +141,9 @@ namespace Config {
         CFontWeightConfigValueData(const char* weight) {
             parseWeight(weight);
         }
+        CFontWeightConfigValueData(int64_t def) : m_value(def) {
+            ;
+        }
 
         int64_t                       m_value = 400; // default to normal weight
 
@@ -145,19 +151,18 @@ namespace Config {
             return CVD_TYPE_FONT_WEIGHT;
         }
 
-        virtual std::string toString() {
+        virtual std::string toString() const {
             return std::format("{}", m_value);
         }
+
+        inline static const auto WEIGHTS = std::map<std::string, int>{
+            {"thin", 100},   {"ultralight", 200}, {"light", 300}, {"semilight", 350}, {"book", 380},  {"normal", 400},
+            {"medium", 500}, {"semibold", 600},   {"bold", 700},  {"ultrabold", 800}, {"heavy", 900}, {"ultraheavy", 1000},
+        };
 
         void parseWeight(const std::string& strWeight) {
             auto lcWeight{strWeight};
             std::ranges::transform(strWeight, lcWeight.begin(), ::tolower);
-
-            // values taken from Pango weight enums
-            const auto WEIGHTS = std::map<std::string, int>{
-                {"thin", 100},   {"ultralight", 200}, {"light", 300}, {"semilight", 350}, {"book", 380},  {"normal", 400},
-                {"medium", 500}, {"semibold", 600},   {"bold", 700},  {"ultrabold", 800}, {"heavy", 900}, {"ultraheavy", 1000},
-            };
 
             auto weight = WEIGHTS.find(lcWeight);
             if (weight != WEIGHTS.end())

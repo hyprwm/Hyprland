@@ -165,11 +165,11 @@ SP<ITarget> CMonocleAlgorithm::getNextCandidate(SP<ITarget> old) {
     return next->get()->target.lock();
 }
 
-std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
     CVarList2 vars(std::string{sv}, 0, 's');
 
     if (vars.size() < 1)
-        return std::unexpected("layoutmsg requires at least 1 argument");
+        return Config::configError("layoutmsg requires at least 1 argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     const auto COMMAND = vars[0];
 
@@ -181,7 +181,7 @@ std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_
         return {};
     }
 
-    return std::unexpected(std::format("Unknown monocle layoutmsg: {}", COMMAND));
+    return Config::configError(std::format("Unknown monocle layoutmsg: {}", COMMAND), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 }
 
 std::optional<Vector2D> CMonocleAlgorithm::predictSizeForNewTarget() {
@@ -202,7 +202,7 @@ void CMonocleAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
 }
 
 void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent) {
-    static auto PMONITORFALLBACK = CConfigValue<Hyprlang::INT>("binds:window_direction_monitor_fallback");
+    static auto PMONITORFALLBACK = CConfigValue<Config::INTEGER>("binds:window_direction_monitor_fallback");
 
     if (!*PMONITORFALLBACK)
         return; // noop
@@ -211,10 +211,11 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
     if (!t || !t->space() || !t->space()->workspace())
         return;
 
-    const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
+    const auto PMONITOR  = t->space()->workspace()->m_monitor.lock();
+    const auto PMONINDIR = g_pCompositor->getMonitorInDirection(PMONITOR, dir);
 
     // if we found a monitor, move the window there
-    if (PMONINDIR && PMONINDIR != t->space()->workspace()->m_monitor.lock()) {
+    if (PMONINDIR && PMONINDIR != PMONITOR) {
         const auto TARGETWS = PMONINDIR->m_activeWorkspace;
 
         if (t->window())

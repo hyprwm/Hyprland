@@ -34,15 +34,16 @@ using namespace Hyprutils::OS;
 
 #include "../config/shared/complex/ComplexDataTypes.hpp"
 #include "../config/legacy/ConfigManager.hpp"
+#include "../config/lua/ConfigManager.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/complex/ComplexDataTypes.hpp"
 #include "../config/shared/inotify/ConfigWatcher.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
-#include "../config/supplementary/ConfigDescriptions.hpp"
+#include "../config/values/ConfigValues.hpp"
 #include "../managers/CursorManager.hpp"
-#include "../hyprerror/HyprError.hpp"
+#include "../errorOverlay/Overlay.hpp"
 #include "../devices/IPointer.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../devices/ITouch.hpp"
@@ -63,7 +64,7 @@ using namespace Hyprutils::OS;
 #include "../managers/XWaylandManager.hpp"
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/animation/AnimationManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../render/Renderer.hpp"
 #include "../render/OpenGL.hpp"
 #include "../layout/space/Space.hpp"
@@ -262,7 +263,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
     "sdrBrightness": {:.2f},
     "sdrSaturation": {:.2f},
     "sdrMinLuminance": {:.2f},
-    "sdrMaxLuminance": {}
+    "sdrMaxLuminance": {},
+    "hardwareCursorsInUse": {}
 }},)#",
 
             m->m_id, escapeJSONStrings(m->m_name), escapeJSONStrings(m->m_shortDescription), escapeJSONStrings(m->m_output->make), escapeJSONStrings(m->m_output->model),
@@ -275,7 +277,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), (m->m_tearingState.activelyTearing ? "true" : "false"),
             getTearingBlockedReason(m, format), rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), (m->m_enabled ? "false" : "true"),
             formatToString(m->m_output->state->state().drmFormat), m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format),
-            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
+            (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness), (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance),
+            (!m->shouldUseSoftwareCursors() ? "true" : "false"));
 
     } else {
         result += std::format(
@@ -284,7 +287,8 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             "dpmsStatus: {}\n\tvrr: {}\n\tsolitary: {:x}\n\tsolitaryBlockedBy: {}\n\tactivelyTearing: {}\n\ttearingBlockedBy: {}\n\tdirectScanoutTo: "
             "{:x}\n\tdirectScanoutBlockedBy: {}\n\tdisabled: "
             "{}\n\tcurrentFormat: {}\n\tmirrorOf: "
-            "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {:.2f}\n\tsdrSaturation: {:.2f}\n\tsdrMinLuminance: {:.2f}\n\tsdrMaxLuminance: {}\n\n",
+            "{}\n\tavailableModes: {}\n\tcolorManagementPreset: {}\n\tsdrBrightness: {:.2f}\n\tsdrSaturation: {:.2f}\n\tsdrMinLuminance: {:.2f}\n\tsdrMaxLuminance: "
+            "{}\n\thardwareCursorsInUse: {}\n\n",
             m->m_name, m->m_id, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_refreshRate, sc<int>(m->m_position.x), sc<int>(m->m_position.y), m->m_shortDescription,
             m->m_output->make, m->m_output->model, sc<int>(m->m_output->physicalSize.x), sc<int>(m->m_output->physicalSize.y), m->m_output->serial, m->activeWorkspaceID(),
             (!m->m_activeWorkspace ? "" : m->m_activeWorkspace->m_name), m->activeSpecialWorkspaceID(), (m->m_activeSpecialWorkspace ? m->m_activeSpecialWorkspace->m_name : ""),
@@ -293,7 +297,7 @@ std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor>
             rc<uint64_t>(m->m_solitaryClient.get()), getSolitaryBlockedReason(m, format), m->m_tearingState.activelyTearing, getTearingBlockedReason(m, format),
             rc<uint64_t>(m->m_lastScanout.get()), getDSBlockedReason(m, format), !m->m_enabled, formatToString(m->m_output->state->state().drmFormat),
             m->m_mirrorOf ? std::format("{}", m->m_mirrorOf->m_id) : "none", availableModesForOutput(m, format), (NCMType::toString(m->m_cmType)), (m->m_sdrBrightness),
-            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance));
+            (m->m_sdrSaturation), (m->m_sdrMinLuminance), (m->m_sdrMaxLuminance), (!m->shouldUseSoftwareCursors()));
     }
 
     return result;
@@ -1010,7 +1014,7 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
                 ret += "d";
 
             ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
-                               kb->submap.name, kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
+                               kb->submap.name, kb->key.empty() ? kb->displayKey : kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
         }
     } else {
         // json
@@ -1243,9 +1247,38 @@ std::string systemInfoRequest(eHyprCtlOutputFormat format, std::string request) 
     return result;
 }
 
+static std::string evalRequest(eHyprCtlOutputFormat format, std::string request) {
+    if (Config::mgr()->type() != Config::CONFIG_LUA)
+        return "eval is only supported with the lua config manager";
+
+    auto luaMgr = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
+
+    // strip the command name ("eval ") from the request
+    auto code = request.substr(request.find_first_of(' ') + 1);
+
+    auto err = luaMgr->eval(code);
+    if (err)
+        return *err;
+
+    return "ok";
+}
+
 static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) {
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
+
+    if (Config::mgr()->type() == Config::CONFIG_LUA) {
+        // For lua, this is just a wrapper for `eval("hl.dispatch(in)")
+        std::string evalStr = std::format("return hl.dispatch({})", in);
+        auto        luaMgr  = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
+        auto        ret     = luaMgr->eval(evalStr).value_or("ok");
+
+        if (ret.starts_with("ok") || in.contains("(") /* this likely means the user is passing a valid lua dispatch string */)
+            return ret;
+
+        // the user likely is trying to dispatch old hyprlang stuff via lua, let them know
+        return ret + "\n\n → Note: dispatch in lua is a shorthand for hl.dispatch(...), your syntax might need to be updated.";
+    }
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));
 
@@ -1332,7 +1365,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
-        static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
+        static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
         for (auto const& m : g_pCompositor->m_monitors) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
@@ -1528,7 +1561,7 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
     std::string errorMessage = "";
 
     if (vars.size() < 3) {
-        g_pHyprError->destroy();
+        ErrorOverlay::overlay()->destroy();
 
         if (vars.size() == 2 && !vars[1].contains("dis"))
             return "var 1 not color or disable";
@@ -1542,10 +1575,10 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
         errorMessage += vars[i] + ' ';
 
     if (errorMessage.empty()) {
-        g_pHyprError->destroy();
+        ErrorOverlay::overlay()->destroy();
     } else {
         errorMessage.pop_back(); // pop last space
-        g_pHyprError->queueCreate(errorMessage, COLOR);
+        ErrorOverlay::overlay()->queueCreate(errorMessage, COLOR);
     }
 
     return "ok";
@@ -1596,22 +1629,22 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
     };
 
     auto borderColorToString = [&](bool active) -> std::string {
-        static auto PACTIVECOL              = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.active_border");
-        static auto PINACTIVECOL            = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.inactive_border");
-        static auto PNOGROUPACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border_active");
-        static auto PNOGROUPINACTIVECOL     = CConfigValue<Hyprlang::CUSTOMTYPE>("general:col.nogroup_border");
-        static auto PGROUPACTIVECOL         = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_active");
-        static auto PGROUPINACTIVECOL       = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_inactive");
-        static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_active");
-        static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Hyprlang::CUSTOMTYPE>("group:col.border_locked_inactive");
+        static auto PACTIVECOL              = CConfigValue<Config::IComplexConfigValue>("general:col.active_border");
+        static auto PINACTIVECOL            = CConfigValue<Config::IComplexConfigValue>("general:col.inactive_border");
+        static auto PNOGROUPACTIVECOL       = CConfigValue<Config::IComplexConfigValue>("general:col.nogroup_border_active");
+        static auto PNOGROUPINACTIVECOL     = CConfigValue<Config::IComplexConfigValue>("general:col.nogroup_border");
+        static auto PGROUPACTIVECOL         = CConfigValue<Config::IComplexConfigValue>("group:col.border_active");
+        static auto PGROUPINACTIVECOL       = CConfigValue<Config::IComplexConfigValue>("group:col.border_inactive");
+        static auto PGROUPACTIVELOCKEDCOL   = CConfigValue<Config::IComplexConfigValue>("group:col.border_locked_active");
+        static auto PGROUPINACTIVELOCKEDCOL = CConfigValue<Config::IComplexConfigValue>("group:col.border_locked_inactive");
 
         const bool  GROUPLOCKED = PWINDOW->m_group ? PWINDOW->m_group->locked() : false;
 
         if (active) {
-            auto* const       ACTIVECOL            = (Config::CGradientValueData*)(PACTIVECOL.ptr())->getData();
-            auto* const       NOGROUPACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPACTIVECOL.ptr())->getData();
-            auto* const       GROUPACTIVECOL       = (Config::CGradientValueData*)(PGROUPACTIVECOL.ptr())->getData();
-            auto* const       GROUPACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr())->getData();
+            auto* const       ACTIVECOL            = (Config::CGradientValueData*)(PACTIVECOL.ptr());
+            auto* const       NOGROUPACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPACTIVECOL.ptr());
+            auto* const       GROUPACTIVECOL       = (Config::CGradientValueData*)(PGROUPACTIVECOL.ptr());
+            auto* const       GROUPACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPACTIVELOCKEDCOL.ptr());
             const auto* const ACTIVECOLOR =
                 !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
 
@@ -1621,10 +1654,10 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
             else
                 return std::format(R"({{"{}": "{}"}})", PROP, borderColorString);
         } else {
-            auto* const       INACTIVECOL            = (Config::CGradientValueData*)(PINACTIVECOL.ptr())->getData();
-            auto* const       NOGROUPINACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPINACTIVECOL.ptr())->getData();
-            auto* const       GROUPINACTIVECOL       = (Config::CGradientValueData*)(PGROUPINACTIVECOL.ptr())->getData();
-            auto* const       GROUPINACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr())->getData();
+            auto* const       INACTIVECOL            = (Config::CGradientValueData*)(PINACTIVECOL.ptr());
+            auto* const       NOGROUPINACTIVECOL     = (Config::CGradientValueData*)(PNOGROUPINACTIVECOL.ptr());
+            auto* const       GROUPINACTIVECOL       = (Config::CGradientValueData*)(PGROUPINACTIVECOL.ptr());
+            auto* const       GROUPINACTIVELOCKEDCOL = (Config::CGradientValueData*)(PGROUPINACTIVELOCKEDCOL.ptr());
             const auto* const INACTIVECOLOR          = !PWINDOW->m_group ? (!(PWINDOW->m_groupRules & Desktop::View::GROUP_DENY) ? INACTIVECOL : NOGROUPINACTIVECOL) :
                                                                            (GROUPLOCKED ? GROUPINACTIVELOCKEDCOL : GROUPINACTIVECOL);
 
@@ -1768,6 +1801,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
             return std::format("float: {:2f}\nset: {}", **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
             return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, VAR.setByUser);
+        else if (TYPE == typeid(Hyprlang::VEC2))
+            return std::format("vec2: [{}, {}]\nset: {}", (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y, VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
             return std::format("str: {}\nset: {}", *rc<Hyprlang::STRING const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::STRING))
@@ -1780,6 +1815,9 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(Config::FLOAT))
             return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
+            return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
+                               VAR.setByUser);
+        else if (TYPE == typeid(Hyprlang::VEC2))
             return std::format(R"({{"option": "{}", "vec2": [{},{}], "set": {} }})", curitem, (*rc<Config::VEC2* const*>(VAL))->x, (*rc<Config::VEC2* const*>(VAL))->y,
                                VAR.setByUser);
         else if (TYPE == typeid(Hyprlang::STRING))
@@ -2002,7 +2040,7 @@ static std::string dispatchNotify(eHyprCtlOutputFormat format, std::string reque
 
     const auto MESSAGE = vars.join(" ", msgidx);
 
-    g_pHyprNotificationOverlay->addNotification(MESSAGE, color, time, sc<eIcons>(icon), fontsize);
+    Notification::overlay()->addNotification(MESSAGE, color, time, sc<eIcons>(icon), fontsize);
 
     return "ok";
 }
@@ -2022,7 +2060,7 @@ static std::string dispatchDismissNotify(eHyprCtlOutputFormat format, std::strin
         } catch (std::exception& e) { return "invalid arg 1"; }
     }
 
-    g_pHyprNotificationOverlay->dismissNotifications(amount);
+    Notification::overlay()->dismissNotifications(amount);
 
     return "ok";
 }
@@ -2040,18 +2078,7 @@ static std::string getIsLocked(eHyprCtlOutputFormat format, std::string request)
 }
 
 static std::string getDescriptions(eHyprCtlOutputFormat format, std::string request) {
-    std::string json  = "[";
-    const auto& DESCS = Config::Supplementary::CONFIG_OPTIONS;
-
-    for (const auto& d : DESCS) {
-        json += d.jsonify() + ",\n";
-    }
-
-    json.pop_back();
-    json.pop_back();
-
-    json += "]\n";
-    return json;
+    return Config::Values::getAsJson();
 }
 
 static std::string submapRequest(eHyprCtlOutputFormat format, std::string request) {
@@ -2060,6 +2087,43 @@ static std::string submapRequest(eHyprCtlOutputFormat format, std::string reques
         submap = "default";
 
     return format == FORMAT_JSON ? std::format("\"{}\"\n", escapeJSONStrings(submap)) : (submap + "\n");
+}
+
+static std::string statusRequest(eHyprCtlOutputFormat format, std::string request) {
+    Aquamarine::eBackendType backendType = Aquamarine::eBackendType::AQ_BACKEND_NULL;
+
+    for (const auto& i : g_pCompositor->m_aqBackend->getImplementations()) {
+        if (i->type() == Aquamarine::eBackendType::AQ_BACKEND_NULL || i->type() == Aquamarine::eBackendType::AQ_BACKEND_HEADLESS)
+            continue;
+
+        backendType = i->type();
+        break;
+    }
+
+    std::string backendStr;
+
+    switch (backendType) {
+        case Aquamarine::AQ_BACKEND_DRM: backendStr = "drm"; break;
+        case Aquamarine::AQ_BACKEND_WAYLAND: backendStr = "wayland"; break;
+        default: backendStr = "error"; break;
+    }
+
+    if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
+
+        return std::format(R"#(
+{{
+    "configProvider": "{}",
+    "backend": "{}"
+}}
+)#",
+                           Config::typeToString(Config::mgr()->type()), backendStr);
+    }
+
+    return std::format(R"#(
+configProvider: {}
+backend: {}
+)#",
+                       Config::typeToString(Config::mgr()->type()), backendStr);
 }
 
 static std::string reloadShaders(eHyprCtlOutputFormat format, std::string request) {
@@ -2095,6 +2159,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"locked", true, getIsLocked});
     registerCommand(SHyprCtlCommand{"descriptions", true, getDescriptions});
     registerCommand(SHyprCtlCommand{"submap", true, submapRequest});
+    registerCommand(SHyprCtlCommand{"status", true, statusRequest});
 
     registerCommand(SHyprCtlCommand{.name = "reloadshaders", .exact = false, .fn = reloadShaders});
     registerCommand(SHyprCtlCommand{"monitors", false, monitorsRequest});
@@ -2112,6 +2177,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"getoption", false, dispatchGetOption});
     registerCommand(SHyprCtlCommand{"decorations", false, decorationRequest});
     registerCommand(SHyprCtlCommand{"[[BATCH]]", false, dispatchBatch});
+    registerCommand(SHyprCtlCommand{"eval", false, evalRequest});
 
     startHyprCtlSocket();
 }
@@ -2197,6 +2263,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
     if (reloadAll) {
         Config::monitorRuleMgr()->scheduleReload();
+        Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
         g_pInputManager->setKeyboardLayout();     // update kb layout
         g_pInputManager->setPointerConfigs();     // update mouse cfgs

@@ -4,7 +4,8 @@
 #include "../plugins/PluginSystem.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../config/legacy/ConfigManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../config/lua/ConfigManager.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include <dlfcn.h>
@@ -113,7 +114,7 @@ APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text
     if (!PLUGIN)
         return false;
 
-    g_pHyprNotificationOverlay->addNotification(text, color, timeMs);
+    Notification::overlay()->addNotification(text, color, timeMs);
 
     return true;
 }
@@ -175,6 +176,9 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
 APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
+
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
 
@@ -191,6 +195,9 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
 APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
+
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
 
@@ -203,6 +210,9 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
 
 APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return nullptr;
 
     if (!PLUGIN)
         return nullptr;
@@ -301,7 +311,7 @@ APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::stri
         if (iterator != data.end())
             icon = std::any_cast<eIcons>(iterator->second);
 
-        g_pHyprNotificationOverlay->addNotification(text, COLOR, TIME, icon);
+        Notification::overlay()->addNotification(text, COLOR, TIME, icon);
 
     } catch (std::exception& e) {
         // bad any_cast most likely, plugin error
@@ -428,6 +438,61 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
 
     std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return !other || other == cmd; });
     g_pHyprCtl->unregisterCommand(cmd);
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addConfigValueV2(HANDLE handle, SP<Config::Values::IValue> value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredApiValues.emplace_back(value);
+
+    auto ret = Config::mgr()->registerPluginValue(handle, value);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to register plugin value \"{}\": {}", value->name(), ret.error());
+        return false;
+    }
+
+    value->commence();
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Config::mgr() || Config::mgr()->type() != Config::CONFIG_LUA)
+        return false;
+
+    auto ret = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()))->registerPluginLuaFunction(handle, namespace_, name, fn);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to register lua plugin function {}.{}: {}", namespace_, name, ret.error());
+        return false;
+    }
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::removeLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Config::mgr() || Config::mgr()->type() != Config::CONFIG_LUA)
+        return false;
+
+    auto ret = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()))->unregisterPluginLuaFunction(handle, namespace_, name);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to unregister lua plugin function {}.{}: {}", namespace_, name, ret.error());
+        return false;
+    }
 
     return true;
 }

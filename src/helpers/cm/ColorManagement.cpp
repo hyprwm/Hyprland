@@ -1,10 +1,12 @@
 #include "ColorManagement.hpp"
 #include "../../macros.hpp"
+#include "helpers/TransferFunction.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <map>
 #include <vector>
 
 using namespace NColorManagement;
+using namespace NTransferFunction;
 
 namespace NColorManagement {
     // expected to be small
@@ -110,6 +112,20 @@ WP<const CPrimaries> CImageDescription::getPrimaries() const {
     return CPrimaries::from(m_primariesId);
 }
 
+bool CImageDescription::needsCM(WP<const CImageDescription> target) const {
+    if (m_id == target->m_id)
+        return false;
+
+    return m_imageDescription.icc.present || target->m_imageDescription.icc.present           // TODO compare ICC
+        || m_imageDescription.transferFunction != target->m_imageDescription.transferFunction //
+        //|| m_imageDescription.transferFunctionPower != target->m_imageDescription.transferFunctionPower // TODO unsupported
+        || m_imageDescription.getPrimaries() != target->m_imageDescription.getPrimaries() //
+        // || m_imageDescription.masteringPrimaries != target->m_imageDescription.masteringPrimaries // TODO unused
+        || m_imageDescription.luminances != target->m_imageDescription.luminances //
+        // || m_imageDescription.masteringLuminances != target->m_imageDescription.masteringLuminances // TODO unused
+        ;
+}
+
 static Mat3x3 diag3(const std::array<float, 3>& s) {
     return Mat3x3{std::array<float, 9>{s[0], 0, 0, 0, s[1], 0, 0, 0, s[2]}};
 }
@@ -190,4 +206,16 @@ Mat3x3 NColorManagement::adaptBradford(Hyprgraphics::CColor::xy srcW, Hyprgraphi
     result.multiply(diag3(scale)).multiply(Bradford);
 
     return result;
+}
+
+PImageDescription NColorManagement::getDefaultImageDescription() {
+    const auto TF = fromConfig();
+    switch (TF) {
+        case TF_AUTO:
+        case TF_GAMMA22:
+        case TF_FORCED_GAMMA22: return DEFAULT_GAMMA22_IMAGE_DESCRIPTION;
+        case TF_DEFAULT:
+        case TF_SRGB: return DEFAULT_SRGB_IMAGE_DESCRIPTION;
+        default: UNREACHABLE();
+    }
 }

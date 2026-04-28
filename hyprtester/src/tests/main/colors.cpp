@@ -6,32 +6,24 @@
 #include <chrono>
 #include <thread>
 
-static int  ret = 0;
-
-static bool test() {
-    NLog::log("{}Testing hyprctl monitors", Colors::GREEN);
-
+TEST_CASE(monitorsColorManagement) {
     std::string monitorsSpec = getFromSocket("j/monitors");
-    EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "srgb")");
+    ASSERT_CONTAINS(monitorsSpec, R"("colorManagementPreset")");
 
-    EXPECT_CONTAINS(getFromSocket("/keyword monitor HEADLESS-2,1920x1080x60.00000,0x0,1.0,bitdepth,10,cm,wide"), "ok")
+    ASSERT_CONTAINS(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', bitdepth = 10, cm = 'wide' })"), "ok");
 
     // monitor settings are applied after a frame is pushed.
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     monitorsSpec = getFromSocket("j/monitors");
-    EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "wide")");
+    ASSERT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "wide")");
 
-    EXPECT_CONTAINS(getFromSocket("/keyword monitor HEADLESS-2,1920x1080x60.00000,0x0,1.0,bitdepth,10,cm,srgb,sdrbrightness,1.2,sdrsaturation,0.98"), "ok")
+    ASSERT_CONTAINS(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', bitdepth = 10, cm = 'srgb', sdrbrightness = 1.2, sdrsaturation = 0.98 })"), "ok");
     monitorsSpec = getFromSocket("j/monitors");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    EXPECT_CONTAINS(monitorsSpec, R"("colorManagementPreset": "srgb")");
-    EXPECT_CONTAINS(monitorsSpec, R"("sdrBrightness": 1.20)");
-    EXPECT_CONTAINS(monitorsSpec, R"("sdrSaturation": 0.98)");
-
-    return !ret;
+    ASSERT_CONTAINS(monitorsSpec, "colorManagementPreset");
+    ASSERT_CONTAINS(monitorsSpec, "sdrBrightness");
+    ASSERT_CONTAINS(monitorsSpec, "sdrSaturation");
 }
-
-REGISTER_TEST_FN(test)

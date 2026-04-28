@@ -24,9 +24,9 @@
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
-#include "../hyprerror/HyprError.hpp"
-#include "../debug/HyprDebugOverlay.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../errorOverlay/Overlay.hpp"
+#include "../debug/Overlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../layout/space/Space.hpp"
 #include "../i18n/Engine.hpp"
@@ -53,6 +53,7 @@
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
 #include "types.hpp"
+#include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -158,7 +159,7 @@ IHyprRenderer::IHyprRenderer() {
 
     static auto P3 = Event::bus()->m_events.monitor.focused.listen([&](PHLMONITOR mon) {
         g_pEventLoopManager->doLater([this]() {
-            if (!g_pHyprError->active())
+            if (!ErrorOverlay::overlay()->active())
                 return;
             for (auto& m : g_pCompositor->m_monitors) {
                 arrangeLayersForMonitor(m->m_id);
@@ -177,7 +178,7 @@ IHyprRenderer::IHyprRenderer() {
     m_renderUnfocusedTimer = makeShared<CEventLoopTimer>(
         std::nullopt,
         [this](SP<CEventLoopTimer> self, void* data) {
-            static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+            static auto PFPS = CConfigValue<Config::INTEGER>("misc:render_unfocused_fps");
 
             if (m_renderUnfocused.empty())
                 return;
@@ -539,7 +540,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
     const auto                       PWORKSPACE = pWindow->m_workspace;
     const auto                       REALPOS    = pWindow->m_realPosition->value() + (pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value());
-    static auto                      PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto                      PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
     CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
     CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(pWindow->m_realSize->value().x, 5.0), std::max(pWindow->m_realSize->value().y, 5.0)};
@@ -642,7 +643,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             }
         }
 
-        static auto PXWLUSENN = CConfigValue<Hyprlang::INT>("xwayland:use_nearest_neighbor");
+        static auto PXWLUSENN = CConfigValue<Config::INTEGER>("xwayland:use_nearest_neighbor");
         if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
@@ -712,7 +713,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             renderdata.squishOversized = false; // don't squish popups
             renderdata.popup           = true;
 
-            static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
+            static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
             renderdata.blur = shouldBlur(pWindow->m_popupHead);
 
@@ -836,8 +837,8 @@ UP<CScopeGuard> IHyprRenderer::bindTempFB(SP<IFramebuffer> fb) {
 }
 
 bool IHyprRenderer::preBlurQueued(PHLMONITORREF pMonitor) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
+    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
     if (!pMonitor)
         return false;
@@ -897,7 +898,7 @@ void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::s
         (lockscreen && !pLayer->m_ruleApplicator->aboveLock().valueOrDefault()))
         return;
 
-    static auto PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
     if (*PDIMAROUND && pLayer->m_ruleApplicator->dimAround().valueOrDefault() && !m_bRenderingSnapshot && !popups) {
         CRectPassElement::SRectData data;
@@ -1000,9 +1001,9 @@ void IHyprRenderer::renderIMEPopup(CInputPopup* pPopup, PHLMONITOR pMonitor, con
     renderdata.w        = SURF->m_current.size.x;
     renderdata.h        = SURF->m_current.size.y;
 
-    static auto PBLUR        = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto PBLURIMES    = CConfigValue<Hyprlang::INT>("decoration:blur:input_methods");
-    static auto PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:input_methods_ignorealpha");
+    static auto PBLUR        = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PBLURIMES    = CConfigValue<Config::INTEGER>("decoration:blur:input_methods");
+    static auto PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:input_methods_ignorealpha");
 
     renderdata.blur = *PBLURIMES && *PBLUR;
     if (renderdata.blur) {
@@ -1056,11 +1057,11 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 }
 
 void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
-    static auto PDIMSPECIAL      = CConfigValue<Hyprlang::FLOAT>("decoration:dim_special");
-    static auto PBLURSPECIAL     = CConfigValue<Hyprlang::INT>("decoration:blur:special");
-    static auto PBLUR            = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
-    static auto PXPMODE          = CConfigValue<Hyprlang::INT>("render:xp_mode");
-    static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
+    static auto PDIMSPECIAL      = CConfigValue<Config::FLOAT>("decoration:dim_special");
+    static auto PBLURSPECIAL     = CConfigValue<Config::INTEGER>("decoration:blur:special");
+    static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
+    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
     if UNLIKELY (!pMonitor)
         return;
@@ -1242,15 +1243,15 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
 }
 
 void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
-    static auto PRENDERTEX       = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
-    static auto PNOSPLASH        = CConfigValue<Hyprlang::INT>("misc:disable_splash_rendering");
+    static auto PRENDERTEX       = CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo");
+    static auto PBACKGROUNDCOLOR = CConfigValue<Config::INTEGER>("misc:background_color");
+    static auto PNOSPLASH        = CConfigValue<Config::INTEGER>("misc:disable_splash_rendering");
 
     if (*PRENDERTEX /* inverted cfg flag */ || pMonitor->m_backgroundOpacity->isBeingAnimated())
         m_renderPass.add(makeUnique<CClearPassElement>(CClearPassElement::SClearData{CHyprColor(*PBACKGROUNDCOLOR)}));
 
     if (!*PRENDERTEX) {
-        static auto PBACKGROUNDCOLOR = CConfigValue<Hyprlang::INT>("misc:background_color");
+        static auto PBACKGROUNDCOLOR = CConfigValue<Config::INTEGER>("misc:background_color");
 
         if (!pMonitor->m_background)
             pMonitor->m_background = getBackground(pMonitor);
@@ -1301,8 +1302,8 @@ void IHyprRenderer::requestBackgroundResource() {
     if (m_backgroundResource)
         return;
 
-    static auto PNOWALLPAPER    = CConfigValue<Hyprlang::INT>("misc:disable_hyprland_logo");
-    static auto PFORCEWALLPAPER = CConfigValue<Hyprlang::INT>("misc:force_default_wallpaper");
+    static auto PNOWALLPAPER    = CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo");
+    static auto PFORCEWALLPAPER = CConfigValue<Config::INTEGER>("misc:force_default_wallpaper");
 
     const auto  FORCEWALLPAPER = std::clamp(*PFORCEWALLPAPER, sc<int64_t>(-1), sc<int64_t>(2));
 
@@ -1399,8 +1400,8 @@ SP<ITexture> IHyprRenderer::getBlurTexture(PHLMONITORREF pMonitor) {
 }
 
 bool IHyprRenderer::shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow) {
-    static auto PBLURNEWOPTIMIZE = CConfigValue<Hyprlang::INT>("decoration:blur:new_optimizations");
-    static auto PBLURXRAY        = CConfigValue<Hyprlang::INT>("decoration:blur:xray");
+    static auto PBLURNEWOPTIMIZE = CConfigValue<Config::INTEGER>("decoration:blur:new_optimizations");
+    static auto PBLURXRAY        = CConfigValue<Config::INTEGER>("decoration:blur:xray");
 
     if (!getBlurTexture(m_renderData.pMonitor))
         return false;
@@ -1482,9 +1483,10 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
         pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
     }
 
-    pango_layout_get_size(layoutText, &textW, &textH);
-    textW /= PANGO_SCALE;
-    textH /= PANGO_SCALE;
+    PangoRectangle rectInk = {}, rectLog = {};
+    pango_layout_get_pixel_extents(layoutText, &rectInk, &rectLog);
+    textW = std::max(rectLog.width, rectInk.x + rectInk.width);
+    textH = std::max(rectLog.height, rectInk.y + rectInk.height);
 
     pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
@@ -1514,12 +1516,23 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
 
     cairo_surface_flush(CAIROSURFACE);
 
-    auto tex = createTexture(cairo_image_surface_get_width(CAIROSURFACE), cairo_image_surface_get_height(CAIROSURFACE), cairo_image_surface_get_data(CAIROSURFACE));
+    auto tex = createTexture(CAIROSURFACE);
 
     cairo_destroy(CAIRO);
     cairo_surface_destroy(CAIROSURFACE);
 
     return tex;
+}
+
+SP<ITexture> IHyprRenderer::renderText(Hyprgraphics::CTextResource::STextResourceData&& data) {
+    auto res = makeAtomicShared<Hyprgraphics::CTextResource>(std::move(data));
+    g_pAsyncResourceGatherer->enqueue(res);
+    g_pAsyncResourceGatherer->await(res);
+
+    if (!res->m_asset.cairoSurface)
+        return nullptr;
+
+    return createTexture(res->m_asset.pixelSize.x, res->m_asset.pixelSize.y, res->m_asset.cairoSurface->data());
 }
 
 void IHyprRenderer::ensureLockTexturesRendered(bool load) {
@@ -1584,7 +1597,7 @@ void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
 }
 
 void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
-    static auto PSESSIONLOCKXRAY = CConfigValue<Hyprlang::INT>("misc:session_lock_xray");
+    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
     if (*PSESSIONLOCKXRAY)
         return;
 
@@ -1779,10 +1792,10 @@ void IHyprRenderer::clearCMSettingsCache() {
 }
 
 SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                         SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance) {
+                                         SP<CWLSurfaceResource> surface, bool modifySDR, float sdrMinLuminance, int sdrMaxLuminance, bool shouldUseSurface) {
     const auto srcId = imageDescription->id();
     const auto dstId = targetImageDescription->id();
-    void*      sPtr  = m_renderData.surface.get();
+    void*      sPtr  = shouldUseSurface ? m_renderData.surface.get() : nullptr;
 
     for (auto const& entry : m_cmSettingsCache) {
         if (entry.srcDescId == srcId && entry.dstDescId == dstId && entry.surfacePtr == sPtr && entry.modifySDR == modifySDR && entry.sdrMinLuminance == sdrMinLuminance &&
@@ -1793,7 +1806,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
 
-    if (m_renderData.surface.valid()) {
+    if (shouldUseSurface && m_renderData.surface.valid() &&
+        (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22 || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB)) {
         if (m_renderData.surface->m_colorManagement.valid()) {
             if (sdrEOTF == NTransferFunction::TF_FORCED_GAMMA22 && imageDescription->value().transferFunction == NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_SRGB)
                 srcTF = NColorManagement::eTransferFunction::CM_TRANSFER_FUNCTION_GAMMA22;
@@ -1842,7 +1856,15 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .sdrBrightnessMultiplier = needsSDRmod && m_renderData.pMonitor->m_sdrBrightness > 0 ? m_renderData.pMonitor->m_sdrBrightness : 1.0f,
     };
 
-    m_cmSettingsCache.push_back({srcId, dstId, sPtr, modifySDR, sdrMinLuminance, sdrMaxLuminance, result});
+    m_cmSettingsCache.push_back({
+        .srcDescId       = srcId,
+        .dstDescId       = dstId,
+        .surfacePtr      = sPtr,
+        .modifySDR       = modifySDR,
+        .sdrMinLuminance = sdrMinLuminance,
+        .sdrMaxLuminance = sdrMaxLuminance,
+        .settings        = result,
+    });
 
     return result;
 }
@@ -1883,11 +1905,11 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static std::chrono::high_resolution_clock::time_point renderStartOverlay = std::chrono::high_resolution_clock::now();
     static std::chrono::high_resolution_clock::time_point endRenderOverlay   = std::chrono::high_resolution_clock::now();
 
-    static auto                                           PDEBUGOVERLAY       = CConfigValue<Hyprlang::INT>("debug:overlay");
-    static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Hyprlang::INT>("debug:damage_tracking");
-    static auto                                           PDAMAGEBLINK        = CConfigValue<Hyprlang::INT>("debug:damage_blink");
-    static auto                                           PSOLDAMAGE          = CConfigValue<Hyprlang::INT>("debug:render_solitary_wo_damage");
-    static auto                                           PVFR                = CConfigValue<Hyprlang::INT>("debug:vfr");
+    static auto                                           PDEBUGOVERLAY       = CConfigValue<Config::INTEGER>("debug:overlay");
+    static auto                                           PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    static auto                                           PDAMAGEBLINK        = CConfigValue<Config::INTEGER>("debug:damage_blink");
+    static auto                                           PSOLDAMAGE          = CConfigValue<Config::INTEGER>("debug:render_solitary_wo_damage");
+    static auto                                           PVFR                = CConfigValue<Config::INTEGER>("debug:vfr");
 
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
@@ -1903,7 +1925,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (*PDEBUGOVERLAY == 1) {
         renderStart = std::chrono::high_resolution_clock::now();
-        g_pDebugOverlay->frameData(pMonitor);
+        Debug::overlay()->frameData(pMonitor);
     }
 
     if (!g_pCompositor->m_sessionActive)
@@ -1937,11 +1959,16 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (canAttemptDirectScanout) {
         if (pMonitor->attemptDirectScanout()) {
-            pMonitor->m_directScanoutIsActive = true;
+            if (!pMonitor->m_directScanoutIsActive) {
+                pMonitor->m_previousFSWindow.reset(); // recalc fs settings
+                pMonitor->m_directScanoutIsActive = true;
+            }
+            handleFullscreenSettings(pMonitor);
             return;
         } else if (!pMonitor->m_lastScanout.expired() || pMonitor->m_directScanoutIsActive) {
             Log::logger->log(Log::DEBUG, "Left a direct scanout.");
             pMonitor->m_lastScanout.reset();
+            pMonitor->m_previousFSWindow.reset(); // recalc fs settings
             pMonitor->m_directScanoutIsActive = false;
 
             // reset DRM format, but only if needed since it might modeset
@@ -2040,14 +2067,14 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderLockscreen(pMonitor, NOW, renderBox);
 
             if (pMonitor == Desktop::focusState()->monitor()) {
-                g_pHyprNotificationOverlay->draw(pMonitor);
-                g_pHyprError->draw();
+                Notification::overlay()->draw(pMonitor);
+                ErrorOverlay::overlay()->draw();
             }
 
             // for drawing the debug overlay
             if (pMonitor == g_pCompositor->m_monitors.front() && *PDEBUGOVERLAY == 1) {
                 renderStartOverlay = std::chrono::high_resolution_clock::now();
-                g_pDebugOverlay->draw();
+                Debug::overlay()->draw();
                 endRenderOverlay = std::chrono::high_resolution_clock::now();
             }
 
@@ -2125,13 +2152,13 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (*PDEBUGOVERLAY == 1) {
         const float durationUs = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - renderStart).count() / 1000.f;
-        g_pDebugOverlay->renderData(pMonitor, durationUs);
+        Debug::overlay()->renderData(pMonitor, durationUs);
 
         if (pMonitor == g_pCompositor->m_monitors.front()) {
             const float noOverlayUs = durationUs - std::chrono::duration_cast<std::chrono::nanoseconds>(endRenderOverlay - renderStartOverlay).count() / 1000.f;
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, noOverlayUs);
+            Debug::overlay()->renderDataNoOverlay(pMonitor, noOverlayUs);
         } else
-            g_pDebugOverlay->renderDataNoOverlay(pMonitor, durationUs);
+            Debug::overlay()->renderDataNoOverlay(pMonitor, durationUs);
     }
 }
 
@@ -2183,11 +2210,11 @@ static hdr_output_metadata       createHDRMetadata(SImageDescription settings, S
     };
 }
 
-bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
-    static auto PCT        = CConfigValue<Hyprlang::INT>("render:send_content_type");
-    static auto PPASS      = CConfigValue<Hyprlang::INT>("render:cm_fs_passthrough");
-    static auto PAUTOHDR   = CConfigValue<Hyprlang::INT>("render:cm_auto_hdr");
-    static auto PNONSHADER = CConfigValue<Hyprlang::INT>("render:non_shader_cm");
+void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
+    static auto PCT        = CConfigValue<Config::INTEGER>("render:send_content_type");
+    static auto PAUTOHDR   = CConfigValue<Config::INTEGER>("render:cm_auto_hdr");
+    static auto PNONSHADER = CConfigValue<Config::INTEGER>("render:non_shader_cm");
+    static auto PNSINTEROP = CConfigValue<Config::INTEGER>("render:non_shader_cm_interop");
 
     const bool  configuredHDR = (pMonitor->m_cmType == NCMType::CM_HDR_EDID || pMonitor->m_cmType == NCMType::CM_HDR);
     bool        wantHDR       = configuredHDR;
@@ -2198,14 +2225,6 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
         // HDR metadata determined by
         // HDR scRGB - monitor settings
         // HDR PQ surface & DS is active - surface settings
-        // PPASS = 0 monitor settings
-        // PPASS = 1
-        //           windowed: monitor settings
-        //           fullscreen surface: surface settings FIXME: fullscreen SDR surface passthrough - pass degamma, gamma if needed
-        // PPASS = 2
-        //           windowed: monitor settings
-        //           fullscreen SDR surface: monitor settings
-        //           fullscreen HDR surface: surface settings
 
         bool hdrIsHandled = false;
         if (FS_WINDOW) {
@@ -2215,8 +2234,9 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             // we have a surface with image description
             if (SURF && SURF->m_colorManagement.valid() && SURF->m_colorManagement->hasImageDescription()) {
                 const bool surfaceIsHDR = SURF->m_colorManagement->isHDR();
-                if (!SURF->m_colorManagement->isWindowsScRGB() && (*PPASS == 1 || ((*PPASS == 2 || !pMonitor->m_lastScanout.expired()) && surfaceIsHDR))) {
-                    // passthrough
+                wantHDR                 = *PAUTOHDR && surfaceIsHDR;
+                if (surfaceIsHDR && !SURF->m_colorManagement->isWindowsScRGB() && !pMonitor->m_lastScanout.expired()) {
+                    // DS HDR
                     bool needsHdrMetadataUpdate = SURF->m_colorManagement->needsHdrMetadataUpdate() || pMonitor->m_previousFSWindow != FS_WINDOW || pMonitor->m_needsHDRupdate;
                     if (SURF->m_colorManagement->needsHdrMetadataUpdate()) {
                         Log::logger->log(Log::INFO, "[CM] Recreating HDR metadata for surface");
@@ -2228,8 +2248,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
                     }
                     hdrIsHandled               = true;
                     pMonitor->m_needsHDRupdate = false;
-                } else if (*PAUTOHDR && surfaceIsHDR)
-                    wantHDR = true; // auto-hdr: hdr on
+                }
             }
         }
 
@@ -2261,8 +2280,8 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
             Log::logger->log(Log::WARN, "Wide color gamut is enabled but the display is not in 10bit mode");
             static bool shown = false;
             if (!shown) {
-                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
-                                                            ICON_WARNING);
+                Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, {{"name", pMonitor->m_name}}), CHyprColor{}, 15000,
+                                                         ICON_WARNING);
                 shown = true;
             }
         }
@@ -2271,28 +2290,50 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     if (*PCT)
         pMonitor->m_output->state->setContentType(NContentType::toDRM(FS_WINDOW ? FS_WINDOW->getContentType() : CONTENT_TYPE_NONE));
 
-    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM)) {
-        if (*PNONSHADER == CM_NS_IGNORE || !FS_WINDOW || !pMonitor->needsCM() || !pMonitor->canNoShaderCM() ||
-            (*PNONSHADER == CM_NS_ONDEMAND && pMonitor->m_lastScanout.expired() && *PPASS != 1)) {
-            if (pMonitor->m_noShaderCTM) {
-                Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
-                pMonitor->m_noShaderCTM = false;
-                pMonitor->m_ctmUpdated  = true;
-            }
-        } else {
-            const auto FS_DESC = pMonitor->getFSImageDescription();
-            if (FS_DESC.has_value()) {
+    if (FS_WINDOW != pMonitor->m_previousFSWindow || (!FS_WINDOW && pMonitor->m_noShaderCTM) || pMonitor->m_ctmUpdated) {
+        const bool INTEROP  = (*PNSINTEROP == 1 || (*PNSINTEROP == 2 && FS_WINDOW && FS_WINDOW->getContentType() == CONTENT_TYPE_NONE));
+        bool       resetCTM = !FS_WINDOW;
+        if (FS_WINDOW) {
+            if (*PNONSHADER == CM_NS_IGNORE)
+                resetCTM = true;
+            else if (const auto FS_DESC = pMonitor->getFSImageDescription(); pMonitor->needsCM() && pMonitor->canNoShaderCM(!pMonitor->m_lastScanout.expired()) &&
+                     FS_DESC.has_value() && (*PNONSHADER != CM_NS_ONDEMAND || !pMonitor->m_lastScanout.expired())) {
                 Log::logger->log(Log::INFO, "[CM] Updating fullscreen CTM");
-                pMonitor->m_noShaderCTM               = true;
-                auto                       conversion = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
-                const auto                 mat        = conversion.mat();
-                const std::array<float, 9> CTM        = {
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+                auto conversion         = FS_DESC.value()->getPrimaries()->convertMatrix(pMonitor->m_imageDescription->getPrimaries());
+                if (pMonitor->m_ctm != Mat3x3::identity() && INTEROP) {
+                    const auto&                          ctm    = pMonitor->m_ctm.getMatrix();
+                    std::array<std::array<double, 3>, 3> values = {
+                        {
+                            {ctm[0], ctm[1], ctm[2]},
+                            {ctm[3], ctm[4], ctm[5]},
+                            {ctm[6], ctm[7], ctm[8]},
+                        },
+                    };
+                    conversion = conversion * Hyprgraphics::CMatrix3(values);
+                }
+                const auto                 mat = conversion.mat();
+                const std::array<float, 9> CTM = {
                     mat[0][0], mat[0][1], mat[0][2], //
                     mat[1][0], mat[1][1], mat[1][2], //
                     mat[2][0], mat[2][1], mat[2][2], //
                 };
                 pMonitor->m_output->state->setCTM(CTM);
-            }
+            } else if (!INTEROP && pMonitor->m_ctm != Mat3x3::identity()) {
+                Log::logger->log(Log::INFO, "[CM] Setting identity CTM");
+                pMonitor->m_noShaderCTM = true;
+                pMonitor->m_ctmUpdated  = false;
+
+                pMonitor->m_output->state->setCTM(Mat3x3::identity());
+            } else
+                resetCTM = true;
+        }
+
+        if (resetCTM && pMonitor->m_noShaderCTM) {
+            Log::logger->log(Log::INFO, "[CM] No fullscreen CTM, restoring previous one");
+            pMonitor->m_noShaderCTM = false;
+            pMonitor->m_ctmUpdated  = true;
         }
     }
 
@@ -2302,6 +2343,10 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     }
 
     pMonitor->m_previousFSWindow = FS_WINDOW;
+}
+
+bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
+    handleFullscreenSettings(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {
@@ -2584,7 +2629,7 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
         m->addDamage(damageBoxForEach);
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         Log::logger->log(Log::DEBUG, "Damage: Surface (extents): xy: {}, {} wh: {}, {}", damageBox.pixman()->extents.x1, damageBox.pixman()->extents.y1,
@@ -2609,7 +2654,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
         }
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         Log::logger->log(Log::DEBUG, "Damage: Window ({}): xy: {}, {} wh: {}, {}", pWindow->m_title, windowBox.x, windowBox.y, windowBox.width, windowBox.height);
@@ -2622,7 +2667,7 @@ void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
     pMonitor->addDamage(damageBox);
 
-    static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         Log::logger->log(Log::DEBUG, "Damage: Monitor {}", pMonitor->m_name);
@@ -2642,7 +2687,7 @@ void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
         }
     }
 
-    static auto PLOGDAMAGE = CConfigValue<Hyprlang::INT>("debug:log_damage");
+    static auto PLOGDAMAGE = CConfigValue<Config::INTEGER>("debug:log_damage");
 
     if (*PLOGDAMAGE)
         Log::logger->log(Log::DEBUG, "Damage: Box: xy: {}, {} wh: {}, {}", box.x, box.y, box.w, box.h);
@@ -2751,11 +2796,11 @@ void IHyprRenderer::setCursorFromName(const std::string& name, bool force) {
 }
 
 void IHyprRenderer::ensureCursorRenderingMode() {
-    static auto PINVISIBLE     = CConfigValue<Hyprlang::INT>("cursor:invisible");
-    static auto PCURSORTIMEOUT = CConfigValue<Hyprlang::FLOAT>("cursor:inactive_timeout");
-    static auto PHIDEONTOUCH   = CConfigValue<Hyprlang::INT>("cursor:hide_on_touch");
-    static auto PHIDEONTABLET  = CConfigValue<Hyprlang::INT>("cursor:hide_on_tablet");
-    static auto PHIDEONKEY     = CConfigValue<Hyprlang::INT>("cursor:hide_on_key_press");
+    static auto PINVISIBLE     = CConfigValue<Config::INTEGER>("cursor:invisible");
+    static auto PCURSORTIMEOUT = CConfigValue<Config::FLOAT>("cursor:inactive_timeout");
+    static auto PHIDEONTOUCH   = CConfigValue<Config::INTEGER>("cursor:hide_on_touch");
+    static auto PHIDEONTABLET  = CConfigValue<Config::INTEGER>("cursor:hide_on_tablet");
+    static auto PHIDEONKEY     = CConfigValue<Config::INTEGER>("cursor:hide_on_key_press");
 
     if (*PCURSORTIMEOUT <= 0)
         m_cursorHiddenConditions.hiddenOnTimeout = false;
@@ -2817,7 +2862,7 @@ bool IHyprRenderer::shouldRenderCursor() {
 }
 
 std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonitor) {
-    const auto POVERLAY = &g_pDebugOverlay->m_monitorOverlays[pMonitor];
+    const auto POVERLAY = &Debug::overlay()->m_monitorOverlays[pMonitor];
 
     float      avgRenderTime = 0;
     float      maxRenderTime = 0;
@@ -2834,8 +2879,8 @@ std::tuple<float, float, float> IHyprRenderer::getRenderTimes(PHLMONITOR pMonito
 
 static int handleCrashLoop(void* data) {
 
-    g_pHyprNotificationOverlay->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
-                                                ICON_INFO);
+    Notification::overlay()->addNotification("Hyprland will crash in " + std::to_string(10 - sc<int>(g_pHyprRenderer->m_crashingDistort * 2.f)) + "s.", CHyprColor(0), 5000,
+                                             ICON_INFO);
 
     g_pHyprRenderer->m_crashingDistort += 0.5f;
 
@@ -2848,7 +2893,7 @@ static int handleCrashLoop(void* data) {
 }
 
 void IHyprRenderer::initiateManualCrash() {
-    g_pHyprNotificationOverlay->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
+    Notification::overlay()->addNotification("Manual crash initiated. Farewell...", CHyprColor(0), 5000, ICON_INFO);
 
     m_crashingLoop = wl_event_loop_add_timer(g_pCompositor->m_wlEventLoop, handleCrashLoop, nullptr);
     wl_event_source_timer_update(m_crashingLoop, 1000);
@@ -2909,7 +2954,7 @@ bool IHyprRenderer::isMgpu() {
 }
 
 void IHyprRenderer::addWindowToRenderUnfocused(PHLWINDOW window) {
-    static auto PFPS = CConfigValue<Hyprlang::INT>("misc:render_unfocused_fps");
+    static auto PFPS = CConfigValue<Config::INTEGER>("misc:render_unfocused_fps");
 
     if (*PFPS <= 0)
         return;
@@ -3070,7 +3115,7 @@ void IHyprRenderer::makeSnapshot(WP<Desktop::View::CPopup> popup) {
 }
 
 void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
-    static auto  PDIMAROUND = CConfigValue<Hyprlang::FLOAT>("decoration:dim_around");
+    static auto  PDIMAROUND = CConfigValue<Config::FLOAT>("decoration:dim_around");
 
     PHLWINDOWREF ref{pWindow};
 
@@ -3175,7 +3220,7 @@ void IHyprRenderer::renderSnapshot(WP<Desktop::View::CPopup> popup) {
     if (!popup->m_snapshotFB)
         return;
 
-    static CConfigValue PBLURIGNOREA = CConfigValue<Hyprlang::FLOAT>("decoration:blur:popups_ignorealpha");
+    static CConfigValue PBLURIGNOREA = CConfigValue<Config::FLOAT>("decoration:blur:popups_ignorealpha");
 
     const auto          FBDATA = popup->m_snapshotFB;
 
@@ -3225,7 +3270,7 @@ bool IHyprRenderer::shouldBlur(PHLLS ls) {
     if (m_bRenderingSnapshot)
         return false;
 
-    static auto PBLUR = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLUR = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     return *PBLUR && ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
@@ -3233,21 +3278,21 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     if (m_bRenderingSnapshot)
         return false;
 
-    static auto PBLUR     = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static auto PBLUR     = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
     const bool  DONT_BLUR = w->m_ruleApplicator->noBlur().valueOrDefault() || w->m_ruleApplicator->RGBX().valueOrDefault() || w->opaque();
     return *PBLUR && !DONT_BLUR;
 }
 
 bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
-    static CConfigValue PBLURPOPUPS = CConfigValue<Hyprlang::INT>("decoration:blur:popups");
-    static CConfigValue PBLUR       = CConfigValue<Hyprlang::INT>("decoration:blur:enabled");
+    static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
+    static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 
     return *PBLURPOPUPS && *PBLUR;
 }
 
 SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth,
                                          const int maxHeight) {
-    static auto PSPLASHCOLOR = CConfigValue<Hyprlang::INT>("misc:col.splash");
+    static auto PSPLASHCOLOR = CConfigValue<Config::INTEGER>("misc:col.splash");
     static auto PSPLASHFONT  = CConfigValue<std::string>("misc:splash_font_family");
     static auto FALLBACKFONT = CConfigValue<std::string>("misc:font_family");
 

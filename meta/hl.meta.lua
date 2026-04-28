@@ -703,14 +703,13 @@ local __HL_Window = {}
 local __HL_WindowRule = {}
 
 ---@class HL.Workspace
+---@field get_groups fun(self: HL.Workspace, ...): any
 ---@field get_windows fun(self: HL.Workspace, ...): any
 ---@field active boolean
 ---@field config_name string
----@field default_floating boolean
----@field default_pseudo boolean
 ---@field fullscreen_mode integer
 ---@field fullscreen_window HL.Window|nil
----@field groups integer
+---@field groups integer|nil
 ---@field has_fullscreen boolean
 ---@field has_urgent boolean
 ---@field id integer

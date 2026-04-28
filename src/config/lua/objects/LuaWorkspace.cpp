@@ -4,6 +4,7 @@
 #include "LuaObjectHelpers.hpp"
 
 #include "../../../desktop/Workspace.hpp"
+#include "../../../desktop/view/Group.hpp"
 #include "../../../helpers/Monitor.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
@@ -11,6 +12,7 @@
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../Compositor.hpp"
 
+#include <algorithm>
 #include <string_view>
 
 using namespace Config::Lua;
@@ -57,6 +59,67 @@ static int workspaceGetWindows(lua_State* L) {
     return 1;
 }
 
+static int workspaceGetGroups(lua_State* L) {
+    auto*      ref = sc<PHLWORKSPACEREF*>(luaL_checkudata(L, 1, MT));
+    const auto ws  = ref->lock();
+    if (!ws || ws->inert()) {
+        lua_newtable(L);
+        return 1;
+    }
+
+    lua_newtable(L);
+    int                idx = 1;
+
+    std::vector<void*> pushedGroups;
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace != ws || !w->m_group)
+            continue;
+
+        if (std::find(pushedGroups.begin(), pushedGroups.end(), (void*)w->m_group.get()) != pushedGroups.end())
+            continue;
+
+        pushedGroups.push_back((void*)w->m_group.get());
+
+        lua_newtable(L);
+
+        lua_pushboolean(L, w->m_group->locked());
+        lua_setfield(L, -2, "locked");
+
+        lua_pushboolean(L, w->m_group->denied());
+        lua_setfield(L, -2, "denied");
+
+        lua_pushinteger(L, sc<lua_Integer>(w->m_group->size()));
+        lua_setfield(L, -2, "size");
+
+        lua_pushinteger(L, sc<lua_Integer>(w->m_group->getCurrentIdx()) + 1);
+        lua_setfield(L, -2, "current_index");
+
+        const auto current = w->m_group->current();
+        if (current)
+            Objects::CLuaWindow::push(L, current);
+        else
+            lua_pushnil(L);
+        lua_setfield(L, -2, "current");
+
+        lua_newtable(L);
+        int wIdx = 1;
+        for (const auto& grouped : w->m_group->windows()) {
+            const auto groupedWindow = grouped.lock();
+            if (!groupedWindow)
+                continue;
+
+            Objects::CLuaWindow::push(L, groupedWindow);
+            lua_rawseti(L, -2, wIdx++);
+        }
+        lua_setfield(L, -2, "members");
+
+        lua_rawseti(L, -2, idx++);
+    }
+
+    return 1;
+}
+
 static int workspaceIndex(lua_State* L) {
     auto*      ref = sc<PHLWORKSPACEREF*>(luaL_checkudata(L, 1, MT));
     const auto ws  = ref->lock();
@@ -99,12 +162,6 @@ static int workspaceIndex(lua_State* L) {
         lua_pushboolean(L, ws->getWindows() == 0);
     else if (key == "config_name")
         lua_pushstring(L, ws->getConfigName().c_str());
-    else if (key == "default_floating")
-        lua_pushboolean(L, ws->m_defaultFloating);
-    else if (key == "default_pseudo")
-        lua_pushboolean(L, ws->m_defaultPseudo);
-    else if (key == "groups")
-        lua_pushinteger(L, sc<lua_Integer>(ws->getGroups()));
     else if (key == "tiled_layout") {
         std::string layoutName = "unknown";
         if (ws->m_space && ws->m_space->algorithm() && ws->m_space->algorithm()->tiledAlgo()) {
@@ -126,6 +183,10 @@ static int workspaceIndex(lua_State* L) {
             lua_pushnil(L);
     } else if (key == "get_windows")
         lua_pushcfunction(L, workspaceGetWindows);
+    else if (key == "get_groups")
+        lua_pushcfunction(L, workspaceGetGroups);
+    else if (key == "groups")
+        lua_pushinteger(L, sc<lua_Integer>(ws->getGroups()));
     else
         lua_pushnil(L);
 

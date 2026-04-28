@@ -123,7 +123,11 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
     std::string execToken = "";
 
     if (!RULES.empty()) {
-        auto       rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
+        auto rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
+        if (!rule) {
+            Log::logger->log(Log::ERR, "Failed to parse exec rule: {}", rule.error());
+            return std::nullopt;
+        }
 
         const auto TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
 
@@ -132,7 +136,7 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
         if (!PROC)
             return std::nullopt;
 
-        applyRuleToProc(rule, *PROC, TOKEN);
+        applyRuleToProc(*rule, *PROC, TOKEN);
 
         return PROC;
     }

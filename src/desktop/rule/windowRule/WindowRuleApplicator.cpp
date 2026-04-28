@@ -6,33 +6,26 @@
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
 
-#include <hyprutils/string/String.hpp>
-#include <hyprutils/string/VarList.hpp>
-#include <hyprutils/string/VarList2.hpp>
 #include <tuple>
-
-using namespace Hyprutils::String;
 
 using namespace Desktop;
 using namespace Desktop::Rule;
 
-namespace {
-    template <typename T, typename TEffect>
-    void resetRuleProp(std::pair<Desktop::Types::COverridableVar<T>, std::underlying_type_t<Desktop::Rule::eRuleProperty>>& prop,
-                       std::underlying_type_t<Desktop::Rule::eRuleProperty> props, Desktop::Types::eOverridePriority prio,
-                       std::unordered_set<Desktop::Rule::CWindowRuleEffectContainer::storageType>& effectsNuked, TEffect&& effect) {
-        auto& [value, propMask] = prop;
+template <typename T, typename TEffect>
+static void resetRuleProp(std::pair<Desktop::Types::COverridableVar<T>, std::underlying_type_t<Desktop::Rule::eRuleProperty>>& prop,
+                          std::underlying_type_t<Desktop::Rule::eRuleProperty> props, Desktop::Types::eOverridePriority prio,
+                          std::unordered_set<Desktop::Rule::CWindowRuleEffectContainer::storageType>& effectsNuked, TEffect&& effect) {
+    auto& [value, propMask] = prop;
 
-        if (!(propMask & props))
-            return;
+    if (!(propMask & props))
+        return;
 
-        if (prio == Desktop::Types::PRIORITY_WINDOW_RULE) {
-            effectsNuked.emplace(effect());
-            propMask &= ~props;
-        }
-
-        value.unset(prio);
+    if (prio == Desktop::Types::PRIORITY_WINDOW_RULE) {
+        effectsNuked.emplace(effect());
+        propMask &= ~props;
     }
+
+    value.unset(prio);
 }
 
 CWindowRuleApplicator::CWindowRuleApplicator(PHLWINDOW w) : m_window(w) {
@@ -85,7 +78,11 @@ std::unordered_set<CWindowRuleEffectContainer::storageType> CWindowRuleApplicato
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const SP<CWindowRule>& rule) {
     SRuleResult result;
 
-    for (const auto& [key, effect] : rule->effects()) {
+    for (const auto& effectData : rule->effects()) {
+        const auto  key    = effectData.key;
+        const auto& effect = effectData.raw;
+        const auto& value  = effectData.value;
+
         switch (key) {
             default: {
                 if (key <= WINDOW_RULE_EFFECT_LAST_STATIC) {
@@ -115,133 +112,44 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING: {
-                try {
-                    m_rounding.first.set(std::stoull(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_rounding.second |= rule->getPropertiesMask();
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding {}", effect); }
+                m_rounding.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
+                m_rounding.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_ROUNDING_POWER: {
-                try {
-                    m_roundingPower.first.set(std::clamp(std::stof(effect), 1.F, 10.F), Types::PRIORITY_WINDOW_RULE);
-                    m_roundingPower.second |= rule->getPropertiesMask();
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid rounding_power {}", effect); }
+                m_roundingPower.first.set(std::get<float>(value), Types::PRIORITY_WINDOW_RULE);
+                m_roundingPower.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_PERSISTENT_SIZE: {
-                m_persistentSize.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_persistentSize.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_persistentSize.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_ANIMATION: {
-                m_animationStyle.first.set(effect, Types::PRIORITY_WINDOW_RULE);
+                m_animationStyle.first.set(std::get<std::string>(value), Types::PRIORITY_WINDOW_RULE);
                 m_animationStyle.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_BORDER_COLOR: {
-                try {
-                    // Each vector will only get used if it has at least one color
-                    Config::CGradientValueData activeBorderGradient   = {};
-                    Config::CGradientValueData inactiveBorderGradient = {};
-                    bool                       active                 = true;
-                    CVarList                   colorsAndAngles        = CVarList(trim(effect), 0, 's', true);
-
-                    // Basic form has only two colors, everything else can be parsed as a gradient
-                    if (colorsAndAngles.size() == 2 && !colorsAndAngles[1].contains("deg")) {
-                        m_activeBorderColor.first =
-                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[0]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
-                        m_inactiveBorderColor.first =
-                            Types::COverridableVar(Config::CGradientValueData(CHyprColor(configStringToInt(colorsAndAngles[1]).value_or(0))), Types::PRIORITY_WINDOW_RULE);
-                        m_activeBorderColor.second |= rule->getPropertiesMask();
-                        m_inactiveBorderColor.second |= rule->getPropertiesMask();
-                        break;
-                    }
-
-                    for (auto const& token : colorsAndAngles) {
-                        // The first angle, or an explicit "0deg", splits the two gradients
-                        if (active && token.contains("deg")) {
-                            activeBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
-                            active                       = false;
-                        } else if (token.contains("deg"))
-                            inactiveBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
-                        else if (active)
-                            activeBorderGradient.m_colors.emplace_back(configStringToInt(token).value_or(0));
-                        else
-                            inactiveBorderGradient.m_colors.emplace_back(configStringToInt(token).value_or(0));
-                    }
-
-                    activeBorderGradient.updateColorsOk();
-
-                    // Includes sanity checks for the number of colors in each gradient
-                    if (activeBorderGradient.m_colors.size() > 10 || inactiveBorderGradient.m_colors.size() > 10)
-                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has more than 10 colors in one gradient, ignoring", effect);
-                    else if (activeBorderGradient.m_colors.empty())
-                        Log::logger->log(Log::WARN, "Bordercolor rule \"{}\" has no colors, ignoring", effect);
-                    else if (inactiveBorderGradient.m_colors.empty())
-                        m_activeBorderColor.first = Types::COverridableVar(activeBorderGradient, Types::PRIORITY_WINDOW_RULE);
-                    else {
-                        m_activeBorderColor.first   = Types::COverridableVar(activeBorderGradient, Types::PRIORITY_WINDOW_RULE);
-                        m_inactiveBorderColor.first = Types::COverridableVar(inactiveBorderGradient, Types::PRIORITY_WINDOW_RULE);
-                    }
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "BorderColor rule \"{}\" failed with: {}", effect, e.what()); }
+                const auto& borderColor   = std::get<SBorderColorRule>(value);
+                m_activeBorderColor.first = Types::COverridableVar(borderColor.active, Types::PRIORITY_WINDOW_RULE);
+                if (borderColor.inactive)
+                    m_inactiveBorderColor.first = Types::COverridableVar(*borderColor.inactive, Types::PRIORITY_WINDOW_RULE);
                 m_activeBorderColor.second   = rule->getPropertiesMask();
                 m_inactiveBorderColor.second = rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_IDLE_INHIBIT: {
-                if (effect == "none")
-                    m_idleInhibitMode.first.set(IDLEINHIBIT_NONE, Types::PRIORITY_WINDOW_RULE);
-                else if (effect == "always")
-                    m_idleInhibitMode.first.set(IDLEINHIBIT_ALWAYS, Types::PRIORITY_WINDOW_RULE);
-                else if (effect == "focus")
-                    m_idleInhibitMode.first.set(IDLEINHIBIT_FOCUS, Types::PRIORITY_WINDOW_RULE);
-                else if (effect == "fullscreen")
-                    m_idleInhibitMode.first.set(IDLEINHIBIT_FULLSCREEN, Types::PRIORITY_WINDOW_RULE);
-                else
-                    Log::logger->log(Log::ERR, "Rule idleinhibit: unknown mode {}", effect);
+                m_idleInhibitMode.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
                 m_idleInhibitMode.second = rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_OPACITY: {
-                try {
-                    CVarList2 vars(std::string{effect}, 0, ' ');
-
-                    int       opacityIDX = 0;
-
-                    for (const auto& r : vars) {
-                        if (r == "opacity")
-                            continue;
-
-                        if (r == "override") {
-                            if (opacityIDX == 1)
-                                m_alpha.first = Types::COverridableVar(Types::SAlphaValue{.alpha = m_alpha.first.value().alpha, .overridden = true}, Types::PRIORITY_WINDOW_RULE);
-                            else if (opacityIDX == 2)
-                                m_alphaInactive.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaInactive.first.value().alpha, .overridden = true}, Types::PRIORITY_WINDOW_RULE);
-                            else if (opacityIDX == 3)
-                                m_alphaFullscreen.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = m_alphaFullscreen.first.value().alpha, .overridden = true}, Types::PRIORITY_WINDOW_RULE);
-                        } else {
-                            if (opacityIDX == 0)
-                                m_alpha.first = Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, Types::PRIORITY_WINDOW_RULE);
-                            else if (opacityIDX == 1)
-                                m_alphaInactive.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, Types::PRIORITY_WINDOW_RULE);
-                            else if (opacityIDX == 2)
-                                m_alphaFullscreen.first =
-                                    Types::COverridableVar(Types::SAlphaValue{.alpha = std::stof(std::string{r}), .overridden = false}, Types::PRIORITY_WINDOW_RULE);
-                            else
-                                throw std::runtime_error("more than 3 alpha values");
-
-                            opacityIDX++;
-                        }
-                    }
-
-                    if (opacityIDX == 1) {
-                        m_alphaInactive.first   = m_alpha.first;
-                        m_alphaFullscreen.first = m_alpha.first;
-                    }
-                } catch (std::exception& e) { Log::logger->log(Log::ERR, "Opacity rule \"{}\" failed with: {}", effect, e.what()); }
+                const auto& opacity      = std::get<SOpacityRule>(value);
+                m_alpha.first            = Types::COverridableVar(opacity.alpha, Types::PRIORITY_WINDOW_RULE);
+                m_alphaInactive.first    = Types::COverridableVar(opacity.alphaInactive, Types::PRIORITY_WINDOW_RULE);
+                m_alphaFullscreen.first  = Types::COverridableVar(opacity.alphaFullscreen, Types::PRIORITY_WINDOW_RULE);
                 m_alpha.second           = rule->getPropertiesMask();
                 m_alphaInactive.second   = rule->getPropertiesMask();
                 m_alphaFullscreen.second = rule->getPropertiesMask();
@@ -304,142 +212,136 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_BORDER_SIZE: {
-                try {
-                    auto oldBorderSize = m_borderSize.first.valueOrDefault();
-                    m_borderSize.first.set(std::stoi(effect), Types::PRIORITY_WINDOW_RULE);
-                    m_borderSize.second |= rule->getPropertiesMask();
-                    if (oldBorderSize != m_borderSize.first.valueOrDefault())
-                        result.needsRelayout = true;
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid border_size {}", effect); }
+                auto oldBorderSize = m_borderSize.first.valueOrDefault();
+                m_borderSize.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
+                m_borderSize.second |= rule->getPropertiesMask();
+                if (oldBorderSize != m_borderSize.first.valueOrDefault())
+                    result.needsRelayout = true;
                 break;
             }
             case WINDOW_RULE_EFFECT_ALLOWS_INPUT: {
-                m_allowsInput.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_allowsInput.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_allowsInput.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_DIM_AROUND: {
-                m_dimAround.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_dimAround.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_dimAround.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_DECORATE: {
-                m_decorate.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_decorate.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_decorate.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_FOCUS_ON_ACTIVATE: {
-                m_focusOnActivate.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_focusOnActivate.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_focusOnActivate.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_KEEP_ASPECT_RATIO: {
-                m_keepAspectRatio.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_keepAspectRatio.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_keepAspectRatio.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NEAREST_NEIGHBOR: {
-                m_nearestNeighbor.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_nearestNeighbor.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_nearestNeighbor.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_ANIM: {
-                m_noAnim.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noAnim.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noAnim.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_BLUR: {
-                m_noBlur.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noBlur.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noBlur.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_DIM: {
-                m_noDim.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noDim.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noDim.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_FOCUS: {
-                m_noFocus.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noFocus.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noFocus.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE: {
-                m_noFollowMouse.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noFollowMouse.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noFollowMouse.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_MAX_SIZE: {
-                m_noMaxSize.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noMaxSize.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noMaxSize.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_SHADOW: {
-                m_noShadow.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noShadow.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShadow.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_SHORTCUTS_INHIBIT: {
-                m_noShortcutsInhibit.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noShortcutsInhibit.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noShortcutsInhibit.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_OPAQUE: {
-                m_opaque.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_opaque.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_opaque.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_FORCE_RGBX: {
-                m_RGBX.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_RGBX.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_RGBX.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_SYNC_FULLSCREEN: {
-                m_syncFullscreen.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_syncFullscreen.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_syncFullscreen.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_IMMEDIATE: {
-                m_tearing.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_tearing.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_tearing.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_XRAY: {
-                m_xray.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_xray.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_xray.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_RENDER_UNFOCUSED: {
-                m_renderUnfocused.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_renderUnfocused.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_renderUnfocused.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_SCREEN_SHARE: {
-                m_noScreenShare.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noScreenShare.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noScreenShare.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_NO_VRR: {
-                m_noVRR.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_noVRR.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_noVRR.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_STAY_FOCUSED: {
-                m_stayFocused.first.set(truthy(effect), Types::PRIORITY_WINDOW_RULE);
+                m_stayFocused.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
                 m_stayFocused.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_SCROLL_MOUSE: {
-                try {
-                    m_scrollMouse.first.set(std::clamp(std::stof(effect), 0.01F, 10.F), Types::PRIORITY_WINDOW_RULE);
-                    m_scrollMouse.second |= rule->getPropertiesMask();
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_mouse {}", effect); }
+                m_scrollMouse.first.set(std::get<float>(value), Types::PRIORITY_WINDOW_RULE);
+                m_scrollMouse.second |= rule->getPropertiesMask();
                 break;
             }
             case WINDOW_RULE_EFFECT_SCROLL_TOUCHPAD: {
-                try {
-                    m_scrollTouchpad.first.set(std::clamp(std::stof(effect), 0.01F, 10.F), Types::PRIORITY_WINDOW_RULE);
-                    m_scrollTouchpad.second |= rule->getPropertiesMask();
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyDynamicRule: invalid scroll_touchpad {}", effect); }
+                m_scrollTouchpad.first.set(std::get<float>(value), Types::PRIORITY_WINDOW_RULE);
+                m_scrollTouchpad.second |= rule->getPropertiesMask();
                 break;
             }
         }
@@ -448,7 +350,10 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
 }
 
 CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const SP<CWindowRule>& rule) {
-    for (const auto& [key, effect] : rule->effects()) {
+    for (const auto& effectData : rule->effects()) {
+        const auto  key   = effectData.key;
+        const auto& value = effectData.value;
+
         switch (key) {
             default: {
                 Log::logger->log(Log::TRACE, "CWindowRuleApplicator::applyStaticRule: Skipping effect {}, not static", sc<std::underlying_type_t<eWindowRuleEffect>>(key));
@@ -456,89 +361,82 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
 
             case WINDOW_RULE_EFFECT_FLOAT: {
-                static_.floating = truthy(effect);
+                static_.floating = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_TILE: {
-                static_.floating = !truthy(effect);
+                static_.floating = !std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_FULLSCREEN: {
-                static_.fullscreen = truthy(effect);
+                static_.fullscreen = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_MAXIMIZE: {
-                static_.maximize = truthy(effect);
+                static_.maximize = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_FULLSCREENSTATE: {
-                CVarList2 vars(std::string{effect}, 0, 's');
-                try {
-                    static_.fullscreenStateInternal = std::stoi(std::string{vars[0]});
-                    if (!vars[1].empty())
-                        static_.fullscreenStateClient = std::stoi(std::string{vars[1]});
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid fullscreen state {}", effect); }
+                const auto& fullscreenState     = std::get<SFullscreenStateRule>(value);
+                static_.fullscreenStateInternal = fullscreenState.internal;
+                if (fullscreenState.client)
+                    static_.fullscreenStateClient = *fullscreenState.client;
                 break;
             }
             case WINDOW_RULE_EFFECT_MOVE: {
                 static_.center   = std::nullopt;
-                static_.position = effect;
+                static_.position = std::get<std::string>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_SIZE: {
-                static_.size = effect;
+                static_.size = std::get<std::string>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_CENTER: {
                 static_.position.clear();
-                static_.center = truthy(effect);
+                static_.center = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_PSEUDO: {
-                static_.pseudo = truthy(effect);
+                static_.pseudo = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_MONITOR: {
-                static_.monitor = effect;
+                static_.monitor = std::get<std::string>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_WORKSPACE: {
-                static_.workspace = effect;
+                static_.workspace = std::get<std::string>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_NOINITIALFOCUS: {
-                static_.noInitialFocus = truthy(effect);
+                static_.noInitialFocus = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_PIN: {
-                static_.pin = truthy(effect);
+                static_.pin = std::get<bool>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_GROUP: {
-                static_.group = effect;
+                static_.group = std::get<std::string>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_SUPPRESSEVENT: {
-                CVarList2 varlist(std::string{effect}, 0, 's');
-                for (const auto& e : varlist) {
+                for (const auto& e : std::get<std::vector<std::string>>(value)) {
                     static_.suppressEvent.emplace_back(e);
                 }
                 break;
             }
             case WINDOW_RULE_EFFECT_CONTENT: {
-                static_.content = NContentType::fromString(effect);
+                static_.content = std::get<int64_t>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_NOCLOSEFOR: {
-                try {
-                    static_.noCloseFor = std::stoi(effect);
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid no close for {}", effect); }
+                static_.noCloseFor = std::get<int64_t>(value);
                 break;
             }
             case WINDOW_RULE_EFFECT_SCROLLING_WIDTH: {
-                try {
-                    static_.scrollingWidth = std::stof(effect);
-                } catch (...) { Log::logger->log(Log::ERR, "CWindowRuleApplicator::applyStaticRule: invalid scrolling width {}", effect); }
+                static_.scrollingWidth = std::get<float>(value);
                 break;
             }
         }

@@ -922,8 +922,11 @@ std::optional<std::string> CConfigManager::addLayerRuleFromConfigKey(const std::
 
     for (const auto& e : Desktop::Rule::layerEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("layerrule", e.c_str(), name.c_str());
-        if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::layerEffects()->get(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        if (VAL && VAL->m_bSetByUser) {
+            auto res = rule->addEffect(Desktop::Rule::layerEffects()->get(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            if (!res)
+                return res.error();
+        }
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -2025,7 +2028,9 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
             const auto EFFECT = Desktop::Rule::layerEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
-            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            auto res = rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            if (!res)
+                return res.error();
         } else
             return std::format("invalid field type {}", FIRST);
     }

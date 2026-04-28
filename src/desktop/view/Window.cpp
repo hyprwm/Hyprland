@@ -1358,7 +1358,7 @@ Vector2D CWindow::realToReportSize() {
 
     if (*PXWLFORCESCALEZERO && PMONITOR)
         // Keep X11 configure sizes integral to avoid truncation (e.g. 2879.999 -> 2879) later in xcb.
-        return (REPORTSIZE * PMONITOR->m_scale).round();
+        return (REPORTSIZE * PMONITOR->m_xwaylandScale).round();
 
     return REPORTSIZE;
 }
@@ -1375,7 +1375,7 @@ Vector2D CWindow::xwaylandSizeToReal(Vector2D size) {
 
     const auto  PMONITOR = m_monitor.lock();
     const auto  SIZE     = size.clamp(Vector2D{1, 1}, Math::VECTOR2D_MAX);
-    const auto  SCALE    = *PXWLFORCESCALEZERO && PMONITOR ? PMONITOR->m_scale : 1.0f;
+    const auto  SCALE = *PXWLFORCESCALEZERO && PMONITOR ? PMONITOR->m_xwaylandScale : 1.0f;
 
     return SIZE / SCALE;
 }
@@ -1390,7 +1390,7 @@ void CWindow::updateX11SurfaceScale() {
     m_X11SurfaceScaledBy = 1.0f;
     if (m_isX11 && *PXWLFORCESCALEZERO) {
         if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-            m_X11SurfaceScaledBy = PMONITOR->m_scale;
+            m_X11SurfaceScaledBy = PMONITOR->m_xwaylandScale;
     }
 }
 

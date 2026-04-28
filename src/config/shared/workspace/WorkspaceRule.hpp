@@ -40,6 +40,7 @@ namespace Config {
         std::optional<std::string>         m_onCreatedEmptyRunCmd;
         std::optional<std::string>         m_defaultName;
         std::optional<std::string>         m_layout;
+        std::optional<float>               m_xwaylandScale;
         std::map<std::string, std::string> m_layoutopts;
         std::optional<std::string>         m_animationStyle;
     };

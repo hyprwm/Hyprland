@@ -114,7 +114,7 @@ void CXDGOutput::sendDetails() {
     m_resource->sendLogicalPosition(POS.x, POS.y);
 
     if (*PXWLFORCESCALEZERO && m_isXWayland)
-        m_resource->sendLogicalSize(m_monitor->m_transformedSize.x, m_monitor->m_transformedSize.y);
+        m_resource->sendLogicalSize(m_monitor->m_xwaylandSize.x, m_monitor->m_xwaylandSize.y);
     else
         m_resource->sendLogicalSize(m_monitor->m_size.x, m_monitor->m_size.y);
 

@@ -144,7 +144,7 @@ SUBTEST(keyLongPress) {
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
 }
 
 SUBTEST(longPressRelease) {

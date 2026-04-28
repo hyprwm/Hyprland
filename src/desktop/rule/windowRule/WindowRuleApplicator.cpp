@@ -491,7 +491,14 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyStaticRule(const 
             }
             case WINDOW_RULE_EFFECT_CENTER: {
                 static_.position.clear();
+                static_.centerOver.clear();
                 static_.center = truthy(effect);
+                break;
+            }
+            case WINDOW_RULE_EFFECT_CENTER_OVER: {
+                static_.position.clear();
+                static_.center     = std::nullopt;
+                static_.centerOver = effect;
                 break;
             }
             case WINDOW_RULE_EFFECT_PSEUDO: {

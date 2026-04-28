@@ -7,6 +7,7 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -17,16 +18,30 @@ using namespace Desktop;
 using namespace Desktop::Rule;
 using namespace Hyprutils::String;
 
+static const char* numericParseError(eNumericParseResult r) {
+    switch (r) {
+        case NUMERIC_PARSE_BAD: return "bad input";
+        case NUMERIC_PARSE_GARBAGE: return "garbage input";
+        case NUMERIC_PARSE_OUT_OF_RANGE: return "out of range";
+        case NUMERIC_PARSE_OK: return "ok";
+        default: return "error";
+    }
+}
+
 static std::expected<int64_t, std::string> parseInt(std::string_view effectName, const std::string& raw) {
-    try {
-        return std::stoll(raw);
-    } catch (std::exception& e) { return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, e.what())); }
+    auto parsed = strToNumber<int64_t>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
 }
 
 static std::expected<float, std::string> parseFloat(std::string_view effectName, const std::string& raw) {
-    try {
-        return std::stof(raw);
-    } catch (std::exception& e) { return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, e.what())); }
+    auto parsed = strToNumber<float>(raw);
+    if (!parsed)
+        return std::unexpected(std::format("{} rule \"{}\" failed with: {}", effectName, raw, numericParseError(parsed.error())));
+
+    return *parsed;
 }
 
 static std::expected<CHyprColor, std::string> parseBorderColorToken(const std::string& raw, const std::string& token) {
@@ -38,15 +53,25 @@ static std::expected<CHyprColor, std::string> parseBorderColorToken(const std::s
 }
 
 static std::expected<SFullscreenStateRule, std::string> parseFullscreenState(const std::string& raw) {
-    CVarList2 vars(std::string{raw}, 0, 's');
+    CVarList2            vars(std::string{raw}, 0, 's');
 
-    try {
-        SFullscreenStateRule result;
-        result.internal = std::stoi(std::string{vars[0]});
-        if (!vars[1].empty())
-            result.client = std::stoi(std::string{vars[1]});
-        return result;
-    } catch (std::exception& e) { return std::unexpected(std::format("fullscreen_state rule \"{}\" failed with: {}", raw, e.what())); }
+    SFullscreenStateRule result;
+
+    auto                 internal = strToNumber<int>(vars[0]);
+    if (!internal)
+        return std::unexpected(std::format("fullscreen_state rule \"{}\" failed with: {}", raw, numericParseError(internal.error())));
+
+    result.internal = *internal;
+
+    if (!vars[1].empty()) {
+        auto client = strToNumber<int>(vars[1]);
+        if (!client)
+            return std::unexpected(std::format("fullscreen_state rule \"{}\" failed with: {}", raw, numericParseError(client.error())));
+
+        result.client = *client;
+    }
+
+    return result;
 }
 
 static std::expected<int64_t, std::string> parseIdleInhibitMode(const std::string& raw) {
@@ -81,12 +106,16 @@ static std::expected<SOpacityRule, std::string> parseOpacityRule(const std::stri
                 else if (opacityIDX == 3)
                     result.alphaFullscreen.overridden = true;
             } else {
+                auto alpha = strToNumber<float>(r);
+                if (!alpha)
+                    return std::unexpected(std::format("opacity rule \"{}\" failed with: {}", raw, numericParseError(alpha.error())));
+
                 if (opacityIDX == 0)
-                    result.alpha.alpha = std::stof(std::string{r});
+                    result.alpha.alpha = *alpha;
                 else if (opacityIDX == 1)
-                    result.alphaInactive.alpha = std::stof(std::string{r});
+                    result.alphaInactive.alpha = *alpha;
                 else if (opacityIDX == 2)
-                    result.alphaFullscreen.alpha = std::stof(std::string{r});
+                    result.alphaFullscreen.alpha = *alpha;
                 else
                     throw std::runtime_error("more than 3 alpha values");
 
@@ -127,11 +156,19 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
 
         for (auto const& token : colorsAndAngles) {
             if (active && token.contains("deg")) {
-                activeBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
+                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
+                if (!angle)
+                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
+
+                activeBorderGradient.m_angle = *angle * (PI / 180.0);
                 active                       = false;
-            } else if (token.contains("deg"))
-                inactiveBorderGradient.m_angle = std::stoi(token.substr(0, token.size() - 3)) * (PI / 180.0);
-            else {
+            } else if (token.contains("deg")) {
+                auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
+                if (!angle)
+                    return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
+
+                inactiveBorderGradient.m_angle = *angle * (PI / 180.0);
+            } else {
                 auto color = parseBorderColorToken(raw, token);
                 if (!color)
                     return std::unexpected(color.error());

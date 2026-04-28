@@ -635,7 +635,7 @@ void CConfigManager::addEvalIssue(const Config::SConfigError& err) {
     if (!m_isEvaluating)
         return;
 
-    if (err.level == Config::eConfigErrorLevel::WARNING)
+    if (err.level == eConfigErrorLevel::WARNING || err.level == eConfigErrorLevel::INFO)
         m_evalIssues.emplace_back(err);
 }
 
@@ -665,14 +665,14 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
         std::string out;
         out.reserve(256);
 
-        for (const auto& issue : m_evalIssues) {
-            out += std::format("{}: {}", Config::toString(issue.level), issue.message);
-            out += "\n";
-        }
-
         for (size_t i = 0; i < m_errors.size(); ++i) {
             out += "error: ";
             out += m_errors.at(i);
+            out += "\n";
+        }
+
+        for (const auto& issue : m_evalIssues) {
+            out += std::format("{}: {}", Config::toString(issue.level), issue.message);
             out += "\n";
         }
 

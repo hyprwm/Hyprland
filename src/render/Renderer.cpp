@@ -2352,7 +2352,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_main_buffer");
 
     if (*DEADLINE) {
-        auto deadline = pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ?
+        auto deadline = pMonitor->isMultiGPU() || pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ?
             Time::steadyNow() + std::chrono::microseconds(100) :
             pMonitor->m_estimatedNextVblank;
         if (deadline) {

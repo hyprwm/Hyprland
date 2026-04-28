@@ -85,30 +85,16 @@ static std::expected<LayerRuleEffectValue, std::string> parseLayerRuleEffect(CLa
     }
 }
 
-CLayerRule::CLayerRule(const std::string& name) : IRule(name) {
+CLayerRule::CLayerRule(const std::string& name) : CRuleWithEffects<SLayerRuleEffect, RULE_TYPE_LAYER>(name) {
     ;
 }
 
-eRuleType CLayerRule::type() {
-    return RULE_TYPE_LAYER;
-}
-
-std::expected<void, std::string> CLayerRule::addEffect(CLayerRule::storageType e, const std::string& result) {
-    auto parsed = parseLayerRuleEffect(e, result);
-    if (!parsed)
-        return std::unexpected(parsed.error());
-
-    m_effects.emplace_back(SLayerRuleEffect{.key = e, .raw = result, .value = std::move(*parsed)});
-
-    return {};
-}
-
-const std::vector<SLayerRuleEffect>& CLayerRule::effects() {
-    return m_effects;
+std::expected<LayerRuleEffectValue, std::string> CLayerRule::parseEffect(CLayerRule::storageType e, const std::string& result) {
+    return parseLayerRuleEffect(e, result);
 }
 
 bool CLayerRule::matches(PHLLS ls) {
-    if (m_matchEngines.empty() || !m_enabled)
+    if (!canMatch())
         return false;
 
     for (const auto& [prop, engine] : m_matchEngines) {
@@ -126,12 +112,4 @@ bool CLayerRule::matches(PHLLS ls) {
     }
 
     return true;
-}
-
-void CLayerRule::setEnabled(bool enable) {
-    m_enabled = enable;
-}
-
-bool CLayerRule::isEnabled() const {
-    return m_enabled;
 }

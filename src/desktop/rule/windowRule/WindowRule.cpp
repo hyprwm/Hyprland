@@ -330,31 +330,16 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
     }
 }
 
-CWindowRule::CWindowRule(const std::string& name) : IRule(name) {
+CWindowRule::CWindowRule(const std::string& name) : CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW>(name) {
     ;
 }
 
-eRuleType CWindowRule::type() {
-    return RULE_TYPE_WINDOW;
-}
-
-std::expected<void, std::string> CWindowRule::addEffect(CWindowRule::storageType e, const std::string& result) {
-    auto parsed = parseWindowRuleEffect(e, result);
-    if (!parsed)
-        return std::unexpected(parsed.error());
-
-    m_effects.emplace_back(SWindowRuleEffect{.key = e, .raw = result, .value = std::move(*parsed)});
-    m_effectSet.emplace(e);
-
-    return {};
-}
-
-const std::vector<SWindowRuleEffect>& CWindowRule::effects() {
-    return m_effects;
+std::expected<WindowRuleEffectValue, std::string> CWindowRule::parseEffect(CWindowRule::storageType e, const std::string& result) {
+    return parseWindowRuleEffect(e, result);
 }
 
 bool CWindowRule::matches(PHLWINDOW w, bool allowEnvLookup) {
-    if (m_matchEngines.empty() || !m_enabled)
+    if (!canMatch())
         return false;
 
     for (const auto& [prop, engine] : m_matchEngines) {
@@ -490,16 +475,4 @@ std::expected<SP<CWindowRule>, std::string> CWindowRule::buildFromExecString(std
     }
 
     return wr;
-}
-
-const std::unordered_set<CWindowRule::storageType>& CWindowRule::effectsSet() {
-    return m_effectSet;
-}
-
-void CWindowRule::setEnabled(bool enable) {
-    m_enabled = enable;
-}
-
-bool CWindowRule::isEnabled() const {
-    return m_enabled;
 }

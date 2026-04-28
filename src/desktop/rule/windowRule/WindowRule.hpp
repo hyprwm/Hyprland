@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Rule.hpp"
+#include "../RuleWithEffects.hpp"
 #include "../../DesktopTypes.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "WindowRuleEffectContainer.hpp"
@@ -33,14 +33,18 @@ namespace Desktop::Rule {
     using WindowRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule>;
 
     struct SWindowRuleEffect {
+        using storageType = CWindowRuleEffectContainer::storageType;
+        using valueType   = WindowRuleEffectValue;
+
         CWindowRuleEffectContainer::storageType key = WINDOW_RULE_EFFECT_NONE;
         std::string                             raw;
         WindowRuleEffectValue                   value;
     };
 
-    class CWindowRule : public IRule {
+    class CWindowRule : public CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW> {
       private:
-        using storageType = CWindowRuleEffectContainer::storageType;
+        using Base        = CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW>;
+        using storageType = Base::storageType;
 
       public:
         CWindowRule(const std::string& name = "");
@@ -52,20 +56,9 @@ namespace Desktop::Rule {
 
         static std::expected<SP<CWindowRule>, std::string> buildFromExecString(std::string&&);
 
-        virtual eRuleType                                  type();
-
-        std::expected<void, std::string>                   addEffect(storageType e, const std::string& result);
-        const std::vector<SWindowRuleEffect>&              effects();
-        const std::unordered_set<storageType>&             effectsSet();
-
-        void                                               setEnabled(bool enable);
-        bool                                               isEnabled() const;
-
         bool                                               matches(PHLWINDOW w, bool allowEnvLookup = false);
 
       private:
-        std::vector<SWindowRuleEffect>  m_effects;
-        std::unordered_set<storageType> m_effectSet;
-        bool                            m_enabled = true;
+        std::expected<WindowRuleEffectValue, std::string> parseEffect(storageType e, const std::string& result) override;
     };
 };

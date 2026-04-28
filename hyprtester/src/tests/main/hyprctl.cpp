@@ -12,8 +12,6 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
@@ -35,9 +33,7 @@ static void setWindowProp(const std::string& selector, const std::string& prop, 
     getFromSocket("/dispatch hl.dsp.window.set_prop({ window = '" + selector + "', prop = '" + prop + "', value = '" + value + "' })");
 }
 
-static bool testDevicesActiveLayoutIndex() {
-    NLog::log("{}Testing hyprctl devices active_layout_index", Colors::GREEN);
-
+TEST_CASE(hyprctlDevicesActiveLayoutIndex) {
     // configure layouts
     OK(getFromSocket("r/eval hl.config({ input = { kb_layout = \"us,pl,ua\" } })"));
 
@@ -49,15 +45,11 @@ static bool testDevicesActiveLayoutIndex() {
         // check layout index
         EXPECT_CONTAINS(devicesJson, expected);
     }
-
-    return true;
 }
 
-static bool testGetprop() {
-    NLog::log("{}Testing hyprctl getprop", Colors::GREEN);
+TEST_CASE(hyprctlGetprop) {
     if (!Tests::spawnKitty()) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty");
     }
 
     // animation
@@ -166,41 +158,16 @@ static bool testGetprop() {
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty"), "not enough args");
     EXPECT(getCommandStdOut("hyprctl getprop class:nonexistantclass animation"), "window not found");
     EXPECT(getCommandStdOut("hyprctl getprop class:kitty nonexistantprop"), "prop not found");
-
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
-    return true;
 }
 
-static void testSubmap() {
-    NLog::log("{}Testing hyprctl submap", Colors::GREEN);
-
+TEST_CASE(hyprctlSubmap) {
     EXPECT(getCommandStdOut("hyprctl submap"), "default\n");
     EXPECT(getCommandStdOut("hyprctl submap -j | jq -r \".\""), "default");
 }
 
-static bool test() {
-    NLog::log("{}Testing hyprctl", Colors::GREEN);
-
-    {
-        NLog::log("{}Testing hyprctl descriptions for any json errors", Colors::GREEN);
-        CProcess jqProc("bash", {"-c", "hyprctl descriptions | jq"});
-        jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
-        jqProc.runSync();
-        EXPECT(jqProc.exitCode(), 0);
-    }
-
-    testGetprop();
-    testDevicesActiveLayoutIndex();
-    testSubmap();
-    getFromSocket("/reload");
-
-    return !ret;
+TEST_CASE(hyprctlJsonErrors) {
+    CProcess jqProc("bash", {"-c", "hyprctl descriptions | jq"});
+    jqProc.addEnv("HYPRLAND_INSTANCE_SIGNATURE", HIS);
+    jqProc.runSync();
+    EXPECT(jqProc.exitCode(), 0);
 }
-
-REGISTER_TEST_FN(test);

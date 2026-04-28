@@ -3,10 +3,44 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
-static int ret = 0;
+TEST_CASE(focusMasterPrevious) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
-// reqs 1 master 3 slaves
-static void testOrientations() {
+    // setup
+    NLog::log("{}Spawning 1 master and 3 slave windows", Colors::YELLOW);
+    // order of windows set according to new_status = master (set in test.lua)
+    for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
+        if (!Tests::spawnKitty(win)) {
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        }
+    }
+    NLog::log("{}Ensuring focus is on master before testing", Colors::YELLOW);
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster master')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
+    // test
+    NLog::log("{}Testing fallback to focusmaster auto", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: slave1");
+
+    NLog::log("{}Testing focusing from slave to master", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('cyclenext noloop')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: slave2");
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
+    NLog::log("{}Testing focusing on previous window", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: slave2");
+
+    NLog::log("{}Testing focusing back to master", Colors::YELLOW);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
     OK(getFromSocket("r/eval hl.config({ master = { orientation = 'top' } })"));
 
     // top
@@ -51,62 +85,15 @@ static void testOrientations() {
     }
 }
 
-static void focusMasterPrevious() {
-    // setup
-    NLog::log("{}Spawning 1 master and 3 slave windows", Colors::YELLOW);
-    // order of windows set according to new_status = master (set in test.lua)
-    for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
-        if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
-        }
-    }
-    NLog::log("{}Ensuring focus is on master before testing", Colors::YELLOW);
-    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster master')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: master");
-
-    // test
-    NLog::log("{}Testing fallback to focusmaster auto", Colors::YELLOW);
-
-    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: slave1");
-
-    NLog::log("{}Testing focusing from slave to master", Colors::YELLOW);
-
-    OK(getFromSocket("/dispatch hl.dsp.layout('cyclenext noloop')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: slave2");
-    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: master");
-
-    NLog::log("{}Testing focusing on previous window", Colors::YELLOW);
-
-    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: slave2");
-
-    NLog::log("{}Testing focusing back to master", Colors::YELLOW);
-
-    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster previous')"));
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: master");
-
-    testOrientations();
-
-    // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-}
-
-static void testFsBehavior() {
+TEST_CASE(fsBehavior) {
     // Master will re-send data to fullscreen / maximized windows, which can interfere with misc:on_focus_under_fullscreen
     // check that it doesn't.
 
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+
     for (auto const& win : {"master", "slave1", "slave2"}) {
         if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
         }
     }
 
@@ -153,31 +140,4 @@ static void testFsBehavior() {
         EXPECT_CONTAINS(str, "class: vaxwashere");
         EXPECT_CONTAINS(str, "fullscreen: 0");
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
-
-static bool test() {
-    NLog::log("{}Testing Master layout", Colors::GREEN);
-
-    // setup
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:master' })"));
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
-
-    // test
-    NLog::log("{}Testing `focusmaster previous` layoutmsg", Colors::GREEN);
-    focusMasterPrevious();
-
-    NLog::log("{}Testing fs behavior", Colors::GREEN);
-    testFsBehavior();
-
-    // clean up
-    NLog::log("Cleaning up", Colors::YELLOW);
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    OK(getFromSocket("/reload"));
-
-    return !ret;
-}
-
-REGISTER_TEST_FN(test);

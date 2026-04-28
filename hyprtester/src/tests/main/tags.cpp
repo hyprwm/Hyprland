@@ -3,20 +3,13 @@
 #include "../shared.hpp"
 #include "tests.hpp"
 
-static int  ret = 0;
-
-static bool testTags() {
-    NLog::log("{}Testing tags", Colors::GREEN);
-
-    EXPECT(Tests::windowCount(), 0);
-
+TEST_CASE(tags) {
     NLog::log("{}Spawning kittyProcA&B on ws 1", Colors::YELLOW);
     auto kittyProcA = Tests::spawnKitty("tagged");
     auto kittyProcB = Tests::spawnKitty("untagged");
 
     if (!kittyProcA || !kittyProcB) {
-        NLog::log("{}Error: kitty did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty");
     }
 
     NLog::log("{}Testing testTag tags", Colors::YELLOW);
@@ -28,7 +21,7 @@ static bool testTags() {
     OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-3', match = { tag = 'testTag' } })"));
     OK(getFromSocket("/eval hl.window_rule({ name = 'tag-test-3', no_dim = true })"));
 
-    EXPECT(Tests::windowCount(), 2);
+    ASSERT(Tests::windowCount(), 2);
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:tagged' })"));
     NLog::log("{}Testing tagged window for no_dim 0 & no_shadow", Colors::YELLOW);
     EXPECT_CONTAINS(getFromSocket("/activewindow"), "testTag");
@@ -39,13 +32,4 @@ static bool testTags() {
     EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), "testTag");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_shadow"), "true");
     EXPECT_CONTAINS(getFromSocket("/getprop activewindow no_dim"), "false");
-
-    Tests::killAllWindows();
-    EXPECT(Tests::windowCount(), 0);
-
-    OK(getFromSocket("/reload"));
-
-    return ret == 0;
 }
-
-REGISTER_TEST_FN(testTags)

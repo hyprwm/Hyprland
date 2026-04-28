@@ -3,9 +3,7 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
-static int  ret = 0;
-
-static void swar() {
+TEST_CASE(single_window_aspect_ratio) {
     OK(getFromSocket("/eval hl.config({ layout = { single_window_aspect_ratio = '1 1' } })"));
 
     Tests::spawnKitty();
@@ -36,14 +34,10 @@ static void swar() {
         EXPECT_CONTAINS(str, "at: 22,22");
         EXPECT_CONTAINS(str, "size: 1876,1036");
     }
-
-    // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
 
 // Don't crash when focus after global geometry changes
-static void testCrashOnGeomUpdate() {
+TEST_CASE(crashOnGeomUpdate) {
     Tests::spawnKitty();
     Tests::spawnKitty();
     Tests::spawnKitty();
@@ -53,15 +47,10 @@ static void testCrashOnGeomUpdate() {
 
     // shouldnt crash
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
-
-    OK(getFromSocket("/reload"));
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
 
 // Test if size + pos is preserved after fs cycle
-static void testPosPreserve() {
+TEST_CASE(posPreserve) {
     Tests::spawnKitty();
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty' })"));
@@ -98,21 +87,18 @@ static void testPosPreserve() {
         EXPECT_CONTAINS(str, "at: 581,420");
         EXPECT_CONTAINS(str, "size: 1337,69");
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
 
-static bool testFocusMRUAfterClose() {
+TEST_CASE(focusMRUAfterClose) {
     NLog::log("{}Testing focus after close (MRU order)", Colors::GREEN);
 
     OK(getFromSocket("/reload"));
     OK(getFromSocket("/eval hl.config({ dwindle = { default_split_ratio = 1.25 } })"));
     OK(getFromSocket("/eval hl.config({ input = { focus_on_close = 2 } })"));
 
-    EXPECT(!!Tests::spawnKitty("kitty_A"), true);
-    EXPECT(!!Tests::spawnKitty("kitty_B"), true);
-    EXPECT(!!Tests::spawnKitty("kitty_C"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_A"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_B"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_C"), true);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })"));
@@ -133,22 +119,15 @@ static bool testFocusMRUAfterClose() {
         auto str = getFromSocket("/activewindow");
         EXPECT(str.contains("class: kitty_A"), true);
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    EXPECT(Tests::windowCount(), 0);
-    return true;
 }
 
-static bool testFocusPreservedLayoutChange() {
-    NLog::log("{}Testing focus is preserved on layout change", Colors::GREEN);
-
+TEST_CASE(focusPreservedLayoutChange) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
 
-    EXPECT(!!Tests::spawnKitty("kitty_A"), true);
-    EXPECT(!!Tests::spawnKitty("kitty_B"), true);
-    EXPECT(!!Tests::spawnKitty("kitty_C"), true);
-    EXPECT(!!Tests::spawnKitty("kitty_D"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_A"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_B"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_C"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_D"), true);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_C' })"));
 
@@ -158,34 +137,4 @@ static bool testFocusPreservedLayoutChange() {
         auto str = getFromSocket("/activewindow");
         EXPECT(str.contains("class: kitty_C"), true);
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    EXPECT(Tests::windowCount(), 0);
-    return true;
 }
-
-static bool test() {
-    NLog::log("{}Testing layout generic", Colors::GREEN);
-
-    // setup
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '10' })"));
-
-    // test
-    NLog::log("{}Testing `single_window_aspect_ratio`", Colors::GREEN);
-    swar();
-
-    testCrashOnGeomUpdate();
-    testPosPreserve();
-    testFocusMRUAfterClose();
-    testFocusPreservedLayoutChange();
-
-    // clean up
-    NLog::log("Cleaning up", Colors::YELLOW);
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    OK(getFromSocket("/reload"));
-
-    return !ret;
-}
-
-REGISTER_TEST_FN(test);

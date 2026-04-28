@@ -65,3 +65,14 @@ TEST(Helpers, expressionZero) {
     EXPECT_DOUBLE_EQ(expr.compute("0 * 999").value(), 0.0);
     EXPECT_DOUBLE_EQ(expr.compute("5 - 5").value(), 0.0);
 }
+
+TEST(Helpers, expressionVec2ParsesLegacyString) {
+    auto parsed = parseExpressionVec2("monitor_w*0.5 monitor_h*0.25");
+    ASSERT_TRUE(parsed.has_value()) << parsed.error();
+
+    EXPECT_EQ(parsed->x, "monitor_w*0.5");
+    EXPECT_EQ(parsed->y, "monitor_h*0.25");
+    EXPECT_EQ(parsed->toString(), "monitor_w*0.5 monitor_h*0.25");
+
+    EXPECT_FALSE(parseExpressionVec2("monitor_w*0.5").has_value());
+}

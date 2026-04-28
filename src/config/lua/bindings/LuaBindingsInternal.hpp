@@ -10,6 +10,7 @@
 #include "../types/LuaConfigInt.hpp"
 #include "../types/LuaConfigString.hpp"
 #include "../types/LuaConfigVec2.hpp"
+#include "../types/LuaConfigExpressionVec2.hpp"
 
 #include "../../../Compositor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
@@ -29,6 +30,10 @@
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
+}
+
+namespace Desktop::Rule {
+    class CWindowRule;
 }
 
 namespace Config::Lua::Bindings::Internal {
@@ -51,8 +56,8 @@ namespace Config::Lua::Bindings::Internal {
         {"no_initial_focus", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NOINITIALFOCUS},
         {"pin", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_PIN},
         {"fullscreen_state", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_FULLSCREENSTATE},
-        {"move", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_MOVE},
-        {"size", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_SIZE},
+        {"move", []() -> ILuaConfigValue* { return new CLuaConfigExpressionVec2(); }, WE::WINDOW_RULE_EFFECT_MOVE},
+        {"size", []() -> ILuaConfigValue* { return new CLuaConfigExpressionVec2(); }, WE::WINDOW_RULE_EFFECT_SIZE},
         {"monitor", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_MONITOR},
         {"workspace", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_WORKSPACE},
         {"group", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_GROUP},
@@ -69,8 +74,8 @@ namespace Config::Lua::Bindings::Internal {
         {"idle_inhibit", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_IDLE_INHIBIT},
         {"opacity", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_OPACITY},
         {"tag", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }, WE::WINDOW_RULE_EFFECT_TAG},
-        {"max_size", []() -> ILuaConfigValue* { return new CLuaConfigVec2({0, 0}); }, WE::WINDOW_RULE_EFFECT_MAX_SIZE},
-        {"min_size", []() -> ILuaConfigValue* { return new CLuaConfigVec2({0, 0}); }, WE::WINDOW_RULE_EFFECT_MIN_SIZE},
+        {"max_size", []() -> ILuaConfigValue* { return new CLuaConfigExpressionVec2(); }, WE::WINDOW_RULE_EFFECT_MAX_SIZE},
+        {"min_size", []() -> ILuaConfigValue* { return new CLuaConfigExpressionVec2(); }, WE::WINDOW_RULE_EFFECT_MIN_SIZE},
         {"border_color", []() -> ILuaConfigValue* { return new CLuaConfigGradient(CHyprColor(0xFF000000)); }, WE::WINDOW_RULE_EFFECT_BORDER_COLOR},
         {"persistent_size", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_PERSISTENT_SIZE},
         {"allows_input", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_ALLOWS_INPUT},
@@ -140,6 +145,7 @@ namespace Config::Lua::Bindings::Internal {
     Config::Actions::eTogglableAction                  tableToggleAction(lua_State* L, int idx, const char* field = "action");
 
     std::expected<std::string, std::string>            ruleValueToString(lua_State* L);
+    std::expected<void, std::string>                   addWindowRuleEffectFromLua(lua_State* L, const SWindowRuleEffectDesc& desc, const SP<Desktop::Rule::CWindowRule>& rule);
     std::expected<SP<Desktop::Rule::CWindowRule>, int> buildRuleFromTable(lua_State* L, int idx);
 
     int configError(lua_State* L, std::string s, Config::Actions::eActionErrorLevel level = Config::Actions::eActionErrorLevel::ERROR,

@@ -5,6 +5,7 @@
 #include "../../types/OverridableVar.hpp"
 #include "WindowRuleEffectContainer.hpp"
 #include "../../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../../helpers/math/Expression.hpp"
 #include "../../../helpers/math/Math.hpp"
 
 #include <expected>
@@ -30,7 +31,8 @@ namespace Desktop::Rule {
         std::optional<Config::CGradientValueData> inactive;
     };
 
-    using WindowRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule>;
+    using WindowRuleEffectValue =
+        std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule, Math::SExpressionVec2>;
 
     struct SWindowRuleEffect {
         using storageType = CWindowRuleEffectContainer::storageType;
@@ -50,11 +52,15 @@ namespace Desktop::Rule {
         CWindowRule(const std::string& name = "");
         virtual ~CWindowRule() = default;
 
+        using Base::addEffect;
+
         CWindowRule(const CWindowRule&) = default;
         CWindowRule(CWindowRule&)       = default;
         CWindowRule(CWindowRule&&)      = default;
 
         static std::expected<SP<CWindowRule>, std::string> buildFromExecString(std::string&&);
+
+        std::expected<void, std::string>                   addEffect(storageType e, const Math::SExpressionVec2& expr);
 
         bool                                               matches(PHLWINDOW w, bool allowEnvLookup = false);
 

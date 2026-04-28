@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <lua.h>
 
 #include "../../supplementary/executor/Executor.hpp"
 
@@ -154,14 +155,16 @@ static int dsp_execCmd(lua_State* L) {
 
     if (!pid.has_value())
         return Internal::dispatcherError(L, "Failed to start process", ERR, C_EXECFAIL);
-    return Internal::pushSuccessResult(L);
+    lua_pushinteger(L, (lua_Integer)*pid);
+    return 1;
 }
 
 static int dsp_execRaw(lua_State* L) {
     auto proc = Config::Supplementary::executor()->spawnRaw(lua_tostring(L, lua_upvalueindex(1)));
     if (!proc || !*proc)
         return Internal::dispatcherError(L, "Failed to start process", ERR, C_EXECFAIL);
-    return Internal::pushSuccessResult(L);
+    lua_pushinteger(L, (lua_Integer)*proc);
+    return 1;
 }
 
 static int dsp_exit(lua_State* L) {

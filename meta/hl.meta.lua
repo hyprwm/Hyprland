@@ -419,7 +419,7 @@ local __HL_GestureSpec = {}
 ---@class HL.PermissionSpec
 ---@field binary string
 ---@field type string
----@field allow string
+---@field mode string
 local __HL_PermissionSpec = {}
 
 ---@class HL.NotificationOptions

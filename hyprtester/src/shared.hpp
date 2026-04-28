@@ -155,7 +155,7 @@ class CTestCase {
                   std::string{haystack});                                                                                                                                          \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } else {                                                                                                                                                                       \
-        LOG_OK("{} contains {}.", #haystack, #needle);                                                                                                                            \
+        LOG_OK("{} contains {}.", #haystack, #needle);                                                                                                                             \
     }
 
 #define EXPECT_NOT_CONTAINS(haystack, needle)                                                                                                                                      \

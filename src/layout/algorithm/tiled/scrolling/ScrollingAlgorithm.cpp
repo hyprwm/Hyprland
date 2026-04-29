@@ -541,7 +541,7 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         // if follow_focus != 0, moving focus via dispatches that cause switching to a specific window via calling switchToWindow(), such as movefocus, cyclenext, focuscurrentor(last/urgent); always moves scrolling view
         if (*PFOLLOW_FOCUS &&
             (reason == Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW || reason == Desktop::FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE ||
-             reason == Desktop::FOCUS_REASON_DISPATCH_MOVEINTOGROUP || reason == Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT))
+             reason == Desktop::FOCUS_REASON_DISPATCH_MOVEWINDOWINTOGROUP || reason == Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT))
             focusOnInput(TARGET, INPUT_MODE_HARD);
         else
             focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));

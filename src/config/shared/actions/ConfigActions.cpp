@@ -1254,7 +1254,7 @@ static void moveWindowIntoGroupHelper(PHLWINDOW pWindow, PHLWINDOW pWindowInDire
     pWindowInDirection->m_group->add(pWindow);
     pWindowInDirection->m_group->setCurrent(pWindow);
     pWindow->updateWindowDecos();
-    Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
+    Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_DISPATCH_MOVEWINDOWINTOGROUP);
     pWindow->warpCursor();
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveintogroup", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});

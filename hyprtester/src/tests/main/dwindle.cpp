@@ -204,7 +204,7 @@ TEST_CASE(dwindleForceSplitOnMoveToWorkspace) {
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     ASSERT(!!Tests::spawnKitty("kitty"), true);
-    std::string posBefore = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    std::string posBefore = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
     OK(getFromSocket("/dispatch hl.dsp.cursor.move_to_corner({ corner = 3 })")); // top left

@@ -1,4 +1,5 @@
 #include "shared.hpp"
+#include <cassert>
 #include <csignal>
 #include <cerrno>
 #include <thread>
@@ -186,12 +187,14 @@ bool Tests::writeFile(const std::string& name, const std::string& contents) {
     return true;
 }
 
-std::string Tests::getWindowAttribute(const std::string& winInfo, const std::string& attr) {
-    auto pos = winInfo.find(attr);
+std::string Tests::getAttribute(const std::string& hyprlandResponse, std::string attr) {
+    attr += ": ";
+    auto pos = hyprlandResponse.find(attr);
     if (pos == std::string::npos) {
         NLog::log("{}Window attribute not found: '{}'", Colors::RED, attr);
         return "Wrong window attribute";
     }
-    auto pos2 = winInfo.find('\n', pos);
-    return winInfo.substr(pos, pos2 - pos);
+    pos += attr.size();
+    auto pos2 = hyprlandResponse.find('\n', pos);
+    return hyprlandResponse.substr(pos, pos2 - pos);
 }

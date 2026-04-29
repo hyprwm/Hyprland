@@ -205,7 +205,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
 
 
     /*
-     focuswindow DOES NOT move the scrolling view when follow_focus = 0
+     focuswindow DOES NOT move the scrolling view when follow_focus = false
      ---------------------------------------------------------------------------------
     */
 
@@ -252,4 +252,48 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
 }
 
 
+TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
 
+
+    /*
+     focuswindow DOES move the view when follow_focus = true
+     --------------------------------------------------------------------
+    */
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true", Colors::GREEN);
+
+    
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty with win class `b`");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+
+
+    // If the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport.
+    // If it is not, the view moved, which is what we expect to happen.
+    const std::string posA  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const int         posAx = std::stoi(posA.substr(4, posA.find(',') - 4));
+    if (posAx < 0) {
+        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::RED, Colors::RESET, posAx);
+    } else {
+        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
+    }
+
+    // clean up
+
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}

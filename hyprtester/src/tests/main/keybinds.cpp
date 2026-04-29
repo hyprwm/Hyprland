@@ -99,7 +99,7 @@ SUBTEST(bind) {
     EXPECT(attemptCheckFlag(20, 50), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(bindKey) {
@@ -111,7 +111,7 @@ SUBTEST(bindKey) {
     EXPECT(attemptCheckFlag(20, 50), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
 }
 
 SUBTEST(longPress) {
@@ -128,7 +128,7 @@ SUBTEST(longPress) {
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 SUBTEST(keyLongPress) {
     EXPECT(checkFlag(), false);
@@ -144,7 +144,7 @@ SUBTEST(keyLongPress) {
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
 }
 
 SUBTEST(longPressRelease) {
@@ -161,7 +161,7 @@ SUBTEST(longPressRelease) {
     // await repeat delay
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 SUBTEST(longPressOnlyKeyRelease) {
     EXPECT(checkFlag(), false);
@@ -178,7 +178,7 @@ SUBTEST(longPressOnlyKeyRelease) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     EXPECT(checkFlag(), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(repeat) {
@@ -198,7 +198,7 @@ SUBTEST(repeat) {
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(keyRepeat) {
@@ -218,7 +218,7 @@ SUBTEST(keyRepeat) {
     EXPECT(checkFlag(), true);
     // release keybind
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
 }
 
 SUBTEST(repeatRelease) {
@@ -250,7 +250,7 @@ SUBTEST(repeatRelease) {
     // check that it is not repeating
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     EXPECT(checkFlag(), false);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(repeatOnlyKeyRelease) {
@@ -273,7 +273,7 @@ SUBTEST(repeatOnlyKeyRelease) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     EXPECT(checkFlag(), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(shortcutBind) {
@@ -292,7 +292,7 @@ SUBTEST(shortcutBind) {
     const std::string output = readKittyOutput();
     EXPECT_COUNT_STRING(output, "y", 0);
     EXPECT(output.find("q") != std::string::npos, true);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -313,7 +313,7 @@ SUBTEST(shortcutBindKey) {
     EXPECT_COUNT_STRING(output, "y", 0);
     // disabled: doesn't work in CI
     // EXPECT_COUNT_STRING(output, "q", 1);
-    EXPECT(getFromSocket("/eval hl.unbind('', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -340,7 +340,7 @@ SUBTEST(shortcutLongPress) {
     // final release stop repeats, and shouldn't send any more
     EXPECT(true, yCount == 1 || yCount == 2);
     EXPECT_COUNT_STRING(output, "q", 1);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -365,7 +365,7 @@ SUBTEST(shortcutLongPressKeyRelease) {
     // EXPECT_COUNT_STRING(output, "y", 1);
     EXPECT_COUNT_STRING(output, "q", 0);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -393,7 +393,7 @@ SUBTEST(shortcutRepeat) {
     // then repeat triggers, sending 1 q
     // final release stop repeats, and shouldn't send any more
     EXPECT(true, qCount == 2 || qCount == 3);
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -423,7 +423,7 @@ SUBTEST(shortcutRepeatKeyRelease) {
     // final release stop repeats, and shouldn't send any more
     EXPECT(true, qCount == 2 || qCount == 3);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
     Tests::killAllWindows();
 }
 
@@ -488,7 +488,7 @@ SUBTEST(bindsAfterScroll) {
     OK(getFromSocket(pluginKeybindCmd(false, 0, 108))); // Alt_R release
 
     clearFlag();
-    OK(getFromSocket("/eval hl.unbind('ALT', 'w')"));
+    OK(getFromSocket("/eval hl.unbind('ALT + w')"));
 }
 
 SUBTEST(submapUniversal) {
@@ -516,7 +516,7 @@ SUBTEST(submapUniversal) {
     getFromSocket(pluginKeybindCmd(false, 0, 33));
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
 
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(perDeviceKeybind) {
@@ -528,7 +528,7 @@ SUBTEST(perDeviceKeybind) {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 
     // Exclusive
     EXPECT(checkFlag(), false);
@@ -536,7 +536,7 @@ SUBTEST(perDeviceKeybind) {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 
     // With description
     EXPECT(checkFlag(), false);
@@ -546,7 +546,21 @@ SUBTEST(perDeviceKeybind) {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
+}
+
+SUBTEST(unbind) {
+    NLog::log("{}Testing unbind behavior", Colors::GREEN);
+
+    // unbind should normalize the string: no spaces, lowercase OK
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-keyboard-1' } } })"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('   super     +   y      ')"), "ok");
+
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+
+    EXPECT(attemptCheckFlag(20, 50), false);
 }
 
 // TODO: remove this test after subtests above are properly isolated into independent tests
@@ -571,4 +585,5 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(submapUniversal);
     CALL_SUBTEST(bindsAfterScroll);
     CALL_SUBTEST(perDeviceKeybind);
+    CALL_SUBTEST(unbind);
 }

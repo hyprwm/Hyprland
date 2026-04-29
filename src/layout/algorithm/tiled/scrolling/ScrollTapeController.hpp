@@ -39,52 +39,52 @@ namespace Layout::Tiled {
         CScrollTapeController(eScrollDirection direction = SCROLL_DIR_RIGHT);
         ~CScrollTapeController() = default;
 
-        void                        setDirection(eScrollDirection dir);
-        eScrollDirection            getDirection() const;
-        bool                        isPrimaryHorizontal() const;
-        bool                        isReversed() const;
+        void                     setDirection(eScrollDirection dir);
+        eScrollDirection         getDirection() const;
+        bool                     isPrimaryHorizontal() const;
+        bool                     isReversed() const;
 
-        size_t                      addStrip(float size = 1.0F);
-        void                        insertStrip(ssize_t afterIndex, float size = 1.0F);
-        void                        removeStrip(size_t index);
-        size_t                      stripCount() const;
-        SStripData&                 getStrip(size_t index);
-        const SStripData&           getStrip(size_t index) const;
-        void                        swapStrips(size_t a, size_t b);
+        size_t                   addStrip(float size = 1.0F);
+        void                     insertStrip(ssize_t afterIndex, float size = 1.0F);
+        void                     removeStrip(size_t index);
+        size_t                   stripCount() const;
+        SStripData&              getStrip(size_t index);
+        const SStripData&        getStrip(size_t index) const;
+        void                     swapStrips(size_t a, size_t b);
 
-        void                        setOffset(double offset);
-        double                      getOffset() const;
-        void                        adjustOffset(double delta);
+        void                     setOffset(double offset);
+        double                   getOffset() const;
+        void                     adjustOffset(double delta);
         struct SScrollInhibitor& getScrollInhibitor();
 
-        double                      calculateMaxExtent(const CBox& usableArea, bool fullscreenOnOne = false) const;
-        double                      calculateStripStart(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
-        double                      calculateStripSize(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
+        double                   calculateMaxExtent(const CBox& usableArea, bool fullscreenOnOne = false) const;
+        double                   calculateStripStart(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
+        double                   calculateStripSize(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
 
-        CBox     calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
+        CBox                     calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
 
-        double   calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne = false);
-        Vector2D getCameraTranslation(const CBox& usableArea, bool fullscreenOnOne = false);
+        double                   calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne = false);
+        Vector2D                 getCameraTranslation(const CBox& usableArea, bool fullscreenOnOne = false);
 
-        void     centerStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
-        void     fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
+        void                     centerStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
+        void                     fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false);
 
-        bool     isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false, bool full = false) const;
+        bool                     isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false, bool full = false) const;
 
-        size_t   getStripAtCenter(const CBox& usableArea, bool fullscreenOnOne = false) const;
+        size_t                   getStripAtCenter(const CBox& usableArea, bool fullscreenOnOne = false) const;
 
       private:
-        eScrollDirection           m_direction = SCROLL_DIR_RIGHT;
-        std::vector<SStripData>    m_strips;
-        double                     m_offset = 0.0;
+        eScrollDirection        m_direction = SCROLL_DIR_RIGHT;
+        std::vector<SStripData> m_strips;
+        double                  m_offset = 0.0;
         struct SScrollInhibitor m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
 
-        double                     getPrimary(const Vector2D& v) const;
-        double                     getSecondary(const Vector2D& v) const;
-        void                       setPrimary(Vector2D& v, double val) const;
-        void                       setSecondary(Vector2D& v, double val) const;
-        bool                       isBeingDragged() const;
+        double                  getPrimary(const Vector2D& v) const;
+        double                  getSecondary(const Vector2D& v) const;
+        void                    setPrimary(Vector2D& v, double val) const;
+        void                    setSecondary(Vector2D& v, double val) const;
+        bool                    isBeingDragged() const;
 
-        Vector2D                   makeVector(double primary, double secondary) const;
+        Vector2D                makeVector(double primary, double secondary) const;
     };
 };

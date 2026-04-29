@@ -433,11 +433,70 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
 
     // clean up
 
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+
+}
+
+TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
+
+    /*
+     When you change to a scrolling workspace, the focused window in that workspace must not be pulled into view, regardless of follow_focus
+     ---------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: changing to a scrolling workspace should not move scrolling view", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+
+    // switch to workspace 1 for this test
+    OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
+
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    // does not move view when follow_focus = 0
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+
+
+    // change to workspace 2, then back to workspace 1 again    
+    OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '2'})"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
+
+    // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
 
     // kill all windows
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
+
 
 }
 

@@ -264,7 +264,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
 
     NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true", Colors::GREEN);
 
-    
+
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("Could not spawn kitty with win class `a`");
     }
@@ -297,3 +297,76 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
+
+
+TEST_CASE(testScrollingViewBehaviourFocusFallback) {
+
+    /*
+     Focus fallback from killing a floating window onto a tiled window must NOT move scrolling view, regardless of follow_focus
+     --------------------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view", Colors::GREEN);
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+
+    
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with class `b`", Colors::RED);
+    }
+
+    if (!Tests::spawnKitty("c")) {
+        FAIL_TEST("{}Failed to spawn kitty with class `c`", Colors::RED);
+    }
+
+    // make it (window of class:c) float - the view now mush have shifted to fit window class:b
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:c'})"));
+
+    // establish focus history
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})"));
+
+
+
+    // kill the floating window
+    // Expect the focus to fall back to the left tiled window
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({window = 'class:c'})"));
+    Tests::waitUntilWindowsN(2);
+
+    // The focus now must have fallen back to tiled window of class "a".
+
+    // If the view did not move, we expect currently focused window's (class:a) to have "at: " x coordinat value <0 (must be left of the viewport)
+
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+}
+
+

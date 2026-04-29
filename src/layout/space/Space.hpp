@@ -47,7 +47,7 @@ namespace Layout {
 
         void                            moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        void                             recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+        void                            recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
         void                            toggleTargetFloating(SP<ITarget> t);
 

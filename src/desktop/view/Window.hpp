@@ -198,6 +198,11 @@ namespace Desktop::View {
         // bitfield suppressEvents
         uint64_t m_suppressedEvents = SUPPRESS_NONE;
 
+        // Armed on FSMODE_FULLSCREEN exit to swallow the set_maximized that clients send to restore state.
+        // Hyprland sends XDG_TOPLEVEL_STATE_MAXIMIZED to tiled windows to suppress CSD.
+        // Clients echoing it back would enter FSMODE_MAXIMIZED.
+        bool m_suppressNextMaximize = false;
+
         // desktop components
         SP<Desktop::View::CSubsurface> m_subsurfaceHead;
         SP<Desktop::View::CPopup>      m_popupHead;

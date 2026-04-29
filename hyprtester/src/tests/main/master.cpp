@@ -1,6 +1,7 @@
 #include "../shared.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
+#include <algorithm>
 #include "tests.hpp"
 
 TEST_CASE(focusMasterPrevious) {
@@ -139,5 +140,73 @@ TEST_CASE(fsBehavior) {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "class: vaxwashere");
         EXPECT_CONTAINS(str, "fullscreen: 0");
+    }
+}
+
+TEST_CASE(rollFocus) {
+    // test rollnext/rollprev dispatchers
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+
+    // set up windows
+    std::vector<std::string> windows = {"slave1", "slave2", "slave3", "master"};
+
+    // helper lambda thing
+    auto roll = [&](const std::string& dir) {
+        auto pivot = (dir == "rollnext") ? windows.begin() + 1 : windows.end() - 1;
+
+        // rotate the windows vector along with the actual windows
+        // the rolling behavior of the window focus should follow the
+        // rotating behavior of std::ranges::rotate
+        OK(getFromSocket("/dispatch hl.dsp.layout('" + dir + "')"));
+        std::ranges::rotate(windows.begin(), pivot, windows.end());
+        ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: " + windows.back());
+    };
+
+    for (auto const& win : windows) {
+        if (!Tests::spawnKitty(win)) {
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        }
+    }
+
+    // focus master
+    OK(getFromSocket("/dispatch hl.dsp.layout('focusmaster master')"));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
+    // put the windows in the washing machine
+    NLog::log("{}Testing rollnext", Colors::YELLOW);
+    for (int i = 0; i < 20; ++i) {
+        roll("rollnext");
+    }
+
+    NLog::log("{}Testing rollprev", Colors::YELLOW);
+    for (int i = 0; i < 20; ++i) {
+        roll("rollprev");
+    }
+
+    NLog::log("{}Testing rollnext with rollprev", Colors::YELLOW);
+    for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            roll("rollnext");
+        }
+        roll("rollprev");
+    }
+
+    NLog::log("{}Testing rollnext/rollprev alternation", Colors::YELLOW);
+    for (int i = 0; i < 20; ++i) {
+        if (i % 2 == 0) {
+            roll("rollnext");
+        } else {
+            roll("rollprev");
+        }
+    }
+
+    NLog::log("{}Testing rollnext/rollprev burst calls", Colors::YELLOW);
+    for (int i = 0; i < 20; ++i) {
+        if (i / 5 % 2 == 0) {
+            roll("rollnext");
+        } else {
+            roll("rollprev");
+        }
     }
 }

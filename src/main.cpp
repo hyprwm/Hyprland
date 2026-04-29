@@ -100,14 +100,15 @@ int main(int argc, char** argv) {
                     return 1;
                 }
 
+                const auto FD_STR = *std::next(it);
                 try {
-                    socketFd = std::stoi(*std::next(it));
+                    socketFd = std::stoi(FD_STR);
 
                     // check if socketFd is a valid file descriptor
                     if (fcntl(socketFd, F_GETFD) == -1)
-                        throw std::exception();
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] Invalid Wayland FD!");
+                        throw std::runtime_error("invalid or closed file descriptor");
+                } catch (const std::exception& e) {
+                    std::println(stderr, "[ ERROR ] (main.cpp:{}) | Invalid Wayland FD '{}': {}!", __LINE__, FD_STR, e.what());
                     help();
 
                     return 1;
@@ -123,13 +124,14 @@ int main(int argc, char** argv) {
                 configPath = *std::next(it);
 
                 try {
-                    configPath = std::filesystem::canonical(configPath);
+                    const auto ABS_PATH = std::filesystem::canonical(configPath);
 
-                    if (!std::filesystem::is_regular_file(configPath)) {
-                        throw std::exception();
+                    if (!std::filesystem::is_regular_file(ABS_PATH)) {
+                        throw std::runtime_error("not a regular file");
                     }
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] Config file '{}' doesn't exist!", configPath);
+                    configPath = ABS_PATH;
+                } catch (const std::exception& e) {
+                    std::println(stderr, "[ ERROR ] (main.cpp:{}) | Config file '{}' is invalid: {}!", __LINE__, configPath, e.what());
                     help();
 
                     return 1;
@@ -165,11 +167,12 @@ int main(int argc, char** argv) {
                     return 1;
                 }
 
+                const auto WATCHDOG_STR = *std::next(it);
                 try {
-                    watchdogFd = std::stoi(*std::next(it));
+                    watchdogFd = std::stoi(WATCHDOG_STR);
                     it++;
-                } catch (...) {
-                    std::println(stderr, "[ ERROR ] Invalid fd for watchdog fd");
+                } catch (const std::exception& e) {
+                    std::println(stderr, "[ ERROR ] (main.cpp:{}) | Invalid watchdog FD '{}': {}!", __LINE__, WATCHDOG_STR, e.what());
                     help();
                     return 1;
                 }

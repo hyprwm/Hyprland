@@ -101,6 +101,7 @@ in
       machine.copy_from_vm("/tmp/testerlog")
       machine.copy_from_vm("/tmp/hyprlog")
       machine.copy_from_vm("/tmp/exit_status")
+      machine.copy_from_vm("/tmp/exit_status_gtests")
 
       # Finally - shutdown
       machine.shutdown()

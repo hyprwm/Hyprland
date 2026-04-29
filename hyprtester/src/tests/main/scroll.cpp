@@ -989,22 +989,18 @@ TEST_CASE(testScrollInhibitor) {
     // set current layout to scrolling
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-
-
     NLog::log("{}Testing inhibit_scroll", Colors::GREEN);
 
-
     if (!Tests::spawnKitty("a")) {
-    FAIL_TEST("Could not spawn kitty with win class `a`");
-    return;
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+        return;
     }
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-
     if (!Tests::spawnKitty("b")) {
-    FAIL_TEST("Could not spawn kitty with win class `b`");
-    return;
+        FAIL_TEST("Could not spawn kitty with win class `b`");
+        return;
     }
 
     // Currently, we are focused on window class:b
@@ -1026,7 +1022,6 @@ TEST_CASE(testScrollInhibitor) {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
         return;
     }
-
 
     // clean up
 

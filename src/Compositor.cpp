@@ -1514,7 +1514,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
         };
 
         for (auto const& w : m_windows) {
-            if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || w->isHidden() || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
+            if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
                 continue;
 
             if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)

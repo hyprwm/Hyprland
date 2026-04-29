@@ -448,6 +448,82 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TARGET->target->warpPositionSize();
         }
     }
+
+    // Sync hidden state with viewport visibility.
+    // setHidden(false): immediate.
+    // setHidden(true): deferred to position-anim end-callback to preserve exit animation; immediate when not animating or m_animatingIn (setVector2DAnimToMove occupies the slot).
+    // Focused window exempt.
+
+    const PHLWINDOW    FOCUSED           = Desktop::focusState()->window();
+    const PHLWORKSPACE WS                = algorithm->m_parent->space()->workspace();
+    bool               visibilityChanged = false;
+
+    auto               triggerRuleReeval = [&]() {
+        for (const auto& w : g_pCompositor->m_windows) {
+            if (!Desktop::View::validMapped(w) || w->isHidden() || w->m_workspace != WS)
+                continue;
+            w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+        }
+    };
+
+    for (size_t i = 0; i < columns.size(); ++i) {
+        const auto& COL         = columns[i];
+        const bool  STRIP_SHOWN = controller->isStripVisible(i, USABLE, *PFSONONE, false);
+
+        for (const auto& TARGET : COL->targetDatas) {
+            if (!TARGET->target)
+                continue;
+            const auto WINDOW = TARGET->target->window();
+            if (!WINDOW)
+                continue;
+
+            const bool SHOULD_SHOW = STRIP_SHOWN || WINDOW == FOCUSED; // focused window is never hidden
+
+            if (SHOULD_SHOW) {
+                // Cancel any pending deferred-hide (only registered when !m_animatingIn).
+                if (!WINDOW->m_animatingIn)
+                    WINDOW->m_realPosition->setCallbackOnEnd(nullptr);
+                if (WINDOW->isHidden()) {
+                    WINDOW->setHidden(false);
+                    visibilityChanged = true;
+                }
+            } else if (!WINDOW->isHidden()) {
+                // Defer hide while exit-animating to avoid cutting the slide-off visual.
+                // m_animatingIn guard: end-callback slot is occupied by setVector2DAnimToMove.
+                if (WINDOW->m_realPosition->isBeingAnimated() && !WINDOW->m_animatingIn) {
+                    PHLWINDOWREF       weakWin = WINDOW->m_self;
+                    WP<SScrollingData> weakSD  = self;
+                    WP<SColumnData>    weakCol = TARGET->column;
+                    WINDOW->m_realPosition->setCallbackOnEnd([weakWin, weakSD, weakCol](Hyprutils::Memory::CWeakPointer<Hyprutils::Animation::CBaseAnimatedVariable>) {
+                        const auto WIN = weakWin.lock();
+                        const auto SD  = weakSD.lock();
+                        if (!WIN || !SD || WIN->isHidden())
+                            return;
+
+                        // Recheck: layout may have changed during the animation.
+                        const auto    COL2 = weakCol.lock();
+                        const int64_t ci   = COL2 ? SD->idx(COL2) : -1;
+                        if (ci < 0 || SD->controller->isStripVisible(ci, SD->algorithm->usableArea(), *PFSONONE, false))
+                            return;
+
+                        WIN->setHidden(true);
+                        const auto WS2 = SD->algorithm->m_parent->space()->workspace();
+                        for (const auto& w : g_pCompositor->m_windows) {
+                            if (!Desktop::View::validMapped(w) || w->isHidden() || w->m_workspace != WS2)
+                                continue;
+                            w->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
+                        }
+                    });
+                } else {
+                    WINDOW->setHidden(true);
+                    visibilityChanged = true;
+                }
+            }
+        }
+    }
+
+    if (visibilityChanged)
+        triggerRuleReeval();
 }
 
 double SScrollingData::maxWidth() {
@@ -544,6 +620,19 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
 }
 
 CScrollingAlgorithm::~CScrollingAlgorithm() {
+    // Unhide all windows when this layout is destroyed (e.g. switching to another layout).
+    for (const auto& col : m_scrollingData->columns) {
+        for (const auto& data : col->targetDatas) {
+            if (!data->target)
+                continue;
+            const auto WINDOW = data->target->window();
+            if (WINDOW) {
+                if (!WINDOW->m_animatingIn)
+                    WINDOW->m_realPosition->setCallbackOnEnd(nullptr);
+                WINDOW->setHidden(false);
+            }
+        }
+    }
     m_configCallback.reset();
     m_focusCallback.reset();
 }
@@ -626,6 +715,15 @@ void CScrollingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D
 }
 
 void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
+    // Unhide before removal so the window is not left hidden when moved to
+    // another workspace, layout, or when closed. Cancel any pending deferred-hide
+    // callback first; otherwise it fires after removal and re-hides the window in its new context.
+    if (target->window()) {
+        if (!target->window()->m_animatingIn)
+            target->window()->m_realPosition->setCallbackOnEnd(nullptr);
+        target->window()->setHidden(false);
+    }
+
     const auto DATA = dataFor(target);
 
     if (!DATA)
@@ -819,7 +917,7 @@ SP<SScrollingTargetData> CScrollingAlgorithm::closestNode(const Vector2D& posGlo
     double                   distClosest = -1;
     for (auto& c : m_scrollingData->columns) {
         for (auto& n : c->targetDatas) {
-            if (n->target && Desktop::View::validMapped(n->target->window())) {
+            if (n->target && Desktop::View::validMapped(n->target->window()) && !n->target->window()->isHidden()) {
                 auto distAnother = vecToRectDistanceSquared(posGlobglobgabgalab, n->layoutBox.pos(), n->layoutBox.pos() + n->layoutBox.size());
                 if (!res || distAnother < distClosest) {
                     res         = n;

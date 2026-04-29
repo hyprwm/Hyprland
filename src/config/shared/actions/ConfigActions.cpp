@@ -230,6 +230,8 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
         return {};
 
     window->m_pinned = wantPin;
+    window->updateFullscreenInputState();
+    *window->alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
 
     const auto PMONITOR = window->m_monitor.lock();
     if (!PMONITOR)
@@ -349,7 +351,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
-        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT) :
+        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
@@ -1651,7 +1653,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyFloating.value_or(false))
         floatStatus = true;
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, floatStatus, false, !next);
+    const auto& cycled = g_pCompositor->getWindowCycle(window, true, floatStatus, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
 
     switchToWindow(cycled);
 

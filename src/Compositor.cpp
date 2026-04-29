@@ -968,7 +968,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
                 }
 
                 if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && w->acceptsInput() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
-                    w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
+                    w != pIgnoreWindow && (!aboveFullscreen || w->isAllowedOverFullscreen()) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
                         continue;
@@ -1310,6 +1310,9 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
     else
         pWindow->m_createdOverFullscreen = false;
 
+    pWindow->updateFullscreenInputState();
+    *pWindow->alpha(WINDOW_ALPHA_FULLSCREEN) = pWindow->isBlockedByFullscreen() ? 0.F : 1.F;
+
     if (pWindow == (top ? m_windows.back() : m_windows.front()))
         return;
 
@@ -1521,7 +1524,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
             if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
                 continue;
 
-            if (pWorkspace->m_hasFullscreenWindow && !w->isFullscreen() && !w->m_createdOverFullscreen)
+            if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
                 continue;
 
             if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
@@ -1600,7 +1603,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
             if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
                 continue;
 
-            if (pWorkspace->m_hasFullscreenWindow && !w->isFullscreen() && !w->m_createdOverFullscreen)
+            if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
                 continue;
 
             if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)
@@ -1640,9 +1643,18 @@ static bool isFloatingMatches(WINDOWPTR w, std::optional<bool> floating) {
 }
 
 template <typename WINDOWPTR>
-static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false) {
+static bool acceptsInputForCycle(WINDOWPTR w, bool allowFullscreenBlocked) {
+    if (w->acceptsInput())
+        return true;
+
+    return allowFullscreenBlocked && !w->isHidden() && w->isInputBlockedOnly(INPUT_BLOCK_BELOW_FULLSCREEN);
+}
+
+template <typename WINDOWPTR>
+static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false,
+                                      bool allowFullscreenBlocked = false) {
     return isFloatingMatches(w, floating) &&
-        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && w->acceptsInput() &&
+        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && acceptsInputForCycle(w, allowFullscreenBlocked) &&
          (!focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
 }
 
@@ -1664,16 +1676,16 @@ static PHLWINDOW getWeakWindowPred(Iterator cur, Iterator end, Iterator begin, c
     return IN_OTHER_SIDE->lock();
 }
 
-PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next) {
-    const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
+PHLWINDOW CCompositor::getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool next, bool allowFullscreenBlocked) {
+    const auto FINDER = [&](const PHLWINDOWREF& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible, allowFullscreenBlocked); };
     // also m_vWindowFocusHistory has reverse order, so when it is next - we need to reverse again
     const auto& HISTORY = Desktop::History::windowTracker()->fullHistory();
     return next ? getWeakWindowPred(std::ranges::find(HISTORY, cur), HISTORY.end(), HISTORY.begin(), FINDER) :
                   getWeakWindowPred(std::ranges::find(HISTORY | std::views::reverse, cur), HISTORY.rend(), HISTORY.rbegin(), FINDER);
 }
 
-PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev) {
-    const auto FINDER = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible); };
+PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::optional<bool> floating, bool visible, bool prev, bool allowFullscreenBlocked) {
+    const auto FINDER = [&](const PHLWINDOW& w) { return isWindowAvailableForCycle(cur, w, focusableOnly, floating, visible, allowFullscreenBlocked); };
     return prev ? getWindowPred(std::ranges::find(m_windows | std::views::reverse, cur), m_windows.rend(), m_windows.rbegin(), FINDER) :
                   getWindowPred(std::ranges::find(m_windows, cur), m_windows.end(), m_windows.begin(), FINDER);
 }
@@ -2259,8 +2271,12 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACE && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
-            w->m_createdOverFullscreen = false;
+        if (w->m_workspace == PWORKSPACE) {
+            if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+                w->m_createdOverFullscreen = false;
+
+            w->updateFullscreenInputState();
+        }
     }
     for (auto const& ls : m_layers) {
         if (ls->m_monitor == PMONITOR)

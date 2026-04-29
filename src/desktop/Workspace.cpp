@@ -426,7 +426,7 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
             continue;
         if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && (!t->window() || t->window()->visible() != onlyVisible.value()))
+        if (onlyVisible.has_value() && (!t->window() || t->window()->targetVisible() != onlyVisible.value()))
             continue;
         no++;
     }
@@ -445,7 +445,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
             continue;
         if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyVisible.has_value() && g->current()->visible() != onlyVisible.value())
+        if (onlyVisible.has_value() && g->current()->targetVisible() != onlyVisible.value())
             continue;
         no++;
     }

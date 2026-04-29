@@ -71,6 +71,10 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->m_isMapped);
     else if (key == "hidden")
         lua_pushboolean(L, w->isHidden());
+    else if (key == "visible")
+        lua_pushboolean(L, w->visible());
+    else if (key == "acceptsInput")
+        lua_pushboolean(L, w->acceptsInput());
     else if (key == "at") {
         lua_newtable(L);
         lua_pushinteger(L, sc<int>(w->m_realPosition->goal().x));

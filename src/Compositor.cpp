@@ -927,7 +927,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
             if (ONLY_PRIORITY && !w->priorityFocus())
                 continue;
 
-            if (w->m_isFloating && w->m_isMapped && !w->isHidden() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+            if (w->m_isFloating && w->m_isMapped && w->acceptsInput() && !w->m_X11ShouldntFocus && w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 const auto BB  = w->getWindowBoxUnified(properties);
                 CBox       box = BB.copy().expand(!w->isX11OverrideRedirect() ? BORDER_GRAB_AREA : 0);
@@ -967,7 +967,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
                         continue;
                 }
 
-                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && !w->isHidden() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+                if (w->m_isFloating && w->m_isMapped && w->m_workspace->isVisible() && w->acceptsInput() && !w->m_pinned && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                     w != pIgnoreWindow && (!aboveFullscreen || w->m_createdOverFullscreen) && !isShadowedByModal(w)) {
                     // OR windows should add focus to parent
                     if (w->m_X11ShouldntFocus && !w->isX11OverrideRedirect())
@@ -1039,7 +1039,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
             if (!w->m_workspace)
                 continue;
 
-            if (!w->m_isX11 && !w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus &&
+            if (!w->m_isX11 && !w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && w->acceptsInput() && !w->m_X11ShouldntFocus &&
                 !w->m_ruleApplicator->noFocus().valueOrDefault() && w != pIgnoreWindow && !isShadowedByModal(w)) {
                 if (w->hasPopupAt(pos))
                     return w;
@@ -1056,7 +1056,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
             if (!w->m_workspace)
                 continue;
 
-            if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && !w->isHidden() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+            if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && w->acceptsInput() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
@@ -1515,7 +1515,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
         };
 
         for (auto const& w : m_windows) {
-            if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || w->isHidden() || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
+            if (w == ignoreWindow || !w->m_workspace || !w->m_isMapped || !w->acceptsInput() || (!w->isFullscreen() && w->m_isFloating) || !w->m_workspace->isVisible())
                 continue;
 
             if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
@@ -1594,7 +1594,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
         constexpr float THRESHOLD    = 0.3 * M_PI;
 
         for (auto const& w : m_windows) {
-            if (w == ignoreWindow || !w->m_isMapped || !w->m_workspace || w->isHidden() || (!w->isFullscreen() && !w->m_isFloating) || !w->m_workspace->isVisible())
+            if (w == ignoreWindow || !w->m_isMapped || !w->m_workspace || !w->acceptsInput() || (!w->isFullscreen() && !w->m_isFloating) || !w->m_workspace->isVisible())
                 continue;
 
             if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
@@ -1642,7 +1642,8 @@ static bool isFloatingMatches(WINDOWPTR w, std::optional<bool> floating) {
 template <typename WINDOWPTR>
 static bool isWindowAvailableForCycle(WINDOWPTR pWindow, WINDOWPTR w, bool focusableOnly, std::optional<bool> floating, bool anyWorkspace = false) {
     return isFloatingMatches(w, floating) &&
-        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && !w->isHidden() && (!focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
+        (w != pWindow && isWorkspaceMatches(pWindow, w, anyWorkspace) && w->m_isMapped && w->acceptsInput() &&
+         (!focusableOnly || !w->m_ruleApplicator->noFocus().valueOrDefault()));
 }
 
 template <typename Iterator>
@@ -2331,7 +2332,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto const& w : m_windows) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace || w->isHidden())
+            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace || !w->acceptsInput())
                 continue;
 
             return w;
@@ -2708,7 +2709,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
 
 PHLWINDOW CCompositor::getForceFocus() {
     for (auto const& w : m_windows) {
-        if (!w->m_isMapped || w->isHidden() || !w->m_workspace || !w->m_workspace->isVisible())
+        if (!w->m_isMapped || !w->acceptsInput() || !w->m_workspace || !w->m_workspace->isVisible())
             continue;
 
         if (!w->m_ruleApplicator->stayFocused().valueOrDefault())

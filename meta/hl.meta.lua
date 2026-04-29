@@ -667,6 +667,7 @@ local __HL_Notification = {}
 local __HL_Timer = {}
 
 ---@class HL.Window
+---@field acceptsInput boolean
 ---@field active boolean|nil
 ---@field address string
 ---@field at integer|table
@@ -692,6 +693,7 @@ local __HL_Timer = {}
 ---@field swallowing HL.Window|nil
 ---@field tags string|table
 ---@field title string
+---@field visible boolean
 ---@field workspace HL.Workspace|nil
 ---@field xdg_description string|nil
 ---@field xdg_tag string|nil

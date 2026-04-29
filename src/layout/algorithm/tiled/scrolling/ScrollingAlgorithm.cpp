@@ -1491,6 +1491,22 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
         m_scrollingData->centerCol(CURRENT_COL);
         m_scrollingData->recalculate();
+    } else if (ARGS[0] == "inhibit_scroll") {
+        // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
+
+        if (ARGS.size() > 2)
+            return std::unexpected("too many args");
+
+        // Toggle
+        if (ARGS.size() == 1)
+            m_scrollingData->controller->getScrollInhibitor().isInhibited ? uninhibitScroll() : inhibitScroll();
+        // Explicit Disable
+        else if (ARGS[1] == "0" || ARGS[1] == "false")
+            uninhibitScroll();
+        // Explicit Enable
+        else
+            inhibitScroll();
+
     } else
         return invalidArg("no such layoutmsg for scrolling");
 
@@ -1602,6 +1618,20 @@ CBox CScrollingAlgorithm::usableArea() {
     box.h = std::max(box.h, 1.0);
 
     return box;
+}
+
+void CScrollingAlgorithm::inhibitScroll() {
+
+    m_scrollingData->controller->getScrollInhibitor().offsetWhenInhibited = m_scrollingData->controller->getOffset();
+    m_scrollingData->controller->getScrollInhibitor().isInhibited         = true;
+
+    Log::logger->log(Log::INFO, "Scrolling inhibited");
+}
+
+void CScrollingAlgorithm::uninhibitScroll() {
+    m_scrollingData->controller->getScrollInhibitor().isInhibited = false;
+
+    Log::logger->log(Log::INFO, "Scrolling uninhibited");
 }
 
 float CScrollingAlgorithm::defaultColumnWidth() {

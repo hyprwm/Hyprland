@@ -39,7 +39,11 @@ const SStripData& CScrollTapeController::getStrip(size_t index) const {
 }
 
 void CScrollTapeController::setOffset(double offset) {
-    m_offset = offset;
+    if (getScrollInhibitor().isInhibited) {
+        m_offset = getScrollInhibitor().offsetWhenInhibited;
+        Log::logger->log(Log::DEBUG, "m_offset not set - scrolling inhibited");
+    } else
+        m_offset = offset;
 }
 
 double CScrollTapeController::getOffset() const {
@@ -48,6 +52,10 @@ double CScrollTapeController::getOffset() const {
 
 void CScrollTapeController::adjustOffset(double delta) {
     m_offset += delta;
+}
+
+struct SScrollingInhibitor& CScrollTapeController::getScrollInhibitor() {
+    return m_scrollInhibitor;
 }
 
 size_t CScrollTapeController::addStrip(float size) {
@@ -204,12 +212,12 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
 
     // if the content fits in viewport, center it
     if (maxExtent < usablePrimary)
-        m_offset = std::round((maxExtent - usablePrimary) / 2.0);
+        setOffset(std::round((maxExtent - usablePrimary) / 2.0));
 
     // if the offset is negative but we already extended and fit method is not center, reset offset to 0
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
     if (maxExtent > usablePrimary && m_offset < 0.0 && *PFITMETHOD != 0)
-        m_offset = 0.0;
+        setOffset(0.0);
 
     return m_offset;
 }
@@ -231,7 +239,7 @@ void CScrollTapeController::centerStrip(size_t stripIndex, const CBox& usableAre
     const double stripStart    = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
 
-    m_offset = stripStart - (usablePrimary - stripSize) / 2.0;
+    setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
 }
 
 void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne) {
@@ -248,11 +256,11 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
     if (lo > hi) {
         // strip is wider than viewport (e.g. during monitor reconnection after suspend),
         // center the strip instead of hitting the std::clamp assertion
-        m_offset = stripStart - (usablePrimary - stripSize) / 2.0;
+        setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
         return;
     }
 
-    m_offset = std::clamp(m_offset, lo, hi);
+    setOffset(std::clamp(m_offset, lo, hi));
 }
 
 bool CScrollTapeController::isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne, bool full) const {

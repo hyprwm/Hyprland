@@ -49,7 +49,6 @@ namespace Layout {
             RECALCULATE_MONITOR_REASON_UNKNOWN, // when the recalculate monitor reason is unknown or not important to preserve
             RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
             RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
-            RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD,
             RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN,
         };
 

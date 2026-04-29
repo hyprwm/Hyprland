@@ -1096,7 +1096,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
         for (auto const& m : g_pCompositor->m_monitors) {
-            g_layoutManager->recalculateMonitor(m, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_HYPRCTL_KEYWORD);
+            g_layoutManager->recalculateMonitor(m);
         }
     }
 

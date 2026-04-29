@@ -83,8 +83,8 @@ namespace Layout {
 
         void                    performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
 
-        void                             invalidateMonitorGeometries(PHLMONITOR);
-        void                             recalculateMonitor(PHLMONITOR, eRecalculateMonitorReason reason = RECALCULATE_MONITOR_REASON_UNKNOWN);
+        void                    invalidateMonitorGeometries(PHLMONITOR);
+        void                    recalculateMonitor(PHLMONITOR, eRecalculateMonitorReason reason = RECALCULATE_MONITOR_REASON_UNKNOWN);
 
         const UP<Supplementary::CDragStateController>& dragController();
 

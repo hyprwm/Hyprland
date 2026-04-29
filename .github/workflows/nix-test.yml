@@ -18,7 +18,10 @@ jobs:
         run: nix build 'github:${{ github.repository }}?ref=${{ github.ref }}#checks.x86_64-linux.tests' -L --extra-substituters "https://hyprland.cachix.org"
 
       - name: Check exit status
-        run: grep 0 result/exit_status
+        run: |
+          grep 0 result/exit_status || echo "hyprtester failed"
+          grep 0 result/exit_status_gtests || echo "gtests failed"
+          [ 0 = $(cat result/exit_status) ] && [ 0 = $(cat result/exit_status_gtests) ]
 
       - name: Upload artifacts
         if: always()

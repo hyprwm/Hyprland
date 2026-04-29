@@ -336,7 +336,7 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
-    if (PLASTWINDOW->m_alpha != 1.f)
+    if (PLASTWINDOW->alphaTotal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
     if (!PLASTWINDOW->m_createdOverFullscreen)

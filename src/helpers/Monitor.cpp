@@ -1755,7 +1755,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
     }
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || w->isHidden())
+        if (w == PCANDIDATE || (!w->m_isMapped && !w->m_fadingOut) || !w->visible())
             continue;
 
         if (w->workspaceID() == PCANDIDATE->workspaceID() && w->m_isFloating && w->m_createdOverFullscreen && w->visibleOnMonitor(m_self.lock())) {

@@ -87,7 +87,7 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
@@ -121,7 +121,7 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
@@ -187,7 +187,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && alphaValue(WINDOW_ALPHA_FADE) != 0.F));
+    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlpha();
 }
 
 std::optional<CBox> CWindow::logicalBox() const {
@@ -723,8 +723,35 @@ void CWindow::setHidden(bool hidden) {
     setSuspended(hidden);
 }
 
-bool CWindow::isHidden() {
+bool CWindow::isHidden() const {
     return m_hidden;
+}
+
+void CWindow::setInputBlocked(eWindowInputBlockReason reason, bool blocked) {
+    if (reason == INPUT_BLOCK_NONE)
+        return;
+
+    const auto MASK = sc<uint32_t>(reason);
+
+    if (blocked)
+        m_inputBlockReasons |= MASK;
+    else
+        m_inputBlockReasons &= ~MASK;
+
+    if (blocked && Desktop::focusState()->window() == m_self)
+        Desktop::focusState()->window().reset();
+}
+
+bool CWindow::isInputBlocked() const {
+    return m_inputBlockReasons != INPUT_BLOCK_NONE;
+}
+
+bool CWindow::isInputBlocked(eWindowInputBlockReason reason) const {
+    return (m_inputBlockReasons & sc<uint32_t>(reason)) != 0;
+}
+
+bool CWindow::acceptsInput() const {
+    return !isHidden() && !isInputBlocked();
 }
 
 PHLANIMVAR<float>& CWindow::alpha(eWindowAlpha type) {
@@ -749,6 +776,14 @@ float CWindow::alphaTotal() const {
 
 float CWindow::alphaTotalWithout(eWindowAlpha type) const {
     return m_alpha.getTotalWithout(type);
+}
+
+float CWindow::effectiveAlpha() const {
+    return alphaTotal();
+}
+
+bool CWindow::visibleByAlpha() const {
+    return effectiveAlpha() != 0.F;
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -1341,7 +1376,7 @@ PHLWINDOW CWindow::getSwallower() {
             break;
 
         for (auto const& w : g_pCompositor->m_windows) {
-            if (!w->m_isMapped || w->isHidden())
+            if (!w->m_isMapped || !w->acceptsInput())
                 continue;
 
             if (w->getPID() == currentPid)

@@ -89,6 +89,13 @@ namespace Desktop::View {
         WINDOW_ALPHA_LAST,
     };
 
+    enum eWindowInputBlockReason : uint32_t {
+        INPUT_BLOCK_NONE             = 0,
+        INPUT_BLOCK_GROUP_INACTIVE   = 1 << 0,
+        INPUT_BLOCK_MONOCLE_INACTIVE = 1 << 1,
+        INPUT_BLOCK_BELOW_FULLSCREEN = 1 << 2,
+    };
+
     struct SWindowActiveEvent {
         PHLWINDOW    window = nullptr;
         eFocusReason reason = sc<eFocusReason>(0) /* unknown */;
@@ -304,13 +311,19 @@ namespace Desktop::View {
         void                       onUnmap();
         void                       onMap();
         void                       setHidden(bool hidden);
-        bool                       isHidden();
+        bool                       isHidden() const;
+        void                       setInputBlocked(eWindowInputBlockReason reason, bool blocked);
+        bool                       isInputBlocked() const;
+        bool                       isInputBlocked(eWindowInputBlockReason reason) const;
+        bool                       acceptsInput() const;
         PHLANIMVAR<float>&         alpha(eWindowAlpha type);
         const PHLANIMVAR<float>&   alpha(eWindowAlpha type) const;
         float                      alphaValue(eWindowAlpha type) const;
         float                      alphaGoal(eWindowAlpha type) const;
         float                      alphaTotal() const;
         float                      alphaTotalWithout(eWindowAlpha type) const;
+        float                      effectiveAlpha() const;
+        bool                       visibleByAlpha() const;
         void                       updateDecorationValues();
         SBoxExtents                getFullWindowReservedArea();
         Vector2D                   middle();
@@ -414,9 +427,10 @@ namespace Desktop::View {
         void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff
-        bool        m_hidden        = false;
-        bool        m_suspended     = false;
-        WORKSPACEID m_lastWorkspace = WORKSPACE_INVALID;
+        bool        m_hidden            = false;
+        bool        m_suspended         = false;
+        WORKSPACEID m_lastWorkspace     = WORKSPACE_INVALID;
+        uint32_t    m_inputBlockReasons = INPUT_BLOCK_NONE;
     };
 
     inline bool valid(PHLWINDOW w) {

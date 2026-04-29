@@ -529,6 +529,9 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     if (pWindow->isHidden() && !standalone)
         return;
 
+    if (!standalone && pWindow->effectiveAlpha() == 0.F && !pWindow->m_alpha.isBeingAnimated())
+        return;
+
     if (pWindow->m_fadingOut) {
         if (pMonitor == pWindow->m_monitor) // TODO: fix this
             renderSnapshot(pWindow);

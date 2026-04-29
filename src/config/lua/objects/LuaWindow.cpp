@@ -73,7 +73,7 @@ static int windowIndex(lua_State* L) {
         lua_pushboolean(L, w->isHidden());
     else if (key == "visible")
         lua_pushboolean(L, w->visible());
-    else if (key == "acceptsInput")
+    else if (key == "accepts_input")
         lua_pushboolean(L, w->acceptsInput());
     else if (key == "at") {
         lua_newtable(L);

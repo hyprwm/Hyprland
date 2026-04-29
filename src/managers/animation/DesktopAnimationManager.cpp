@@ -467,10 +467,9 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
-    const auto FSWINDOW = ws->getFullscreenWindow();
-
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == ws) {
+            w->updateFullscreenInputState();
 
             if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
                 continue;
@@ -478,9 +477,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
             if (!FULLSCREEN)
                 *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
             else if (!w->isFullscreen()) {
-                const bool CREATED_OVER_FS         = w->m_createdOverFullscreen;
-                const bool IS_IN_GROUP_OF_FS       = FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(w);
-                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
+                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.f : 0.f;
             }
         }
     }
@@ -500,6 +497,7 @@ void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, floa
         return;
 
     *pWindow->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+    pWindow->updateFullscreenInputState();
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {
@@ -512,6 +510,7 @@ void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, flo
                 continue;
 
             *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+            w->updateFullscreenInputState();
         }
     }
 

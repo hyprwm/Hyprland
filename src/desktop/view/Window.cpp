@@ -512,6 +512,8 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     }
 
     m_workspace = pWorkspace;
+    updateFullscreenInputState();
+    *alpha(WINDOW_ALPHA_FULLSCREEN) = isBlockedByFullscreen() ? 0.F : 1.F;
 
     setAnimationsToMove();
 
@@ -750,8 +752,42 @@ bool CWindow::isInputBlocked(eWindowInputBlockReason reason) const {
     return (m_inputBlockReasons & sc<uint32_t>(reason)) != 0;
 }
 
+bool CWindow::isInputBlockedOnly(eWindowInputBlockReason reason) const {
+    return m_inputBlockReasons == sc<uint32_t>(reason);
+}
+
 bool CWindow::acceptsInput() const {
     return !isHidden() && !isInputBlocked();
+}
+
+bool CWindow::isAllowedOverFullscreen() const {
+    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
+        return true;
+
+    if (!m_workspace)
+        return false;
+
+    const auto FSWINDOW = m_workspace->getFullscreenWindow();
+    return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());
+}
+
+bool CWindow::isBlockedByFullscreen() const {
+    if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
+        return false;
+
+    return !isAllowedOverFullscreen();
+}
+
+bool CWindow::isFadingOutUnderFullscreen() const {
+    return isBlockedByFullscreen() && alpha(WINDOW_ALPHA_FULLSCREEN)->isBeingAnimated() && alphaValue(WINDOW_ALPHA_FULLSCREEN) > 0.F;
+}
+
+bool CWindow::shouldRenderOverFullscreen() const {
+    return isAllowedOverFullscreen() || isFadingOutUnderFullscreen();
+}
+
+void CWindow::updateFullscreenInputState() {
+    setInputBlocked(INPUT_BLOCK_BELOW_FULLSCREEN, isBlockedByFullscreen());
 }
 
 PHLANIMVAR<float>& CWindow::alpha(eWindowAlpha type) {
@@ -774,6 +810,10 @@ float CWindow::alphaTotal() const {
     return m_alpha.getTotal();
 }
 
+float CWindow::alphaTotalGoal() const {
+    return m_alpha.getTotalGoal();
+}
+
 float CWindow::alphaTotalWithout(eWindowAlpha type) const {
     return m_alpha.getTotalWithout(type);
 }
@@ -784,6 +824,14 @@ float CWindow::effectiveAlpha() const {
 
 bool CWindow::visibleByAlpha() const {
     return effectiveAlpha() != 0.F;
+}
+
+bool CWindow::visibleByAlphaGoal() const {
+    return alphaTotalGoal() != 0.F;
+}
+
+bool CWindow::targetVisible() const {
+    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || m_fadingOut) && visibleByAlphaGoal();
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -1040,7 +1088,7 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
     return changed;
 }
 
-bool CWindow::isFullscreen() {
+bool CWindow::isFullscreen() const {
     return m_fullscreenState.internal != FSMODE_NONE;
 }
 

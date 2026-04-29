@@ -19,5 +19,11 @@ namespace Tests {
     bool                                                       killAllLayers();
     std::string                                                execAndGet(const std::string& cmd);
     bool                                                       writeFile(const std::string& name, const std::string& contents);
-    std::string                                                getWindowAttribute(const std::string& winInfo, const std::string& attr);
+    /**
+     * Extracts the given attribute from Hyprland's response to requests such as `/clients`, `/workspaces`, etc.
+     * Automatically appends `: ` to `attr`.
+     *
+     * For example, `Tests::getAttribute(getFromSocket("/activewindow"), "at")` returns the active window's coordinates, e.g., `"2,32"`
+     */
+    std::string getAttribute(const std::string& hyprlandResponse, std::string attr);
 };

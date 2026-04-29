@@ -270,7 +270,9 @@ pkg_check_modules(
   re2
   muparser
   lcms2
-  lua55)
+)
+
+pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5 lua<5.6)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -288,8 +290,8 @@ add_library(hyprland_lib STATIC ${SRCFILES})
 add_executable(Hyprland src/main.cpp ${TRACY_CPP_FILES})
 target_link_libraries(Hyprland hyprland_lib)
 
-target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS})
-target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS})
+target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
+target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
 
 set(USE_GPROF OFF)
 
@@ -423,6 +425,7 @@ target_link_libraries(
   PkgConfig::hyprcursor_dep
   PkgConfig::hyprgraphics_dep
   PkgConfig::deps
+  PkgConfig::LUA
 )
 
 target_link_libraries(

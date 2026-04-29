@@ -75,7 +75,7 @@ TEST_CASE(swapWindow) {
     // Test swapwindow by direction
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
         NLog::log("{}Testing kitty_A {}, swapwindow with direction 'r'", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch hl.dsp.window.swap({ direction = 'right' })"));
@@ -87,7 +87,7 @@ TEST_CASE(swapWindow) {
     // Test swapwindow by class
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
         NLog::log("{}Testing kitty_A {}, swapwindow with class:kitty_B", Colors::YELLOW, pos);
 
         OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:kitty_B' })"));
@@ -101,7 +101,7 @@ TEST_CASE(swapWindow) {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
-        auto pos = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+        auto pos = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
         NLog::log("{}Testing kitty_A {}, swapwindow with address:0x{}(kitty_B)", Colors::YELLOW, pos, addr);
 
         OK(getFromSocket(std::format("/dispatch hl.dsp.window.swap({{ target = 'address:0x{}' }})", addr)));
@@ -124,7 +124,7 @@ TEST_CASE(swapWindow) {
     {
         getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
         auto addr = getWindowAddress(getFromSocket("/activewindow"));
-        auto ws   = Tests::getWindowAttribute(getFromSocket("/activewindow"), "workspace:");
+        auto ws   = "workspace: " + Tests::getAttribute(getFromSocket("/activewindow"), "workspace");
         NLog::log("{}Sending address:0x{}(kitty_B) to workspace \"swapwindow2\"", Colors::YELLOW, addr);
 
         OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = 'name:swapwindow2', follow = false })"));
@@ -190,9 +190,9 @@ TEST_CASE(windowGroupRules) {
 
 static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
-    auto        winClass      = Tests::getWindowAttribute(activeWin, "class:");
-    auto        winFullscreen = Tests::getWindowAttribute(activeWin, "fullscreen:").back();
-    if (winClass.substr(strlen("class: ")) == class_ && winFullscreen == fullscreen)
+    auto        winClass      = Tests::getAttribute(activeWin, "class");
+    auto        winFullscreen = Tests::getAttribute(activeWin, "fullscreen").back();
+    if (winClass == class_ && winFullscreen == fullscreen)
         return true;
     else {
         if (log)

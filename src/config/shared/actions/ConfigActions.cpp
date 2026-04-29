@@ -1664,11 +1664,19 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
         }
     }
 
-    std::optional<bool> floatStatus = {};
-    if (onlyFloating.value_or(false))
-        floatStatus = true;
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, floatStatus, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
+
+
+    // true = floating
+    // false = tiling
+    // either-or = either-or
+    std::optional<bool> tileOrFloatOnly = std::nullopt;
+
+    if (onlyTiled.value_or(false) != onlyFloating.value_or(false))
+        tileOrFloatOnly = onlyFloating.value_or(false);
+
+
+    const auto& cycled = g_pCompositor->getWindowCycle(window, true, tileOrFloatOnly, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
 
     switchToWindow(cycled);
 

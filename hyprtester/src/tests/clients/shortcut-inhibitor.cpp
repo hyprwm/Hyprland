@@ -155,7 +155,7 @@ TEST_CASE(shortcutInhibitor) {
     OK(getFromSocket("/eval hl.plugin.test.keybind(1, 7, 29)"));
     EXPECT(attemptCheckFlag(20, 50), false);
     OK(getFromSocket("/eval hl.plugin.test.keybind(0, 0, 29)"));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 
     //keybind bypass flag test
     EXPECT(checkFlag(), false);
@@ -163,7 +163,7 @@ TEST_CASE(shortcutInhibitor) {
     OK(getFromSocket("/eval hl.plugin.test.keybind(1, 7, 29)"));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket("/eval hl.plugin.test.keybind(0, 0, 29)"));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER', 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 
     NLog::log("{}Testing gestures", Colors::GREEN);
     //basic gesture test

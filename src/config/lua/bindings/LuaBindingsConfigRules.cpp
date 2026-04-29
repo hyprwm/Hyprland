@@ -40,9 +40,12 @@
 #include "../../../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
 #include "../../../managers/permissions/DynamicPermissionManager.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
+using namespace Hyprutils::Utils;
 
 namespace {
     struct SFieldDesc {
@@ -286,53 +289,101 @@ static int hlCurve(lua_State* L) {
 
     const auto& curveType = typeParser.parsed();
 
-    if (curveType != "bezier")
-        return Internal::configError(L, std::format("hl.curve(\"{}\"): unknown curve type \"{}\", expected \"bezier\"", name, curveType));
-
-    lua_getfield(L, 2, "points");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        return Internal::configError(L, std::format("hl.curve(\"{}\"): missing or invalid \"points\" field, expected a table of two points", name));
-    }
-    int pointsIdx = lua_gettop(L);
-
-    if (luaL_len(L, pointsIdx) != 2) {
-        lua_pop(L, 1);
-        return Internal::configError(L, std::format("hl.curve(\"{}\"): \"points\" must contain exactly 2 points, e.g. {{ {{0, 0}}, {{1, 1}} }}", name));
-    }
-
-    float coords[4] = {};
-    for (int pt = 1; pt <= 2; pt++) {
-        lua_rawgeti(L, pointsIdx, pt);
-        if (!lua_istable(L, -1) || luaL_len(L, -1) != 2) {
-            lua_pop(L, 2);
-            return Internal::configError(L, std::format("hl.curve(\"{}\"): point {} must be a table of 2 numbers, e.g. {{0.25, 0.1}}", name, pt));
-        }
-        int ptIdx = lua_gettop(L);
-
-        for (int comp = 0; comp < 2; comp++) {
-            lua_rawgeti(L, ptIdx, comp + 1);
-            CLuaConfigFloat coordParser(0.F, -1.F, 2.F);
-            auto            coordErr = coordParser.parse(L);
+    if (curveType == "bezier") {
+        lua_getfield(L, 2, "points");
+        if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
-            if (coordErr.errorCode != PARSE_ERROR_OK) {
-                lua_pop(L, 2);
-                return Internal::configError(L, std::format("hl.curve(\"{}\"): point {}[{}]: {}", name, pt, comp + 1, coordErr.message));
-            }
-            coords[((pt - 1) * 2) + comp] = coordParser.parsed();
+            return Internal::configError(L, std::format("hl.curve(\"{}\"): missing or invalid \"points\" field, expected a table of two points", name));
+        }
+        int pointsIdx = lua_gettop(L);
+
+        if (luaL_len(L, pointsIdx) != 2) {
+            lua_pop(L, 1);
+            return Internal::configError(L, std::format("hl.curve(\"{}\"): \"points\" must contain exactly 2 points, e.g. {{ {{0, 0}}, {{1, 1}} }}", name));
         }
 
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
+        float coords[4] = {};
+        for (int pt = 1; pt <= 2; pt++) {
+            lua_rawgeti(L, pointsIdx, pt);
+            if (!lua_istable(L, -1) || luaL_len(L, -1) != 2) {
+                lua_pop(L, 2);
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): point {} must be a table of 2 numbers, e.g. {{0.25, 0.1}}", name, pt));
+            }
+            int ptIdx = lua_gettop(L);
 
-    g_pAnimationManager->addBezierWithName(name, Vector2D(coords[0], coords[1]), Vector2D(coords[2], coords[3]));
+            for (int comp = 0; comp < 2; comp++) {
+                lua_rawgeti(L, ptIdx, comp + 1);
+                CLuaConfigFloat coordParser(0.F, -1.F, 2.F);
+                auto            coordErr = coordParser.parse(L);
+                lua_pop(L, 1);
+                if (coordErr.errorCode != PARSE_ERROR_OK) {
+                    lua_pop(L, 2);
+                    return Internal::configError(L, std::format("hl.curve(\"{}\"): point {}[{}]: {}", name, pt, comp + 1, coordErr.message));
+                }
+                coords[((pt - 1) * 2) + comp] = coordParser.parsed();
+            }
+
+            lua_pop(L, 1);
+        }
+        lua_pop(L, 1);
+
+        g_pAnimationManager->addBezierWithName(name, Vector2D(coords[0], coords[1]), Vector2D(coords[2], coords[3]));
+    } else if (curveType == "spring") {
+
+        Hyprutils::Animation::SSpringCurve curve;
+
+        {
+            CScopeGuard x([L] { lua_pop(L, 1); });
+
+            lua_getfield(L, 2, "stiffness");
+
+            if (!lua_isnumber(L, -1))
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): stiffness expects a number", name));
+
+            curve.stiffness = lua_tonumber(L, -1);
+
+            if (curve.stiffness <= 0.5F)
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): stiffness expects a number >= 0.5", name));
+        }
+
+        {
+            CScopeGuard x([L] { lua_pop(L, 1); });
+
+            lua_getfield(L, 2, "dampening");
+
+            if (!lua_isnumber(L, -1))
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): dampening expects a number", name));
+
+            curve.damping = lua_tonumber(L, -1);
+
+            if (curve.damping <= 0.5F)
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): dampening expects a number >= 0.5", name));
+        }
+
+        {
+            CScopeGuard x([L] { lua_pop(L, 1); });
+
+            lua_getfield(L, 2, "mass");
+
+            if (!lua_isnumber(L, -1))
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): mass expects a number", name));
+
+            curve.mass = lua_tonumber(L, -1);
+
+            if (curve.mass <= 0.5F)
+                return Internal::configError(L, std::format("hl.curve(\"{}\"): mass expects a number >= 0.5", name));
+        }
+
+        g_pAnimationManager->addSpringWithName(name, curve);
+    } else
+        return Internal::configError(L, std::format(R"(hl.curve("{}"): unknown curve type "{}", expected "bezier" or "spring")", name, curveType));
+
     return 0;
 }
 
 static int hlAnimation(lua_State* L) {
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.animation: expected a table, e.g. { leaf = \"global\", enabled = true, speed = 5, bezier = \"default\" }");
+        return Internal::configError(L, R"(hl.animation: expected a table, e.g. { leaf = "global", enabled = true, speed = 5, bezier = "default" })");
 
     CLuaConfigString leafParser("");
     auto             leafErr = Internal::parseTableField(L, 1, "leaf", leafParser);
@@ -366,15 +417,34 @@ static int hlAnimation(lua_State* L) {
     if (speed <= 0)
         return Internal::configError(L, std::format("hl.animation(\"{}\"): speed must be greater than 0", leaf));
 
-    CLuaConfigString bezierParser("");
-    auto             bezierErr = Internal::parseTableField(L, 1, "bezier", bezierParser);
-    if (bezierErr.errorCode != PARSE_ERROR_OK)
-        return Internal::configError(L, std::format("hl.animation(\"{}\"): {}", leaf, bezierErr.message));
+    std::string curveName;
 
-    const auto& bezierName = bezierParser.parsed();
+    if (Internal::hasTableField(L, 1, "bezier")) {
+        CLuaConfigString bezierParser("");
+        auto             bezierErr = Internal::parseTableField(L, 1, "bezier", bezierParser);
+        if (bezierErr.errorCode != PARSE_ERROR_OK)
+            return Internal::configError(L, std::format("hl.animation(\"{}\"): {}", leaf, bezierErr.message));
 
-    if (!g_pAnimationManager->bezierExists(bezierName))
-        return Internal::configError(L, std::format("hl.animation(\"{}\"): no such bezier \"{}\"", leaf, bezierName));
+        const auto& bezierName = bezierParser.parsed();
+
+        if (!g_pAnimationManager->bezierExists(bezierName))
+            return Internal::configError(L, std::format(R"(hl.animation("{}"): no such bezier "{}")", leaf, bezierName));
+
+        curveName = bezierName;
+    } else if (Internal::hasTableField(L, 1, "spring")) {
+        CLuaConfigString springParser("");
+        auto             springErr = Internal::parseTableField(L, 1, "spring", springParser);
+        if (springErr.errorCode != PARSE_ERROR_OK)
+            return Internal::configError(L, std::format("hl.animation(\"{}\"): {}", leaf, springErr.message));
+
+        const auto& springName = springParser.parsed();
+
+        if (!g_pAnimationManager->springExists(springName))
+            return Internal::configError(L, std::format(R"(hl.animation("{}"): no such spring "{}")", leaf, springName));
+
+        curveName = "spring:" + springName;
+    } else
+        return Internal::configError(L, std::format(R"(hl.animation("{}"): bezier or spring is required)", leaf));
 
     std::string style;
     lua_getfield(L, 1, "style");
@@ -383,7 +453,7 @@ static int hlAnimation(lua_State* L) {
         auto             styleErr = styleParser.parse(L);
         if (styleErr.errorCode != PARSE_ERROR_OK) {
             lua_pop(L, 1);
-            return Internal::configError(L, std::format("hl.animation(\"{}\"): field \"style\": {}", leaf, styleErr.message));
+            return Internal::configError(L, std::format(R"(hl.animation("{}"): field "style": {})", leaf, styleErr.message));
         }
         style = styleParser.parsed();
     }
@@ -395,7 +465,7 @@ static int hlAnimation(lua_State* L) {
             return Internal::configError(L, std::format("hl.animation(\"{}\"): {}", leaf, err));
     }
 
-    Config::animationTree()->setConfigForNode(leaf, true, speed, bezierName, style);
+    Config::animationTree()->setConfigForNode(leaf, true, speed, curveName, style);
     return 0;
 }
 

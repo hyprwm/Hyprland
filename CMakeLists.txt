@@ -272,7 +272,7 @@ pkg_check_modules(
   lcms2
 )
 
-pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5)
+pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5 lua<5.6)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 

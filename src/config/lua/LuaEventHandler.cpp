@@ -2,10 +2,10 @@
 #include "ConfigManager.hpp"
 #include "objects/LuaWindow.hpp"
 #include "objects/LuaWorkspace.hpp"
+#include "objects/LuaGroup.hpp"
 #include "objects/LuaMonitor.hpp"
 #include "objects/LuaLayerSurface.hpp"
 
-#include "../../defines.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../desktop/state/FocusState.hpp"
 
@@ -14,7 +14,6 @@ extern "C" {
 }
 
 #include <format>
-#include <algorithm>
 
 using namespace Config::Lua;
 using namespace Config::Lua::Objects;
@@ -78,6 +77,7 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
 
 CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     CLuaWindow{}.setup(L);
+    Objects::CLuaGroup{}.setup(L);
     CLuaWorkspace{}.setup(L);
     CLuaMonitor{}.setup(L);
     CLuaLayerSurface{}.setup(L);

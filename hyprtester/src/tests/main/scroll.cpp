@@ -500,3 +500,68 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
 
 }
 
+
+
+TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
+
+    /*
+     When you change to a special scrolling workspace from a normal workspace, the focused window in that workspace must not be pulled into view, regardless of follow_focus
+     -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view", Colors::GREEN);
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+
+    // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    // We'll test in this special workspace
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('name:scroll_S')"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    // does not move view when follow_focus = 0
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+    
+
+
+    // change to workspace 2, then back to special "scroll_S" workspace again
+    OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '2'})"));
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('name:scroll_S')"));
+
+    // Reestablish focus since it is finnicky in hyprtester - Harmless and does not move view when follow_focus = 0
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+
+    // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+}
+
+
+

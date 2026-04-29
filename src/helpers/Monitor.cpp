@@ -1564,7 +1564,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
                                  PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
                     // not on any monitor, center
-                    pos = middle() / 2.f - w->m_realSize->goal() / 2.f;
+                    pos = middle() - w->m_realSize->goal() / 2.f;
                 } else
                     pos = pos - PMONFROMMIDDLE->m_position + m_position;
 

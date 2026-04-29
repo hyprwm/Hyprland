@@ -59,6 +59,7 @@
 
 using namespace Hyprutils::OS;
 using namespace NColorManagement;
+using namespace Desktop::View;
 using namespace Render;
 using namespace Render::GL;
 
@@ -1867,7 +1868,8 @@ void CHyprOpenGLImpl::preRender(PHLMONITOR pMonitor) {
         const auto  PSURFACE = pWindow->wlSurface()->resource();
 
         const auto  PWORKSPACE = pWindow->m_workspace;
-        const float A          = pWindow->m_alpha->value() * pWindow->m_activeInactiveAlpha->value() * PWORKSPACE->m_alpha->value();
+        const float A          = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT) *
+            pWindow->alphaValue(WINDOW_ALPHA_ACTIVE) * PWORKSPACE->m_alpha->value();
 
         if (A >= 1.f) {
             // if (PSURFACE->opaque)

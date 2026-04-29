@@ -99,6 +99,7 @@ using namespace Hyprutils::String;
 using namespace Aquamarine;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Desktop::View;
 using namespace Render::GL;
 
 static int handleCritSignal(int signo, void* data) {
@@ -1368,7 +1369,7 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
         if (w->monitorID() != monid && w->m_monitor)
             continue;
 
-        if (!w->m_fadingOut || w->m_alpha->value() == 0.f) {
+        if (!w->m_fadingOut || w->alphaValue(WINDOW_ALPHA_FADE) == 0.f) {
 
             w->m_fadingOut = false;
 
@@ -2700,8 +2701,8 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     g_pCompositor->updateSuspendedStates();
 
     if (!WASVISIBLE && pWindow->m_workspace && pWindow->m_workspace->isVisible()) {
-        pWindow->m_movingFromWorkspaceAlpha->setValueAndWarp(0.F);
-        *pWindow->m_movingFromWorkspaceAlpha = 1.F;
+        pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(0.F);
+        *pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE) = 1.F;
     }
 }
 

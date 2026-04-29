@@ -13,6 +13,7 @@
 #include "../../render/decorations/IHyprWindowDecoration.hpp"
 #include "../../render/Transformer.hpp"
 #include "../DesktopTypes.hpp"
+#include "../types/MultiAnimatedVariable.hpp"
 #include "Popup.hpp"
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
@@ -75,6 +76,17 @@ namespace Desktop::View {
         SUPPRESS_ACTIVATE           = 1 << 2,
         SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
         SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+    };
+
+    enum eWindowAlpha : uint8_t {
+        WINDOW_ALPHA_FADE = 0,
+        WINDOW_ALPHA_ACTIVE,
+        WINDOW_ALPHA_FULLSCREEN,
+        WINDOW_ALPHA_LAYOUT,
+        WINDOW_ALPHA_MOVE_TO_WORKSPACE,
+        WINDOW_ALPHA_MOVE_FROM_WORKSPACE,
+
+        WINDOW_ALPHA_LAST,
     };
 
     struct SWindowActiveEvent {
@@ -194,13 +206,13 @@ namespace Desktop::View {
         mutable bool m_borderSizeCacheDirty = true;
 
         // Fade in-out
-        PHLANIMVAR<float> m_alpha;
-        bool              m_fadingOut     = false;
-        bool              m_readyToDelete = false;
-        Vector2D          m_originalClosedPos;  // these will be used for calculations later on in
-        Vector2D          m_originalClosedSize; // drawing the closing animations
-        SBoxExtents       m_originalClosedExtents;
-        bool              m_animatingIn = false;
+        Desktop::Types::CMultiAVarContainer<float, eWindowAlpha, WINDOW_ALPHA_LAST> m_alpha;
+        bool                                                                        m_fadingOut     = false;
+        bool                                                                        m_readyToDelete = false;
+        Vector2D                                                                    m_originalClosedPos;  // these will be used for calculations later on in
+        Vector2D                                                                    m_originalClosedSize; // drawing the closing animations
+        SBoxExtents                                                                 m_originalClosedExtents;
+        bool                                                                        m_animatingIn = false;
 
         // For pinned (sticky) windows
         bool m_pinned = false;
@@ -225,10 +237,6 @@ namespace Desktop::View {
         // Transformers
         std::vector<UP<IWindowTransformer>> m_transformers;
 
-        // for alpha
-        PHLANIMVAR<float> m_activeInactiveAlpha;
-        PHLANIMVAR<float> m_movingFromWorkspaceAlpha;
-
         // animated shadow color
         PHLANIMVAR<CHyprColor> m_realShadowColor;
 
@@ -239,8 +247,7 @@ namespace Desktop::View {
         PHLANIMVAR<float> m_dimPercent;
 
         // animate moving to an invisible workspace
-        int               m_monitorMovedFrom = -1; // -1 means not moving
-        PHLANIMVAR<float> m_movingToWorkspaceAlpha;
+        int m_monitorMovedFrom = -1; // -1 means not moving
 
         // swallowing
         PHLWINDOWREF m_swallowed;
@@ -298,6 +305,12 @@ namespace Desktop::View {
         void                       onMap();
         void                       setHidden(bool hidden);
         bool                       isHidden();
+        PHLANIMVAR<float>&         alpha(eWindowAlpha type);
+        const PHLANIMVAR<float>&   alpha(eWindowAlpha type) const;
+        float                      alphaValue(eWindowAlpha type) const;
+        float                      alphaGoal(eWindowAlpha type) const;
+        float                      alphaTotal() const;
+        float                      alphaTotalWithout(eWindowAlpha type) const;
         void                       updateDecorationValues();
         SBoxExtents                getFullWindowReservedArea();
         Vector2D                   middle();

@@ -18,25 +18,26 @@
 #include <hyprutils/string/VarList.hpp>
 
 using namespace Hyprutils::String;
+using namespace Desktop::View;
 
 void CDesktopAnimationManager::startAnimation(PHLWINDOW pWindow, eAnimationType type, bool force) {
     const bool CLOSE = type == ANIMATION_TYPE_OUT;
 
     if (CLOSE)
-        *pWindow->m_alpha = 0.F;
+        *pWindow->alpha(WINDOW_ALPHA_FADE) = 0.F;
     else {
-        pWindow->m_alpha->setValueAndWarp(0.F);
-        *pWindow->m_alpha = 1.F;
+        pWindow->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(0.F);
+        *pWindow->alpha(WINDOW_ALPHA_FADE) = 1.F;
     }
 
     if (!CLOSE) {
         pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
         pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsIn"));
-        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
+        pWindow->alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeIn"));
     } else {
         pWindow->m_realPosition->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
         pWindow->m_realSize->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsOut"));
-        pWindow->m_alpha->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
+        pWindow->alpha(WINDOW_ALPHA_FADE)->setConfig(Config::animationTree()->getAnimationPropertyConfig("fadeOut"));
     }
 
     std::string ANIMSTYLE = pWindow->m_realPosition->getStyle();
@@ -475,11 +476,11 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
                 continue;
 
             if (!FULLSCREEN)
-                *w->m_alpha = 1.F;
+                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
             else if (!w->isFullscreen()) {
-                const bool CREATED_OVER_FS   = w->m_createdOverFullscreen;
-                const bool IS_IN_GROUP_OF_FS = FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(w);
-                *w->m_alpha                  = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
+                const bool CREATED_OVER_FS         = w->m_createdOverFullscreen;
+                const bool IS_IN_GROUP_OF_FS       = FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(w);
+                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = !CREATED_OVER_FS && !IS_IN_GROUP_OF_FS ? 0.f : 1.f;
             }
         }
     }
@@ -498,7 +499,7 @@ void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, floa
     if (pWindow->m_fadingOut || !pWindow->m_isFloating)
         return;
 
-    *pWindow->m_alpha = fade;
+    *pWindow->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {
@@ -510,7 +511,7 @@ void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, flo
             if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
                 continue;
 
-            *w->m_alpha = fade;
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
         }
     }
 

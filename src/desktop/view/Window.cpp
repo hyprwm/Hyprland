@@ -84,13 +84,17 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
                                          AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                         AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                         AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
@@ -114,13 +118,17 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(0.f, pWindow->m_borderFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("border"), pWindow, AVARDAMAGE_BORDER);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_borderAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("borderangle"), pWindow,
                                          AVARDAMAGE_BORDER);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_alpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, pWindow->m_activeInactiveAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FADE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingToWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(0.f, pWindow->m_movingFromWorkspaceAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
+                                         AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow,
+                                         AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_notRespondingTint, Config::animationTree()->getAnimationPropertyConfig("fade"), pWindow, AVARDAMAGE_ENTIRE);
 
     pWindow->addWindowDeco(makeUnique<CHyprDropShadowDecoration>(pWindow));
@@ -179,7 +187,7 @@ eViewType CWindow::type() const {
 }
 
 bool CWindow::visible() const {
-    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && m_alpha->value() != 0.F));
+    return !m_hidden && ((m_isMapped && m_wlSurface && m_wlSurface->resource()) || (m_fadingOut && alphaValue(WINDOW_ALPHA_FADE) != 0.F));
 }
 
 std::optional<CBox> CWindow::logicalBox() const {
@@ -494,9 +502,12 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
     const auto  OLDWORKSPACE = m_workspace;
 
     if (OLDWORKSPACE->isVisible()) {
-        m_movingToWorkspaceAlpha->setValueAndWarp(1.F);
-        *m_movingToWorkspaceAlpha = 0.F;
-        m_movingToWorkspaceAlpha->setCallbackOnEnd([this](auto) { m_monitorMovedFrom = -1; });
+        alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
+        *alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE) = 0.F;
+        alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setCallbackOnEnd([this](auto) {
+            alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
+            m_monitorMovedFrom = -1;
+        });
         m_monitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
     }
 
@@ -615,15 +626,18 @@ void CWindow::onMap() {
     m_realSize->resetAllCallbacks();
     m_borderFadeAnimationProgress->resetAllCallbacks();
     m_borderAngleAnimationProgress->resetAllCallbacks();
-    m_activeInactiveAlpha->resetAllCallbacks();
-    m_alpha->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_ACTIVE)->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_FADE)->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_FULLSCREEN)->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_LAYOUT)->resetAllCallbacks();
     m_realShadowColor->resetAllCallbacks();
     m_realGlowColor->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
-    m_movingToWorkspaceAlpha->resetAllCallbacks();
-    m_movingFromWorkspaceAlpha->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->resetAllCallbacks();
+    alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->resetAllCallbacks();
 
-    m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(1.F);
+    alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
 
     if (m_borderAngleAnimationProgress->enabled()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
@@ -666,7 +680,7 @@ void CWindow::onMap() {
         }
     });
 
-    m_movingFromWorkspaceAlpha->setValueAndWarp(1.F);
+    alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(1.F);
 
     m_reportedSize = m_pendingReportedSize;
     m_animatingIn  = true;
@@ -711,6 +725,30 @@ void CWindow::setHidden(bool hidden) {
 
 bool CWindow::isHidden() {
     return m_hidden;
+}
+
+PHLANIMVAR<float>& CWindow::alpha(eWindowAlpha type) {
+    return m_alpha.get(type);
+}
+
+const PHLANIMVAR<float>& CWindow::alpha(eWindowAlpha type) const {
+    return m_alpha.get(type);
+}
+
+float CWindow::alphaValue(eWindowAlpha type) const {
+    return alpha(type)->value();
+}
+
+float CWindow::alphaGoal(eWindowAlpha type) const {
+    return alpha(type)->goal();
+}
+
+float CWindow::alphaTotal() const {
+    return m_alpha.getTotal();
+}
+
+float CWindow::alphaTotalWithout(eWindowAlpha type) const {
+    return m_alpha.getTotalWithout(type);
 }
 
 // check if the point is "hidden" under a rounded corner of the window
@@ -762,7 +800,7 @@ Vector2D CWindow::middle() {
 }
 
 bool CWindow::opaque() {
-    if (m_alpha->value() != 1.f || m_activeInactiveAlpha->value() != 1.f)
+    if (alphaValue(WINDOW_ALPHA_FADE) != 1.f || alphaValue(WINDOW_ALPHA_FULLSCREEN) != 1.f || alphaValue(WINDOW_ALPHA_ACTIVE) != 1.f)
         return false;
 
     const auto PWORKSPACE = m_workspace;
@@ -1593,12 +1631,12 @@ void CWindow::updateDecorationValues() {
     // opacity
     const auto PWORKSPACE = m_workspace;
     if (isEffectiveInternalFSMode(FSMODE_FULLSCREEN)) {
-        *m_activeInactiveAlpha = m_ruleApplicator->alphaFullscreen().valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
+        *alpha(WINDOW_ALPHA_ACTIVE) = m_ruleApplicator->alphaFullscreen().valueOrDefault().applyAlpha(*PFULLSCREENALPHA);
     } else {
         if (m_self == Desktop::focusState()->window())
-            *m_activeInactiveAlpha = m_ruleApplicator->alpha().valueOrDefault().applyAlpha(*PACTIVEALPHA);
+            *alpha(WINDOW_ALPHA_ACTIVE) = m_ruleApplicator->alpha().valueOrDefault().applyAlpha(*PACTIVEALPHA);
         else
-            *m_activeInactiveAlpha = m_ruleApplicator->alphaInactive().valueOrDefault().applyAlpha(*PINACTIVEALPHA);
+            *alpha(WINDOW_ALPHA_ACTIVE) = m_ruleApplicator->alphaInactive().valueOrDefault().applyAlpha(*PINACTIVEALPHA);
     }
 
     // dim
@@ -2056,10 +2094,10 @@ void CWindow::mapWindow() {
         } else
             Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
 
-        m_activeInactiveAlpha->setValueAndWarp(*PACTIVEALPHA);
+        alpha(WINDOW_ALPHA_ACTIVE)->setValueAndWarp(*PACTIVEALPHA);
         m_dimPercent->setValueAndWarp(m_ruleApplicator->noDim().valueOrDefault() ? 0.f : *PDIMSTRENGTH);
     } else {
-        m_activeInactiveAlpha->setValueAndWarp(*PINACTIVEALPHA);
+        alpha(WINDOW_ALPHA_ACTIVE)->setValueAndWarp(*PINACTIVEALPHA);
         m_dimPercent->setValueAndWarp(0);
     }
 
@@ -2129,7 +2167,7 @@ void CWindow::mapWindow() {
     updateDecorationValues();
     // avoid this window being visible
     if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
-        m_alpha->setValueAndWarp(0.f);
+        alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
 
     g_pCompositor->setPreferredScaleForSurface(wlSurface()->resource(), PMONITOR->m_scale);
     g_pCompositor->setPreferredTransformForSurface(wlSurface()->resource(), PMONITOR->m_transform);

@@ -978,3 +978,63 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
         NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
     }
 }
+
+TEST_CASE(testScrollInhibitor) {
+
+    /*
+        scroll inhibitor prevent the scrolling view from moving
+        ---------------------------------------------------------------------------------
+    */
+
+    // set current layout to scrolling
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+
+
+    NLog::log("{}Testing inhibit_scroll", Colors::GREEN);
+
+
+    if (!Tests::spawnKitty("a")) {
+    FAIL_TEST("Could not spawn kitty with win class `a`");
+    return;
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+
+    if (!Tests::spawnKitty("b")) {
+    FAIL_TEST("Could not spawn kitty with win class `b`");
+    return;
+    }
+
+    // Currently, we are focused on window class:b
+
+    // enable scroll inhibitor
+    OK(getFromSocket("/dispatch hl.dsp.layout('inhibit_scroll 1')"));
+
+    // dispatching `layoutmsg focus l` will move scrolling view regardless of follow_focus if inhibitor is not working
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus l')"));
+
+    // the focus must have moved regardless of the state of the inhibitor (it only prevents the scrolling view from moving). We are now focused on window class:a
+
+    // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
+    const std::string posA  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const int         posAx = std::stoi(posA.substr(4, posA.find(',') - 4));
+    if (posAx < 0) {
+        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
+    } else {
+        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
+        return;
+    }
+
+
+    // clean up
+
+    // disable scroll inhibitor
+    OK(getFromSocket("/dispatch hl.dsp.layout('inhibit_scroll 0')"));
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}

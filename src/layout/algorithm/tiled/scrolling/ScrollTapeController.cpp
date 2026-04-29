@@ -54,7 +54,7 @@ void CScrollTapeController::adjustOffset(double delta) {
     m_offset += delta;
 }
 
-struct SScrollingInhibitor& CScrollTapeController::getScrollInhibitor() {
+struct SScrollInhibitor& CScrollTapeController::getScrollInhibitor() {
     return m_scrollInhibitor;
 }
 

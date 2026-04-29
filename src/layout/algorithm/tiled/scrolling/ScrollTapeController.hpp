@@ -29,7 +29,7 @@ namespace Layout::Tiled {
         size_t targetIndex = 0;
     };
 
-    struct SScrollingInhibitor {
+    struct SScrollInhibitor {
         bool   isInhibited         = false;
         double offsetWhenInhibited = 0; // The position of the m_offset when inhibited is necessary to keep the viewport static
     };
@@ -55,7 +55,7 @@ namespace Layout::Tiled {
         void                        setOffset(double offset);
         double                      getOffset() const;
         void                        adjustOffset(double delta);
-        struct SScrollingInhibitor& getScrollInhibitor();
+        struct SScrollInhibitor& getScrollInhibitor();
 
         double                      calculateMaxExtent(const CBox& usableArea, bool fullscreenOnOne = false) const;
         double                      calculateStripStart(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne = false) const;
@@ -77,7 +77,7 @@ namespace Layout::Tiled {
         eScrollDirection           m_direction = SCROLL_DIR_RIGHT;
         std::vector<SStripData>    m_strips;
         double                     m_offset = 0.0;
-        struct SScrollingInhibitor m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
+        struct SScrollInhibitor m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
 
         double                     getPrimary(const Vector2D& v) const;
         double                     getSecondary(const Vector2D& v) const;

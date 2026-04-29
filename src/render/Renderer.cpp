@@ -1655,17 +1655,17 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer.buffer = pMonitor->m_output->swapchain->next(&bufferAge);
-        if (!m_currentBuffer.buffer) {
+        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        if (!m_currentBuffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
         }
     } else
-        m_currentBuffer.buffer = buffer;
+        m_currentBuffer = buffer;
 
     initRender();
 
-    if (!initRenderBuffer(m_currentBuffer.buffer, pMonitor->m_output->state->state().drmFormat)) {
+    if (!initRenderBuffer(m_currentBuffer, pMonitor->m_output->state->state().drmFormat)) {
         Log::logger->log(Log::ERR, "failed to start a render pass for output {}, no RBO could be obtained", pMonitor->m_name);
         return false;
     }
@@ -1915,6 +1915,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     static int                                            damageBlinkCleanup = 0; // because double-buffered
 
     const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
+
+    auto                                                  cleanup = CScopeGuard([pMonitor]() { pMonitor->m_estimatedNextVblank = std::nullopt; });
 
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
@@ -2350,15 +2352,13 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     handleFullscreenSettings(pMonitor);
 
     static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_main_buffer");
-
-    if (*DEADLINE) {
+    if (*DEADLINE && m_currentBuffer) {
         auto deadline = pMonitor->isMultiGPU() || pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ?
             Time::steadyNow() + std::chrono::microseconds(100) :
-            pMonitor->m_estimatedNextVblank;
-        if (deadline) {
-            DRM::setDeadline(deadline.value(), m_currentBuffer.fence);
-            pMonitor->m_estimatedNextVblank = std::nullopt;
-        }
+            pMonitor->m_estimatedNextVblank.value();
+        auto fence    = DRM::exportFence(m_currentBuffer->dmabuf().fds[0]);
+
+        DRM::setDeadline(deadline, fence);
     }
 
     bool ok = pMonitor->m_state.commit();

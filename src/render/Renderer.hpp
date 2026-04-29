@@ -276,11 +276,7 @@ namespace Render {
         bool                              m_intel                   = false;
         bool                              m_software                = false;
         bool                              m_mgpu                    = false;
-
-        struct SBuffer {
-            SP<Aquamarine::IBuffer>        buffer = nullptr;
-            Hyprutils::OS::CFileDescriptor fence;
-        } m_currentBuffer;
+        SP<Aquamarine::IBuffer>           m_currentBuffer           = nullptr;
 
         struct {
             bool hiddenOnTouch    = false;

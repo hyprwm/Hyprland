@@ -1,6 +1,7 @@
 #include "LuaWorkspace.hpp"
 #include "LuaMonitor.hpp"
 #include "LuaWindow.hpp"
+#include "LuaGroup.hpp"
 #include "LuaObjectHelpers.hpp"
 
 #include "../../../desktop/Workspace.hpp"
@@ -68,51 +69,20 @@ static int workspaceGetGroups(lua_State* L) {
     }
 
     lua_newtable(L);
-    int                idx = 1;
+    int                                 idx = 1;
 
-    std::vector<void*> pushedGroups;
+    std::vector<Desktop::View::CGroup*> pushedGroups;
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace != ws || !w->m_group)
             continue;
 
-        if (std::find(pushedGroups.begin(), pushedGroups.end(), (void*)w->m_group.get()) != pushedGroups.end())
+        if (std::ranges::find(pushedGroups, w->m_group.get()) != pushedGroups.end())
             continue;
 
-        pushedGroups.push_back((void*)w->m_group.get());
+        pushedGroups.push_back(w->m_group.get());
 
-        lua_newtable(L);
-
-        lua_pushboolean(L, w->m_group->locked());
-        lua_setfield(L, -2, "locked");
-
-        lua_pushboolean(L, w->m_group->denied());
-        lua_setfield(L, -2, "denied");
-
-        lua_pushinteger(L, sc<lua_Integer>(w->m_group->size()));
-        lua_setfield(L, -2, "size");
-
-        lua_pushinteger(L, sc<lua_Integer>(w->m_group->getCurrentIdx()) + 1);
-        lua_setfield(L, -2, "current_index");
-
-        const auto current = w->m_group->current();
-        if (current)
-            Objects::CLuaWindow::push(L, current);
-        else
-            lua_pushnil(L);
-        lua_setfield(L, -2, "current");
-
-        lua_newtable(L);
-        int wIdx = 1;
-        for (const auto& grouped : w->m_group->windows()) {
-            const auto groupedWindow = grouped.lock();
-            if (!groupedWindow)
-                continue;
-
-            Objects::CLuaWindow::push(L, groupedWindow);
-            lua_rawseti(L, -2, wIdx++);
-        }
-        lua_setfield(L, -2, "members");
+        Objects::CLuaGroup::push(L, w->m_group);
 
         lua_rawseti(L, -2, idx++);
     }

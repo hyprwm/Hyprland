@@ -1,6 +1,7 @@
 #include "LuaWindow.hpp"
 #include "LuaWorkspace.hpp"
 #include "LuaMonitor.hpp"
+#include "LuaGroup.hpp"
 #include "LuaObjectHelpers.hpp"
 
 #include "../../../desktop/view/Window.hpp"
@@ -122,38 +123,7 @@ static int windowIndex(lua_State* L) {
             return 1;
         }
 
-        lua_newtable(L);
-
-        lua_pushboolean(L, w->m_group->locked());
-        lua_setfield(L, -2, "locked");
-
-        lua_pushboolean(L, w->m_group->denied());
-        lua_setfield(L, -2, "denied");
-
-        lua_pushinteger(L, sc<lua_Integer>(w->m_group->size()));
-        lua_setfield(L, -2, "size");
-
-        lua_pushinteger(L, sc<lua_Integer>(w->m_group->getCurrentIdx()) + 1);
-        lua_setfield(L, -2, "current_index");
-
-        const auto current = w->m_group->current();
-        if (current)
-            Objects::CLuaWindow::push(L, current);
-        else
-            lua_pushnil(L);
-        lua_setfield(L, -2, "current");
-
-        lua_newtable(L);
-        int i = 1;
-        for (const auto& grouped : w->m_group->windows()) {
-            const auto groupedWindow = grouped.lock();
-            if (!groupedWindow)
-                continue;
-
-            Objects::CLuaWindow::push(L, groupedWindow);
-            lua_rawseti(L, -2, i++);
-        }
-        lua_setfield(L, -2, "members");
+        Objects::CLuaGroup::push(L, w->m_group);
     } else if (key == "tags") {
         lua_newtable(L);
 

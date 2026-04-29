@@ -565,6 +565,15 @@ local __HL_WorkspaceRuleSpec = {}
 ---@field remove fun(self: HL.EventSubscription, ...): any
 local __HL_EventSubscription = {}
 
+---@class HL.Group
+---@field current HL.Window|nil
+---@field current_index integer
+---@field denied boolean
+---@field locked boolean
+---@field members HL.Window|table|nil
+---@field size integer
+local __HL_Group = {}
+
 ---@class HL.Keybind
 ---@field is_enabled fun(self: HL.Keybind, ...): any
 ---@field remove fun(self: HL.Keybind, ...): any
@@ -676,7 +685,7 @@ local __HL_Timer = {}
 ---@field focus_history_id integer
 ---@field fullscreen integer
 ---@field fullscreen_client integer
----@field group HL.Window|boolean|integer|table|nil
+---@field group HL.Group|nil
 ---@field hidden boolean
 ---@field inhibiting_idle boolean
 ---@field initial_class string

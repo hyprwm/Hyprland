@@ -430,7 +430,7 @@ ActionResult Actions::focus(PHLWINDOW window) {
         Desktop::focusState()->monitor()->m_activeSpecialWorkspace != window->m_workspace) // NOLINTNEXTLINE
         Actions::changeWorkspace(PWORKSPACE);
 
-    Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_KEYBIND, nullptr, false);
+    Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW, nullptr, false);
     window->warpCursor();
 
     return {};

@@ -151,14 +151,15 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
 
         if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
             static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_client_buffer");
+            auto const        WINDOW   = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
             if (g_pHyprRenderer->explicitSyncSupported()) {
-                if (state->updated.bits.acquire && *DEADLINE) {
+                if (state->updated.bits.acquire && *DEADLINE && WINDOW && WINDOW->m_monitor && WINDOW->m_monitor->m_solitaryClient == WINDOW) {
                     Time::steady_tp deadline = Time::steadyNow() + std::chrono::microseconds(100);
                     DRM::setDeadline(deadline, state->acquire.exportAsFD());
                 } else {
                     state->buffer->m_syncFds = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFiles();
                     if (!state->buffer->m_syncFds.empty()) {
-                        if (*DEADLINE) {
+                        if (*DEADLINE && WINDOW && WINDOW->m_monitor && WINDOW->m_monitor->m_solitaryClient == WINDOW) {
                             Time::steady_tp deadline = Time::steadyNow() + std::chrono::microseconds(100);
                             for (auto& fence : state->buffer->m_syncFds) {
                                 if (fence.isValid())

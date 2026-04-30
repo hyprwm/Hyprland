@@ -523,54 +523,6 @@ std::string execAndGet(const char* cmd) {
     return proc.stdOut();
 }
 
-void logSystemInfo() {
-    struct utsname unameInfo;
-
-    uname(&unameInfo);
-
-    Log::logger->log(Log::DEBUG, "System name: {}", std::string{unameInfo.sysname});
-    Log::logger->log(Log::DEBUG, "Node name: {}", std::string{unameInfo.nodename});
-    Log::logger->log(Log::DEBUG, "Release: {}", std::string{unameInfo.release});
-    Log::logger->log(Log::DEBUG, "Version: {}", std::string{unameInfo.version});
-
-    Log::logger->log(Log::DEBUG, "\n");
-
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
-#elif defined(__arm__) || defined(__aarch64__)
-    std::string                 GPUINFO;
-    const std::filesystem::path dev_tree = "/proc/device-tree";
-    try {
-        if (std::filesystem::exists(dev_tree) && std::filesystem::is_directory(dev_tree)) {
-            std::for_each(std::filesystem::directory_iterator(dev_tree), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& entry) {
-                if (std::filesystem::is_directory(entry) && entry.path().filename().string().starts_with("soc")) {
-                    std::for_each(std::filesystem::directory_iterator(entry.path()), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& sub_entry) {
-                        if (std::filesystem::is_directory(sub_entry) && sub_entry.path().filename().string().starts_with("gpu")) {
-                            std::filesystem::path file_path = sub_entry.path() / "compatible";
-                            std::ifstream         file(file_path);
-                            if (file)
-                                GPUINFO.append(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-                        }
-                    });
-                }
-            });
-        }
-    } catch (...) { GPUINFO = "error"; }
-#else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
-#endif
-    Log::logger->log(Log::DEBUG, "GPU information:\n{}\n", GPUINFO);
-
-    if (GPUINFO.contains("NVIDIA")) {
-        Log::logger->log(Log::WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
-    }
-
-    // log etc
-    Log::logger->log(Log::DEBUG, "os-release:");
-
-    Log::logger->log(Log::DEBUG, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
-}
-
 int64_t getPPIDof(int64_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {

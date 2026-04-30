@@ -18,6 +18,7 @@ class CXDGPopupResource;
 class CSeatGrab;
 class CWLSurfaceResource;
 class CXDGDialogV1Resource;
+struct SEventLoopDoLaterLock;
 
 struct SXDGPositionerState {
     Vector2D requestedSize;
@@ -149,8 +150,11 @@ class CXDGToplevelResource {
     std::vector<WP<CXDGToplevelResource>> m_children;
 
   private:
-    SP<CXdgToplevel> m_resource;
-    void             applyState();
+    SP<CXdgToplevel>          m_resource;
+
+    UP<SEventLoopDoLaterLock> m_stateUpdate;
+
+    void                      scheduleStateApplication();
 };
 
 class CXDGSurfaceRole : public ISurfaceRole {
@@ -202,12 +206,12 @@ class CXDGSurfaceResource {
     void configure();
 
   private:
-    SP<CXdgSurface>  m_resource;
+    SP<CXdgSurface>           m_resource;
 
-    uint32_t         m_lastConfigureSerial = 0;
-    uint32_t         m_scheduledSerial     = 0;
+    UP<SEventLoopDoLaterLock> m_stateUpdate;
 
-    wl_event_source* m_configureSource = nullptr;
+    uint32_t                  m_lastConfigureSerial = 0;
+    uint32_t                  m_scheduledSerial     = 0;
 
     //
     std::vector<WP<CXDGPopupResource>> m_popups;

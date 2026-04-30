@@ -19,6 +19,10 @@ vec4 blurFinish(vec4 pixColor, vec2 v_texcoord, float noise, float brightness
 #if USE_CM
                 ,
                 int sourceTF, int targetTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+#if USE_ICC
+                ,
+                highp sampler3D iccLut3D, float iccLutSize
+#endif
 #endif
 ) {
     // noise
@@ -30,7 +34,12 @@ vec4 blurFinish(vec4 pixColor, vec2 v_texcoord, float noise, float brightness
     pixColor.rgb *= min(1.0, brightness);
 
 #if USE_CM
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange);
+    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#if USE_ICC
+                                 ,
+                                 iccLut3D, iccLutSize
+#endif
+    );
 #endif
 
     return pixColor;

@@ -26,6 +26,10 @@ void main() {
 #if USE_CM
                            ,
                            sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+#if USE_ICC
+                           ,
+                           iccLut3D, iccLutSize
+#endif
 #endif
     );
 }

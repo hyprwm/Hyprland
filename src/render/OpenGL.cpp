@@ -1789,10 +1789,11 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
 
         currentTex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        // From FB to sRGB
+        // From sRGB back to the work buffer/output description
         const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
+        const bool isICC  = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
         if (!skipCM) {
-            shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM));
+            shader = useShader(getShaderVariant(SH_FRAG_BLURFINISH, SH_FEAT_CM | (isICC ? SH_FEAT_ICC : 0)));
             passCMUniforms(shader, getDefaultImageDescription(), g_pHyprRenderer->workBufferImageDescription());
             shader->setUniformFloat(SHADER_SDR_SATURATION,
                                     m_renderData.pMonitor->m_sdrSaturation > 0 &&

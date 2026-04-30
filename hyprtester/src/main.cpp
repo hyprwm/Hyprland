@@ -53,12 +53,14 @@ static bool         launchHyprland(Path configPath, Path binaryPath) {
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
     NLog::log("{}Launched async process", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
 
     return hyprlandProc->runAsync();
 }
 
 static bool hyprlandAlive() {
     NLog::log("{}hyprlandAlive", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     return kill(hyprlandProc->pid(), 0) == 0 || errno != ESRCH;
 }
 
@@ -145,24 +147,29 @@ static bool preTestCleanup() {
 
     if (!Tests::killAllWindows()) {
         NLog::log("{}Internal failure: failed to kill all windows", Colors::RED);
+        NLog::log("", Colors::RESET);
         failed = true;
     }
     if (!Tests::killAllLayers()) {
         NLog::log("{}Internal failure: failed to kill all layers", Colors::RED);
+        NLog::log("", Colors::RESET);
         failed = true;
     }
     if (getFromSocket("/reload") != "ok") {
         NLog::log("{}Internal failure: failed to reload", Colors::RED);
+        NLog::log("", Colors::RESET);
         failed = true;
     }
     if (!getFromSocket("/activeworkspace").contains("workspace ID 1 (1)")) {
         if (getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })") != "ok") {
             NLog::log("{}Internal failure: failed to switch to workspace 1", Colors::RED);
+            NLog::log("", Colors::RESET);
             failed = true;
         }
     }
     if (getFromSocket("/dispatch hl.dsp.cursor.move({ x = 960, y = 540 })") != "ok") {
         NLog::log("{}Internal failure: failed to reset cursor position", Colors::RED);
+        NLog::log("", Colors::RESET);
         failed = true;
     }
 
@@ -179,8 +186,10 @@ static void runTests(std::map<const char*, CTestCase&>& testCases) {
         tc.test();
         if (tc.failed)
             NLog::log("{}Test failed: {}", Colors::RED, name);
+            NLog::log("", Colors::RESET);
         else
             NLog::log("{}Test passed: {}", Colors::GREEN, name);
+            NLog::log("", Colors::RESET);
     }
 }
 
@@ -201,23 +210,27 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}launching hl", Colors::YELLOW);
     if (!launchHyprland(settings.configPath, settings.binaryPath)) {
         NLog::log("{}well it failed", Colors::RED);
-        std::cout << "\033[37m";
+        NLog::log("", Colors::RESET);
         return 1;
     }
 
     // hyprland has launched, let's check if it's alive after 10s
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     NLog::log("{}slept for 10s", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     if (!hyprlandAlive()) {
         NLog::log("{}Hyprland failed to launch", Colors::RED);
+        NLog::log("", Colors::RESET);
         return 1;
     }
 
     // wonderful, we are in. Let's get the instance signature.
     NLog::log("{}trying to get INSTANCES", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     const auto INSTANCES = instances();
     if (INSTANCES.empty()) {
         NLog::log("{}Hyprland failed to launch (2)", Colors::RED);
+        NLog::log("", Colors::RESET);
         return 1;
     }
 
@@ -228,22 +241,27 @@ int main(int argc, char** argv, char** envp) {
     getFromSocket("/output create headless");
 
     NLog::log("{}trying to load plugin", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {
         NLog::log("{}Failed to load the test plugin: {}", Colors::RED, R);
+        NLog::log("", Colors::RESET);
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
 
     long long failedTests = 0, totalTests = 0;
 
     NLog::log("{}Running main tests", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     runTests(mainTestCases);
     failedTests += countFailed(mainTestCases);
     totalTests += mainTestCases.size();
 
     NLog::log("{}Running protocol client tests", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     runTests(clientTestCases);
     failedTests += countFailed(clientTestCases);
     totalTests += clientTestCases.size();
@@ -251,31 +269,41 @@ int main(int argc, char** argv, char** envp) {
     // TODO: the two tests below should not be hardcoded, include them somewhere
 
     NLog::log("{}running plugin test", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     if (!testPlugin()) {
         NLog::log("{}Test failed: plugin test", Colors::RED);
+        NLog::log("", Colors::RESET);
         failedTests++;
     } else {
         NLog::log("{}Test passed: plugin test", Colors::GREEN);
+        NLog::log("", Colors::RESET);
     }
     totalTests++;
 
     NLog::log("{}running vkb test from plugin", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     if (!testVkb()) {
         NLog::log("{}Test failed: vkb test from plugin", Colors::RED);
+        NLog::log("", Colors::RESET);
         failedTests++;
     } else {
         NLog::log("{}Test passed: vkb test from plugin", Colors::GREEN);
+        NLog::log("", Colors::RESET);
     }
     totalTests++;
 
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);
+    NLog::log("", Colors::RESET);
     getFromSocket("/dispatch hl.dsp.exit()");
 
     NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, totalTests - failedTests, Colors::RESET, totalTests);
+    NLog::log("", Colors::RESET);
     NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, failedTests, Colors::RESET, totalTests);
+    NLog::log("", Colors::RESET);
     if (failedTests > 0)
         NLog::log("{}Some tests failed.", Colors::RED);
+    NLog::log("", Colors::RESET);
 
     kill(hyprlandProc->pid(), SIGKILL);
 

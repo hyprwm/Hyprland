@@ -142,9 +142,9 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
     const auto STEP = av.getCurveStep();
 
     if constexpr (std::same_as<VarType, CHyprColor>)
-        updateColorVariable(av, STEP.value, STEP.finished);
+        updateColorVariable(av, STEP.value, STEP.finished || animationsDisabled);
     else
-        updateVariable<VarType>(av, STEP.value, STEP.finished);
+        updateVariable<VarType>(av, STEP.value, STEP.finished || animationsDisabled);
 
     av.onUpdate();
 }

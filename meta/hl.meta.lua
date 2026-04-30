@@ -676,7 +676,7 @@ local __HL_Notification = {}
 local __HL_Timer = {}
 
 ---@class HL.Window
----@field acceptsInput boolean
+---@field accepts_input boolean
 ---@field active boolean|nil
 ---@field address string
 ---@field at integer|table

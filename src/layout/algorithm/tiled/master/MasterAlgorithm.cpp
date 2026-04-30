@@ -519,6 +519,8 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         const auto& ARG = vars[1]; // returns empty string if out of bounds
 
         const auto  TARGET = PMASTER->pTarget.lock();
+        if (!TARGET)
+            return stateErr("master target expired");
 
         if (TARGET != PWINDOW->layoutTarget()) {
             switchToWindow(TARGET);

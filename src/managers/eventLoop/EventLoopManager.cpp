@@ -16,6 +16,17 @@ using namespace Hyprutils::OS;
 
 #define TIMESPEC_NSEC_PER_SEC 1000000000L
 
+static uint64_t LAST_DO_LATER_SEQ = 1;
+
+SEventLoopDoLaterLock::SEventLoopDoLaterLock(uint64_t seq_) : seq(seq_) {
+    ;
+}
+
+SEventLoopDoLaterLock::~SEventLoopDoLaterLock() {
+    if (g_pEventLoopManager && seq > 0)
+        g_pEventLoopManager->removeDoLater(seq);
+}
+
 CEventLoopManager::CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop) {
     m_timers.timerfd  = CFileDescriptor{timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC)};
     m_wayland.loop    = wlEventLoop;
@@ -201,11 +212,13 @@ void CEventLoopManager::nudgeTimers() {
     timerfd_settime(m_timers.timerfd.get(), TFD_TIMER_ABSTIME, &ts, nullptr);
 }
 
-void CEventLoopManager::doLater(const std::function<void()>& fn) {
-    m_idle.fns.emplace_back(fn);
+uint64_t CEventLoopManager::doLater(const std::function<void()>& fn) {
+    const uint64_t NEW_SEQ = ++LAST_DO_LATER_SEQ;
+
+    m_idle.fns.emplace_back(std::make_pair<>(NEW_SEQ, fn));
 
     if (m_idle.eventSource)
-        return;
+        return NEW_SEQ;
 
     m_idle.eventSource = wl_event_loop_add_idle(
         m_wayland.loop,
@@ -215,11 +228,26 @@ void CEventLoopManager::doLater(const std::function<void()>& fn) {
             IDLE->fns.clear();
             IDLE->eventSource = nullptr;
             for (auto& f : fns) {
-                if (f)
-                    f();
+                if (f.second)
+                    f.second();
             }
         },
         &m_idle);
+
+    return NEW_SEQ;
+}
+
+void CEventLoopManager::removeDoLater(uint64_t seq) {
+    std::erase_if(m_idle.fns, [&seq](const auto& e) { return e.first == seq; });
+
+    if (m_idle.fns.empty() && m_idle.eventSource) {
+        wl_event_source_remove(m_idle.eventSource);
+        m_idle.eventSource = nullptr;
+    }
+}
+
+UP<SEventLoopDoLaterLock> CEventLoopManager::doLaterLock(const std::function<void()>& fn) {
+    return makeUnique<SEventLoopDoLaterLock>(doLater(fn));
 }
 
 void CEventLoopManager::doOnReadable(CFileDescriptor fd, std::function<void()>&& fn) {

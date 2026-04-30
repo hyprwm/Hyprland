@@ -580,6 +580,7 @@ local __HL_Group = {}
 ---@field set_enabled fun(self: HL.Keybind, ...): any
 ---@field unbind fun(self: HL.Keybind, ...): any
 ---@field arg string
+---@field auto_consuming boolean
 ---@field catchall boolean
 ---@field click boolean
 ---@field description any

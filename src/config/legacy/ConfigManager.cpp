@@ -1155,14 +1155,6 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SConfigOptionReply CConfigManager::getConfigValue(const std::string& val) {
-    const auto VAL = m_config->getConfigValuePtr(val.c_str());
-    if (!VAL)
-        return {};
-
-    return {.dataptr = VAL->getDataStaticPtr(), .type = &VAL->getValue().type(), .setByUser = VAL->m_bSetByUser};
-}
-
-SConfigOptionReply CConfigManager::getAnyConfigValue(const std::string& val) {
     const auto VAL = m_config->getAnyConfigValuePtr(val.c_str());
     if (!VAL)
         return {};

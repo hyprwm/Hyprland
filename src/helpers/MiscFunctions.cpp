@@ -941,5 +941,3 @@ bool truthy(const std::string& str) {
 
     return cpy.starts_with("true") || cpy.starts_with("yes") || cpy.starts_with("on");
 }
-
-std::string systemInfo() {}

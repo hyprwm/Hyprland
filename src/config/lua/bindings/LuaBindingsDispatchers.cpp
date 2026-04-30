@@ -1167,9 +1167,9 @@ static int hlWorkspaceToggleSpecial(lua_State* L) {
 
 static int hlWorkspaceRename(lua_State* L) {
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.workspace.rename: expected a table { id, name? }");
+        return Internal::configError(L, "hl.workspace.rename: expected a table { workspace, name? }");
 
-    const auto id   = Internal::requireTableFieldWorkspaceSelector(L, 1, "id", "hl.workspace.rename");
+    const auto id   = Internal::requireTableFieldWorkspaceSelector(L, 1, "workspace", "hl.workspace.rename");
     auto       name = Internal::tableOptStr(L, 1, "name");
 
     lua_pushstring(L, id.c_str());
@@ -1187,7 +1187,7 @@ static int hlWorkspaceMove(lua_State* L) {
 
     const auto mon = Internal::requireTableFieldMonitorSelector(L, 1, "monitor", "hl.workspace.move");
 
-    auto       id = Internal::tableOptWorkspaceSelector(L, 1, "id", "hl.workspace.move");
+    auto       id = Internal::tableOptWorkspaceSelector(L, 1, "workspace", "hl.workspace.move");
     if (id) {
         lua_pushstring(L, id->c_str());
         lua_pushstring(L, mon.c_str());

@@ -10,6 +10,10 @@
 #include <hyprutils/string/String.hpp>
 
 #include <sys/utsname.h>
+#include <fstream>
+#include <sstream>
+#include <format>
+#include <algorithm>
 
 using namespace Helpers::SystemInfo;
 using namespace Helpers;

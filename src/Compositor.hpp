@@ -117,8 +117,10 @@ class CCompositor {
     void                   cleanupFadingOut(const MONITORID& monid);
     PHLWINDOW              getWindowInDirection(PHLWINDOW, Math::eDirection);
     PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
-    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false);
-    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false);
+    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false,
+                                          bool allowFullscreenBlocked = false);
+    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false,
+                                              bool allowFullscreenBlocked = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
@@ -143,7 +145,6 @@ class CCompositor {
     PHLWINDOW              getWindowByRegex(const std::string&);
     void                   warpCursorTo(const Vector2D&, bool force = false);
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
-    void                   closeWindow(PHLWINDOW);
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     [[nodiscard]] PHLWORKSPACE          createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
                                                            bool isEmpty = true); // will be deleted next frame if left empty and unfocused!

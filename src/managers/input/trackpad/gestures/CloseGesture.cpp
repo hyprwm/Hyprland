@@ -9,6 +9,8 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../layout/target/Target.hpp"
 
+using namespace Desktop::View;
+
 constexpr const float                   MAX_DISTANCE = 200.F;
 
 static std::vector<SP<CEventLoopTimer>> trackpadCloseTimers;
@@ -33,18 +35,18 @@ void CCloseTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin&
     if (!m_window)
         return;
 
-    m_alphaFrom = m_window->m_alpha->goal();
+    m_alphaFrom = m_window->alphaGoal(WINDOW_ALPHA_FADE);
     m_posFrom   = m_window->m_realPosition->goal();
     m_sizeFrom  = m_window->m_realSize->goal();
 
     g_pDesktopAnimationManager->startAnimation(m_window.lock(), CDesktopAnimationManager::ANIMATION_TYPE_OUT, true);
-    *m_window->m_alpha = 0.f;
+    *m_window->alpha(WINDOW_ALPHA_FADE) = 0.f;
 
-    m_alphaTo = m_window->m_alpha->goal();
+    m_alphaTo = m_window->alphaGoal(WINDOW_ALPHA_FADE);
     m_posTo   = m_window->m_realPosition->goal();
     m_sizeTo  = m_window->m_realSize->goal();
 
-    m_window->m_alpha->setValueAndWarp(m_alphaFrom);
+    m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(m_alphaFrom);
     m_window->m_realPosition->setValueAndWarp(m_posFrom);
     m_window->m_realSize->setValueAndWarp(m_sizeFrom);
 
@@ -61,7 +63,7 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 
     const auto FADEPERCENT = std::clamp(m_lastDelta / MAX_DISTANCE, 0.F, 1.F);
 
-    m_window->m_alpha->setValueAndWarp(lerpVal(m_alphaFrom, m_alphaTo, FADEPERCENT));
+    m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(lerpVal(m_alphaFrom, m_alphaTo, FADEPERCENT));
     m_window->m_realPosition->setValueAndWarp(lerpVal(m_posFrom, m_posTo, FADEPERCENT));
     m_window->m_realSize->setValueAndWarp(lerpVal(m_sizeFrom, m_sizeTo, FADEPERCENT));
 
@@ -71,7 +73,7 @@ void CCloseTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdat
 }
 
 void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) {
-    static const auto PTIMEOUT = CConfigValue<Hyprlang::INT>("gestures:close_max_timeout");
+    static const auto PTIMEOUT = CConfigValue<Config::INTEGER>("gestures:close_max_timeout");
 
     if (!m_window)
         return;
@@ -81,20 +83,20 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        *m_window->m_alpha        = m_alphaFrom;
-        *m_window->m_realPosition = m_posFrom;
-        *m_window->m_realSize     = m_sizeFrom;
+        *m_window->alpha(WINDOW_ALPHA_FADE) = m_alphaFrom;
+        *m_window->m_realPosition           = m_posFrom;
+        *m_window->m_realSize               = m_sizeFrom;
         return;
     }
 
     // commence. Close the window and restore our current state to avoid a harsh anim
-    const auto CURRENT_ALPHA = m_window->m_alpha->value();
+    const auto CURRENT_ALPHA = m_window->alphaValue(WINDOW_ALPHA_FADE);
     const auto CURRENT_POS   = m_window->m_realPosition->value();
     const auto CURRENT_SIZE  = m_window->m_realSize->value();
 
-    g_pCompositor->closeWindow(m_window.lock());
+    Desktop::focusState()->window()->sendClose();
 
-    m_window->m_alpha->setValueAndWarp(CURRENT_ALPHA);
+    m_window->alpha(WINDOW_ALPHA_FADE)->setValueAndWarp(CURRENT_ALPHA);
     m_window->m_realPosition->setValueAndWarp(CURRENT_POS);
     m_window->m_realSize->setValueAndWarp(CURRENT_SIZE);
 
@@ -136,7 +138,7 @@ void CCloseTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
             window->layoutTarget()->recalc();
             window->updateDecorationValues();
             window->sendWindowSize(true);
-            *window->m_alpha = 1.F;
+            *window->alpha(WINDOW_ALPHA_FADE) = 1.F;
         },
         nullptr);
     trackpadCloseTimers.emplace_back(timer);

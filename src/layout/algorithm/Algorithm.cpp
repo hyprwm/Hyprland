@@ -132,7 +132,7 @@ void CAlgorithm::recenter(SP<ITarget> t) {
         m_floating->recenter(t);
 }
 
-std::expected<void, std::string> CAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CAlgorithm::layoutMsg(const std::string_view& sv) {
     if (const auto ret = m_floating->layoutMsg(sv); !ret)
         return ret;
     return m_tiled->layoutMsg(sv);

@@ -84,7 +84,7 @@ bool CGroup::has(PHLWINDOW w) const {
 }
 
 void CGroup::add(PHLWINDOW w) {
-    static auto INSERT_AFTER_CURRENT = CConfigValue<Hyprlang::INT>("group:insert_after_current");
+    static auto INSERT_AFTER_CURRENT = CConfigValue<Config::INTEGER>("group:insert_after_current");
 
     if (w->m_group) {
         if (w->m_group == m_self)
@@ -142,7 +142,8 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
     w->m_group.reset();
     removeWindowDecos(w);
 
-    w->setHidden(false);
+    w->setInputBlocked(INPUT_BLOCK_GROUP_INACTIVE, false);
+    *w->alpha(WINDOW_ALPHA_LAYOUT) = 1.F;
 
     const bool REMOVING_GROUP = m_windows.size() <= 1;
 
@@ -280,12 +281,16 @@ void CGroup::updateWindowVisibility() {
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (i == m_current) {
             auto& x = m_windows.at(i);
-            x->setHidden(false);
+            x->setInputBlocked(INPUT_BLOCK_GROUP_INACTIVE, false);
+            *x->alpha(WINDOW_ALPHA_LAYOUT) = 1.F;
             x->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_GROUP | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
             x->updateWindowDecos();
             x->updateDecorationValues();
-        } else
-            m_windows.at(i)->setHidden(true);
+        } else {
+            auto& x = m_windows.at(i);
+            x->setInputBlocked(INPUT_BLOCK_GROUP_INACTIVE, true);
+            *x->alpha(WINDOW_ALPHA_LAYOUT) = 0.F;
+        }
     }
 
     m_target->recalc();

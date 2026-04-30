@@ -2,7 +2,7 @@
 
 #include <dlfcn.h>
 #include <ranges>
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
@@ -175,9 +175,8 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, sp);
     }
 
-    // FIXME: this is wrong and if I forget to fix this by the time I add another config parser
-    // this will explode and I will be mad because I am a RETARD
-    Config::Legacy::mgr()->removePluginConfig(plugin->m_handle);
+    if (Config::mgr())
+        Config::mgr()->onPluginUnload(plugin->m_handle);
 
     // save these two for dlclose and a log,
     // as erase_if will kill the pointer

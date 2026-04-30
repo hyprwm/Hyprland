@@ -143,10 +143,11 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
 
         auto& managed            = *it;
         managed->stoppedListener = managed->m_session->m_events.stopped.listen([managed = WP<SManagedSession>(managed)]() {
-            if (!managed.expired()) {
-                auto* target = managed->m_session.get();
-                std::erase_if(Screenshare::mgr()->m_managedSessions, [target](const auto& s) { return s && s->m_session.get() == target; });
-            }
+            if (!managed)
+                return;
+
+            const auto& session = managed->m_session;
+            std::erase_if(Screenshare::mgr()->m_managedSessions, [&session](const auto& s) { return s && s->m_session == session; });
         });
     }
 

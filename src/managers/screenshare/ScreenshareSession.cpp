@@ -56,9 +56,9 @@ void CScreenshareSession::stop() {
     if (m_stopped)
         return;
     m_stopped = true;
-    m_events.stopped.emit();
 
     screenshareEvents(false);
+    m_events.stopped.emit();
 }
 
 bool CScreenshareSession::isActive() {

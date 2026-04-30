@@ -10,6 +10,7 @@
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
 #include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
+#include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
@@ -239,7 +240,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     Log::logger->log(Log::DEBUG, "===== SYSTEM INFO: =====");
 
-    logSystemInfo();
+    Log::logger->log(Log::DEBUG, "{}", Helpers::SystemInfo::getSystemInfo());
 
     Log::logger->log(Log::DEBUG, "========================");
 

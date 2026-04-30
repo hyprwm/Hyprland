@@ -507,7 +507,7 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
     const auto boolToString = [](const bool b) -> std::string { return b ? "true" : "false"; };
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         const std::string monitor     = r.m_monitor.empty() ? "" : std::format(",\n    \"monitor\": \"{}\"", escapeJSONStrings(r.m_monitor));
-        const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault)) : "";
+        const std::string default_    = sc<bool>(r.m_isDefault) ? std::format(",\n    \"default\": {}", boolToString(r.m_isDefault.value())) : "";
         const std::string persistent  = sc<bool>(r.m_isPersistent) ? std::format(",\n    \"persistent\": {}", boolToString(r.m_isPersistent.value())) : "";
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
             std::format(",\n    \"gapsIn\": [{}, {}, {}, {}]", r.m_gapsIn.value().m_top, r.m_gapsIn.value().m_right, r.m_gapsIn.value().m_bottom, r.m_gapsIn.value().m_left) :
@@ -531,7 +531,7 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         return result;
     } else {
         const std::string monitor     = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
-        const std::string default_    = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault) : "<unset>");
+        const std::string default_    = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
         const std::string persistent  = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
         const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
             std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.m_gapsIn.value().m_top), std::to_string(r.m_gapsIn.value().m_right),

@@ -756,3 +756,64 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
     ASSERT(Tests::windowCount(), 0);
 
 }
+
+
+
+TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
+
+    /*
+    when a window is moved inside a group, scrolling view should move to fit that group when follow_focus = true
+    ------------------------------------------------------------------------------------------------------------
+    */
+    
+    NLog::log("{}Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+
+    // ensure variables are correctly set for the test
+    OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    if (!Tests::spawnKitty("c")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
+    }
+
+    // focus class:b
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
+
+    // move it into the group where class:a is
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_group = 'left' })"));
+
+    // the focus now should still be on class:b window. If the scrolling view did move, its x coordinate for its `at:` value should be >= 0
+
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test fail
+    if (std::stoi(currentWindowPosX) < 0) {
+        FAIL_TEST("{}window of class 'b' does not have x coordinates >= 0 for its position: {}", Colors::RED, currentWindowPosX);
+    }
+    // test pass
+    else {
+        NLog ::log("{}Passed: {}window of class 'b' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}
+

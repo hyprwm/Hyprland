@@ -79,9 +79,7 @@ CCursorManager::CCursorManager() {
         if (SIZE) {
             try {
                 m_size = std::stoi(SIZE);
-            } catch (...) {
-                Log::logger->log(Log::WARN, "Invalid HYPRCURSOR_SIZE value \"{}\"", SIZE);
-            }
+            } catch (...) { Log::logger->log(Log::WARN, "Invalid HYPRCURSOR_SIZE value \"{}\"", SIZE); }
         }
 
         if (m_size <= 0) {
@@ -95,9 +93,7 @@ CCursorManager::CCursorManager() {
         if (SIZE) {
             try {
                 m_size = std::stoi(SIZE);
-            } catch (...) {
-                Log::logger->log(Log::WARN, "Invalid XCURSOR_SIZE value \"{}\"", SIZE);
-            }
+            } catch (...) { Log::logger->log(Log::WARN, "Invalid XCURSOR_SIZE value \"{}\"", SIZE); }
         }
 
         if (m_size <= 0) {

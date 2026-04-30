@@ -55,7 +55,7 @@ std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const std::string& nam
         if (!other->m_enabled)
             continue;
 
-        if (other->m_isDefault) {
+        if (other->m_isDefault.value_or(false)) {
             if (other->m_monitor == name)
                 return other->m_workspaceString;
             if (other->m_monitor.starts_with("desc:")) {

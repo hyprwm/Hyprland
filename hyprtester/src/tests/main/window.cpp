@@ -588,6 +588,28 @@ TEST_CASE(issue14038) {
     // this should not crash hyprland. If we are alive, we good.
 }
 
+TEST_CASE(specialFloatRecenters) {
+    if (!spawnKitty("kitty_special_float_recenter"))
+        FAIL_TEST("Could not spawn kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set', window = 'class:kitty_special_float_recenter' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 10, y = 10, window = 'class:kitty_special_float_recenter' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = 'special:recenter', follow = false, window = 'class:kitty_special_float_recenter' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 50000, y = 50000, window = 'class:kitty_special_float_recenter' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('recenter')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_special_float_recenter' })"));
+
+    const auto active = getFromSocket("/activewindow");
+    EXPECT_CONTAINS(active, "class: kitty_special_float_recenter");
+    EXPECT_CONTAINS(active, "size: 10,10");
+    EXPECT_CONTAINS(active, "at: 955,535");
+
+    OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('recenter')"));
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}
+
 // TODO: decompose this into multiple test cases
 TEST_CASE(windows) {
     // test on workspace "window"

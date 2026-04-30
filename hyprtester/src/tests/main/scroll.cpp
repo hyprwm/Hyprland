@@ -195,7 +195,7 @@ TEST_CASE(scrollWindowRule) {
     ASSERT(Tests::windowCount(), 2);
 
     // not the greatest test, but as long as res and gaps don't change, we good.
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }
 
 
@@ -687,6 +687,65 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     // test fail
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+
+}
+
+
+TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
+
+    /*
+     when a window is moved inside a group, scrolling view should not move to fit that group when follow_focus = false
+     -----------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: moving a window into a group SHOULD NOT move scrolling view if follow_focus = 0", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+    OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    if (!Tests::spawnKitty("c")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
+    }
+
+    // focus class:b
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
+
+    // move it into the group where class:a is
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_group = 'left' })"));
+
+    // the focus now should still be on class:b window. If the view did not move, its x coordinate for its `at:` value should be <0
+
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'b' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'b' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
 
     // clean up

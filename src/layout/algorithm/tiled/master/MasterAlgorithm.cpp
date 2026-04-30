@@ -476,6 +476,8 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
             return stateErr("no master node");
 
         const auto NEWCHILD = PMASTER->pTarget.lock();
+        if (!NEWCHILD)
+            return stateErr("master target expired");
 
         const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
 

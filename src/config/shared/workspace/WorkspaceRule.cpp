@@ -3,7 +3,7 @@
 using namespace Config;
 
 void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
-    if (m_monitor.empty())
+    if (!other.m_monitor.empty())
         m_monitor = other.m_monitor;
     if (m_workspaceString.empty())
         m_workspaceString = other.m_workspaceString;
@@ -14,8 +14,8 @@ void CWorkspaceRule::mergeLeft(const CWorkspaceRule& other) {
 
     if (other.m_isDefault)
         m_isDefault = true;
-    if (other.m_isPersistent)
-        m_isPersistent = true;
+    if (other.m_isPersistent.has_value())
+        m_isPersistent = other.m_isPersistent;
     if (other.m_gapsIn.has_value())
         m_gapsIn = other.m_gapsIn;
     if (other.m_gapsOut.has_value())

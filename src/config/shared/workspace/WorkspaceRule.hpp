@@ -28,7 +28,7 @@ namespace Config {
         std::string                        m_workspaceName   = "";
         WORKSPACEID                        m_workspaceId     = -1;
         bool                               m_isDefault       = false;
-        bool                               m_isPersistent    = false;
+        std::optional<bool>                m_isPersistent;
         std::optional<CCssGapData>         m_gapsIn;
         std::optional<CCssGapData>         m_gapsOut;
         std::optional<CCssGapData>         m_floatGaps = m_gapsOut;

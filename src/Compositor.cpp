@@ -1699,7 +1699,7 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
 
     // Give priority to persistent workspaces to avoid any conflicts between them.
     for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-        if (!rule.m_isPersistent)
+        if (!rule.m_isPersistent.value_or(false))
             continue;
         if (rule.m_workspaceId < -1 && rule.m_workspaceId < lowest)
             lowest = rule.m_workspaceId;
@@ -3096,7 +3096,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
     std::vector<PHLWORKSPACE> persistentFound;
 
     for (const auto& rule : rules) {
-        if (!rule.m_isPersistent)
+        if (!rule.m_isPersistent.value_or(false))
             continue;
 
         PHLWORKSPACE PWORKSPACE = nullptr;

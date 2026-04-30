@@ -817,3 +817,65 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     ASSERT(Tests::windowCount(), 0);
 }
 
+
+TEST_CASE(testScrollingViewBehaviourNewLayer) {
+
+    /*
+     Starting a program on a different layer shouldn't cause scrolling view to move to fit the window that was focused when this program was started, regardless of follow_focus
+     ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: new program occupying another layer shouldn't move scrolling view", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    
+    // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    // focus class:a - this does not move scrolling view when follow_focus = 0
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
+    
+
+    NLog::log("{}Spawning kitty layer {}", Colors::YELLOW, "myLayer");
+    if (!Tests::spawnLayerKitty("myLayer")) {
+        FAIL_TEST("{}Error: {} layer did not spawn", Colors::RED, "myLayer");
+    }
+
+    // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
+
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    EXPECT(Tests::windowCount(), 0);
+
+    // kill all layers
+    NLog::log("{}Killing all layers", Colors::YELLOW);
+    Tests::killAllLayers();
+    EXPECT(Tests::layerCount(), 0);
+}
+

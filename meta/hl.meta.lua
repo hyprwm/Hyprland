@@ -212,6 +212,7 @@
 ---| "group.groupbar.indicator_gap"
 ---| "group.groupbar.indicator_height"
 ---| "group.groupbar.keep_upper_gap"
+---| "group.groupbar.middle_click_close"
 ---| "group.groupbar.priority"
 ---| "group.groupbar.render_titles"
 ---| "group.groupbar.round_only_edges"
@@ -1041,6 +1042,7 @@ hl = {}
 ---@field ['group.groupbar.indicator_gap'] integer|boolean
 ---@field ['group.groupbar.indicator_height'] integer|boolean
 ---@field ['group.groupbar.keep_upper_gap'] boolean
+---@field ['group.groupbar.middle_click_close'] boolean
 ---@field ['group.groupbar.priority'] integer|boolean
 ---@field ['group.groupbar.render_titles'] boolean
 ---@field ['group.groupbar.round_only_edges'] boolean

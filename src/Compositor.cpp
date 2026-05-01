@@ -10,6 +10,7 @@
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
 #include "desktop/view/Group.hpp"
 #include "helpers/Splashes.hpp"
+#include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"
 #include "config/legacy/ConfigManager.hpp"
 #include "config/shared/inotify/ConfigWatcher.hpp"
@@ -232,26 +233,7 @@ CCompositor::CCompositor(bool onlyConfig) : m_onlyConfigVerification(onlyConfig)
 
     Log::logger->initIS(m_instancePath);
 
-    Log::logger->log(Log::DEBUG, "Instance Signature: {}", m_instanceSignature);
-
-    Log::logger->log(Log::DEBUG, "Runtime directory: {}", m_instancePath);
-
-    Log::logger->log(Log::DEBUG, "Hyprland PID: {}", m_hyprlandPID);
-
-    Log::logger->log(Log::DEBUG, "===== SYSTEM INFO: =====");
-
-    logSystemInfo();
-
-    Log::logger->log(Log::DEBUG, "========================");
-
-    Log::logger->log(Log::DEBUG, "\n\n"); // pad
-
-    Log::logger->log(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/Crashes-and-Bugs/\n\n");
-
     setRandomSplash();
-
-    Log::logger->log(Log::DEBUG, "\nCurrent splash: {}\n\n", m_currentSplash);
-
     bumpNofile();
 }
 
@@ -364,6 +346,16 @@ void CCompositor::initServer(std::string socketName, int socketFd) {
     }
 
     m_initialized = true;
+
+    Log::logger->log(Log::DEBUG, "Instance Signature: {}", m_instanceSignature);
+    Log::logger->log(Log::DEBUG, "Runtime directory: {}", m_instancePath);
+    Log::logger->log(Log::DEBUG, "Hyprland PID: {}", m_hyprlandPID);
+    Log::logger->log(Log::DEBUG, "===== SYSTEM INFO: =====");
+    Log::logger->log(Log::DEBUG, "{}", Helpers::SystemInfo::getSystemInfo());
+    Log::logger->log(Log::DEBUG, "========================");
+    Log::logger->log(Log::DEBUG, "\n\n"); // pad
+    Log::logger->log(Log::INFO, "If you are crashing, or encounter any bugs, please consult https://wiki.hypr.land/Crashes-and-Bugs/\n\n");
+    Log::logger->log(Log::DEBUG, "\nCurrent splash: {}\n\n", m_currentSplash);
 
     m_drm.fd = m_aqBackend->drmFD();
     Log::logger->log(Log::DEBUG, "Running on DRMFD: {}", m_drm.fd);
@@ -1699,7 +1691,7 @@ WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
 
     // Give priority to persistent workspaces to avoid any conflicts between them.
     for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-        if (!rule.m_isPersistent)
+        if (!rule.m_isPersistent.value_or(false))
             continue;
         if (rule.m_workspaceId < -1 && rule.m_workspaceId < lowest)
             lowest = rule.m_workspaceId;
@@ -3096,7 +3088,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
     std::vector<PHLWORKSPACE> persistentFound;
 
     for (const auto& rule : rules) {
-        if (!rule.m_isPersistent)
+        if (!rule.m_isPersistent.value_or(false))
             continue;
 
         PHLWORKSPACE PWORKSPACE = nullptr;

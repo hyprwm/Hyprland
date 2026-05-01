@@ -476,10 +476,12 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
             return stateErr("no master node");
 
         const auto NEWCHILD = PMASTER->pTarget.lock();
+        if (!NEWCHILD)
+            return stateErr("master target expired");
 
         const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
 
-        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
+        if (NEWCHILD != PWINDOW->layoutTarget()) {
             const auto& NEWMASTER       = PWINDOW->layoutTarget();
             const bool  newFocusToChild = vars.size() >= 2 && vars[1] == "child";
             g_layoutManager->switchTargets(NEWMASTER, NEWCHILD);
@@ -516,8 +518,12 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
 
         const auto& ARG = vars[1]; // returns empty string if out of bounds
 
-        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
-            switchToWindow(PMASTER->pTarget.lock());
+        const auto  TARGET = PMASTER->pTarget.lock();
+        if (!TARGET)
+            return stateErr("master target expired");
+
+        if (TARGET != PWINDOW->layoutTarget()) {
+            switchToWindow(TARGET);
             // save previously focused window (only for `previous` mode)
             if (ARG == "previous")
                 m_workspaceData.focusMasterPrev = PWINDOW->layoutTarget();

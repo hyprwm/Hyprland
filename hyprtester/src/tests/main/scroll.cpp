@@ -1086,3 +1086,72 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
+
+
+TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
+
+    /*
+     When movefocus is dispatched within groups to move focus from one group member to another, scrolling view must not move if follow_focus = false
+     -----------------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    NLog::log("{}Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false", Colors::GREEN);
+
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+
+    // necessary to make sure movefocus first cycles through tabs in a group
+    OK(getFromSocket("/eval hl.config({ binds = {movefocus_cycles_groupfirst = true}})"));
+        OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle({window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
+    }
+
+    if (!Tests::spawnKitty("c")) {
+        FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
+    }
+
+    // focus class:b. This does not cause scrolling view to move when follow_focus = false
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})"));
+
+    // move it into the group where class:a is. This does not cause scrolling view to move when follow_focus = false
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_group = 'left' })"));
+
+    // we move from one window of a group to another (from class:b to class:a) via movefocus
+    OK(getFromSocket("/dispatch hl.dsp.focus({direction = 'left'})"));
+
+    // the focus now should still be on class:a window. If the scrolling view did not move, its x coordinate for its `at:` value should be < 0
+
+    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+
+    // clean up
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+}
+
+
+
+

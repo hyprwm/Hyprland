@@ -48,6 +48,13 @@ namespace {
         lua_pop(L, 1);
         return v;
     }
+
+    bool isGlobalNil(lua_State* L, const char* name) {
+        lua_getglobal(L, name);
+        const bool isnil = lua_isnil(L, -1);
+        lua_pop(L, 1);
+        return isnil;
+    }
 }
 
 TEST(ConfigLuaObjects, keybindCanToggleEnabledFromLua) {
@@ -138,7 +145,9 @@ TEST(ConfigLuaObjects, objectsAreReadOnlyFromLua) {
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
 
-    EXPECT_NE(luaL_dostring(L, "kb.foo = 1"), LUA_OK);
+    luaL_dostring(L, "kb.foo = 1");
+    luaL_dostring(L, "x = kb.foo");
+    EXPECT_TRUE(isGlobalNil(L, "x"));
 }
 
 TEST(ConfigLuaObjects, keybindSupportsEqAndToString) {

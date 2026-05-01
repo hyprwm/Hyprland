@@ -386,6 +386,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "O aplicativo <b>{app}</b> está pedindo uma permissão desconhecida.");
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "O aplicativo <b>{app}</b> está tentando capturar sua tela.\n\nVocê deseja permitir?");
+    huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "O aplicativo <b>{app}</b> está tentando capturar a posição de seu cursor. \n\nVocẽ deseja permitir?");
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "O aplicativo <b>{app}</b> está tentando carregar um plugin: <b>{plugin}</b>.\n\nVocê deseja permitir?");
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "Um novo teclado foi detectado: <b>{keyboard}</b>.\n\nVocê deseja permitir seu uso?");
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(Desconhecido)");
@@ -398,8 +399,9 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_DENY, "Negar");
     huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Aplicativo desconhecido (wayland client ID {wayland_id})");
 
-    huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
-                            "Seu XDG_CURRENT_DESKTOP parece estar sendo gerenciado externamente, e atualmente é {value}.\nIsso pode causar problemas caso não seja intencional.");
+    huEngine->registerEntry(
+        "pt_BR", TXT_KEY_NOTIF_EXTERNAL_XDG_DESKTOP,
+        "Seu XDG_CURRENT_DESKTOP parece estar sendo gerenciado externamente, e atualmente é {value}.\nIsso pode causar problemas caso não seja intencional.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_NO_GUIUTILS,
                             "Seu sistema não possui hyprland-guiutils instalado. Essa é uma dependência de execução para alguns diálogos. Considere instalá-lo.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_FAILED_ASSETS, [](const Hyprutils::I18n::translationVarMap& vars) {
@@ -418,7 +420,19 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Falha ao carregar o plugin {name}: {error}");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Falha ao carregar o shader CM, voltando para rgba/rgbx.");
     huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: o modo de gama de cores amplo está ativado, mas a tela não está configurada para 10 bits.");
+    huEngine->registerEntry("pt_BR", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland foi iniciado sem o comando start-hyprland. Isso é altamente desaconselhàvel a menos que você esteja em um ambiente de depuração.");
 
+    huEngine->registerEntry("pt_BR", TXT_KEY_SAFE_MODE_TITLE, "Modo seguro");
+    huEngine->registerEntry("pt_BR", TXT_KEY_SAFE_MODE_DESCRIPTION, 
+                            "Hyprland foi iniciado no modo seguro, oque significa que a sua ultima sessão falhou.\nO modo seguro previne que suas configurações sejam carregadas. Você pode "
+                            "solucionar esse problema nesse ambiente ou carregar suas configurações com o botão abaixo. \nEsse ambiente usa os atalhos padrões: SUPER+Q para abrir kitty, "
+                            "SUPER+R para abrir o inicializador básico, SUPER+M para sair do Hyprland. \nReiniciar "
+                            "o Hyprland o ira lançar no modo normal novamente.");
+    huEngine->registerEntry("pt_BR", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Carregar configurações");
+    huEngine->registerEntry("pt_BR", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Abrir diretório de relatórios de falhas");
+    huEngine->registerEntry("pt_BR", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Entendido, fechar isso");
+    
     // es (Spanish)
     huEngine->registerEntry("es", TXT_KEY_ANR_TITLE, "La aplicación no responde");
     huEngine->registerEntry("es", TXT_KEY_ANR_CONTENT, "La aplicación {title} - {class} no responde.\n¿Qué deseas hacer?");

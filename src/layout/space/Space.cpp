@@ -203,8 +203,8 @@ SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
 }
 
 bool Layout::isHardRecalculateReason(eRecalculateReason reason) {
-    return reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE  &&
-        reason != RECALCULATE_REASON_TOGGLE_FULLSCREEN && reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR;
+    return reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_TOGGLE_FULLSCREEN &&
+        reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR;
 }
 
 const std::vector<WP<ITarget>>& CSpace::targets() const {

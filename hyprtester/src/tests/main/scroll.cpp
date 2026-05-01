@@ -198,11 +198,7 @@ TEST_CASE(scrollWindowRule) {
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }
 
-
-
-
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
-
 
     /*
      focuswindow DOES NOT move the scrolling view when follow_focus = false
@@ -210,7 +206,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     */
 
     NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD NOT move scrolling view when follow_focus = false", Colors::GREEN);
-    
+
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
@@ -221,7 +217,6 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     }
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
-
 
     if (!Tests::spawnKitty("b")) {
         FAIL_TEST("Could not spawn kitty with win class `b`");
@@ -249,19 +244,16 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     ASSERT(Tests::windowCount(), 0);
 }
 
-
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
-
 
     /*
      focuswindow DOES move the view when follow_focus = true
      --------------------------------------------------------------------
     */
-    
-    NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true", Colors::GREEN);
-    
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
+    NLog::log("{}Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("Could not spawn kitty with win class `a`");
@@ -269,13 +261,11 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-
     if (!Tests::spawnKitty("b")) {
         FAIL_TEST("Could not spawn kitty with win class `b`");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
-
 
     // If the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport.
     // If it is not, the view moved, which is what we expect to happen.
@@ -289,13 +279,11 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
 
     // clean up
 
-
     // kill all windows
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
-
 
 TEST_CASE(testScrollingViewBehaviourFocusFallback) {
 
@@ -306,20 +294,16 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
 
     NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view", Colors::GREEN);
 
-
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-
-    
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
     }
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
-
 
     if (!Tests::spawnKitty("b")) {
         FAIL_TEST("{}Failed to spawn kitty with class `b`", Colors::RED);
@@ -336,8 +320,6 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})"));
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})"));
-
-
 
     // kill the floating window
     // Expect the focus to fall back to the left tiled window
@@ -367,16 +349,13 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
     ASSERT(Tests::windowCount(), 0);
 }
 
-
-
 TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
 
     // same idea as testScrollingViewBehaviourFocusFallback, but with window of class "a" being grouped.
-    
-    NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view", Colors::GREEN);
-    
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
+    NLog::log("{}Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
 
@@ -435,7 +414,6 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
 }
 
 TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
@@ -452,10 +430,8 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-
     // switch to workspace 1 for this test
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
-
 
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
@@ -470,12 +446,11 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     // does not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
-
-    // change to workspace 2, then back to workspace 1 again    
+    // change to workspace 2, then back to workspace 1 again
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '2'})"));
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
 
-    // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
+    // If the scrolling view did not move, the x value for `at:` of the currently focused window, class:a, must be <0 (must be left of the viewport)
     const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
 
@@ -494,11 +469,7 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
-
 }
-
-
 
 TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
 
@@ -509,9 +480,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
 
     NLog::log("{}Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view", Colors::GREEN);
 
-
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
-
 
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
@@ -531,8 +500,6 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
 
     // does not move view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
-    
-
 
     // change to workspace 2, then back to special "scroll_S" workspace again
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '2'})"));
@@ -561,11 +528,8 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     ASSERT(Tests::windowCount(), 0);
 }
 
-
-
 TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
 
-    
     /*
     We also test switching between 2 special workspaces
     This follows the same idea and dependencies as the test testScrollingViewBehaviourSpecialWorkspaceChange()
@@ -575,15 +539,11 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-
-
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
-
     // We'll test in this special workspace
     OK(getFromSocket("/dispatch hl.dsp.workspace.toggle_special('name:scroll_S')"));
-
 
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
@@ -624,23 +584,18 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
 }
 
-
 TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
-
 
     /*
      When you change close a window inside a group (NOT destroying the group!), it should not cause scrolling view to shift to pull that group into view, regardless of follow_focus
      -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    
     NLog::log("{}Testing scrolling view behaviour: closing a window in a group (> 1 window in group) should not move scrolling view", Colors::GREEN);
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
-
 
     // ensure variables are correctly set for the test
 
@@ -660,10 +615,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
         FAIL_TEST("{}Failed to spawn kitty with win class `b`", Colors::RED);
     }
 
-
     OK(getFromSocket("/dispatch hl.dsp.window.move({ into_group = 'left' })"));
-    
-
 
     if (!Tests::spawnKitty("c")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `c`", Colors::RED);
@@ -676,7 +628,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     OK(getFromSocket("/dispatch hl.dsp.window.kill({window = 'class:b'})"));
     Tests::waitUntilWindowsN(2);
 
-    // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
+    // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:a, must be <0 (must be left of the viewport)
 
     const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
@@ -695,9 +647,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
 }
-
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
 
@@ -754,10 +704,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
 }
-
-
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
 
@@ -765,11 +712,10 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     when a window is moved inside a group, scrolling view should move to fit that group when follow_focus = true
     ------------------------------------------------------------------------------------------------------------
     */
-    
+
     NLog::log("{}Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true", Colors::GREEN);
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
-
 
     // ensure variables are correctly set for the test
     OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
@@ -810,13 +756,11 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
 
     // clean up
 
-
     // kill all windows
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
-
 
 TEST_CASE(testScrollingViewBehaviourNewLayer) {
 
@@ -829,7 +773,6 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
@@ -845,7 +788,6 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
 
     // focus class:a - this does not move scrolling view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
-    
 
     NLog::log("{}Spawning kitty layer {}", Colors::YELLOW, "myLayer");
     if (!Tests::spawnLayerKitty("myLayer")) {
@@ -867,18 +809,16 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
 
     // clean up
 
+    // kill all layers
+    NLog::log("{}Killing all layers", Colors::YELLOW);
+    Tests::killAllLayers();
+    ASSERT(Tests::layerCount(), 0);
 
     // kill all windows
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     EXPECT(Tests::windowCount(), 0);
-
-    // kill all layers
-    NLog::log("{}Killing all layers", Colors::YELLOW);
-    Tests::killAllLayers();
-    ASSERT(Tests::layerCount(), 0);
 }
-
 
 TEST_CASE(testScrollingViewBehaviourMaximise) {
 
@@ -908,10 +848,10 @@ TEST_CASE(testScrollingViewBehaviourMaximise) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
     // fullscreen class:a window
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen', action = 'set', window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized', action = 'set', window = 'class:a'})"));
 
     // unfullscreen class:a window
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen', action = 'unset', window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized', action = 'unset', window = 'class:a'})"));
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
 
@@ -926,15 +866,12 @@ TEST_CASE(testScrollingViewBehaviourMaximise) {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
 
-
-    
     // clean up
 
     // kill all windows
     NLog::log("{}Killing all windows", Colors::YELLOW);
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
-
 }
 
 TEST_CASE(testScrollingViewBehaviourFullscreen) {
@@ -944,15 +881,13 @@ TEST_CASE(testScrollingViewBehaviourFullscreen) {
 
     fullscreening and then unfullscreening a window shouldn't move scrolling view, regardless of follow_focus
     */
-    
+
     NLog::log("{}Testing scrolling view behaviour: fullscreening and then unfullscreening a window shouldn't move scrolling view", Colors::GREEN);
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-
     // ensure variables are correctly set for the test - this is to avoid unwanted view shifts when setting up the windows
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
-
 
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
@@ -968,10 +903,10 @@ TEST_CASE(testScrollingViewBehaviourFullscreen) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
     // maximise class:a window
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized', action = 'set', window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen', action = 'set', window = 'class:a'})"));
 
     // unmaximise class:a window
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized', action = 'unset', window = 'class:a'})"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen', action = 'unset', window = 'class:a'})"));
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
     const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
@@ -994,7 +929,6 @@ TEST_CASE(testScrollingViewBehaviourFullscreen) {
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
-
 
     /*
      dispatching movefocus when follow_focus = false should not cause scrolling view to move
@@ -1052,7 +986,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-
     if (!Tests::spawnKitty("a")) {
         FAIL_TEST("{}Failed to spawn kitty with win class `a`", Colors::RED);
     }
@@ -1087,7 +1020,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
     ASSERT(Tests::windowCount(), 0);
 }
 
-
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
 
     /*
@@ -1097,14 +1029,13 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
 
     NLog::log("{}Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false", Colors::GREEN);
 
-
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
 
     // necessary to make sure movefocus first cycles through tabs in a group
     OK(getFromSocket("/eval hl.config({ binds = {movefocus_cycles_groupfirst = true}})"));
-        OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
+    OK(getFromSocket("/eval hl.config({group = {auto_group = false}})"));
     OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
 
     if (!Tests::spawnKitty("a")) {
@@ -1152,8 +1083,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
     ASSERT(Tests::windowCount(), 0);
 }
 
-
-
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
 
     /*
@@ -1161,8 +1090,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
      ------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-
     NLog::log("{}Testing scrolling view behaviour: movefocus within groups does causes scrolling view to move if follow_focus = true", Colors::GREEN);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
     // ensure variables are correctly set for the test
 

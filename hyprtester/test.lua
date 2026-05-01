@@ -93,6 +93,7 @@ hl.animation({ leaf = "workspacesIn", enabled = true, speed = 1.21, bezier = "al
 hl.animation({ leaf = "workspacesOut", enabled = true, speed = 1.94, bezier = "almostLinear", style = "fade" })
 
 hl.device({ name = "test-mouse-1", enabled = true })
+hl.device({ name = "test-keyboard-1", enabled = true, tags = "test-tag"})
 
 hl.config({
     dwindle = {

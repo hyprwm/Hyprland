@@ -793,6 +793,7 @@ local __HL_API = {}
 ---@field force_renderer_reload fun(...): any
 ---@field global fun(...): any
 ---@field layout fun(...): any
+---@field no_op fun(...): any
 ---@field pass fun(...): any
 ---@field send_key_state fun(...): any
 ---@field send_shortcut fun(...): any

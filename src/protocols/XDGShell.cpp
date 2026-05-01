@@ -4,6 +4,7 @@
 #include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../managers/ANRManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
@@ -286,7 +287,7 @@ bool CXDGToplevelResource::anyChildModal() {
 
 uint32_t CXDGToplevelResource::setSize(const Vector2D& size) {
     m_pendingApply.size = size;
-    applyState();
+    scheduleStateApplication();
     return m_owner->scheduleConfigure();
 }
 
@@ -300,7 +301,9 @@ uint32_t CXDGToplevelResource::setMaximized(bool maximized) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_MAXIMIZED);
     else if (!maximized && set)
         std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_MAXIMIZED);
-    applyState();
+
+    scheduleStateApplication();
+
     return m_owner->scheduleConfigure();
 }
 
@@ -314,7 +317,9 @@ uint32_t CXDGToplevelResource::setFullscreen(bool fullscreen) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_FULLSCREEN);
     else if (!fullscreen && set)
         std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_FULLSCREEN);
-    applyState();
+
+    scheduleStateApplication();
+
     return m_owner->scheduleConfigure();
 }
 
@@ -328,7 +333,9 @@ uint32_t CXDGToplevelResource::setActive(bool active) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_ACTIVATED);
     else if (!active && set)
         std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_ACTIVATED);
-    applyState();
+
+    scheduleStateApplication();
+
     return m_owner->scheduleConfigure();
 }
 
@@ -345,22 +352,32 @@ uint32_t CXDGToplevelResource::setSuspeneded(bool sus) {
         m_pendingApply.states.push_back(XDG_TOPLEVEL_STATE_SUSPENDED);
     else if (!sus && set)
         std::erase(m_pendingApply.states, XDG_TOPLEVEL_STATE_SUSPENDED);
-    applyState();
+
+    scheduleStateApplication();
+
     return m_owner->scheduleConfigure();
 }
 
-void CXDGToplevelResource::applyState() {
-    wl_array arr;
-    wl_array_init(&arr);
+void CXDGToplevelResource::scheduleStateApplication() {
 
-    if (!m_pendingApply.states.empty()) {
-        wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int));
-        memcpy(arr.data, m_pendingApply.states.data(), m_pendingApply.states.size() * sizeof(int));
-    }
+    if (m_stateUpdate)
+        return;
 
-    m_resource->sendConfigure(m_pendingApply.size.x, m_pendingApply.size.y, &arr);
+    m_stateUpdate = g_pEventLoopManager->doLaterLock([this] {
+        wl_array arr;
+        wl_array_init(&arr);
 
-    wl_array_release(&arr);
+        if (!m_pendingApply.states.empty()) {
+            wl_array_add(&arr, m_pendingApply.states.size() * sizeof(int));
+            memcpy(arr.data, m_pendingApply.states.data(), m_pendingApply.states.size() * sizeof(int));
+        }
+
+        m_resource->sendConfigure(m_pendingApply.size.x, m_pendingApply.size.y, &arr);
+
+        wl_array_release(&arr);
+
+        m_stateUpdate.reset();
+    });
 }
 
 void CXDGToplevelResource::close() {
@@ -516,8 +533,6 @@ CXDGSurfaceResource::CXDGSurfaceResource(SP<CXdgSurface> resource_, SP<CXDGWMBas
 
 CXDGSurfaceResource::~CXDGSurfaceResource() {
     m_events.destroy.emit();
-    if (m_configureSource)
-        wl_event_source_remove(m_configureSource);
     if (m_surface)
         m_surface->resetRole();
 }
@@ -531,22 +546,19 @@ SP<CXDGSurfaceResource> CXDGSurfaceResource::fromResource(wl_resource* res) {
     return data ? data->m_self.lock() : nullptr;
 }
 
-static void onConfigure(void* data) {
-    sc<CXDGSurfaceResource*>(data)->configure();
-}
-
 uint32_t CXDGSurfaceResource::scheduleConfigure() {
-    if (m_configureSource)
+    if (m_stateUpdate)
         return m_scheduledSerial;
 
-    m_configureSource = wl_event_loop_add_idle(g_pCompositor->m_wlEventLoop, onConfigure, this);
+    m_stateUpdate = g_pEventLoopManager->doLaterLock([this] { configure(); });
+
     m_scheduledSerial = wl_display_next_serial(g_pCompositor->m_wlDisplay);
 
     return m_scheduledSerial;
 }
 
 void CXDGSurfaceResource::configure() {
-    m_configureSource = nullptr;
+    m_stateUpdate.reset();
     m_resource->sendConfigure(m_scheduledSerial);
 }
 

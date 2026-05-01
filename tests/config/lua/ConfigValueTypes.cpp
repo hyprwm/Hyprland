@@ -89,7 +89,7 @@ TEST(ConfigLuaValueTypes, boolBadType) {
 
     CLuaConfigBool value(false);
 
-    lua_pushinteger(L, 1);
+    lua_pushinteger(L, 2);
     const auto err = value.parse(L);
     lua_pop(L, 1);
 

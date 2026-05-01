@@ -1093,6 +1093,15 @@ static int hlFocus(lua_State* L) {
     return Internal::configError(L, "hl.focus: unrecognized arguments. Expected one of: direction, monitor, window, urgent_or_last, last");
 }
 
+static int dsp_noop(lua_State* L) {
+    return 0;
+}
+
+static int hlNoop(lua_State* L) {
+    lua_pushcclosure(L, dsp_noop, 0);
+    return 1;
+}
+
 static int dsp_toggleSpecial(lua_State* L) {
     std::string name                                   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + name);
@@ -1266,6 +1275,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "force_renderer_reload", hlForceRendererReload);
         Internal::setFn(L, "force_idle", hlForceIdle);
         Internal::setFn(L, "focus", hlFocus);
+        Internal::setFn(L, "no_op", hlNoop);
     }
 
     lua_setfield(L, -2, "dsp");

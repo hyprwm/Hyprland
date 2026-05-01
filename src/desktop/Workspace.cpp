@@ -52,7 +52,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     m_inert = false;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
@@ -517,9 +517,9 @@ void CWorkspace::rename(const std::string& name) {
     m_name = name;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
-    if (WORKSPACERULE.m_isPersistent)
+    if (WORKSPACERULE.m_isPersistent.value_or(false))
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});

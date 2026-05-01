@@ -138,7 +138,7 @@ TEST(ConfigLuaObjects, objectsAreReadOnlyFromLua) {
     Objects::CLuaKeybind::push(L, keybind);
     lua_setglobal(L, "kb");
 
-    EXPECT_NE(luaL_dostring(L, "kb.foo = 1"), LUA_OK);\
+    EXPECT_NE(luaL_dostring(L, "kb.foo = 1"), LUA_OK);
     lua_pop(L, 1);
 }
 

@@ -160,7 +160,7 @@ static int safeLuaRequire(lua_State* L) {
 
 WP<CConfigManager> Lua::mgr() {
     auto& mgr = Config::mgr();
-    if (mgr->type() != CONFIG_LUA)
+    if (!mgr || mgr->type() != CONFIG_LUA)
         return nullptr;
 
     return dynamicPointerCast<Lua::CConfigManager>(WP<IConfigManager>(mgr));

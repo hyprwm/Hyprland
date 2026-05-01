@@ -777,7 +777,8 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         }
 
         calculateWorkspace();
-    }
+    } else
+        return Config::configError(std::format("Unknown master layoutmsg: {}", sv), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     return {};
 }

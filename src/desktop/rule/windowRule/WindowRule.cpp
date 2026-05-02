@@ -248,6 +248,7 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_RENDER_UNFOCUSED:
         case WINDOW_RULE_EFFECT_NO_SCREEN_SHARE:
         case WINDOW_RULE_EFFECT_NO_VRR:
+        case WINDOW_RULE_EFFECT_CONFINE_POINTER:
         case WINDOW_RULE_EFFECT_STAY_FOCUSED: return truthy(raw);
 
         case WINDOW_RULE_EFFECT_FULLSCREENSTATE: {

@@ -23,7 +23,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
-#include "../helpers/sync/SyncTimeline.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../debug/Overlay.hpp"
 #include "../notification/NotificationOverlay.hpp"
@@ -36,7 +35,6 @@
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../helpers/Monitor.hpp"
 #include "macros.hpp"
-#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -45,7 +43,6 @@
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
-#include "../helpers/MiscFunctions.hpp"
 #include "AsyncResourceGatherer.hpp"
 #include "ElementRenderer.hpp"
 #include "Framebuffer.hpp"
@@ -1236,7 +1233,43 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
         return nullptr;
 
     Log::logger->log(Log::DEBUG, "Creating a texture for BGTex");
-    SP<ITexture> backgroundTexture = createTexture(m_backgroundResource->m_asset.cairoSurface->cairo());
+
+    cairo_surface_t* cairoSurface  = m_backgroundResource->m_asset.cairoSurface->cairo();
+    cairo_surface_t* scaledSurface = nullptr;
+
+    // If the background is larger than the monitor, scale it down
+    if (pMonitor->m_transformedSize.x > 0 && pMonitor->m_transformedSize.y > 0) {
+        const int    origW  = cairo_image_surface_get_width(cairoSurface);
+        const int    origH  = cairo_image_surface_get_height(cairoSurface);
+        const int    monW   = (int)std::round(pMonitor->m_transformedSize.x);
+        const int    monH   = (int)std::round(pMonitor->m_transformedSize.y);
+        const double scaleX = (double)monW / origW;
+        const double scaleY = (double)monH / origH;
+        const double scale  = std::max(scaleX, scaleY);
+
+        if (scale < 1.0) {
+            // Center-crop: compute offset in original-image coordinates
+            const double srcX = (origW - (monW / scale)) / 2.0;
+            const double srcY = (origH - (monH / scale)) / 2.0;
+
+            scaledSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, monW, monH);
+            cairo_t* cr   = cairo_create(scaledSurface);
+            cairo_scale(cr, scale, scale);
+            cairo_set_source_surface(cr, cairoSurface, -srcX, -srcY);
+            cairo_paint(cr);
+            cairo_destroy(cr);
+            cairo_surface_flush(scaledSurface);
+
+            cairoSurface = scaledSurface;
+            Log::logger->log(Log::INFO, "Background scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
+        }
+    }
+
+    SP<ITexture> backgroundTexture = createTexture(cairoSurface);
+
+    if (scaledSurface)
+        cairo_surface_destroy(scaledSurface);
+
     if (!backgroundTexture->ok())
         return nullptr;
     Log::logger->log(Log::DEBUG, "Background created for monitor {}", pMonitor->m_name);

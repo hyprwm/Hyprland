@@ -7,12 +7,10 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../protocols/GammaControl.hpp"
-#include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
@@ -34,7 +32,6 @@
 #include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
-#include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -1072,6 +1069,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
         if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
             g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+
+        // The background is pre-scaled to each monitor's resolution, so it must be reset whenever the pixel size changes
+        if (OLDRES != m_pixelSize) {
+            Log::logger->log(Log::DEBUG, "Pixel size changed from {} to {}, reset background for monitor {}", OLDRES, m_pixelSize, m_name);
+            m_background.reset();
+        }
     }
 
     g_pCompositor->scheduleMonitorStateRecheck();

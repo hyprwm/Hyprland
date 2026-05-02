@@ -94,23 +94,23 @@ namespace Layout::Tiled {
         CScrollingAlgorithm();
         virtual ~CScrollingAlgorithm();
 
-        virtual void                             newTarget(SP<ITarget> target);
-        virtual void                             movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
-        virtual void                             removeTarget(SP<ITarget> target);
+        virtual void                    newTarget(SP<ITarget> target);
+        virtual void                    movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
+        virtual void                    removeTarget(SP<ITarget> target);
 
-        virtual void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        virtual void                             recalculate();
+        virtual void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        virtual void                    recalculate();
 
-        virtual SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+        virtual SP<ITarget>             getNextCandidate(SP<ITarget> old);
 
-        virtual std::expected<void, std::string> layoutMsg(const std::string_view& sv);
-        virtual std::optional<Vector2D>          predictSizeForNewTarget();
+        virtual Config::ErrorResult     layoutMsg(const std::string_view& sv);
+        virtual std::optional<Vector2D> predictSizeForNewTarget();
 
-        virtual void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
-        virtual void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
+        virtual void                    swapTargets(SP<ITarget> a, SP<ITarget> b);
+        virtual void                    moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        CBox                                     usableArea();
-        SP<SScrollingTargetData>                 dataFor(SP<ITarget> t);
+        CBox                            usableArea();
+        SP<SScrollingTargetData>        dataFor(SP<ITarget> t);
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,

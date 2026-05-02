@@ -68,17 +68,17 @@ void CLayoutManager::setTargetGeom(const CBox& box, SP<ITarget> target) {
     target->space()->setTargetGeom(box, target);
 }
 
-std::expected<void, std::string> CLayoutManager::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CLayoutManager::layoutMsg(const std::string_view& sv) {
 
     const auto MONITOR = Desktop::focusState()->monitor();
     // forward to the active workspace
     if (!MONITOR)
-        return std::unexpected("No monitor, can't find ws to target");
+        return Config::configError("No monitor, can't find ws to target", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::NO_TARGET);
 
     auto ws = MONITOR->m_activeSpecialWorkspace ? MONITOR->m_activeSpecialWorkspace : MONITOR->m_activeWorkspace;
 
     if (!ws)
-        return std::unexpected("No workspace, can't target");
+        return Config::configError("No workspace, can't target", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::NO_TARGET);
 
     return ws->m_space->layoutMsg(sv);
 }
@@ -217,7 +217,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : g_pCompositor->m_windows) {
-            if ((HASFULLSCREEN && !other->m_createdOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
                 other->isX11OverrideRedirect())
                 continue;
 

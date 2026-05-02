@@ -1,29 +1,35 @@
 #pragma once
 
-#include "../Rule.hpp"
+#include "../RuleWithEffects.hpp"
 #include "../../DesktopTypes.hpp"
 #include "LayerRuleEffectContainer.hpp"
 
+#include <expected>
+#include <variant>
+
 namespace Desktop::Rule {
-    class CLayerRule : public IRule {
-      public:
+    using LayerRuleEffectValue = std::variant<std::monostate, bool, int64_t, float, std::string>;
+
+    struct SLayerRuleEffect {
         using storageType = CLayerRuleEffectContainer::storageType;
+        using valueType   = LayerRuleEffectValue;
+
+        CLayerRuleEffectContainer::storageType key = LAYER_RULE_EFFECT_NONE;
+        std::string                            raw;
+        LayerRuleEffectValue                   value;
+    };
+
+    class CLayerRule : public CRuleWithEffects<SLayerRuleEffect, RULE_TYPE_LAYER> {
+      public:
+        using Base        = CRuleWithEffects<SLayerRuleEffect, RULE_TYPE_LAYER>;
+        using storageType = Base::storageType;
 
         CLayerRule(const std::string& name = "");
         virtual ~CLayerRule() = default;
 
-        virtual eRuleType                                       type();
-
-        void                                                    addEffect(storageType e, const std::string& result);
-        const std::vector<std::pair<storageType, std::string>>& effects();
-
-        void                                                    setEnabled(bool enable);
-        bool                                                    isEnabled() const;
-
-        bool                                                    matches(PHLLS w);
+        bool matches(PHLLS w);
 
       private:
-        std::vector<std::pair<storageType, std::string>> m_effects;
-        bool                                             m_enabled = true;
+        std::expected<LayerRuleEffectValue, std::string> parseEffect(storageType e, const std::string& result) override;
     };
 };

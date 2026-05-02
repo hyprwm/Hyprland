@@ -896,8 +896,11 @@ std::optional<std::string> CConfigManager::addRuleFromConfigKey(const std::strin
 
     for (const auto& e : Desktop::Rule::windowEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("windowrule", e.c_str(), name.c_str());
-        if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::windowEffects()->get(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        if (VAL && VAL->m_bSetByUser) {
+            auto res = rule->addEffect(Desktop::Rule::windowEffects()->get(e).value_or(Desktop::Rule::WINDOW_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            if (!res)
+                return res.error();
+        }
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -920,8 +923,11 @@ std::optional<std::string> CConfigManager::addLayerRuleFromConfigKey(const std::
 
     for (const auto& e : Desktop::Rule::layerEffects()->allEffectStrings()) {
         auto VAL = m_config->getSpecialConfigValuePtr("layerrule", e.c_str(), name.c_str());
-        if (VAL && VAL->m_bSetByUser)
-            rule->addEffect(Desktop::Rule::layerEffects()->get(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+        if (VAL && VAL->m_bSetByUser) {
+            auto res = rule->addEffect(Desktop::Rule::layerEffects()->get(e).value_or(Desktop::Rule::LAYER_RULE_EFFECT_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
+            if (!res)
+                return res.error();
+        }
     }
 
     Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
@@ -1473,6 +1479,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       repeat          = false;
     bool       mouse           = false;
     bool       nonConsuming    = false;
+    bool       autoConsuming   = false;
     bool       transparent     = false;
     bool       ignoreMods      = false;
     bool       multiKey        = false;
@@ -1492,6 +1499,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             case 'e': repeat = true; break;
             case 'm': mouse = true; break;
             case 'n': nonConsuming = true; break;
+            case 'a': autoConsuming = true; break;
             case 't': transparent = true; break;
             case 'i': ignoreMods = true; break;
             case 's': multiKey = true; break;
@@ -1591,10 +1599,33 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
-                                               COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag,         submapUniversal,   deviceInclusive,    devices});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key,
+                                               KEYSYMS,
+                                               parsedKey.keycode,
+                                               parsedKey.catchAll,
+                                               MOD,
+                                               MODS,
+                                               HANDLER,
+                                               COMMAND,
+                                               locked,
+                                               m_currentSubmap,
+                                               DESCRIPTION,
+                                               release,
+                                               repeat,
+                                               longPress,
+                                               mouse,
+                                               nonConsuming,
+                                               autoConsuming,
+                                               transparent,
+                                               ignoreMods,
+                                               multiKey,
+                                               hasDescription,
+                                               dontInhibit,
+                                               click,
+                                               drag,
+                                               submapUniversal,
+                                               deviceInclusive,
+                                               devices});
     }
 
     return {};
@@ -1982,7 +2013,9 @@ std::optional<std::string> CConfigManager::handleWindowrule(const std::string& c
             const auto EFFECT = Desktop::Rule::windowEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
-            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            auto res = rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            if (!res)
+                return res.error();
         } else
             return std::format("invalid field type {}", FIRST);
     }
@@ -2021,7 +2054,9 @@ std::optional<std::string> CConfigManager::handleLayerrule(const std::string& co
             const auto EFFECT = Desktop::Rule::layerEffects()->get(FIRST);
             if (!EFFECT.has_value())
                 return std::format("invalid effect {}", el);
-            rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            auto res = rule->addEffect(*EFFECT, std::string{el.substr(spacePos + 1)});
+            if (!res)
+                return res.error();
         } else
             return std::format("invalid field type {}", FIRST);
     }

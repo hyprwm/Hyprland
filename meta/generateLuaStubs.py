@@ -578,8 +578,9 @@ def generate_stub(root: Path) -> str:
                 ("action", "string", False),
                 ("mods", "string", True),
                 ("scale", "number", True),
-                ("arg", "string", True),
-                ("arg2", "string", True),
+                ("mode", "string", True),
+                ("zoom_level", "number", True),
+                ("workspace_name", "string", True),
                 ("disable_inhibit", "boolean", True),
             ],
         )

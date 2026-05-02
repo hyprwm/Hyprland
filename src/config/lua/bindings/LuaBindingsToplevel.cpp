@@ -166,6 +166,7 @@ static int hlBind(lua_State* L) {
         kb.locked          = getBool("locked");
         kb.release         = getBool("release");
         kb.nonConsuming    = getBool("non_consuming");
+        kb.autoConsuming   = getBool("auto_consuming");
         kb.transparent     = getBool("transparent");
         kb.ignoreMods      = getBool("ignore_mods");
         kb.dontInhibit     = getBool("dont_inhibit");
@@ -287,17 +288,23 @@ static int hlDispatch(lua_State* L) {
     lua_pushvalue(L, 1);
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)
-        status = mgr->guardedPCall(0, 0, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");
+        status = mgr->guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");
     else
-        status = lua_pcall(L, 0, 0, 0);
+        status = lua_pcall(L, 0, 1, 0);
 
     if (status != LUA_OK) {
         const char* err = lua_tostring(L, -1);
         lua_pop(L, 1);
-        return Internal::configError(L, "hl.dispatch: {}", err ? err : "unknown error");
+        return Internal::dispatcherError(L, std::format("hl.dispatch: {}", err ? err : "unknown error"), Config::Actions::eActionErrorLevel::ERROR,
+                                         Config::Actions::eActionErrorCode::LUA_ERROR);
     }
 
-    return 0;
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        return Internal::pushSuccessResult(L);
+    }
+
+    return 1;
 }
 
 static int hlOn(lua_State* L) {
@@ -331,23 +338,9 @@ static int hlUnbind(lua_State* L) {
         return 0;
     }
 
-    const char* mods   = luaL_checkstring(L, 1);
-    const char* keyStr = luaL_checkstring(L, 2);
+    const char* str = luaL_checkstring(L, 1);
+    g_pKeybindManager->removeKeybind(str);
 
-    uint32_t    mod = g_pKeybindManager->stringToModMask(mods);
-
-    SParsedKey  key;
-    std::string k = keyStr;
-    if (Hyprutils::String::isNumber(k) && std::stoi(k) > 9)
-        key = {.keycode = (uint32_t)std::stoi(k)};
-    else if (k.starts_with("code:") && Hyprutils::String::isNumber(k.substr(5)))
-        key = {.keycode = (uint32_t)std::stoi(k.substr(5))};
-    else if (k == "catchall")
-        key = {.catchAll = true};
-    else
-        key = {.key = k};
-
-    g_pKeybindManager->removeKeybind(mod, key);
     return 0;
 }
 

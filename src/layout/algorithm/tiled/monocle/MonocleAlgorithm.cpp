@@ -46,8 +46,10 @@ CMonocleAlgorithm::~CMonocleAlgorithm() {
             continue;
 
         const auto WINDOW = TARGET->window();
-        if (WINDOW)
-            WINDOW->setHidden(false);
+        if (WINDOW) {
+            WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
+            *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+        }
     }
 
     m_focusCallback.reset();
@@ -81,8 +83,10 @@ void CMonocleAlgorithm::removeTarget(SP<ITarget> target) {
 
     // unhide window when removing from monocle layout
     const auto WINDOW = target->window();
-    if (WINDOW)
-        WINDOW->setHidden(false);
+    if (WINDOW) {
+        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
+        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+    }
 
     const auto INDEX = std::distance(m_targetDatas.begin(), it);
     m_targetDatas.erase(it);
@@ -142,7 +146,8 @@ void CMonocleAlgorithm::recalculate() {
         TARGET->setPositionGlobal(WORK_AREA);
 
         const bool SHOULD_BE_VISIBLE = ((int)i == m_currentVisibleIndex);
-        WINDOW->setHidden(!SHOULD_BE_VISIBLE);
+        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, !SHOULD_BE_VISIBLE);
+        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = SHOULD_BE_VISIBLE ? 1.F : 0.F;
     }
 }
 
@@ -165,11 +170,11 @@ SP<ITarget> CMonocleAlgorithm::getNextCandidate(SP<ITarget> old) {
     return next->get()->target.lock();
 }
 
-std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CMonocleAlgorithm::layoutMsg(const std::string_view& sv) {
     CVarList2 vars(std::string{sv}, 0, 's');
 
     if (vars.size() < 1)
-        return std::unexpected("layoutmsg requires at least 1 argument");
+        return Config::configError("layoutmsg requires at least 1 argument", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     const auto COMMAND = vars[0];
 
@@ -181,7 +186,7 @@ std::expected<void, std::string> CMonocleAlgorithm::layoutMsg(const std::string_
         return {};
     }
 
-    return std::unexpected(std::format("Unknown monocle layoutmsg: {}", COMMAND));
+    return Config::configError(std::format("Unknown monocle layoutmsg: {}", COMMAND), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 }
 
 std::optional<Vector2D> CMonocleAlgorithm::predictSizeForNewTarget() {

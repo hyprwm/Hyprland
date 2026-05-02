@@ -10,19 +10,13 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static bool test() {
-    NLog::log("{}Testing persistent workspaces", Colors::GREEN);
-
-    EXPECT(Tests::windowCount(), 0);
-
+TEST_CASE(persistentWorkspaces) {
     // test on workspace "window"
     NLog::log("{}Switching to workspace 1", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"); // no OK: we might be on 1 already
@@ -42,7 +36,7 @@ static bool test() {
 
     {
         auto str = getFromSocket("/monitors");
-        EXPECT_CONTAINS(str, "HEADLESS-PERSISTENT-TEST");
+        ASSERT_CONTAINS(str, "HEADLESS-PERSISTENT-TEST");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-PERSISTENT-TEST' })"));
@@ -68,18 +62,4 @@ static bool test() {
     }
 
     OK(getFromSocket("/output remove HEADLESS-PERSISTENT-TEST"));
-
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
-    // reload cfg
-    OK(getFromSocket("/reload"));
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

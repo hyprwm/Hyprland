@@ -52,7 +52,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     m_inert = false;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
@@ -426,7 +426,7 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
             continue;
         if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && (!t->window() || t->window()->isHidden() == onlyVisible.value()))
+        if (onlyVisible.has_value() && (!t->window() || t->window()->targetVisible() != onlyVisible.value()))
             continue;
         no++;
     }
@@ -445,7 +445,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
             continue;
         if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyVisible.has_value() && g->current()->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && g->current()->targetVisible() != onlyVisible.value())
             continue;
         no++;
     }
@@ -454,7 +454,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 
 PHLWINDOW CWorkspace::getFirstWindow() {
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->m_isMapped && !w->isHidden())
+        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
 
@@ -465,7 +465,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -517,9 +517,9 @@ void CWorkspace::rename(const std::string& name) {
     m_name = name;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
-    if (WORKSPACERULE.m_isPersistent)
+    if (WORKSPACERULE.m_isPersistent.value_or(false))
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});

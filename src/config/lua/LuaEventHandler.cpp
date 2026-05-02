@@ -2,10 +2,10 @@
 #include "ConfigManager.hpp"
 #include "objects/LuaWindow.hpp"
 #include "objects/LuaWorkspace.hpp"
+#include "objects/LuaGroup.hpp"
 #include "objects/LuaMonitor.hpp"
 #include "objects/LuaLayerSurface.hpp"
 
-#include "../../defines.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../desktop/state/FocusState.hpp"
 
@@ -14,7 +14,6 @@ extern "C" {
 }
 
 #include <format>
-#include <algorithm>
 
 using namespace Config::Lua;
 using namespace Config::Lua::Objects;
@@ -62,15 +61,18 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
         lua_rawgeti(m_lua, LUA_REGISTRYINDEX, sub->second.luaRef);
         pushArgs();
 
-        int status = LUA_OK;
-        if (auto* mgr = CConfigManager::fromLuaState(m_lua); mgr)
+        auto* mgr = CConfigManager::fromLuaState(m_lua);
+
+        int   status = LUA_OK;
+        if (mgr)
             status = mgr->guardedPCall(nargs, 0, 0, CConfigManager::LUA_TIMEOUT_EVENT_CALLBACK_MS, std::format("hl.on(\"{}\") callback", name));
         else
             status = lua_pcall(m_lua, nargs, 0, 0);
 
         if (status != LUA_OK) {
             const char* err = lua_tostring(m_lua, -1);
-            Config::Lua::mgr()->addError(std::format("hl.on(\"{}\") callback: {}", name, err ? err : "(unknown)"));
+            if (mgr)
+                mgr->addError(std::format("hl.on(\"{}\") callback: {}", name, err ? err : "(unknown)"));
             lua_pop(m_lua, 1);
         }
     }
@@ -78,6 +80,7 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
 
 CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     CLuaWindow{}.setup(L);
+    Objects::CLuaGroup{}.setup(L);
     CLuaWorkspace{}.setup(L);
     CLuaMonitor{}.setup(L);
     CLuaLayerSurface{}.setup(L);

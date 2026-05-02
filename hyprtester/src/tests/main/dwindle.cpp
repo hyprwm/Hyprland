@@ -3,15 +3,10 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
-static int  ret = 0;
-
-static void testFloatClamp() {
+TEST_CASE(dwindleFloatClamp) {
     for (auto const& win : {"a", "b", "c"}) {
         if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
         }
     }
 
@@ -30,25 +25,16 @@ static void testFloatClamp() {
     }
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 0 } })"));
-
-    // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    OK(getFromSocket("/reload"));
 }
 
-static void test13349() {
+TEST_CASE(dwindleIssue13349) {
 
     // Test if dwindle properly uses a focal point to place a new window.
     // exposed by #13349 as a regression from #12890
 
     for (auto const& win : {"a", "b", "c"}) {
         if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
         }
     }
 
@@ -75,13 +61,9 @@ static void test13349() {
         EXPECT_CONTAINS(str, "at: 967,547");
         EXPECT_CONTAINS(str, "size: 931,511");
     }
-
-    // clean up
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
 
-static void testSplit() {
+TEST_CASE(dwindleSplit) {
     // Test various split methods
 
     Tests::spawnKitty("a");
@@ -130,22 +112,16 @@ static void testSplit() {
         EXPECT_CONTAINS(str, "at: 22,859");
         EXPECT_CONTAINS(str, "size: 1876,199");
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
 }
 
-static void testRotatesplit() {
+TEST_CASE(dwindleRotateSplit) {
     OK(getFromSocket("r/eval hl.config({ general = { gaps_in = 0 } })"));
     OK(getFromSocket("r/eval hl.config({ general = { gaps_out = 0 } })"));
     OK(getFromSocket("r/eval hl.config({ general = { border_size = 0 } })"));
 
     for (auto const& win : {"a", "b"}) {
         if (!Tests::spawnKitty(win)) {
-            NLog::log("{}Failed to spawn kitty with win class `{}`", Colors::RED, win);
-            ++TESTS_FAILED;
-            ret = 1;
-            return;
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
         }
     }
 
@@ -220,20 +196,15 @@ static void testRotatesplit() {
         EXPECT_CONTAINS(str, "at: 960,0");
         EXPECT_CONTAINS(str, "size: 960,1080");
     }
-
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    OK(getFromSocket("/reload"));
 }
 
-static void testForceSplitOnMoveToWorkspace() {
+TEST_CASE(dwindleForceSplitOnMoveToWorkspace) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
-    EXPECT(!!Tests::spawnKitty("kitty"), true);
+    ASSERT(!!Tests::spawnKitty("kitty"), true);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    EXPECT(!!Tests::spawnKitty("kitty"), true);
-    std::string posBefore = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    ASSERT(!!Tests::spawnKitty("kitty"), true);
+    std::string posBefore = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
 
     OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
     OK(getFromSocket("/dispatch hl.dsp.cursor.move_to_corner({ corner = 3 })")); // top left
@@ -242,38 +213,4 @@ static void testForceSplitOnMoveToWorkspace() {
     // Should be moved to the right, so the position should change
     std::string activeWindow = getFromSocket("/activewindow");
     EXPECT(activeWindow.contains(posBefore), false);
-
-    // clean up
-    OK(getFromSocket("/reload"));
-    Tests::killAllWindows();
-    Tests::waitUntilWindowsN(0);
 }
-
-static bool test() {
-    NLog::log("{}Testing Dwindle layout", Colors::GREEN);
-
-    // test
-    NLog::log("{}Testing float clamp", Colors::GREEN);
-    testFloatClamp();
-
-    NLog::log("{}Testing #13349", Colors::GREEN);
-    test13349();
-
-    NLog::log("{}Testing splits", Colors::GREEN);
-    testSplit();
-
-    NLog::log("{}Testing rotatesplit", Colors::GREEN);
-    testRotatesplit();
-
-    NLog::log("{}Testing force_split on move to workspace", Colors::GREEN);
-    testForceSplitOnMoveToWorkspace();
-
-    // clean up
-    NLog::log("Cleaning up", Colors::YELLOW);
-    getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })");
-    OK(getFromSocket("/reload"));
-
-    return !ret;
-}
-
-REGISTER_TEST_FN(test);

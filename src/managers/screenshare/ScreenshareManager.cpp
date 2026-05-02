@@ -140,16 +140,18 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
         m_sessions.emplace_back(session);
 
         it = m_managedSessions.emplace(m_managedSessions.end(), makeUnique<SManagedSession>(std::move(session)));
+
+        auto& managed            = *it;
+        managed->stoppedListener = managed->m_session->m_events.stopped.listen([managed = WP<SManagedSession>(managed)]() {
+            if (!managed)
+                return;
+
+            const auto& session = managed->m_session;
+            std::erase_if(Screenshare::mgr()->m_managedSessions, [&session](const auto& s) { return s && s->m_session == session; });
+        });
     }
 
-    auto& session = *it;
-
-    session->stoppedListener = session->m_session->m_events.stopped.listen([session = WP<SManagedSession>(session)]() {
-        if (!session.expired())
-            std::erase_if(Screenshare::mgr()->m_managedSessions, [&](const auto& s) { return s && s->m_session.get() == session->m_session.get(); });
-    });
-
-    return session->m_session;
+    return (*it)->m_session;
 }
 
 bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {

@@ -1,6 +1,7 @@
 #include <config/lua/types/LuaConfigBool.hpp>
 #include <config/lua/types/LuaConfigColor.hpp>
 #include <config/lua/types/LuaConfigCssGap.hpp>
+#include <config/lua/types/LuaConfigExpressionVec2.hpp>
 #include <config/lua/types/LuaConfigFloat.hpp>
 #include <config/lua/types/LuaConfigFontWeight.hpp>
 #include <config/lua/types/LuaConfigGradient.hpp>
@@ -49,6 +50,14 @@ namespace {
         lua_pushnumber(L, y);
         lua_rawseti(L, -2, 2);
     }
+
+    void pushExpressionVec2Table(lua_State* L, const char* x, const char* y) {
+        lua_createtable(L, 2, 2);
+        lua_pushstring(L, x);
+        lua_rawseti(L, -2, 1);
+        lua_pushstring(L, y);
+        lua_rawseti(L, -2, 2);
+    }
 }
 
 TEST(ConfigLuaValueTypes, boolParseAndReset) {
@@ -80,7 +89,7 @@ TEST(ConfigLuaValueTypes, boolBadType) {
 
     CLuaConfigBool value(false);
 
-    lua_pushinteger(L, 1);
+    lua_pushinteger(L, 2);
     const auto err = value.parse(L);
     lua_pop(L, 1);
 
@@ -229,6 +238,50 @@ TEST(ConfigLuaValueTypes, vec2ParseValidateAndPush) {
     lua_rawseti(L, -2, 2);
     lua_pushnumber(L, 3);
     lua_rawseti(L, -2, 3);
+    err = value.parse(L);
+    lua_pop(L, 1);
+    EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_VALUE);
+}
+
+TEST(ConfigLuaValueTypes, expressionVec2AcceptsStringNumberAndTableForms) {
+    CLuaState                S;
+    const auto               L = S.get();
+
+    CLuaConfigExpressionVec2 value;
+
+    lua_pushstring(L, "monitor_w*0.5 monitor_h*0.25");
+    auto err = value.parse(L);
+    lua_pop(L, 1);
+    EXPECT_EQ(err.errorCode, PARSE_ERROR_OK);
+    EXPECT_EQ(value.parsed().x, "monitor_w*0.5");
+    EXPECT_EQ(value.parsed().y, "monitor_h*0.25");
+
+    pushVec2Table(L, 150, 200);
+    err = value.parse(L);
+    lua_pop(L, 1);
+    EXPECT_EQ(err.errorCode, PARSE_ERROR_OK);
+    EXPECT_EQ(value.parsed().x, "150");
+    EXPECT_EQ(value.parsed().y, "200");
+
+    pushExpressionVec2Table(L, "monitor_h * 0.5", "monitor_h * 0.25");
+    err = value.parse(L);
+    lua_pop(L, 1);
+    EXPECT_EQ(err.errorCode, PARSE_ERROR_OK);
+    EXPECT_EQ(value.parsed().x, "monitor_h * 0.5");
+    EXPECT_EQ(value.parsed().y, "monitor_h * 0.25");
+
+    value.push(L);
+    ASSERT_TRUE(lua_istable(L, -1));
+    lua_rawgeti(L, -1, 1);
+    EXPECT_STREQ(lua_tostring(L, -1), "monitor_h * 0.5");
+    lua_pop(L, 1);
+    lua_getfield(L, -1, "y");
+    EXPECT_STREQ(lua_tostring(L, -1), "monitor_h * 0.25");
+    lua_pop(L, 2);
+
+    lua_createtable(L, 1, 0);
+    lua_pushnumber(L, 1);
+    lua_rawseti(L, -2, 1);
     err = value.parse(L);
     lua_pop(L, 1);
     EXPECT_EQ(err.errorCode, PARSE_ERROR_BAD_VALUE);

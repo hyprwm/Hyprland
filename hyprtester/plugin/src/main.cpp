@@ -2,11 +2,13 @@
 #include <src/includes.hpp>
 #include <sstream>
 #include <any>
+#include <cmath>
 
 #define private public
 #include <src/managers/input/InputManager.hpp>
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
+#include <src/helpers/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>
@@ -17,6 +19,7 @@
 #undef private
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::String;
@@ -154,6 +157,96 @@ static SDispatchResult simulateGesture(std::string in) {
     }
 
     return {.success = true};
+}
+
+static SDispatchResult pinchUpdate(std::string in) {
+    CVarList data(in);
+    uint32_t fingers = 2;
+    double   scale   = 1.0;
+    Vector2D delta   = {};
+    double   rotation{};
+
+    if (data.size() < 2)
+        return {.success = false, .error = "invalid input"};
+
+    if (const auto n = strToNumber<uint32_t>(data[0]); n)
+        fingers = n.value();
+    else
+        return {.success = false, .error = "invalid input"};
+
+    if (const auto n = strToNumber<double>(data[1]); n)
+        scale = n.value();
+    else
+        return {.success = false, .error = "invalid input"};
+
+    if (data.size() > 2) {
+        if (const auto n = strToNumber<double>(data[2]); n)
+            delta.x = n.value();
+        else
+            return {.success = false, .error = "invalid input"};
+    }
+
+    if (data.size() > 3) {
+        if (const auto n = strToNumber<double>(data[3]); n)
+            delta.y = n.value();
+        else
+            return {.success = false, .error = "invalid input"};
+    }
+
+    if (data.size() > 4) {
+        if (const auto n = strToNumber<double>(data[4]); n)
+            rotation = n.value();
+        else
+            return {.success = false, .error = "invalid input"};
+    }
+
+    g_pTrackpadGestures->gestureUpdate(IPointer::SPinchUpdateEvent{
+        .fingers  = fingers,
+        .delta    = delta,
+        .scale    = scale,
+        .rotation = rotation,
+    });
+
+    return {};
+}
+
+static SDispatchResult pinchEnd(std::string in) {
+    g_pTrackpadGestures->gestureEnd(IPointer::SPinchEndEvent{});
+
+    return {};
+}
+
+static SDispatchResult expectCursorZoom(std::string in) {
+    CVarList data(in);
+    float    expected = 1.F;
+    float    delta    = 0.01F;
+
+    if (data.size() < 1)
+        return {.success = false, .error = "invalid input"};
+
+    if (const auto n = strToNumber<float>(data[0]); n)
+        expected = n.value();
+    else
+        return {.success = false, .error = "invalid input"};
+
+    if (data.size() > 1) {
+        if (const auto n = strToNumber<float>(data[1]); n)
+            delta = n.value();
+        else
+            return {.success = false, .error = "invalid input"};
+    }
+
+    const auto PMONITOR = g_pCompositor->getMonitorFromVector(g_pInputManager->getMouseCoordsInternal());
+
+    if (!PMONITOR)
+        return {.success = false, .error = "No monitor under cursor"};
+
+    const auto actual = PMONITOR->m_cursorZoom->value();
+
+    if (std::abs(actual - expected) > delta)
+        return {.success = false, .error = std::format("Expected cursor zoom {} ± {}, got {}", expected, delta, actual)};
+
+    return {};
 }
 
 static SDispatchResult vkb(std::string in) {
@@ -336,7 +429,7 @@ static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     if (!PLASTWINDOW->m_isFloating)
         return {.success = false, .error = "Window must be floating"};
 
-    if (PLASTWINDOW->m_alpha != 1.f)
+    if (PLASTWINDOW->alphaTotal() != 1.F)
         return {.success = false, .error = "floating window doesnt restore it opacity when focused on fullscreen workspace"};
 
     if (!PLASTWINDOW->m_createdOverFullscreen)
@@ -373,6 +466,32 @@ static int luaGesture(lua_State* L) {
     const auto direction = std::string{luaL_checkstring(L, 1)};
     const auto fingers   = (int)luaL_optinteger(L, 2, 3);
     return luaResult(L, ::simulateGesture(std::format("{},{}", direction, fingers)));
+}
+
+static int luaPinchUpdate(lua_State* L) {
+    std::string in = std::format("{},{}", (int)luaL_checkinteger(L, 1), (double)luaL_checknumber(L, 2));
+
+    if (lua_gettop(L) > 2)
+        in += std::format(",{}", (double)luaL_checknumber(L, 3));
+    if (lua_gettop(L) > 3)
+        in += std::format(",{}", (double)luaL_checknumber(L, 4));
+    if (lua_gettop(L) > 4)
+        in += std::format(",{}", (double)luaL_checknumber(L, 5));
+
+    return luaResult(L, ::pinchUpdate(in));
+}
+
+static int luaPinchEnd(lua_State* L) {
+    return luaResult(L, ::pinchEnd(""));
+}
+
+static int luaExpectCursorZoom(lua_State* L) {
+    const auto expected = (double)luaL_checknumber(L, 1);
+
+    if (lua_gettop(L) > 1)
+        return luaResult(L, ::expectCursorZoom(std::format("{},{}", expected, (double)luaL_checknumber(L, 2))));
+
+    return luaResult(L, ::expectCursorZoom(std::format("{}", expected)));
 }
 
 static int luaScroll(lua_State* L) {
@@ -425,6 +544,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("vkb", ::luaVkb);
     addLuaFn("alt", ::luaAlt);
     addLuaFn("gesture", ::luaGesture);
+    addLuaFn("pinch_update", ::luaPinchUpdate);
+    addLuaFn("pinch_end", ::luaPinchEnd);
+    addLuaFn("expect_cursor_zoom", ::luaExpectCursorZoom);
     addLuaFn("scroll", ::luaScroll);
     addLuaFn("click", ::luaClick);
     addLuaFn("keybind", ::luaKeybind);

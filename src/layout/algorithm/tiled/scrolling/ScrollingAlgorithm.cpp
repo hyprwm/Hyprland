@@ -984,8 +984,13 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
     focusTargetUpdate(t);
 }
 
-std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
-    auto centerOrFit = [this](const SP<SColumnData> COL) -> void {
+Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
+    const auto invalidArg = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT); };
+    const auto noTarget   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NO_TARGET); };
+    const auto notFound   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NOT_FOUND); };
+    const auto stateErr   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE); };
+
+    auto       centerOrFit = [this](const SP<SColumnData> COL) -> void {
         static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
         if (*PFITMETHOD == 1)
             m_scrollingData->fitCol(COL);
@@ -998,7 +1003,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         if (ARGS[1] == "+col" || ARGS[1] == "col") {
             const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
             if (!TDATA)
-                return std::unexpected("no window");
+                return noTarget("no window");
 
             const auto COL = m_scrollingData->next(TDATA->column.lock());
             if (!COL) {
@@ -1049,7 +1054,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         const auto PLUSMINUS = getPlusMinusKeywordResult(ARGS[1], 0);
 
         if (!PLUSMINUS.has_value())
-            return std::unexpected("failed to parse offset");
+            return invalidArg("failed to parse offset");
 
         m_scrollingData->controller->adjustOffset(-(*PLUSMINUS));
         m_scrollingData->recalculate();
@@ -1143,12 +1148,12 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         const auto PWINDOW = Desktop::focusState()->window();
 
         if (!PWINDOW)
-            return std::unexpected("no focused window");
+            return noTarget("no focused window");
 
         const auto WDATA = dataFor(PWINDOW->layoutTarget());
 
         if (!WDATA || m_scrollingData->columns.size() == 0)
-            return std::unexpected("can't fit: no window or columns");
+            return stateErr("can't fit: no window or columns");
 
         if (ARGS[1] == "active") {
             // fit the current column to 1.F
@@ -1192,7 +1197,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             }
 
             if (!begun)
-                return std::unexpected("couldn't find beginning");
+                return notFound("couldn't find beginning");
 
             const auto USABLE = usableArea();
 
@@ -1271,7 +1276,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         static const auto PCONFWRAPFOCUS = CConfigValue<Config::INTEGER>("scrolling:wrap_focus");
 
         if (!TDATA || ARGS[1].empty())
-            return std::unexpected("no window to focus");
+            return noTarget("no window to focus");
 
         // Determine if we're in vertical scroll mode (strips are horizontal)
         const bool isVerticalScroll = (getDynamicDirection() == SCROLL_DIR_DOWN || getDynamicDirection() == SCROLL_DIR_UP);
@@ -1294,7 +1299,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                 if (!*PNOFALLBACK)
                     PREV = TDATA->column->targetDatas.back();
                 else
-                    return std::unexpected("fallback disabled (no target)");
+                    return notFound("fallback disabled (no target)");
             }
 
             focusTargetUpdate(PREV->target.lock());
@@ -1307,7 +1312,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
                 if (!*PNOFALLBACK)
                     NEXT = TDATA->column->targetDatas.front();
                 else
-                    return std::unexpected("fallback disabled (no target)");
+                    return notFound("fallback disabled (no target)");
             }
 
             focusTargetUpdate(NEXT->target.lock());
@@ -1361,11 +1366,11 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
     } else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {
         const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
         if (!TDATA)
-            return std::unexpected("no window focused");
+            return noTarget("no window focused");
 
         const auto CURRENT_COL = TDATA->column.lock();
         if (!CURRENT_COL)
-            return std::unexpected("no current col");
+            return stateErr("no current col");
 
         // expel a target from srcCol into its own new column at insertIdx
         auto expelTarget = [&](SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx) {
@@ -1388,7 +1393,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             expelTarget(TDATA, CURRENT_COL, idx == -1 ? std::nullopt : std::optional<int64_t>{idx});
         } else if (ARGS[0] == "expel") {
             if (CURRENT_COL->targetDatas.size() < 2)
-                return std::unexpected("column has only one window");
+                return stateErr("column has only one window");
 
             const auto lastTarget = CURRENT_COL->targetDatas.back();
             const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
@@ -1399,19 +1404,19 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         } else if (ARGS[0] == "consume") {
             const auto NEXT_COL = m_scrollingData->next(CURRENT_COL);
             if (!NEXT_COL)
-                return std::unexpected("no next column");
+                return notFound("no next column");
 
             consumeTarget(CURRENT_COL, NEXT_COL);
         } else if (ARGS[0] == "consume_or_expel") {
             if (ARGS.size() < 2)
-                return std::unexpected("not enough args");
+                return invalidArg("not enough args");
 
             const std::string& direction = ARGS[1];
             const bool         prev      = direction == "prev";
             const bool         next      = direction == "next";
 
             if (!prev && !next)
-                return std::unexpected("invalid direction, expected prev or next");
+                return invalidArg("invalid direction, expected prev or next");
 
             if (CURRENT_COL->targetDatas.size() > 1) {
                 const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
@@ -1419,7 +1424,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             } else {
                 const auto ADJ_COL = prev ? m_scrollingData->prev(CURRENT_COL) : m_scrollingData->next(CURRENT_COL);
                 if (!ADJ_COL)
-                    return std::unexpected("no adjacent column");
+                    return notFound("no adjacent column");
 
                 CURRENT_COL->remove(TDATA->target.lock());
                 ADJ_COL->add(TDATA);
@@ -1432,24 +1437,24 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
         static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::INTEGER>("scrolling:wrap_swapcol");
 
         if (ARGS.size() < 2)
-            return std::unexpected("not enough args");
+            return invalidArg("not enough args");
 
         const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
         if (!TDATA)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         const auto CURRENT_COL = TDATA->column.lock();
         if (!CURRENT_COL)
-            return std::unexpected("no current col");
+            return stateErr("no current col");
 
         if (m_scrollingData->columns.size() < 2)
-            return std::unexpected("not enough columns to swap");
+            return stateErr("not enough columns to swap");
 
         const int64_t currentIdx = m_scrollingData->idx(CURRENT_COL);
         const size_t  colCount   = m_scrollingData->columns.size();
 
         if (currentIdx == -1)
-            return std::unexpected("no current column");
+            return stateErr("no current column");
 
         const std::string& direction = ARGS[1];
         int64_t            targetIdx = -1;
@@ -1466,7 +1471,7 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
             else
                 targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);
         else
-            return std::unexpected("no target (invalid direction?)");
+            return invalidArg("no target (invalid direction?)");
         ;
 
         std::swap(m_scrollingData->columns.at(currentIdx), m_scrollingData->columns.at(targetIdx));
@@ -1478,16 +1483,16 @@ std::expected<void, std::string> CScrollingAlgorithm::layoutMsg(const std::strin
     } else if (ARGS[0] == "center") {
         const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
         if (!TDATA)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         const auto CURRENT_COL = TDATA->column.lock();
         if (!CURRENT_COL)
-            return std::unexpected("no current col");
+            return stateErr("no current col");
 
         m_scrollingData->centerCol(CURRENT_COL);
         m_scrollingData->recalculate();
     } else
-        return std::unexpected("no such layoutmsg for scrolling");
+        return invalidArg("no such layoutmsg for scrolling");
 
     return {};
 }

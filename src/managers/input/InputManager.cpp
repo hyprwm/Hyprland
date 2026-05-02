@@ -447,7 +447,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
             const auto& PWINDOWIDEAL = getWindowIdeal();
             if (PWINDOWIDEAL &&
-                ((PWINDOWIDEAL->m_isFloating && (PWINDOWIDEAL->m_createdOverFullscreen || PWINDOWIDEAL->m_pinned)) /* floating over fullscreen or pinned */
+                ((PWINDOWIDEAL->m_isFloating && PWINDOWIDEAL->isAllowedOverFullscreen()) /* floating over fullscreen or pinned */
                  || (PMONITOR->m_activeSpecialWorkspace == PWINDOWIDEAL->m_workspace) /* on an open special workspace */))
                 pFoundWindow = PWINDOWIDEAL;
 
@@ -485,7 +485,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
                         if (pFoundWindow != PWINDOWIDEAL)
                             pFoundWindow = PWINDOWIDEAL;
 
-                        if (!(pFoundWindow && (pFoundWindow->m_isFloating && (pFoundWindow->m_createdOverFullscreen || pFoundWindow->m_pinned))))
+                        if (!(pFoundWindow && (pFoundWindow->m_isFloating && pFoundWindow->isAllowedOverFullscreen())))
                             pFoundWindow = PWORKSPACE->getFullscreenWindow();
                     }
                 }

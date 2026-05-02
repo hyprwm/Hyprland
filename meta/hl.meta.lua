@@ -411,8 +411,9 @@ local __HL_TimerOptions = {}
 ---@field action string
 ---@field mods? string
 ---@field scale? number
----@field arg? string
----@field arg2? string
+---@field mode? string
+---@field zoom_level? number
+---@field workspace_name? string
 ---@field disable_inhibit? boolean
 local __HL_GestureSpec = {}
 
@@ -565,12 +566,22 @@ local __HL_WorkspaceRuleSpec = {}
 ---@field remove fun(self: HL.EventSubscription, ...): any
 local __HL_EventSubscription = {}
 
+---@class HL.Group
+---@field current HL.Window|nil
+---@field current_index integer
+---@field denied boolean
+---@field locked boolean
+---@field members HL.Window|table|nil
+---@field size integer
+local __HL_Group = {}
+
 ---@class HL.Keybind
 ---@field is_enabled fun(self: HL.Keybind, ...): any
 ---@field remove fun(self: HL.Keybind, ...): any
 ---@field set_enabled fun(self: HL.Keybind, ...): any
 ---@field unbind fun(self: HL.Keybind, ...): any
 ---@field arg string
+---@field auto_consuming boolean
 ---@field catchall boolean
 ---@field click boolean
 ---@field description any
@@ -667,6 +678,7 @@ local __HL_Notification = {}
 local __HL_Timer = {}
 
 ---@class HL.Window
+---@field accepts_input boolean
 ---@field active boolean|nil
 ---@field address string
 ---@field at integer|table
@@ -676,7 +688,7 @@ local __HL_Timer = {}
 ---@field focus_history_id integer
 ---@field fullscreen integer
 ---@field fullscreen_client integer
----@field group HL.Window|boolean|integer|table|nil
+---@field group HL.Group|nil
 ---@field hidden boolean
 ---@field inhibiting_idle boolean
 ---@field initial_class string
@@ -692,6 +704,7 @@ local __HL_Timer = {}
 ---@field swallowing HL.Window|nil
 ---@field tags string|table
 ---@field title string
+---@field visible boolean
 ---@field workspace HL.Workspace|nil
 ---@field xdg_description string|nil
 ---@field xdg_tag string|nil
@@ -704,15 +717,23 @@ local __HL_Window = {}
 local __HL_WindowRule = {}
 
 ---@class HL.Workspace
+---@field get_groups fun(self: HL.Workspace, ...): any
+---@field get_windows fun(self: HL.Workspace, ...): any
 ---@field active boolean
+---@field config_name string
 ---@field fullscreen_mode integer
+---@field fullscreen_window HL.Window|nil
+---@field groups integer|nil
 ---@field has_fullscreen boolean
 ---@field has_urgent boolean
 ---@field id integer
----@field is_persistent boolean|nil
+---@field is_empty boolean
+---@field is_persistent boolean
+---@field last_window HL.Window|nil
 ---@field monitor HL.Monitor|nil
 ---@field name string
 ---@field special boolean
+---@field tiled_layout string
 ---@field visible boolean
 ---@field windows integer
 local __HL_Workspace = {}
@@ -773,6 +794,7 @@ local __HL_API = {}
 ---@field force_renderer_reload fun(...): any
 ---@field global fun(...): any
 ---@field layout fun(...): any
+---@field no_op fun(...): any
 ---@field pass fun(...): any
 ---@field send_key_state fun(...): any
 ---@field send_shortcut fun(...): any

@@ -1,5 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
+#include "../../../desktop/rule/windowRule/WindowRule.hpp"
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
@@ -327,9 +329,59 @@ void Internal::pushWindowUpval(lua_State* L, int tableIdx) {
         lua_pushnil(L);
 }
 
-void Internal::checkResult(lua_State* L, const CA::ActionResult& r) {
-    if (!r)
-        Internal::configError(L, "{}", r.error());
+static auto logLevelForActionError(CA::eActionErrorLevel level) {
+    switch (level) {
+        case CA::eActionErrorLevel::SILENT: return Log::DEBUG;
+        case CA::eActionErrorLevel::INFO: return Log::INFO;
+        case CA::eActionErrorLevel::WARNING: return Log::WARN;
+        case CA::eActionErrorLevel::ERROR: return Log::ERR;
+    }
+
+    return Log::ERR;
+}
+
+void Internal::reportError(lua_State* L, const CA::SActionError& e) {
+    Log::logger->log(logLevelForActionError(e.level), "Lua {} ({}): {}", CA::toString(e.level), CA::toString(e.code), e.message);
+
+    if (auto mgr = Config::Lua::mgr(); mgr) {
+        mgr->addEvalIssue(e);
+
+        if (e.level == CA::eActionErrorLevel::ERROR)
+            mgr->addError(std::string{e.message});
+    }
+}
+
+int Internal::pushSuccessResult(lua_State* L, const CA::SActionResult& r) {
+    lua_newtable(L);
+    lua_pushboolean(L, true);
+    lua_setfield(L, -2, "ok");
+    lua_pushboolean(L, r.passEvent);
+    lua_setfield(L, -2, "pass_event");
+    return 1;
+}
+
+int Internal::pushErrorResult(lua_State* L, const CA::SActionError& e) {
+    lua_newtable(L);
+    lua_pushboolean(L, false);
+    lua_setfield(L, -2, "ok");
+    lua_pushstring(L, e.message.c_str());
+    lua_setfield(L, -2, "error");
+    lua_pushstring(L, CA::toString(e.level));
+    lua_setfield(L, -2, "level");
+    lua_pushstring(L, CA::toString(e.code));
+    lua_setfield(L, -2, "code");
+    return 1;
+}
+
+int Internal::checkResult(lua_State* L, const CA::ActionResult& r) {
+    if (!r) {
+        auto error    = r.error();
+        error.message = std::format("{}: {}", getSourceInfo(L), std::move(error.message));
+        Internal::reportError(L, error);
+        return Internal::pushErrorResult(L, error);
+    }
+
+    return Internal::pushSuccessResult(L, *r);
 }
 
 PHLWORKSPACE Internal::resolveWorkspaceStr(const std::string& args) {
@@ -408,12 +460,19 @@ void Internal::setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua
     lua_setfield(L, -2, name);
 }
 
-int Internal::configError(lua_State* L, std::string s, int stackLevel) {
+int Internal::configError(lua_State* L, std::string s, CA::eActionErrorLevel level, CA::eActionErrorCode code, int stackLevel) {
     s = std::format("{}: {}", getSourceInfo(L, stackLevel), std::move(s));
 
-    Log::logger->log(Log::ERR, "Error in lua: {}", std::string_view{s});
-    Config::Lua::mgr()->addError(std::move(s));
+    Internal::reportError(L, CA::SActionError{std::move(s), level, code});
     return 0;
+}
+
+int Internal::dispatcherError(lua_State* L, std::string s, CA::eActionErrorLevel level, CA::eActionErrorCode code, int stackLevel) {
+    s = std::format("{}: {}", getSourceInfo(L, stackLevel), std::move(s));
+
+    CA::SActionError error{std::move(s), level, code};
+    Internal::reportError(L, error);
+    return Internal::pushErrorResult(L, error);
 }
 
 std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L) {
@@ -430,6 +489,24 @@ std::expected<std::string, std::string> Internal::ruleValueToString(lua_State* L
         return std::string(lua_tostring(L, -1));
 
     return std::unexpected("value must be a string, bool, or number");
+}
+
+std::expected<void, std::string> Internal::addWindowRuleEffectFromLua(lua_State* L, const SWindowRuleEffectDesc& desc, const SP<Desktop::Rule::CWindowRule>& rule) {
+    auto val = UP<ILuaConfigValue>(desc.factory());
+    auto err = val->parse(L);
+
+    if (err.errorCode != PARSE_ERROR_OK) {
+        const bool allowLegacyString = desc.effect == WE::WINDOW_RULE_EFFECT_BORDER_COLOR && lua_isstring(L, -1);
+        if (!allowLegacyString)
+            return std::unexpected(err.message);
+
+        return rule->addEffect(desc.effect, lua_tostring(L, -1));
+    }
+
+    if (const auto expr = dc<CLuaConfigExpressionVec2*>(val.get()); expr)
+        return rule->addEffect(desc.effect, expr->parsed());
+
+    return rule->addEffect(desc.effect, val->toString());
 }
 
 std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(lua_State* L, int idx) {
@@ -470,25 +547,22 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
                     return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, val.error()));
                 }
 
-                rule->addEffect(*dynamicEffect, *val);
+                auto res = rule->addEffect(*dynamicEffect, *val);
+                if (!res) {
+                    lua_pop(L, 1);
+                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
+                }
                 hasRuleEffects = true;
 
                 lua_pop(L, 1);
                 continue;
             }
 
-            auto val = UP<ILuaConfigValue>(desc->factory());
-            auto err = val->parse(L);
-            if (err.errorCode != PARSE_ERROR_OK) {
-                const bool allowLegacyString = (key == "max_size" || key == "min_size" || key == "border_color") && lua_isstring(L, -1);
-                if (allowLegacyString)
-                    rule->addEffect(desc->effect, lua_tostring(L, -1));
-                else {
-                    lua_pop(L, 1);
-                    return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, err.message));
-                }
-            } else
-                rule->addEffect(desc->effect, val->toString());
+            auto res = Internal::addWindowRuleEffectFromLua(L, *desc, rule);
+            if (!res) {
+                lua_pop(L, 1);
+                return std::unexpected(Internal::configError(L, "buildRuleFromTable: effect '{}': {}", key, res.error()));
+            }
 
             hasRuleEffects = true;
             lua_pop(L, 1);
@@ -499,4 +573,15 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
     }
 
     return rule;
+}
+
+bool Internal::hasTableField(lua_State* L, int tableIdx, const char* field) {
+    lua_getfield(L, tableIdx, field);
+    if (lua_isnoneornil(L, -1)) {
+        lua_pop(L, 1);
+        return false;
+    }
+
+    lua_pop(L, 1);
+    return true;
 }

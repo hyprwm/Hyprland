@@ -3,6 +3,8 @@
 #include <format>
 #include <print>
 
+#include "shared.hpp"
+
 namespace NLog {
     template <typename... Args>
     //NOLINTNEXTLINE
@@ -11,7 +13,7 @@ namespace NLog {
 
         logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
 
-        std::println("{}", logMsg);
+        std::println("{}{}", logMsg, Colors::RESET);
         std::fflush(stdout);
     }
 }

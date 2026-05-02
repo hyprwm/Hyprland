@@ -9,43 +9,35 @@
 
 using Hyprutils::Math::Vector2D;
 
-static int  ret = 0;
-
 static bool spawnFloatingKitty() {
     if (!Tests::spawnKitty()) {
         NLog::log("{}Error: kitty did not spawn", Colors::RED);
         return false;
     }
-    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
-    OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 100, y = 100 })"));
-    return true;
+    bool ok = true;
+    ok &= getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })") == "ok";
+    ok &= getFromSocket("/dispatch hl.dsp.window.resize({ x = 100, y = 100 })") == "ok";
+    return ok;
 }
 
-static void expectSocket(const std::string& CMD) {
-    if (const auto RESULT = getFromSocket(CMD); RESULT != "ok") {
-        NLog::log("{}Failed: {}getFromSocket({}), expected ok, got {}. Source: {}@{}.", Colors::RED, Colors::RESET, CMD, RESULT, __FILE__, __LINE__);
-        ret = 1;
-        TESTS_FAILED++;
-    } else {
-        NLog::log("{}Passed: {}getFromSocket({}). Got ok", Colors::GREEN, Colors::RESET, CMD);
-        TESTS_PASSED++;
-    }
-}
-
-static void expectSnapMove(const Vector2D FROM, const Vector2D* TO) {
-    const Vector2D& A = FROM;
-    const Vector2D& B = TO ? *TO : FROM;
-    if (TO)
-        NLog::log("{}Expecting snap to ({},{}) when window is moved to ({},{})", Colors::YELLOW, B.x, B.y, A.x, A.y);
+SUBTEST(expectSnapMove, double fromX, double fromY, double toX, double toY) {
+    const Vector2D FROM = {fromX, fromY};
+    const Vector2D TO   = {toX, toY};
+    if (FROM == TO)
+        NLog::log("{}Expecting no snap when window is moved to ({},{})", Colors::YELLOW, FROM.x, FROM.y);
     else
-        NLog::log("{}Expecting no snap when window is moved to ({},{})", Colors::YELLOW, A.x, A.y);
+        NLog::log("{}Expecting snap to ({},{}) when window is moved to ({},{})", Colors::YELLOW, TO.x, TO.y, FROM.x, FROM.y);
 
-    expectSocket(std::format("/dispatch hl.dsp.window.move({{ x = {}, y = {} }})", A.x, A.y));
-    expectSocket("/eval hl.plugin.test.snapmove()");
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("at: {},{}", B.x, B.y));
+    OK(getFromSocket(std::format("/dispatch hl.dsp.window.move({{ x = {}, y = {} }})", FROM.x, FROM.y)));
+    OK(getFromSocket("/eval hl.plugin.test.snapmove()"));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), std::format("at: {},{}", TO.x, TO.y));
 }
 
-static void testWindowSnap(const bool RESPECTGAPS) {
+SUBTEST(expectNoSnapMove, double x, double y) {
+    CALL_SUBTEST(expectSnapMove, x, y, x, y);
+}
+
+SUBTEST(testWindowSnap, const bool RESPECTGAPS) {
     const int BORDERSIZE = 2;
     const int WINDOWSIZE = 100;
 
@@ -55,22 +47,19 @@ static void testWindowSnap(const bool RESPECTGAPS) {
     const int GAP       = (RESPECTGAPS ? 2 * GAPSIN : 0) + (2 * BORDERSIZE);
     const int END       = GAP + WINDOWSIZE;
 
-    int       x;
-    Vector2D  predict;
-
-    x = WINDOWGAP + END;
-    expectSnapMove({OTHER + x, OTHER}, nullptr);
-    expectSnapMove({OTHER - x, OTHER}, nullptr);
-    expectSnapMove({OTHER, OTHER + x}, nullptr);
-    expectSnapMove({OTHER, OTHER - x}, nullptr);
+    int       x = WINDOWGAP + END;
+    CALL_SUBTEST(expectNoSnapMove, OTHER + x, OTHER);
+    CALL_SUBTEST(expectNoSnapMove, OTHER - x, OTHER);
+    CALL_SUBTEST(expectNoSnapMove, OTHER, OTHER + x);
+    CALL_SUBTEST(expectNoSnapMove, OTHER, OTHER - x);
     x -= 1;
-    expectSnapMove({OTHER + x, OTHER}, &(predict = {OTHER + END, OTHER}));
-    expectSnapMove({OTHER - x, OTHER}, &(predict = {OTHER - END, OTHER}));
-    expectSnapMove({OTHER, OTHER + x}, &(predict = {OTHER, OTHER + END}));
-    expectSnapMove({OTHER, OTHER - x}, &(predict = {OTHER, OTHER - END}));
+    CALL_SUBTEST(expectSnapMove, OTHER + x, OTHER, OTHER + END, OTHER);
+    CALL_SUBTEST(expectSnapMove, OTHER - x, OTHER, OTHER - END, OTHER);
+    CALL_SUBTEST(expectSnapMove, OTHER, OTHER + x, OTHER, OTHER + END);
+    CALL_SUBTEST(expectSnapMove, OTHER, OTHER - x, OTHER, OTHER - END);
 }
 
-static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
+SUBTEST(testMonitorSnap, const bool RESPECTGAPS, const bool OVERLAP) {
     const int BORDERSIZE = 2;
     const int WINDOWSIZE = 100;
 
@@ -84,14 +73,14 @@ static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
     Vector2D  predict;
 
     x = MONITORGAP + GAP;
-    expectSnapMove({x, x}, nullptr);
+    CALL_SUBTEST(expectNoSnapMove, x, x);
     x -= 1;
-    expectSnapMove({x, x}, &(predict = {GAP, GAP}));
+    CALL_SUBTEST(expectSnapMove, x, x, GAP, GAP);
 
     x = MONITORGAP + END;
-    expectSnapMove({1920 - x, 1080 - x}, nullptr);
+    CALL_SUBTEST(expectNoSnapMove, 1920 - x, 1080 - x);
     x -= 1;
-    expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - END, 1080 - END}));
+    CALL_SUBTEST(expectSnapMove, 1920 - x, 1080 - x, 1920 - END, 1080 - END);
 
     // test reserved area
     const int RESERVED = 200;
@@ -99,17 +88,18 @@ static void testMonitorSnap(const bool RESPECTGAPS, const bool OVERLAP) {
     const int REND     = RGAP + WINDOWSIZE;
 
     x = MONITORGAP + RGAP;
-    expectSnapMove({x, x}, nullptr);
+    CALL_SUBTEST(expectNoSnapMove, x, x);
     x -= 1;
-    expectSnapMove({x, x}, &(predict = {RGAP, RGAP}));
+    CALL_SUBTEST(expectSnapMove, x, x, RGAP, RGAP);
 
     x = MONITORGAP + REND;
-    expectSnapMove({1920 - x, 1080 - x}, nullptr);
+    CALL_SUBTEST(expectNoSnapMove, 1920 - x, 1080 - x);
     x -= 1;
-    expectSnapMove({1920 - x, 1080 - x}, &(predict = {1920 - REND, 1080 - REND}));
+    CALL_SUBTEST(expectSnapMove, 1920 - x, 1080 - x, 1920 - REND, 1080 - REND);
 }
 
-static bool test() {
+// TODO: decompose this into multiple test cases
+TEST_CASE(snap) {
     NLog::log("{}Testing snap", Colors::GREEN);
 
     // move to monitor HEADLESS-2
@@ -125,10 +115,10 @@ static bool test() {
     // spawn a kitty terminal and move to (500,500)
     NLog::log("{}Spawning kittyProcA", Colors::YELLOW);
     if (!spawnFloatingKitty())
-        return false;
+        FAIL_TEST("Could not spawn kitty");
 
     NLog::log("{}Expecting 1 window", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 1);
+    ASSERT(Tests::windowCount(), 1);
 
     NLog::log("{}Move the kitty window to (500,500)", Colors::YELLOW);
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 500, y = 500 })"));
@@ -136,41 +126,26 @@ static bool test() {
     // spawn a second kitty terminal
     NLog::log("{}Spawning kittyProcB", Colors::YELLOW);
     if (!spawnFloatingKitty())
-        return false;
+        FAIL_TEST("Could not spawn kitty");
 
     NLog::log("{}Expecting 2 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 2);
+    ASSERT(Tests::windowCount(), 2);
 
     NLog::log("");
-    testWindowSnap(false);
-    testMonitorSnap(false, false);
+    CALL_SUBTEST(testWindowSnap, false);
+    CALL_SUBTEST(testMonitorSnap, false, false);
 
     NLog::log("\n{}Turning on respect_gaps", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ general = { snap = { respect_gaps = true } } })"));
-    testWindowSnap(true);
-    testMonitorSnap(true, false);
+    CALL_SUBTEST(testWindowSnap, true);
+    CALL_SUBTEST(testMonitorSnap, true, false);
 
     NLog::log("\n{}Turning on border_overlap", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ general = { snap = { respect_gaps = false } } })"));
     OK(getFromSocket("/eval hl.config({ general = { snap = { border_overlap = true } } })"));
-    testMonitorSnap(false, true);
+    CALL_SUBTEST(testMonitorSnap, false, true);
 
     NLog::log("\n{}Turning on both border_overlap and respect_gaps", Colors::YELLOW);
     OK(getFromSocket("/eval hl.config({ general = { snap = { respect_gaps = true } } })"));
-    testMonitorSnap(true, true);
-
-    // kill all
-    NLog::log("\n{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
-
-    NLog::log("{}Reloading the config", Colors::YELLOW);
-    OK(getFromSocket("/reload"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-
-    return !ret;
+    CALL_SUBTEST(testMonitorSnap, true, true);
 }
-
-REGISTER_TEST_FN(test)

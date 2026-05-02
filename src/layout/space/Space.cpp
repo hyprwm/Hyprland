@@ -162,7 +162,7 @@ void CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode mode) {
     recalculate();
 }
 
-std::expected<void, std::string> CSpace::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {
     if (m_algorithm)
         return m_algorithm->layoutMsg(sv);
 

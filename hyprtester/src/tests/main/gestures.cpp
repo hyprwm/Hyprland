@@ -6,18 +6,19 @@
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <csignal>
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::String;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+// TODO: refactor and reuse `Tests::waitUntilWindowsN`
 static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectation, int waitMillis = 100, int maxWaitCnt = 50) {
     int counter = 0;
     while (Tests::windowCount() != expectedWindowCnt) {
@@ -32,17 +33,10 @@ static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectati
     return true;
 }
 
-static bool test() {
-    NLog::log("{}Testing gestures", Colors::GREEN);
-
-    EXPECT(Tests::windowCount(), 0);
-
-    // test on workspace "window"
-    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"); // no OK: we might be on 1 already
-
+// TODO: decompose this into multiple test cases
+TEST_CASE(gestures) {
     Tests::spawnKitty();
-    EXPECT(Tests::windowCount(), 1);
+    ASSERT(Tests::windowCount(), 1);
 
     // Give the shell a moment to initialize
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -148,7 +142,7 @@ static bool test() {
 
     EXPECT(waitForWindowCount(0, "Gesture closed kitty"), true);
 
-    EXPECT(Tests::windowCount(), 0);
+    ASSERT(Tests::windowCount(), 0);
 
     // This test ensures that `movecursortocorner`, which expects
     // a single-character direction argument, is parsed correctly.
@@ -186,18 +180,40 @@ static bool test() {
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     }
+    const std::string cursorPosBeforePinch = getFromSocket("/cursorpos");
 
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 500, y = 500 })"));
+    OK(getFromSocket("/eval hl.config({ cursor = { zoom_factor = 1 } })"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
 
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.2)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.2, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.6)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
 
-    // reload cfg
-    OK(getFromSocket("/reload"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 0.64)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
 
-    return !ret;
+    const auto comma = cursorPosBeforePinch.find(',');
+
+    if (comma != std::string::npos) {
+        auto xSv = std::string_view(cursorPosBeforePinch).substr(0, comma);
+        auto ySv = std::string_view(cursorPosBeforePinch).substr(comma + 1);
+        while (!xSv.empty() && xSv.front() == ' ')
+            xSv.remove_prefix(1);
+        while (!ySv.empty() && ySv.front() == ' ')
+            ySv.remove_prefix(1);
+
+        const auto x = strToNumber<int>(xSv);
+        const auto y = strToNumber<int>(ySv);
+
+        if (!x || !y)
+            FAIL_TEST("Failed to restore cursor pos");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.cursor.move({{ x = {}, y = {} }})", x.value(), y.value())));
+    }
 }
-
-REGISTER_TEST_FN(test)

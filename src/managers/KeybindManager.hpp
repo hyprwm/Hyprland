@@ -42,6 +42,7 @@ struct SKeybind {
     bool                            longPress       = false;
     bool                            mouse           = false;
     bool                            nonConsuming    = false;
+    bool                            autoConsuming   = false;
     bool                            transparent     = false;
     bool                            ignoreMods      = false;
     bool                            multiKey        = false;
@@ -116,6 +117,7 @@ class CKeybindManager {
 
     SP<SKeybind>                                                                 addKeybind(SKeybind);
     void                                                                         removeKeybind(uint32_t, const SParsedKey&);
+    void                                                                         removeKeybind(const std::string& displayKeys);
     uint32_t                                                                     stringToModMask(std::string);
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
     void                                                                         clearKeybinds();

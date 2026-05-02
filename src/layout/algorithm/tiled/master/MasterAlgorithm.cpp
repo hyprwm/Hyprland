@@ -428,7 +428,7 @@ void CMasterAlgorithm::recalculate() {
     calculateWorkspace();
 }
 
-std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
     auto switchToWindow = [&](SP<ITarget> target) {
         if (!target || !validMapped(target->window()))
             return;
@@ -441,11 +441,15 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         g_pInputManager->m_forcedFocus.reset();
     };
 
-    CVarList2 vars(std::string{sv}, 0, 's');
+    CVarList2  vars(std::string{sv}, 0, 's');
+
+    const auto invalidArg = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT); };
+    const auto noTarget   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NO_TARGET); };
+    const auto stateErr   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::INVALID_STATE); };
 
     if (vars.size() < 1 || vars[0].empty()) {
         Log::logger->log(Log::ERR, "layoutmsg called without params");
-        return std::unexpected("layoutmsg without params");
+        return invalidArg("layoutmsg without params");
     }
 
     auto command = vars[0];
@@ -461,21 +465,23 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
 
     if (command == "swapwithmaster") {
         if (!PWINDOW)
-            return std::unexpected("No focused window");
+            return noTarget("No focused window");
 
         if (!isWindowTiled(PWINDOW))
-            return std::unexpected("focused window isn't tiled");
+            return stateErr("focused window isn't tiled");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master node");
+            return stateErr("no master node");
 
         const auto NEWCHILD = PMASTER->pTarget.lock();
+        if (!NEWCHILD)
+            return stateErr("master target expired");
 
         const bool IGNORE_IF_MASTER = vars.size() >= 2 && std::ranges::any_of(vars, [](const auto& e) { return e == "ignoremaster"; });
 
-        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
+        if (NEWCHILD != PWINDOW->layoutTarget()) {
             const auto& NEWMASTER       = PWINDOW->layoutTarget();
             const bool  newFocusToChild = vars.size() >= 2 && vars[1] == "child";
             g_layoutManager->switchTargets(NEWMASTER, NEWCHILD);
@@ -503,17 +509,21 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
     // * auto (default) - swap the focus with the first child, if the current focus was master, otherwise focus master
     else if (command == "focusmaster") {
         if (!PWINDOW)
-            return std::unexpected("no focused window");
+            return noTarget("no focused window");
 
         const auto PMASTER = getMasterNode();
 
         if (!PMASTER)
-            return std::unexpected("no master");
+            return stateErr("no master");
 
         const auto& ARG = vars[1]; // returns empty string if out of bounds
 
-        if (PMASTER->pTarget.lock() != PWINDOW->layoutTarget()) {
-            switchToWindow(PMASTER->pTarget.lock());
+        const auto  TARGET = PMASTER->pTarget.lock();
+        if (!TARGET)
+            return stateErr("master target expired");
+
+        if (TARGET != PWINDOW->layoutTarget()) {
+            switchToWindow(TARGET);
             // save previously focused window (only for `previous` mode)
             if (ARG == "previous")
                 m_workspaceData.focusMasterPrev = PWINDOW->layoutTarget();
@@ -541,21 +551,21 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
             focusAuto();
     } else if (command == "cyclenext") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
         const auto PNEXTWINDOW = getNextTarget(PWINDOW->layoutTarget(), true, !NOLOOP);
         switchToWindow(PNEXTWINDOW);
     } else if (command == "cycleprev") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         const bool NOLOOP      = vars.size() >= 2 && vars[1] == "noloop";
         const auto PPREVWINDOW = getNextTarget(PWINDOW->layoutTarget(), false, !NOLOOP);
         switchToWindow(PPREVWINDOW);
     } else if (command == "swapnext") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
             Config::Actions::swapNext(true);
@@ -572,7 +582,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         }
     } else if (command == "swapprev") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         if (PWINDOW->layoutTarget()->floating()) {
             Config::Actions::swapNext(false);
@@ -589,10 +599,10 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         }
     } else if (command == "addmaster") {
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window is floating");
+            return stateErr("window is floating");
 
         const auto  PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -601,7 +611,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         static auto SMALLSPLIT = CConfigValue<Config::INTEGER>("master:allow_small_split");
 
         if (MASTERS + 2 > WINDOWS && *SMALLSPLIT == 0)
-            return std::unexpected("nothing to do");
+            return stateErr("nothing to do");
 
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
@@ -622,10 +632,10 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
     } else if (command == "removemaster") {
 
         if (!validMapped(PWINDOW))
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         if (PWINDOW->layoutTarget()->floating())
-            return std::unexpected("window isnt tiled");
+            return stateErr("window isnt tiled");
 
         const auto PNODE = getNodeFromTarget(PWINDOW->layoutTarget());
 
@@ -633,7 +643,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         const auto MASTERS = getMastersNo();
 
         if (WINDOWS < 2 || MASTERS < 2)
-            return std::unexpected("nothing to do");
+            return stateErr("nothing to do");
 
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
@@ -652,7 +662,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         calculateWorkspace();
     } else if (command == "orientationleft" || command == "orientationright" || command == "orientationtop" || command == "orientationbottom" || command == "orientationcenter") {
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         g_pCompositor->setWindowFullscreenInternal(PWINDOW, FSMODE_NONE);
 
@@ -677,7 +687,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
     } else if (command == "mfact") {
 
         if (!PWINDOW)
-            return std::unexpected("no window");
+            return noTarget("no window");
 
         const bool exact = vars[1] == "exact";
 
@@ -685,7 +695,7 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
 
         try {
             ratio = std::stof(std::string{exact ? vars[2] : vars[1]});
-        } catch (...) { return std::unexpected("bad ratio"); }
+        } catch (...) { return invalidArg("bad ratio"); }
 
         const auto PNODE = getNodeFromWindow(PWINDOW);
 
@@ -699,11 +709,11 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         const auto PNODE = getNodeFromWindow(PWINDOW);
 
         if (!PNODE)
-            return std::unexpected("window couldnt be found");
+            return noTarget("window couldnt be found");
 
         const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNode();
         if (!OLDMASTER)
-            return std::unexpected("no old master");
+            return stateErr("no old master");
 
         auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
 
@@ -735,11 +745,11 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         const auto PNODE = getNodeFromWindow(PWINDOW);
 
         if (!PNODE)
-            return std::unexpected("window couldnt be found");
+            return noTarget("window couldnt be found");
 
         const auto OLDMASTER = PNODE->isMaster ? PNODE : getMasterNode();
         if (!OLDMASTER)
-            return std::unexpected("no old master");
+            return stateErr("no old master");
 
         auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
 
@@ -767,7 +777,8 @@ std::expected<void, std::string> CMasterAlgorithm::layoutMsg(const std::string_v
         }
 
         calculateWorkspace();
-    }
+    } else
+        return Config::configError(std::format("Unknown master layoutmsg: {}", sv), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     return {};
 }

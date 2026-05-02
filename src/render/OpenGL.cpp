@@ -1064,6 +1064,19 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     renderRectWithDamageInternal(box, col, data);
 }
 
+using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
+static std::map<ColorConversionKey, CHyprColor> colorConversionCache;
+
+static CHyprColor                               getConvertedColor(const CHyprColor& color) {
+    const auto               targetId = g_pHyprRenderer->workBufferImageDescription()->id();
+    const ColorConversionKey key      = {color.r, color.g, color.b, color.a, targetId};
+    if (colorConversionCache.contains(key))
+        return colorConversionCache[key];
+    const auto converted      = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    colorConversionCache[key] = converted;
+    return converted;
+}
+
 void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprColor& col, const SRectRenderData& data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
@@ -1081,7 +1094,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
 
     // premultiply the color as well as we don't work with straight alpha
     const auto premultiplied = CHyprColor(col.r * col.a, col.g * col.a, col.b * col.a, col.a);
-    const auto converted     = convertColor(premultiplied, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    const auto converted     = getConvertedColor(premultiplied);
     shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a);
     shader->setUniformFloat4(SHADER_COLOR_SRGB, premultiplied.r, premultiplied.g, premultiplied.b, premultiplied.a);
 
@@ -2250,7 +2263,7 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     auto shader = useShader(getShaderVariant(SH_FRAG_SHADOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    const auto converted = convertColor(col, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    const auto converted = getConvertedColor(col);
     shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a * a);
     shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
 
@@ -2342,7 +2355,7 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     auto shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    const auto converted = convertColor(col, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    const auto converted = getConvertedColor(col);
     shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a * a);
     shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
 

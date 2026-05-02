@@ -1959,8 +1959,12 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             pMonitor->m_activeWorkspace->m_space->recalculate();
     }
 
-    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0)
+    if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0) {
+        if (pMonitor->m_delayedCommit)
+            pMonitor->m_state.commit();
+
         return;
+    }
 
     // tearing and DS first
     bool       shouldTear              = pMonitor->updateTearing();
@@ -1995,11 +1999,17 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     // check the damage
     bool hasChanged = pMonitor->m_output->needsFrame || pMonitor->m_damage.hasChanged();
 
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->m_forceFullFrames == 0 && damageBlinkCleanup == 0)
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->m_forceFullFrames == 0 && damageBlinkCleanup == 0) {
+        if (pMonitor->m_delayedCommit)
+            pMonitor->m_state.commit();
+
         return;
+    }
 
     if (*PDAMAGETRACKINGMODE == -1) {
         Log::logger->log(Log::CRIT, "Damage tracking mode -1 ????");
+        if (pMonitor->m_delayedCommit)
+            pMonitor->m_state.commit();
         return;
     }
 
@@ -2038,6 +2048,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     CRegion damage, finalDamage;
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
+        if (pMonitor->m_delayedCommit)
+            pMonitor->m_state.commit();
         return;
     }
 
@@ -2150,6 +2162,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (commit)
         commitPendingAndDoExplicitSync(pMonitor);
+    else if (pMonitor->m_delayedCommit)
+        pMonitor->m_state.commit();
 
     if (shouldTear)
         pMonitor->m_tearingState.busy = true;

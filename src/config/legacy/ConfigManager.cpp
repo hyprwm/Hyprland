@@ -1538,15 +1538,15 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > sc<size_t>(4) + DESCR_OFFSET + DEVICE_OFFSET && !mouse) || (ARGS.size() > sc<size_t>(3) + DESCR_OFFSET + DEVICE_OFFSET && mouse))
         return "bind: too many args";
 
-    std::vector<xkb_keysym_t> KEYSYMS;
-    std::vector<xkb_keysym_t> MODS;
+    std::vector<KeybindKey> KEYSYMS;
+    std::vector<KeybindKey> MODS;
 
     if (multiKey) {
         for (const auto& splitKey : CVarList(ARGS[1], 8, '&')) {
-            KEYSYMS.emplace_back(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+            KEYSYMS.emplace_back(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE), 0);
         }
         for (const auto& splitMod : CVarList(ARGS[0], 8, '&')) {
-            MODS.emplace_back(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+            MODS.emplace_back(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE), 0);
         }
     }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);

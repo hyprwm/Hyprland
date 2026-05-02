@@ -715,12 +715,15 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (!OLDMASTER)
             return stateErr("no old master");
 
-        auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+        auto        oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+
+        SP<ITarget> newFocus;
 
         for (auto& nd : m_masterNodesData) {
             if (!nd->isMaster) {
                 const auto& newMaster = nd;
                 newMaster->isMaster   = true;
+                newFocus              = newMaster->pTarget.lock();
 
                 auto newMasterIt = std::ranges::find(m_masterNodesData, newMaster);
 
@@ -729,7 +732,6 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
                 else if (newMasterIt > oldMasterIt)
                     std::ranges::rotate(oldMasterIt, newMasterIt, std::next(newMasterIt));
 
-                switchToWindow(newMaster->pTarget.lock());
                 OLDMASTER->isMaster = false;
 
                 oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
@@ -741,6 +743,8 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         }
 
         calculateWorkspace();
+        if (newFocus)
+            switchToWindow(newFocus);
     } else if (command == "rollprev") {
         const auto PNODE = getNodeFromWindow(PWINDOW);
 
@@ -751,12 +755,15 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         if (!OLDMASTER)
             return stateErr("no old master");
 
-        auto oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+        auto        oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
+
+        SP<ITarget> newFocus;
 
         for (auto& nd : m_masterNodesData | std::views::reverse) {
             if (!nd->isMaster) {
                 const auto& newMaster = nd;
                 newMaster->isMaster   = true;
+                newFocus              = newMaster->pTarget.lock();
 
                 auto newMasterIt = std::ranges::find(m_masterNodesData, newMaster);
 
@@ -765,7 +772,6 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
                 else if (newMasterIt > oldMasterIt)
                     std::ranges::rotate(oldMasterIt, newMasterIt, std::next(newMasterIt));
 
-                switchToWindow(newMaster->pTarget.lock());
                 OLDMASTER->isMaster = false;
 
                 oldMasterIt = std::ranges::find(m_masterNodesData, OLDMASTER);
@@ -777,6 +783,8 @@ Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {
         }
 
         calculateWorkspace();
+        if (newFocus)
+            switchToWindow(newFocus);
     } else
         return Config::configError(std::format("Unknown master layoutmsg: {}", sv), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 

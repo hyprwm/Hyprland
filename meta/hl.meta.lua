@@ -349,6 +349,7 @@
 ---| "render.ctm_animation"
 ---| "render.direct_scanout"
 ---| "render.expand_undersized_textures"
+---| "render.fp16_sdr_tf"
 ---| "render.icc_vcgt_enabled"
 ---| "render.keep_unmodified_copy"
 ---| "render.new_render_scheduling"
@@ -1219,6 +1220,7 @@ hl = {}
 ---@field ['render.ctm_animation'] integer|boolean
 ---@field ['render.direct_scanout'] integer|boolean
 ---@field ['render.expand_undersized_textures'] boolean
+---@field ['render.fp16_sdr_tf'] integer|boolean
 ---@field ['render.icc_vcgt_enabled'] boolean
 ---@field ['render.keep_unmodified_copy'] integer|boolean
 ---@field ['render.new_render_scheduling'] boolean

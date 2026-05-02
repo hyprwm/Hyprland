@@ -1495,7 +1495,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
 
         if (ARGS.size() > 2)
-            return std::unexpected("too many args");
+            return invalidArg("too many args");
 
         // Toggle
         if (ARGS.size() == 1)

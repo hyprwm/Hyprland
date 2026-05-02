@@ -233,7 +233,7 @@ TEST_CASE(testScrollInhibitor) {
     // the focus must have moved regardless of the state of the inhibitor (it only prevents the scrolling view from moving). We are now focused on window class:a
 
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
-    const std::string posA  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const int         posAx = std::stoi(posA.substr(4, posA.find(',') - 4));
     if (posAx < 0) {
         NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::GREEN, Colors::RESET, posAx);

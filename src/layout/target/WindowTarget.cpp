@@ -96,6 +96,7 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = visualBox.pos();
 
         m_window->updateWindowDecos();
+        m_window->sendWindowSize();
         return;
     }
 

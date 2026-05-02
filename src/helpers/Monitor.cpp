@@ -2567,7 +2567,7 @@ bool CMonitor::useFP16() {
 PImageDescription CMonitor::workBufferImageDescription() {
     static const auto PFP16TF = CConfigValue<Hyprlang::INT>("render:fp16_sdr_tf");
 
-    if (!useFP16())
+    if (!useFP16() && !m_imageDescription->value().icc.present)
         return m_imageDescription;
 
     const auto& value = m_imageDescription->value();

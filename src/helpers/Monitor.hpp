@@ -326,6 +326,7 @@ class CMonitor {
     bool        updateTearing();
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
+    void        handleDSleave();
     bool        canAttemptDirectScanoutFast() const;
     bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);

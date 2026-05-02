@@ -1632,6 +1632,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
     if (format == FORMAT_NORMAL) {
         if (TYPE == typeid(Config::INTEGER))
             return std::format("int: {}\nset: {}", **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::BOOL))
+            return std::format("bool: {}\nset: {}", **rc<Config::BOOL* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::FLOAT))
             return std::format("float: {:2f}\nset: {}", **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
@@ -1655,6 +1657,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
     } else {
         if (TYPE == typeid(Config::INTEGER))
             return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::BOOL))
+            return std::format(R"({{"option": "{}", "bool": {}, "set": {} }})", curitem, (**rc<Config::BOOL* const*>(VAL)) ? "true" : "false", VAR.setByUser);
         else if (TYPE == typeid(Config::FLOAT))
             return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))

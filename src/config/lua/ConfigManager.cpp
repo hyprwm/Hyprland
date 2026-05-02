@@ -270,6 +270,7 @@ void CConfigManager::reinitLuaState() {
     m_eventHandler.reset();
 
     cleanTimers();
+    clearLuaLayoutProviders();
 
     if (m_lua) {
         lua_close(m_lua);
@@ -420,6 +421,7 @@ void CConfigManager::reload() {
     Desktop::Rule::ruleEngine()->clearAllRules();
     g_pTrackpadGestures->clearGestures();
     cleanTimers();
+    clearLuaLayoutProviders();
     m_luaWindowRules.clear();
     m_luaLayerRules.clear();
     m_errors.clear();

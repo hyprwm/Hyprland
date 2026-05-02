@@ -202,6 +202,7 @@ namespace Config::Lua::Bindings::Internal {
 
     bool hasTableField(lua_State* L, int tableIdx, const char* field);
     void registerToplevelBindings(lua_State* L, CConfigManager* mgr);
+    void registerLayoutBindings(lua_State* L, CConfigManager* mgr);
     void registerQueryBindings(lua_State* L);
     void registerNotificationBindings(lua_State* L);
     void registerConfigRuleBindings(lua_State* L, CConfigManager* mgr);

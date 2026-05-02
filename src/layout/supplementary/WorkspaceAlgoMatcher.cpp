@@ -4,6 +4,7 @@
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 
 #include "../algorithm/Algorithm.hpp"
+#include "../algorithm/TiledAlgorithm.hpp"
 #include "../space/Space.hpp"
 
 #include "../algorithm/floating/default/DefaultFloatingAlgorithm.hpp"
@@ -124,12 +125,24 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
 
-        if (m_algoNames.contains(&typeid(*TILED_ALGO.get())) && m_algoNames.at(&typeid(*TILED_ALGO.get())) == LAYOUT_TO_USE)
+        const auto CURRENT_LAYOUT = getNameForTiledAlgo(TILED_ALGO.get());
+
+        if (CURRENT_LAYOUT == LAYOUT_TO_USE && m_tiledAlgos.contains(LAYOUT_TO_USE))
             continue;
 
         // needs a switchup
         ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));
     }
+}
+
+std::string CWorkspaceAlgoMatcher::getNameForTiledAlgo(const ITiledAlgorithm* algo) {
+    if (!algo)
+        return "unknown";
+
+    if (const auto name = algo->layoutName(); name.has_value())
+        return *name;
+
+    return getNameForTiledAlgo(&typeid(*algo));
 }
 
 std::string CWorkspaceAlgoMatcher::getNameForTiledAlgo(const std::type_info* type) {

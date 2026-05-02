@@ -48,6 +48,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../layout/target/WindowTarget.hpp"
@@ -772,7 +773,13 @@ bool CWindow::isAllowedOverFullscreen() const {
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
+    if (!m_workspace)
+        return false;
+
+    const auto ALGORITHM             = m_workspace->m_space ? m_workspace->m_space->algorithm() : nullptr;
+    const bool HAS_LAYOUT_FULLSCREEN = ALGORITHM && ALGORITHM->layoutFullscreenCoversMonitor();
+
+    if (!m_workspace->m_hasFullscreenWindow && !HAS_LAYOUT_FULLSCREEN)
         return false;
 
     return !isAllowedOverFullscreen();

@@ -505,14 +505,14 @@ void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
     handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, nullptr, nullptr);
 }
 
-eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
+eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<KeybindKey>& keybindKeysyms, const std::set<KeybindKey>& pressedKeysyms) {
     // Returns whether two sets of keysyms are equal, partially equal, or not
     // matching. (Partially matching means that pressed is a subset of bound)
 
-    std::set<xkb_keysym_t> boundKeysNotPressed;
-    std::set<xkb_keysym_t> pressedKeysNotBound;
+    std::set<KeybindKey> boundKeysNotPressed;
+    std::set<KeybindKey> pressedKeysNotBound;
 
-    std::set<xkb_keysym_t> symsKb;
+    std::set<KeybindKey> symsKb;
     for (const auto& k : keybindKeysyms) {
         symsKb.emplace(k);
     }
@@ -556,14 +556,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     if (key.keysym != 0) {
         if (pressed) {
             if (keycodeToModifier(key.keycode))
-                m_mkMods.insert(key.keysym);
+                m_mkMods.insert(key.keysym, key.keycode);
             else
-                m_mkKeys.insert(key.keysym);
+                m_mkKeys.insert(key.keysym, key.keycode);
         } else {
             if (keycodeToModifier(key.keycode))
-                m_mkMods.erase(key.keysym);
+                std::erase_if(m_mkMods, [&key](const auto& e) { return e.first == key.keysym || e.second == key.keycode; });
             else
-                m_mkKeys.erase(key.keysym);
+                std::erase_if(m_mkKeys, [&key](const auto& e) { return e.first == key.keysym || e.second == key.keycode; });
         }
     }
 
@@ -615,7 +615,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             // check for just the one match
             // this is also needed for multi-key binds so that SUPER + A + K can't
             // be actuated by SUPER + K + A
-            if (key.keysym != k->sMkKeys.back())
+            auto& back = k->sMkKeys.back();
+            if (key.keysym != back.first && key.keycode != back.second)
                 continue;
         } else if (!key.keyName.empty()) {
             if (key.keyName != k->key)

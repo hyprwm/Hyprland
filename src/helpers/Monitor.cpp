@@ -620,6 +620,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
     if (oldImageDescription != m_imageDescription) {
         if (PROTO::colorManagement)
             PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
+        m_blurFBDirty = true;
     }
 }
 
@@ -2061,6 +2062,20 @@ bool CMonitor::attemptDirectScanout() {
     });
 
     return true;
+}
+
+void CMonitor::handleDSleave() {
+    Log::logger->log(Log::DEBUG, "Left a direct scanout.");
+    m_lastScanout.reset();
+    m_previousFSWindow.reset(); // recalc fs settings
+    m_directScanoutIsActive = false;
+
+    // reset DRM format, but only if needed since it might modeset
+    if (m_output->state->state().drmFormat != m_prevDrmFormat)
+        m_output->state->setFormat(m_prevDrmFormat);
+
+    m_drmFormat   = m_prevDrmFormat;
+    m_blurFBDirty = true;
 }
 
 bool CMonitor::canAttemptDirectScanoutFast() const {

@@ -104,6 +104,8 @@ add_compile_options(
   -Wall
   -Wextra
   -Wpedantic
+  -Wno-keyword-macro
+  -Wno-unused-result
   -Wno-unused-parameter
   -Wno-unused-value
   -Wno-missing-field-initializers

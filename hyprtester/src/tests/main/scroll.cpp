@@ -225,7 +225,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
-    const std::string posA  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const int         posAx = std::stoi(posA.substr(4, posA.find(',') - 4));
     if (posAx < 0) {
         NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
@@ -269,7 +269,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
 
     // If the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport.
     // If it is not, the view moved, which is what we expect to happen.
-    const std::string posA  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const int         posAx = std::stoi(posA.substr(4, posA.find(',') - 4));
     if (posAx < 0) {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::RED, Colors::RESET, posAx);
@@ -330,7 +330,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
 
     // If the view did not move, we expect currently focused window's (class:a) to have "at: " x coordinat value <0 (must be left of the viewport)
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -396,7 +396,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
 
     // If the view did not move, we expect currently focused window's (class:a) to have "at: " x coordinat value <0 (must be left of the viewport)
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
 
     // test pass
@@ -451,7 +451,7 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     OK(getFromSocket("/dispatch hl.dsp.focus({workspace = '1'})"));
 
     // If the scrolling view did not move, the x value for `at:` of the currently focused window, class:a, must be <0 (must be left of the viewport)
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
 
     // test pass
@@ -509,7 +509,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
     // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -567,7 +567,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
 
     // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
 
-    const std::string currentWindowPosSPECIAL  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPosSPECIAL  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosSPECIALX = currentWindowPosSPECIAL.substr(4, currentWindowPosSPECIAL.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosSPECIALX) < 0) {
@@ -630,7 +630,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
 
     // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:a, must be <0 (must be left of the viewport)
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -687,7 +687,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
 
     // the focus now should still be on class:b window. If the view did not move, its x coordinate for its `at:` value should be <0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -743,7 +743,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
 
     // the focus now should still be on class:b window. If the scrolling view did move, its x coordinate for its `at:` value should be >= 0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test fail
     if (std::stoi(currentWindowPosX) < 0) {
@@ -796,7 +796,7 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -855,7 +855,7 @@ TEST_CASE(testScrollingViewBehaviourMaximise) {
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -909,7 +909,7 @@ TEST_CASE(testScrollingViewBehaviourFullscreen) {
     OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'fullscreen', action = 'unset', window = 'class:a'})"));
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -956,7 +956,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
     OK(getFromSocket("/dispatch hl.dsp.focus({direction = 'left'})"));
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be < 0.
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -1001,7 +1001,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
 
     // If the scrolling view moved, class:a window's x coordinate for its `at:` value should be >= 0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test fail
     if (std::stoi(currentWindowPosX) < 0) {
@@ -1064,7 +1064,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
 
     // the focus now should still be on class:a window. If the scrolling view did not move, its x coordinate for its `at:` value should be < 0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test pass
     if (std::stoi(currentWindowPosX) < 0) {
@@ -1126,7 +1126,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
 
     // the focus now should still be on class:a window. If the scrolling view moved, its x coordinate for its `at:` value should be >= 0
 
-    const std::string currentWindowPos  = Tests::getWindowAttribute(getFromSocket("/activewindow"), "at:");
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at:");
     const std::string currentWindowPosX = currentWindowPos.substr(4, currentWindowPos.find(',') - 4);
     // test fail
     if (std::stoi(currentWindowPosX) < 0) {

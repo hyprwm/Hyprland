@@ -151,8 +151,8 @@ static bool isCursorPos(int x, int y) {
 }
 
 TEST_CASE(pointerWarp) {
-    if (std::getenv("CI")) {
-        NLog::log("{}Skipping pointerWarp test in CI (cursor behavior unreliable)", Colors::YELLOW);
+    if (std::getenv("GITHUB_ACTIONS") || std::getenv("CI")) {
+        NLog::log("{}Skipping pointerWarp test in CI (unreliable pointer behavior)", Colors::YELLOW);
         return;
     }
 

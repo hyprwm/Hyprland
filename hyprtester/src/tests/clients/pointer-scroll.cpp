@@ -126,8 +126,8 @@ static bool sendScroll(int delta) {
 }
 
 TEST_CASE(pointerScroll) {
-    if (std::getenv("CI")) {
-        NLog::log("{}Skipping pointerScroll test in CI (cursor behavior unreliable)", Colors::YELLOW);
+    if (std::getenv("GITHUB_ACTIONS") || std::getenv("CI")) {
+        NLog::log("{}Skipping pointerScroll test in CI (unreliable pointer behavior)", Colors::YELLOW);
         return;
     }
 

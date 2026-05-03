@@ -469,7 +469,8 @@ def generate_stub(root: Path) -> str:
 
     api_signatures: dict[str, str] = {
         "hl.on": "fun(event: HL.EventName, cb: fun(...)): HL.EventSubscription",
-        "hl.bind": "fun(keys: string, dispatcher: function, opts?: HL.BindOptions): HL.Keybind",
+        "hl.bind": "fun(keys: string, dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind",
+        "hl.dispatch": "fun(dispatcher: HL.Dispatcher|function): any",
         "hl.define_submap": "fun(name: string, reset_or_fn: string|function, fn?: function): nil",
         "hl.timer": "fun(callback: function, opts: HL.TimerOptions): HL.Timer",
         "hl.config": "fun(config: table): nil",
@@ -522,6 +523,9 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
     lines.append("---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}")
     lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
+    lines.append("")
+    lines.append("---@class HL.Dispatcher")
+    lines.append("local __HL_Dispatcher = {}")
     lines.append("")
 
     lines.extend(
@@ -651,7 +655,8 @@ def generate_stub(root: Path) -> str:
 
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"
-            method_type = api_signatures.get(full_name, "fun(...): any")
+            default_method_type = "fun(...): HL.Dispatcher" if path and path[0] == "dsp" else "fun(...): any"
+            method_type = api_signatures.get(full_name, default_method_type)
             fields.append((method, method_type, False))
 
         for child_name in sorted(node.children.keys()):

@@ -1214,14 +1214,17 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
 
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
+    Internal::markDispatcherTable(L);
 
     {
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "move_to_corner", hlCursorMoveToCorner);
         Internal::setFn(L, "move", hlCursorMove);
         lua_setfield(L, -2, "cursor");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "toggle", hlGroupToggle);
         Internal::setFn(L, "next", hlGroupNext);
         Internal::setFn(L, "prev", hlGroupPrev);
@@ -1232,6 +1235,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_setfield(L, -2, "group");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "close", hlWindowClose);
         Internal::setFn(L, "kill", hlWindowKill);
         Internal::setFn(L, "signal", hlWindowSignal);
@@ -1255,6 +1259,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_setfield(L, -2, "window");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "rename", hlWorkspaceRename);
         Internal::setFn(L, "move", hlWorkspaceMove);
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);

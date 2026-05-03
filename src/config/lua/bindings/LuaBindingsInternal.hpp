@@ -181,6 +181,9 @@ namespace Config::Lua::Bindings::Internal {
 
     void setFn(lua_State* L, const char* name, lua_CFunction fn);
     void setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn);
+    void markDispatcherTable(lua_State* L);
+    int  wrapDispatcher(lua_State* L);
+    bool pushDispatcherFunction(lua_State* L, int idx);
 
     template <typename T>
     SParseError parseTableField(lua_State* L, int tableIdx, const char* field, T& parser) {

@@ -53,6 +53,7 @@ namespace Config::Actions {
     ActionResult move(const Vector2D& pos, bool relative = false, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult cycleNext(const bool next, std::optional<bool> onlyTiled, std::optional<bool> onlyFloating, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult tag(const std::string& tag, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult clearTags(std::optional<PHLWINDOW> w = std::nullopt);
     ActionResult pass(std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult pass(uint32_t modMask, uint32_t key, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult sendKeyState(uint32_t modMask, uint32_t key, uint32_t state, std::optional<PHLWINDOW> window = std::nullopt /* Active */);

@@ -38,6 +38,15 @@ bool CTagKeeper::applyTag(const std::string& tag, bool dynamic) {
     return true;
 }
 
+bool CTagKeeper::clearTags() {
+    if (!m_tags.empty()) {
+        m_tags.clear();
+        return true;
+    }
+
+    return false;
+}
+
 bool CTagKeeper::removeDynamicTag(const std::string& s) {
     return std::erase_if(m_tags, [&s](const auto& tag) { return tag == s + "*"; });
 }

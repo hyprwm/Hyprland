@@ -563,6 +563,10 @@ static int dsp_tagWindow(lua_State* L) {
     return Internal::checkResult(L, CA::tag(lua_tostring(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
 }
 
+static int dsp_clearTags(lua_State* L) {
+    return Internal::checkResult(L, CA::clearTags(Internal::windowFromUpval(L, 1)));
+}
+
 static int dsp_toggleSwallow(lua_State* L) {
     return Internal::checkResult(L, CA::toggleSwallow());
 }
@@ -915,6 +919,12 @@ static int hlWindowTag(lua_State* L) {
     return 1;
 }
 
+static int hlWindowClearTags(lua_State* L) {
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_clearTags, 1);
+    return 1;
+}
+
 static int hlWindowToggleSwallow(lua_State* L) {
     lua_pushcclosure(L, dsp_toggleSwallow, 0);
     return 1;
@@ -1248,6 +1258,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "center", hlWindowCenter);
         Internal::setFn(L, "cycle_next", hlWindowCycleNext);
         Internal::setFn(L, "tag", hlWindowTag);
+        Internal::setFn(L, "clear_tags", hlWindowClearTags);
         Internal::setFn(L, "toggle_swallow", hlWindowToggleSwallow);
         Internal::setFn(L, "pin", hlWindowPin);
         Internal::setFn(L, "bring_to_top", hlWindowBringToTop);

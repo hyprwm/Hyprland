@@ -1233,46 +1233,59 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
         return nullptr;
 
     Log::logger->log(Log::DEBUG, "Creating a texture for BGTex");
+    SP<ITexture> backgroundTexture = createTexture(m_backgroundResource->m_asset.cairoSurface->cairo());
 
-    cairo_surface_t* cairoSurface  = m_backgroundResource->m_asset.cairoSurface->cairo();
-    cairo_surface_t* scaledSurface = nullptr;
+    if (!backgroundTexture || !backgroundTexture->ok())
+        return nullptr;
 
-    // If the background is larger than the monitor, scale it down
-    if (pMonitor->m_transformedSize.x > 0 && pMonitor->m_transformedSize.y > 0) {
-        const int    origW  = cairo_image_surface_get_width(cairoSurface);
-        const int    origH  = cairo_image_surface_get_height(cairoSurface);
-        const int    monW   = (int)std::round(pMonitor->m_transformedSize.x);
-        const int    monH   = (int)std::round(pMonitor->m_transformedSize.y);
+    Log::logger->log(Log::DEBUG, "BGTex created for monitor {}", pMonitor->m_name);
+
+    const int monW  = (int)std::round(pMonitor->m_transformedSize.x);
+    const int monH  = (int)std::round(pMonitor->m_transformedSize.y);
+    const int origW = backgroundTexture->m_size.x;
+    const int origH = backgroundTexture->m_size.y;
+
+    if (monW > 0 && monH > 0) {
         const double scaleX = (double)monW / origW;
         const double scaleY = (double)monH / origH;
         const double scale  = std::max(scaleX, scaleY);
 
+        // scale the background if it's larger than the monitor
         if (scale < 1.0) {
-            // Center-crop: compute offset in original-image coordinates
-            const double srcX = (origW - (monW / scale)) / 2.0;
-            const double srcY = (origH - (monH / scale)) / 2.0;
+            auto fb = createFB("BGTex scale");
+            fb->alloc(monW, monH);
 
-            scaledSurface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, monW, monH);
-            cairo_t* cr   = cairo_create(scaledSurface);
-            cairo_scale(cr, scale, scale);
-            cairo_set_source_surface(cr, cairoSurface, -srcX, -srcY);
-            cairo_paint(cr);
-            cairo_destroy(cr);
-            cairo_surface_flush(scaledSurface);
+            auto       guard = bindTempFB(fb);
 
-            cairoSurface = scaledSurface;
-            Log::logger->log(Log::INFO, "Background scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
+            const auto oldProjType     = m_renderData.projectionType;
+            const auto oldFbSize       = m_renderData.fbSize;
+            const auto oldTransformDmg = m_renderData.transformDamage;
+
+            m_renderData.fbSize = Vector2D{monW, monH};
+            setProjectionType(RPT_EXPORT);
+            m_renderData.transformDamage = false;
+            setViewport(0, 0, monW, monH);
+
+            draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
+
+            const double texW = origW * scale;
+            const double texH = origH * scale;
+            const double offX = (monW - texW) / 2.0;
+            const double offY = (monH - texH) / 2.0;
+
+            CRegion      fullDamage = {0, 0, monW, monH};
+            draw(CTexPassElement::SRenderData{.tex = backgroundTexture, .box = CBox{offX, offY, texW, texH}, .damage = fullDamage}, fullDamage);
+
+            m_renderData.fbSize          = oldFbSize;
+            m_renderData.transformDamage = oldTransformDmg;
+            setProjectionType(oldProjType);
+            setViewport(0, 0, (int)pMonitor->m_pixelSize.x, (int)pMonitor->m_pixelSize.y);
+
+            backgroundTexture = fb->getTexture();
+
+            Log::logger->log(Log::INFO, "BGTex scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
         }
     }
-
-    SP<ITexture> backgroundTexture = createTexture(cairoSurface);
-
-    if (scaledSurface)
-        cairo_surface_destroy(scaledSurface);
-
-    if (!backgroundTexture->ok())
-        return nullptr;
-    Log::logger->log(Log::DEBUG, "Background created for monitor {}", pMonitor->m_name);
 
     // clear the resource after we're done using it
     g_pEventLoopManager->doLater([this] { m_backgroundResource.reset(); });

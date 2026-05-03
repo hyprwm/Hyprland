@@ -151,13 +151,13 @@ static bool isCursorPos(int x, int y) {
 }
 
 TEST_CASE(pointerWarp) {
-    NLog::log("{}Skipping pointerWarp test (CI unstable)", Colors::YELLOW);
-    return;
-
     std::optional<CClient> client;
     try {
         client.emplace();
     } catch (...) { FAIL_TEST("Couldn't start the client"); }
+
+    // Force deterministic pointer movement (no accel, fixed sensitivity)
+    EXPECT(getFromSocket("r/eval hl.config({ input = { accel_profile = 'flat', sensitivity = 1.0 } })"), "ok");
 
     EXPECT(client->sendWarp(100, 100), true);
     EXPECT(isCursorPos(100, 100), true);

@@ -546,7 +546,7 @@ SUBTEST(perDeviceKeybind) {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER' + 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 
     // Tags
     EXPECT(checkFlag(), false);
@@ -554,7 +554,7 @@ SUBTEST(perDeviceKeybind) {
     OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
-    EXPECT(getFromSocket("/eval hl.unbind('SUPER' + 'Y')"), "ok");
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(unbind) {

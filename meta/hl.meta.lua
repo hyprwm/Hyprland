@@ -826,6 +826,7 @@ local __HL_DspGroupNamespace = {}
 ---@field alter_zorder fun(...): HL.Dispatcher
 ---@field bring_to_top fun(...): HL.Dispatcher
 ---@field center fun(...): HL.Dispatcher
+---@field clear_tags fun(...): HL.Dispatcher
 ---@field close fun(...): HL.Dispatcher
 ---@field cycle_next fun(...): HL.Dispatcher
 ---@field deny_from_group fun(...): HL.Dispatcher

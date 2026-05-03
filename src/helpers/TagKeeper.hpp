@@ -8,6 +8,7 @@ class CTagKeeper {
     bool        isTagged(const std::string& tag, bool strict = false) const;
     bool        applyTag(const std::string& tag, bool dynamic = false);
     bool        removeDynamicTag(const std::string& tag);
+    bool        clearTags();
 
     const auto& getTags() const {
         return m_tags;

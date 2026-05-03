@@ -105,14 +105,14 @@ void CScrollMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     }
 
     const bool   CANCELLED = e.swipe && e.swipe->cancelled;
-    const double PROJECTED = SCROLLING->normalizedTapeOffset() +
-        (CANCELLED ? 0.0 : std::clamp(m_velocity / SCROLL_GESTURE_VELOCITY_DECAY, -SCROLL_GESTURE_MAX_PROJECTION, SCROLL_GESTURE_MAX_PROJECTION));
+    const double Δ         = (CANCELLED ? 0.0 : std::clamp(m_velocity / SCROLL_GESTURE_VELOCITY_DECAY, -SCROLL_GESTURE_MAX_PROJECTION, SCROLL_GESTURE_MAX_PROJECTION));
+    const double PROJECTED = SCROLLING->normalizedTapeOffset() + Δ;
 
     if (*PSNAP) {
         const auto LANDED = SCROLLING->snapToProjectedOffset(PROJECTED);
         SCROLLING->focusColumn(LANDED);
     } else {
-        SCROLLING->moveTapeNormalized(PROJECTED);
+        SCROLLING->moveTape(Δ);
         SCROLLING->focusColumn(SCROLLING->getColumnAtViewportCenter());
     }
 

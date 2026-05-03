@@ -266,10 +266,16 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
 
     // constraints
     auto confineToRegion = [&](const CRegion& rg, SP<Desktop::View::CWLSurface> surf) {
+        if (!surf)
+            return;
+
         const auto CLOSEST      = rg.closestPoint(mouseCoords);
         const auto BOX          = surf->getSurfaceBoxGlobal();
         const auto WINDOW       = Desktop::View::CWindow::fromView(surf->view());
         const auto CLOSESTLOCAL = (CLOSEST - (BOX.has_value() ? BOX->pos() : Vector2D{})) * (WINDOW ? WINDOW->m_X11SurfaceScaledBy : 1.0);
+
+        if (g_pSeatManager->m_state.pointerFocus != surf->resource())
+            g_pSeatManager->setPointerFocus(surf->resource(), CLOSESTLOCAL);
 
         g_pCompositor->warpCursorTo(CLOSEST, true);
         g_pSeatManager->sendPointerMotion(time, CLOSESTLOCAL);

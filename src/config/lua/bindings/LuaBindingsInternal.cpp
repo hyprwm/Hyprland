@@ -449,11 +449,6 @@ CA::eTogglableAction Internal::tableToggleAction(lua_State* L, int idx, const ch
     return CA::TOGGLE_ACTION_TOGGLE;
 }
 
-void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
-    lua_pushcfunction(L, fn);
-    lua_setfield(L, -2, name);
-}
-
 void Internal::setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn) {
     lua_pushlightuserdata(L, mgr);
     lua_pushcclosure(L, fn, 1);

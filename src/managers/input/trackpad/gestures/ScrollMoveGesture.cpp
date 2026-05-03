@@ -50,10 +50,15 @@ static float deltaForUpdate(const ITrackpadGesture::STrackpadGestureUpdate& e) {
 void CScrollMoveTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_wasScrollingLayout = currentScrollingLayout() != nullptr;
+    const auto LAYOUT = currentScrollingLayout();
+
+    m_wasScrollingLayout = !!LAYOUT;
     m_hasLastUpdate      = false;
     m_lastUpdateTimeMs   = 0;
     m_velocity           = 0.0;
+
+    m_startedOffset = LAYOUT ? LAYOUT->normalizedTapeOffset() : 0.0;
+    m_startedColumn = LAYOUT ? LAYOUT->currentColumn() : nullptr;
 }
 
 void CScrollMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGestureUpdate& e) {
@@ -110,7 +115,12 @@ void CScrollMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
 
     if (*PSNAP) {
         const auto LANDED = SCROLLING->snapToProjectedOffset(PROJECTED);
-        SCROLLING->focusColumn(LANDED);
+
+        // if we land on the same thing we started, move the tape back
+        if (LANDED == m_startedColumn && LANDED)
+            SCROLLING->moveTapeNormalized(m_startedOffset - SCROLLING->normalizedTapeOffset());
+        else
+            SCROLLING->focusColumn(LANDED);
     } else {
         SCROLLING->moveTape(Δ);
         SCROLLING->focusColumn(SCROLLING->getColumnAtViewportCenter());

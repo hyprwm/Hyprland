@@ -115,6 +115,7 @@ namespace Layout::Tiled {
         SP<SColumnData>                 snapToProjectedOffset(double projectedNormalizedOffset);
         void                            focusColumn(SP<SColumnData> column);
         SP<SColumnData>                 getColumnAtViewportCenter();
+        SP<SColumnData>                 currentColumn();
 
         double                          primaryViewportSize();
         double                          normalizedTapeOffset();

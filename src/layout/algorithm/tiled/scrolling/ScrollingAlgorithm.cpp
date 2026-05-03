@@ -1621,6 +1621,20 @@ SP<SColumnData> CScrollingAlgorithm::getColumnAtViewportCenter() {
     return m_scrollingData ? m_scrollingData->atCenter() : nullptr;
 }
 
+SP<SColumnData> CScrollingAlgorithm::currentColumn() {
+    auto focus = Desktop::focusState()->window();
+
+    if (!focus)
+        return nullptr;
+
+    auto data = dataFor(focus->layoutTarget());
+
+    if (!data)
+        return nullptr;
+
+    return data->column.lock();
+}
+
 double CScrollingAlgorithm::primaryViewportSize() {
     const auto USABLE = usableArea();
 

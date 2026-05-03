@@ -83,6 +83,18 @@ PHLWINDOW CWorkspace::getLastFocusedWindow() {
     return m_lastFocusedWindow.lock();
 }
 
+PHLWINDOW CWorkspace::getFocusCandidate() {
+    auto pWindow = getLastFocusedWindow();
+
+    if (!pWindow)
+        pWindow = getTopLeftWindow();
+
+    if (!pWindow)
+        pWindow = getFirstWindow();
+
+    return pWindow;
+}
+
 std::string CWorkspace::getConfigName() {
     if (m_isSpecialWorkspace) {
         return m_name;

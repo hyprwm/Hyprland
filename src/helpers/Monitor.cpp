@@ -1406,10 +1406,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
                                                                    Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING);
 
                 if (!pWindow)
-                    pWindow = pWorkspace->getTopLeftWindow();
-
-                if (!pWindow)
-                    pWindow = pWorkspace->getFirstWindow();
+                    pWindow = pWorkspace->getFocusCandidate();
             }
 
             Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);

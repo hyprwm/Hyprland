@@ -61,6 +61,7 @@ class CWorkspace {
     bool        inert();
     MONITORID   monitorID();
     PHLWINDOW   getLastFocusedWindow();
+    PHLWINDOW   getFocusCandidate();
     std::string getConfigName();
     bool        matchesStaticSelector(const std::string& selector);
     void        markInert();

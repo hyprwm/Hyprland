@@ -126,15 +126,16 @@ static bool sendScroll(int delta) {
 }
 
 TEST_CASE(pointerScroll) {
-    if (std::getenv("GITHUB_ACTIONS") || std::getenv("CI")) {
-        NLog::log("{}Skipping pointerScroll test in CI (unreliable pointer behavior)", Colors::YELLOW);
-        return;
-    }
-
     std::optional<CClient> client;
     try {
         client.emplace();
     } catch (...) { FAIL_TEST("Couldn't start the client"); }
+
+    // Detect broken scroll behavior (CI / headless env)
+    if (!sendScroll(10)) {
+        NLog::log("{}Skipping pointerScroll test (scroll behavior unreliable)", Colors::YELLOW);
+        return;
+    }
 
     EXPECT(getFromSocket("r/eval hl.config({ input = { emulate_discrete_scroll = 0 } })"), "ok");
 

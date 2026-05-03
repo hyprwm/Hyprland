@@ -118,7 +118,7 @@ void CScrollMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
 
         // if we land on the same thing we started, move the tape back
         if (LANDED == m_startedColumn && LANDED)
-            SCROLLING->moveTapeNormalized(m_startedOffset - SCROLLING->normalizedTapeOffset());
+            SCROLLING->moveTapeNormalized(SCROLLING->normalizedTapeOffset() - m_startedOffset);
         else
             SCROLLING->focusColumn(LANDED);
     } else {

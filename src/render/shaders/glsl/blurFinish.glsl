@@ -30,7 +30,11 @@ vec4 blurFinish(vec4 pixColor, vec2 v_texcoord, float noise, float brightness
     pixColor.rgb *= min(1.0, brightness);
 
 #if USE_CM
-    pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange);
+    if (targetTF == CM_TRANSFER_FUNCTION_EXT_LINEAR) {
+        pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, vec2(0.0, 203.0)); // FIXME wtf
+    } else {
+        pixColor = doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange);
+    }
 #endif
 
     return pixColor;

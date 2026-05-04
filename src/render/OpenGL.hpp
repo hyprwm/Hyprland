@@ -174,7 +174,6 @@ namespace Render::GL {
             GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;
-            SP<CMonitor>           cmBackToSRGBSource;
 
             uint32_t               discardMode    = DISCARD_OPAQUE;
             float                  discardOpacity = 0.f;

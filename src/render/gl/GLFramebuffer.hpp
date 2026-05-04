@@ -21,11 +21,15 @@ namespace Render::GL {
         GLuint getFBID();
         void   invalidate(const std::vector<GLenum>& attachments);
 
+        // clear at most once per invalidate()
+        void clearAfterInvalidation();
+
       protected:
         bool internalAlloc(int w, int h, DRMFormat format = DRM_FORMAT_ARGB8888) override;
 
       private:
-        GLuint m_fb = -1;
+        GLuint m_fb      = -1;
+        bool   m_cleared = false;
 
         friend class CGLRenderbuffer;
     };

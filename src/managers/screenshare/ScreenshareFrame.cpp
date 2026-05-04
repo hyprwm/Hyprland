@@ -196,11 +196,10 @@ void CScreenshareFrame::renderMonitor() {
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(
         CTexPassElement::SRenderData{
-            .tex                = TEXTURE,
-            .box                = monbox,
-            .flipEndFrame       = true,
-            .cmBackToSRGB       = !IS_CM_AWARE,
-            .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
+            .tex          = TEXTURE,
+            .box          = monbox,
+            .flipEndFrame = true,
+            .cmBackToSRGB = !IS_CM_AWARE,
         },
         {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;

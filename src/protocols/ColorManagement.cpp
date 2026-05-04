@@ -807,7 +807,7 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
     if (m_settings.primariesNameSet)
         m_resource->sendPrimariesNamed(m_settings.primariesNamed);
 
-    m_resource->sendTfNamed(m_settings.transferFunction);
+    m_resource->sendTfNamed(convertTransferFunction(m_settings.transferFunction, m_resource->version() == 1));
 
     if (m_settings.transferFunctionPower != 1.0f)
         m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));

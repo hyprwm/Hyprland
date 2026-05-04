@@ -34,6 +34,7 @@
 #include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../notification/NotificationOverlay.hpp"
 #include "errorOverlay/Overlay.hpp"
+#include "helpers/Color.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -758,6 +759,7 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
 
     g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer());
     m_offloadedFramebuffer = true;
+    GLFB(g_pHyprRenderer->m_renderData.currentFB)->clearAfterInvalidation();
 
     g_pHyprRenderer->m_renderData.mainFB = g_pHyprRenderer->m_renderData.currentFB;
     g_pHyprRenderer->m_renderData.outFB  = fb ? fb : dc<CHyprGLRenderer*>(g_pHyprRenderer.get())->m_currentRenderbuffer->getFB();
@@ -1062,6 +1064,19 @@ void CHyprOpenGLImpl::renderRectWithBlurInternal(const CBox& box, const CHyprCol
     renderRectWithDamageInternal(box, col, data);
 }
 
+using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
+static std::map<ColorConversionKey, CHyprColor> colorConversionCache;
+
+static CHyprColor                               getConvertedColor(const CHyprColor& color) {
+    const auto               targetId = g_pHyprRenderer->workBufferImageDescription()->id();
+    const ColorConversionKey key      = {color.r, color.g, color.b, color.a, targetId};
+    if (colorConversionCache.contains(key))
+        return colorConversionCache[key];
+    const auto converted      = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, g_pHyprRenderer->workBufferImageDescription());
+    colorConversionCache[key] = converted;
+    return converted;
+}
+
 void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprColor& col, const SRectRenderData& data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
@@ -1078,7 +1093,10 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
 
     // premultiply the color as well as we don't work with straight alpha
-    shader->setUniformFloat4(SHADER_COLOR, col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    const auto premultiplied = CHyprColor(col.r * col.a, col.g * col.a, col.b * col.a, col.a);
+    const auto converted     = getConvertedColor(premultiplied);
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, premultiplied.r, premultiplied.g, premultiplied.b, premultiplied.a);
 
     CBox transformedBox = box;
     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
@@ -1298,7 +1316,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         shaderFeatures &= ~SH_FEAT_RGBA;
 
     const auto surface                       = g_pHyprRenderer->m_renderData.surface;
-    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->workBufferImageDescription();
+    const auto WORK_BUFFER_IMAGE_DESCRIPTION = g_pHyprRenderer->m_renderData.pMonitor->workBufferImageDescription();
 
     // chosenSdrEotf contains the valid eotf for this display
 
@@ -1311,7 +1329,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
             return CImageDescription::from(surface->m_colorManagement->imageDescription());
 
         if (data.cmBackToSRGB)
-            return g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription;
+            return tex->m_imageDescription ? tex->m_imageDescription : WORK_BUFFER_IMAGE_DESCRIPTION;
 
         // otherwise, if we are CM'ing back into source, use chosen, because that's what our work buffer is in
         // the same applies to the final monitor CM
@@ -1660,6 +1678,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
         static auto PBLEND          = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
 
         PMIRRORSWAPFB->bind();
+        GLFB(PMIRRORSWAPFB)->clearAfterInvalidation();
 
         glActiveTexture(GL_TEXTURE0);
 
@@ -1754,6 +1773,7 @@ SP<IFramebuffer> CHyprOpenGLImpl::blurFramebufferWithDamage(float a, CRegion* or
     // draw the things.
     // first draw is swap -> mirr
     PMIRRORFB->bind();
+    GLFB(PMIRRORFB)->clearAfterInvalidation();
     PMIRRORSWAPFB->getTexture()->bind();
 
     // damage region will be scaled, make a temp
@@ -2240,14 +2260,12 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
-    auto       shader = useShader(getShaderVariant(SH_FRAG_SHADOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
-    if (!skipCM)
-        passCMUniforms(shader, getDefaultImageDescription());
+    auto shader = useShader(getShaderVariant(SH_FRAG_SHADOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
+    const auto converted = getConvertedColor(col);
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a * a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(range + round, range + round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - (range + round), newBox.height - (range + round));
@@ -2334,14 +2352,12 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
 
     blend(true);
 
-    const bool IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
-    const bool skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
-    auto       shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, skipCM ? 0 : SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD)));
-    if (!skipCM)
-        passCMUniforms(shader, getDefaultImageDescription());
+    auto shader = useShader(getShaderVariant(SH_FRAG_INNER_GLOW, globalFeatures()));
 
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
-    shader->setUniformFloat4(SHADER_COLOR, col.r, col.g, col.b, col.a * a);
+    const auto converted = getConvertedColor(col);
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a * a);
+    shader->setUniformFloat4(SHADER_COLOR_SRGB, col.r, col.g, col.b, col.a * a);
 
     const auto TOPLEFT     = Vector2D(round, round);
     const auto BOTTOMRIGHT = Vector2D(newBox.width - round, newBox.height - round);
@@ -2385,7 +2401,8 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
         Log::logger->log(Log::ERR, "Invalid source texture for mirror");
         return;
     }
-    auto guard = g_pHyprRenderer->bindTempFB(g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB());
+    auto fb    = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB();
+    auto guard = g_pHyprRenderer->bindTempFB(fb);
 
     Log::logger->log(Log::TRACE, "CM: saveBufferForMirror {} -> {}", TEX->m_imageDescription->value(), g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
 
@@ -2398,7 +2415,6 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
                       .round         = 0,
                       .discardActive = false,
                       .allowCustomUV = false,
-                      .cmBackToSRGB  = true,
                   });
 
     blend(true);

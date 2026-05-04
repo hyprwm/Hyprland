@@ -326,6 +326,7 @@ class CMonitor {
     bool        updateTearing();
     uint16_t    isDSBlocked(bool full = false);
     bool        attemptDirectScanout();
+    void        handleDSleave();
     bool        canAttemptDirectScanoutFast() const;
     bool        isMultiGPU();
     void        setCTM(const Mat3x3& ctm);
@@ -393,10 +394,11 @@ class CMonitor {
         return m_position == rhs.m_position && m_size == rhs.m_size && m_name == rhs.m_name;
     }
 
-    bool                           needsACopyFB();
-    bool                           needsUnmodifiedCopy();
-    bool                           useFP16();
-    WP<Monitor::CMonitorResources> resources();
+    bool                                needsACopyFB();
+    bool                                needsUnmodifiedCopy();
+    bool                                useFP16();
+    NColorManagement::PImageDescription workBufferImageDescription();
+    WP<Monitor::CMonitorResources>      resources();
 
   private:
     void                    updateMatrix();
@@ -414,6 +416,9 @@ class CMonitor {
 
     // Resources
     UP<Monitor::CMonitorResources> m_resources;
+    // cached should contain one of predefined descriptions for FP16: sRGB primaries with either linear TF by default and in HDR mode or monitor's TF in SDR with render:fp16_sdr_tf = 2
+    // avoids lookup for an id when ::from is used
+    NColorManagement::PImageDescription m_cachedInternalDescription = NColorManagement::CImageDescription::from(NColorManagement::SImageDescription{});
 
     struct {
         CHyprSignalListener frame;

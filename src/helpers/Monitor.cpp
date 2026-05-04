@@ -617,6 +617,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
     if (oldImageDescription != m_imageDescription) {
         if (PROTO::colorManagement)
             PROTO::colorManagement->onMonitorImageDescriptionChanged(m_self);
+        m_blurFBDirty = true;
     }
 }
 
@@ -2066,6 +2067,20 @@ bool CMonitor::attemptDirectScanout() {
     return true;
 }
 
+void CMonitor::handleDSleave() {
+    Log::logger->log(Log::DEBUG, "Left a direct scanout.");
+    m_lastScanout.reset();
+    m_previousFSWindow.reset(); // recalc fs settings
+    m_directScanoutIsActive = false;
+
+    // reset DRM format, but only if needed since it might modeset
+    if (m_output->state->state().drmFormat != m_prevDrmFormat)
+        m_output->state->setFormat(m_prevDrmFormat);
+
+    m_drmFormat   = m_prevDrmFormat;
+    m_blurFBDirty = true;
+}
+
 bool CMonitor::canAttemptDirectScanoutFast() const {
     return !m_solitaryClient.expired() || !m_lastScanout.expired() || m_directScanoutIsActive;
 }
@@ -2552,9 +2567,42 @@ bool CMonitor::useFP16() {
     return shouldUse;
 }
 
+PImageDescription CMonitor::workBufferImageDescription() {
+    static const auto PFP16TF = CConfigValue<Hyprlang::INT>("render:fp16_sdr_tf");
+
+    if (!useFP16() && !m_imageDescription->value().icc.present)
+        return m_imageDescription;
+
+    const auto& value = m_imageDescription->value();
+
+    const bool  isHDRLikeTF =
+        value.transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ || value.transferFunction == CM_TRANSFER_FUNCTION_HLG || value.transferFunction == CM_TRANSFER_FUNCTION_EXT_LINEAR;
+
+    const auto& cached = m_cachedInternalDescription->value();
+
+    // HDR
+    if (isHDRLikeTF || value.windowsScRGB || *PFP16TF != 2) {
+        if (cached.transferFunction != LINEAR_IMAGE_DESCRIPTION->value().transferFunction || cached.luminances != value.luminances)
+            m_cachedInternalDescription = LINEAR_IMAGE_DESCRIPTION->with(value.luminances);
+        return m_cachedInternalDescription;
+    }
+
+    // SDR
+    if (cached.transferFunction != chooseTF(m_sdrEotf))
+        m_cachedInternalDescription = CImageDescription::from(SImageDescription{
+            .transferFunction = chooseTF(m_sdrEotf),
+            .primariesNameSet = true,
+            // render:keep_unmodified_copy and other conditions that trigger MRT for screen sharing expect a work buffer with sRGB primaries
+            .primariesNamed = NColorManagement::CM_PRIMARIES_SRGB,
+            .primaries      = NColorPrimaries::BT709,
+        });
+
+    return m_cachedInternalDescription;
+}
+
 WP<CMonitorResources> CMonitor::resources() {
     const auto DRM_FORMAT = useFP16() ? DRM_FORMAT_ABGR16161616F : m_output->state->state().drmFormat;
-    const auto DESC       = useFP16() ? LINEAR_IMAGE_DESCRIPTION : m_imageDescription;
+    const auto DESC       = workBufferImageDescription();
 
     if (!m_resources || m_resources->m_drmFormat != DRM_FORMAT || m_resources->m_size != m_pixelSize)
         m_resources = makeUnique<CMonitorResources>(m_self, DRM_FORMAT, m_pixelSize, DESC);

@@ -3,8 +3,10 @@
 #include "color-management-v1.hpp"
 #include <format>
 #include <hyprgraphics/color/Color.hpp>
-#include "../../helpers/memory/Memory.hpp"
-#include "../../helpers/math/Math.hpp"
+#include "../memory/Memory.hpp"
+#include "../math/Math.hpp"
+#include "../Color.hpp"
+#include "../../debug/log/Logger.hpp"
 
 #include <filesystem>
 #include <string>
@@ -45,6 +47,7 @@ namespace NColorManagement {
     };
 
     enum eTransferFunction : uint8_t {
+        CM_TRANSFER_FUNCTION_LINEAR     = 0,
         CM_TRANSFER_FUNCTION_BT1886     = 1,
         CM_TRANSFER_FUNCTION_GAMMA22    = 2,
         CM_TRANSFER_FUNCTION_GAMMA28    = 3,
@@ -68,9 +71,14 @@ namespace NColorManagement {
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
         return sc<ePrimaries>(primaries);
     }
-    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
+    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf, bool useV1SRGB = true) {
         switch (tf) {
-            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            case CM_TRANSFER_FUNCTION_LINEAR:
+                Log::logger->log(Log::TRACE,
+                                 "CM_TRANSFER_FUNCTION_LINEAR is internal and buffers with this TF shouldn't go outside. Returning "
+                                 "WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR for preferred description instead");
+                return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+            case CM_TRANSFER_FUNCTION_SRGB: return useV1SRGB ? WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB : WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
             default: return sc<wpColorManagerV1TransferFunction>(tf);
         }
     }
@@ -82,6 +90,7 @@ namespace NColorManagement {
     }
     inline std::string tfToString(eTransferFunction tf) {
         switch (tf) {
+            case CM_TRANSFER_FUNCTION_LINEAR: return "TF:INTERNAL LINEAR NOT NORMALISED";
             case CM_TRANSFER_FUNCTION_BT1886: return "TF:BT1886";
             case CM_TRANSFER_FUNCTION_GAMMA22: return "TF:GAMMA22";
             case CM_TRANSFER_FUNCTION_GAMMA28: return "TF:GAMMA28";
@@ -349,7 +358,31 @@ namespace NColorManagement {
         SImageDescription m_imageDescription;
     };
 
+    union RGBAColor {
+        struct {
+            double r = 0, g = 0, b = 0, a = 0;
+        } c;
+        double     v[4];
+
+        RGBAColor& operator*=(double value) {
+            c.r *= value;
+            c.g *= value;
+            c.b *= value;
+            return *this;
+        }
+
+        RGBAColor& operator/=(double value) {
+            c.r /= value;
+            c.g /= value;
+            c.b /= value;
+            return *this;
+        }
+    };
+
     using PImageDescription = WP<const CImageDescription>;
+
+    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
+    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
 
     PImageDescription getDefaultImageDescription();
 
@@ -392,6 +425,17 @@ namespace NColorManagement {
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorPrimaries::BT709,
         .luminances       = {.min = 0, .max = 10000, .reference = 80},
+    });
+
+    // For internal use only
+    // not normalised to 0.0 - 1.0
+    // luminance values should be set to default SDR settings in SDR mode and to output settings in HDR mode
+    // keep srgb primaries to avoid conversions for image exports
+    static const auto LINEAR_NN_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
     });
 }
 

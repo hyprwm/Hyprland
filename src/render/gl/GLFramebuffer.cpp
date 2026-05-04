@@ -171,4 +171,15 @@ void CGLFramebuffer::invalidate(const std::vector<GLenum>& attachments) {
         return;
 
     glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+    m_cleared = false;
+}
+
+void CGLFramebuffer::clearAfterInvalidation() {
+    if (m_cleared)
+        return;
+
+    m_cleared = true;
+    glClearColor(0, 0, 0, 0);
+    g_pHyprOpenGL->scissor(nullptr);
+    glClear(GL_COLOR_BUFFER_BIT);
 }

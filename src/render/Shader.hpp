@@ -7,6 +7,7 @@
 enum eShaderUniform : uint8_t {
     SHADER_PROJ = 0,
     SHADER_COLOR,
+    SHADER_COLOR_SRGB,
     SHADER_ALPHA_MATTE,
     SHADER_TEX_TYPE,
     SHADER_SOURCE_TF,

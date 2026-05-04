@@ -1694,7 +1694,8 @@ bool CInputManager::refocusLastWindow(PHLMONITOR pMonitor) {
             foundSurface = nullptr;
     }
 
-    if (!foundSurface && Desktop::focusState()->window() && Desktop::focusState()->window()->m_workspace && Desktop::focusState()->window()->m_workspace->isVisibleNotCovered()) {
+    if (!foundSurface && Desktop::focusState()->window() && Desktop::focusState()->window()->m_monitor == pMonitor && Desktop::focusState()->window()->m_workspace &&
+        Desktop::focusState()->window()->m_workspace->isVisibleNotCovered()) {
         // then the last focused window if we're on the same workspace as it
         const auto PLASTWINDOW = Desktop::focusState()->window();
         Desktop::focusState()->fullWindowFocus(PLASTWINDOW, Desktop::FOCUS_REASON_FFM);

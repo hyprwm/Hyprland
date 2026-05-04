@@ -167,8 +167,12 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         return;
     }
 
-    const auto PLASTWINDOW = m_focusWindow.lock();
-    m_focusWindow          = pWindow;
+    if (PMONITOR && !pWindow->m_pinned)
+        rawMonitorFocus(PMONITOR);
+
+    const auto PLASTWINDOW                    = m_focusWindow.lock();
+    m_focusWindow                             = pWindow;
+    pWindow->m_workspace->m_lastFocusedWindow = pWindow;
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */

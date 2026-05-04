@@ -23,7 +23,6 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../protocols/DRMSyncobj.hpp"
 #include "../protocols/LinuxDMABUF.hpp"
-#include "../helpers/sync/SyncTimeline.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "../debug/Overlay.hpp"
 #include "../notification/NotificationOverlay.hpp"
@@ -36,7 +35,6 @@
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../helpers/Monitor.hpp"
 #include "macros.hpp"
-#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
 #include "pass/RectPassElement.hpp"
@@ -45,7 +43,6 @@
 #include "../debug/log/Logger.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../protocols/types/ContentType.hpp"
-#include "../helpers/MiscFunctions.hpp"
 #include "AsyncResourceGatherer.hpp"
 #include "ElementRenderer.hpp"
 #include "Framebuffer.hpp"
@@ -1237,9 +1234,58 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
 
     Log::logger->log(Log::DEBUG, "Creating a texture for BGTex");
     SP<ITexture> backgroundTexture = createTexture(m_backgroundResource->m_asset.cairoSurface->cairo());
-    if (!backgroundTexture->ok())
+
+    if (!backgroundTexture || !backgroundTexture->ok())
         return nullptr;
-    Log::logger->log(Log::DEBUG, "Background created for monitor {}", pMonitor->m_name);
+
+    Log::logger->log(Log::DEBUG, "BGTex created for monitor {}", pMonitor->m_name);
+
+    const int monW  = (int)std::round(pMonitor->m_transformedSize.x);
+    const int monH  = (int)std::round(pMonitor->m_transformedSize.y);
+    const int origW = backgroundTexture->m_size.x;
+    const int origH = backgroundTexture->m_size.y;
+
+    if (monW > 0 && monH > 0) {
+        const double scaleX = (double)monW / origW;
+        const double scaleY = (double)monH / origH;
+        const double scale  = std::max(scaleX, scaleY);
+
+        // scale the background if it's larger than the monitor
+        if (scale < 1.0) {
+            auto fb = createFB("BGTex scale");
+            fb->alloc(monW, monH);
+
+            auto       guard = bindTempFB(fb);
+
+            const auto oldProjType     = m_renderData.projectionType;
+            const auto oldFbSize       = m_renderData.fbSize;
+            const auto oldTransformDmg = m_renderData.transformDamage;
+
+            m_renderData.fbSize = Vector2D{monW, monH};
+            setProjectionType(RPT_EXPORT);
+            m_renderData.transformDamage = false;
+            setViewport(0, 0, monW, monH);
+
+            draw(CClearPassElement::SClearData{{0.F, 0.F, 0.F, 0.F}});
+
+            const double texW = origW * scale;
+            const double texH = origH * scale;
+            const double offX = (monW - texW) / 2.0;
+            const double offY = (monH - texH) / 2.0;
+
+            CRegion      fullDamage = {0, 0, monW, monH};
+            draw(CTexPassElement::SRenderData{.tex = backgroundTexture, .box = CBox{offX, offY, texW, texH}, .damage = fullDamage}, fullDamage);
+
+            m_renderData.fbSize          = oldFbSize;
+            m_renderData.transformDamage = oldTransformDmg;
+            setProjectionType(oldProjType);
+            setViewport(0, 0, (int)pMonitor->m_pixelSize.x, (int)pMonitor->m_pixelSize.y);
+
+            backgroundTexture = fb->getTexture();
+
+            Log::logger->log(Log::INFO, "BGTex scaled from {}x{} to {}x{} for monitor {}", origW, origH, monW, monH, pMonitor->m_name);
+        }
+    }
 
     // clear the resource after we're done using it
     g_pEventLoopManager->doLater([this] { m_backgroundResource.reset(); });

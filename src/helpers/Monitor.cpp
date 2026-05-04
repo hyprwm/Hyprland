@@ -7,12 +7,10 @@
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../config/ConfigManager.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../protocols/GammaControl.hpp"
-#include "../devices/ITouch.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
@@ -34,7 +32,6 @@
 #include "../layout/LayoutManager.hpp"
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
-#include "sync/SyncTimeline.hpp"
 #include "time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -799,9 +796,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         }
     }
 
-    const auto WAS10B  = m_enabled10bit;
-    const auto OLDRES  = m_pixelSize;
-    bool       success = false;
+    const auto WAS10B             = m_enabled10bit;
+    const auto OLDPIXELSIZE       = m_pixelSize;
+    const auto OLDTRANSFORMEDSIZE = m_transformedSize;
+    bool       success            = false;
 
     // Needed in case we are switching from a custom modeline to a standard mode
     m_customDrmMode = {};
@@ -1067,11 +1065,16 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateMatrix();
 
-    if ((WAS10B != m_enabled10bit || OLDRES != m_pixelSize)) {
+    if ((WAS10B != m_enabled10bit || OLDPIXELSIZE != m_pixelSize)) {
         m_resources.reset(); // TODO skip for 10bit change and fp16?
 
         if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
             g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+    }
+
+    if (m_background && (OLDPIXELSIZE != m_pixelSize || OLDTRANSFORMEDSIZE != m_transformedSize)) {
+        Log::logger->log(Log::DEBUG, "{} reset BGTex: pixelSize {} -> {}, transformedSize {} -> {}", m_name, OLDPIXELSIZE, m_pixelSize, OLDTRANSFORMEDSIZE, m_transformedSize);
+        m_background.reset();
     }
 
     g_pCompositor->scheduleMonitorStateRecheck();

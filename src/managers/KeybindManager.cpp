@@ -605,7 +605,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             continue;
 
         if (device) {
-            if (k->deviceInclusive ^ k->devices.contains(device->m_hlName))
+            bool isTagValid = false;
+            for (const auto& tag : device->m_deviceTags) {
+                if (k->devices.contains(tag))
+                    isTagValid = true;
+            }
+            if (k->deviceInclusive ^ (k->devices.contains(device->m_hlName) || isTagValid))
                 continue;
         }
 

@@ -488,6 +488,7 @@ local __HL_WindowQueryFilter = {}
 ---@field scroll_points? string
 ---@field sensitivity? number|boolean
 ---@field share_states? integer|boolean
+---@field tags? string
 ---@field tap_and_drag? boolean
 ---@field tap_button_map? string
 ---@field tap_to_click? boolean

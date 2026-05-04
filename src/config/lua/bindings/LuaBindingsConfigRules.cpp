@@ -265,6 +265,7 @@ namespace {
         {"keybinds", []() -> ILuaConfigValue* { return new CLuaConfigBool(true); }},
         {"share_states", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 2); }},
         {"release_pressed_on_close", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }},
+        {"tags", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }},
     };
 
 }

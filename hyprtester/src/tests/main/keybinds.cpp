@@ -547,6 +547,14 @@ SUBTEST(perDeviceKeybind) {
     EXPECT(attemptCheckFlag(20, 50), true);
     OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
     EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
+
+    // Tags
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("/eval hl.bind('SUPER + Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { device = { inclusive = true, list = { 'test-tag' } } })"), "ok");
+    OK(getFromSocket(pluginKeybindCmd(true, 7, 29)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+    OK(getFromSocket(pluginKeybindCmd(false, 0, 29)));
+    EXPECT(getFromSocket("/eval hl.unbind('SUPER + Y')"), "ok");
 }
 
 SUBTEST(unbind) {

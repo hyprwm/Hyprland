@@ -2923,6 +2923,9 @@ void CCompositor::leaveUnsafeState() {
 }
 
 void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
+    if (!pSurface)
+        return;
+
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));
 
@@ -2937,6 +2940,9 @@ void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, d
 }
 
 void CCompositor::setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform) {
+    if (!pSurface)
+        return;
+
     pSurface->sendPreferredTransform(transform);
 
     const auto PSURFACE = Desktop::View::CWLSurface::fromResource(pSurface);

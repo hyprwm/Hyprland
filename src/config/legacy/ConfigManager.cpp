@@ -964,13 +964,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         w->uncacheWindowDecos();
     }
 
-    static auto PZOOMFACTOR = CConfigValue<Hyprlang::FLOAT>("cursor:zoom_factor");
-    for (auto const& m : g_pCompositor->m_monitors) {
-        *(m->m_cursorZoom) = *PZOOMFACTOR;
-        if (m->m_activeWorkspace)
-            m->m_activeWorkspace->m_space->recalculate();
-    }
-
     // Update the keyboard layout to the cfg'd one if this is not the first launch
     if (!m_isFirstLaunch) {
         g_pInputManager->setKeyboardLayout();
@@ -1072,6 +1065,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     // update layouts
     Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
+
+    Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
     if (g_pEventManager)

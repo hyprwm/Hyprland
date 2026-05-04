@@ -476,8 +476,6 @@ void CConfigManager::reload() {
 }
 
 void CConfigManager::postConfigReload() {
-
-    static auto PZOOMFACTOR     = CConfigValue<Config::FLOAT>("cursor.zoom_factor");
     static auto PSUPPRESSERRORS = CConfigValue<Config::INTEGER>("debug.suppress_errors");
     static auto PXWAYLAND       = CConfigValue<Config::INTEGER>("xwayland.enabled");
     static auto PMANUALCRASH    = CConfigValue<Config::INTEGER>("debug.manual_crash");
@@ -488,12 +486,6 @@ void CConfigManager::postConfigReload() {
 
     for (auto const& w : g_pCompositor->m_windows) {
         w->uncacheWindowDecos();
-    }
-
-    for (auto const& m : g_pCompositor->m_monitors) {
-        *(m->m_cursorZoom) = *PZOOMFACTOR;
-        if (m->m_activeWorkspace)
-            m->m_activeWorkspace->m_space->recalculate();
     }
 
     // Update the keyboard layout to the cfg'd one if this is not the first launch
@@ -610,6 +602,8 @@ void CConfigManager::postConfigReload() {
         g_pCompositor->ensurePersistentWorkspacesPresent();
 
     Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
+
+    Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
     if (g_pEventManager)

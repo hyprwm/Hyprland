@@ -285,6 +285,11 @@ namespace Desktop::View {
         // For the noclosefor windowrule
         Time::steady_tp m_closeableSince = Time::steadyNow();
 
+        // layout-settable flags. These are reset when layout changes.
+        struct {
+            bool cantLockCursor = false;
+        } m_layoutFlags;
+
         // For the list lookup
         bool operator==(const CWindow& rhs) const {
             return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&

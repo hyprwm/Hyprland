@@ -42,6 +42,10 @@ namespace Layout {
 
         void                          setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
 
+        eFullscreenRequestResult      requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
+        SP<ITarget>                   layoutFullscreenTarget() const;
+        bool                          layoutFullscreenCoversMonitor() const;
+
         void                          updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
         void                          updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
 

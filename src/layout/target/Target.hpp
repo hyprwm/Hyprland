@@ -57,6 +57,8 @@ namespace Layout {
         virtual void         setPseudoSize(const Vector2D& size);
         virtual Vector2D     pseudoSize();
         virtual void         swap(SP<ITarget> b);
+        virtual bool         layoutManagedFullscreen() const;
+        virtual void         setLayoutManagedFullscreen(bool enabled);
 
         //
         virtual bool                                                floating()                              = 0;
@@ -77,9 +79,10 @@ namespace Layout {
         SP<CSpace>  m_space;
         WP<ITarget> m_self;
         Vector2D    m_floatingSize;
-        bool        m_pseudo     = false;
-        bool        m_ghostSpace = false; // ghost space means a target belongs to a space, but isn't sent to the layout
-        Vector2D    m_pseudoSize = {1280, 720};
-        bool        m_wasTiling  = false;
+        bool        m_pseudo                  = false;
+        bool        m_ghostSpace              = false; // ghost space means a target belongs to a space, but isn't sent to the layout
+        Vector2D    m_pseudoSize              = {1280, 720};
+        bool        m_wasTiling               = false;
+        bool        m_layoutManagedFullscreen = false;
     };
 };

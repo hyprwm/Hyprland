@@ -109,6 +109,17 @@ namespace Layout::Tiled {
         virtual void                    swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                    moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        void                            moveTape(float delta);
+        void                            moveTapeNormalized(double delta);
+        void                            snapToGrid();
+        SP<SColumnData>                 snapToProjectedOffset(double projectedNormalizedOffset);
+        void                            focusColumn(SP<SColumnData> column);
+        SP<SColumnData>                 getColumnAtViewportCenter();
+        SP<SColumnData>                 currentColumn();
+
+        double                          primaryViewportSize();
+        double                          normalizedTapeOffset();
+
         CBox                            usableArea();
         SP<SScrollingTargetData>        dataFor(SP<ITarget> t);
 

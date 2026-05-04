@@ -562,6 +562,8 @@ SSubmap CKeybindManager::getCurrentSubmap() {
 SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SPressedKeyWithMods& key, bool pressed, SP<IKeyboard> keyboard, SP<IHID> device) {
     static auto     PDISABLEINHIBIT = CConfigValue<Config::INTEGER>("binds:disable_keybind_grabbing");
     static auto     PDRAGTHRESHOLD  = CConfigValue<Config::INTEGER>("binds:drag_threshold");
+    static auto     PREPEATRATE     = CConfigValue<Config::INTEGER>("binds:repeat_rate");
+    static auto     PREPEATDELAY    = CConfigValue<Config::INTEGER>("binds:repeat_delay");
 
     bool            found = false;
     SDispatchResult res;
@@ -750,11 +752,12 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
 
         if (pressed && k->repeat) {
-            const auto KEEB = keyboard ? keyboard : g_pSeatManager->m_keyboard.lock();
-            m_repeatKeyRate = KEEB->m_repeatRate;
+            const auto KEEB  = keyboard ? keyboard : g_pSeatManager->m_keyboard.lock();
+            m_repeatKeyRate  = (*PREPEATRATE <= 0) ? KEEB->m_repeatRate : *PREPEATRATE;
+            auto repeatDelay = (*PREPEATDELAY <= 0) ? KEEB->m_repeatDelay : *PREPEATDELAY;
 
             m_activeKeybinds.emplace_back(k);
-            m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(KEEB->m_repeatDelay));
+            m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(repeatDelay));
         }
 
         if (!k->nonConsuming && !(k->autoConsuming && !res.success))

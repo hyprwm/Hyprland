@@ -505,25 +505,44 @@ void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
     handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, nullptr, nullptr);
 }
 
-eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<xkb_keysym_t> keybindKeysyms, const std::set<xkb_keysym_t> pressedKeysyms) {
-    // Returns whether two sets of keysyms are equal, partially equal, or not
-    // matching. (Partially matching means that pressed is a subset of bound)
+eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<KeybindKey>& keybindKeysyms, const std::set<KeybindKey>& pressedKeysyms) {
+    // Returns whether the bound and pressed keys match fully, partially, or not at all.
+    // KeybindKey stores {keysym, keycode}; either non-zero field matching is enough.
 
-    std::set<xkb_keysym_t> boundKeysNotPressed;
-    std::set<xkb_keysym_t> pressedKeysNotBound;
+    const auto MATCHES = [](const KeybindKey& lhs, const KeybindKey& rhs) {
+        return (lhs.first != 0 && rhs.first != 0 && lhs.first == rhs.first) || (lhs.second != 0 && rhs.second != 0 && lhs.second == rhs.second);
+    };
 
-    std::set<xkb_keysym_t> symsKb;
-    for (const auto& k : keybindKeysyms) {
-        symsKb.emplace(k);
+    std::vector<KeybindKey> pressed{pressedKeysyms.begin(), pressedKeysyms.end()};
+    std::vector<int>        boundForPressed(pressed.size(), -1);
+
+    const auto              tryMatch = [&](auto&& self, const size_t boundIdx, std::vector<uint8_t>& seen) -> bool {
+        for (size_t pressedIdx = 0; pressedIdx < pressed.size(); ++pressedIdx) {
+            if (seen[pressedIdx] || !MATCHES(keybindKeysyms[boundIdx], pressed[pressedIdx]))
+                continue;
+
+            seen[pressedIdx] = true;
+
+            if (boundForPressed[pressedIdx] == -1 || self(self, static_cast<size_t>(boundForPressed[pressedIdx]), seen)) {
+                boundForPressed[pressedIdx] = static_cast<int>(boundIdx);
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    size_t matches = 0;
+    for (size_t boundIdx = 0; boundIdx < keybindKeysyms.size(); ++boundIdx) {
+        std::vector<uint8_t> seen(pressed.size(), false);
+        if (tryMatch(tryMatch, boundIdx, seen))
+            ++matches;
     }
 
-    std::ranges::set_difference(symsKb, pressedKeysyms, std::inserter(boundKeysNotPressed, boundKeysNotPressed.begin()));
-    std::ranges::set_difference(pressedKeysyms, symsKb, std::inserter(pressedKeysNotBound, pressedKeysNotBound.begin()));
-
-    if (boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
+    if (matches == keybindKeysyms.size() && matches == pressed.size())
         return MK_FULL_MATCH;
 
-    if (!boundKeysNotPressed.empty() && pressedKeysNotBound.empty())
+    if (matches > 0 || (pressed.empty() && !keybindKeysyms.empty()))
         return MK_PARTIAL_MATCH;
 
     return MK_NO_MATCH;
@@ -556,14 +575,14 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     if (key.keysym != 0) {
         if (pressed) {
             if (keycodeToModifier(key.keycode))
-                m_mkMods.insert(key.keysym);
+                m_mkMods.emplace(key.keysym, key.keycode);
             else
-                m_mkKeys.insert(key.keysym);
+                m_mkKeys.emplace(key.keysym, key.keycode);
         } else {
             if (keycodeToModifier(key.keycode))
-                m_mkMods.erase(key.keysym);
+                std::erase_if(m_mkMods, [&key](const auto& e) { return e.first == key.keysym || e.second == key.keycode; });
             else
-                m_mkKeys.erase(key.keysym);
+                std::erase_if(m_mkKeys, [&key](const auto& e) { return e.first == key.keysym || e.second == key.keycode; });
         }
     }
 
@@ -615,7 +634,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             // check for just the one match
             // this is also needed for multi-key binds so that SUPER + A + K can't
             // be actuated by SUPER + K + A
-            if (key.keysym != k->sMkKeys.back())
+            auto& back = k->sMkKeys.back();
+            if (key.keysym != back.first && key.keycode != back.second)
                 continue;
         } else if (!key.keyName.empty()) {
             if (key.keyName != k->key)

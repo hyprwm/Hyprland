@@ -9,6 +9,7 @@
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
 
@@ -46,12 +47,12 @@ static bool isSymSpecial(std::string_view sv) {
 }
 
 static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string_view sv) {
-    bool                      modsEnded = false, specialSym = false;
-    CVarList2                 vl(sv, 0, '+', true);
+    bool                                                modsEnded = false, specialSym = false;
+    CVarList2                                           vl(sv, 0, '+', true);
 
-    uint32_t                  modMask = 0;
-    std::vector<xkb_keysym_t> keysyms;
-    std::string               lastKeyArg;
+    uint32_t                                            modMask = 0;
+    std::vector<std::pair<xkb_keysym_t, xkb_keycode_t>> keysyms;
+    std::string                                         lastKeyArg;
 
     if (sv == "catchall") {
         kb.catchAll = true;
@@ -86,6 +87,16 @@ static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string
             continue;
         }
 
+        if (arg.starts_with("code:") && isNumber(std::string{arg.substr(5)})) {
+            auto res = strToNumber<uint32_t>(arg.substr(5));
+
+            if (!res)
+                return std::unexpected(std::format("Invalid keycode: \"{}\".", arg));
+
+            keysyms.emplace_back(XKB_KEY_NoSymbol, xkb_keycode_t{*res});
+            continue;
+        }
+
         auto sym = xkb_keysym_from_name(std::string{arg}.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
 
         if (sym == XKB_KEY_NoSymbol) {
@@ -99,7 +110,7 @@ static std::expected<void, std::string> parseKeyString(SKeybind& kb, std::string
         }
 
         lastKeyArg = arg;
-        keysyms.emplace_back(sym);
+        keysyms.emplace_back(sym, 0);
     }
 
     kb.modmask = modMask;
@@ -121,13 +132,12 @@ static int hlBind(lua_State* L) {
     if (auto res = parseKeyString(kb, keys); !res)
         return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", res.error()));
 
-    if (!lua_isfunction(L, 2))
+    if (!Internal::pushDispatcherFunction(L, 2))
         return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
 
     if (kb.catchAll && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
 
-    lua_pushvalue(L, 2);
     int ref       = luaL_ref(L, LUA_REGISTRYINDEX);
     kb.handler    = "__lua";
     kb.arg        = std::to_string(ref);
@@ -282,10 +292,9 @@ static int hlExecCmd(lua_State* L) {
 }
 
 static int hlDispatch(lua_State* L) {
-    if (!lua_isfunction(L, 1))
-        return Internal::configError(L, "hl.dispatch: expected a dispatcher function (e.g. hl.dsp.window.close())");
+    if (!Internal::pushDispatcherFunction(L, 1))
+        return Internal::configError(L, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
 
-    lua_pushvalue(L, 1);
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)
         status = mgr->guardedPCall(0, 1, 0, CConfigManager::LUA_TIMEOUT_DISPATCH_MS, "hl.dispatch");

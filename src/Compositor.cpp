@@ -673,6 +673,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Log::logger->log(Log::DEBUG, "Creating the SeatManager!");
             g_pSeatManager = makeUnique<CSeatManager>();
 
+            Log::logger->log(Log::DEBUG, "Creating the SessionLockManager!");
+            g_pSessionLockManager = makeUnique<CSessionLockManager>();
+
             // init focus state els
             Desktop::History::windowTracker();
             Desktop::History::workspaceTracker();
@@ -687,9 +690,6 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the XWaylandManager!");
             g_pXWaylandManager = makeUnique<CHyprXWaylandManager>();
-
-            Log::logger->log(Log::DEBUG, "Creating the SessionLockManager!");
-            g_pSessionLockManager = makeUnique<CSessionLockManager>();
 
             Log::logger->log(Log::DEBUG, "Creating the Debug Overlay!");
             Debug::overlay();

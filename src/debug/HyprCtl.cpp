@@ -1632,6 +1632,8 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
     if (format == FORMAT_NORMAL) {
         if (TYPE == typeid(Config::INTEGER))
             return std::format("int: {}\nset: {}", **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::BOOL))
+            return std::format("bool: {}\nset: {}", **rc<Config::BOOL* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::FLOAT))
             return std::format("float: {:2f}\nset: {}", **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
@@ -1644,9 +1646,19 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
             return std::format("str: {}\nset: {}", **rc<Config::STRING* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(void*))
             return std::format("custom type: {}\nset: {}", rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::IComplexConfigValue))
+            return std::format("custom type: {}\nset: {}", (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CCssGapData))
+            return std::format("css gap data: {}\nset: {}", (*rc<Config::CCssGapData* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CGradientValueData))
+            return std::format("gradient data: {}\nset: {}", (*rc<Config::CGradientValueData* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CFontWeightConfigValueData))
+            return std::format("font weight data: {}\nset: {}", (*rc<Config::CFontWeightConfigValueData* const*>(VAL))->toString(), VAR.setByUser);
     } else {
         if (TYPE == typeid(Config::INTEGER))
             return std::format(R"({{"option": "{}", "int": {}, "set": {} }})", curitem, **rc<Config::INTEGER* const*>(VAL), VAR.setByUser);
+        else if (TYPE == typeid(Config::BOOL))
+            return std::format(R"({{"option": "{}", "bool": {}, "set": {} }})", curitem, (**rc<Config::BOOL* const*>(VAL)) ? "true" : "false", VAR.setByUser);
         else if (TYPE == typeid(Config::FLOAT))
             return std::format(R"({{"option": "{}", "float": {:2f}, "set": {} }})", curitem, **rc<Config::FLOAT* const*>(VAL), VAR.setByUser);
         else if (TYPE == typeid(Config::VEC2))
@@ -1662,6 +1674,15 @@ static std::string dispatchGetOption(eHyprCtlOutputFormat format, std::string re
         else if (TYPE == typeid(void*))
             return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem,
                                rc<Config::IComplexConfigValue*>((*rc<Hyprlang::CUSTOMTYPE* const*>(VAL))->getData())->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::IComplexConfigValue))
+            return std::format(R"({{"option": "{}", "custom": "{}", "set": {} }})", curitem, (*rc<Config::IComplexConfigValue* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CCssGapData))
+            return std::format(R"({{"option": "{}", "css": "{}", "set": {} }})", curitem, (*rc<Config::CCssGapData* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CGradientValueData))
+            return std::format(R"({{"option": "{}", "gradient": "{}", "set": {} }})", curitem, (*rc<Config::CGradientValueData* const*>(VAL))->toString(), VAR.setByUser);
+        else if (TYPE == typeid(Config::CFontWeightConfigValueData))
+            return std::format(R"({{"option": "{}", "font_weight": "{}", "set": {} }})", curitem, (*rc<Config::CFontWeightConfigValueData* const*>(VAL))->toString(),
+                               VAR.setByUser);
     }
 
     return "invalid type (internal error)";

@@ -56,9 +56,9 @@ void CScreenshareSession::stop() {
     if (m_stopped)
         return;
     m_stopped = true;
-    m_events.stopped.emit();
 
     screenshareEvents(false);
+    m_events.stopped.emit();
 }
 
 bool CScreenshareSession::isActive() {
@@ -80,8 +80,9 @@ void CScreenshareSession::init() {
     if (g_pEventLoopManager)
         g_pEventLoopManager->addTimer(m_shareStopTimer);
 
-    // scale capture box since it's in logical coords
-    m_captureBox.scale(monitor()->m_scale);
+    // scale capture box since it's in logical coords; round to integer pixel
+    // dims so m_bufferSize matches the int32 size we send to the client
+    m_captureBox.scale(monitor()->m_scale).round();
 
     m_listeners.monitorDestroyed   = monitor()->m_events.disconnect.listen([this]() { stop(); });
     m_listeners.monitorModeChanged = monitor()->m_events.modeChanged.listen([this]() {

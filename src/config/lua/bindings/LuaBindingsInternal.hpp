@@ -101,6 +101,7 @@ namespace Config::Lua::Bindings::Internal {
         {"no_screen_share", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_SCREEN_SHARE},
         {"no_vrr", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_NO_VRR},
         {"stay_focused", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_STAY_FOCUSED},
+        {"confine_pointer", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_CONFINE_POINTER},
     };
 
     std::string                                        argStr(lua_State* L, int idx);
@@ -180,6 +181,9 @@ namespace Config::Lua::Bindings::Internal {
 
     void setFn(lua_State* L, const char* name, lua_CFunction fn);
     void setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn);
+    void markDispatcherTable(lua_State* L);
+    int  wrapDispatcher(lua_State* L);
+    bool pushDispatcherFunction(lua_State* L, int idx);
 
     template <typename T>
     SParseError parseTableField(lua_State* L, int tableIdx, const char* field, T& parser) {

@@ -605,6 +605,19 @@ ActionResult Actions::tag(const std::string& tagStr, std::optional<PHLWINDOW> w)
     return {};
 }
 
+ActionResult Actions::clearTags(std::optional<PHLWINDOW> w) {
+    auto window = xtract(w);
+    if (!window)
+        return {};
+
+    if (window->m_ruleApplicator->m_tagKeeper.clearTags()) {
+        window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_TAG);
+        window->updateDecorationValues();
+    }
+
+    return {};
+}
+
 ActionResult Actions::swapNext(const bool next, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)

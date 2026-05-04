@@ -6,12 +6,14 @@
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <csignal>
 #include <cerrno>
 #include "../shared.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::String;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
@@ -177,5 +179,41 @@ TEST_CASE(gestures) {
         EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    }
+    const std::string cursorPosBeforePinch = getFromSocket("/cursorpos");
+
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 500, y = 500 })"));
+    OK(getFromSocket("/eval hl.config({ cursor = { zoom_factor = 1 } })"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
+
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.2)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.2, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.6)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
+
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 0.64)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
+
+    const auto comma = cursorPosBeforePinch.find(',');
+
+    if (comma != std::string::npos) {
+        auto xSv = std::string_view(cursorPosBeforePinch).substr(0, comma);
+        auto ySv = std::string_view(cursorPosBeforePinch).substr(comma + 1);
+        while (!xSv.empty() && xSv.front() == ' ')
+            xSv.remove_prefix(1);
+        while (!ySv.empty() && ySv.front() == ' ')
+            ySv.remove_prefix(1);
+
+        const auto x = strToNumber<int>(xSv);
+        const auto y = strToNumber<int>(ySv);
+
+        if (!x || !y)
+            FAIL_TEST("Failed to restore cursor pos");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.cursor.move({{ x = {}, y = {} }})", x.value(), y.value())));
     }
 }

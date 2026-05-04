@@ -290,5 +290,6 @@ hl.gesture({ fingers = 5, direction = "left", action = function() hl.dispatch(hl
 hl.gesture({ fingers = 5, direction = "right", action = function() hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "t", window = "activewindow" })) end })
 hl.gesture({ fingers = 4, direction = "right", action = function() hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "return", window = "activewindow" })) end })
 hl.gesture({ fingers = 4, direction = "left", action = function() hl.dispatch(hl.dsp.cursor.move_to_corner({ corner = 1, window = "activewindow" })) end })
+hl.gesture({ fingers = 2, direction = "pinch", action = "cursorZoom", zoom_level = "1", mode = "live" })
 
 hl.gesture({ fingers = 2, direction = "right", action = "float", disable_inhibit = true })

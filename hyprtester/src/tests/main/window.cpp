@@ -1052,3 +1052,75 @@ TEST_CASE(windows) {
 
     OK(getFromSocket("/eval hl.plugin.test.check_window_rule()"));
 }
+
+TEST_CASE(cycle_nextTiled) {
+    // If the user specifically requests a tiled window, give them a tiled window
+
+    if (!spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty of class:a");
+    }
+
+    if (!spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty of class:b");
+    }
+
+    if (!spawnKitty("c")) {
+        FAIL_TEST("Could not spawn kitty of class:c");
+    }
+
+    if (!spawnKitty("d")) {
+        FAIL_TEST("Could not spawn kitty of class:d");
+    }
+
+    // float the class:a window
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:a'})"));
+    // float the class:c window
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:c'})"));
+    // float the class:d window
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:d'})"));
+
+    // establish focus history
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})")); // floating
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})")); // tiled  <-- What we want to focus on
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})")); // floating
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:d'})")); // floating
+
+    // request a tiled window
+    OK(getFromSocket("/dispatch hl.dsp.window.cycle_next({ next = true, tiled = true, floating = false})"));
+
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: b");
+}
+
+TEST_CASE(cycle_nextFloating) {
+    // If the user specifically requests a floating window, give them a floating window
+
+    if (!spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty of class:a");
+    }
+
+    if (!spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty of class:b");
+    }
+
+    if (!spawnKitty("c")) {
+        FAIL_TEST("Could not spawn kitty of class:c");
+    }
+
+    if (!spawnKitty("d")) {
+        FAIL_TEST("Could not spawn kitty of class:d");
+    }
+
+    // float the class:b window
+    OK(getFromSocket("/dispatch hl.dsp.window.float({action = 'enable', window = 'class:b'})"));
+
+    // establish focus history
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})")); // tiled
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:b'})")); // floating  <-- What we want to focus on
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:c'})")); // tiled
+    OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:d'})")); // tiled
+
+    // request a floating window
+    OK(getFromSocket("/dispatch hl.dsp.window.cycle_next({ next = true, tiled = false, floating = true})"));
+
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: b");
+}

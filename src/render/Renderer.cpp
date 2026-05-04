@@ -2308,6 +2308,10 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
             }
         }
 
+        // Do it here instead of disabling the block above to allow hdr -> hdr metadata changes in fullscreen
+        if (!*PAUTOHDR && !pMonitor->m_lastScanout)
+            wantHDR = configuredHDR;
+
         if (!hdrIsHandled) {
             if (pMonitor->inHDR() != wantHDR) {
                 if (*PAUTOHDR && !(pMonitor->inHDR() && configuredHDR)) {

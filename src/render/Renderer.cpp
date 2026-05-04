@@ -34,6 +34,7 @@
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/Drm.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
@@ -1970,6 +1971,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     const float                                           ZOOMFACTOR = pMonitor->m_cursorZoom->value();
 
+    auto                                                  cleanup = CScopeGuard([pMonitor]() { pMonitor->m_estimatedNextVblank = std::nullopt; });
+
     if (pMonitor->m_pixelSize.x < 1 || pMonitor->m_pixelSize.y < 1) {
         Log::logger->log(Log::ERR, "Refusing to render a monitor because of an invalid pixel size: {}", pMonitor->m_pixelSize);
         return;
@@ -2403,6 +2406,16 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     handleFullscreenSettings(pMonitor);
+
+    static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_main_buffer");
+    if (*DEADLINE && m_currentBuffer) {
+        auto deadline = pMonitor->isMultiGPU() || pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_estimatedNextVblank.has_value() ?
+            Time::steadyNow() + std::chrono::microseconds(100) :
+            pMonitor->m_estimatedNextVblank.value();
+        auto fence    = DRM::exportFence(m_currentBuffer->dmabuf().fds[0]);
+
+        DRM::setDeadline(deadline, fence);
+    }
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

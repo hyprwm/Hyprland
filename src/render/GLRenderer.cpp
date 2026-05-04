@@ -11,6 +11,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../debug/Overlay.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../helpers/Drm.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "../debug/log/Logger.hpp"
@@ -71,7 +72,6 @@ bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& 
 }
 
 bool CHyprGLRenderer::beginRenderInternal(PHLMONITOR pMonitor, CRegion& damage, bool simple) {
-
     m_currentRenderbuffer->bind();
     if (simple)
         g_pHyprOpenGL->beginSimple(pMonitor, damage, m_currentRenderbuffer);

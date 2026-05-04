@@ -148,6 +148,8 @@
 ---| "ecosystem.enforce_permissions"
 ---| "ecosystem.no_donation_nag"
 ---| "ecosystem.no_update_news"
+---| "experimental.deadline_client_buffer"
+---| "experimental.deadline_main_buffer"
 ---| "experimental.wp_cm_1_2"
 ---| "general.allow_tearing"
 ---| "general.border_size"
@@ -982,6 +984,8 @@ hl = {}
 ---@field ['ecosystem.enforce_permissions'] boolean
 ---@field ['ecosystem.no_donation_nag'] boolean
 ---@field ['ecosystem.no_update_news'] boolean
+---@field ['experimental.deadline_client_buffer'] boolean
+---@field ['experimental.deadline_main_buffer'] boolean
 ---@field ['experimental.wp_cm_1_2'] boolean
 ---@field ['general.allow_tearing'] boolean
 ---@field ['general.border_size'] integer|boolean

@@ -15,6 +15,7 @@
 #include "../protocols/PresentationTime.hpp"
 #include "../protocols/DRMLease.hpp"
 #include "../protocols/DRMSyncobj.hpp"
+#include "../protocols/Fifo.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
@@ -156,6 +157,7 @@ void CMonitor::onConnect(bool noRule) {
         }
 
         m_frameScheduler->onPresented();
+        m_lastPresentationTimer.reset();
 
         m_events.presented.emit();
     });
@@ -1129,24 +1131,31 @@ void CMonitor::addDamage(const CBox& box) {
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
-bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+bool CMonitor::shouldSuppressCursorCommit() {
     static auto PNOBREAK = CConfigValue<Config::INTEGER>("cursor:no_break_fs_vrr");
-    static auto PMINRR   = CConfigValue<Config::INTEGER>("cursor:min_refresh_rate");
 
-    // skip scheduling extra frames for fullsreen apps with vrr
+    if (!m_output)
+        return false;
+
     const auto FS_WINDOW          = getFullscreenWindow();
     const bool shouldRenderCursor = g_pHyprRenderer->shouldRenderCursor();
     const bool noBreak            = FS_WINDOW && (*PNOBREAK == 1 || (*PNOBREAK == 2 && FS_WINDOW->getContentType() == CONTENT_TYPE_GAME));
-    const bool shouldSkip         = (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+
+    return (!shouldRenderCursor || noBreak) && m_output->state->state().adaptiveSync;
+}
+
+bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
+    if (!shouldSuppressCursorCommit())
+        return false;
 
     // keep requested minimum refresh rate
-    if (shouldSkip && *PMINRR && m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR) {
+    if (isVrrKeepaliveDue()) {
         // damage whole screen because some previous cursor box damages were skipped
         m_damage.damageEntire();
         return false;
     }
 
-    return shouldSkip;
+    return true;
 }
 
 bool CMonitor::isMirror() {
@@ -1944,6 +1953,15 @@ uint16_t CMonitor::isDSBlocked(bool full) {
     return reasons;
 }
 
+bool CMonitor::isVrrKeepaliveDue() {
+    static auto PMINRR = CConfigValue<Config::INTEGER>("cursor:min_refresh_rate");
+
+    if (!m_output || !m_output->state->state().adaptiveSync || *PMINRR <= 0)
+        return false;
+
+    return m_lastPresentationTimer.getMillis() > 1000.0f / *PMINRR;
+}
+
 bool CMonitor::attemptDirectScanout() {
     static const auto PSAME     = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer");
     static const auto PSAMEFIFO = CConfigValue<Config::INTEGER>("debug:ds_handle_same_buffer_fifo");
@@ -1956,28 +1974,28 @@ bool CMonitor::attemptDirectScanout() {
     const auto PSURFACE   = PCANDIDATE->getSolitaryResource();
     auto       PBUFFER    = PSURFACE->m_current.buffer.m_buffer;
 
-    // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
         PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
 
-        if (m_scanoutNeedsCursorUpdate) {
-            if (!m_state.test()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
-                return false;
-            }
+        const bool cursorCommitDue = m_scanoutNeedsCursorUpdate && !shouldSuppressCursorCommit();
+        const bool vrrKeepaliveDue = isVrrKeepaliveDue();
 
-            if (!m_output->commit()) {
-                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+        if (cursorCommitDue || vrrKeepaliveDue) {
+            m_output->state->setBuffer(PBUFFER);
+            if (!m_state.test() || !m_output->commit()) {
+                Log::logger->log(Log::TRACE, "attemptDirectScanout: failed same-buffer commit, cursorCommitDue: {}, vrrKeepaliveDue: {}", cursorCommitDue, vrrKeepaliveDue);
                 m_lastScanout.reset();
                 return false;
             }
 
             m_scanoutNeedsCursorUpdate = false;
+            return true;
         }
 
-        //#TODO this entire bit is bootleg deluxe, above bit is to not make vrr go down the drain, returning early here means fifo gets forever locked.
-        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO)
-            PSURFACE->m_stateQueue.unlockFirst(LOCK_REASON_FIFO);
+        if (PSURFACE->m_fifo && !m_tearingState.activelyTearing && *PSAMEFIFO) {
+            if (const auto fifo = PSURFACE->m_fifo.lock())
+                fifo->presented();
+        }
 
         return true;
     }

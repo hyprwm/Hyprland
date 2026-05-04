@@ -305,6 +305,8 @@ class CMonitor {
     void        addDamage(const CRegion& rg);
     void        addDamage(const CBox& box);
     bool        shouldSkipScheduleFrameOnMouseEvent();
+    bool        shouldSuppressCursorCommit();
+    bool        isVrrKeepaliveDue();
     void        setMirror(const std::string&);
     bool        isMirror();
     bool        matchesStaticSelector(const std::string& selector) const;

@@ -1155,6 +1155,15 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SConfigOptionReply CConfigManager::getConfigValue(const std::string& val) {
+    if (val.starts_with("plugin:")) {
+        const auto VAL = m_config->getSpecialConfigValuePtr("plugin", val.substr(7).c_str(), nullptr);
+
+        if (!VAL)
+            return {};
+
+        return {.dataptr = VAL->getDataStaticPtr(), .type = &VAL->getValue().type(), .setByUser = VAL->m_bSetByUser};
+    }
+
     const auto VAL = m_config->getConfigValuePtr(val.c_str());
     if (!VAL)
         return {};

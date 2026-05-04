@@ -431,9 +431,10 @@ bool CHyprGroupBarDecoration::onEndWindowDragOnDeco(const Vector2D& pos, PHLWIND
 }
 
 bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPointer::SButtonEvent& e) {
-    static auto PSTACKED  = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
-    static auto POUTERGAP = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
-    static auto PINNERGAP = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
+    static auto PSTACKED          = CConfigValue<Config::INTEGER>("group:groupbar:stacked");
+    static auto POUTERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_out");
+    static auto PINNERGAP         = CConfigValue<Config::INTEGER>("group:groupbar:gaps_in");
+    static auto PMIDDLECLICKCLOSE = CConfigValue<Config::INTEGER>("group:groupbar:middle_click_close");
     if (m_window->isEffectiveInternalFSMode(FSMODE_FULLSCREEN))
         return true;
 
@@ -444,6 +445,9 @@ bool CHyprGroupBarDecoration::onMouseButtonOnDeco(const Vector2D& pos, const IPo
 
     // close window on middle click
     if (e.button == 274) {
+        if (!*PMIDDLECLICKCLOSE)
+            return true;
+
         static Vector2D pressedCursorPos;
 
         if (e.state == WL_POINTER_BUTTON_STATE_PRESSED)

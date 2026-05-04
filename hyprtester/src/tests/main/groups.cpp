@@ -400,4 +400,43 @@ TEST_CASE(groups) {
 
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
+
+    // Test groupbar middle click close config
+    {
+        OK(getFromSocket("/eval hl.config({ group = { auto_group = true, groupbar = { enabled = true, middle_click_close = false } } })"));
+
+        auto kittyA = Tests::spawnKitty("kittyA");
+        if (!kittyA) {
+            FAIL_TEST("Could not spawn kitty");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+
+        auto kittyB = Tests::spawnKitty("kittyB");
+        if (!kittyB) {
+            FAIL_TEST("Could not spawn kitty");
+        }
+
+        EXPECT(Tests::windowCount(), 2);
+
+        OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 80, y = 32 })"));
+        OK(getFromSocket("/eval hl.plugin.test.click(274, 1)"));
+        OK(getFromSocket("/eval hl.plugin.test.click(274, 0)"));
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        EXPECT(Tests::windowCount(), 2);
+
+        OK(getFromSocket("/eval hl.config({ group = { groupbar = { middle_click_close = true } } })"));
+        OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 80, y = 32 })"));
+        OK(getFromSocket("/eval hl.plugin.test.click(274, 1)"));
+        OK(getFromSocket("/eval hl.plugin.test.click(274, 0)"));
+
+        Tests::waitUntilWindowsN(1);
+        EXPECT(Tests::windowCount(), 1);
+
+        OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+    }
+
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
 }

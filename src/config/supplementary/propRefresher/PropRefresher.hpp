@@ -14,6 +14,9 @@ namespace Config::Supplementary {
         REFRESH_RULES          = (1 << 4),
         REFRESH_WINDOW_STATES  = (1 << 5) | REFRESH_RULES,
         REFRESH_MONITOR_STATES = (1 << 6) | REFRESH_LAYOUTS,
+        REFRESH_CURSOR_ZOOMS   = (1 << 7),
+
+        REFRESH_ALL = std::numeric_limits<std::underlying_type_t<ePropRefreshProp>>::max(),
     };
 
     using PropRefreshBits = std::underlying_type_t<ePropRefreshProp>;

@@ -6,6 +6,7 @@
 #include "../../../Compositor.hpp"
 #include "../../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../../layout/LayoutManager.hpp"
+#include "../../../layout/space/Space.hpp"
 #include "../../../desktop/rule/Engine.hpp"
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
@@ -19,6 +20,8 @@ UP<CPropRefresher>& Supplementary::refresher() {
 }
 
 void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
+    static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor.zoom_factor");
+
     m_propsTripped |= prop;
 
     if (!m_scheduled) {
@@ -78,6 +81,14 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 for (auto const& m : g_pCompositor->m_monitors) {
                     g_layoutManager->recalculateMonitor(m);
                     g_pHyprRenderer->damageMonitor(m);
+                }
+            }
+
+            if (m_propsTripped & REFRESH_CURSOR_ZOOMS) {
+                for (auto const& m : g_pCompositor->m_monitors) {
+                    *(m->m_cursorZoom) = *PZOOMFACTOR;
+                    if (m->m_activeWorkspace)
+                        m->m_activeWorkspace->m_space->recalculate();
                 }
             }
 

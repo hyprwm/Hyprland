@@ -285,6 +285,8 @@ SP<CTabletTool> CInputManager::ensureTabletToolPresent(SP<Aquamarine::ITabletToo
         destroyTabletTool(TOOL.lock());
     });
 
+    setTabletToolConfigs();
+
     return PTOOL;
 }
 

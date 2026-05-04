@@ -1943,6 +1943,30 @@ void CInputManager::setTabletConfigs() {
     }
 }
 
+void CInputManager::setTabletToolConfigs() {
+    for (auto const& t : m_tabletTools) {
+        if (t->aq()->getLibinputTool()) {
+            const auto NAME         = t->m_hlName;
+            const auto LIBINPUTTOOL = t->aq()->getLibinputTool();
+
+            if (Config::mgr()->getDeviceInt(NAME, "eraser_button_mode", "input:tablettool:eraser_button_mode") == 1)
+                libinput_tablet_tool_config_eraser_button_set_mode(LIBINPUTTOOL, LIBINPUT_CONFIG_ERASER_BUTTON_BUTTON);
+            else
+                libinput_tablet_tool_config_eraser_button_set_mode(LIBINPUTTOOL, LIBINPUT_CONFIG_ERASER_BUTTON_DEFAULT);
+
+            const auto ERASER_BUTTON_OVERRIDE = Config::mgr()->getDeviceInt(NAME, "eraser_button_override", "input:tablettool:eraser_button_override");
+            libinput_tablet_tool_config_eraser_button_set_button(
+                LIBINPUTTOOL, ERASER_BUTTON_OVERRIDE == 0 ? libinput_tablet_tool_config_eraser_button_get_default_button(LIBINPUTTOOL) : ERASER_BUTTON_OVERRIDE);
+
+            const auto PRESSURE_RANGE_MIN = Config::mgr()->getDeviceFloat(NAME, "pressure_range_min", "input:tablettool:pressure_range_min");
+            const auto PRESSURE_RANGE_MAX = Config::mgr()->getDeviceFloat(NAME, "pressure_range_max", "input:tablettool:pressure_range_max");
+            libinput_tablet_tool_config_pressure_range_set(
+                LIBINPUTTOOL, PRESSURE_RANGE_MIN < 0.0 ? libinput_tablet_tool_config_pressure_range_get_default_minimum(LIBINPUTTOOL) : PRESSURE_RANGE_MIN,
+                PRESSURE_RANGE_MAX < 0.0 ? libinput_tablet_tool_config_pressure_range_get_default_maximum(LIBINPUTTOOL) : PRESSURE_RANGE_MAX);
+        }
+    }
+}
+
 void CInputManager::newSwitch(SP<Aquamarine::ISwitch> pDevice) {
     const auto PNEWDEV = &m_switches.emplace_back();
     PNEWDEV->pDevice   = pDevice;

@@ -2002,7 +2002,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     if (pMonitor->m_scheduledRecalc) {
         pMonitor->m_scheduledRecalc = false;
         if (pMonitor->m_activeWorkspace) // might be missing (mirror)
-            pMonitor->m_activeWorkspace->m_space->recalculate();
+            pMonitor->m_activeWorkspace->m_space->recalculate(Layout::RECALCULATE_REASON_RENDER_MOINTOR);
     }
 
     if (!pMonitor->m_output->needsFrame && pMonitor->m_forceFullFrames == 0)

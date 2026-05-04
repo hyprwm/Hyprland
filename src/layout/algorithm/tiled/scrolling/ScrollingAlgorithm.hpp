@@ -99,7 +99,7 @@ namespace Layout::Tiled {
         virtual void                    removeTarget(SP<ITarget> target);
 
         virtual void                    resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        virtual void                    recalculate();
+        virtual void                    recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
         virtual SP<ITarget>             getNextCandidate(SP<ITarget> old);
 
@@ -115,7 +115,7 @@ namespace Layout::Tiled {
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
             INPUT_MODE_CLICK,
-            INPUT_MODE_KB
+            INPUT_MODE_HARD
         };
 
       private:

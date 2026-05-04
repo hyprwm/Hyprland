@@ -5,6 +5,7 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "../LayoutManager.hpp"
+#include "../space/Space.hpp"
 
 #include <expected>
 
@@ -30,7 +31,7 @@ namespace Layout {
         virtual void resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE) = 0;
 
         // recalculate layout
-        virtual void recalculate() = 0;
+        virtual void recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN) = 0;
 
         // swap targets
         virtual void swapTargets(SP<ITarget> a, SP<ITarget> b) = 0;

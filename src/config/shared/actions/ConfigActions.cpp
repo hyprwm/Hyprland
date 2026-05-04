@@ -60,10 +60,10 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
     g_pInputManager->unconstrainMouse();
 
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_KEYBIND, nullptr, forceFSCycle);
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT, nullptr, forceFSCycle);
         PWINDOWTOCHANGETO->warpCursor();
 
         if (*PNOWARPS == 0 || *PFOLLOWMOUSE < 2) {
@@ -430,7 +430,7 @@ ActionResult Actions::focus(PHLWINDOW window) {
         Desktop::focusState()->monitor()->m_activeSpecialWorkspace != window->m_workspace) // NOLINTNEXTLINE
         Actions::changeWorkspace(PWORKSPACE);
 
-    Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_KEYBIND, nullptr, false);
+    Desktop::focusState()->fullWindowFocus(window, Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW, nullptr, false);
     window->warpCursor();
 
     return {};
@@ -1269,7 +1269,7 @@ static void moveWindowIntoGroupHelper(PHLWINDOW pWindow, PHLWINDOW pWindowInDire
     pWindowInDirection->m_group->add(pWindow);
     pWindowInDirection->m_group->setCurrent(pWindow);
     pWindow->updateWindowDecos();
-    Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
+    Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_DISPATCH_MOVEWINDOWINTOGROUP);
     pWindow->warpCursor();
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveintogroup", .data = std::format("{:x}", rc<uintptr_t>(pWindow.get()))});

@@ -4,7 +4,7 @@
 
 using namespace Layout;
 
-void IFloatingAlgorithm::recalculate() {
+void IFloatingAlgorithm::recalculate(eRecalculateReason reason) {
     ;
 }
 

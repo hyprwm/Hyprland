@@ -125,7 +125,7 @@ void CMonocleAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRe
     // monocle layout doesn't support manual resizing, all windows are fullscreen
 }
 
-void CMonocleAlgorithm::recalculate() {
+void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
     if (m_targetDatas.empty())
         return;
 

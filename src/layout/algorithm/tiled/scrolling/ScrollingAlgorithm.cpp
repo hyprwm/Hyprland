@@ -535,7 +535,16 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
         if (!TARGET || TARGET->floating())
             return;
 
-        focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_KB : INPUT_MODE_SOFT));
+        // if follow_focus != 0, focuswindow always moves scrolling view
+        // if follow_focus != 0, change in a group's current window state always moves scrolling view
+        // if follow_focus != 0, moving a window into group via the corresponding dispatches `moveintogroup`, `movewindoworgroup` always moves scrolling view
+        // if follow_focus != 0, moving focus via dispatches that cause switching to a specific window via calling switchToWindow(), such as movefocus, cyclenext, focuscurrentor(last/urgent); always moves scrolling view
+        if (*PFOLLOW_FOCUS &&
+            (reason == Desktop::FOCUS_REASON_DISPATCH_FOCUSWINDOW || reason == Desktop::FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE ||
+             reason == Desktop::FOCUS_REASON_DISPATCH_MOVEWINDOWINTOGROUP || reason == Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT))
+            focusOnInput(TARGET, INPUT_MODE_HARD);
+        else
+            focusOnInput(TARGET, reason == Desktop::FOCUS_REASON_CLICK ? INPUT_MODE_CLICK : (Desktop::isHardInputFocusReason(reason) ? INPUT_MODE_HARD : INPUT_MODE_SOFT));
     });
 
     // Initialize default widths and direction
@@ -576,7 +585,7 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     // if we moved via non-kb, and it's fully visible, ignore
-    if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)
+    if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_HARD)
         return;
 
     static const auto PFITMETHOD = CConfigValue<Config::INTEGER>("scrolling:focus_fit_method");
@@ -796,7 +805,7 @@ void CScrollingAlgorithm::resizeTarget(const Vector2D& delta, SP<ITarget> target
     m_scrollingData->recalculate(true);
 }
 
-void CScrollingAlgorithm::recalculate() {
+void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
     // guard against recalculation during transitional monitor states
     // (e.g. monitor reconnecting after suspend where workspace/monitor may not be ready)
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
@@ -807,8 +816,14 @@ void CScrollingAlgorithm::recalculate() {
 
         const auto TARGETDATA = dataFor(TARGET);
 
-        if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true))
-            focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_KB);
+        if (TARGETDATA && !m_scrollingData->visible(TARGETDATA->column.lock(), true)) {
+
+            /* guard against unwanted scrolling viewport moves - If recalculate() was called, it is assumed that either the INPUT_MODE will be HARD (i.e. it is meant to move the scrolling viewport) or
+            it is not meant to move the scrolling viewport.
+            (e.g. changing workspace to a scrolling layout workspace fits the focused window in that workspace into view) */
+            if (Layout::isHardRecalculateReason(reason))
+                focusOnInput(Desktop::focusState()->window()->layoutTarget(), INPUT_MODE_HARD);
+        }
     }
 
     m_scrollingData->recalculate();

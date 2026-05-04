@@ -122,7 +122,7 @@ void CGroup::add(PHLWINDOW w) {
     m_target->recalc();
 }
 
-void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
+void CGroup::remove(PHLWINDOW w, Math::eDirection dir, eRemoveFromGroupReason reason) {
     std::optional<size_t> idx;
     for (size_t i = 0; i < m_windows.size(); ++i) {
         if (m_windows.at(i) == w) {
@@ -171,6 +171,10 @@ void CGroup::remove(PHLWINDOW w, Math::eDirection dir) {
                 default: break;
             }
         }
+
+        // We don't need to assign a window to a new space if we intend to unmap it
+        if (reason == REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW)
+            return;
         w->m_target->assignToSpace(m_target->space(), focalPoint);
     }
 }
@@ -215,7 +219,7 @@ void CGroup::setCurrent(size_t idx) {
     }
 
     if (WASFOCUS)
-        Desktop::focusState()->rawWindowFocus(current(), FOCUS_REASON_DESKTOP_STATE_CHANGE);
+        Desktop::focusState()->rawWindowFocus(current(), FOCUS_REASON_GROUP_CURRENT_WINDOW_CHANGE);
 }
 
 void CGroup::setCurrent(PHLWINDOW w) {

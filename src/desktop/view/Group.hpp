@@ -15,10 +15,15 @@ namespace Desktop::View {
         static SP<CGroup> create(std::vector<PHLWINDOWREF>&& windows);
         ~CGroup();
 
+        enum eRemoveFromGroupReason : uint8_t {
+            REMOVE_FROM_GROUP_REASON_UNKNOWN, // when the remove from group reason is unknown or not important to preserve
+            REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW,
+        };
+
         bool                             has(PHLWINDOW w) const;
 
         void                             add(PHLWINDOW w);
-        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT);
+        void                             remove(PHLWINDOW w, Math::eDirection dir = Math::DIRECTION_DEFAULT, eRemoveFromGroupReason reason = REMOVE_FROM_GROUP_REASON_UNKNOWN);
         void                             moveCurrent(bool next);
         void                             setCurrent(size_t idx);
         void                             setCurrent(PHLWINDOW w);

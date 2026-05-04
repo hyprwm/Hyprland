@@ -72,7 +72,7 @@ namespace Config::Lua {
         virtual std::expected<void, std::string> generateDefaultConfig(const std::filesystem::path&, bool safeMode) override;
 
         virtual void                             handlePluginLoads() override;
-        virtual bool                             configVerifPassed() override;
+        [[nodiscard]] virtual bool               configVerifPassed() override;
 
         virtual std::expected<void, std::string> registerPluginValue(void* handle, SP<Config::Values::IValue> value) override;
         virtual void                             onPluginUnload(void* handle) override;
@@ -89,27 +89,27 @@ namespace Config::Lua {
         void                                     callLuaFn(int ref);
 
         // execute an arbitrary lua string on the current state.
-        std::optional<std::string> eval(const std::string& code);
+        [[nodiscard]] std::optional<std::string> eval(const std::string& code);
 
-        int                        guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
+        int                                      guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
 
-        static CConfigManager*     fromLuaState(lua_State* L);
+        static CConfigManager*                   fromLuaState(lua_State* L);
 
-        static constexpr int       LUA_WATCHDOG_INSTRUCTION_INTERVAL = 10000;
-        static constexpr int       LUA_TIMEOUT_CONFIG_RELOAD_MS      = 1500;
-        static constexpr int       LUA_TIMEOUT_EVENT_CALLBACK_MS     = 50;
-        static constexpr int       LUA_TIMEOUT_KEYBIND_CALLBACK_MS   = 100;
-        static constexpr int       LUA_TIMEOUT_TIMER_CALLBACK_MS     = 50;
-        static constexpr int       LUA_TIMEOUT_EVAL_MS               = 250;
-        static constexpr int       LUA_TIMEOUT_DISPATCH_MS           = 100;
+        static constexpr int                     LUA_WATCHDOG_INSTRUCTION_INTERVAL = 10000;
+        static constexpr int                     LUA_TIMEOUT_CONFIG_RELOAD_MS      = 1500;
+        static constexpr int                     LUA_TIMEOUT_EVENT_CALLBACK_MS     = 50;
+        static constexpr int                     LUA_TIMEOUT_KEYBIND_CALLBACK_MS   = 100;
+        static constexpr int                     LUA_TIMEOUT_TIMER_CALLBACK_MS     = 50;
+        static constexpr int                     LUA_TIMEOUT_EVAL_MS               = 250;
+        static constexpr int                     LUA_TIMEOUT_DISPATCH_MS           = 100;
 
-        bool                       isFirstLaunch() const;
-        bool                       isDynamicParse() const;
+        [[nodiscard]] bool                       isFirstLaunch() const;
+        [[nodiscard]] bool                       isDynamicParse() const;
 
-        std::string                m_currentSubmap;
-        std::string                m_currentSubmapReset;
+        std::string                              m_currentSubmap;
+        std::string                              m_currentSubmapReset;
 
-        UP<CLuaEventHandler>       m_eventHandler;
+        UP<CLuaEventHandler>                     m_eventHandler;
 
         struct SLuaTimer {
             SP<CEventLoopTimer> timer;

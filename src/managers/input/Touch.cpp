@@ -93,7 +93,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
             local                          = (TOUCH_COORDS - m_touchData.touchFocusWindow->m_realPosition->goal()) * m_touchData.touchFocusWindow->m_X11SurfaceScaledBy;
             m_touchData.touchSurfaceOrigin = m_touchData.touchFocusWindow->m_realPosition->goal();
         } else {
-            g_pCompositor->vectorWindowToSurface(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
+            m_touchData.touchFocusSurface = g_pCompositor->vectorWindowToSurface(TOUCH_COORDS, m_touchData.touchFocusWindow.lock(), local);
             m_touchData.touchSurfaceOrigin = TOUCH_COORDS - local;
         }
     } else if (!m_touchData.touchFocusLS.expired()) {

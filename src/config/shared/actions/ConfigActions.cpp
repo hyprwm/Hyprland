@@ -1170,17 +1170,17 @@ ActionResult Actions::forceRendererReload() {
 ActionResult Actions::toggleSwallow() {
     PHLWINDOWREF pWindow = Desktop::focusState()->window();
 
-    if (!valid(pWindow) || !valid(pWindow->m_swallowed))
+    if (!valid(pWindow) || !valid(pWindow->m_swallowee))
         return {};
 
-    if (pWindow->m_swallowed->m_currentlySwallowed) {
-        pWindow->m_swallowed->m_currentlySwallowed = false;
-        pWindow->m_swallowed->setHidden(false);
-        g_layoutManager->newTarget(pWindow->m_swallowed->layoutTarget(), pWindow->m_workspace->m_space);
+    if (pWindow->m_swallowee->m_currentlySwallowed) {
+        pWindow->m_swallowee->m_currentlySwallowed = false;
+        pWindow->m_swallowee->setHidden(false);
+        g_layoutManager->newTarget(pWindow->m_swallowee->layoutTarget(), pWindow->m_workspace->m_space);
     } else {
-        pWindow->m_swallowed->m_currentlySwallowed = true;
-        pWindow->m_swallowed->setHidden(true);
-        g_layoutManager->removeTarget(pWindow->m_swallowed->layoutTarget());
+        pWindow->m_swallowee->m_currentlySwallowed = true;
+        pWindow->m_swallowee->setHidden(true);
+        g_layoutManager->removeTarget(pWindow->m_swallowee->layoutTarget());
     }
 
     return {};

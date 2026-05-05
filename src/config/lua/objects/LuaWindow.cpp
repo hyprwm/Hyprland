@@ -176,7 +176,7 @@ static int windowIndex(lua_State* L) {
         }
 
         const auto&       tiledAlgo = algo->tiledAlgo();
-        const std::string name      = Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(&typeid(*tiledAlgo.get()));
+        const std::string name      = Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(tiledAlgo.get());
 
         lua_newtable(L);
         lua_pushstring(L, name.c_str());

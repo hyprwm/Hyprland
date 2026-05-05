@@ -386,6 +386,35 @@ local __HL_Dispatcher = {}
 ---@field y number
 local __HL_Vec2 = {}
 
+---@class HL.Box
+---@field x number
+---@field y number
+---@field w number
+---@field h number
+local __HL_Box = {}
+
+---@class HL.LayoutTarget
+---@field index integer
+---@field window HL.Window|nil
+---@field box HL.Box
+---@field place fun(self: HL.LayoutTarget, box: HL.Box): nil
+---@field set_box fun(self: HL.LayoutTarget, box: HL.Box): nil
+local __HL_LayoutTarget = {}
+
+---@class HL.LayoutContext
+---@field area HL.Box
+---@field targets HL.LayoutTarget[]
+---@field grid_cell fun(self: HL.LayoutContext, i: integer, cols: integer, rows?: integer): HL.Box
+---@field column fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box
+---@field row fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box
+---@field split fun(self: HL.LayoutContext, box: HL.Box, side: 'left'|'right'|'top'|'bottom'|'up'|'down', ratio: number): HL.Box
+local __HL_LayoutContext = {}
+
+---@class HL.LayoutProvider
+---@field recalculate fun(ctx: HL.LayoutContext): nil
+---@field layout_msg? fun(ctx: HL.LayoutContext, msg: string): boolean|string|nil
+local __HL_LayoutProvider = {}
+
 ---@class HL.BindOptions
 ---@field repeating? boolean
 ---@field locked? boolean
@@ -781,6 +810,7 @@ local __HL_Workspace = {}
 ---@field window_rule fun(spec: HL.WindowRuleSpec): HL.WindowRule
 ---@field workspace_rule fun(spec: HL.WorkspaceRuleSpec): nil
 ---@field dsp HL.DspNamespace
+---@field layout HL.LayoutNamespace
 ---@field notification HL.NotificationNamespace
 ---@field plugin HL.PluginNamespace
 local __HL_API = {}
@@ -852,6 +882,10 @@ local __HL_DspWindowNamespace = {}
 ---@field swap_monitors fun(...): HL.Dispatcher
 ---@field toggle_special fun(...): HL.Dispatcher
 local __HL_DspWorkspaceNamespace = {}
+
+---@class HL.LayoutNamespace
+---@field register fun(name: string, provider: HL.LayoutProvider): nil
+local __HL_LayoutNamespace = {}
 
 ---@class HL.NotificationNamespace
 ---@field create fun(opts?: HL.NotificationOptions): HL.Notification

@@ -5,6 +5,9 @@
 
 #include "ModeAlgorithm.hpp"
 
+#include <optional>
+#include <string>
+
 namespace Layout {
 
     class ITarget;
@@ -15,6 +18,12 @@ namespace Layout {
         virtual ~ITiledAlgorithm() = default;
 
         virtual SP<ITarget> getNextCandidate(SP<ITarget> old) = 0;
+
+        // Optional runtime layout name. Useful for generic adapter classes where
+        // typeid alone cannot identify the selected layout instance.
+        virtual std::optional<std::string> layoutName() const {
+            return std::nullopt;
+        }
 
       protected:
         ITiledAlgorithm() = default;

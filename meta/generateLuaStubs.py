@@ -87,18 +87,18 @@ def merge_node(dst: ApiNode, src: ApiNode) -> None:
 
 
 def parse_binding_tree(root: Path) -> tuple[ApiNode, set[str]]:
-    bindings_dir = root / "src/config/lua/bindings"
+    lua_dir = root / "src/config/lua"
 
     root_node = ApiNode()
     callable_namespaces: set[str] = set()
 
     register_header = re.compile(
-        r"void\s+Internal::register\w+Bindings\s*\([^)]*\)\s*\{", re.MULTILINE
+        r"void\s+(?:(?:Config::Lua::Bindings::)?Internal::)?register\w+Bindings\s*\([^)]*\)\s*\{", re.MULTILINE
     )
-    set_fn = re.compile(r'Internal::set(?:Mgr)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,')
+    set_fn = re.compile(r'(?:Internal::)?set(?:Mgr)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,')
     set_field = re.compile(r'lua_setfield\(L,\s*-2,\s*"([^"]+)"\s*\);')
 
-    for cpp in sorted(bindings_dir.glob("*.cpp")):
+    for cpp in sorted(lua_dir.rglob("*.cpp")):
         source = read_text(cpp)
         for _, body in extract_function_bodies(source, register_header):
             local_root = ApiNode()
@@ -503,6 +503,7 @@ def generate_stub(root: Path) -> str:
         "hl.get_current_submap": "fun(): string",
         "hl.notification.create": "fun(opts?: HL.NotificationOptions): HL.Notification",
         "hl.notification.get": "fun(): HL.Notification[]",
+        "hl.layout.register": "fun(name: string, provider: HL.LayoutProvider): nil",
         "hl.exec_cmd": "fun(cmd: string, rules?: table<string, string|number|boolean>): nil",
     }
     api_signatures.update(query_overrides)
@@ -534,6 +535,59 @@ def generate_stub(root: Path) -> str:
             [
                 ("x", "number", False),
                 ("y", "number", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.Box",
+            [
+                ("x", "number", False),
+                ("y", "number", False),
+                ("w", "number", False),
+                ("h", "number", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.LayoutTarget",
+            [
+                ("index", "integer", False),
+                ("window", "HL.Window|nil", False),
+                ("box", "HL.Box", False),
+                ("place", "fun(self: HL.LayoutTarget, box: HL.Box): nil", False),
+                ("set_box", "fun(self: HL.LayoutTarget, box: HL.Box): nil", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.LayoutContext",
+            [
+                ("area", "HL.Box", False),
+                ("targets", "HL.LayoutTarget[]", False),
+                ("grid_cell", "fun(self: HL.LayoutContext, i: integer, cols: integer, rows?: integer): HL.Box", False),
+                ("column", "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box", False),
+                ("row", "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box", False),
+                ("split", "fun(self: HL.LayoutContext, box: HL.Box, side: 'left'|'right'|'top'|'bottom'|'up'|'down', ratio: number): HL.Box", False),
+            ],
+        )
+    )
+    lines.append("")
+
+    lines.extend(
+        emit_class_block(
+            "HL.LayoutProvider",
+            [
+                ("recalculate", "fun(ctx: HL.LayoutContext): nil", False),
+                ("layout_msg", "fun(ctx: HL.LayoutContext, msg: string): boolean|string|nil", True),
             ],
         )
     )

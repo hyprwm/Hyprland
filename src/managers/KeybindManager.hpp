@@ -25,13 +25,15 @@ struct SSubmap {
     }
 };
 
+using KeybindKey = std::pair<xkb_keysym_t, xkb_keycode_t>;
+
 struct SKeybind {
     std::string                     key             = "";
-    std::vector<xkb_keysym_t>       sMkKeys         = {};
+    std::vector<KeybindKey>         sMkKeys         = {};
     uint32_t                        keycode         = 0;
     bool                            catchAll        = false;
     uint32_t                        modmask         = 0;
-    std::vector<xkb_keysym_t>       sMkMods         = {};
+    std::vector<KeybindKey>         sMkMods         = {};
     std::string                     handler         = "";
     std::string                     arg             = "";
     bool                            locked          = false;
@@ -42,6 +44,7 @@ struct SKeybind {
     bool                            longPress       = false;
     bool                            mouse           = false;
     bool                            nonConsuming    = false;
+    bool                            autoConsuming   = false;
     bool                            transparent     = false;
     bool                            ignoreMods      = false;
     bool                            multiKey        = false;
@@ -155,10 +158,10 @@ class CKeybindManager {
 
     SDispatchResult                  handleKeybinds(const uint32_t, const SPressedKeyWithMods&, bool, SP<IKeyboard>, SP<IHID>);
 
-    std::set<xkb_keysym_t>           m_mkKeys = {};
-    std::set<xkb_keysym_t>           m_mkMods = {};
+    std::set<KeybindKey>             m_mkKeys = {};
+    std::set<KeybindKey>             m_mkMods = {};
     eMultiKeyCase                    mkBindMatches(const SP<SKeybind>);
-    eMultiKeyCase                    mkKeysymSetMatches(const std::vector<xkb_keysym_t>, const std::set<xkb_keysym_t>);
+    eMultiKeyCase                    mkKeysymSetMatches(const std::vector<KeybindKey>&, const std::set<KeybindKey>&);
 
     bool                             handleInternalKeybinds(xkb_keysym_t);
     bool                             handleVT(xkb_keysym_t);

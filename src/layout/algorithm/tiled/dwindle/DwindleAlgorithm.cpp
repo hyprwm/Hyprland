@@ -729,7 +729,8 @@ Config::ErrorResult CDwindleAlgorithm::layoutMsg(const std::string_view& sv) {
         CURRENT_NODE->pParent->splitRatio = std::clamp(newRatio, 0.1F, 1.9F);
 
         CURRENT_NODE->pParent->recalcSizePosRecursive();
-    }
+    } else
+        return Config::configError(std::format("Unknown dwindle layoutmsg: {}", sv), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT);
 
     return {};
 }

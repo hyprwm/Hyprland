@@ -143,6 +143,8 @@ static int keybindIndex(lua_State* L) {
         lua_pushboolean(L, (*keybind)->release);
     else if (key == "non_consuming")
         lua_pushboolean(L, (*keybind)->nonConsuming);
+    else if (key == "auto_consuming")
+        lua_pushboolean(L, (*keybind)->autoConsuming);
     else if (key == "transparent")
         lua_pushboolean(L, (*keybind)->transparent);
     else if (key == "ignore_mods")

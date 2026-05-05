@@ -117,8 +117,10 @@ class CCompositor {
     void                   cleanupFadingOut(const MONITORID& monid);
     PHLWINDOW              getWindowInDirection(PHLWINDOW, Math::eDirection);
     PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
-    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false);
-    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false);
+    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false,
+                                          bool allowFullscreenBlocked = false);
+    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false,
+                                              bool allowFullscreenBlocked = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);

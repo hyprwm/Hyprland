@@ -37,6 +37,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
         pWindow->m_createdOverFullscreen = true;
+        pWindow->updateFullscreenInputState();
         g_pDesktopAnimationManager->setFullscreenFloatingFade(pWindow, 1.f);
         g_pHyprRenderer->damageWindow(pWindow);
         return {};
@@ -166,8 +167,12 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         return;
     }
 
-    const auto PLASTWINDOW = m_focusWindow.lock();
-    m_focusWindow          = pWindow;
+    if (PMONITOR && !pWindow->m_pinned)
+        rawMonitorFocus(PMONITOR);
+
+    const auto PLASTWINDOW                    = m_focusWindow.lock();
+    m_focusWindow                             = pWindow;
+    pWindow->m_workspace->m_lastFocusedWindow = pWindow;
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */

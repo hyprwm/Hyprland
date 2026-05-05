@@ -563,6 +563,10 @@ static int dsp_tagWindow(lua_State* L) {
     return Internal::checkResult(L, CA::tag(lua_tostring(L, lua_upvalueindex(1)), Internal::windowFromUpval(L, 2)));
 }
 
+static int dsp_clearTags(lua_State* L) {
+    return Internal::checkResult(L, CA::clearTags(Internal::windowFromUpval(L, 1)));
+}
+
 static int dsp_toggleSwallow(lua_State* L) {
     return Internal::checkResult(L, CA::toggleSwallow());
 }
@@ -915,6 +919,12 @@ static int hlWindowTag(lua_State* L) {
     return 1;
 }
 
+static int hlWindowClearTags(lua_State* L) {
+    Internal::pushWindowUpval(L, 1);
+    lua_pushcclosure(L, dsp_clearTags, 1);
+    return 1;
+}
+
 static int hlWindowToggleSwallow(lua_State* L) {
     lua_pushcclosure(L, dsp_toggleSwallow, 0);
     return 1;
@@ -1093,6 +1103,15 @@ static int hlFocus(lua_State* L) {
     return Internal::configError(L, "hl.focus: unrecognized arguments. Expected one of: direction, monitor, window, urgent_or_last, last");
 }
 
+static int dsp_noop(lua_State* L) {
+    return 0;
+}
+
+static int hlNoop(lua_State* L) {
+    lua_pushcclosure(L, dsp_noop, 0);
+    return 1;
+}
+
 static int dsp_toggleSpecial(lua_State* L) {
     std::string name                                   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + name);
@@ -1158,9 +1177,9 @@ static int hlWorkspaceToggleSpecial(lua_State* L) {
 
 static int hlWorkspaceRename(lua_State* L) {
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.workspace.rename: expected a table { id, name? }");
+        return Internal::configError(L, "hl.workspace.rename: expected a table { workspace, name? }");
 
-    const auto id   = Internal::requireTableFieldWorkspaceSelector(L, 1, "id", "hl.workspace.rename");
+    const auto id   = Internal::requireTableFieldWorkspaceSelector(L, 1, "workspace", "hl.workspace.rename");
     auto       name = Internal::tableOptStr(L, 1, "name");
 
     lua_pushstring(L, id.c_str());
@@ -1178,7 +1197,7 @@ static int hlWorkspaceMove(lua_State* L) {
 
     const auto mon = Internal::requireTableFieldMonitorSelector(L, 1, "monitor", "hl.workspace.move");
 
-    auto       id = Internal::tableOptWorkspaceSelector(L, 1, "id", "hl.workspace.move");
+    auto       id = Internal::tableOptWorkspaceSelector(L, 1, "workspace", "hl.workspace.move");
     if (id) {
         lua_pushstring(L, id->c_str());
         lua_pushstring(L, mon.c_str());
@@ -1205,14 +1224,17 @@ static int hlWorkspaceSwapMonitors(lua_State* L) {
 
 void Internal::registerDispatcherBindings(lua_State* L) {
     lua_newtable(L);
+    Internal::markDispatcherTable(L);
 
     {
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "move_to_corner", hlCursorMoveToCorner);
         Internal::setFn(L, "move", hlCursorMove);
         lua_setfield(L, -2, "cursor");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "toggle", hlGroupToggle);
         Internal::setFn(L, "next", hlGroupNext);
         Internal::setFn(L, "prev", hlGroupPrev);
@@ -1223,6 +1245,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_setfield(L, -2, "group");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "close", hlWindowClose);
         Internal::setFn(L, "kill", hlWindowKill);
         Internal::setFn(L, "signal", hlWindowSignal);
@@ -1235,6 +1258,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "center", hlWindowCenter);
         Internal::setFn(L, "cycle_next", hlWindowCycleNext);
         Internal::setFn(L, "tag", hlWindowTag);
+        Internal::setFn(L, "clear_tags", hlWindowClearTags);
         Internal::setFn(L, "toggle_swallow", hlWindowToggleSwallow);
         Internal::setFn(L, "pin", hlWindowPin);
         Internal::setFn(L, "bring_to_top", hlWindowBringToTop);
@@ -1246,6 +1270,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         lua_setfield(L, -2, "window");
 
         lua_newtable(L);
+        Internal::markDispatcherTable(L);
         Internal::setFn(L, "rename", hlWorkspaceRename);
         Internal::setFn(L, "move", hlWorkspaceMove);
         Internal::setFn(L, "swap_monitors", hlWorkspaceSwapMonitors);
@@ -1266,6 +1291,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "force_renderer_reload", hlForceRendererReload);
         Internal::setFn(L, "force_idle", hlForceIdle);
         Internal::setFn(L, "focus", hlFocus);
+        Internal::setFn(L, "no_op", hlNoop);
     }
 
     lua_setfield(L, -2, "dsp");

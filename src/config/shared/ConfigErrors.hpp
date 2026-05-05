@@ -29,7 +29,6 @@ namespace Config {
         SConfigError() = default;
         SConfigError(std::string msg, eConfigErrorLevel lvl = eConfigErrorLevel::ERROR, eConfigErrorCode c = eConfigErrorCode::UNKNOWN) :
             message(std::move(msg)), level(lvl), code(c) {}
-        SConfigError(const char* msg) : message(msg ? msg : "") {}
 
         std::string       message;
         eConfigErrorLevel level = eConfigErrorLevel::ERROR;

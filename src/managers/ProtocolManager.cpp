@@ -97,7 +97,9 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->m_name) || PROTO::outputs.at(pMonitor->m_name)->isDefunct())) {
         if (PROTO::outputs.contains(pMonitor->m_name))
             PROTO::outputs.erase(pMonitor->m_name);
-        PROTO::outputs.emplace(pMonitor->m_name, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
+        auto p = PROTO::outputs.emplace(pMonitor->m_name,
+                                        makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
+        p.first->second->m_self = p.first->second;
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {

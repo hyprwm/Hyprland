@@ -105,8 +105,10 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         return;
     }
 
-    m_sessionLock->sendDeniedTimer = makeShared<CEventLoopTimer>(
-        // Within this arbitrary amount of time, a session-lock client is expected to create and commit a lock surface for each output. If the client fails to do that, it will be denied.
+    m_sessionLock->sendLockedTimer = makeShared<CEventLoopTimer>(
+        // Clients get sent the "locked" event after they submitted a lock frame for each output.
+        // If they fail to do this, we send the "locked" event after a fixed amount of time here.
+        // Previously we sent denied after this timeout, but that forcefully makes the client exit and the protocol doesn't require that anyways.
         std::chrono::seconds(5),
         [](auto, auto) {
             if (!g_pSessionLockManager || g_pSessionLockManager->clientLocked() || g_pSessionLockManager->clientDenied())
@@ -115,29 +117,22 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
             if (!g_pSessionLockManager->m_sessionLock || !g_pSessionLockManager->m_sessionLock->lock)
                 return;
 
-            if (g_pCompositor->m_unsafeState || !g_pCompositor->m_aqBackend->hasSession() || !g_pCompositor->m_aqBackend->session->active) {
-                // Because the session is inactive, there is a good reason for why the client did't manage to render to all outputs.
-                // We send locked, although this could lead to imperfect frames when we start to render again.
-                g_pSessionLockManager->m_sessionLock->lock->sendLocked();
-                g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
-                return;
-            }
-
-            LOGM(Log::WARN, "Kicking lockscreen client, because it failed to render to all outputs within 5 seconds");
-            g_pSessionLockManager->m_sessionLock->lock->sendDenied();
-            g_pSessionLockManager->m_sessionLock->hasSentDenied = true;
+            LOGM(Log::WARN,
+                 "Sending locked after a 5 second timeout. This happens when we failed to render a lock frame from the client for every output. Lockdead frames may be shown.");
+            g_pSessionLockManager->m_sessionLock->lock->sendLocked();
+            g_pSessionLockManager->m_sessionLock->hasSentLocked = true;
         },
         nullptr);
 
-    g_pEventLoopManager->addTimer(m_sessionLock->sendDeniedTimer);
+    g_pEventLoopManager->addTimer(m_sessionLock->sendLockedTimer);
 }
 
-void CSessionLockManager::removeSendDeniedTimer() {
-    if (!m_sessionLock || !m_sessionLock->sendDeniedTimer)
+void CSessionLockManager::removeSendLockedTimer() {
+    if (!m_sessionLock || !m_sessionLock->sendLockedTimer)
         return;
 
-    g_pEventLoopManager->removeTimer(m_sessionLock->sendDeniedTimer);
-    m_sessionLock->sendDeniedTimer.reset();
+    g_pEventLoopManager->removeTimer(m_sessionLock->sendLockedTimer);
+    m_sessionLock->sendLockedTimer.reset();
 }
 
 bool CSessionLockManager::isSessionLocked() {
@@ -169,7 +164,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
         std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return !m->m_enabled || !m->m_dpmsStatus || m_sessionLock->lockedMonitors.contains(m->m_id); });
 
     if (LOCKED && m_sessionLock->lock->good()) {
-        removeSendDeniedTimer();
+        removeSendLockedTimer();
         m_sessionLock->lock->sendLocked();
         m_sessionLock->hasSentLocked = true;
     }

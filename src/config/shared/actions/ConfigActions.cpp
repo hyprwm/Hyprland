@@ -94,7 +94,7 @@ static bool tryMoveFocusToMonitor(PHLMONITOR monitor) {
 
     const auto PNEWMAINWORKSPACE = monitor->m_activeWorkspace;
     const auto PNEWWORKSPACE     = monitor->m_activeSpecialWorkspace ? monitor->m_activeSpecialWorkspace : PNEWMAINWORKSPACE;
-    const auto PNEWWINDOW        = PNEWWORKSPACE->getLastFocusedWindow();
+    auto       PNEWWINDOW        = PNEWWORKSPACE->getFocusCandidate();
 
     if (PNEWWINDOW) {
         updateRelativeCursorCoords();
@@ -230,10 +230,12 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
         return {};
 
     window->m_pinned = wantPin;
+    window->updateFullscreenInputState();
+    *window->alpha(Desktop::View::WINDOW_ALPHA_FULLSCREEN) = window->isBlockedByFullscreen() ? 0.F : 1.F;
 
     const auto PMONITOR = window->m_monitor.lock();
     if (!PMONITOR)
-        return std::unexpected("Window has no monitor");
+        return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     window->layoutTarget()->assignToSpace(PMONITOR->m_activeWorkspace->m_space);
     window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_PINNED);
@@ -289,7 +291,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         return {};
 
     if (!ws)
-        return std::unexpected("Invalid workspace");
+        return actionError("No workspace to move to", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_ARGUMENT);
 
     if (ws->m_id == window->workspaceID())
         return {};
@@ -349,7 +351,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     }
 
     const auto PWINDOWTOCHANGETO = *PFULLCYCLE && PLASTWINDOW->isFullscreen() ?
-        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT) :
+        g_pCompositor->getWindowCycle(PLASTWINDOW, true, {}, false, dir != Math::DIRECTION_DOWN && dir != Math::DIRECTION_RIGHT, true) :
         g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
@@ -377,7 +379,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
 
     const auto PMONITOR = PLASTWINDOW->m_monitor.lock();
     if (!PMONITOR)
-        return std::unexpected("Window has no monitor");
+        return actionError("Window has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (dir == Math::DIRECTION_LEFT || dir == Math::DIRECTION_RIGHT) {
         if (STICKS(PLASTWINDOW->m_position.x, PMONITOR->m_position.x) && STICKS(PLASTWINDOW->m_size.x, PMONITOR->m_size.x))
@@ -420,7 +422,7 @@ ActionResult Actions::focus(PHLWINDOW window) {
 
     const auto PWORKSPACE = window->m_workspace;
     if (!PWORKSPACE)
-        return std::unexpected("Window has no workspace");
+        return actionError("Window has no workspace", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
 
@@ -538,7 +540,7 @@ ActionResult Actions::moveCursorToCorner(int corner, std::optional<PHLWINDOW> w)
         return {};
 
     if (corner < 0 || corner > 3)
-        return std::unexpected("Corner must be 0-3");
+        return actionError("Corner must be 0 - 3", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
     switch (corner) {
         case 0: g_pCompositor->warpCursorTo({window->m_realPosition->value().x, window->m_realPosition->value().y + window->m_realSize->value().y}, true); break;
@@ -563,7 +565,7 @@ ActionResult Actions::resize(const Vector2D& size, bool relative, std::optional<
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (!relative && (size.x < 1 || size.y < 1))
-        return std::unexpected("Invalid size");
+        return actionError("Invalid size", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
     const auto delta = relative ? size : size - window->m_realSize->goal();
 
@@ -596,6 +598,19 @@ ActionResult Actions::tag(const std::string& tagStr, std::optional<PHLWINDOW> w)
         return {};
 
     if (window->m_ruleApplicator->m_tagKeeper.applyTag(tagStr)) {
+        window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_TAG);
+        window->updateDecorationValues();
+    }
+
+    return {};
+}
+
+ActionResult Actions::clearTags(std::optional<PHLWINDOW> w) {
+    auto window = xtract(w);
+    if (!window)
+        return {};
+
+    if (window->m_ruleApplicator->m_tagKeeper.clearTags()) {
         window->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_TAG);
         window->updateDecorationValues();
     }
@@ -812,7 +827,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
         else if (PROP == "animation")
             parsePropTrivial(PWINDOW->m_ruleApplicator->animationStyle(), VAL);
         else
-            return std::unexpected("prop not found");
+            return actionError("Invalid prop name", eActionErrorLevel::ERROR, eActionErrorCode::INVALID_ARGUMENT);
 
     } catch (std::exception& e) { return std::unexpected(std::format("Error parsing prop value: {}", std::string(e.what()))); }
 
@@ -884,14 +899,14 @@ ActionResult Actions::setGroupActive(int index, std::optional<PHLWINDOW> w) {
 
 ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     if (!ws)
-        return std::unexpected("Invalid workspace");
+        return actionError("Invalid workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     static auto PHIDESPECIALONWORKSPACECHANGE = CConfigValue<Config::INTEGER>("binds:hide_special_on_workspace_change");
     static auto PWORKSPACECENTERON            = CConfigValue<Config::INTEGER>("binds:workspace_center_on");
 
     const auto  PMONITOR = Desktop::focusState()->monitor();
     if (!PMONITOR)
-        return std::unexpected("No monitor");
+        return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (ws->m_isSpecialWorkspace) {
         PMONITOR->setSpecialWorkspace(ws);
@@ -905,7 +920,7 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
 
     const auto PMONITORWORKSPACEOWNER = PMONITOR == ws->m_monitor ? PMONITOR : ws->m_monitor.lock();
     if (!PMONITORWORKSPACEOWNER)
-        return std::unexpected("Workspace has no monitor");
+        return actionError("Workspace has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
 
@@ -916,11 +931,13 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     PMONITORWORKSPACEOWNER->changeWorkspace(ws, false, true);
 
     if (PMONITOR != PMONITORWORKSPACEOWNER) {
-        Vector2D middle = PMONITORWORKSPACEOWNER->middle();
-        if (const auto PLAST = ws->getLastFocusedWindow(); PLAST) {
-            Desktop::focusState()->fullWindowFocus(PLAST, Desktop::FOCUS_REASON_KEYBIND);
+        Vector2D middle  = PMONITORWORKSPACEOWNER->middle();
+        auto     pWindow = ws->getFocusCandidate();
+
+        if (pWindow) {
+            Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_KEYBIND);
             if (*PWORKSPACECENTERON == 1)
-                middle = PLAST->middle();
+                middle = pWindow->middle();
         }
         g_pCompositor->warpCursorTo(middle);
     }
@@ -995,13 +1012,13 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
 ActionResult Actions::changeWorkspace(const std::string& ws) {
     auto p = resolveWorkspaceForChange(ws);
     if (!p)
-        return std::unexpected("invalid workspace");
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
     return Actions::changeWorkspace(p);
 }
 
 ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
     if (!ws)
-        return std::unexpected("Invalid workspace");
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     ws->rename(s);
 
@@ -1010,9 +1027,9 @@ ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
 
 ActionResult Actions::moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon) {
     if (!ws)
-        return std::unexpected("Invalid workspace");
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
     if (!mon)
-        return std::unexpected("Invalid monitor");
+        return actionError("Bad monitor", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     g_pCompositor->moveWorkspaceToMonitor(ws, mon);
 
@@ -1021,16 +1038,16 @@ ActionResult Actions::moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon) {
 
 ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
     if (!ws)
-        return std::unexpected("Invalid workspace");
+        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     const auto PCURRMONITOR = Desktop::focusState()->monitor();
     if (!PCURRMONITOR)
-        return std::unexpected("No current monitor");
+        return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     if (ws->m_monitor != PCURRMONITOR) {
         const auto POLDMONITOR = ws->m_monitor.lock();
         if (!POLDMONITOR)
-            return std::unexpected("Workspace has no monitor");
+            return actionError("Workspace has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
         if (POLDMONITOR->activeWorkspaceID() == ws->m_id) {
             g_pCompositor->swapActiveWorkspaces(POLDMONITOR, PCURRMONITOR);
@@ -1045,11 +1062,11 @@ ActionResult Actions::changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws) {
 
 ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
     if (!special || !special->m_isSpecialWorkspace)
-        return std::unexpected("Invalid special workspace");
+        return actionError("Bad special workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     const auto PMONITOR = Desktop::focusState()->monitor();
     if (!PMONITOR)
-        return std::unexpected("No monitor");
+        return actionError("No focused monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     bool requestedWorkspaceIsAlreadyOpen = false;
     auto specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
@@ -1088,7 +1105,7 @@ ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
 
 ActionResult Actions::focusMonitor(PHLMONITOR mon) {
     if (!mon)
-        return std::unexpected("Invalid monitor");
+        return actionError("Bad monitor", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     tryMoveFocusToMonitor(mon);
 
@@ -1097,7 +1114,7 @@ ActionResult Actions::focusMonitor(PHLMONITOR mon) {
 
 ActionResult Actions::swapActiveWorkspaces(PHLMONITOR mon1, PHLMONITOR mon2) {
     if (!mon1 || !mon2)
-        return std::unexpected("Invalid monitor");
+        return actionError("Bad monitor", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
 
     if (mon1 == mon2)
         return {};
@@ -1406,7 +1423,7 @@ ActionResult Actions::pass(std::optional<PHLWINDOW> w) {
         return {};
 
     if (!g_pSeatManager->m_keyboard)
-        return std::unexpected("No keyboard");
+        return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
     const auto& S             = *Config::Actions::state();
     const auto  XWTOXW        = window->m_isX11 && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11;
@@ -1474,7 +1491,7 @@ ActionResult Actions::pass(uint32_t modMask, uint32_t key, std::optional<PHLWIND
 
     if (window) {
         if (!g_pSeatManager->m_keyboard)
-            return std::unexpected("No keyboard");
+            return actionError("No keyboard connected", eActionErrorLevel::INFO, eActionErrorCode::NO_TARGET);
 
         if (!isMouse)
             g_pSeatManager->setKeyboardFocus(window->wlSurface()->resource());
@@ -1651,7 +1668,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
     if (onlyFloating.value_or(false))
         floatStatus = true;
 
-    const auto& cycled = g_pCompositor->getWindowCycle(window, true, floatStatus, false, !next);
+    const auto& cycled = g_pCompositor->getWindowCycle(window, true, floatStatus, false, !next, window->m_workspace && window->m_workspace->m_hasFullscreenWindow);
 
     switchToWindow(cycled);
 

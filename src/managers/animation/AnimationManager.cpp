@@ -42,7 +42,7 @@ static void updateVariable(CAnimatedVariable<VarType>& av, const float POINTY, b
     av.value()       = av.begun() + DELTA * POINTY;
 }
 
-static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp) {
+static void updateColorVariable(CAnimatedVariable<CHyprColor>& av, const float POINTY, bool warp = false) {
     if (warp || av.value() == av.goal()) {
         av.warp(true, false);
         return;
@@ -139,15 +139,12 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         animationsDisabled = animationsDisabled || ls->m_ruleApplicator->noanim().valueOrDefault();
     }
 
-    const auto SPENT   = av.getPercent();
-    const auto PBEZIER = g_pAnimationManager->getBezier(av.getBezierName());
-    const auto POINTY  = PBEZIER->getYForPoint(SPENT);
-    const bool WARP    = animationsDisabled || SPENT >= 1.f;
+    const auto STEP = av.getCurveStep();
 
     if constexpr (std::same_as<VarType, CHyprColor>)
-        updateColorVariable(av, POINTY, WARP);
+        updateColorVariable(av, STEP.value, STEP.finished || animationsDisabled);
     else
-        updateVariable<VarType>(av, POINTY, WARP);
+        updateVariable<VarType>(av, STEP.value, STEP.finished || animationsDisabled);
 
     av.onUpdate();
 }

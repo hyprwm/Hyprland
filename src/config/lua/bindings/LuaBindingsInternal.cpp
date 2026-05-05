@@ -449,11 +449,6 @@ CA::eTogglableAction Internal::tableToggleAction(lua_State* L, int idx, const ch
     return CA::TOGGLE_ACTION_TOGGLE;
 }
 
-void Internal::setFn(lua_State* L, const char* name, lua_CFunction fn) {
-    lua_pushcfunction(L, fn);
-    lua_setfield(L, -2, name);
-}
-
 void Internal::setMgrFn(lua_State* L, CConfigManager* mgr, const char* name, lua_CFunction fn) {
     lua_pushlightuserdata(L, mgr);
     lua_pushcclosure(L, fn, 1);
@@ -573,4 +568,15 @@ std::expected<SP<Desktop::Rule::CWindowRule>, int> Internal::buildRuleFromTable(
     }
 
     return rule;
+}
+
+bool Internal::hasTableField(lua_State* L, int tableIdx, const char* field) {
+    lua_getfield(L, tableIdx, field);
+    if (lua_isnoneornil(L, -1)) {
+        lua_pop(L, 1);
+        return false;
+    }
+
+    lua_pop(L, 1);
+    return true;
 }

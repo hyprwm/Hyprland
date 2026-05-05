@@ -31,7 +31,7 @@ struct SSessionLockSurface {
 struct SSessionLock {
     WP<CSessionLock>                     lock;
     CTimer                               lockTimer;
-    SP<CEventLoopTimer>                  sendDeniedTimer;
+    SP<CEventLoopTimer>                  sendLockedTimer;
 
     std::vector<SP<SSessionLockSurface>> vSessionLockSurfaces;
 
@@ -73,7 +73,7 @@ class CSessionLockManager {
     } m_listeners;
 
     void onNewSessionLock(SP<CSessionLock> pWlrLock);
-    void removeSendDeniedTimer();
+    void removeSendLockedTimer();
 };
 
 inline UP<CSessionLockManager> g_pSessionLockManager;

@@ -46,8 +46,10 @@ CMonocleAlgorithm::~CMonocleAlgorithm() {
             continue;
 
         const auto WINDOW = TARGET->window();
-        if (WINDOW)
-            WINDOW->setHidden(false);
+        if (WINDOW) {
+            WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
+            *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+        }
     }
 
     m_focusCallback.reset();
@@ -81,8 +83,10 @@ void CMonocleAlgorithm::removeTarget(SP<ITarget> target) {
 
     // unhide window when removing from monocle layout
     const auto WINDOW = target->window();
-    if (WINDOW)
-        WINDOW->setHidden(false);
+    if (WINDOW) {
+        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, false);
+        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = 1.F;
+    }
 
     const auto INDEX = std::distance(m_targetDatas.begin(), it);
     m_targetDatas.erase(it);
@@ -142,7 +146,8 @@ void CMonocleAlgorithm::recalculate() {
         TARGET->setPositionGlobal(WORK_AREA);
 
         const bool SHOULD_BE_VISIBLE = ((int)i == m_currentVisibleIndex);
-        WINDOW->setHidden(!SHOULD_BE_VISIBLE);
+        WINDOW->setInputBlocked(Desktop::View::INPUT_BLOCK_MONOCLE_INACTIVE, !SHOULD_BE_VISIBLE);
+        *WINDOW->alpha(Desktop::View::WINDOW_ALPHA_LAYOUT) = SHOULD_BE_VISIBLE ? 1.F : 0.F;
     }
 }
 

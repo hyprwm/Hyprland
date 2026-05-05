@@ -212,6 +212,7 @@
 ---| "group.groupbar.indicator_gap"
 ---| "group.groupbar.indicator_height"
 ---| "group.groupbar.keep_upper_gap"
+---| "group.groupbar.middle_click_close"
 ---| "group.groupbar.priority"
 ---| "group.groupbar.render_titles"
 ---| "group.groupbar.round_only_edges"
@@ -378,6 +379,9 @@
 ---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}
 ---@alias HL.Gradient string|{colors:string[], angle?:number}
 
+---@class HL.Dispatcher
+local __HL_Dispatcher = {}
+
 ---@class HL.Vec2
 ---@field x number
 ---@field y number
@@ -485,6 +489,7 @@ local __HL_WindowQueryFilter = {}
 ---@field scroll_points? string
 ---@field sensitivity? number|boolean
 ---@field share_states? integer|boolean
+---@field tags? string
 ---@field tap_and_drag? boolean
 ---@field tap_button_map? string
 ---@field tap_to_click? boolean
@@ -565,12 +570,22 @@ local __HL_WorkspaceRuleSpec = {}
 ---@field remove fun(self: HL.EventSubscription, ...): any
 local __HL_EventSubscription = {}
 
+---@class HL.Group
+---@field current HL.Window|nil
+---@field current_index integer
+---@field denied boolean
+---@field locked boolean
+---@field members HL.Window|table|nil
+---@field size integer
+local __HL_Group = {}
+
 ---@class HL.Keybind
 ---@field is_enabled fun(self: HL.Keybind, ...): any
 ---@field remove fun(self: HL.Keybind, ...): any
 ---@field set_enabled fun(self: HL.Keybind, ...): any
 ---@field unbind fun(self: HL.Keybind, ...): any
 ---@field arg string
+---@field auto_consuming boolean
 ---@field catchall boolean
 ---@field click boolean
 ---@field description any
@@ -667,6 +682,7 @@ local __HL_Notification = {}
 local __HL_Timer = {}
 
 ---@class HL.Window
+---@field accepts_input boolean
 ---@field active boolean|nil
 ---@field address string
 ---@field at integer|table
@@ -676,7 +692,7 @@ local __HL_Timer = {}
 ---@field focus_history_id integer
 ---@field fullscreen integer
 ---@field fullscreen_client integer
----@field group HL.Window|boolean|integer|table|nil
+---@field group HL.Group|nil
 ---@field hidden boolean
 ---@field inhibiting_idle boolean
 ---@field initial_class string
@@ -692,6 +708,7 @@ local __HL_Timer = {}
 ---@field swallowing HL.Window|nil
 ---@field tags string|table
 ---@field title string
+---@field visible boolean
 ---@field workspace HL.Workspace|nil
 ---@field xdg_description string|nil
 ---@field xdg_tag string|nil
@@ -704,27 +721,35 @@ local __HL_Window = {}
 local __HL_WindowRule = {}
 
 ---@class HL.Workspace
+---@field get_groups fun(self: HL.Workspace, ...): any
+---@field get_windows fun(self: HL.Workspace, ...): any
 ---@field active boolean
+---@field config_name string
 ---@field fullscreen_mode integer
+---@field fullscreen_window HL.Window|nil
+---@field groups integer|nil
 ---@field has_fullscreen boolean
 ---@field has_urgent boolean
 ---@field id integer
----@field is_persistent boolean|nil
+---@field is_empty boolean
+---@field is_persistent boolean
+---@field last_window HL.Window|nil
 ---@field monitor HL.Monitor|nil
 ---@field name string
 ---@field special boolean
+---@field tiled_layout string
 ---@field visible boolean
 ---@field windows integer
 local __HL_Workspace = {}
 
 ---@class HL.API
 ---@field animation fun(...): any
----@field bind fun(keys: string, dispatcher: function, opts?: HL.BindOptions): HL.Keybind
+---@field bind fun(keys: string, dispatcher: HL.Dispatcher|function, opts?: HL.BindOptions): HL.Keybind
 ---@field config fun(config: table): nil
 ---@field curve fun(...): any
 ---@field define_submap fun(name: string, reset_or_fn: string|function, fn?: function): nil
 ---@field device fun(spec: HL.DeviceSpec): nil
----@field dispatch fun(...): any
+---@field dispatch fun(dispatcher: HL.Dispatcher|function): any
 ---@field env fun(...): any
 ---@field exec_cmd fun(cmd: string, rules?: table<string, string|number|boolean>): nil
 ---@field gesture fun(spec: HL.GestureSpec): nil
@@ -763,20 +788,21 @@ local __HL_Workspace = {}
 local __HL_API = {}
 
 ---@class HL.DspNamespace
----@field dpms fun(...): any
----@field event fun(...): any
----@field exec_cmd fun(...): any
----@field exec_raw fun(...): any
----@field exit fun(...): any
----@field focus fun(...): any
----@field force_idle fun(...): any
----@field force_renderer_reload fun(...): any
----@field global fun(...): any
----@field layout fun(...): any
----@field pass fun(...): any
----@field send_key_state fun(...): any
----@field send_shortcut fun(...): any
----@field submap fun(...): any
+---@field dpms fun(...): HL.Dispatcher
+---@field event fun(...): HL.Dispatcher
+---@field exec_cmd fun(...): HL.Dispatcher
+---@field exec_raw fun(...): HL.Dispatcher
+---@field exit fun(...): HL.Dispatcher
+---@field focus fun(...): HL.Dispatcher
+---@field force_idle fun(...): HL.Dispatcher
+---@field force_renderer_reload fun(...): HL.Dispatcher
+---@field global fun(...): HL.Dispatcher
+---@field layout fun(...): HL.Dispatcher
+---@field no_op fun(...): HL.Dispatcher
+---@field pass fun(...): HL.Dispatcher
+---@field send_key_state fun(...): HL.Dispatcher
+---@field send_shortcut fun(...): HL.Dispatcher
+---@field submap fun(...): HL.Dispatcher
 ---@field cursor HL.DspCursorNamespace
 ---@field group HL.DspGroupNamespace
 ---@field window HL.DspWindowNamespace
@@ -784,48 +810,49 @@ local __HL_API = {}
 local __HL_DspNamespace = {}
 
 ---@class HL.DspCursorNamespace
----@field move fun(...): any
----@field move_to_corner fun(...): any
+---@field move fun(...): HL.Dispatcher
+---@field move_to_corner fun(...): HL.Dispatcher
 local __HL_DspCursorNamespace = {}
 
 ---@class HL.DspGroupNamespace
----@field active fun(...): any
----@field lock fun(...): any
----@field lock_active fun(...): any
----@field move_window fun(...): any
----@field next fun(...): any
----@field prev fun(...): any
----@field toggle fun(...): any
+---@field active fun(...): HL.Dispatcher
+---@field lock fun(...): HL.Dispatcher
+---@field lock_active fun(...): HL.Dispatcher
+---@field move_window fun(...): HL.Dispatcher
+---@field next fun(...): HL.Dispatcher
+---@field prev fun(...): HL.Dispatcher
+---@field toggle fun(...): HL.Dispatcher
 local __HL_DspGroupNamespace = {}
 
 ---@class HL.DspWindowNamespace
----@field alter_zorder fun(...): any
----@field bring_to_top fun(...): any
----@field center fun(...): any
----@field close fun(...): any
----@field cycle_next fun(...): any
----@field deny_from_group fun(...): any
----@field drag fun(...): any
----@field float fun(...): any
----@field fullscreen fun(...): any
----@field fullscreen_state fun(...): any
----@field kill fun(...): any
----@field move fun(...): any
----@field pin fun(...): any
----@field pseudo fun(...): any
----@field resize fun(...): any
----@field set_prop fun(...): any
----@field signal fun(...): any
----@field swap fun(...): any
----@field tag fun(...): any
----@field toggle_swallow fun(...): any
+---@field alter_zorder fun(...): HL.Dispatcher
+---@field bring_to_top fun(...): HL.Dispatcher
+---@field center fun(...): HL.Dispatcher
+---@field clear_tags fun(...): HL.Dispatcher
+---@field close fun(...): HL.Dispatcher
+---@field cycle_next fun(...): HL.Dispatcher
+---@field deny_from_group fun(...): HL.Dispatcher
+---@field drag fun(...): HL.Dispatcher
+---@field float fun(...): HL.Dispatcher
+---@field fullscreen fun(...): HL.Dispatcher
+---@field fullscreen_state fun(...): HL.Dispatcher
+---@field kill fun(...): HL.Dispatcher
+---@field move fun(...): HL.Dispatcher
+---@field pin fun(...): HL.Dispatcher
+---@field pseudo fun(...): HL.Dispatcher
+---@field resize fun(...): HL.Dispatcher
+---@field set_prop fun(...): HL.Dispatcher
+---@field signal fun(...): HL.Dispatcher
+---@field swap fun(...): HL.Dispatcher
+---@field tag fun(...): HL.Dispatcher
+---@field toggle_swallow fun(...): HL.Dispatcher
 local __HL_DspWindowNamespace = {}
 
 ---@class HL.DspWorkspaceNamespace
----@field move fun(...): any
----@field rename fun(...): any
----@field swap_monitors fun(...): any
----@field toggle_special fun(...): any
+---@field move fun(...): HL.Dispatcher
+---@field rename fun(...): HL.Dispatcher
+---@field swap_monitors fun(...): HL.Dispatcher
+---@field toggle_special fun(...): HL.Dispatcher
 local __HL_DspWorkspaceNamespace = {}
 
 ---@class HL.NotificationNamespace
@@ -1021,6 +1048,7 @@ hl = {}
 ---@field ['group.groupbar.indicator_gap'] integer|boolean
 ---@field ['group.groupbar.indicator_height'] integer|boolean
 ---@field ['group.groupbar.keep_upper_gap'] boolean
+---@field ['group.groupbar.middle_click_close'] boolean
 ---@field ['group.groupbar.priority'] integer|boolean
 ---@field ['group.groupbar.render_titles'] boolean
 ---@field ['group.groupbar.round_only_edges'] boolean

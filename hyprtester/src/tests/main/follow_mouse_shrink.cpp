@@ -9,9 +9,9 @@
 
 static bool isActiveWindow(const std::string& class_, char fullscreen = '0', bool log = true) {
     std::string activeWin     = getFromSocket("/activewindow");
-    auto        winClass      = Tests::getWindowAttribute(activeWin, "class:");
-    auto        winFullscreen = Tests::getWindowAttribute(activeWin, "fullscreen:").back();
-    if (winClass.substr(strlen("class: ")) == class_ && winFullscreen == fullscreen)
+    auto        winClass      = Tests::getAttribute(activeWin, "class");
+    auto        winFullscreen = Tests::getAttribute(activeWin, "fullscreen").back();
+    if (winClass == class_ && winFullscreen == fullscreen)
         return true;
     else {
         if (log)

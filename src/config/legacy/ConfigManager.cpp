@@ -555,6 +555,7 @@ CConfigManager::CConfigManager() {
     m_config->addSpecialConfigValue("device", "keybinds", Hyprlang::INT{1});                 // enable/disable keybinds
     m_config->addSpecialConfigValue("device", "share_states", Hyprlang::INT{0});             // only for virtualkeyboards
     m_config->addSpecialConfigValue("device", "release_pressed_on_close", Hyprlang::INT{0}); // only for virtualkeyboards
+    m_config->addSpecialConfigValue("device", "tags", STRVAL_EMPTY);                         // only for keyboards and mice
 
     m_config->addSpecialCategory("monitorv2", {.key = "output"});
     m_config->addSpecialConfigValue("monitorv2", "disabled", Hyprlang::INT{0});
@@ -1155,6 +1156,15 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
 }
 
 SConfigOptionReply CConfigManager::getConfigValue(const std::string& val) {
+    if (val.starts_with("plugin:")) {
+        const auto VAL = m_config->getSpecialConfigValuePtr("plugin", val.substr(7).c_str(), nullptr);
+
+        if (!VAL)
+            return {};
+
+        return {.dataptr = VAL->getDataStaticPtr(), .type = &VAL->getValue().type(), .setByUser = VAL->m_bSetByUser};
+    }
+
     const auto VAL = m_config->getConfigValuePtr(val.c_str());
     if (!VAL)
         return {};
@@ -1478,6 +1488,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     bool       repeat          = false;
     bool       mouse           = false;
     bool       nonConsuming    = false;
+    bool       autoConsuming   = false;
     bool       transparent     = false;
     bool       ignoreMods      = false;
     bool       multiKey        = false;
@@ -1497,6 +1508,7 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             case 'e': repeat = true; break;
             case 'm': mouse = true; break;
             case 'n': nonConsuming = true; break;
+            case 'a': autoConsuming = true; break;
             case 't': transparent = true; break;
             case 'i': ignoreMods = true; break;
             case 's': multiKey = true; break;
@@ -1536,15 +1548,15 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
     else if ((ARGS.size() > sc<size_t>(4) + DESCR_OFFSET + DEVICE_OFFSET && !mouse) || (ARGS.size() > sc<size_t>(3) + DESCR_OFFSET + DEVICE_OFFSET && mouse))
         return "bind: too many args";
 
-    std::vector<xkb_keysym_t> KEYSYMS;
-    std::vector<xkb_keysym_t> MODS;
+    std::vector<KeybindKey> KEYSYMS;
+    std::vector<KeybindKey> MODS;
 
     if (multiKey) {
         for (const auto& splitKey : CVarList(ARGS[1], 8, '&')) {
-            KEYSYMS.emplace_back(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+            KEYSYMS.emplace_back(xkb_keysym_from_name(splitKey.c_str(), XKB_KEYSYM_CASE_INSENSITIVE), 0);
         }
         for (const auto& splitMod : CVarList(ARGS[0], 8, '&')) {
-            MODS.emplace_back(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE));
+            MODS.emplace_back(xkb_keysym_from_name(splitMod.c_str(), XKB_KEYSYM_CASE_INSENSITIVE), 0);
         }
     }
     const auto MOD    = g_pKeybindManager->stringToModMask(ARGS[0]);
@@ -1596,10 +1608,33 @@ std::optional<std::string> CConfigManager::handleBind(const std::string& command
             return "Invalid catchall, catchall keybinds are only allowed in submaps.";
         }
 
-        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key, KEYSYMS,      parsedKey.keycode, parsedKey.catchAll, MOD,      MODS,           HANDLER,
-                                               COMMAND,       locked,       m_currentSubmap,   DESCRIPTION,        release,  repeat,         longPress,
-                                               mouse,         nonConsuming, transparent,       ignoreMods,         multiKey, hasDescription, dontInhibit,
-                                               click,         drag,         submapUniversal,   deviceInclusive,    devices});
+        g_pKeybindManager->addKeybind(SKeybind{parsedKey.key,
+                                               KEYSYMS,
+                                               parsedKey.keycode,
+                                               parsedKey.catchAll,
+                                               MOD,
+                                               MODS,
+                                               HANDLER,
+                                               COMMAND,
+                                               locked,
+                                               m_currentSubmap,
+                                               DESCRIPTION,
+                                               release,
+                                               repeat,
+                                               longPress,
+                                               mouse,
+                                               nonConsuming,
+                                               autoConsuming,
+                                               transparent,
+                                               ignoreMods,
+                                               multiKey,
+                                               hasDescription,
+                                               dontInhibit,
+                                               click,
+                                               drag,
+                                               submapUniversal,
+                                               deviceInclusive,
+                                               devices});
     }
 
     return {};

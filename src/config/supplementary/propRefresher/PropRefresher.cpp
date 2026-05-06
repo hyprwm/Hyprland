@@ -22,7 +22,7 @@ UP<CPropRefresher>& Supplementary::refresher() {
 }
 
 void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
-    static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor.zoom_factor");
+    static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
 
     m_propsTripped |= prop;
 

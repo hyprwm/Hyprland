@@ -453,7 +453,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("misc:layers_hog_keyboard_focus", "If true, will make keyboard-interactive layers keep their focus on mouse move.", true),
         MS<Bool>("misc:animate_manual_resizes", "If true, will animate manual window resizes/moves", false),
         MS<Bool>("misc:animate_mouse_windowdragging", "If true, will animate windows being dragged by mouse.", false),
-        MS<Bool>("misc:disable_autoreload", "If true, the config will not reload automatically on save.", false),
+        MS<Bool>("misc:disable_autoreload", "If true, the config will not reload automatically on save.", false, {.refresh = Supplementary::REFRESH_CONFIG_WATCHER}),
         MS<Bool>("misc:enable_swallow", "Enable window swallowing", false),
         MS<String>("misc:swallow_regex", "The class regex to be used for windows that should be swallowed.", STRVAL_EMPTY),
         MS<String>("misc:swallow_exception_regex", "The title regex to be used for windows that should not be swallowed.", STRVAL_EMPTY),

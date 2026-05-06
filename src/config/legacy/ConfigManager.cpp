@@ -959,8 +959,6 @@ Hyprlang::CParseResult CConfigManager::reloadRules() {
 }
 
 void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
-    Config::watcher()->update();
-
     for (auto const& w : g_pCompositor->m_windows) {
         w->uncacheWindowDecos();
     }

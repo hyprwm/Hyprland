@@ -10,6 +10,7 @@
 #include "../../../desktop/rule/Engine.hpp"
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
+#include "../../shared/inotify/ConfigWatcher.hpp"
 
 using namespace Config;
 using namespace Config::Supplementary;
@@ -91,6 +92,9 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                         m->m_activeWorkspace->m_space->recalculate();
                 }
             }
+
+            if (m_propsTripped & REFRESH_CONFIG_WATCHER)
+                Config::watcher()->update();
 
             m_scheduled    = false;
             m_propsTripped = 0;

@@ -1,5 +1,7 @@
 #include "LuaConfigValue.hpp"
 
+#include "../../../macros.hpp"
+
 using namespace Config;
 using namespace Config::Lua;
 
@@ -17,4 +19,9 @@ void ILuaConfigValue::setRefreshBits(Supplementary::PropRefreshBits bits) {
 
 Supplementary::PropRefreshBits ILuaConfigValue::refreshBits() const {
     return m_refreshBits;
+}
+
+Config::INTEGER ILuaConfigValue::asInt() {
+    RASSERT(false, "Lua config value cannot be read as int");
+    return 0;
 }

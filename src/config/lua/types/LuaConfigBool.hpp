@@ -14,6 +14,7 @@ namespace Config::Lua {
         virtual std::string           toString();
         virtual void                  push(lua_State* s);
         virtual void                  reset();
+        virtual Config::INTEGER       asInt();
 
         const Config::BOOL&           parsed();
 

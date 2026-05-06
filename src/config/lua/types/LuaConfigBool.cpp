@@ -43,6 +43,10 @@ void CLuaConfigBool::push(lua_State* s) {
     lua_pushboolean(s, m_data);
 }
 
+Config::INTEGER CLuaConfigBool::asInt() {
+    return m_data ? 1 : 0;
+}
+
 const Config::BOOL& CLuaConfigBool::parsed() {
     return m_data;
 }

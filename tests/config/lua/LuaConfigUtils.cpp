@@ -103,3 +103,13 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     ASSERT_NE(out.get(), nullptr);
     EXPECT_EQ(out->refreshBits(), REFRESH);
 }
+
+TEST(ConfigLuaUtils, asIntReadsBoolAndIntValues) {
+    CLuaConfigBool boolFalse(false);
+    CLuaConfigBool boolTrue(true);
+    CLuaConfigInt  intValue(2);
+
+    EXPECT_EQ(boolFalse.asInt(), 0);
+    EXPECT_EQ(boolTrue.asInt(), 1);
+    EXPECT_EQ(intValue.asInt(), 2);
+}

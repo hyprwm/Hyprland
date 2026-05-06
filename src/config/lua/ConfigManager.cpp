@@ -712,9 +712,9 @@ ILuaConfigValue* CConfigManager::findDeviceValue(const std::string& dev, const s
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
     if (auto* v = findDeviceValue(normalizeDeviceName(dev), luaConfigValueName(field)); v && v->setByUser())
-        return (int)*sc<const Config::INTEGER*>(v->data());
+        return v->asInt();
     if (!fallback.empty() && m_configValues.contains(fallback))
-        return (int)*sc<const Config::INTEGER*>(m_configValues.at(fallback)->data());
+        return m_configValues.at(fallback)->asInt();
     return 0;
 }
 

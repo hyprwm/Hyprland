@@ -79,6 +79,10 @@ void CLuaConfigInt::push(lua_State* s) {
     lua_pushinteger(s, m_data);
 }
 
+Config::INTEGER CLuaConfigInt::asInt() {
+    return m_data;
+}
+
 const Config::INTEGER& CLuaConfigInt::parsed() {
     return m_data;
 }

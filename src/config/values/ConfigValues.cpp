@@ -653,6 +653,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("master:drop_at_cursor", "when enabled, dragging and dropping windows will put them at the cursor position.", true),
         MS<Bool>("master:always_keep_position", "whether to keep the master window in its configured position when there are no slave windows", false,
                  {.refresh = Supplementary::REFRESH_LAYOUTS}),
+        MS<Bool>("master:focus_master_on_close", "when enabled, closing a window focuses the master window", false),
 
         /*
          * scrolling:

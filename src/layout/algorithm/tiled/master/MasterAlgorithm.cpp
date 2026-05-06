@@ -1247,7 +1247,11 @@ void CMasterAlgorithm::calculateWorkspace() {
 }
 
 SP<ITarget> CMasterAlgorithm::getNextCandidate(SP<ITarget> old) {
-    const auto MIDDLE = old->position().middle();
+    const auto FOCUS_MASTER = CConfigValue<Config::BOOL>("master:focus_master_on_close");
+    const auto MIDDLE       = old->position().middle();
+
+    if (const auto NODE = getMasterNode(); *FOCUS_MASTER && NODE)
+        return NODE->pTarget.lock();
 
     if (const auto NODE = getClosestNode(MIDDLE); NODE)
         return NODE->pTarget.lock();

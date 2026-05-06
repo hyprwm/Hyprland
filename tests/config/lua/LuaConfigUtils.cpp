@@ -104,12 +104,21 @@ TEST(ConfigLuaUtils, fromGenericValueCopiesRefreshBits) {
     EXPECT_EQ(out->refreshBits(), REFRESH);
 }
 
-TEST(ConfigLuaUtils, asIntReadsBoolAndIntValues) {
-    CLuaConfigBool boolFalse(false);
-    CLuaConfigBool boolTrue(true);
-    CLuaConfigInt  intValue(2);
+TEST(ConfigLuaUtils, typedAccessorsReadStoredValues) {
+    CLuaConfigBool   boolFalse(false);
+    CLuaConfigBool   boolTrue(true);
+    CLuaConfigInt    intValue(2);
+    CLuaConfigFloat  floatValue(1.25F);
+    CLuaConfigVec2   vecValue({3, 4});
+    CLuaConfigString stringValue("value");
 
     EXPECT_EQ(boolFalse.asInt(), 0);
     EXPECT_EQ(boolTrue.asInt(), 1);
     EXPECT_EQ(intValue.asInt(), 2);
+    EXPECT_FLOAT_EQ(floatValue.asFloat(), 1.25F);
+
+    const auto vec = vecValue.asVec2();
+    EXPECT_EQ(vec.x, 3);
+    EXPECT_EQ(vec.y, 4);
+    EXPECT_EQ(stringValue.asString(), "value");
 }

@@ -91,6 +91,10 @@ void CLuaConfigVec2::push(lua_State* s) {
     lua_setfield(s, -2, "y");
 }
 
+Config::VEC2 CLuaConfigVec2::asVec2() {
+    return m_data;
+}
+
 const Config::VEC2& CLuaConfigVec2::parsed() {
     return m_data;
 }

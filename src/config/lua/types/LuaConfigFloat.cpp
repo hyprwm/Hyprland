@@ -71,6 +71,10 @@ void CLuaConfigFloat::push(lua_State* s) {
     lua_pushnumber(s, m_data);
 }
 
+Config::FLOAT CLuaConfigFloat::asFloat() {
+    return m_data;
+}
+
 const Config::FLOAT& CLuaConfigFloat::parsed() {
     return m_data;
 }

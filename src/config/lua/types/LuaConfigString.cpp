@@ -47,6 +47,10 @@ void CLuaConfigString::push(lua_State* s) {
         lua_pushstring(s, m_data.c_str());
 }
 
+Config::STRING CLuaConfigString::asString() {
+    return m_data;
+}
+
 const Config::STRING& CLuaConfigString::parsed() {
     return m_data;
 }

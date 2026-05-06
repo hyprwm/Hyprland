@@ -25,3 +25,18 @@ Config::INTEGER ILuaConfigValue::asInt() {
     RASSERT(false, "Lua config value cannot be read as int");
     return 0;
 }
+
+Config::FLOAT ILuaConfigValue::asFloat() {
+    RASSERT(false, "Lua config value cannot be read as float");
+    return 0.F;
+}
+
+Config::VEC2 ILuaConfigValue::asVec2() {
+    RASSERT(false, "Lua config value cannot be read as vec2");
+    return {};
+}
+
+Config::STRING ILuaConfigValue::asString() {
+    RASSERT(false, "Lua config value cannot be read as string");
+    return {};
+}

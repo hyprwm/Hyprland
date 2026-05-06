@@ -721,9 +721,9 @@ int CConfigManager::getDeviceInt(const std::string& dev, const std::string& fiel
 float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& field, const std::string& fb) {
     std::string fallback = luaConfigValueName(fb);
     if (auto* v = findDeviceValue(normalizeDeviceName(dev), luaConfigValueName(field)); v && v->setByUser())
-        return *sc<const Config::FLOAT*>(v->data());
+        return v->asFloat();
     if (!fallback.empty() && m_configValues.contains(fallback))
-        return *sc<const Config::FLOAT*>(m_configValues.at(fallback)->data());
+        return m_configValues.at(fallback)->asFloat();
     return 0.F;
 }
 
@@ -731,9 +731,9 @@ Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string&
     std::string fallback = luaConfigValueName(fb);
     auto        toVec    = [](const Config::VEC2& v) -> Vector2D { return {v.x, v.y}; };
     if (auto* v = findDeviceValue(normalizeDeviceName(dev), luaConfigValueName(field)); v && v->setByUser())
-        return toVec(*sc<const Config::VEC2*>(v->data()));
+        return toVec(v->asVec2());
     if (!fallback.empty() && m_configValues.contains(fallback))
-        return toVec(*sc<const Config::VEC2*>(m_configValues.at(fallback)->data()));
+        return toVec(m_configValues.at(fallback)->asVec2());
     return {0, 0};
 }
 
@@ -741,9 +741,9 @@ std::string CConfigManager::getDeviceString(const std::string& dev, const std::s
     std::string fallback = luaConfigValueName(fb);
     auto        clean    = [](const Config::STRING& s) -> std::string { return s == STRVAL_EMPTY ? "" : s; };
     if (auto* v = findDeviceValue(normalizeDeviceName(dev), luaConfigValueName(field)); v && v->setByUser())
-        return clean(*sc<const Config::STRING*>(v->data()));
+        return clean(v->asString());
     if (!fallback.empty() && m_configValues.contains(fallback))
-        return clean(*sc<const Config::STRING*>(m_configValues.at(fallback)->data()));
+        return clean(m_configValues.at(fallback)->asString());
     return "";
 }
 

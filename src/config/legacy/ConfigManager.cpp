@@ -1118,20 +1118,36 @@ bool CConfigManager::deviceConfigExplicitlySet(const std::string& dev, const std
 }
 
 int CConfigManager::getDeviceInt(const std::string& dev, const std::string& v, const std::string& fallback) {
-    return std::any_cast<Hyprlang::INT>(getConfigValueSafeDevice(dev, v, fallback)->getValue());
+    auto val = getConfigValueSafeDevice(dev, v, fallback);
+    if (!val)
+        return {};
+
+    return std::any_cast<Hyprlang::INT>(val->getValue());
 }
 
 float CConfigManager::getDeviceFloat(const std::string& dev, const std::string& v, const std::string& fallback) {
-    return std::any_cast<Hyprlang::FLOAT>(getConfigValueSafeDevice(dev, v, fallback)->getValue());
+    auto val = getConfigValueSafeDevice(dev, v, fallback);
+    if (!val)
+        return {};
+
+    return std::any_cast<Hyprlang::FLOAT>(val->getValue());
 }
 
 Vector2D CConfigManager::getDeviceVec(const std::string& dev, const std::string& v, const std::string& fallback) {
-    auto vec = std::any_cast<Hyprlang::VEC2>(getConfigValueSafeDevice(dev, v, fallback)->getValue());
+    auto val = getConfigValueSafeDevice(dev, v, fallback);
+    if (!val)
+        return {};
+
+    auto vec = std::any_cast<Hyprlang::VEC2>(val->getValue());
     return {vec.x, vec.y};
 }
 
 std::string CConfigManager::getDeviceString(const std::string& dev, const std::string& v, const std::string& fallback) {
-    auto VAL = std::string{std::any_cast<Hyprlang::STRING>(getConfigValueSafeDevice(dev, v, fallback)->getValue())};
+    auto val = getConfigValueSafeDevice(dev, v, fallback);
+    if (!val)
+        return "";
+
+    auto VAL = std::string{std::any_cast<Hyprlang::STRING>(val->getValue())};
 
     if (VAL == STRVAL_EMPTY)
         return "";

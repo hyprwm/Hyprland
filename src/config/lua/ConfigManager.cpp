@@ -488,16 +488,6 @@ void CConfigManager::postConfigReload() {
         w->uncacheWindowDecos();
     }
 
-    // Update the keyboard layout to the cfg'd one if this is not the first launch
-    if (!m_isFirstLaunch) {
-        g_pInputManager->setKeyboardLayout();
-        g_pInputManager->setPointerConfigs();
-        g_pInputManager->setTouchDeviceConfigs();
-        g_pInputManager->setTabletConfigs();
-
-        g_pHyprRenderer->m_reloadScreenShader = true;
-    }
-
     const bool emergencyModeTripped = !m_errors.empty() && g_pKeybindManager->m_keybinds.empty();
 
     if (emergencyModeTripped)
@@ -557,18 +547,6 @@ void CConfigManager::postConfigReload() {
         g_pCompositor->m_wantsXwayland = *PXWAYLAND;
 #endif
 
-    if (!m_isFirstLaunch && !g_pCompositor->m_unsafeState)
-        refreshGroupBarGradients();
-
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
-        if (w->inert())
-            continue;
-        w->updateWindows();
-        w->updateWindowData();
-    }
-
-    g_pCompositor->updateAllWindowsAnimatedDecorationValues();
-
     if (*PMANUALCRASH && !m_manualCrashInitiated) {
         m_manualCrashInitiated = true;
         Notification::overlay()->addNotification("Manual crash has been set up. Set debug.manual_crash back to 0 in order to crash the compositor.", CHyprColor(0), 5000,
@@ -582,28 +560,10 @@ void CConfigManager::postConfigReload() {
     if (disableStdout && m_isFirstLaunch)
         Log::logger->log(Log::DEBUG, "Disabling stdout logs! Check the log for further logs.");
 
-    for (auto const& m : g_pCompositor->m_monitors) {
-        // mark blur dirty
-        m->m_blurFBDirty = true;
-
-        g_pCompositor->scheduleFrameForMonitor(m);
-
-        // Force the compositor to fully re-render all monitors
-        m->m_forceFullFrames = 2;
-
-        // also force mirrors, as the aspect ratio could've changed
-        for (auto const& mirror : m->m_mirrors)
-            mirror->m_forceFullFrames = 3;
-    }
-
     handlePluginLoads();
 
     if (!m_isFirstLaunch)
-        g_pCompositor->ensurePersistentWorkspacesPresent();
-
-    Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
-
-    Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
+        Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
     if (g_pEventManager)

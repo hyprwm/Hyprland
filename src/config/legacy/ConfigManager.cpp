@@ -1013,9 +1013,6 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         g_pCompositor->m_wantsXwayland = PENABLEXWAYLAND;
 #endif
 
-    if (!m_isFirstLaunch && !g_pCompositor->m_unsafeState)
-        refreshGroupBarGradients();
-
     // Updates dynamic window and workspace rules
     for (auto const& w : g_pCompositor->getWorkspaces()) {
         if (w->inert())
@@ -1058,14 +1055,8 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     // update plugins
     handlePluginLoads();
 
-    // update persistent workspaces
     if (!m_isFirstLaunch)
-        g_pCompositor->ensurePersistentWorkspacesPresent();
-
-    // update layouts
-    Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
-
-    Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
+        Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
     if (g_pEventManager)

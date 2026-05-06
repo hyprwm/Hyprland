@@ -2,6 +2,8 @@
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include <algorithm>
+#include <vector>
+#include <thread>
 #include "tests.hpp"
 
 TEST_CASE(focusMasterPrevious) {
@@ -209,4 +211,35 @@ TEST_CASE(rollFocus) {
             roll("rollprev");
         }
     }
+}
+
+TEST_CASE(focusMasterClose) {
+    //Test behaviour of master:focus_master_on_close
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' }, master = { focus_master_on_close = true } })"));
+
+    std::vector<pid_t> pids;
+    for (auto const& win : {"slave1", "slave2", "slave3", "master"}) {
+        auto p = Tests::spawnKitty(win);
+        if (!p)
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        pids.push_back(p->pid());
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:slave1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.close({ window = 'class:slave1' })"));
+    while (Tests::processAlive(pids[0]))
+        std::this_thread::sleep_for(std::chrono::milliseconds(25l));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:slave2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.close({ window = 'class:slave2' })"));
+    while (Tests::processAlive(pids[1]))
+        std::this_thread::sleep_for(std::chrono::milliseconds(25l));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:slave3' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.close({ window = 'class:slave3' })"));
+    while (Tests::processAlive(pids[2]))
+        std::this_thread::sleep_for(std::chrono::milliseconds(25l));
+    ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: master");
 }

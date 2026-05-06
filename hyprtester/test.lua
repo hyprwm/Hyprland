@@ -293,3 +293,32 @@ hl.gesture({ fingers = 4, direction = "left", action = function() hl.dispatch(hl
 hl.gesture({ fingers = 2, direction = "pinch", action = "cursorZoom", zoom_level = "1", mode = "live" })
 
 hl.gesture({ fingers = 2, direction = "right", action = "float", disable_inhibit = true })
+
+hl.layout.register("columns", {
+    recalculate = function(ctx)
+        local n = #ctx.targets
+        if n == 0 then
+            return
+        end
+
+        for i, target in ipairs(ctx.targets) do
+            target:place(ctx:column(i, n))
+        end
+    end,
+})
+
+hl.layout.register("grid", {
+    recalculate = function(ctx)
+        local n = #ctx.targets
+        if n == 0 then
+            return
+        end
+
+        local cols = math.ceil(math.sqrt(n))
+
+        for i, target in ipairs(ctx.targets) do
+            target:place(ctx:grid_cell(i, cols))
+        end
+    end,
+})
+

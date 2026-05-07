@@ -589,7 +589,19 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
                                                           .maxCLL              = maxCLL,
                                                           .maxFALL             = maxFALL});
             break;
-        case NCMType::CM_HDR: m_imageDescription = DEFAULT_HDR_IMAGE_DESCRIPTION; break;
+        case NCMType::CM_HDR:
+            m_imageDescription = CImageDescription::from({.transferFunction    = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
+                                                          .primariesNameSet    = true,
+                                                          .primariesNamed      = NColorManagement::CM_PRIMARIES_BT2020,
+                                                          .primaries           = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_BT2020),
+                                                          .masteringPrimaries  = masteringPrimaries,
+                                                          .luminances          = {.min       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMinLuminance(),
+                                                                                  .max       = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFMaxLuminance(),
+                                                                                  .reference = DEFAULT_HDR_IMAGE_DESCRIPTION->value().getTFRefLuminance()},
+                                                          .masteringLuminances = masteringLuminances,
+                                                          .maxCLL              = maxCLL,
+                                                          .maxFALL             = maxFALL});
+            break;
         case NCMType::CM_HDR_EDID:
             m_imageDescription = CImageDescription::from(
                 {.transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_ST2084_PQ,
@@ -607,10 +619,10 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
             break;
         default: UNREACHABLE();
     }
-    if ((m_minLuminance >= 0 || m_maxLuminance >= 0 || m_maxAvgLuminance >= 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
+    if ((minLuminance() >= 0 || maxLuminance() > 0) && (cmType == NCMType::CM_HDR || cmType == NCMType::CM_HDR_EDID))
         m_imageDescription = m_imageDescription->with({
-            .min       = m_minLuminance >= 0 ? m_minLuminance : m_imageDescription->value().luminances.min, //
-            .max       = m_maxLuminance >= 0 ? m_maxLuminance : m_imageDescription->value().luminances.max, //
+            .min       = minLuminance() >= 0 ? minLuminance() : m_imageDescription->value().luminances.min, //
+            .max       = maxLuminance() > 0 ? maxLuminance() : m_imageDescription->value().luminances.max,  //
             .reference = m_imageDescription->value().luminances.reference                                   //
         });
 

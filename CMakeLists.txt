@@ -630,10 +630,6 @@ file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
 install(FILES ${INSTALLABLE_ASSETS}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
-# default config
-install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
-
 # default lua config
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.lua
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)

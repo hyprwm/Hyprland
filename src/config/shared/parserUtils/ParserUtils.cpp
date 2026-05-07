@@ -86,7 +86,7 @@ std::expected<int64_t, std::string> ParserUtils::parseColor(std::string_view val
 
             return (sc<uint64_t>(*a) << 24) | (*r << 16) | (*g << 8) | *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
-            const auto RGBA = parseHex(VALUEWITHOUTFUNC);
+            const auto RGBA = VALUEWITHOUTFUNC.starts_with("0x") ? parseHex(VALUEWITHOUTFUNC) : parseHex(std::string{"0x"} + VALUEWITHOUTFUNC);
 
             if (!RGBA)
                 return RGBA;
@@ -115,11 +115,16 @@ std::expected<int64_t, std::string> ParserUtils::parseColor(std::string_view val
 
             return 0xFF000000 | (*r << 16) | (*g << 8) | *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
-            auto r = parseHex(VALUEWITHOUTFUNC);
+            const auto r = VALUEWITHOUTFUNC.starts_with("0x") ? parseHex(VALUEWITHOUTFUNC) : parseHex(std::string{"0x"} + VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
         }
 
         return std::unexpected("rgb() expects length of 6 characters (3 bytes) or 3 comma separated values");
+    }
+
+    if (isNumber2(val)) {
+        if (const auto v = strToNumber<uint32_t>(val); v)
+            return *v;
     }
 
     return std::unexpected(std::format("cannot parse \"{}\" as a color", val));

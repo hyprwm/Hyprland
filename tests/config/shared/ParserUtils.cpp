@@ -38,6 +38,9 @@ TEST(ParserUtils, parseColor) {
     EXPECT_EQ(ParserUtils::parseColor("0xDEADBEEF"), 0xDEADBEEF);
     EXPECT_EQ(ParserUtils::parseColor("rgba(20, 21, 22, 0.5)"), 0x7F141516);
     EXPECT_EQ(ParserUtils::parseColor("rgb(20, 21, 22)"), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("rgb(141516)"), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("rgba(1415167f)"), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("4279506198"), 0xFF141516);
     EXPECT_EQ(ParserUtils::parseColor("#fed"), 0xFFFFEEDD);
     EXPECT_EQ(ParserUtils::parseColor("#FED"), 0xFFFFEEDD);
     EXPECT_EQ(ParserUtils::parseColor("#deffad"), 0xFFDEFFAD);
@@ -53,6 +56,7 @@ TEST(ParserUtils, parseColorBad) {
     EXPECT_FALSE(!!ParserUtils::parseColor("fucker"));
     EXPECT_FALSE(!!ParserUtils::parseColor("I sniff glue"));
     EXPECT_FALSE(!!ParserUtils::parseColor("0DEADBEEF"));
+    EXPECT_FALSE(!!ParserUtils::parseColor("6270000000"));
     EXPECT_FALSE(!!ParserUtils::parseColor("rgba(20, 21, 22)"));
     EXPECT_FALSE(!!ParserUtils::parseColor("rgb(20, 21, 22, 0.2)"));
     EXPECT_FALSE(!!ParserUtils::parseColor("#afed"));

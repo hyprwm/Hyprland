@@ -166,13 +166,14 @@ namespace Desktop::View {
         // for recovering relative cursor position
         Vector2D         m_relativeCursorCoordsOnLastWarp = Vector2D(-1, -1);
 
-        bool             m_firstMap        = false; // for layouts
-        bool             m_isFloating      = false;
-        SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-        std::string      m_title           = "";
-        std::string      m_class           = "";
-        std::string      m_initialTitle    = "";
-        std::string      m_initialClass    = "";
+        bool             m_firstMap                 = false; // for layouts
+        bool             m_isFloating               = false;
+        SFullscreenState m_fullscreenState          = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
+        bool             m_fullscreen_LayoutHandled = false; // if fullscreen was handled by the layout
+        std::string      m_title                    = "";
+        std::string      m_class                    = "";
+        std::string      m_initialTitle             = "";
+        std::string      m_initialClass             = "";
         PHLWORKSPACE     m_workspace;
         PHLMONITORREF    m_monitor, m_prevMonitor;
 

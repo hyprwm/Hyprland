@@ -40,7 +40,7 @@ void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
 
     m_originalMode = m_window->m_fullscreenState.internal;
 
-    g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? fsModeForMode(m_mode) : FSMODE_NONE);
+    g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? fsModeForMode(m_mode) : FSMODE_NONE, true);
 
     m_posTo  = m_window->m_realPosition->goal();
     m_sizeTo = m_window->m_realSize->goal();
@@ -78,7 +78,7 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
         g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F : 0.F, m_window.lock());
-        g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE, true);
         return;
     }
 

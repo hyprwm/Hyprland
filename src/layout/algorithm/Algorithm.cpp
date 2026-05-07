@@ -154,11 +154,16 @@ void CAlgorithm::moveTarget(const Vector2D& Δ, SP<ITarget> target) {
         m_floating->moveTarget(Δ, target);
 }
 
-eFullscreenRequestResult CAlgorithm::requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
+eFullscreenRequestResult CAlgorithm::requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode, bool layoutAware) {
     if (!target)
         return FULLSCREEN_REQUEST_DEFAULT;
 
     const SFullscreenRequest request = {.target = target, .currentEffectiveMode = currentEffectiveMode, .effectiveMode = effectiveMode};
+
+    // if the user wants non-layout-specific fullscreen behaviour
+    if (!layoutAware) {
+        return FULLSCREEN_REQUEST_DEFAULT;
+    }
     return target->floating() ? m_floating->requestFullscreen(request) : m_tiled->requestFullscreen(request);
 }
 

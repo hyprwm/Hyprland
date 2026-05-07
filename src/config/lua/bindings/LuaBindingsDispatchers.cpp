@@ -454,14 +454,15 @@ static int dsp_floatWindow(lua_State* L) {
 }
 
 static int dsp_fullscreenWindow(lua_State* L) {
-    return Internal::checkResult(L, CA::fullscreenWindow(sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
+    return Internal::checkResult(
+        L, CA::fullscreenWindow(sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1))), lua_toboolean(L, lua_upvalueindex(2)), Internal::windowFromUpval(L, 3)));
 }
 
 static int dsp_fullscreenWindowWithAction(lua_State* L) {
-    const auto mode      = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
-    bool layoutAware = lua_toboolean(L, lua_upvalueindex(2));
-    const int  actionRaw = (int)lua_tonumber(L, lua_upvalueindex(3));
-    auto       maybeW    = Internal::windowFromUpval(L, 4);
+    const auto mode        = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
+    bool       layoutAware = lua_toboolean(L, lua_upvalueindex(2));
+    const int  actionRaw   = (int)lua_tonumber(L, lua_upvalueindex(3));
+    auto       maybeW      = Internal::windowFromUpval(L, 4);
 
     if (actionRaw == 0) {
         return Internal::checkResult(L, CA::fullscreenWindow(mode, layoutAware, maybeW));
@@ -492,7 +493,7 @@ static int dsp_fullscreenState(lua_State* L) {
     const auto desiredInternal = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(1)));
     const auto desiredClient   = sc<eFullscreenMode>((int)lua_tonumber(L, lua_upvalueindex(2)));
     const int  actionRaw       = (int)lua_tonumber(L, lua_upvalueindex(3)); // 0: toggle, 1: set, 2: unset
-    bool layoutAware = lua_toboolean(L, lua_upvalueindex(4));
+    bool       layoutAware     = lua_toboolean(L, lua_upvalueindex(4));
     auto       maybeW          = Internal::windowFromUpval(L, 5);
 
     const auto target = maybeW.value_or(Desktop::focusState()->window());
@@ -503,7 +504,7 @@ static int dsp_fullscreenState(lua_State* L) {
     const bool atDesiredState = CURRENT.internal == desiredInternal && CURRENT.client == desiredClient;
 
     if (actionRaw == 0) {
-        return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal,  desiredClient, layoutAware, maybeW));
+        return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware, maybeW));
     }
 
     if (actionRaw == 1) {
@@ -514,7 +515,7 @@ static int dsp_fullscreenState(lua_State* L) {
 
     if (actionRaw == 2) {
         if (atDesiredState)
-            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware,maybeW));
+            return Internal::checkResult(L, CA::fullscreenWindow(desiredInternal, desiredClient, layoutAware, maybeW));
         return Internal::pushSuccessResult(L);
     }
 

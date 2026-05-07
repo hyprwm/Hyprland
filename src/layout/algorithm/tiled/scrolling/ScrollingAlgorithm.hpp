@@ -128,8 +128,8 @@ namespace Layout::Tiled {
         CBox                             usableArea() const;
         SP<SScrollingTargetData>         dataFor(SP<ITarget> t) const;
 
-        void                            inhibitScroll();
-        void                            uninhibitScroll();
+        void                             inhibitScroll();
+        void                             uninhibitScroll();
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,

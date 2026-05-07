@@ -776,6 +776,18 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
+
+    // TEST_CASE's own cleanup functions fail to kill all layers with this test. Manually do it
+
+    // kill all layers
+    NLog::log("{}Killing all layers", Colors::YELLOW);
+    Tests::killAllLayers();
+    ASSERT(Tests::layerCount(), 0);
+
+    // kill all windows
+    NLog::log("{}Killing all windows", Colors::YELLOW);
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMaximise) {

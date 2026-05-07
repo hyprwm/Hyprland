@@ -562,8 +562,7 @@ void CConfigManager::postConfigReload() {
 
     handlePluginLoads();
 
-    if (!m_isFirstLaunch)
-        Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
+    Config::Supplementary::refresher()->scheduleRefresh(Supplementary::REFRESH_ALL);
 
     Event::bus()->m_events.config.reloaded.emit();
     if (g_pEventManager)

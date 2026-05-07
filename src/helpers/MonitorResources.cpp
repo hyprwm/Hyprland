@@ -90,9 +90,11 @@ SP<Render::ITexture> CMonitorResources::getMirrorTexture() {
 }
 
 NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescription() {
-    if (!m_monitor)
-        return DEFAULT_SRGB_IMAGE_DESCRIPTION;
-    return m_monitor->workBufferImageDescription();
+    const auto TF = m_imageDescription->value().transferFunction;
+    if (TF == CM_TRANSFER_FUNCTION_GAMMA22 || TF == CM_TRANSFER_FUNCTION_SRGB)
+        return m_imageDescription;
+
+    return DEFAULT_SRGB_IMAGE_DESCRIPTION;
 }
 
 void CMonitorResources::enableMirror() {

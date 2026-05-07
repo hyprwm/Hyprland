@@ -459,7 +459,7 @@ local __HL_PermissionSpec = {}
 ---@class HL.NotificationOptions
 ---@field color? string
 ---@field timeout? number
----@field icon? integer
+---@field icon? integer|string
 ---@field font_size? number
 local __HL_NotificationOptions = {}
 

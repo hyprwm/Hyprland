@@ -2368,7 +2368,7 @@ void CWindow::unmapWindow() {
         PWORKSPACE->m_hasFullscreenWindow = false;
 
     if (m_group)
-        m_group->remove(m_self.lock(), Math::DIRECTION_DEFAULT, CGroup::REMOVE_FROM_GROUP_REASON_UNMAP_WINDOW);
+        m_group->remove(m_self.lock());
 
     g_layoutManager->removeTarget(m_target);
 

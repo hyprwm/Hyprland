@@ -174,6 +174,8 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode cu
         m_algorithm->recenter(t);
 
     recalculate(RECALCULATE_REASON_TOGGLE_FULLSCREEN);
+
+    return REQUEST_RESULT;
 }
 
 Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {

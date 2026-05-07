@@ -2566,9 +2566,21 @@ bool CMonitor::needsUnmodifiedCopy() {
 }
 
 bool CMonitor::useFP16() {
-    static const auto PFP16      = CConfigValue<Hyprlang::INT>("render:use_fp16");
-    bool              shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && m_imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_ST2084_PQ);
-    static bool       usedBefore = shouldUse;
+    static const auto PFP16 = CConfigValue<Hyprlang::INT>("render:use_fp16");
+
+    auto              isSRGB = [this] {
+        if (m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_SRGB && m_imageDescription->value().transferFunction != CM_TRANSFER_FUNCTION_GAMMA22)
+            return false;
+
+        if (m_imageDescription->value().primariesNamed != CM_PRIMARIES_SRGB)
+            return false;
+
+        return true;
+    };
+
+    // Auto: use FP16 if the monitor is not sRGB
+    bool        shouldUse  = *PFP16 == 1 || (*PFP16 == 2 && !isSRGB());
+    static bool usedBefore = shouldUse;
     if (usedBefore != shouldUse) {
         usedBefore    = shouldUse;
         m_blurFBDirty = true;
@@ -2590,7 +2602,7 @@ PImageDescription CMonitor::workBufferImageDescription() {
     const auto& cached = m_cachedInternalDescription->value();
 
     // HDR
-    if (isHDRLikeTF || value.windowsScRGB || *PFP16TF != 2) {
+    if (isHDRLikeTF || value.windowsScRGB || *PFP16TF != 0) {
         if (cached.transferFunction != LINEAR_IMAGE_DESCRIPTION->value().transferFunction || cached.luminances != value.luminances)
             m_cachedInternalDescription = LINEAR_IMAGE_DESCRIPTION->with(value.luminances);
         return m_cachedInternalDescription;

@@ -275,16 +275,6 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     } else {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
     }
-
-    // clean up
-
-    // revert the changes made to config
-    NLog::log("{}Restoring config state", Colors::YELLOW);
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
@@ -319,13 +309,6 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
     } else {
         NLog::log("{}Passed: {}Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", Colors::GREEN, Colors::RESET, posAx);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallback) {
@@ -383,13 +366,6 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
     else {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
@@ -450,13 +426,6 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     else {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
@@ -505,13 +474,6 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
@@ -562,13 +524,6 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
@@ -620,13 +575,6 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosSPECIALX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
@@ -683,13 +631,6 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
@@ -740,13 +681,6 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'b' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
@@ -796,13 +730,6 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     else {
         NLog ::log("{}Passed: {}window of class 'b' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourNewLayer) {
@@ -849,18 +776,6 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all layers
-    NLog::log("{}Killing all layers", Colors::YELLOW);
-    Tests::killAllLayers();
-    ASSERT(Tests::layerCount(), 0);
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    EXPECT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMaximise) {
@@ -908,13 +823,6 @@ TEST_CASE(testScrollingViewBehaviourMaximise) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourFullscreen) {
@@ -962,13 +870,6 @@ TEST_CASE(testScrollingViewBehaviourFullscreen) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
@@ -1009,13 +910,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
@@ -1054,13 +948,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
     else {
         NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
@@ -1117,13 +1004,6 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
     else {
         FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
@@ -1179,11 +1059,4 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     else {
         NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
     }
-
-    // clean up
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }

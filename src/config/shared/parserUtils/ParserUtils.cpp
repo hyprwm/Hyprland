@@ -3,6 +3,8 @@
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/Numeric.hpp>
 
+#include <format>
+
 #include "../../../helpers/memory/Memory.hpp"
 
 using namespace Config;

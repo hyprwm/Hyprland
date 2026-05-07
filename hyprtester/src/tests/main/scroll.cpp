@@ -1022,14 +1022,4 @@ TEST_CASE(testScrollInhibitor) {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
         return;
     }
-
-    // clean up
-
-    // disable scroll inhibitor
-    OK(getFromSocket("/dispatch hl.dsp.layout('inhibit_scroll 0')"));
-
-    // kill all windows
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
 }

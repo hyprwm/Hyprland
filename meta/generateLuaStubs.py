@@ -663,7 +663,7 @@ def generate_stub(root: Path) -> str:
             [
                 ("color", "string", True),
                 ("timeout", "number", True),
-                ("icon", "integer", True),
+                ("icon", "integer|string", True),
                 ("font_size", "number", True),
             ],
         )

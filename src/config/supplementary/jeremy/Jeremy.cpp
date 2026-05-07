@@ -16,13 +16,13 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
         lastSafeMode = g_pCompositor->m_safeMode;
 
         if (g_pCompositor->m_safeMode)
-            return SConfigStateReply{(std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string(), CONFIG_TYPE_SPECIAL};
+            return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string(), .type = CONFIG_TYPE_SPECIAL};
 
         if (!g_pCompositor->m_explicitConfigPath.empty())
-            return SConfigStateReply{g_pCompositor->m_explicitConfigPath, CONFIG_TYPE_EXPLICIT};
+            return SConfigStateReply{.path = g_pCompositor->m_explicitConfigPath, .type = CONFIG_TYPE_EXPLICIT};
 
         if (const auto CFG_ENV = getenv("HYPRLAND_CONFIG"); CFG_ENV)
-            return SConfigStateReply{CFG_ENV, CONFIG_TYPE_EXPLICIT};
+            return SConfigStateReply{.path = CFG_ENV, .type = CONFIG_TYPE_EXPLICIT};
 
         const auto LUA_PATHS  = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland", "lua");
         const auto CONF_PATHS = Hyprutils::Path::findConfig(ISDEBUG ? "hyprlandd" : "hyprland", "conf");

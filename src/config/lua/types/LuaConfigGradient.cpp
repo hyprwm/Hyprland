@@ -1,4 +1,5 @@
 #include "LuaConfigGradient.hpp"
+#include "../../shared/parserUtils/ParserUtils.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
 
 #include <numbers>
@@ -7,7 +8,7 @@ using namespace Config;
 using namespace Config::Lua;
 
 static std::expected<CHyprColor, std::string> parseColorString(const std::string& str) {
-    auto result = configStringToInt(str);
+    auto result = ParserUtils::parseColor(str);
     if (!result)
         return std::unexpected(std::format("invalid color \"{}\"", str));
     return CHyprColor(sc<uint64_t>(*result));

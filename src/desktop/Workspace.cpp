@@ -2,6 +2,7 @@
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "../Compositor.hpp"
+#include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
@@ -198,7 +199,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto SHOULDBESPECIAL = configStringToInt(prop);
+                const auto SHOULDBESPECIAL = Config::ParserUtils::parseInt(prop);
 
                 if (SHOULDBESPECIAL && sc<bool>(*SHOULDBESPECIAL) != m_isSpecialWorkspace)
                     return false;
@@ -233,7 +234,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 if (prop.starts_with("e:") && !m_name.ends_with(prop.substr(2)))
                     return false;
 
-                const auto WANTSNAMED = configStringToInt(prop);
+                const auto WANTSNAMED = Config::ParserUtils::parseInt(prop);
 
                 if (WANTSNAMED && *WANTSNAMED != (m_id <= -1337))
                     return false;

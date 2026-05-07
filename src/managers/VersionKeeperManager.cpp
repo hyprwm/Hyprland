@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <hyprutils/string/String.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/os/Process.hpp>
 
 using namespace Hyprutils::String;
@@ -62,13 +63,13 @@ CVersionKeeperManager::CVersionKeeperManager() {
 bool CVersionKeeperManager::isMajorVersionOlderThanRunning(const std::string& ver) {
     const CVarList        verStrings(ver, 0, '.', true);
 
-    const int             V1 = configStringToInt(verStrings[0]).value_or(0);
-    const int             V2 = configStringToInt(verStrings[1]).value_or(0);
+    const int             V1 = strToNumber<uint32_t>(verStrings[0]).value_or(0);
+    const int             V2 = strToNumber<uint32_t>(verStrings[1]).value_or(0);
 
     static const CVarList runningStrings(HYPRLAND_VERSION, 0, '.', true);
 
-    static const int      R1 = configStringToInt(runningStrings[0]).value_or(0);
-    static const int      R2 = configStringToInt(runningStrings[1]).value_or(0);
+    static const int      R1 = strToNumber<uint32_t>(runningStrings[0]).value_or(0);
+    static const int      R2 = strToNumber<uint32_t>(runningStrings[1]).value_or(0);
 
     if (R1 > V1)
         return true;

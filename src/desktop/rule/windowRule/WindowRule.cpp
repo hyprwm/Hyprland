@@ -6,6 +6,7 @@
 #include "../../../managers/TokenManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
+#include "../../../config/shared/parserUtils/ParserUtils.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -45,7 +46,7 @@ static std::expected<float, std::string> parseFloat(std::string_view effectName,
 }
 
 static std::expected<CHyprColor, std::string> parseBorderColorToken(const std::string& raw, const std::string& token) {
-    auto parsed = configStringToInt(token);
+    auto parsed = Config::ParserUtils::parseColor(token);
     if (!parsed)
         return std::unexpected(std::format(R"(border_color rule "{}" has invalid color "{}": {})", raw, token, parsed.error()));
 

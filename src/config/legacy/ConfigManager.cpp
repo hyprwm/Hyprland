@@ -14,6 +14,7 @@
 #include "../shared/workspace/WorkspaceRuleManager.hpp"
 #include "../shared/animation/AnimationTree.hpp"
 #include "../shared/monitor/Parser.hpp"
+#include "../shared/parserUtils/ParserUtils.hpp"
 #include "../supplementary/executor/Executor.hpp"
 #include "../supplementary/jeremy/Jeremy.hpp"
 #include "../../protocols/LayerShell.hpp"
@@ -131,7 +132,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         }
 
         try {
-            const auto COL = configStringToInt(std::string(var));
+            const auto COL = ParserUtils::parseColor(var);
             if (!COL)
                 throw std::runtime_error(std::format("failed to parse {} as a color", var));
             DATA->m_colors.emplace_back(COL.value());
@@ -1424,7 +1425,7 @@ std::optional<std::string> CConfigManager::handleAnimation(const std::string& co
         return "no such animation";
 
     // This helper casts strings like "1", "true", "off", "yes"... to int.
-    int64_t enabledInt = configStringToInt(ARGS[1]).value_or(0) == 1;
+    int64_t enabledInt = ParserUtils::parseInt(ARGS[1]).value_or(0) == 1;
 
     // Checking that the int is 1 or 0 because the helper can return integers out of range.
     if (enabledInt != 0 && enabledInt != 1)
@@ -1715,24 +1716,24 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
                 wsRule.m_borderSize = std::stoi(rule.substr(delim + 11));
             } catch (...) { return "Error parsing workspace rule bordersize: {}", rule.substr(delim + 11); }
         else if ((delim = rule.find("border:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 7)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 7)))
             wsRule.m_noBorder = !*X;
         } else if ((delim = rule.find("shadow:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 7)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 7)))
             wsRule.m_noShadow = !*X;
         } else if ((delim = rule.find("rounding:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 9)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 9)))
             wsRule.m_noRounding = !*X;
         } else if ((delim = rule.find("decorate:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 9)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 9)))
             wsRule.m_decorate = *X;
         } else if ((delim = rule.find("monitor:")) != std::string::npos)
             wsRule.m_monitor = rule.substr(delim + 8);
         else if ((delim = rule.find("default:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 8)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 8)))
             wsRule.m_isDefault = *X;
         } else if ((delim = rule.find("persistent:")) != std::string::npos) {
-            CHECK_OR_THROW(configStringToInt(rule.substr(delim + 11)))
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 11)))
             wsRule.m_isPersistent = *X;
         } else if ((delim = rule.find("defaultName:")) != std::string::npos)
             wsRule.m_defaultName = trim(rule.substr(delim + 12));

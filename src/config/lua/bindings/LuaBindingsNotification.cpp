@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include "../objects/LuaNotification.hpp"
+#include "../../shared/parserUtils/ParserUtils.hpp"
 
 #include "../../../helpers/MiscFunctions.hpp"
 #include "../../../notification/NotificationOverlay.hpp"
@@ -52,7 +53,7 @@ static std::optional<CHyprColor> parseColorArg(lua_State* L, int idx) {
         return CHyprColor(sc<uint64_t>(lua_tonumber(L, idx)));
 
     if (lua_isstring(L, idx)) {
-        auto parsed = configStringToInt(lua_tostring(L, idx));
+        auto parsed = ParserUtils::parseColor(lua_tostring(L, idx));
         if (!parsed)
             return std::nullopt;
 

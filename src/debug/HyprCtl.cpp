@@ -36,6 +36,7 @@ using namespace Hyprutils::OS;
 #include "../config/legacy/ConfigManager.hpp"
 #include "../config/lua/ConfigManager.hpp"
 #include "../config/ConfigValue.hpp"
+#include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/complex/ComplexDataTypes.hpp"
 #include "../config/shared/inotify/ConfigWatcher.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
@@ -1404,7 +1405,7 @@ static std::string dispatchSeterror(eHyprCtlOutputFormat format, std::string req
         return "ok";
     }
 
-    const CHyprColor COLOR = configStringToInt(vars[1]).value_or(0);
+    const CHyprColor COLOR = Config::ParserUtils::parseColor(vars[1]).value_or(0);
 
     for (size_t i = 2; i < vars.size(); ++i)
         errorMessage += vars[i] + ' ';
@@ -1871,7 +1872,7 @@ static std::string dispatchNotify(eHyprCtlOutputFormat format, std::string reque
         time = std::stoi(TIME);
     } catch (std::exception& e) { return "invalid arg 2"; }
 
-    const auto COLOR_RESULT = configStringToInt(vars[3]);
+    const auto COLOR_RESULT = Config::ParserUtils::parseColor(vars[3]);
     if (!COLOR_RESULT)
         return "invalid arg 3";
     CHyprColor color = *COLOR_RESULT;

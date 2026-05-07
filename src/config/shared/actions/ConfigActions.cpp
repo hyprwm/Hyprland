@@ -1,4 +1,5 @@
 #include "ConfigActions.hpp"
+#include "../parserUtils/ParserUtils.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/view/Window.hpp"
 #include "../../../desktop/view/Group.hpp"
@@ -726,15 +727,15 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
                     if (TOKEN.ends_with("deg"))
                         colorData.m_angle = std::stoi(std::string(TOKEN.substr(0, TOKEN.size() - 3))) * (PI / 180.0);
                     else
-                        configStringToInt(std::string(TOKEN)).and_then([&colorData](const auto& e) {
+                        ParserUtils::parseColor(std::string(TOKEN)).and_then([&colorData](const auto& e) {
                             colorData.m_colors.push_back(e);
-                            return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
+                            return std::invoke_result_t<decltype(ParserUtils::parseColor), const std::string&>(1);
                         });
                 }
             } else if (VAL != "-1")
-                configStringToInt(VAL).and_then([&colorData](const auto& e) {
+                ParserUtils::parseColor(VAL).and_then([&colorData](const auto& e) {
                     colorData.m_colors.push_back(e);
-                    return std::invoke_result_t<decltype(::configStringToInt), const std::string&>(1);
+                    return std::invoke_result_t<decltype(ParserUtils::parseColor), const std::string&>(1);
                 });
 
             colorData.updateColorsOk();
@@ -754,15 +755,15 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
                 Desktop::Types::SAlphaValue{std::stof(VAL), PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().overridden}, Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_override") {
             PWINDOW->m_ruleApplicator->alphaOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alpha().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alpha().valueOrDefault().alpha, sc<bool>(ParserUtils::parseInt(VAL).value_or(0))},
                 Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_inactive_override") {
             PWINDOW->m_ruleApplicator->alphaInactiveOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaInactive().valueOrDefault().alpha, sc<bool>(ParserUtils::parseInt(VAL).value_or(0))},
                 Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "opacity_fullscreen_override") {
             PWINDOW->m_ruleApplicator->alphaFullscreenOverride(Desktop::Types::COverridableVar(
-                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().alpha, sc<bool>(configStringToInt(VAL).value_or(0))},
+                Desktop::Types::SAlphaValue{PWINDOW->m_ruleApplicator->alphaFullscreen().valueOrDefault().alpha, sc<bool>(ParserUtils::parseInt(VAL).value_or(0))},
                 Desktop::Types::PRIORITY_SET_PROP));
         } else if (PROP == "allows_input")
             parsePropTrivial(PWINDOW->m_ruleApplicator->allowsInput(), VAL);

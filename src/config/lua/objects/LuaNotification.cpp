@@ -8,6 +8,9 @@
 #include <optional>
 #include <string_view>
 
+#include "../../shared/parserUtils/ParserUtils.hpp"
+
+using namespace Config;
 using namespace Config::Lua;
 
 static constexpr const char* MT = "HL.Notification";
@@ -23,7 +26,7 @@ namespace {
             return CHyprColor(sc<uint64_t>(lua_tonumber(L, idx)));
 
         if (lua_isstring(L, idx)) {
-            auto parsed = configStringToInt(lua_tostring(L, idx));
+            auto parsed = ParserUtils::parseColor(lua_tostring(L, idx));
             if (!parsed)
                 return std::nullopt;
 

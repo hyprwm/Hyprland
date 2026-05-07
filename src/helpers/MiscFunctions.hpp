@@ -29,8 +29,6 @@ std::optional<std::string>              cleanCmdForWorkspace(const std::string&,
 float                                   vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 std::string                             execAndGet(const char*);
 int64_t                                 getPPIDof(int64_t pid);
-std::expected<int64_t, std::string>     configStringToInt(const std::string&);
-Vector2D                                configStringToVector2D(const std::string&);
 std::optional<float>                    getPlusMinusKeywordResult(std::string in, float relative);
 double                                  normalizeAngleRad(double ang);
 std::vector<SCallstackFrameInfo>        getBacktrace();

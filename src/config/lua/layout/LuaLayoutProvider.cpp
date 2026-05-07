@@ -46,7 +46,7 @@ void CLuaTiledAlgorithm::resizeTarget(const Vector2D& Δ, SP<Layout::ITarget> ta
     recalculate();
 }
 
-void CLuaTiledAlgorithm::recalculate() {
+void CLuaTiledAlgorithm::recalculate(Layout::eRecalculateReason reason) {
     auto targets = liveTargets();
     if (targets.empty())
         return;

@@ -38,7 +38,7 @@ namespace Config::Lua::Layouts {
         virtual void                       movedTarget(SP<Layout::ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt);
         virtual void                       removeTarget(SP<Layout::ITarget> target);
         virtual void                       resizeTarget(const Vector2D& Δ, SP<Layout::ITarget> target, Layout::eRectCorner corner = Layout::CORNER_NONE);
-        virtual void                       recalculate();
+        virtual void                       recalculate(Layout::eRecalculateReason reason = Layout::RECALCULATE_REASON_UNKNOWN);
         virtual void                       swapTargets(SP<Layout::ITarget> a, SP<Layout::ITarget> b);
         virtual void                       moveTargetInDirection(SP<Layout::ITarget> t, Math::eDirection dir, bool silent);
         virtual Config::ErrorResult        layoutMsg(const std::string_view& sv);

@@ -4,6 +4,7 @@
 #include <hyprutils/string/Numeric.hpp>
 
 #include <format>
+#include <algorithm>
 
 #include "../../../helpers/memory/Memory.hpp"
 

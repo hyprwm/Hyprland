@@ -473,8 +473,8 @@ bool CWindowRuleApplicator::readStaticRules(bool preRead) {
 
     static_ = {};
 
-    std::vector<SP<CWindowRule>> execRules;
-    bool                         tagsWereChanged = false;
+    m_execRules.clear();
+    bool tagsWereChanged = false;
 
     for (const auto& r : ruleEngine()->rules()) {
         if (r->type() != RULE_TYPE_WINDOW)
@@ -486,7 +486,7 @@ bool CWindowRuleApplicator::readStaticRules(bool preRead) {
             continue;
 
         if (wr->isExecRule()) {
-            execRules.emplace_back(wr);
+            m_execRules.emplace_back(wr);
             continue;
         }
 
@@ -501,7 +501,7 @@ bool CWindowRuleApplicator::readStaticRules(bool preRead) {
     if (static_.content != NContentType::CONTENT_TYPE_NONE)
         propsToRecheck |= RULE_PROP_CONTENT;
 
-    for (const auto& wr : execRules) {
+    for (const auto& wr : m_execRules) {
         applyStaticRule(wr);
         applyDynamicRule(wr);
         if (!preRead)
@@ -523,6 +523,10 @@ void CWindowRuleApplicator::recheckStaticRules() {
         if (!wr->matches(m_window.lock(), true))
             continue;
 
+        applyStaticRule(wr);
+    }
+
+    for (const auto& wr : m_execRules) {
         applyStaticRule(wr);
     }
 }
@@ -547,6 +551,14 @@ void CWindowRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProper
             continue;
 
         const auto RES = applyDynamicRule(WR);
+        needsRelayout  = needsRelayout || RES.needsRelayout;
+    }
+
+    for (const auto& wr : m_execRules) {
+        if (!(wr->getPropertiesMask() & props) && !setsIntersect(wr->effectsSet(), effectsNeedingRecheck))
+            continue;
+
+        const auto RES = applyDynamicRule(wr);
         needsRelayout  = needsRelayout || RES.needsRelayout;
     }
 

@@ -143,6 +143,7 @@ namespace Desktop::Rule {
 
       private:
         PHLWINDOWREF                          m_window;
+        std::vector<SP<CWindowRule>>          m_execRules;
         std::underlying_type_t<eRuleProperty> propsToRecheck = RULE_PROP_NONE;
 
         struct SRuleResult {

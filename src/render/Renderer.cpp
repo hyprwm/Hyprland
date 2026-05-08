@@ -3039,7 +3039,7 @@ void IHyprRenderer::makeSnapshot(PHLWINDOW pWindow) {
     const auto PFRAMEBUFFER = ref->m_snapshotFB;
 
     PFRAMEBUFFER->alloc(PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y, DRM_FORMAT_ABGR8888);
-    PFRAMEBUFFER->setImageDescription(workBufferImageDescription());
+    PFRAMEBUFFER->setImageDescription(PMONITOR->workBufferImageDescription());
 
     beginFullFakeRender(PMONITOR, fakeDamage, PFRAMEBUFFER);
 

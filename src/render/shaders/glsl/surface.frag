@@ -71,7 +71,7 @@ void main() {
 #else
     pixColor =
 #endif
-        doColorManagement(pixColor, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
+        doColorManagement(pixColor, alpha, sourceTF, targetTF, convertMatrix, srcTFRange, dstTFRange
 #if USE_ICC
                           ,
                           iccLut3D, iccLutSize
@@ -103,7 +103,9 @@ void main() {
 #if USE_ROUNDING
     pixColor = rounding(pixColor, radius, roundingPower, topLeft, fullSize);
 #endif
+#if !USE_CM
     pixColor *= alpha;
+#endif
 #if USE_BLUR
 #if USE_DISCARD
     pixColor = mix(pixColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, pixColor.rgb, pixColor.a), 1.0),
@@ -122,7 +124,9 @@ void main() {
 #if USE_ROUNDING
     mirrorColor = rounding(mirrorColor, radius, roundingPower, topLeft, fullSize);
 #endif
-    mirrorColor = mirrorColor * alpha;
+#if !USE_CM
+    mirrorColor *= alpha;
+#endif
 #if USE_BLUR
 #if USE_DISCARD
     mirrorColor = mix(mirrorColor, vec4(mix(texture(blurredBG, v_texcoord * uvSize + uvOffset).rgb, mirrorColor.rgb, mirrorColor.a), 1.0),

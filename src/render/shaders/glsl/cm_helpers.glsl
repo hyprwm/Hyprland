@@ -209,7 +209,7 @@ vec4[2]
 #else
 vec4
 #endif
-    doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+    doColorManagement(vec4 pixColor, float additionalAlpha, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
                       ,
                       highp sampler3D iccLut3D, float iccLutSize
@@ -232,12 +232,12 @@ vec4
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);
-    pixColor.rgb *= pixColor.a;
+    pixColor.rgb *= pixColor.a * additionalAlpha;
 #else
     pixColor.rgb = convertMatrix * pixColor.rgb;
     if (srcTF != CM_TRANSFER_FUNCTION_LINEAR)
         pixColor = toNit(pixColor, srcTFRange);
-    pixColor.rgb *= pixColor.a;
+    pixColor.rgb *= pixColor.a * additionalAlpha;
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);
 #endif
@@ -253,9 +253,12 @@ vec4
 #endif
 #endif
 
+    pixColor.a *= additionalAlpha;
+
 #if USE_MIRROR
     vec4[2] pixColors;
     pixColors[0] = pixColor;
+    mirrorColor.a *= additionalAlpha;
     pixColors[1] = mirrorColor;
     return pixColors;
 #else

@@ -3397,3 +3397,16 @@ SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const 
     cairo_destroy(CAIRO);
     return tex;
 }
+
+using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
+static std::map<ColorConversionKey, CHyprColor> colorConversionCache;
+
+CHyprColor                                      IHyprRenderer::getConvertedColor(const CHyprColor& color) {
+    const auto               targetId = m_renderData.currentFB->imageDescription();
+    const ColorConversionKey key      = {color.r, color.g, color.b, color.a, targetId};
+    if (colorConversionCache.contains(key))
+        return colorConversionCache[key];
+    const auto converted      = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, workBufferImageDescription());
+    colorConversionCache[key] = converted;
+    return converted;
+}

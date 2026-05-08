@@ -2,6 +2,7 @@
 #include "Renderer.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../desktop/view/Window.hpp"
+#include "render/pass/ClearPassElement.hpp"
 #include <hyprutils/memory/SharedPtr.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
@@ -14,7 +15,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
 
     switch (element->type()) {
         case EK_BORDER: draw(dynamicPointerCast<CBorderPassElement>(element), damage); break;
-        case EK_CLEAR: draw(dynamicPointerCast<CClearPassElement>(element), damage); break;
+        case EK_CLEAR: drawClear(dynamicPointerCast<CClearPassElement>(element), damage); break;
         case EK_FRAMEBUFFER: draw(dynamicPointerCast<CFramebufferElement>(element), damage); break;
         case EK_PRE_BLUR: drawPreBlur(dynamicPointerCast<CPreBlurElement>(element), damage); break;
         case EK_RECT: drawRect(dynamicPointerCast<CRectPassElement>(element), damage); break;
@@ -207,6 +208,11 @@ void IElementRenderer::drawPreBlur(WP<CPreBlurElement> element, const CRegion& d
     m_renderData.pMonitor->m_blurFBShouldRender = false;
 
     m_renderData.renderModif = SAVEDRENDERMODIF;
+}
+
+void IElementRenderer::drawClear(WP<CClearPassElement> element, const CRegion& damage) {
+    element->m_data.color = g_pHyprRenderer->getConvertedColor(element->m_data.color); // FIXME create element copy?
+    draw(element, damage);
 }
 
 void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegion& damage) {

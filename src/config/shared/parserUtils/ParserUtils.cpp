@@ -13,7 +13,7 @@ using namespace Config::ParserUtils;
 using namespace Hyprutils::String;
 
 static std::expected<uint64_t, std::string> parseHex(std::string_view value) {
-    auto res = strToNumber<uint64_t>(value);
+    auto res = value.starts_with("0x") ? strToNumber<uint64_t>(value) : strToNumber<uint64_t>(std::string{"0x"} + value);
     if (!res)
         return std::unexpected(std::format("invalid hex \"{}\"", value));
     return *res;
@@ -36,7 +36,7 @@ std::expected<int64_t, std::string> ParserUtils::parseColor(std::string_view val
             if (!r || !g || !b)
                 return std::unexpected(std::format("couldn't parse \"{}\" as a color (bad hex)", val));
 
-            return 0xFF000000 | ((*r * 0xF) << 16) | ((*g * 0xF) << 8) | (*b * 0xF);
+            return 0xFF000000 | ((*r | (*r << 4)) << 16) | ((*g | (*g << 4)) << 8) | (*b | (*b << 4));
         }
 
         if (val.length() == 6) {
@@ -84,9 +84,9 @@ std::expected<int64_t, std::string> ParserUtils::parseColor(std::string_view val
             if (!r || !g || !b || !a)
                 return std::unexpected(std::format("failed parsing \"{}\" as a color", val));
 
-            return (sc<uint64_t>(*a) << 24) | (*r << 16) | (*g << 8) | *b;
+            return (sc<uint64_t>(std::floor(*a * 255.F)) << 24) | (*r << 16) | (*g << 8) | *b;
         } else if (VALUEWITHOUTFUNC.length() == 8) {
-            const auto RGBA = VALUEWITHOUTFUNC.starts_with("0x") ? parseHex(VALUEWITHOUTFUNC) : parseHex(std::string{"0x"} + VALUEWITHOUTFUNC);
+            const auto RGBA = parseHex(VALUEWITHOUTFUNC);
 
             if (!RGBA)
                 return RGBA;
@@ -115,7 +115,7 @@ std::expected<int64_t, std::string> ParserUtils::parseColor(std::string_view val
 
             return 0xFF000000 | (*r << 16) | (*g << 8) | *b;
         } else if (VALUEWITHOUTFUNC.length() == 6) {
-            const auto r = VALUEWITHOUTFUNC.starts_with("0x") ? parseHex(VALUEWITHOUTFUNC) : parseHex(std::string{"0x"} + VALUEWITHOUTFUNC);
+            const auto r = parseHex(VALUEWITHOUTFUNC);
             return r ? *r + 0xFF000000 : r;
         }
 

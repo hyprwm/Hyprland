@@ -35,24 +35,25 @@ TEST(ParserUtils, parseIntInvalid) {
 }
 
 TEST(ParserUtils, parseColor) {
-    EXPECT_EQ(ParserUtils::parseColor("0xDEADBEEF"), 0xDEADBEEF);
-    EXPECT_EQ(ParserUtils::parseColor("rgba(20, 21, 22, 0.5)"), 0x7F141516);
-    EXPECT_EQ(ParserUtils::parseColor("rgb(20, 21, 22)"), 0xFF141516);
-    EXPECT_EQ(ParserUtils::parseColor("rgb(141516)"), 0xFF141516);
-    EXPECT_EQ(ParserUtils::parseColor("rgba(1415167f)"), 0xFF141516);
-    EXPECT_EQ(ParserUtils::parseColor("4279506198"), 0xFF141516);
-    EXPECT_EQ(ParserUtils::parseColor("#fed"), 0xFFFFEEDD);
-    EXPECT_EQ(ParserUtils::parseColor("#FED"), 0xFFFFEEDD);
-    EXPECT_EQ(ParserUtils::parseColor("#deffad"), 0xFFDEFFAD);
-    EXPECT_EQ(ParserUtils::parseColor("#DEFFaD"), 0xFFDEFFAD);
-    EXPECT_EQ(ParserUtils::parseColor("#DEFFaDAA"), 0xAADEFFAD);
-    EXPECT_EQ(ParserUtils::parseColor("#DEFFaDaa"), 0xAADEFFAD);
+    EXPECT_EQ(ParserUtils::parseColor("0xDEADBEEF").value_or(0), 0xDEADBEEF);
+    EXPECT_EQ(ParserUtils::parseColor("rgba(20, 21, 22, 0.5)").value_or(0), 0x7F141516);
+    EXPECT_EQ(ParserUtils::parseColor("rgb(20, 21, 22)").value_or(0), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("rgb(141516)").value_or(0), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("rgba(1415167f)").value_or(0), 0x7F141516);
+    EXPECT_EQ(ParserUtils::parseColor("4279506198").value_or(0), 0xFF141516);
+    EXPECT_EQ(ParserUtils::parseColor("1").value_or(0), 0x1);
+    EXPECT_EQ(ParserUtils::parseColor("#fed").value_or(0), 0xFFFFEEDD);
+    EXPECT_EQ(ParserUtils::parseColor("#FED").value_or(0), 0xFFFFEEDD);
+    EXPECT_EQ(ParserUtils::parseColor("#deffad").value_or(0), 0xFFDEFFAD);
+    EXPECT_EQ(ParserUtils::parseColor("#DEFFaD").value_or(0), 0xFFDEFFAD);
+    EXPECT_EQ(ParserUtils::parseColor("#DEFFaDAA").value_or(0), 0xAADEFFAD);
+    EXPECT_EQ(ParserUtils::parseColor("#DEFFaDaa").value_or(0), 0xAADEFFAD);
 }
 
 TEST(ParserUtils, parseColorBad) {
     EXPECT_FALSE(!!ParserUtils::parseColor("mak"));
     EXPECT_FALSE(!!ParserUtils::parseColor("true"));
-    EXPECT_FALSE(!!ParserUtils::parseColor("1"));
+    EXPECT_FALSE(!!ParserUtils::parseColor("on"));
     EXPECT_FALSE(!!ParserUtils::parseColor("fucker"));
     EXPECT_FALSE(!!ParserUtils::parseColor("I sniff glue"));
     EXPECT_FALSE(!!ParserUtils::parseColor("0DEADBEEF"));

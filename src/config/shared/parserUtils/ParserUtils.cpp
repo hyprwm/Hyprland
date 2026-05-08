@@ -5,6 +5,7 @@
 
 #include <format>
 #include <algorithm>
+#include <cmath>
 
 #include "../../../helpers/memory/Memory.hpp"
 

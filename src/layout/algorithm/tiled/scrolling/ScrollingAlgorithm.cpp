@@ -459,10 +459,15 @@ void SScrollingData::recalculate(bool forceInstant) {
         CBox       visual        = logical;
         const bool PRIMARY_HORIZ = controller->isPrimaryHorizontal();
 
-        const bool GAP_LEFT   = PRIMARY_HORIZ ? colIdx > 0 : targetIdx > 0;
-        const bool GAP_RIGHT  = PRIMARY_HORIZ ? colIdx + 1 < columns.size() : targetIdx + 1 < columns[colIdx]->targetDatas.size();
-        const bool GAP_TOP    = PRIMARY_HORIZ ? targetIdx > 0 : colIdx > 0;
-        const bool GAP_BOTTOM = PRIMARY_HORIZ ? targetIdx + 1 < columns[colIdx]->targetDatas.size() : colIdx + 1 < columns.size();
+        const bool COL_NOT_LEFT      = controller->isReversed() ? colIdx + 1 < columns.size() : colIdx > 0;
+        const bool COL_NOT_RIGHT     = controller->isReversed() ? colIdx > 0 : colIdx + 1 < columns.size();
+        const bool TARGET_NOT_TOP    = controller->isReversed() ? targetIdx + 1 < columns[colIdx]->targetDatas.size() : targetIdx > 0;
+        const bool TARGET_NOT_BOTTOM = controller->isReversed() ? targetIdx > 0 : targetIdx + 1 < columns[colIdx]->targetDatas.size();
+
+        const bool GAP_LEFT   = PRIMARY_HORIZ ? COL_NOT_LEFT : TARGET_NOT_TOP;
+        const bool GAP_RIGHT  = PRIMARY_HORIZ ? COL_NOT_RIGHT : TARGET_NOT_BOTTOM;
+        const bool GAP_TOP    = PRIMARY_HORIZ ? TARGET_NOT_TOP : COL_NOT_LEFT;
+        const bool GAP_BOTTOM = PRIMARY_HORIZ ? TARGET_NOT_BOTTOM : COL_NOT_RIGHT;
 
         const auto GAPOFFSETTOPLEFT     = Vector2D(sc<double>(GAP_LEFT ? GAPSIN.m_left : 0), sc<double>(GAP_TOP ? GAPSIN.m_top : 0));
         const auto GAPOFFSETBOTTOMRIGHT = Vector2D(sc<double>(GAP_RIGHT ? GAPSIN.m_right : 0), sc<double>(GAP_BOTTOM ? GAPSIN.m_bottom : 0));

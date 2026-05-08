@@ -613,13 +613,17 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
     m_configCallback.reset();
     m_focusCallback.reset();
 
-    if (m_hoverTimer)
+    if (m_hoverTimer) {
         m_hoverTimer->cancel();
+        if (g_pEventLoopManager)
+            g_pEventLoopManager->removeTimer(m_hoverTimer);
+        m_hoverTimer.reset();
+    }
 }
 
 void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Config::FLOAT>("scrolling:follow_min_visible");
-    static const auto PHOVERDELAY            = CConfigValue<Config::FLOAT>("scrolling:focus_edge_ms");
+    static const auto PHOVERDELAY            = CConfigValue<Config::INTEGER>("scrolling:focus_edge_ms");
 
     if (!target || target->space() != m_parent->space())
         return;
@@ -642,15 +646,17 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
 
         // if the amount of visible X is below minimum, reject
         if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F)) {
-            if (*PHOVERDELAY > 0.F) {
+            if (*PHOVERDELAY > 0) {
                 if (m_hoveredTarget.lock() != target) {
                     m_hoveredTarget = target;
                     if (m_hoverTimer)
                         m_hoverTimer->cancel();
 
                     m_hoverTimer = makeShared<CEventLoopTimer>(
-                        std::chrono::milliseconds((int)*PHOVERDELAY),
-                        [this, target, input](SP<CEventLoopTimer> self, void* data) {
+                        std::chrono::milliseconds(*PHOVERDELAY),
+                        [this, weakTarget = WP<ITarget>(target), input](SP<CEventLoopTimer> self, void* data) {
+                            auto target = weakTarget.lock();
+                            if (!target) return;
                             if (m_hoveredTarget.lock() == target) {
                                 m_hoverTimer.reset();
                                 focusOnInput(target, input);
@@ -669,8 +675,11 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     }
 
     m_hoveredTarget.reset();
-    if (m_hoverTimer)
+    if (m_hoverTimer) {
         m_hoverTimer->cancel();
+        g_pEventLoopManager->removeTimer(m_hoverTimer);
+        m_hoverTimer.reset();
+    }
 
     // if we moved via non-kb, and it's fully visible, ignore
     if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)

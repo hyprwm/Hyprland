@@ -210,12 +210,14 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     color.a *= a;
 
     if (*PSHADOWSHARP)
-        g_pHyprRenderer->draw(CRectPassElement::SRectData{
-            .box           = box,
-            .color         = color,
-            .round         = round,
-            .roundingPower = roundingPower,
-        });
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = box,
+                .color         = color,
+                .round         = round,
+                .roundingPower = roundingPower,
+            },
+            box);
     else
         g_pHyprRenderer->drawShadow(box, round, roundingPower, range, color, 1.F);
 }

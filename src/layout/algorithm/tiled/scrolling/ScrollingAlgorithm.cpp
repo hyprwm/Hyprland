@@ -13,6 +13,8 @@
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
+#include "../../../../managers/eventLoop/EventLoopTimer.hpp"
+#include "../../../../managers/eventLoop/EventLoopManager.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -610,6 +612,9 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
 
     m_configCallback.reset();
     m_focusCallback.reset();
+
+    if (m_hoverTimer)
+        m_hoverTimer->cancel();
 }
 
 void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
@@ -640,9 +645,21 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
             if (*PHOVERDELAY > 0.F) {
                 if (m_hoveredTarget.lock() != target) {
                     m_hoveredTarget = target;
-                    m_hoverTimer.reset();
+                    if (m_hoverTimer)
+                        m_hoverTimer->cancel();
+
+                    m_hoverTimer = makeShared<CEventLoopTimer>(
+                        std::chrono::milliseconds((int)*PHOVERDELAY),
+                        [this, target, input](SP<CEventLoopTimer> self, void* data) {
+                            if (m_hoveredTarget.lock() == target) {
+                                m_hoverTimer.reset();
+                                focusOnInput(target, input);
+                            }
+                        },
+                        nullptr);
+                    g_pEventLoopManager->addTimer(m_hoverTimer);
                     return;
-                } else if (m_hoverTimer.getMillis() < *PHOVERDELAY) {
+                } else if (m_hoverTimer && !m_hoverTimer->passed() && !m_hoverTimer->cancelled()) {
                     return;
                 }
             } else {
@@ -650,6 +667,10 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
             }
         }
     }
+
+    m_hoveredTarget.reset();
+    if (m_hoverTimer)
+        m_hoverTimer->cancel();
 
     // if we moved via non-kb, and it's fully visible, ignore
     if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB)

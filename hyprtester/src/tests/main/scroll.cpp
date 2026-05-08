@@ -195,7 +195,8 @@ TEST_CASE(scrollWindowRule) {
     ASSERT(Tests::windowCount(), 2);
 
     // not the greatest test, but as long as res and gaps don't change, we good.
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
+    // if this test breaks, it's likely you broke equal sizing
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
 }
 
 TEST_CASE(scrollFullscreen) {

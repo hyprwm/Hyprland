@@ -2247,8 +2247,12 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
 
     blend(true);
 
-    auto shader = useShader(getShaderVariant(SH_FRAG_SHADOW, globalFeatures()));
+    const auto TF      = m_renderData.currentFB->imageDescription()->value().transferFunction;
+    const bool needsCM = TF != CM_TRANSFER_FUNCTION_EXT_LINEAR;
+    auto       shader  = useShader(getShaderVariant(SH_FRAG_SHADOW, (needsCM ? SH_FEAT_CM : 0) | globalFeatures()));
 
+    if (needsCM)
+        shader->setUniformInt(SHADER_SOURCE_TF, TF);
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     const auto converted = g_pHyprRenderer->getConvertedColor(col.stripA());
     shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, col.a * a);

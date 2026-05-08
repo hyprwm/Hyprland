@@ -20,6 +20,10 @@ uniform float range;
 uniform float shadowPower;
 uniform float thick;
 
+#if USE_CM
+uniform int sourceTF; // eTransferFunction
+#endif
+
 #include "shadow.glsl"
 
 layout(location = 0) out vec4 fragColor;
@@ -33,7 +37,12 @@ void main() {
 #else
     fragColor =
 #endif
-    getShadow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, windowTopLeft, windowBottomRight, thick);
+        getShadow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, windowTopLeft, windowBottomRight, thick
+#if USE_CM
+                  ,
+                  sourceTF
+#endif
+        );
 #if USE_MIRROR
     fragColor   = pixColors[0];
     mirrorColor = pixColors[1];

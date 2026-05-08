@@ -5,7 +5,11 @@
 #ifndef SHADOW_GLSL
 #define SHADOW_GLSL
 
+#include "defines.h"
 #include "rounding.glsl"
+#if USE_CM
+#include "cm_helpers.glsl"
+#endif
 
 float pixAlphaRoundedDistance(float distanceToCorner, float radius, float range, float shadowPower) {
     if (distanceToCorner > radius) {
@@ -53,8 +57,13 @@ vec4[2]
 #else
 vec4
 #endif
-    getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower, vec2 bottomRight,
-              vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius) {
+    getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower,
+              vec2 bottomRight, vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius
+#if USE_CM
+              ,
+              int srcTF
+#endif
+    ) {
     float radius        = range + borderRadius;
     float originalAlpha = pixColor[3];
 
@@ -68,21 +77,21 @@ vec4
         if (pixCoord[1] < topLeft[1]) {
             // top left
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - topLeft, roundingPower), radius, range, shadowPower);
-            done = true;
+            done        = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom left
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(topLeft[0], bottomRight[1]), roundingPower), radius, range, shadowPower);
-            done = true;
+            done        = true;
         }
     } else if (pixCoord[0] > bottomRight[0]) {
         if (pixCoord[1] < topLeft[1]) {
             // top right
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - vec2(bottomRight[0], topLeft[1]), roundingPower), radius, range, shadowPower);
-            done = true;
+            done        = true;
         } else if (pixCoord[1] > bottomRight[1]) {
             // bottom right
             pixColor[3] = pixColor[3] * pixAlphaRoundedDistance(modifiedLength(pixCoord - bottomRight, roundingPower), radius, range, shadowPower);
-            done = true;
+            done        = true;
         }
     }
 
@@ -119,12 +128,18 @@ vec4
     }
 
     // premultiply
+#if USE_CM
+    pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
     pixColor.rgb *= pixColor[3];
+    pixColor.rgb = fromLinearRGB(pixColor.rgb, srcTF);
+#else
+    pixColor.rgb *= pixColor[3];
+#endif
 
 #if USE_MIRROR
     vec4[2] pixColors;
-    pixColors[0] = pixColor;
-    pixColors[1] = colorSRGB;
+    pixColors[0]   = pixColor;
+    pixColors[1]   = colorSRGB;
     pixColors[1].a = pixColor.a;
     pixColors[1].rgb *= pixColors[1].a;
     return pixColors;

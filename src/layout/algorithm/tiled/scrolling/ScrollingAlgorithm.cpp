@@ -614,6 +614,7 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
 
 void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Config::FLOAT>("scrolling:follow_min_visible");
+    static const auto PHOVERDELAY            = CConfigValue<Config::FLOAT>("scrolling:focus_edge_ms");
 
     if (!target || target->space() != m_parent->space())
         return;
@@ -635,8 +636,19 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
             std::abs(std::min(MON_BOX.y + MON_BOX.h, TARGET_POS.y + TARGET_POS.h) - (std::max(MON_BOX.y, TARGET_POS.y)));
 
         // if the amount of visible X is below minimum, reject
-        if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F))
-            return;
+        if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F)) {
+            if (*PHOVERDELAY > 0.F) {
+                if (m_hoveredTarget.lock() != target) {
+                    m_hoveredTarget = target;
+                    m_hoverTimer.reset();
+                    return;
+                } else if (m_hoverTimer.getMillis() < *PHOVERDELAY) {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
     }
 
     // if we moved via non-kb, and it's fully visible, ignore

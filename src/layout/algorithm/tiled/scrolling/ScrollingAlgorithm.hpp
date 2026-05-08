@@ -4,6 +4,7 @@
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
+#include "../../../../helpers/time/Timer.hpp"
 
 #include <optional>
 #include <vector>
@@ -175,6 +176,9 @@ namespace Layout::Tiled {
 
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
         bool                                m_lastFullscreenCover = false;
+
+        CTimer                              m_hoverTimer;
+        WP<ITarget>                         m_hoveredTarget;
 
         friend struct SScrollingData;
     };

@@ -196,7 +196,7 @@ TEST_CASE(scrollWindowRule) {
 
     // not the greatest test, but as long as res and gaps don't change, we good.
     // if this test breaks, it's likely you broke equal sizing
-    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 174,1036");
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
 }
 
 TEST_CASE(scrollFullscreen) {

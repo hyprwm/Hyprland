@@ -1124,3 +1124,52 @@ TEST_CASE(cycle_nextFloating) {
 
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "class: b");
 }
+
+TEST_CASE(discussion14233) {
+    // toggling fullscreen should not mess up workspace state on a 2 window workspace
+    // with smart gaps
+
+    OK(getFromSocket(R"#(/eval hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
+hl.workspace_rule({ workspace = "f[1]",   gaps_out = 0, gaps_in = 0 })
+hl.window_rule({
+    name  = "no-gaps-wtv1",
+    match = { float = false, workspace = "w[tv1]" },
+    border_size = 0,
+    rounding    = 0,
+})
+hl.window_rule({
+    name  = "no-gaps-f1",
+    match = { float = false, workspace = "f[1]" },
+    border_size = 0,
+    rounding    = 0,
+})
+)#"));
+
+    ASSERT(!!Tests::spawnKitty(), true);
+
+    // just make sure smart gaps work
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+        ASSERT_CONTAINS(str, "at: 0,0");
+    }
+
+    ASSERT(!!Tests::spawnKitty(), true);
+
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(str, "size: 931,1036", 2);
+        ASSERT_CONTAINS(str, "at: 22,22");
+        ASSERT_CONTAINS(str, "at: 967,22");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
+
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_COUNT_STRING(str, "size: 931,1036", 2);
+        ASSERT_CONTAINS(str, "at: 22,22");
+        ASSERT_CONTAINS(str, "at: 967,22");
+    }
+}

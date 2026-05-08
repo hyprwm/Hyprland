@@ -754,3 +754,43 @@ TEST_CASE(workspacesCombined) {
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
     ASSERT(Tests::windowCount(), 0);
 }
+
+TEST_CASE(workspacesFollowProperNoGaps) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = \"100\" })"));
+    OK(getFromSocket(R"#(/eval hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
+ hl.workspace_rule({ workspace = "f[1]",   gaps_out = 0, gaps_in = 0 })
+ hl.window_rule({
+     name  = "no-gaps-wtv1",
+     match = { float = false, workspace = "w[tv1]" },
+     border_size = 0,
+     rounding    = 0,
+ })
+ hl.window_rule({
+     name  = "no-gaps-f1",
+     match = { float = false, workspace = "f[1]" },
+     border_size = 0,
+     rounding    = 0,
+ })
+    )#"));
+
+    ASSERT(!!Tests::spawnKitty());
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+
+    ASSERT(!!Tests::spawnKitty());
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = \"101\" })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1920,1080");
+    }
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        ASSERT_CONTAINS(str, "workspace ID 101 (101)");
+    }
+}

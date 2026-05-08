@@ -773,14 +773,14 @@ TEST_CASE(workspacesFollowProperNoGaps) {
  })
     )#"));
 
-    ASSERT(!!Tests::spawnKitty());
+    ASSERT(!!Tests::spawnKitty(), true);
 
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "size: 1920,1080");
     }
 
-    ASSERT(!!Tests::spawnKitty());
+    ASSERT(!!Tests::spawnKitty(), true);
 
     OK(getFromSocket("/dispatch hl.dsp.window.move({ workspace = \"101\" })"));
 

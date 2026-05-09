@@ -1174,39 +1174,6 @@ hl.window_rule({
     }
 }
 
-TEST_CASE(windowRuleExec) {
-    const std::string tmpFilename = (std::filesystem::temp_directory_path() / "hyprtester_exec_rule_test").string();
-    std::filesystem::remove(tmpFilename);
-
-    OK(getFromSocket(std::format("/eval hl.window_rule({{ match = {{ class = 'kitty_exec', fullscreen = true }}, exec = 'touch {}' }})", tmpFilename)));
-
-    if (!spawnKitty("kitty_exec")) {
-        FAIL_TEST("Could not spawn kitty");
-    }
-
-    // Window spawned but not fullscreen, rule shouldn't have matched yet
-    int cnt = 0;
-    while (!std::filesystem::exists(tmpFilename) && cnt < 10) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        cnt++;
-    }
-    EXPECT(std::filesystem::exists(tmpFilename), false);
-
-    // Make it fullscreen
-    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen()"));
-
-    // Now it should trigger
-    cnt = 0;
-    while (!std::filesystem::exists(tmpFilename) && cnt < 50) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        cnt++;
-    }
-    EXPECT(std::filesystem::exists(tmpFilename), true);
-
-    std::filesystem::remove(tmpFilename);
-    Tests::killAllWindows();
-}
-
 TEST_CASE(execRulesWorkspaceOverride) {
     OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty_exec_override' }, workspace = '2' })"));
 

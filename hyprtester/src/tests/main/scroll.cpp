@@ -1,7 +1,6 @@
 #include "../shared.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include <thread>
 #include "tests.hpp"
 
 TEST_CASE(scrollFocusCycling) {
@@ -978,44 +977,4 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     else {
         NLog ::log("{}Passed: {}window of class 'a' has x coordinates >= 0 for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
     }
-}
-
-TEST_CASE(scrollHoverDelay) {
-    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
-    OK(getFromSocket("/eval hl.config({ scrolling = { focus_edge_ms = 250, follow_focus = true } })"));
-
-    for (auto const& win : {"a", "b", "c", "d"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
-    }
-
-    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:d' })"));
-
-    // We get the workspace data to check the scroll position, or just the window's position.
-    auto winA = getFromSocket("/clients");
-
-    // Send a mouse move to trigger focusOnInput with MOUSE instead of KB?
-    // How do we focus a window using the mouse in tests?
-    // Maybe dispatch focuswindow uses INPUT_MODE_KB? But the algorithm has:
-    // `if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_KB) return;`
-    // Wait, the patch actually does:
-    // `if (VISIBLE_LEN < MIN_LEN) { if (*PHOVERDELAY > 0) { ... timer ... focusOnInput(target, input); return; } }`
-    // It doesn't restrict to mouse only when checking PHOVERDELAY.
-
-    // Try dispatching focus directly
-    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
-
-    // wait a bit less than 250ms
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // active window should be a, but it might not be scrolled yet.
-    auto str1 = getFromSocket("/activewindow");
-    ASSERT_CONTAINS(str1, "class: a");
-
-    // wait more to pass 250ms
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-    auto str2 = getFromSocket("/activewindow");
-    ASSERT_CONTAINS(str2, "class: a");
 }

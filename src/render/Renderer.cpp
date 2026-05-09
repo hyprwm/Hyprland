@@ -3402,8 +3402,12 @@ using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
 static std::map<ColorConversionKey, CHyprColor> colorConversionCache;
 
 CHyprColor                                      IHyprRenderer::getConvertedColor(const CHyprColor& color) {
-    const auto               DESCR = m_renderData.currentFB->imageDescription();
-    const ColorConversionKey key   = {color.r, color.g, color.b, color.a, DESCR->id()};
+    const auto DESCR = m_renderData.currentFB ? m_renderData.currentFB->imageDescription() : workBufferImageDescription();
+    if (!DESCR) {
+        Log::logger->log(Log::ERR, "getConvertedColor: failed to get image description");
+        return color;
+    }
+    const ColorConversionKey key = {color.r, color.g, color.b, color.a, DESCR->id()};
     if (colorConversionCache.contains(key))
         return colorConversionCache[key];
     const auto converted      = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR);

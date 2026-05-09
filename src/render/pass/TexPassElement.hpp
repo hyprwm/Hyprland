@@ -43,6 +43,7 @@ class CTexPassElement : public IPassElement {
         PHLLSREF               currentLS;
 
         SP<Render::ITexture>   blurredBG;
+        PHLWINDOWREF           animatedWindow = nullptr;
     };
 
     CTexPassElement(const SRenderData& data);

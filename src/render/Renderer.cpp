@@ -529,10 +529,10 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     if (pWindow->isHidden() && !standalone)
         return;
 
-    if (!standalone && pWindow->effectiveAlpha() == 0.F && !pWindow->m_alpha.isBeingAnimated())
+    if (!standalone && pWindow->effectiveAlpha() == 0.F && !pWindow->m_alpha.isBeingAnimated() && !pWindow->m_shaderProgress->isBeingAnimated())
         return;
 
-    if (pWindow->m_fadingOut) {
+    if (pWindow->shouldRenderSnapshot()) {
         if (pMonitor == pWindow->m_monitor) // TODO: fix this
             renderSnapshot(pWindow);
         return;
@@ -3220,11 +3220,12 @@ void IHyprRenderer::renderSnapshot(PHLWINDOW pWindow) {
     }
 
     CTexPassElement::SRenderData data;
-    data.flipEndFrame = true;
-    data.tex          = FBDATA->getTexture();
-    data.box          = windowBox;
-    data.a            = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT);
-    data.damage       = fakeDamage;
+    data.flipEndFrame   = true;
+    data.tex            = FBDATA->getTexture();
+    data.box            = windowBox;
+    data.a              = pWindow->alphaValue(WINDOW_ALPHA_FADE) * pWindow->alphaValue(WINDOW_ALPHA_FULLSCREEN) * pWindow->alphaValue(WINDOW_ALPHA_LAYOUT);
+    data.damage         = fakeDamage;
+    data.animatedWindow = pWindow;
 
     m_renderPass.add(makeUnique<CTexPassElement>(std::move(data)));
 }

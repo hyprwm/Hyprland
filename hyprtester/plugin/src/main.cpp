@@ -7,6 +7,7 @@
 #define private public
 #include <src/managers/input/InputManager.hpp>
 #include <src/managers/PointerManager.hpp>
+#include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
 #include <src/helpers/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
@@ -420,6 +421,49 @@ static SDispatchResult checkLayerRule(std::string in) {
     return {};
 }
 
+static SDispatchResult checkPointerFocusLayer(std::string in) {
+    const auto POINTERSURF = g_pSeatManager->m_state.pointerFocus.lock();
+
+    if (!POINTERSURF)
+        return {.success = false, .error = "No pointer focus"};
+
+    const auto HLSURF = Desktop::View::CWLSurface::fromResource(POINTERSURF);
+    const auto VIEW   = HLSURF ? HLSURF->view() : nullptr;
+    const auto LAYER  = Desktop::View::CLayerSurface::fromView(VIEW);
+
+    if (!LAYER) {
+        const auto WINDOW = g_pCompositor->getWindowFromSurface(POINTERSURF);
+        if (WINDOW)
+            return {.success = false, .error = std::format("Pointer focus is a window surface with class '{}'", WINDOW->m_class)};
+
+        return {.success = false, .error = std::format("Pointer focus is not a layer surface, view type is {}", VIEW ? sc<int>(VIEW->type()) : -1)};
+    }
+
+    if (LAYER->m_namespace != in)
+        return {.success = false, .error = std::format("Pointer focus layer namespace is '{}', expected '{}'", LAYER->m_namespace, in)};
+
+    return {};
+}
+
+static SDispatchResult setPointerFocusLayer(std::string in) {
+    for (const auto& layer : g_pCompositor->m_layers) {
+        if (layer->m_namespace != in)
+            continue;
+
+        const auto SURFACE = layer->wlSurface() ? layer->wlSurface()->resource() : nullptr;
+        if (!SURFACE)
+            return {.success = false, .error = std::format("Layer '{}' has no surface", in)};
+
+        const auto LOCAL = layer->m_geometry.size() / 2.0;
+
+        g_pSeatManager->setPointerFocus(SURFACE, LOCAL);
+        g_pSeatManager->sendPointerMotion(Time::millis(Time::steadyNow()), LOCAL);
+        return {};
+    }
+
+    return {.success = false, .error = std::format("No layer with namespace '{}'", in)};
+}
+
 static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
 
@@ -527,6 +571,14 @@ static int luaCheckLayerRule(lua_State* L) {
     return luaResult(L, ::checkLayerRule(""));
 }
 
+static int luaCheckPointerFocusLayer(lua_State* L) {
+    return luaResult(L, ::checkPointerFocusLayer(luaL_checkstring(L, 1)));
+}
+
+static int luaSetPointerFocusLayer(lua_State* L) {
+    return luaResult(L, ::setPointerFocusLayer(luaL_checkstring(L, 1)));
+}
+
 static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
@@ -554,6 +606,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
+    addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
+    addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
 
     // init mouse

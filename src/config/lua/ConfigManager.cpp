@@ -726,23 +726,7 @@ SConfigOptionReply CConfigManager::getConfigValue(const std::string& s) {
         return SConfigOptionReply{.dataptr = cc<void* const*>(&m_configPtrMap.at(s)), .type = cv->underlying(), .setByUser = cv->setByUser()};
     }
 
-    // try replacing all . with : unless col.
-    std::string s2 = s;
-
-    for (size_t i = 0; i < s2.length(); ++i) {
-        if (s2[i] != ':')
-            continue;
-
-        if (i <= 3) {
-            s2[i] = '.';
-            continue;
-        }
-
-        if (s2[i - 1] == 'l' && s2[i - 2] == 'o' && s2[i - 3] == 'c')
-            continue;
-
-        s2[i] = '.';
-    }
+    std::string s2 = luaConfigValueName(s);
 
     if (!m_configValues.contains(s2))
         return SConfigOptionReply{.dataptr = nullptr};

@@ -1801,7 +1801,7 @@ std::optional<std::string> CConfigManager::handleSource(const std::string& comma
                                                         }};
 
     if (auto r = glob(absolutePath(rawpath, m_configCurrentPath).c_str(), GLOB_TILDE, nullptr, glob_buf.get()); r != 0) {
-        std::string err = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : GLOB_ABORTED ? "read error" : "out of memory");
+        std::string err = std::format("source= globbing error: {}", r == GLOB_NOMATCH ? "found no match" : r == GLOB_ABORTED ? "read error" : "out of memory");
         Log::logger->log(Log::ERR, "{}", err);
         return err;
     }

@@ -48,6 +48,7 @@
 
 #include "trackpad/TrackpadGestures.hpp"
 #include "../cursor/CursorShapeOverrideController.hpp"
+#include "../../helpers/PressedKeyCache.hpp"
 
 #include <aquamarine/input/Input.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -1472,10 +1473,31 @@ static void removeFromHIDs(WP<IHID> hid) {
     g_pInputManager->updateCapabilities();
 }
 
+void CInputManager::rebuildSeatPressedCacheFromKeyboards() {
+    std::vector<SP<IKeyboard>> eligibleKeyboards;
+    eligibleKeyboards.reserve(m_keyboards.size());
+
+    for (const auto& kb : m_keyboards) {
+        if (!kb)
+            continue;
+
+        if (!NInputUtils::isKeyboardEligibleForPressedKeyCache(*kb))
+            continue;
+
+        if (kb->isVirtual() && shouldIgnoreVirtualKeyboard(kb))
+            continue;
+
+        eligibleKeyboards.emplace_back(kb);
+    }
+
+    m_pressed = NInputUtils::collectPressedKeysFromKeyboards(eligibleKeyboards);
+}
+
 void CInputManager::destroyKeyboard(SP<IKeyboard> pKeyboard) {
     Log::logger->log(Log::DEBUG, "Keyboard at {:x} removed", rc<uintptr_t>(pKeyboard.get()));
 
     std::erase_if(m_keyboards, [pKeyboard](const auto& other) { return other == pKeyboard; });
+    rebuildSeatPressedCacheFromKeyboards();
 
     if (!m_keyboards.empty()) {
         bool found = false;

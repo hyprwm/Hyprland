@@ -128,7 +128,7 @@ void CScrollMoveTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     } else {
         SCROLLING->moveTape(Δ);
         const auto COL = SCROLLING->getColumnAtViewportCenter();
-        if (!COL->targetDatas.empty() && COL->targetDatas.front()->target) {
+        if (COL && !COL->targetDatas.empty() && COL->targetDatas.front()->target) {
             if (const auto W = COL->targetDatas.front()->target->window(); W)
                 Desktop::focusState()->fullWindowFocus(W, Desktop::FOCUS_REASON_FFM);
         }

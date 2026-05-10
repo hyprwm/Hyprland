@@ -651,7 +651,7 @@ def generate_stub(root: Path) -> str:
             [
                 ("binary", "string", False),
                 ("type", "string", False),
-                ("allow", "string", False),
+                ("mode", "string", False),
             ],
         )
     )

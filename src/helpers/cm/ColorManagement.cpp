@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <numeric>
+#include <numbers>
 
 using namespace NColorManagement;
 using namespace NTransferFunction;

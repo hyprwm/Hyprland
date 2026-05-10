@@ -228,19 +228,26 @@ vec4
 #endif
 #endif
     ) {
-    pixColor.rgb /= max(pixColor.a, 0.001);
+    float sourceAlpha = pixColor.a;
+    float finalAlpha  = sourceAlpha * additionalAlpha;
+
+    pixColor.rgb /= max(sourceAlpha, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
+    
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);
-    pixColor.rgb *= pixColor.a * additionalAlpha;
+    pixColor.a   = finalAlpha;
+    pixColor.rgb *= pixColor.a;
 #else
     pixColor.rgb = convertMatrix * pixColor.rgb;
     if (srcTF != CM_TRANSFER_FUNCTION_LINEAR)
         pixColor = toNit(pixColor, srcTFRange);
-    pixColor.rgb *= pixColor.a * additionalAlpha;
+    pixColor.a   = finalAlpha;
+    pixColor.rgb *= pixColor.a;
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);
 #endif
+
 #if USE_MIRROR
     // TODO HDR -> SDR tonemap
     vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB,
@@ -253,12 +260,9 @@ vec4
 #endif
 #endif
 
-    pixColor.a *= additionalAlpha;
-
 #if USE_MIRROR
     vec4[2] pixColors;
     pixColors[0] = pixColor;
-    mirrorColor.a *= additionalAlpha;
     pixColors[1] = mirrorColor;
     return pixColors;
 #else

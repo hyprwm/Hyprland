@@ -101,4 +101,5 @@ protocolnew("unstable/keyboard-shortcuts-inhibit" "keyboard-shortcuts-inhibit-un
 clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("pointer-scroll" PROTOS "xdg-shell")
 clientNew("child-window" PROTOS "xdg-shell")
+clientNew("keyboard-enter" PROTOS "xdg-shell")
 clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-unstable-v1")

@@ -1052,8 +1052,8 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
                 w != pIgnoreWindow && !isShadowedByModal(w)) {
                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
                 if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
-                    const auto  WORKAREA                    = PWORKSPACE->m_space->workArea();
-                    static auto isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
+                    const auto WORKAREA                    = PWORKSPACE->m_space->workArea();
+                    auto       isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
                         constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
                         double           aEdge           = -1;
                         double           bEdge           = -1;
@@ -1078,10 +1078,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
                             default: break;
                         }
                         const double delta = aEdge - bEdge;
-                        if (std::abs(delta) < STICK_THRESHOLD)
-                            return true;
-                        else
-                            return false;
+                        return std::abs(delta) < STICK_THRESHOLD;
                     };
 
                     if (isWindowCloseToWorkAreaEdge(Math::eDirection::DIRECTION_LEFT)) {

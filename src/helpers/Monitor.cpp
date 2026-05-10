@@ -673,8 +673,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     const bool sameRefreshRate = DELTALESSTHAN(m_refreshRate, RULE->m_refreshRate, 1);
 
-    const bool sameScale   = m_setScale == RULE->m_scale;
-    const bool sameAutoDir = m_autoDir == RULE->m_autoDir;
+    const bool sameScale = m_setScale == RULE->m_scale;
 
     const bool samePosition =
         (DELTALESSTHAN(m_position.x, RULE->m_offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->m_offset.y, 1)) || RULE->m_offset == Vector2D(-INT32_MAX, -INT32_MAX);
@@ -687,11 +686,23 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     const bool sameDrmMode = !std::memcmp(&m_customDrmMode, &RULE->m_drmMode, sizeof(m_customDrmMode));
 
+    const bool sameAutoDir      = m_autoDir == RULE->m_autoDir;
     const bool sameReservedArea = m_reservedArea == RULE->m_reservedArea;
 
-    if (!force && sameResolution && sameRefreshRate && sameScale && sameAutoDir && samePosition && sameTransform && sameColorProps && sameDrmMode && sameReservedArea) {
+    // these props do not alter the backend state. We can just apply them.
+    m_autoDir      = RULE->m_autoDir;
+    m_reservedArea = RULE->m_reservedArea;
 
-        Log::logger->log(Log::DEBUG, "Not applying a new rule to {} because it's already applied!", m_name);
+    if (!force && sameResolution && sameRefreshRate && sameScale && samePosition && sameTransform && sameColorProps && sameDrmMode) {
+        Log::logger->log(Log::DEBUG, "Not applying a new rule to {} because it's already applied.", m_name);
+
+        if (!sameReservedArea) {
+            g_pHyprRenderer->arrangeLayersForMonitor(m_id);
+            Event::bus()->m_events.monitor.layoutChanged.emit();
+        }
+
+        if (!sameAutoDir)
+            g_pCompositor->arrangeMonitors();
 
         setMirror(RULE->m_mirrorOf);
 
@@ -708,10 +719,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         m_scale                 = DEFAULTSCALE;
     }
 
-    m_setScale     = m_scale;
-    m_transform    = RULE->m_transform;
-    m_autoDir      = RULE->m_autoDir;
-    m_reservedArea = RULE->m_reservedArea;
+    m_setScale  = m_scale;
+    m_transform = RULE->m_transform;
 
     // accumulate requested modes in reverse order (cause inesrting at front is inefficient)
     std::vector<SP<Aquamarine::SOutputMode>> requestedModes;

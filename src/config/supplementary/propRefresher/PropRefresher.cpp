@@ -26,7 +26,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
 
     m_propsTripped |= prop;
 
-    if (!m_scheduled) {
+    if (!m_scheduled && g_pEventLoopManager) {
         g_pEventLoopManager->doLater([this, weak = WP<CPropRefresher>{refresher()}] {
             if (!weak)
                 return;

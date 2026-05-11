@@ -1000,7 +1000,7 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
         } else
             CURRENT_COL->setColumnWidth(1.F);
 
-        request.target->setFullscreenMode(FSMODE_NONE);
+        request.target->setFullscreenMode(FSMODE_MAXIMIZED);
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
     }

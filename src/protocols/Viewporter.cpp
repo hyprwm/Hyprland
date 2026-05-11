@@ -85,7 +85,9 @@ CViewportResource::CViewportResource(SP<CWpViewport> resource_, SP<CWLSurfaceRes
                 return length > 0.0;
             };
 
-            if (!clampAxis(src.x, src.w, size.x) || !clampAxis(src.y, src.h, size.y)) {
+            // Viewporter spec order: 1. transform, 2. scale, 3. viewport
+            Vector2D sizeScaledTransformed = (m_surface->m_pending.transform % 2 == 1 ? Vector2D{size.y, size.x} : size) / m_surface->m_pending.scale;
+            if (!clampAxis(src.x, src.w, sizeScaledTransformed.x) || !clampAxis(src.y, src.h, sizeScaledTransformed.y)) {
                 m_resource->error(WP_VIEWPORT_ERROR_BAD_VALUE, "Box doesn't fit");
                 m_surface->m_pending.rejected = true;
                 return;

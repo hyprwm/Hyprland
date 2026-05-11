@@ -34,8 +34,10 @@
 #include <chrono>
 #include <thread>
 #include <print>
+#include <string>
 #include <string_view>
 #include <span>
+#include <vector>
 
 #include "Log.hpp"
 
@@ -169,7 +171,7 @@ static bool preTestCleanup() {
     return !failed;
 }
 
-static void runTests(std::map<const char*, CTestCase&>& testCases) {
+static void runTests(std::map<const char*, CTestCase&>& testCases, std::string_view suiteName, std::vector<std::string>& failedTestNames) {
     for (auto& [name, tc] : testCases) {
         // Clean up before every test
         NLog::log("{}Cleaning up", Colors::YELLOW);
@@ -177,9 +179,10 @@ static void runTests(std::map<const char*, CTestCase&>& testCases) {
 
         NLog::log("{}Running test {}", Colors::BLUE, name);
         tc.test();
-        if (tc.failed)
+        if (tc.failed) {
             NLog::log("{}Test failed: {}", Colors::RED, name);
-        else
+            failedTestNames.emplace_back(std::string{suiteName} + "/" + name);
+        } else
             NLog::log("{}Test passed: {}", Colors::GREEN, name);
     }
 }
@@ -235,15 +238,16 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
-    long long failedTests = 0, totalTests = 0;
+    long long                failedTests = 0, totalTests = 0;
+    std::vector<std::string> failedTestNames;
 
     NLog::log("{}Running main tests", Colors::YELLOW);
-    runTests(mainTestCases);
+    runTests(mainTestCases, "main", failedTestNames);
     failedTests += countFailed(mainTestCases);
     totalTests += mainTestCases.size();
 
     NLog::log("{}Running protocol client tests", Colors::YELLOW);
-    runTests(clientTestCases);
+    runTests(clientTestCases, "clients", failedTestNames);
     failedTests += countFailed(clientTestCases);
     totalTests += clientTestCases.size();
 
@@ -252,6 +256,7 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}running plugin test", Colors::YELLOW);
     if (!testPlugin()) {
         NLog::log("{}Test failed: plugin test", Colors::RED);
+        failedTestNames.emplace_back("plugin/plugin test");
         failedTests++;
     } else {
         NLog::log("{}Test passed: plugin test", Colors::GREEN);
@@ -261,6 +266,7 @@ int main(int argc, char** argv, char** envp) {
     NLog::log("{}running vkb test from plugin", Colors::YELLOW);
     if (!testVkb()) {
         NLog::log("{}Test failed: vkb test from plugin", Colors::RED);
+        failedTestNames.emplace_back("plugin/vkb test from plugin");
         failedTests++;
     } else {
         NLog::log("{}Test passed: vkb test from plugin", Colors::GREEN);
@@ -273,8 +279,12 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, totalTests - failedTests, Colors::RESET, totalTests);
     NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, failedTests, Colors::RESET, totalTests);
-    if (failedTests > 0)
-        NLog::log("{}Some tests failed.", Colors::RED);
+    if (!failedTestNames.empty()) {
+        NLog::log("{}Failed tests:", Colors::RED);
+        for (const auto& name : failedTestNames) {
+            NLog::log("{}\t- {}", Colors::RED, name);
+        }
+    }
 
     kill(hyprlandProc->pid(), SIGKILL);
 

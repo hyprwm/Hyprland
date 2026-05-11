@@ -50,6 +50,7 @@ void ITarget::setSpaceGhost(const SP<CSpace>& space) {
     m_ghostSpace = true;
 }
 
+// does layout managed fullscreen/maximise behaviours. THIS DOES DUAL DUTY FOR MAX/FS
 bool ITarget::layoutManagedFullscreen() const {
     return m_layoutManagedFullscreen;
 }

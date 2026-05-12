@@ -156,8 +156,8 @@ namespace Layout::Tiled {
         };
 
         void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target);
+        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
         SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
         bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
         float                               fullscreenColumnWidth() const;
@@ -177,6 +177,7 @@ namespace Layout::Tiled {
         float                               defaultColumnWidth();
 
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
+        std::vector<SFullscreenScrollState> m_maximizeTargets; // ERSTARR -> any init functions that may init m_fullscreenTargets must be done to this!
         bool                                m_lastFullscreenCover = false;
 
         friend struct SScrollingData;

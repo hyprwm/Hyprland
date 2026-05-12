@@ -52,6 +52,8 @@ namespace Desktop::Rule {
         virtual std::underlying_type_t<eRuleProperty> getPropertiesMask();
 
         void                                          registerMatch(eRuleProperty, const std::string&);
+        void                                          setEnabled(bool enable);
+        bool                                          isEnabled() const;
         void                                          markAsExecRule(const std::string& token, uint64_t pid, bool persistent = false);
         bool                                          isExecRule();
         bool                                          isExecPersistent();
@@ -66,13 +68,15 @@ namespace Desktop::Rule {
         bool matches(eRuleProperty, const std::string& s);
         bool matches(eRuleProperty, bool b);
         bool has(eRuleProperty);
+        bool canMatch() const;
 
         //
         std::unordered_map<eRuleProperty, UP<IMatchEngine>> m_matchEngines;
 
       private:
-        std::underlying_type_t<eRuleProperty> m_mask = 0;
-        std::string                           m_name = "";
+        std::underlying_type_t<eRuleProperty> m_mask    = 0;
+        std::string                           m_name    = "";
+        bool                                  m_enabled = true;
 
         struct {
             bool            isExecRule       = false;

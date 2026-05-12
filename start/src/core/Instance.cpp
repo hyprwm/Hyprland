@@ -81,7 +81,8 @@ void CHyprlandInstance::runHyprlandThread(bool safeMode) {
                 break;
         }
 
-        write(m_wakeupWrite.get(), "vax", 3);
+        if (write(m_wakeupWrite.get(), "vax", 3) < 0)
+            g_logger->log(Hyprutils::CLI::LOG_ERR, "Failed to write to wakeup fd {}: {}", m_wakeupWrite.get(), strerror(errno));
 
         std::fflush(stdout);
         std::fflush(stderr);
@@ -96,8 +97,14 @@ void CHyprlandInstance::forceQuit() {
 }
 
 void CHyprlandInstance::clearFd(const Hyprutils::OS::CFileDescriptor& fd) {
+    if (!fd.isReadable()) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "Can't clear a unreadable fd");
+        return;
+    }
+
     static std::array<char, 1024> buf;
-    read(fd.get(), buf.data(), 1023);
+    if (read(fd.get(), buf.data(), 1023) < 0)
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "Failed clearing fd {}: {}", fd.get(), strerror(errno));
 }
 
 void CHyprlandInstance::dispatchHyprlandEvent() {
@@ -132,12 +139,18 @@ void CHyprlandInstance::dispatchHyprlandEvent() {
 
 bool CHyprlandInstance::run(bool safeMode) {
     int pipefds[2];
-    pipe(pipefds);
+    if (pipe(pipefds) != 0) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "pipe() failed, exiting");
+        exit(1);
+    }
 
     m_fromHlPid = CFileDescriptor{pipefds[0]};
     m_toHlPid   = CFileDescriptor{pipefds[1]};
 
-    pipe(pipefds);
+    if (pipe(pipefds) != 0) {
+        g_logger->log(Hyprutils::CLI::LOG_ERR, "pipe() failed, exiting");
+        exit(1);
+    }
 
     m_wakeupRead  = CFileDescriptor{pipefds[0]};
     m_wakeupWrite = CFileDescriptor{pipefds[1]};

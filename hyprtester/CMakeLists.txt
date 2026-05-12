@@ -24,7 +24,7 @@ target_link_libraries(hyprtester PUBLIC PkgConfig::hyprtester_deps)
 
 install(TARGETS hyprtester)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test.conf
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/test.lua
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/plugin/hyprtestplugin.so

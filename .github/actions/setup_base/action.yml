@@ -45,6 +45,7 @@ runs:
           libxkbcommon \
           libxkbfile \
           lld \
+          lua \
           meson \
           muparser \
           ninja \

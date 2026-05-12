@@ -266,7 +266,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
         return;
 
     m_client           = m_resource->client();
-    m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
+    m_imageDescription = getDefaultImageDescription();
 
     m_resource->setDestroy([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Destroy wp cm surface {}", (uintptr_t)m_surface);
@@ -302,7 +302,7 @@ CColorManagementSurface::CColorManagementSurface(SP<CWpColorManagementSurfaceV1>
     });
     m_resource->setUnsetImageDescription([this](CWpColorManagementSurfaceV1* r) {
         LOGM(Log::TRACE, "Unset image description for surface={}", (uintptr_t)r);
-        m_imageDescription = DEFAULT_IMAGE_DESCRIPTION;
+        m_imageDescription = getDefaultImageDescription();
         setHasImageDescription(false);
     });
 }
@@ -316,8 +316,10 @@ wl_client* CColorManagementSurface::client() {
 }
 
 const SImageDescription& CColorManagementSurface::imageDescription() {
-    if (!hasImageDescription())
-        LOGM(Log::WARN, "Reading imageDescription while none set. Returns default or empty values");
+    if (!hasImageDescription()) {
+        LOGM(Log::TRACE, "Reading imageDescription while none set. Returns default or empty values");
+        return getDefaultImageDescription()->value(); // JIC default settings change
+    }
 
     return m_imageDescription->value();
 }
@@ -805,7 +807,7 @@ CColorManagementImageDescriptionInfo::CColorManagementImageDescriptionInfo(SP<CW
     if (m_settings.primariesNameSet)
         m_resource->sendPrimariesNamed(m_settings.primariesNamed);
 
-    m_resource->sendTfNamed(m_settings.transferFunction);
+    m_resource->sendTfNamed(convertTransferFunction(m_settings.transferFunction, m_resource->version() == 1));
 
     if (m_settings.transferFunctionPower != 1.0f)
         m_resource->sendTfPower(std::round(m_settings.transferFunctionPower * 10000));

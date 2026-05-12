@@ -71,7 +71,7 @@ A debug coredump provides more information for debugging and may speed up the pr
 Make sure you're on latest git. Run `git pull --recurse-submodules` to sync everything.
 
 1. [Compile Hyprland with debug mode](http://wiki.hypr.land/Contributing-and-Debugging/#build-in-debug-mode)
-> Note: The config file used will be `hyprlandd.conf` instead of `hyprland.conf`
+> Note: The config file used will be `hyprlandd.lua` instead of `hyprland.lua`
 
 2. `cd ~`
 3. For your own convenience, launch Hyprland from a tty with the envvar `ASAN_OPTIONS="log_path=asan.log" ~/path/to/Hyprland`

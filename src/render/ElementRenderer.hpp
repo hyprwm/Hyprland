@@ -39,6 +39,7 @@ namespace Render {
         void drawRect(WP<CRectPassElement> element, const CRegion& damage);
         void drawHints(WP<CRendererHintsPassElement> element, const CRegion& damage);
         void drawPreBlur(WP<CPreBlurElement> element, const CRegion& damage);
+        void drawClear(WP<CClearPassElement> element, const CRegion& damage);
         void drawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
         void preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
         void drawTex(WP<CTexPassElement> element, const CRegion& damage);

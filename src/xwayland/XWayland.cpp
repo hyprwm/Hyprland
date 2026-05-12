@@ -11,7 +11,7 @@ CXWayland::CXWayland(const bool wantsEnabled) {
         for (auto& w : g_pCompositor->m_windows) {
             if (!w->m_isX11)
                 continue;
-            g_pCompositor->closeWindow(w);
+            w->sendClose();
         }
         unsetenv("DISPLAY");
         m_enabled = false;

@@ -523,54 +523,6 @@ std::string execAndGet(const char* cmd) {
     return proc.stdOut();
 }
 
-void logSystemInfo() {
-    struct utsname unameInfo;
-
-    uname(&unameInfo);
-
-    Log::logger->log(Log::DEBUG, "System name: {}", std::string{unameInfo.sysname});
-    Log::logger->log(Log::DEBUG, "Node name: {}", std::string{unameInfo.nodename});
-    Log::logger->log(Log::DEBUG, "Release: {}", std::string{unameInfo.release});
-    Log::logger->log(Log::DEBUG, "Version: {}", std::string{unameInfo.version});
-
-    Log::logger->log(Log::DEBUG, "\n");
-
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-    const std::string GPUINFO = execAndGet("pciconf -lv | grep -F -A4 vga");
-#elif defined(__arm__) || defined(__aarch64__)
-    std::string                 GPUINFO;
-    const std::filesystem::path dev_tree = "/proc/device-tree";
-    try {
-        if (std::filesystem::exists(dev_tree) && std::filesystem::is_directory(dev_tree)) {
-            std::for_each(std::filesystem::directory_iterator(dev_tree), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& entry) {
-                if (std::filesystem::is_directory(entry) && entry.path().filename().string().starts_with("soc")) {
-                    std::for_each(std::filesystem::directory_iterator(entry.path()), std::filesystem::directory_iterator{}, [&](const std::filesystem::directory_entry& sub_entry) {
-                        if (std::filesystem::is_directory(sub_entry) && sub_entry.path().filename().string().starts_with("gpu")) {
-                            std::filesystem::path file_path = sub_entry.path() / "compatible";
-                            std::ifstream         file(file_path);
-                            if (file)
-                                GPUINFO.append(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-                        }
-                    });
-                }
-            });
-        }
-    } catch (...) { GPUINFO = "error"; }
-#else
-    const std::string GPUINFO = execAndGet("lspci -vnn | grep -E '(VGA|Display|3D)'");
-#endif
-    Log::logger->log(Log::DEBUG, "GPU information:\n{}\n", GPUINFO);
-
-    if (GPUINFO.contains("NVIDIA")) {
-        Log::logger->log(Log::WARN, "Warning: you're using an NVIDIA GPU. Make sure you follow the instructions on the wiki if anything is amiss.\n");
-    }
-
-    // log etc
-    Log::logger->log(Log::DEBUG, "os-release:");
-
-    Log::logger->log(Log::DEBUG, "{}", NFsUtils::readFileAsString("/etc/os-release").value_or("error"));
-}
-
 int64_t getPPIDof(int64_t pid) {
 #if defined(KERN_PROC_PID)
     int mib[] = {
@@ -618,119 +570,6 @@ int64_t getPPIDof(int64_t pid) {
         return std::stoll(pidstr);
     } catch (std::exception& e) { return 0; }
 #endif
-}
-
-std::expected<int64_t, std::string> configStringToInt(const std::string& VALUE) {
-    auto parseHex = [](const std::string& value) -> std::expected<int64_t, std::string> {
-        try {
-            size_t position;
-            auto   result = stoll(value, &position, 16);
-            if (position == value.size())
-                return result;
-        } catch (const std::exception&) {}
-        return std::unexpected("invalid hex " + value);
-    };
-    if (VALUE.starts_with("0x")) {
-        // Values with 0x are hex
-        return parseHex(VALUE);
-    } else if (VALUE.starts_with("rgba(") && VALUE.ends_with(')')) {
-        const auto VALUEWITHOUTFUNC = trim(VALUE.substr(5, VALUE.length() - 6));
-
-        // try doing it the comma way first
-        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 3) {
-            // cool
-            std::string rolling = VALUEWITHOUTFUNC;
-            auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-            rolling             = rolling.substr(rolling.find(',') + 1);
-            auto g              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-            rolling             = rolling.substr(rolling.find(',') + 1);
-            auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-            rolling             = rolling.substr(rolling.find(',') + 1);
-            uint8_t a           = 0;
-
-            if (!r || !g || !b)
-                return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
-
-            try {
-                a = std::round(std::stof(trim(rolling.substr(0, rolling.find(',')))) * 255.f);
-            } catch (std::exception& e) { return std::unexpected("failed parsing " + VALUEWITHOUTFUNC); }
-
-            return a * sc<Hyprlang::INT>(0x1000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
-        } else if (VALUEWITHOUTFUNC.length() == 8) {
-            const auto RGBA = parseHex(VALUEWITHOUTFUNC);
-
-            if (!RGBA)
-                return RGBA;
-            // now we need to RGBA -> ARGB. The config holds ARGB only.
-            return (*RGBA >> 8) + 0x1000000 * (*RGBA & 0xFF);
-        }
-
-        return std::unexpected("rgba() expects length of 8 characters (4 bytes) or 4 comma separated values");
-
-    } else if (VALUE.starts_with("rgb(") && VALUE.ends_with(')')) {
-        const auto VALUEWITHOUTFUNC = trim(VALUE.substr(4, VALUE.length() - 5));
-
-        // try doing it the comma way first
-        if (std::ranges::count(VALUEWITHOUTFUNC, ',') == 2) {
-            // cool
-            std::string rolling = VALUEWITHOUTFUNC;
-            auto        r       = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-            rolling             = rolling.substr(rolling.find(',') + 1);
-            auto g              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-            rolling             = rolling.substr(rolling.find(',') + 1);
-            auto b              = configStringToInt(trim(rolling.substr(0, rolling.find(','))));
-
-            if (!r || !g || !b)
-                return std::unexpected("failed parsing " + VALUEWITHOUTFUNC);
-
-            return sc<Hyprlang::INT>(0xFF000000) + *r * sc<Hyprlang::INT>(0x10000) + *g * sc<Hyprlang::INT>(0x100) + *b;
-        } else if (VALUEWITHOUTFUNC.length() == 6) {
-            auto r = parseHex(VALUEWITHOUTFUNC);
-            return r ? *r + 0xFF000000 : r;
-        }
-
-        return std::unexpected("rgb() expects length of 6 characters (3 bytes) or 3 comma separated values");
-    } else if (VALUE.starts_with("true") || VALUE.starts_with("on") || VALUE.starts_with("yes")) {
-        return 1;
-    } else if (VALUE.starts_with("false") || VALUE.starts_with("off") || VALUE.starts_with("no")) {
-        return 0;
-    }
-
-    if (VALUE.empty() || !isNumber(VALUE, false))
-        return std::unexpected("cannot parse \"" + VALUE + "\" as an int.");
-
-    try {
-        const auto RES = std::stoll(VALUE);
-        return RES;
-    } catch (std::exception& e) { return std::unexpected(std::string{"stoll threw: "} + e.what()); }
-
-    return std::unexpected("parse error");
-}
-
-Vector2D configStringToVector2D(const std::string& VALUE) {
-    std::istringstream iss(VALUE);
-    std::string        token;
-
-    if (!std::getline(iss, token, ' ') && !std::getline(iss, token, ','))
-        throw std::invalid_argument("Invalid string format");
-
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid x value");
-
-    long long x = std::stoll(token);
-
-    if (!std::getline(iss, token))
-        throw std::invalid_argument("Invalid string format");
-
-    if (!isNumber(token))
-        throw std::invalid_argument("Invalid y value");
-
-    long long y = std::stoll(token);
-
-    if (std::getline(iss, token))
-        throw std::invalid_argument("Invalid string format");
-
-    return Vector2D(sc<double>(x), sc<double>(y));
 }
 
 double normalizeAngleRad(double ang) {
@@ -935,14 +774,14 @@ std::string deviceNameToInternalString(const std::string& in) {
                           case '\n':
                           case ',': return '-';
 
-                          default: return static_cast<char>(std::tolower(ch));
+                          default: return sc<char>(std::tolower(ch));
                       }
                   });
 
     return result | std::ranges::to<std::string>();
 }
 
-static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig"};
+static const std::vector<const char*> PKGCONF_PATHS = {"/usr/lib/pkgconfig", "/usr/local/lib/pkgconfig", "/usr/lib64/pkgconfig"};
 
 //
 std::string getSystemLibraryVersion(const std::string& name) {

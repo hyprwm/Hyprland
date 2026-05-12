@@ -14,6 +14,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <hyprutils/string/Numeric.hpp>
+
+using namespace Hyprutils::String;
+
 CFunctionHook::CFunctionHook(HANDLE owner, void* source, void* destination) : m_source(source), m_destination(destination), m_owner(owner) {
     ;
 }
@@ -92,7 +96,7 @@ CFunctionHook::SAssembly CFunctionHook::fixInstructionProbeRIPCalls(const SInstr
             size_t      plusPresent  = tokens[1][0] == '+' ? 1 : 0;
             size_t      minusPresent = tokens[1][0] == '-' ? 1 : 0;
             std::string addr         = tokens[1].substr((plusPresent || minusPresent), tokens[1].find("(%rip)") - (plusPresent || minusPresent));
-            auto        addrResult   = configStringToInt(addr);
+            auto        addrResult   = strToNumber<int64_t>(addr);
             if (!addrResult)
                 return {};
             const int32_t OFFSET = (minusPresent ? -1 : 1) * *addrResult;

@@ -604,7 +604,7 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
 }
 
 PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
-    static const auto PFORCE_HDR = CConfigValue<Hyprlang::INT>("quirks:prefer_hdr");
+    static const auto PFORCE_HDR = CConfigValue<Config::INTEGER>("quirks:prefer_hdr");
     const auto        WINDOW     = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
 
     if (*PFORCE_HDR == 1 || (*PFORCE_HDR == 2 && m_hlSurface && WINDOW && WINDOW->m_class == "gamescope"))
@@ -726,9 +726,6 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
     frame(when);
-
-    if (!PROTO::presentation->hasPendingFeedbacks())
-        return;
 
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
     FEEDBACK->attachMonitor(pMonitor);

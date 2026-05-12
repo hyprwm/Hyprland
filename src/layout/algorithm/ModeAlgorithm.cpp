@@ -7,12 +7,25 @@
 
 using namespace Layout;
 
-std::expected<void, std::string> IModeAlgorithm::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult IModeAlgorithm::layoutMsg(const std::string_view& sv) {
     return {};
 }
 
 std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
+}
+
+eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
+    (void)request;
+    return FULLSCREEN_REQUEST_DEFAULT;
+}
+
+SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
+    return nullptr;
+}
+
+bool IModeAlgorithm::layoutFullscreenCoversMonitor() const {
+    return false;
 }
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {

@@ -174,18 +174,24 @@ void CHyprXWaylandManager::setWindowFullscreen(PHLWINDOW pWindow, bool fullscree
 }
 
 Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    return waylandToXWaylandCoords(coord, nullptr);
+}
 
-    PHLMONITOR  pMonitor     = nullptr;
-    double      bestDistance = __FLT_MAX__;
-    for (const auto& m : g_pCompositor->m_monitors) {
-        const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
+Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
-        double     distance = vecToRectDistanceSquared(coord, {m->m_position.x, m->m_position.y}, {m->m_position.x + SIZ.x - 1, m->m_position.y + SIZ.y - 1});
+    PHLMONITOR  pMonitor = preferredMonitor;
+    if (!pMonitor) {
+        double bestDistance = __FLT_MAX__;
+        for (const auto& m : g_pCompositor->m_monitors) {
+            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
 
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            pMonitor     = m;
+            double     distance = vecToRectDistanceSquared(coord, {m->m_position.x, m->m_position.y}, {m->m_position.x + SIZ.x - 1, m->m_position.y + SIZ.y - 1});
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                pMonitor     = m;
+            }
         }
     }
 
@@ -204,20 +210,26 @@ Vector2D CHyprXWaylandManager::waylandToXWaylandCoords(const Vector2D& coord) {
 }
 
 Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord) {
+    return xwaylandToWaylandCoords(coord, nullptr);
+}
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+Vector2D CHyprXWaylandManager::xwaylandToWaylandCoords(const Vector2D& coord, PHLMONITOR preferredMonitor) {
 
-    PHLMONITOR  pMonitor     = nullptr;
-    double      bestDistance = __FLT_MAX__;
-    for (const auto& m : g_pCompositor->m_monitors) {
-        const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
-        double     distance =
-            vecToRectDistanceSquared(coord, {m->m_xwaylandPosition.x, m->m_xwaylandPosition.y}, {m->m_xwaylandPosition.x + SIZ.x - 1, m->m_xwaylandPosition.y + SIZ.y - 1});
+    PHLMONITOR  pMonitor = preferredMonitor;
+    if (!pMonitor) {
+        double bestDistance = __FLT_MAX__;
+        for (const auto& m : g_pCompositor->m_monitors) {
+            const auto SIZ = *PXWLFORCESCALEZERO ? m->m_transformedSize : m->m_size;
 
-        if (distance < bestDistance) {
-            bestDistance = distance;
-            pMonitor     = m;
+            double     distance =
+                vecToRectDistanceSquared(coord, {m->m_xwaylandPosition.x, m->m_xwaylandPosition.y}, {m->m_xwaylandPosition.x + SIZ.x - 1, m->m_xwaylandPosition.y + SIZ.y - 1});
+
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                pMonitor     = m;
+            }
         }
     }
 

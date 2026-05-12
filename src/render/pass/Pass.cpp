@@ -29,7 +29,7 @@ void CRenderPass::add(UP<IPassElement>&& el) {
 
 void CRenderPass::simplify(bool willBlur, const CRegion& liveBlurRegion) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
-    static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
+    static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // TODO: use precompute blur for instances where there is nothing in between
 
@@ -102,7 +102,7 @@ void CRenderPass::clear() {
 
 CRegion CRenderPass::render(const CRegion& damage_) {
     const auto  pMonitor   = g_pHyprRenderer->m_renderData.pMonitor;
-    static auto PDEBUGPASS = CConfigValue<Hyprlang::INT>("debug:pass");
+    static auto PDEBUGPASS = CConfigValue<Config::INTEGER>("debug:pass");
 
     // single pass: cache blur results and gather aggregate info
     bool    willBlur = false, willDisableSimplification = false, willPrecomputeBlur = false;
@@ -309,8 +309,8 @@ void CRenderPass::renderDebugData() {
 
 float CRenderPass::oneBlurRadius() {
     // TODO: is this exact range correct?
-    static auto PBLURSIZE   = CConfigValue<Hyprlang::INT>("decoration:blur:size");
-    static auto PBLURPASSES = CConfigValue<Hyprlang::INT>("decoration:blur:passes");
+    static auto PBLURSIZE   = CConfigValue<Config::INTEGER>("decoration:blur:size");
+    static auto PBLURPASSES = CConfigValue<Config::INTEGER>("decoration:blur:passes");
 
     const auto  BLUR_PASSES = std::clamp(*PBLURPASSES, sc<int64_t>(1), sc<int64_t>(8));
 

@@ -6,18 +6,19 @@
 #include <chrono>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
+#include <hyprutils/string/Numeric.hpp>
 #include <csignal>
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+using namespace Hyprutils::String;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
+// TODO: refactor and reuse `Tests::waitUntilWindowsN`
 static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectation, int waitMillis = 100, int maxWaitCnt = 50) {
     int counter = 0;
     while (Tests::windowCount() != expectedWindowCnt) {
@@ -32,68 +33,61 @@ static bool waitForWindowCount(int expectedWindowCnt, std::string_view expectati
     return true;
 }
 
-static bool test() {
-    NLog::log("{}Testing gestures", Colors::GREEN);
-
-    EXPECT(Tests::windowCount(), 0);
-
-    // test on workspace "window"
-    NLog::log("{}Switching to workspace 1", Colors::YELLOW);
-    getFromSocket("/dispatch workspace 1"); // no OK: we might be on 1 already
-
+// TODO: decompose this into multiple test cases
+TEST_CASE(gestures) {
     Tests::spawnKitty();
-    EXPECT(Tests::windowCount(), 1);
+    ASSERT(Tests::windowCount(), 1);
 
     // Give the shell a moment to initialize
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture up,5"));
-    OK(getFromSocket("/dispatch plugin:test:gesture down,5"));
-    OK(getFromSocket("/dispatch plugin:test:gesture left,5"));
-    OK(getFromSocket("/dispatch plugin:test:gesture right,5"));
-    OK(getFromSocket("/dispatch plugin:test:gesture right,4"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('up', 5)"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('down', 5)"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 5)"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 5)"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 4)"));
 
     EXPECT(waitForWindowCount(0, "Gesture sent paste exit + enter to kitty"), true);
 
     EXPECT(Tests::windowCount(), 0);
 
-    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
     EXPECT(waitForWindowCount(1, "Gesture spawned kitty"), true);
 
     EXPECT(Tests::windowCount(), 1);
 
-    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "floating: 1");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:gesture down,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "fullscreen: 2");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:gesture down,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "fullscreen: 0");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:alt 1"));
+    OK(getFromSocket("/eval hl.plugin.test.alt(1)"));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
         EXPECT_CONTAINS(str, "ID 2 (2)");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
@@ -101,33 +95,33 @@ static bool test() {
     }
 
     // check for crashes
-    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
         EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
     }
 
-    OK(getFromSocket("/keyword gestures:workspace_swipe_invert 0"));
+    OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_invert = 0 } })"));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
         EXPECT_CONTAINS(str, "ID 2 (2)");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
         EXPECT_NOT_CONTAINS(str, "ID 2 (2)");
     }
 
-    OK(getFromSocket("/keyword gestures:workspace_swipe_invert 1"));
-    OK(getFromSocket("/keyword gestures:workspace_swipe_create_new 0"));
+    OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_invert = 1 } })"));
+    OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_create_new = 0 } })"));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture left,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 3)"));
 
     {
         auto str = getFromSocket("/workspaces");
@@ -135,69 +129,91 @@ static bool test() {
         EXPECT_CONTAINS(str, "ID 1 (1)");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:gesture down,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('down', 3)"));
 
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "floating: 0");
     }
 
-    OK(getFromSocket("/dispatch plugin:test:alt 0"));
+    OK(getFromSocket("/eval hl.plugin.test.alt(0)"));
 
-    OK(getFromSocket("/dispatch plugin:test:gesture up,3"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('up', 3)"));
 
     EXPECT(waitForWindowCount(0, "Gesture closed kitty"), true);
 
-    EXPECT(Tests::windowCount(), 0);
+    ASSERT(Tests::windowCount(), 0);
 
     // This test ensures that `movecursortocorner`, which expects
     // a single-character direction argument, is parsed correctly.
     Tests::spawnKitty();
-    OK(getFromSocket("/dispatch movecursortocorner 0"));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move_to_corner({ corner = 0, window = 'activewindow' })"));
     const std::string cursorPos1 = getFromSocket("/cursorpos");
-    OK(getFromSocket("/dispatch plugin:test:gesture left,4"));
+    OK(getFromSocket("/eval hl.plugin.test.gesture('left', 4)"));
     const std::string cursorPos2 = getFromSocket("/cursorpos");
     // The cursor should have moved because of the gesture
     EXPECT(cursorPos1 != cursorPos2, true);
 
     // Test that `workspace previous` works correctly after a workspace gesture.
     {
-        OK(getFromSocket("/keyword gestures:workspace_swipe_invert 0"));
-        OK(getFromSocket("/keyword gestures:workspace_swipe_create_new 1"));
-        OK(getFromSocket("/dispatch workspace 3"));
+        OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_invert = 0 } })"));
+        OK(getFromSocket("/eval hl.config({ gestures = { workspace_swipe_create_new = 1 } })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '3' })"));
 
         // Come to workspace 5 from workspace 3: 5 will remember that.
-        OK(getFromSocket("/dispatch workspace 5"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '5' })"));
         Tests::spawnKitty(); // Keep workspace 5 open
 
         // Swipe from 1 to 5: 5 shall remember that.
-        OK(getFromSocket("/dispatch workspace 1"));
-        OK(getFromSocket("/dispatch plugin:test:alt 1"));
-        OK(getFromSocket("/dispatch plugin:test:gesture right,3"));
-        OK(getFromSocket("/dispatch plugin:test:alt 0"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+        OK(getFromSocket("/eval hl.plugin.test.alt(1)"));
+        OK(getFromSocket("/eval hl.plugin.test.gesture('right', 3)"));
+        OK(getFromSocket("/eval hl.plugin.test.alt(0)"));
         EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
 
         // Must return to 1 rather than 3
-        OK(getFromSocket("/dispatch workspace previous"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'previous' })"));
         EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 1 (1)");
 
-        OK(getFromSocket("/dispatch workspace previous"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'previous' })"));
         EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "ID 5 (5)");
 
-        OK(getFromSocket("/dispatch workspace 1"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
     }
+    const std::string cursorPosBeforePinch = getFromSocket("/cursorpos");
 
-    // kill all
-    NLog::log("{}Killing all windows", Colors::YELLOW);
-    Tests::killAllWindows();
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 500, y = 500 })"));
+    OK(getFromSocket("/eval hl.config({ cursor = { zoom_factor = 1 } })"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
 
-    NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.2)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.2, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 1.6)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1.6, 0.01)"));
 
-    // reload cfg
-    OK(getFromSocket("/reload"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_update(2, 0.64)"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
+    OK(getFromSocket("/eval hl.plugin.test.pinch_end()"));
+    OK(getFromSocket("/eval hl.plugin.test.expect_cursor_zoom(1, 0.01)"));
 
-    return !ret;
+    const auto comma = cursorPosBeforePinch.find(',');
+
+    if (comma != std::string::npos) {
+        auto xSv = std::string_view(cursorPosBeforePinch).substr(0, comma);
+        auto ySv = std::string_view(cursorPosBeforePinch).substr(comma + 1);
+        while (!xSv.empty() && xSv.front() == ' ')
+            xSv.remove_prefix(1);
+        while (!ySv.empty() && ySv.front() == ' ')
+            ySv.remove_prefix(1);
+
+        const auto x = strToNumber<int>(xSv);
+        const auto y = strToNumber<int>(ySv);
+
+        if (!x || !y)
+            FAIL_TEST("Failed to restore cursor pos");
+
+        OK(getFromSocket(std::format("/dispatch hl.dsp.cursor.move({{ x = {}, y = {} }})", x.value(), y.value())));
+    }
 }
-
-REGISTER_TEST_FN(test)

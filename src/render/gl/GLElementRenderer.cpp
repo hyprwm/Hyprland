@@ -24,15 +24,17 @@ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& dama
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render without begin()!");
 
     TRACY_GPU_ZONE("RenderClear");
-
-    GLCALL(glClearColor(color.r, color.g, color.b, color.a));
+    const std::array<GLfloat, 4> c = {sc<GLfloat>(color.r), sc<GLfloat>(color.g), sc<GLfloat>(color.b), sc<GLfloat>(color.a)};
 
     if (!g_pHyprRenderer->m_renderData.damage.empty()) {
-        g_pHyprRenderer->m_renderData.damage.forEachRect([](const auto& RECT) {
+        g_pHyprRenderer->m_renderData.damage.forEachRect([&c](const auto& RECT) {
             g_pHyprOpenGL->scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClearBufferfv(GL_COLOR, 0, c.data());
         });
-    }
+
+        g_pHyprOpenGL->scissor(nullptr);
+    } else
+        glClearBufferfv(GL_COLOR, 0, c.data());
 };
 
 void CGLElementRenderer::draw(WP<CFramebufferElement> element, const CRegion& damage) {
@@ -112,19 +114,18 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
             .blurredBG             = m_data.blurredBG,
 
             // common settings
-            .damage             = m_data.damage.empty() ? &damage : &m_data.damage,
-            .surface            = m_data.surface,
-            .a                  = m_data.a,
-            .round              = m_data.round,
-            .roundingPower      = m_data.roundingPower,
-            .discardActive      = m_data.discardActive,
-            .allowCustomUV      = m_data.allowCustomUV,
-            .cmBackToSRGB       = m_data.cmBackToSRGB,
-            .cmBackToSRGBSource = m_data.cmBackToSRGBSource,
-            .discardMode        = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,
-            .discardOpacity     = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
-            .clipRegion         = m_data.clipRegion,
-            .currentLS          = m_data.currentLS,
+            .damage         = m_data.damage.empty() ? &damage : &m_data.damage,
+            .surface        = m_data.surface,
+            .a              = m_data.a,
+            .round          = m_data.round,
+            .roundingPower  = m_data.roundingPower,
+            .discardActive  = m_data.discardActive,
+            .allowCustomUV  = m_data.allowCustomUV,
+            .cmBackToSRGB   = m_data.cmBackToSRGB,
+            .discardMode    = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,
+            .discardOpacity = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,
+            .clipRegion     = m_data.clipRegion,
+            .currentLS      = m_data.currentLS,
 
             .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
             .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,

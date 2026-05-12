@@ -51,6 +51,7 @@ commands:
     setprop ...         → Sets a window property
     getprop ...         → Gets a window property
     splash              → Get the current splash
+    status              → Get internal status information
     switchxkblayout ... → Sets the xkb layout index for a keyboard
     systeminfo          → Get system info
     version             → Prints the hyprland version, meaning flags, commit
@@ -106,7 +107,7 @@ time_ms:
     Time to display notification in milliseconds
 
 color:
-    Notification color. Format is the same as for colors in hyprland.conf. Use
+    Notification color. Format is the same as for colors in hyprland.lua. Use
     0 for default color for icon
 
 message:

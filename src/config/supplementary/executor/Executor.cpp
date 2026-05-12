@@ -37,7 +37,14 @@ CExecutor::CExecutor() {
         m_firstExecDispatched = true;
 
         for (auto const& c : m_execOnce) {
-            c.withRules ? spawn(c.exec) : spawnRaw(c.exec);
+            auto res = c.withRules ? spawn(c.exec) : spawnRaw(c.exec);
+
+            if (!res || !c.rule)
+                continue;
+
+            const auto TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
+
+            applyRuleToProc(c.rule, *res, TOKEN);
         }
 
         m_execOnce.clear(); // free some kb of memory :P
@@ -61,16 +68,37 @@ CExecutor::CExecutor() {
     });
 }
 
-void CExecutor::addExecOnce(const SExecRequest& cmd) {
-    m_execOnce.emplace_back(cmd);
+void CExecutor::applyRuleToProc(SP<Desktop::Rule::CWindowRule> rule, int64_t pid, const std::string& token) {
+    rule->markAsExecRule(token, pid, false /* TODO: could be nice. */);
+    rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_TOKEN, token);
+    rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_PID, std::to_string(pid));
+    Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
+    Log::logger->log(Log::DEBUG, "Applied rule arguments for exec, pid {}.", pid);
 }
 
-void CExecutor::addExecShutdown(const SExecRequest& cmd) {
-    m_execShutdown.emplace_back(cmd);
+void CExecutor::addExecOnce(SExecRequest&& cmd) {
+    m_execOnce.emplace_back(std::move(cmd));
+}
+
+void CExecutor::addExecShutdown(SExecRequest&& cmd) {
+    m_execShutdown.emplace_back(std::move(cmd));
 }
 
 std::optional<uint64_t> CExecutor::spawn(const std::string& args) {
     return spawnWithRules(args);
+}
+
+std::optional<uint64_t> CExecutor::spawn(const SExecRequest& args) {
+    auto res = spawn(args.exec);
+
+    if (!args.rule)
+        return res;
+
+    const auto TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
+
+    applyRuleToProc(args.rule, *res, TOKEN);
+
+    return res;
 }
 
 std::optional<uint64_t> CExecutor::spawnRaw(const std::string& args) {
@@ -95,7 +123,11 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
     std::string execToken = "";
 
     if (!RULES.empty()) {
-        auto       rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
+        auto rule = Desktop::Rule::CWindowRule::buildFromExecString(std::move(RULES));
+        if (!rule) {
+            Log::logger->log(Log::ERR, "Failed to parse exec rule: {}", rule.error());
+            return std::nullopt;
+        }
 
         const auto TOKEN = g_pTokenManager->registerNewToken(nullptr, std::chrono::seconds(1));
 
@@ -104,11 +136,7 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
         if (!PROC)
             return std::nullopt;
 
-        rule->markAsExecRule(TOKEN, *PROC, false /* TODO: could be nice. */);
-        rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_TOKEN, TOKEN);
-        rule->registerMatch(Desktop::Rule::RULE_PROP_EXEC_PID, std::to_string(*PROC));
-        Desktop::Rule::ruleEngine()->registerRule(std::move(rule));
-        Log::logger->log(Log::DEBUG, "Applied rule arguments for exec, pid {}.", *PROC);
+        applyRuleToProc(*rule, *PROC, TOKEN);
 
         return PROC;
     }
@@ -117,7 +145,7 @@ std::optional<uint64_t> CExecutor::spawnWithRules(std::string args, PHLWORKSPACE
 }
 
 static std::vector<std::pair<std::string, std::string>> getHyprlandLaunchEnv(PHLWORKSPACE pInitialWorkspace) {
-    static auto PINITIALWSTRACKING = CConfigValue<Hyprlang::INT>("misc:initial_workspace_tracking");
+    static auto PINITIALWSTRACKING = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
 
     if (!*PINITIALWSTRACKING)
         return {};

@@ -126,9 +126,15 @@ void CHyprBorderDecoration::damageEntire() {
     borderRegion.subtract(GLOBAL_BOX.copy().expand(-(BORDERSIZE + ROUNDING)));
     borderRegion.expand(2); // pad
 
+    const CBox borderExtents = borderRegion.getExtents();
+
     for (auto const& m : g_pCompositor->m_monitors) {
+        const CBox monitorBox = {m->m_position, m->m_size};
+        if (borderExtents.intersection(monitorBox).empty())
+            continue;
+
         if (!g_pHyprRenderer->shouldRenderWindow(m_window.lock(), m)) {
-            const CRegion monitorRegion({m->m_position, m->m_size});
+            const CRegion monitorRegion(monitorBox);
             borderRegion.subtract(monitorRegion);
         }
     }
@@ -141,7 +147,7 @@ eDecorationLayer CHyprBorderDecoration::getDecorationLayer() {
 }
 
 uint64_t CHyprBorderDecoration::getDecorationFlags() {
-    static auto PPARTOFWINDOW = CConfigValue<Hyprlang::INT>("decoration:border_part_of_window");
+    static auto PPARTOFWINDOW = CConfigValue<Config::INTEGER>("decoration:border_part_of_window");
 
     return *PPARTOFWINDOW && !doesntWantBorders() ? DECORATION_PART_OF_MAIN_WINDOW : 0;
 }

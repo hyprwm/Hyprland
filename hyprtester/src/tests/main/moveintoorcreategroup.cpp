@@ -10,48 +10,42 @@
 #include <cerrno>
 #include "../shared.hpp"
 
-static int ret = 0;
-
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 #define UP CUniquePointer
 #define SP CSharedPointer
 
-static bool test() {
-    NLog::log("{}Testing moveintoorcreategroup", Colors::GREEN);
-
+TEST_CASE(moveIntoOrCreateGroup) {
     NLog::log("{}Dispatching workspace `moveintoorcreategroup`", Colors::YELLOW);
-    getFromSocket("/dispatch workspace name:moveintoorcreategroup");
+    getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:moveintoorcreategroup' })");
 
-    OK(getFromSocket("/keyword group:auto_group false"));
+    OK(getFromSocket("/eval hl.config({ group = { auto_group = false } })"));
 
     NLog::log("{}Spawning kittyA", Colors::YELLOW);
     auto kittyA = Tests::spawnKitty("kitty_A");
     if (!kittyA) {
-        NLog::log("{}Error: kittyA did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty_A");
     }
 
     NLog::log("{}Spawning kittyB", Colors::YELLOW);
     auto kittyB = Tests::spawnKitty("kitty_B");
     if (!kittyB) {
-        NLog::log("{}Error: kittyB did not spawn", Colors::RED);
-        return false;
+        FAIL_TEST("Could not spawn kitty_B");
     }
 
     NLog::log("{}Expecting 2 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 2);
+    ASSERT(Tests::windowCount(), 2);
 
     {
         auto str = getFromSocket("/clients");
         EXPECT_CONTAINS(str, "grouped: 0");
     }
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_A"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })"));
 
     NLog::log("{}Move kittyA into group with kittyB (creates group)", Colors::YELLOW);
-    OK(getFromSocket("/dispatch moveintoorcreategroup r"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_or_create_group = 'right' })"));
 
     {
         auto str = getFromSocket("/clients");
@@ -68,7 +62,7 @@ static bool test() {
     Tests::killAllWindows();
 
     NLog::log("{}Expecting 0 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 0);
+    ASSERT(Tests::windowCount(), 0);
 
     NLog::log("{}Testing moveintoorcreategroup into existing group", Colors::YELLOW);
 
@@ -80,15 +74,15 @@ static bool test() {
     auto kittyE = Tests::spawnKitty("kitty_E");
 
     NLog::log("{}Expecting 3 windows", Colors::YELLOW);
-    EXPECT(Tests::windowCount(), 3);
+    ASSERT(Tests::windowCount(), 3);
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_D"));
-    OK(getFromSocket("/dispatch togglegroup"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_D' })"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
-    OK(getFromSocket("/dispatch focuswindow class:kitty_E"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_E' })"));
 
     NLog::log("{}Move kittyE into existing group with kittyD", Colors::YELLOW);
-    OK(getFromSocket("/dispatch moveintoorcreategroup l"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ into_or_create_group = 'left' })"));
 
     {
         auto str = getFromSocket("/clients");
@@ -100,12 +94,4 @@ static bool test() {
         auto str = getFromSocket("/activewindow");
         EXPECT_CONTAINS(str, "kitty_E");
     }
-
-    NLog::log("{}Kill windows", Colors::YELLOW);
-    Tests::killAllWindows();
-    OK(getFromSocket("/keyword group:auto_group true"));
-
-    return !ret;
 }
-
-REGISTER_TEST_FN(test)

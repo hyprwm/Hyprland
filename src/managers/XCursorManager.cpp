@@ -571,7 +571,7 @@ std::vector<SP<SXCursors>> CXCursorManager::loadAllFromDir(std::string const& pa
 }
 
 void CXCursorManager::syncGsettings() {
-    static auto SYNCGSETTINGS = CConfigValue<Hyprlang::INT>("cursor:sync_gsettings_theme");
+    static auto SYNCGSETTINGS = CConfigValue<Config::INTEGER>("cursor:sync_gsettings_theme");
     if (!*SYNCGSETTINGS)
         return;
 

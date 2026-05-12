@@ -53,6 +53,9 @@ namespace Desktop::View {
         // will also loop over this node
         void                      breadthfirst(std::function<void(SP<Desktop::View::CPopup>, void*)> fn, void* data);
         SP<Desktop::View::CPopup> at(const Vector2D& globalCoords, bool allowsInput = false);
+        SP<Desktop::View::CPopup> popupHead() const;
+        const CBox&               popupTreeExtents() const;
+        int                       popupTreeCount() const;
 
         //
         WP<Desktop::View::CPopup> m_self;
@@ -83,6 +86,11 @@ namespace Desktop::View {
 
         bool                      m_inert = false;
 
+        mutable CBox              m_cachedTreeExtents        = {};
+        mutable bool              m_treeExtentsCacheDirty    = true;
+        mutable int               m_cachedTreePopupCount     = 0;
+        mutable bool              m_treePopupCountCacheDirty = true;
+
         //
         std::vector<SP<Desktop::View::CPopup>> m_children;
         SP<Desktop::View::CSubsurface>         m_subsurfaceHead;
@@ -105,6 +113,7 @@ namespace Desktop::View {
 
         Vector2D    localToGlobal(const Vector2D& rel) const;
         Vector2D    t1ParentCoords() const;
+        void        invalidateTreeExtentsCache();
         static void bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data);
     };
 }

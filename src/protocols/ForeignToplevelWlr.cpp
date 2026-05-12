@@ -131,7 +131,7 @@ CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHand
         if UNLIKELY (!PWINDOW)
             return;
 
-        g_pCompositor->closeWindow(PWINDOW);
+        PWINDOW->sendClose();
     });
 }
 

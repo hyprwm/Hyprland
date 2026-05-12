@@ -30,7 +30,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
 
         if (!m_surface->m_current.barrierSet) {
             // that might mean an empty commit with a barrier_set alone
-            static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
+            static const auto PPEND = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
             if (!m_surface->m_pending.fifoScheduled)
                 m_surface->m_pending.fifoScheduled = checkMonitors(*PPEND);
 
@@ -44,7 +44,7 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (!state || !state->surfaceLocked)
             return;
 
-        static const auto PPEND = CConfigValue<Hyprlang::INT>("debug:fifo_pending_workaround");
+        static const auto PPEND = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
 
         //#TODO:
         // this feels wrong, but if we have no pending frames, presented might never come because

@@ -1,35 +1,70 @@
 #pragma once
 
-#include "../Rule.hpp"
+#include "../RuleWithEffects.hpp"
 #include "../../DesktopTypes.hpp"
+#include "../../types/OverridableVar.hpp"
 #include "WindowRuleEffectContainer.hpp"
+#include "../../../config/shared/complex/ComplexDataTypes.hpp"
+#include "../../../helpers/math/Expression.hpp"
 #include "../../../helpers/math/Math.hpp"
 
+#include <expected>
 #include <unordered_set>
+#include <variant>
 
 namespace Desktop::Rule {
     constexpr const char* EXEC_RULE_ENV_NAME = "HL_EXEC_RULE_TOKEN";
 
-    class CWindowRule : public IRule {
-      private:
+    struct SFullscreenStateRule {
+        int                internal = 0;
+        std::optional<int> client;
+    };
+
+    struct SOpacityRule {
+        Types::SAlphaValue alpha;
+        Types::SAlphaValue alphaInactive;
+        Types::SAlphaValue alphaFullscreen;
+    };
+
+    struct SBorderColorRule {
+        Config::CGradientValueData                active;
+        std::optional<Config::CGradientValueData> inactive;
+    };
+
+    using WindowRuleEffectValue =
+        std::variant<std::monostate, bool, int64_t, float, std::string, std::vector<std::string>, SFullscreenStateRule, SOpacityRule, SBorderColorRule, Math::SExpressionVec2>;
+
+    struct SWindowRuleEffect {
         using storageType = CWindowRuleEffectContainer::storageType;
+        using valueType   = WindowRuleEffectValue;
+
+        CWindowRuleEffectContainer::storageType key = WINDOW_RULE_EFFECT_NONE;
+        std::string                             raw;
+        WindowRuleEffectValue                   value;
+    };
+
+    class CWindowRule : public CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW> {
+      private:
+        using Base        = CRuleWithEffects<SWindowRuleEffect, RULE_TYPE_WINDOW>;
+        using storageType = Base::storageType;
 
       public:
         CWindowRule(const std::string& name = "");
         virtual ~CWindowRule() = default;
 
-        static SP<CWindowRule>                                  buildFromExecString(std::string&&);
+        using Base::addEffect;
 
-        virtual eRuleType                                       type();
+        CWindowRule(const CWindowRule&) = default;
+        CWindowRule(CWindowRule&)       = default;
+        CWindowRule(CWindowRule&&)      = default;
 
-        void                                                    addEffect(storageType e, const std::string& result);
-        const std::vector<std::pair<storageType, std::string>>& effects();
-        const std::unordered_set<storageType>&                  effectsSet();
+        static std::expected<SP<CWindowRule>, std::string> buildFromExecString(std::string&&);
 
-        bool                                                    matches(PHLWINDOW w, bool allowEnvLookup = false);
+        std::expected<void, std::string>                   addEffect(storageType e, const Math::SExpressionVec2& expr);
+
+        bool                                               matches(PHLWINDOW w, bool allowEnvLookup = false);
 
       private:
-        std::vector<std::pair<storageType, std::string>> m_effects;
-        std::unordered_set<storageType>                  m_effectSet;
+        std::expected<WindowRuleEffectValue, std::string> parseEffect(storageType e, const std::string& result) override;
     };
 };

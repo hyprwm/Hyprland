@@ -7,6 +7,7 @@
 precision highp float;
 in vec4   v_color;
 
+uniform vec4 colorSRGB;
 #if USE_ROUNDING
 uniform float radius;
 uniform float roundingPower;
@@ -28,6 +29,10 @@ void main() {
 
     fragColor = pixColor;
 #if USE_MIRROR
-    mirrorColor = fragColor;
+#if USE_ROUNDING
+    mirrorColor = rounding(colorSRGB, radius, roundingPower, topLeft, fullSize);
+#else
+    mirrorColor = colorSRGB;
+#endif
 #endif
 }

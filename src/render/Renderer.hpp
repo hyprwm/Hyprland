@@ -31,6 +31,8 @@
 #include "Framebuffer.hpp"
 #include "Texture.hpp"
 
+#include <hyprgraphics/resource/resources/TextResource.hpp>
+
 struct SMonitorRule;
 class CWorkspace;
 class CInputPopup;
@@ -131,13 +133,15 @@ namespace Render {
 
         SP<ITexture> renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth = 1024,
                                   const int maxHeight = 1024);
+        CHyprColor   getConvertedColor(const CHyprColor& color);
 
-        virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer, uint32_t fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
-        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);                   // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
-        SRenderData                  m_renderData;                                                          // TODO? move to protected and fix CRenderPass
-        SP<ITexture>                 m_screencopyDeniedTexture;                                             // TODO? make readonly
-        uint                         m_failedAssetsNo     = 0;                                              // TODO? make readonly
-        bool                         m_reloadScreenShader = true;                                           // at launch it can be set
+        virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
+                                                             uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
+        bool                         commitPendingAndDoExplicitSync(PHLMONITOR pMonitor);  // TODO? move to protected and fix CMonitorFrameScheduler::onPresented
+        SRenderData                  m_renderData;                                         // TODO? move to protected and fix CRenderPass
+        SP<ITexture>                 m_screencopyDeniedTexture;                            // TODO? make readonly
+        uint                         m_failedAssetsNo     = 0;                             // TODO? make readonly
+        bool                         m_reloadScreenShader = true;                          // at launch it can be set
         CTimer                       m_globalTimer;
 
         void                         draw(WP<IPassElement> element, const CRegion& damage = {});
@@ -164,6 +168,7 @@ namespace Render {
         virtual SP<ITexture>         createTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
         virtual SP<ITexture>         renderText(const std::string& text, CHyprColor col, int pt, bool italic = false, const std::string& fontFamily = "", int maxWidth = 0,
                                                 int weight = 400);
+        virtual SP<ITexture>         renderText(Hyprgraphics::CTextResource::STextResourceData&& data);
         SP<ITexture>                 loadAsset(const std::string& filename);
         virtual bool                 shouldUseNewBlurOptimizations(PHLLS pLayer, PHLWINDOW pWindow);
         virtual bool                 explicitSyncSupported()                                                                              = 0;
@@ -190,7 +195,9 @@ namespace Render {
         void                            preBlurForCurrentMonitor(CRegion* fakeDamage);
 
         SCMSettings                     getCMSettings(const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
-                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
+                                                      SP<CWLSurfaceResource> surface = nullptr, bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1,
+                                                      bool shouldUseSurface = false);
+        void                            clearCMSettingsCache();
         virtual bool                    reloadShaders(const std::string& path = "") = 0;
 
       protected:
@@ -216,11 +223,24 @@ namespace Render {
 
         SP<ITexture>         getBackground(PHLMONITOR pMonitor);
         virtual SP<ITexture> getBlurTexture(PHLMONITORREF pMonitor);
-        SP<ITexture>         m_lockDeadTexture;
-        SP<ITexture>         m_lockDead2Texture;
-        SP<ITexture>         m_lockTtyTextTexture;
-        bool                 m_monitorTransformEnabled = false; // do not modify directly
-        std::stack<bool>     m_monitorTransformStack;
+
+        struct SCMSettingsCacheEntry {
+            uint64_t    srcDescId = 0, dstDescId = 0;
+            void*       surfacePtr      = nullptr; // read-only!!
+            bool        modifySDR       = false;
+            float       sdrMinLuminance = -1.F;
+            int         sdrMaxLuminance = -1;
+            SCMSettings settings;
+        };
+        std::vector<SCMSettingsCacheEntry> m_cmSettingsCache;
+
+        SP<ITexture>                       m_lockDeadTexture;
+        SP<ITexture>                       m_lockDead2Texture;
+        SP<ITexture>                       m_lockTtyTextTexture;
+        bool                               m_monitorTransformEnabled = false; // do not modify directly
+        std::stack<bool>                   m_monitorTransformStack;
+
+        void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);

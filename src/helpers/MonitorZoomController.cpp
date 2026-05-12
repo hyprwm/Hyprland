@@ -7,11 +7,27 @@
 #include "desktop/DesktopTypes.hpp"
 #include "render/Renderer.hpp"
 
+void CMonitorZoomController::pinAnchor(const Vector2D& anchor) {
+    m_pinnedAnchor = anchor;
+    m_anchorPinned = true;
+}
+
+void CMonitorZoomController::clearAnchor() {
+    m_anchorPinned = false;
+}
+
+Vector2D CMonitorZoomController::getAnchor(const PHLMONITORREF& monitor) {
+    if (m_anchorPinned)
+        return m_pinnedAnchor;
+
+    return g_pInputManager->getMouseCoordsInternal() - monitor->m_position;
+}
+
 void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::SRenderData& m_renderData) {
     const auto m      = m_renderData.pMonitor;
     auto       monbox = CBox(0, 0, m->m_size.x, m->m_size.y);
     const auto ZOOM   = g_pHyprRenderer->m_renderData.mouseZoomFactor;
-    const auto MOUSE  = g_pInputManager->getMouseCoordsInternal() - m->m_position;
+    const auto MOUSE  = getAnchor(m);
 
     if (m_lastZoomLevel != ZOOM) {
         if (m_resetCameraState) {
@@ -69,11 +85,11 @@ void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::
 }
 
 void CMonitorZoomController::applyZoomTransform(CBox& monbox, const Render::SRenderData& m_renderData) {
-    static auto PZOOMRIGID          = CConfigValue<Hyprlang::INT>("cursor:zoom_rigid");
-    static auto PZOOMDETACHEDCAMERA = CConfigValue<Hyprlang::INT>("cursor:zoom_detached_camera");
+    static auto PZOOMRIGID          = CConfigValue<Config::INTEGER>("cursor:zoom_rigid");
+    static auto PZOOMDETACHEDCAMERA = CConfigValue<Config::INTEGER>("cursor:zoom_detached_camera");
     const auto  ZOOM                = g_pHyprRenderer->m_renderData.mouseZoomFactor;
 
-    if (ZOOM == 1.0f)
+    if (ZOOM == 1.F)
         return;
 
     const auto m        = m_renderData.pMonitor;
@@ -83,8 +99,7 @@ void CMonitorZoomController::applyZoomTransform(CBox& monbox, const Render::SRen
     if (*PZOOMDETACHEDCAMERA && !INITANIM)
         zoomWithDetachedCamera(monbox, m_renderData);
     else {
-        const auto ZOOMCENTER =
-            g_pHyprRenderer->m_renderData.mouseZoomUseMouse ? (g_pInputManager->getMouseCoordsInternal() - m->m_position) * m->m_scale : m->m_transformedSize / 2.f;
+        const auto ZOOMCENTER = g_pHyprRenderer->m_renderData.mouseZoomUseMouse ? getAnchor(m) * m->m_scale : m->m_transformedSize / 2.f;
 
         monbox.translate(-ZOOMCENTER).scale(ZOOM).translate(*PZOOMRIGID ? m->m_transformedSize / 2.0 : ZOOMCENTER);
     }

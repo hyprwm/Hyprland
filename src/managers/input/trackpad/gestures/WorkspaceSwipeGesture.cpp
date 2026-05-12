@@ -9,7 +9,7 @@
 void CWorkspaceSwipeGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    static auto PSWIPENEW = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
+    static auto PSWIPENEW = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
 
     if (g_pSessionLockManager->isSessionLocked() || g_pUnifiedWorkspaceSwipe->isGestureInProgress())
         return;
@@ -32,7 +32,7 @@ void CWorkspaceSwipeGesture::update(const ITrackpadGesture::STrackpadGestureUpda
 
     const float  DELTA = distance(e);
 
-    static auto  PSWIPEINVR = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_invert");
+    static auto  PSWIPEINVR = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_invert");
 
     const double D = g_pUnifiedWorkspaceSwipe->m_delta + (*PSWIPEINVR ? -DELTA : DELTA);
     g_pUnifiedWorkspaceSwipe->update(D);

@@ -68,6 +68,18 @@ void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
     m_group->current()->m_fullscreenState.internal = mode;
 }
 
+bool CWindowGroupTarget::layoutManagedFullscreen() const {
+    return m_group->current()->m_target->layoutManagedFullscreen();
+}
+
+void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) {
+    ITarget::setLayoutManagedFullscreen(enabled);
+
+    for (const auto& w : m_group->windows()) {
+        w->m_target->setLayoutManagedFullscreen(enabled);
+    }
+}
+
 std::optional<Vector2D> CWindowGroupTarget::minSize() {
     return m_group->current()->minSize();
 }

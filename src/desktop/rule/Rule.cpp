@@ -104,8 +104,20 @@ std::underlying_type_t<eRuleProperty> IRule::getPropertiesMask() {
     return m_mask;
 }
 
+void IRule::setEnabled(bool enable) {
+    m_enabled = enable;
+}
+
+bool IRule::isEnabled() const {
+    return m_enabled;
+}
+
 bool IRule::has(eRuleProperty p) {
     return m_matchEngines.contains(p);
+}
+
+bool IRule::canMatch() const {
+    return !m_matchEngines.empty() && m_enabled;
 }
 
 bool IRule::matches(eRuleProperty p, const std::string& s) {

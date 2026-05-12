@@ -22,12 +22,13 @@ namespace Config {
         // merge other into us
         void                               mergeLeft(const CWorkspaceRule& other);
 
+        bool                               m_enabled         = true;
         std::string                        m_monitor         = "";
         std::string                        m_workspaceString = "";
         std::string                        m_workspaceName   = "";
         WORKSPACEID                        m_workspaceId     = -1;
-        bool                               m_isDefault       = false;
-        bool                               m_isPersistent    = false;
+        std::optional<bool>                m_isDefault;
+        std::optional<bool>                m_isPersistent;
         std::optional<CCssGapData>         m_gapsIn;
         std::optional<CCssGapData>         m_gapsOut;
         std::optional<CCssGapData>         m_floatGaps = m_gapsOut;

@@ -6,7 +6,9 @@
 #include "../render/Renderer.hpp"
 
 #include <hyprutils/math/Vector2D.hpp>
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
 
 CToplevelExportClient::CToplevelExportClient(SP<CHyprlandToplevelExportManagerV1> resource_) : m_resource(resource_) {
@@ -73,8 +75,8 @@ CToplevelExportFrame::CToplevelExportFrame(SP<CHyprlandToplevelExportFrameV1> re
     DRMFormat  format  = formats.at(0);
     auto       bufSize = m_frame->bufferSize();
 
-    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(format);
-    const auto stride   = NFormatUtils::minStride(PSHMINFO, bufSize.x);
+    const auto PSHMINFO = getPixelFormatFromDRM(format);
+    const auto stride   = minStride(PSHMINFO, bufSize.x);
     m_resource->sendBuffer(NFormatUtils::drmToShm(format), bufSize.x, bufSize.y, stride);
 
     if LIKELY (format != DRM_FORMAT_INVALID)

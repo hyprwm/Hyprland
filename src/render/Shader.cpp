@@ -1,5 +1,5 @@
 #include "Shader.hpp"
-#include "../hyprerror/HyprError.hpp"
+#include "../errorOverlay/Overlay.hpp"
 #include "../config/ConfigValue.hpp"
 #include "OpenGL.hpp"
 
@@ -45,7 +45,7 @@ void CShader::logShaderError(const GLuint& shader, bool program, bool silent) {
     Log::logger->log(Log::ERR, "Failed to link shader: {}", FULLERROR);
 
     if (!silent)
-        g_pHyprError->queueError(FULLERROR);
+        ErrorOverlay::overlay()->queueError(FULLERROR);
 }
 
 GLuint CShader::compileShader(const GLuint& type, std::string src, bool dynamic, bool silent) {
@@ -126,6 +126,7 @@ void CShader::getUniformLocations() {
 
     m_uniformLocations[SHADER_PROJ]        = getUniform("proj");
     m_uniformLocations[SHADER_COLOR]       = getUniform("color");
+    m_uniformLocations[SHADER_COLOR_SRGB]  = getUniform("colorSRGB");
     m_uniformLocations[SHADER_ALPHA_MATTE] = getUniform("texMatte");
     m_uniformLocations[SHADER_TEX_TYPE]    = getUniform("texType");
 
@@ -161,8 +162,10 @@ void CShader::getUniformLocations() {
         m_uniformLocations[SHADER_SHADER_VBO_POS]
         m_uniformLocations[SHADER_SHADER_VBO_UV]
         */
-    m_uniformLocations[SHADER_TOP_LEFT]     = getUniform("topLeft");
-    m_uniformLocations[SHADER_BOTTOM_RIGHT] = getUniform("bottomRight");
+    m_uniformLocations[SHADER_TOP_LEFT]            = getUniform("topLeft");
+    m_uniformLocations[SHADER_BOTTOM_RIGHT]        = getUniform("bottomRight");
+    m_uniformLocations[SHADER_WINDOW_TOP_LEFT]     = getUniform("windowTopLeft");
+    m_uniformLocations[SHADER_WINDOW_BOTTOM_RIGHT] = getUniform("windowBottomRight");
 
     // compat for screenshaders
     auto fullSize = getUniform("fullSize");

@@ -13,6 +13,7 @@
 #include "../../render/decorations/IHyprWindowDecoration.hpp"
 #include "../../render/Transformer.hpp"
 #include "../DesktopTypes.hpp"
+#include "../types/MultiAnimatedVariable.hpp"
 #include "Popup.hpp"
 #include "Subsurface.hpp"
 #include "WLSurface.hpp"
@@ -55,7 +56,7 @@ namespace Desktop::View {
         GROUP_DENY        = 1 << 7, // deny
     };
 
-    enum eGetWindowProperties : uint8_t {
+    enum eGetWindowProperties : uint16_t {
         WINDOW_ONLY              = 0,
         RESERVED_EXTENTS         = 1 << 0,
         INPUT_EXTENTS            = 1 << 1,
@@ -65,6 +66,7 @@ namespace Desktop::View {
         USE_PROP_TILED           = 1 << 5,
         SKIP_FULLSCREEN_PRIORITY = 1 << 6,
         FOCUS_PRIORITY           = 1 << 7,
+        FOLLOW_MOUSE_CHECK       = 1 << 8,
     };
 
     enum eSuppressEvents : uint8_t {
@@ -74,6 +76,26 @@ namespace Desktop::View {
         SUPPRESS_ACTIVATE           = 1 << 2,
         SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
         SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+    };
+
+    enum eWindowAlpha : uint8_t {
+        WINDOW_ALPHA_FADE = 0,
+        WINDOW_ALPHA_ACTIVE,
+        WINDOW_ALPHA_FULLSCREEN,
+        WINDOW_ALPHA_LAYOUT,
+        WINDOW_ALPHA_MOVE_TO_WORKSPACE,
+        WINDOW_ALPHA_MOVE_FROM_WORKSPACE,
+
+        WINDOW_ALPHA_LAST,
+    };
+
+    enum eWindowInputBlockReason : uint8_t {
+        INPUT_BLOCK_NONE             = 0,
+        INPUT_BLOCK_GROUP_INACTIVE   = (1 << 0),
+        INPUT_BLOCK_MONOCLE_INACTIVE = (1 << 1),
+        INPUT_BLOCK_BELOW_FULLSCREEN = (1 << 2),
+
+        INPUT_BLOCK_ALL = std::numeric_limits<std::underlying_type_t<eWindowInputBlockReason>>::max(),
     };
 
     struct SWindowActiveEvent {
@@ -188,14 +210,18 @@ namespace Desktop::View {
         PHLANIMVAR<float>          m_borderFadeAnimationProgress;
         PHLANIMVAR<float>          m_borderAngleAnimationProgress;
 
+        // Cached border size (invalidated by updateWindowData)
+        mutable int  m_cachedBorderSize     = -1;
+        mutable bool m_borderSizeCacheDirty = true;
+
         // Fade in-out
-        PHLANIMVAR<float> m_alpha;
-        bool              m_fadingOut     = false;
-        bool              m_readyToDelete = false;
-        Vector2D          m_originalClosedPos;  // these will be used for calculations later on in
-        Vector2D          m_originalClosedSize; // drawing the closing animations
-        SBoxExtents       m_originalClosedExtents;
-        bool              m_animatingIn = false;
+        Desktop::Types::CMultiAVarContainer<float, eWindowAlpha, WINDOW_ALPHA_LAST> m_alpha;
+        bool                                                                        m_fadingOut     = false;
+        bool                                                                        m_readyToDelete = false;
+        Vector2D                                                                    m_originalClosedPos;  // these will be used for calculations later on in
+        Vector2D                                                                    m_originalClosedSize; // drawing the closing animations
+        SBoxExtents                                                                 m_originalClosedExtents;
+        bool                                                                        m_animatingIn = false;
 
         // For pinned (sticky) windows
         bool m_pinned = false;
@@ -220,10 +246,6 @@ namespace Desktop::View {
         // Transformers
         std::vector<UP<IWindowTransformer>> m_transformers;
 
-        // for alpha
-        PHLANIMVAR<float> m_activeInactiveAlpha;
-        PHLANIMVAR<float> m_movingFromWorkspaceAlpha;
-
         // animated shadow color
         PHLANIMVAR<CHyprColor> m_realShadowColor;
 
@@ -234,8 +256,7 @@ namespace Desktop::View {
         PHLANIMVAR<float> m_dimPercent;
 
         // animate moving to an invisible workspace
-        int               m_monitorMovedFrom = -1; // -1 means not moving
-        PHLANIMVAR<float> m_movingToWorkspaceAlpha;
+        int m_monitorMovedFrom = -1; // -1 means not moving
 
         // swallowing
         PHLWINDOWREF m_swallowed;
@@ -266,6 +287,11 @@ namespace Desktop::View {
         // For the noclosefor windowrule
         Time::steady_tp m_closeableSince = Time::steadyNow();
 
+        // layout-settable flags. These are reset when layout changes.
+        struct {
+            bool cantLockCursor = false;
+        } m_layoutFlags;
+
         // For the list lookup
         bool operator==(const CWindow& rhs) const {
             return m_xdgSurface == rhs.m_xdgSurface && m_xwaylandSurface == rhs.m_xwaylandSurface && m_position == rhs.m_position && m_size == rhs.m_size &&
@@ -292,7 +318,28 @@ namespace Desktop::View {
         void                       onUnmap();
         void                       onMap();
         void                       setHidden(bool hidden);
-        bool                       isHidden();
+        bool                       isHidden() const;
+        void                       setInputBlocked(eWindowInputBlockReason reason, bool blocked);
+        bool                       isInputBlocked() const;
+        bool                       isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
+        bool                       isInputBlockedOnly(eWindowInputBlockReason reason) const;
+        bool                       acceptsInput() const;
+        bool                       isAllowedOverFullscreen() const;
+        bool                       isBlockedByFullscreen() const;
+        bool                       isFadingOutUnderFullscreen() const;
+        bool                       shouldRenderOverFullscreen() const;
+        void                       updateFullscreenInputState();
+        PHLANIMVAR<float>&         alpha(eWindowAlpha type);
+        const PHLANIMVAR<float>&   alpha(eWindowAlpha type) const;
+        float                      alphaValue(eWindowAlpha type) const;
+        float                      alphaGoal(eWindowAlpha type) const;
+        float                      alphaTotal() const;
+        float                      alphaTotalGoal() const;
+        float                      alphaTotalWithout(eWindowAlpha type) const;
+        float                      effectiveAlpha() const;
+        bool                       visibleByAlpha() const;
+        bool                       visibleByAlphaGoal() const;
+        bool                       targetVisible() const;
         void                       updateDecorationValues();
         SBoxExtents                getFullWindowReservedArea();
         Vector2D                   middle();
@@ -308,7 +355,7 @@ namespace Desktop::View {
         void                       activate(bool force = false);
         int                        surfacesCount();
         bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                       isFullscreen();
+        bool                       isFullscreen() const;
         bool                       isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                        getRealBorderSize() const;
         float                      getScrollMouse();
@@ -352,10 +399,12 @@ namespace Desktop::View {
         SP<CWLSurfaceResource>     getSolitaryResource();
         Vector2D                   getReportedSize();
         std::optional<Vector2D>    calculateExpression(const std::string& s);
+        std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
         std::optional<Vector2D>    minSize();
         std::optional<Vector2D>    maxSize();
         SP<Layout::ITarget>        layoutTarget();
         bool                       canBeGroupedInto(SP<CGroup> group);
+        void                       sendClose();
 
         CBox                       getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
@@ -395,9 +444,10 @@ namespace Desktop::View {
         void                  unmanagedSetGeometry();
 
         // For hidden windows and stuff
-        bool        m_hidden        = false;
-        bool        m_suspended     = false;
-        WORKSPACEID m_lastWorkspace = WORKSPACE_INVALID;
+        bool        m_hidden            = false;
+        bool        m_suspended         = false;
+        WORKSPACEID m_lastWorkspace     = WORKSPACE_INVALID;
+        uint32_t    m_inputBlockReasons = INPUT_BLOCK_NONE;
     };
 
     inline bool valid(PHLWINDOW w) {

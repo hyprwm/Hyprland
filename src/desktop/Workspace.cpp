@@ -1,6 +1,8 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
+#include "view/LayerSurface.hpp"
 #include "../Compositor.hpp"
+#include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
@@ -8,12 +10,14 @@
 #include "../managers/EventManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../layout/space/Space.hpp"
+#include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../event/EventBus.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Desktop::View;
 
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
@@ -52,7 +56,7 @@ void CWorkspace::init(PHLWORKSPACE self) {
     m_inert = false;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
     if (self->m_wasCreatedEmpty)
         if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
@@ -81,6 +85,18 @@ PHLWINDOW CWorkspace::getLastFocusedWindow() {
         return nullptr;
 
     return m_lastFocusedWindow.lock();
+}
+
+PHLWINDOW CWorkspace::getFocusCandidate() {
+    auto pWindow = getLastFocusedWindow();
+
+    if (!pWindow)
+        pWindow = getTopLeftWindow();
+
+    if (!pWindow)
+        pWindow = getFirstWindow();
+
+    return pWindow;
 }
 
 std::string CWorkspace::getConfigName() {
@@ -184,7 +200,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto SHOULDBESPECIAL = configStringToInt(prop);
+                const auto SHOULDBESPECIAL = Config::ParserUtils::parseInt(prop);
 
                 if (SHOULDBESPECIAL && sc<bool>(*SHOULDBESPECIAL) != m_isSpecialWorkspace)
                     return false;
@@ -219,7 +235,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 if (prop.starts_with("e:") && !m_name.ends_with(prop.substr(2)))
                     return false;
 
-                const auto WANTSNAMED = configStringToInt(prop);
+                const auto WANTSNAMED = Config::ParserUtils::parseInt(prop);
 
                 if (WANTSNAMED && *WANTSNAMED != (m_id <= -1337))
                     return false;
@@ -403,6 +419,9 @@ bool CWorkspace::isVisible() {
 
 bool CWorkspace::isVisibleNotCovered() {
     const auto PMONITOR = m_monitor.lock();
+    if (!PMONITOR)
+        return false;
+
     if (PMONITOR->m_activeSpecialWorkspace)
         return PMONITOR->m_activeSpecialWorkspace->m_id == m_id;
 
@@ -419,11 +438,14 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
         if (!t)
             continue;
 
+        const auto visibilityFulfilled =
+            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+
         if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
         if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && (!t->window() || t->window()->isHidden() == onlyVisible.value()))
+        if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
             continue;
         no++;
     }
@@ -436,13 +458,16 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
     for (auto const& g : Desktop::View::groups()) {
         const auto HEAD = g->head();
 
+        const auto visibilityFulfilled =
+            g->current() && !g->current()->isHidden() && !g->current()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+
         if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
         if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
             continue;
         if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyVisible.has_value() && g->current()->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && visibilityFulfilled != onlyVisible.value())
             continue;
         no++;
     }
@@ -451,7 +476,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 
 PHLWINDOW CWorkspace::getFirstWindow() {
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->m_isMapped && !w->isHidden())
+        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
 
@@ -462,7 +487,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -514,9 +539,9 @@ void CWorkspace::rename(const std::string& name) {
     m_name = name;
 
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
-    setPersistent(WORKSPACERULE.m_isPersistent);
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
-    if (WORKSPACERULE.m_isPersistent)
+    if (WORKSPACERULE.m_isPersistent.value_or(false))
         g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
@@ -524,7 +549,10 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t->fullscreenMode() != FSMODE_NONE; });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
+
+    if (!m_hasFullscreenWindow)
+        m_fullscreenMode = FSMODE_NONE;
 
     for (auto const& t : m_space->targets()) {
         if (t->window())
@@ -546,4 +574,16 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
+}
+
+void CWorkspace::setNoMembersAboveFullscreen() {
+    // make all windows and layers on the same workspace under the fullscreen window
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+            w->m_createdOverFullscreen = false;
+    }
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_monitor)
+            ls->m_aboveFullscreen = false;
+    }
 }

@@ -127,6 +127,7 @@ vec3 tfST240(vec3 color) {
 
 vec3 toLinearRGB(vec3 color, int tf) {
     switch (tf) {
+        case CM_TRANSFER_FUNCTION_LINEAR: return color;
         case CM_TRANSFER_FUNCTION_EXT_LINEAR: return color;
         case CM_TRANSFER_FUNCTION_ST2084_PQ: return tfInvPQ(color);
         case CM_TRANSFER_FUNCTION_GAMMA22: return pow(max(color, vec3(0.0)), vec3(2.2));
@@ -179,7 +180,7 @@ vec3 fromLinearRGB(vec3 color, int tf) {
 }
 
 vec4 fromLinear(vec4 color, int tf) {
-    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
+    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR || tf == CM_TRANSFER_FUNCTION_LINEAR)
         return color;
 
     color.rgb /= max(color.a, 0.001);
@@ -189,14 +190,13 @@ vec4 fromLinear(vec4 color, int tf) {
 }
 
 vec4 fromLinearNit(vec4 color, int tf, vec2 range) {
-    if (tf == CM_TRANSFER_FUNCTION_EXT_LINEAR)
-        color.rgb = color.rgb / SDR_MAX_LUMINANCE;
-    else {
-        color.rgb /= max(color.a, 0.001);
-        color.rgb = (color.rgb - range[0]) / (range[1] - range[0]);
-        color.rgb = fromLinearRGB(color.rgb, tf);
-        color.rgb *= color.a;
-    }
+    if (tf == CM_TRANSFER_FUNCTION_LINEAR)
+        return color;
+
+    color.rgb = (color.rgb - range[0] * color.a) / (range[1] - range[0]); // @gulafaran
+    color.rgb /= max(color.a, 0.001);
+    color.rgb = fromLinearRGB(color.rgb, tf);
+    color.rgb *= color.a;
     return color;
 }
 
@@ -209,7 +209,7 @@ vec4[2]
 #else
 vec4
 #endif
-    doColorManagement(vec4 pixColor, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
+    doColorManagement(vec4 pixColor, float additionalAlpha, int srcTF, int dstTF, mat3 convertMatrix, vec2 srcTFRange, vec2 dstTFRange
 #if USE_ICC
                       ,
                       highp sampler3D iccLut3D, float iccLutSize
@@ -228,21 +228,29 @@ vec4
 #endif
 #endif
     ) {
-    pixColor.rgb /= max(pixColor.a, 0.001);
+    float sourceAlpha = pixColor.a;
+    float finalAlpha  = sourceAlpha * additionalAlpha;
+
+    pixColor.rgb /= max(sourceAlpha, 0.001);
     pixColor.rgb = toLinearRGB(pixColor.rgb, srcTF);
+    
 #if USE_ICC
     pixColor.rgb = applyIcc3DLut(pixColor.rgb, iccLut3D, iccLutSize);
+    pixColor.a   = finalAlpha;
     pixColor.rgb *= pixColor.a;
 #else
     pixColor.rgb = convertMatrix * pixColor.rgb;
-    pixColor     = toNit(pixColor, srcTFRange);
+    if (srcTF != CM_TRANSFER_FUNCTION_LINEAR)
+        pixColor = toNit(pixColor, srcTFRange);
+    pixColor.a   = finalAlpha;
     pixColor.rgb *= pixColor.a;
 #if USE_TONEMAP
     pixColor = tonemap(pixColor, dstxyz, maxLuminance, dstMaxLuminance, dstRefLuminance, srcRefLuminance);
 #endif
+
 #if USE_MIRROR
     // TODO HDR -> SDR tonemap
-    vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_GAMMA22,
+    vec4 mirrorColor = fromLinearNit(pixColor, CM_TRANSFER_FUNCTION_SRGB,
                                      srcTF == CM_TRANSFER_FUNCTION_GAMMA22 || srcTF == CM_TRANSFER_FUNCTION_SRGB ? srcTFRange : vec2(SDR_MIN_LUMINANCE, SDR_MAX_LUMINANCE));
 #endif
     pixColor = fromLinearNit(pixColor, dstTF, dstTFRange);

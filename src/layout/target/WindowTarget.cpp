@@ -43,7 +43,7 @@ void CWindowTarget::updatePos() {
     if (!m_space)
         return;
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN)
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
         return;
 
     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
@@ -83,7 +83,24 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN)
+    if (fullscreenMode() == FSMODE_FULLSCREEN && layoutManagedFullscreen()) {
+        CBox nodeBox   = m_box.logicalBox;
+        CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
+        nodeBox.round();
+        visualBox.round();
+
+        m_window->m_size     = nodeBox.size();
+        m_window->m_position = nodeBox.pos();
+
+        *m_window->m_realSize     = visualBox.size();
+        *m_window->m_realPosition = visualBox.pos();
+
+        m_window->updateWindowDecos();
+        m_window->sendWindowSize();
+        return;
+    }
+
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
         return;
 
     g_pHyprRenderer->damageWindow(window());
@@ -110,12 +127,12 @@ void CWindowTarget::updatePos() {
         const bool        DISPLAYINVERSELEFT  = STICKS(m_box.logicalBox.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w);
         const bool        DISPLAYINVERSERIGHT = STICKS(m_box.logicalBox.x + m_box.logicalBox.w, MONITOR_WORKAREA.x);
 
-        static auto       PGAPSINDATA = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-        auto* const       PGAPSIN     = sc<Config::CCssGapData*>((PGAPSINDATA.ptr())->getData());
+        static auto       PGAPSINDATA = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
+        auto* const       PGAPSIN     = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
         auto              gapsIn      = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
 
-        const static auto REQUESTEDRATIO          = CConfigValue<Hyprlang::VEC2>("layout:single_window_aspect_ratio");
-        const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Hyprlang::FLOAT>("layout:single_window_aspect_ratio_tolerance");
+        const static auto REQUESTEDRATIO          = CConfigValue<Config::VEC2>("layout:single_window_aspect_ratio");
+        const static auto REQUESTEDRATIOTOLERANCE = CConfigValue<Config::FLOAT>("layout:single_window_aspect_ratio_tolerance");
 
         Vector2D          ratioPadding;
 
@@ -175,7 +192,7 @@ void CWindowTarget::updatePos() {
 
     Vector2D    availableSpace = calcSize;
 
-    static auto PCLAMP_TILED = CConfigValue<Hyprlang::INT>("misc:size_limits_tiled");
+    static auto PCLAMP_TILED = CConfigValue<Config::INTEGER>("misc:size_limits_tiled");
 
     if (*PCLAMP_TILED) {
         Vector2D minSize = m_window->m_ruleApplicator->minSize().valueOr(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
@@ -190,7 +207,7 @@ void CWindowTarget::updatePos() {
 
     if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {
         // if special, we adjust the coords a bit
-        static auto PSCALEFACTOR = CConfigValue<Hyprlang::FLOAT>("dwindle:special_scale_factor");
+        static auto PSCALEFACTOR = CConfigValue<Config::FLOAT>("dwindle:special_scale_factor");
 
         CBox        wb = {calcPos + (calcSize - calcSize * *PSCALEFACTOR) / 2.f, calcSize * *PSCALEFACTOR};
         wb.round(); // avoid rounding mess
@@ -206,6 +223,7 @@ void CWindowTarget::updatePos() {
     }
 
     m_window->updateWindowDecos();
+    m_window->sendWindowSize();
 }
 
 void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2D> focalPoint) {
@@ -213,6 +231,8 @@ void CWindowTarget::assignToSpace(const SP<CSpace>& space, std::optional<Vector2
         ITarget::assignToSpace(space, focalPoint);
         return;
     }
+
+    m_window->m_layoutFlags = {};
 
     // keep the ref here so that moveToWorkspace doesn't unref the workspace
     // and assignToSpace doesn't think this is a new target because space wp is dead
@@ -235,6 +255,8 @@ bool CWindowTarget::floating() {
 void CWindowTarget::setFloating(bool x) {
     if (x == m_window->m_isFloating)
         return;
+
+    m_window->m_layoutFlags = {};
 
     m_window->m_isFloating = x;
     m_window->m_pinned     = false;
@@ -278,7 +300,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
         return std::unexpected(GEOMETRY_NO_DESIRED);
     }
 
-    static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+    static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
     const auto  toLogical          = [&](SGeometryRequested& req) {
         if (m_window->m_isX11 && *PXWLFORCESCALEZERO && PMONITOR)
             req.size /= PMONITOR->m_scale;

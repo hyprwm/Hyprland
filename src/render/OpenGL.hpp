@@ -174,7 +174,6 @@ namespace Render::GL {
             GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;
-            SP<CMonitor>           cmBackToSRGBSource;
 
             uint32_t               discardMode    = DISCARD_OPAQUE;
             float                  discardOpacity = 0.f;
@@ -339,6 +338,7 @@ namespace Render::GL {
         void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const NColorManagement::PImageDescription targetImageDescription,
                                         bool modifySDR = false, float sdrMinLuminance = -1.0f, int sdrMaxLuminance = -1);
         void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription);
+        void             passCMUniforms(WP<CShader>, const NColorManagement::PImageDescription imageDescription, const SCMSettings& settings);
         void             renderRectInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithBlurInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);
         void             renderRectWithDamageInternal(const CBox&, const CHyprColor&, const SRectRenderData& data);

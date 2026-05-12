@@ -88,6 +88,10 @@ INFO COMMANDS
 
     Returns the current random splash.
 
+**status**
+
+    Returns internal status information like config format or backend.
+
 OPTIONS
 =======
 

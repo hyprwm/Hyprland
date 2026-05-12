@@ -14,8 +14,11 @@
 #include "../../render/pass/RectPassElement.hpp"
 #include "helpers/cm/ColorManagement.hpp"
 #include <hyprutils/math/Region.hpp>
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
+using namespace Desktop::View;
 
 CScreenshareFrame::CScreenshareFrame(WP<CScreenshareSession> session, bool overlayCursor, bool isFirst) :
     m_session(session), m_bufferSize(m_session->bufferSize()), m_overlayCursor(overlayCursor), m_isFirst(isFirst) {
@@ -169,6 +172,16 @@ void CScreenshareFrame::renderMonitor() {
         return;
     }
 
+    if (!TEXTURE->m_imageDescription)
+        Log::logger->log(Log::ERR, "CM: FIXME no source image description for screenshare");
+
+    if (!g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+        Log::logger->log(Log::ERR, "CM: FIXME no target image description for screenshare");
+
+    if (TEXTURE->m_imageDescription && g_pHyprRenderer->m_renderData.currentFB->imageDescription())
+        Log::logger->log(Log::TRACE, "CM: screenshot renderMonitor {} -> {}", TEXTURE->m_imageDescription->value(),
+                         g_pHyprRenderer->m_renderData.currentFB->imageDescription()->value());
+
     const bool IS_CM_AWARE                        = PROTO::colorManagement && PROTO::colorManagement->isClientCMAware(m_session->m_client);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->m_renderData.noSimplify      = true;
@@ -183,11 +196,10 @@ void CScreenshareFrame::renderMonitor() {
     g_pHyprRenderer->startRenderPass();
     g_pHyprRenderer->draw(
         CTexPassElement::SRenderData{
-            .tex                = TEXTURE,
-            .box                = monbox,
-            .flipEndFrame       = true,
-            .cmBackToSRGB       = !IS_CM_AWARE,
-            .cmBackToSRGBSource = !IS_CM_AWARE ? PMONITOR : nullptr,
+            .tex          = TEXTURE,
+            .box          = monbox,
+            .flipEndFrame = true,
+            .cmBackToSRGB = !IS_CM_AWARE,
         },
         {0, 0, PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y});
     g_pHyprRenderer->m_renderData.renderModif.enabled = OLD;
@@ -247,7 +259,7 @@ void CScreenshareFrame::renderMonitor() {
 
         const auto PWORKSPACE = w->m_workspace;
 
-        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->m_alpha->value() != 0.f)
+        if UNLIKELY (!PWORKSPACE && !w->m_fadingOut && w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) != 0.f)
             continue;
 
         const auto renderOffset     = PWORKSPACE && !w->m_pinned ? PWORKSPACE->m_renderOffset->value() : Vector2D{};
@@ -333,15 +345,15 @@ void CScreenshareFrame::render() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
     CRegion    frameRegion = {0, 0, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.x, g_pHyprRenderer->m_renderData.pMonitor->m_pixelSize.y};
-    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING) {
-        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
+
+    g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
+
+    if (PERM == PERMISSION_RULE_ALLOW_MODE_PENDING)
         return;
-    }
 
     bool windowShareDenied = m_session->m_type == SHARE_WINDOW && m_session->m_window->m_ruleApplicator && m_session->m_window->m_ruleApplicator->noScreenShare().valueOrDefault();
     g_pHyprRenderer->startRenderPass();
     if (PERM == PERMISSION_RULE_ALLOW_MODE_DENY || windowShareDenied) {
-        g_pHyprRenderer->draw(CClearPassElement::SClearData{{0, 0, 0, 0}}, frameRegion);
         CBox texbox = CBox{m_bufferSize / 2.F, g_pHyprRenderer->m_screencopyDeniedTexture->m_size}.translate(-g_pHyprRenderer->m_screencopyDeniedTexture->m_size / 2.F);
         g_pHyprRenderer->draw(CTexPassElement::SRenderData{.tex = g_pHyprRenderer->m_screencopyDeniedTexture, .box = texbox}, texbox);
         return;
@@ -371,7 +383,7 @@ bool CScreenshareFrame::copyDmabuf() {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering to dma frame");
         return false;
     }
-    g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    g_pHyprRenderer->m_renderData.currentFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     render();
 
@@ -395,7 +407,7 @@ bool CScreenshareFrame::copyShm() {
 
     auto       shm = m_buffer->shm();
 
-    const auto PFORMAT = NFormatUtils::getPixelFormatFromDRM(shm.format);
+    const auto PFORMAT = getPixelFormatFromDRM(shm.format);
     if (!PFORMAT) {
         LOGM(Log::ERR, "Can't copy: failed to find a pixel format");
         return false;
@@ -405,7 +417,7 @@ bool CScreenshareFrame::copyShm() {
 
     auto       outFB = g_pHyprRenderer->createFB();
     outFB->alloc(m_bufferSize.x, m_bufferSize.y, shm.format);
-    outFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    outFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     if (!g_pHyprRenderer->beginFullFakeRender(PMONITOR, m_damage, outFB)) {
         LOGM(Log::ERR, "Can't copy: failed to begin rendering");
@@ -429,6 +441,7 @@ bool CScreenshareFrame::copyShm() {
     if (!m_copied) {
         LOGM(Log::TRACE, "Copied frame via shm");
         m_callback(RESULT_COPIED);
+        m_copied = true;
     }
 
     return true;
@@ -438,7 +451,7 @@ void CScreenshareFrame::storeTempFB() {
     if (!m_session->m_tempFB)
         m_session->m_tempFB = g_pHyprRenderer->createFB();
     m_session->m_tempFB->alloc(m_bufferSize.x, m_bufferSize.y);
-    m_session->m_tempFB->setImageDescription(NColorManagement::DEFAULT_IMAGE_DESCRIPTION);
+    m_session->m_tempFB->setImageDescription(NColorManagement::DEFAULT_SRGB_IMAGE_DESCRIPTION);
 
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 

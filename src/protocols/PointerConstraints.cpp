@@ -27,7 +27,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
 
     resource_->setSetRegion([this](CZwpLockedPointerV1* p, wl_resource* region) { onSetRegion(region); });
     resource_->setSetCursorPositionHint([this](CZwpLockedPointerV1* p, wl_fixed_t x, wl_fixed_t y) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+        static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
         if (!m_hlSurface)
             return;
@@ -127,9 +127,11 @@ void CPointerConstraint::activate() {
 
     // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
-        const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->m_layoutFlags.cantLockCursor) {
+            const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
+            const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
+            g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        }
     }
 
     if (m_locked)

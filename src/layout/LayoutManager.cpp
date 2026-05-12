@@ -68,17 +68,17 @@ void CLayoutManager::setTargetGeom(const CBox& box, SP<ITarget> target) {
     target->space()->setTargetGeom(box, target);
 }
 
-std::expected<void, std::string> CLayoutManager::layoutMsg(const std::string_view& sv) {
+Config::ErrorResult CLayoutManager::layoutMsg(const std::string_view& sv) {
 
     const auto MONITOR = Desktop::focusState()->monitor();
     // forward to the active workspace
     if (!MONITOR)
-        return std::unexpected("No monitor, can't find ws to target");
+        return Config::configError("No monitor, can't find ws to target", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::NO_TARGET);
 
     auto ws = MONITOR->m_activeSpecialWorkspace ? MONITOR->m_activeSpecialWorkspace : MONITOR->m_activeWorkspace;
 
     if (!ws)
-        return std::unexpected("No workspace, can't target");
+        return Config::configError("No workspace, can't target", Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::NO_TARGET);
 
     return ws->m_space->layoutMsg(sv);
 }
@@ -94,9 +94,11 @@ void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
 }
 
-void CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
-    if (target->space())
-        target->space()->setFullscreen(target, effectiveMode);
+eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
+    if (target && target->space())
+        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode);
+
+    return FULLSCREEN_REQUEST_DEFAULT;
 }
 
 void CLayoutManager::switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus) {
@@ -187,13 +189,13 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     if (!Desktop::View::validMapped(DRAGGINGWINDOW))
         return;
 
-    static auto  SNAPWINDOWGAP     = CConfigValue<Hyprlang::INT>("general:snap:window_gap");
-    static auto  SNAPMONITORGAP    = CConfigValue<Hyprlang::INT>("general:snap:monitor_gap");
-    static auto  SNAPBORDEROVERLAP = CConfigValue<Hyprlang::INT>("general:snap:border_overlap");
-    static auto  SNAPRESPECTGAPS   = CConfigValue<Hyprlang::INT>("general:snap:respect_gaps");
+    static auto  SNAPWINDOWGAP     = CConfigValue<Config::INTEGER>("general:snap:window_gap");
+    static auto  SNAPMONITORGAP    = CConfigValue<Config::INTEGER>("general:snap:monitor_gap");
+    static auto  SNAPBORDEROVERLAP = CConfigValue<Config::INTEGER>("general:snap:border_overlap");
+    static auto  SNAPRESPECTGAPS   = CConfigValue<Config::INTEGER>("general:snap:respect_gaps");
 
-    static auto  PGAPSIN  = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_in");
-    static auto  PGAPSOUT = CConfigValue<Hyprlang::CUSTOMTYPE>("general:gaps_out");
+    static auto  PGAPSIN  = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
+    static auto  PGAPSOUT = CConfigValue<Config::IComplexConfigValue>("general:gaps_out");
     const auto   GAPSNONE = Config::CCssGapData{0, 0, 0, 0};
 
     const SnapFn SNAP  = (MODE == MBIND_MOVE) ? snapMove : snapResize;
@@ -212,12 +214,12 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto   WSID          = DRAGGINGWINDOW->workspaceID();
         const bool   HASFULLSCREEN = DRAGGINGWINDOW->m_workspace && DRAGGINGWINDOW->m_workspace->m_hasFullscreenWindow;
 
-        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSIN = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSIN.ptr()) : &GAPSNONE;
         const double GAPSX  = GAPSIN->m_left + GAPSIN->m_right;
         const double GAPSY  = GAPSIN->m_top + GAPSIN->m_bottom;
 
         for (auto& other : g_pCompositor->m_windows) {
-            if ((HASFULLSCREEN && !other->m_createdOverFullscreen) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
+            if ((HASFULLSCREEN && !other->isAllowedOverFullscreen()) || other == DRAGGINGWINDOW || other->workspaceID() != WSID || !other->m_isMapped || other->m_fadingOut ||
                 other->isX11OverrideRedirect())
                 continue;
 
@@ -275,7 +277,7 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
         const auto*  EXTENTDIFF = *SNAPBORDEROVERLAP ? &EXTENTS : &EXTENTNONE;
         const auto   MON        = DRAGGINGWINDOW->m_monitor.lock();
 
-        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSOUT.ptr()->getData()) : &GAPSNONE;
+        const auto*  GAPSOUT   = *SNAPRESPECTGAPS ? sc<Config::CCssGapData*>(PGAPSOUT.ptr()) : &GAPSNONE;
         const auto   WORK_AREA = Desktop::CReservedArea{GAPSOUT->m_top, GAPSOUT->m_right, GAPSOUT->m_bottom, GAPSOUT->m_left}.apply(MON->logicalBoxMinusReserved());
 
         SRange       monX = {WORK_AREA.x, WORK_AREA.x + WORK_AREA.w};
@@ -332,18 +334,19 @@ void CLayoutManager::performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<I
     sourceSize = {sourceX.end - sourceX.start, sourceY.end - sourceY.start};
 }
 
-void CLayoutManager::recalculateMonitor(PHLMONITOR m) {
+void CLayoutManager::recalculateMonitor(PHLMONITOR m, eRecalculateMonitorReason reason) {
     if (m->m_activeSpecialWorkspace)
-        m->m_activeSpecialWorkspace->m_space->recalculate();
+        m->m_activeSpecialWorkspace->m_space->recalculate(recalcMonitorReasonToRecalcReason(reason));
+
     if (m->m_activeWorkspace)
-        m->m_activeWorkspace->m_space->recalculate();
+        m->m_activeWorkspace->m_space->recalculate(recalcMonitorReasonToRecalcReason(reason));
 }
 
 void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (ws && ws->m_monitor == m) {
             ws->m_space->recheckWorkArea();
-            ws->m_space->recalculate();
+            ws->m_space->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);
         }
     }
 }

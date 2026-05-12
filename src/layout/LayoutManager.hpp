@@ -3,6 +3,7 @@
 #include "../helpers/memory/Memory.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../config/shared/ConfigErrors.hpp"
 
 #include "supplementary/DragController.hpp"
 
@@ -39,43 +40,55 @@ namespace Layout {
         SNAP_RIGHT   = (1 << 3),
     };
 
+    enum eFullscreenRequestResult : uint8_t {
+        FULLSCREEN_REQUEST_DEFAULT = 0,
+        FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT,
+    };
+
     class CLayoutManager {
       public:
         CLayoutManager();
         ~CLayoutManager() = default;
 
-        void                             newTarget(SP<ITarget> target, SP<CSpace> space);
-        void                             removeTarget(SP<ITarget> target);
+        enum eRecalculateMonitorReason : uint8_t {
+            RECALCULATE_MONITOR_REASON_UNKNOWN, // when the recalculate monitor reason is unknown or not important to preserve
+            RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
+            RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
+            RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN,
+        };
 
-        void                             changeFloatingMode(SP<ITarget> target);
+        void                     newTarget(SP<ITarget> target, SP<CSpace> space);
+        void                     removeTarget(SP<ITarget> target);
 
-        void                             beginDragTarget(SP<ITarget> target, eMouseBindMode mode);
-        void                             moveMouse(const Vector2D& mousePos);
-        void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
-        void                             setTargetGeom(const CBox& box, SP<ITarget> target); // floats only
-        void                             endDragTarget();
+        void                     changeFloatingMode(SP<ITarget> target);
 
-        std::expected<void, std::string> layoutMsg(const std::string_view& sv);
+        void                     beginDragTarget(SP<ITarget> target, eMouseBindMode mode);
+        void                     moveMouse(const Vector2D& mousePos);
+        void                     resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void                     moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                     setTargetGeom(const CBox& box, SP<ITarget> target); // floats only
+        void                     endDragTarget();
 
-        void                             fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
+        Config::ErrorResult      layoutMsg(const std::string_view& sv);
 
-        void                             switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus = true);
+        eFullscreenRequestResult fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
 
-        void                             moveInDirection(SP<ITarget> target, const std::string& direction, bool silent = false);
+        void                     switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus = true);
 
-        SP<ITarget>                      getNextCandidate(SP<CSpace> space, SP<ITarget> from);
+        void                     moveInDirection(SP<ITarget> target, const std::string& direction, bool silent = false);
 
-        bool                             isReachable(SP<ITarget> target);
+        SP<ITarget>              getNextCandidate(SP<CSpace> space, SP<ITarget> from);
 
-        void                             bringTargetToTop(SP<ITarget> target);
+        bool                     isReachable(SP<ITarget> target);
 
-        std::optional<Vector2D>          predictSizeForNewTiledTarget();
+        void                     bringTargetToTop(SP<ITarget> target);
 
-        void                             performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
+        std::optional<Vector2D>  predictSizeForNewTiledTarget();
 
-        void                             invalidateMonitorGeometries(PHLMONITOR);
-        void                             recalculateMonitor(PHLMONITOR);
+        void                     performSnap(Vector2D& sourcePos, Vector2D& sourceSize, SP<ITarget> target, eMouseBindMode mode, int corner, const Vector2D& beginSize);
+
+        void                     invalidateMonitorGeometries(PHLMONITOR);
+        void                     recalculateMonitor(PHLMONITOR, eRecalculateMonitorReason reason = RECALCULATE_MONITOR_REASON_UNKNOWN);
 
         const UP<Supplementary::CDragStateController>& dragController();
 

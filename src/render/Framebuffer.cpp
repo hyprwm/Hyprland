@@ -62,4 +62,6 @@ void IFramebuffer::setImageDescription(NColorManagement::PImageDescription desc)
     m_imageDescription = desc;
     if (m_tex)
         m_tex->m_imageDescription = desc;
+    else
+        Log::logger->log(Log::TRACE, "CM: FIXME no framebuffer texture");
 }

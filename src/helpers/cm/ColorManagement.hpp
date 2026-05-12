@@ -1,11 +1,15 @@
 #pragma once
 
 #include "color-management-v1.hpp"
+#include <format>
 #include <hyprgraphics/color/Color.hpp>
-#include "../../helpers/memory/Memory.hpp"
-#include "../../helpers/math/Math.hpp"
+#include "../memory/Memory.hpp"
+#include "../math/Math.hpp"
+#include "../Color.hpp"
+#include "../../debug/log/Logger.hpp"
 
 #include <filesystem>
+#include <string>
 #include <vector>
 #include <expected>
 
@@ -43,6 +47,7 @@ namespace NColorManagement {
     };
 
     enum eTransferFunction : uint8_t {
+        CM_TRANSFER_FUNCTION_LINEAR     = 0,
         CM_TRANSFER_FUNCTION_BT1886     = 1,
         CM_TRANSFER_FUNCTION_GAMMA22    = 2,
         CM_TRANSFER_FUNCTION_GAMMA28    = 3,
@@ -66,9 +71,14 @@ namespace NColorManagement {
     inline ePrimaries convertPrimaries(wpColorManagerV1Primaries primaries) {
         return sc<ePrimaries>(primaries);
     }
-    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf) {
+    inline wpColorManagerV1TransferFunction convertTransferFunction(eTransferFunction tf, bool useV1SRGB = true) {
         switch (tf) {
-            case CM_TRANSFER_FUNCTION_SRGB: return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
+            case CM_TRANSFER_FUNCTION_LINEAR:
+                Log::logger->log(Log::TRACE,
+                                 "CM_TRANSFER_FUNCTION_LINEAR is internal and buffers with this TF shouldn't go outside. Returning "
+                                 "WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR for preferred description instead");
+                return WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_EXT_LINEAR;
+            case CM_TRANSFER_FUNCTION_SRGB: return useV1SRGB ? WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_SRGB : WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4;
             default: return sc<wpColorManagerV1TransferFunction>(tf);
         }
     }
@@ -76,6 +86,25 @@ namespace NColorManagement {
         switch (tf) {
             case WP_COLOR_MANAGER_V1_TRANSFER_FUNCTION_COMPOUND_POWER_2_4: return CM_TRANSFER_FUNCTION_SRGB;
             default: return sc<eTransferFunction>(tf);
+        }
+    }
+    inline std::string tfToString(eTransferFunction tf) {
+        switch (tf) {
+            case CM_TRANSFER_FUNCTION_LINEAR: return "TF:INTERNAL LINEAR NOT NORMALISED";
+            case CM_TRANSFER_FUNCTION_BT1886: return "TF:BT1886";
+            case CM_TRANSFER_FUNCTION_GAMMA22: return "TF:GAMMA22";
+            case CM_TRANSFER_FUNCTION_GAMMA28: return "TF:GAMMA28";
+            case CM_TRANSFER_FUNCTION_ST240: return "TF:ST240";
+            case CM_TRANSFER_FUNCTION_EXT_LINEAR: return "TF:EXT_LINEAR";
+            case CM_TRANSFER_FUNCTION_LOG_100: return "TF:LOG_100";
+            case CM_TRANSFER_FUNCTION_LOG_316: return "TF:LOG_316";
+            case CM_TRANSFER_FUNCTION_XVYCC: return "TF:XVYCC";
+            case CM_TRANSFER_FUNCTION_SRGB: return "TF:SRGB";
+            case CM_TRANSFER_FUNCTION_EXT_SRGB: return "TF:EXT_SRGB";
+            case CM_TRANSFER_FUNCTION_ST2084_PQ: return "TF:ST2084_PQ";
+            case CM_TRANSFER_FUNCTION_ST428: return "TF:ST428";
+            case CM_TRANSFER_FUNCTION_HLG: return "TF:HLG";
+            default: return "TF:ERROR";
         }
     }
 
@@ -320,6 +349,7 @@ namespace NColorManagement {
         uint64_t                           id() const;
 
         WP<const CPrimaries>               getPrimaries() const;
+        bool                               needsCM(WP<const CImageDescription> target) const;
 
       private:
         CImageDescription(const SImageDescription& imageDescription, const uint64_t imageDescriptionId);
@@ -328,10 +358,44 @@ namespace NColorManagement {
         SImageDescription m_imageDescription;
     };
 
+    union RGBAColor {
+        struct {
+            double r = 0, g = 0, b = 0, a = 0;
+        } c;
+        double     v[4];
+
+        RGBAColor& operator*=(double value) {
+            c.r *= value;
+            c.g *= value;
+            c.b *= value;
+            return *this;
+        }
+
+        RGBAColor& operator/=(double value) {
+            c.r /= value;
+            c.g /= value;
+            c.b /= value;
+            return *this;
+        }
+    };
+
     using PImageDescription = WP<const CImageDescription>;
 
-    static const auto DEFAULT_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+    RGBAColor         convertColor(RGBAColor color, PImageDescription srcDesc, PImageDescription dstDesc);
+    CHyprColor        convertColor(const CHyprColor& color, PImageDescription srcDesc, PImageDescription dstDesc);
+
+    PImageDescription getDefaultImageDescription();
+
+    static const auto DEFAULT_GAMMA22_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
         .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_GAMMA22,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB),
+        .luminances       = {.min = SDR_MIN_LUMINANCE, .max = 80, .reference = 80},
+    });
+
+    static const auto DEFAULT_SRGB_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_SRGB,
         .primariesNameSet = true,
         .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
         .primaries        = NColorManagement::getPrimaries(NColorManagement::CM_PRIMARIES_SRGB),
@@ -362,4 +426,42 @@ namespace NColorManagement {
         .primaries        = NColorPrimaries::BT709,
         .luminances       = {.min = 0, .max = 10000, .reference = 80},
     });
+
+    // For internal use only
+    // not normalised to 0.0 - 1.0
+    // luminance values should be set to default SDR settings in SDR mode and to output settings in HDR mode
+    // keep srgb primaries to avoid conversions for image exports
+    static const auto LINEAR_NN_IMAGE_DESCRIPTION = CImageDescription::from(SImageDescription{
+        .transferFunction = NColorManagement::CM_TRANSFER_FUNCTION_LINEAR,
+        .primariesNameSet = true,
+        .primariesNamed   = NColorManagement::CM_PRIMARIES_SRGB,
+        .primaries        = NColorPrimaries::BT709,
+    });
 }
+
+template <typename CharT>
+struct std::formatter<Hyprgraphics::SPCPRimaries, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const Hyprgraphics::SPCPRimaries& primaries, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[r={},{} g={},{} b={},{} w={},{}]", primaries.red.x, primaries.red.y, primaries.green.x, primaries.green.y, primaries.blue.x,
+                              primaries.blue.y, primaries.white.x, primaries.white.y);
+    }
+};
+
+template <typename CharT>
+struct std::formatter<NColorManagement::SImageDescription::SPCLuminances, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const NColorManagement::SImageDescription::SPCLuminances& luminances, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[{}-{}({})]", luminances.min, luminances.max, luminances.reference);
+    }
+};
+
+template <typename CharT>
+struct std::formatter<NColorManagement::SImageDescription, CharT> : std::formatter<CharT> {
+    template <typename FormatContext>
+    auto format(const NColorManagement::SImageDescription& imageDescription, FormatContext& ctx) const {
+        return std::format_to(ctx.out(), "[{}{}, primaries={}, luminances={}]", NColorManagement::tfToString(imageDescription.transferFunction),
+                              imageDescription.transferFunctionPower != 1.0f ? std::format("^{}", imageDescription.transferFunctionPower) : "", imageDescription.getPrimaries(),
+                              imageDescription.luminances);
+    }
+};

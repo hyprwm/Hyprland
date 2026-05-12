@@ -80,19 +80,24 @@ class CDecorationPositioner {
     };
 
     struct SWindowData {
-        Vector2D    lastWindowSize = {};
-        SBoxExtents reserved       = {};
-        SBoxExtents extents        = {};
-        bool        needsRecalc    = false;
+        Vector2D                                lastWindowSize         = {};
+        SBoxExtents                             reserved               = {};
+        SBoxExtents                             extents                = {};
+        SBoxExtents                             decorationExtents      = {};
+        SBoxExtents                             decorationInputExtents = {};
+        bool                                    needsRecalc            = false;
+        bool                                    needsDamageExtents     = true;
+        std::vector<UP<SWindowPositioningData>> positioningDatas;
     };
 
-    std::map<PHLWINDOWREF, SWindowData>     m_windowDatas;
-    std::vector<UP<SWindowPositioningData>> m_windowPositioningDatas;
+    std::map<PHLWINDOWREF, SWindowData> m_windowDatas;
+    bool                                m_needsSanitize = false;
 
-    SWindowPositioningData*                 getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
-    void                                    onWindowUnmap(PHLWINDOW pWindow);
-    void                                    onWindowMap(PHLWINDOW pWindow);
-    void                                    sanitizeDatas();
+    SWindowPositioningData*             getDataFor(IHyprWindowDecoration* pDecoration, PHLWINDOW pWindow);
+    SBoxExtents                         computeWindowDecorationExtents(PHLWINDOWREF pWindow, bool inputOnly);
+    void                                onWindowUnmap(PHLWINDOW pWindow);
+    void                                onWindowMap(PHLWINDOW pWindow);
+    void                                sanitizeDatas();
 };
 
 inline UP<CDecorationPositioner> g_pDecorationPositioner;

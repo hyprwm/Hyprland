@@ -39,7 +39,7 @@ CFileDescriptor& CConfigWatcher::getInotifyFD() {
 }
 
 void CConfigWatcher::update() {
-    static const auto PDISABLEAUTORELOAD = CConfigValue<Hyprlang::INT>("misc:disable_autoreload");
+    static const auto PDISABLEAUTORELOAD = CConfigValue<Config::INTEGER>("misc:disable_autoreload");
     setWatchList(*PDISABLEAUTORELOAD ? std::vector<std::string>{} : Config::mgr()->getConfigPaths());
 }
 
@@ -60,7 +60,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
     // add new paths
     for (const auto& path : paths) {
         m_watches.emplace_back(SInotifyWatch{
-            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_MODIFY | IN_DONT_FOLLOW),
+            .wd   = inotify_add_watch(m_inotifyFd.get(), path.c_str(), IN_CLOSE_WRITE | IN_DONT_FOLLOW),
             .file = path,
         });
 
@@ -69,7 +69,7 @@ void CConfigWatcher::setWatchList(const std::vector<std::string>& paths) {
         const auto      IS_SYMLINK = std::filesystem::is_symlink(path, ec2);
         if (!ec && !ec2 && IS_SYMLINK) {
             m_watches.emplace_back(SInotifyWatch{
-                .wd   = inotify_add_watch(m_inotifyFd.get(), CANONICAL.c_str(), IN_MODIFY),
+                .wd   = inotify_add_watch(m_inotifyFd.get(), CANONICAL.c_str(), IN_CLOSE_WRITE),
                 .file = path,
             });
         }

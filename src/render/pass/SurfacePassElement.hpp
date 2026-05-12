@@ -73,4 +73,8 @@ class CSurfacePassElement : public IPassElement {
     SRenderData m_data;
 
     CBox        getTexBox();
+
+  private:
+    bool m_texBoxCached = false;
+    CBox m_cachedTexBox = {};
 };

@@ -5,6 +5,7 @@
 #include "../../helpers/memory/Memory.hpp"
 
 #include "../LayoutManager.hpp"
+#include "../space/Space.hpp"
 
 #include <expected>
 #include <optional>
@@ -20,38 +21,42 @@ namespace Layout {
         static SP<CAlgorithm> create(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);
         ~CAlgorithm() = default;
 
-        void                             addTarget(SP<ITarget> target);
-        void                             moveTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt, bool reposition = false);
-        void                             removeTarget(SP<ITarget> target);
+        void                          addTarget(SP<ITarget> target);
+        void                          moveTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint = std::nullopt, bool reposition = false);
+        void                          removeTarget(SP<ITarget> target);
 
-        void                             swapTargets(SP<ITarget> a, SP<ITarget> b);
-        void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
+        void                          swapTargets(SP<ITarget> a, SP<ITarget> b);
+        void                          moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+        SP<ITarget>                   getNextCandidate(SP<ITarget> old);
 
-        void                             setFloating(SP<ITarget> target, bool floating, bool reposition = false);
+        void                          setFloating(SP<ITarget> target, bool floating, bool reposition = false);
 
-        std::expected<void, std::string> layoutMsg(const std::string_view& sv);
-        std::optional<Vector2D>          predictSizeForNewTiledTarget();
+        Config::ErrorResult           layoutMsg(const std::string_view& sv);
+        std::optional<Vector2D>       predictSizeForNewTiledTarget();
 
-        void                             recalculate();
-        void                             recenter(SP<ITarget> t);
+        void                          recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
+        void                          recenter(SP<ITarget> t);
 
-        void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                          resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void                          moveTarget(const Vector2D& Δ, SP<ITarget> target);
 
-        void                             setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
+        void                          setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
 
-        void                             updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
-        void                             updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
+        eFullscreenRequestResult      requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
+        SP<ITarget>                   layoutFullscreenTarget() const;
+        bool                          layoutFullscreenCoversMonitor() const;
 
-        const UP<ITiledAlgorithm>&       tiledAlgo() const;
-        const UP<IFloatingAlgorithm>&    floatingAlgo() const;
+        void                          updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
+        void                          updateTiledAlgo(UP<ITiledAlgorithm>&& algo);
 
-        SP<CSpace>                       space() const;
+        const UP<ITiledAlgorithm>&    tiledAlgo() const;
+        const UP<IFloatingAlgorithm>& floatingAlgo() const;
 
-        size_t                           tiledTargets() const;
-        size_t                           floatingTargets() const;
+        SP<CSpace>                    space() const;
+
+        size_t                        tiledTargets() const;
+        size_t                        floatingTargets() const;
 
       private:
         CAlgorithm(UP<ITiledAlgorithm>&& tiled, UP<IFloatingAlgorithm>&& floating, SP<CSpace> space);

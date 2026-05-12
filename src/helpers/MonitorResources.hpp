@@ -25,7 +25,9 @@ namespace Monitor {
         SP<Render::IFramebuffer> m_blurFB;
 
       private:
-        void initFB(SP<Render::IFramebuffer> fb);
+        void                                initFB(SP<Render::IFramebuffer> fb);
+        void                                setImageDescription(NColorManagement::PImageDescription imageDescription);
+        NColorManagement::PImageDescription getMirrorTexImageDescription();
 
         struct SResource {
             SP<Render::IFramebuffer> buffer;

@@ -35,7 +35,7 @@ namespace Desktop::Types {
         return std::clamp(value, min.value_or(std::numeric_limits<T>::min()), max.value_or(std::numeric_limits<T>::max()));
     }
 
-    template <typename T, bool Extended = std::is_same_v<T, bool> || std::is_same_v<T, Hyprlang::INT> || std::is_same_v<T, Hyprlang::FLOAT>>
+    template <typename T, bool Extended = std::is_same_v<T, bool> || std::is_same_v<T, Config::INTEGER> || std::is_same_v<T, Config::FLOAT>>
     class COverridableVar {
       public:
         COverridableVar(T const& value, eOverridePriority priority) {

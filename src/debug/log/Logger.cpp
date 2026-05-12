@@ -43,10 +43,10 @@ void CLogger::initCallbacks() {
 }
 
 void CLogger::recheckCfg() {
-    static auto PDISABLELOGS  = CConfigValue<Hyprlang::INT>("debug:disable_logs");
-    static auto PDISABLETIME  = CConfigValue<Hyprlang::INT>("debug:disable_time");
-    static auto PENABLESTDOUT = CConfigValue<Hyprlang::INT>("debug:enable_stdout_logs");
-    static auto PENABLECOLOR  = CConfigValue<Hyprlang::INT>("debug:colored_stdout_logs");
+    static auto PDISABLELOGS  = CConfigValue<Config::INTEGER>("debug:disable_logs");
+    static auto PDISABLETIME  = CConfigValue<Config::INTEGER>("debug:disable_time");
+    static auto PENABLESTDOUT = CConfigValue<Config::INTEGER>("debug:enable_stdout_logs");
+    static auto PENABLECOLOR  = CConfigValue<Config::INTEGER>("debug:colored_stdout_logs");
 
     m_logger.setEnableStdout(!*PDISABLELOGS && *PENABLESTDOUT);
     m_logsEnabled = !*PDISABLELOGS;

@@ -5,7 +5,9 @@
 #include "types/Buffer.hpp"
 #include "../helpers/Format.hpp"
 #include "../helpers/time/Time.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
 
 CScreencopyClient::CScreencopyClient(SP<CZwlrScreencopyManagerV1> resource_) : m_resource(resource_) {
@@ -74,7 +76,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
     DRMFormat  format  = formats.at(0);
     auto       bufSize = m_frame->bufferSize();
 
-    const auto PSHMINFO = NFormatUtils::getPixelFormatFromDRM(format);
+    const auto PSHMINFO = getPixelFormatFromDRM(format);
 
     if (!PSHMINFO) {
         LOGM(Log::ERR, "No pixel format for drm format");
@@ -82,7 +84,7 @@ CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScr
         return;
     }
 
-    const auto stride = NFormatUtils::minStride(PSHMINFO, bufSize.x);
+    const auto stride = minStride(PSHMINFO, bufSize.x);
     m_resource->sendBuffer(NFormatUtils::drmToShm(format), bufSize.x, bufSize.y, stride);
 
     if (m_resource->version() >= 3) {

@@ -37,12 +37,13 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
         pWindow->m_createdOverFullscreen = true;
+        pWindow->updateFullscreenInputState();
         g_pDesktopAnimationManager->setFullscreenFloatingFade(pWindow, 1.f);
         g_pHyprRenderer->damageWindow(pWindow);
         return {};
     }
 
-    static auto PONFOCUSUNDERFS = CConfigValue<Hyprlang::INT>("misc:on_focus_under_fullscreen");
+    static auto PONFOCUSUNDERFS = CConfigValue<Config::INTEGER>("misc:on_focus_under_fullscreen");
 
     switch (*PONFOCUSUNDERFS) {
         case 0:
@@ -80,7 +81,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         }
     }
 
-    static auto PMODALPARENTBLOCKING = CConfigValue<Hyprlang::INT>("general:modal_parent_blocking");
+    static auto PMODALPARENTBLOCKING = CConfigValue<Config::INTEGER>("general:modal_parent_blocking");
 
     if (*PMODALPARENTBLOCKING && pWindow && pWindow->m_xdgSurface && pWindow->m_xdgSurface->m_toplevel && pWindow->m_xdgSurface->m_toplevel->anyChildModal()) {
         Log::logger->log(Log::DEBUG, "Refusing focus to window shadowed by modal dialog");
@@ -91,8 +92,11 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
 }
 
 void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLSurfaceResource> surface) {
-    static auto PFOLLOWMOUSE        = CConfigValue<Hyprlang::INT>("input:follow_mouse");
-    static auto PSPECIALFALLTHROUGH = CConfigValue<Hyprlang::INT>("input:special_fallthrough");
+    static auto PFOLLOWMOUSE        = CConfigValue<Config::INTEGER>("input:follow_mouse");
+    static auto PSPECIALFALLTHROUGH = CConfigValue<Config::INTEGER>("input:special_fallthrough");
+
+    if (pWindow == m_focusWindow && surface == m_focusSurface)
+        return;
 
     if (!pWindow || !pWindow->priorityFocus()) {
         if (g_pSessionLockManager->isSessionLocked()) {
@@ -166,8 +170,12 @@ void CFocusState::rawWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWLS
         return;
     }
 
-    const auto PLASTWINDOW = m_focusWindow.lock();
-    m_focusWindow          = pWindow;
+    if (PMONITOR && !pWindow->m_pinned)
+        rawMonitorFocus(PMONITOR);
+
+    const auto PLASTWINDOW                    = m_focusWindow.lock();
+    m_focusWindow                             = pWindow;
+    pWindow->m_workspace->m_lastFocusedWindow = pWindow;
 
     /* If special fallthrough is enabled, this behavior will be disabled, as I have no better idea of nicely tracking which
        window focuses are "via keybinds" and which ones aren't. */
@@ -300,5 +308,6 @@ void CFocusState::resetWindowFocus() {
 }
 
 bool Desktop::isHardInputFocusReason(eFocusReason r) {
-    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK || r == FOCUS_REASON_DESKTOP_STATE_CHANGE;
+    return r == FOCUS_REASON_NEW_WINDOW || r == FOCUS_REASON_KEYBIND || r == FOCUS_REASON_GHOSTS || r == FOCUS_REASON_CLICK || r == FOCUS_REASON_DESKTOP_STATE_CHANGE ||
+        r == FOCUS_REASON_UNMAP_WINDOW_TILING || r == FOCUS_REASON_SWITCH_TO_WINDOW_HARD;
 }

@@ -120,20 +120,14 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
 
     m_listeners.keyboardSurfaceDestroy.reset();
 
-    if (m_state.keyboardFocusResource) {
-        auto client = m_state.keyboardFocusResource->client();
-        for (auto const& s : m_seatResources) {
-            if (s->resource->client() != client)
-                continue;
+    // Don't gate leave on m_state.keyboardFocusResource — the WP can
+    // be stale. sendLeave no-ops on keyboards without m_currentSurface.
+    for (auto const& k : PROTO::seat->m_keyboards) {
+        if (!k)
+            continue;
 
-            for (auto const& k : s->resource->m_keyboards) {
-                if (!k)
-                    continue;
-
-                k->sendMods(0, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
-                k->sendLeave();
-            }
-        }
+        k->sendMods(0, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
+        k->sendLeave();
     }
 
     m_state.keyboardFocusResource.reset();
@@ -232,19 +226,11 @@ void CSeatManager::setPointerFocus(SP<CWLSurfaceResource> surf, const Vector2D& 
 
     m_listeners.pointerSurfaceDestroy.reset();
 
-    if (m_state.pointerFocusResource) {
-        auto client = m_state.pointerFocusResource->client();
-        for (auto const& s : m_seatResources) {
-            if (s->resource->client() != client)
-                continue;
+    for (auto const& p : PROTO::seat->m_pointers) {
+        if (!p)
+            continue;
 
-            for (auto const& p : s->resource->m_pointers) {
-                if (!p)
-                    continue;
-
-                p->sendLeave();
-            }
-        }
+        p->sendLeave();
     }
 
     auto lastPointerFocusResource = m_state.pointerFocusResource;
@@ -663,7 +649,7 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         if (parentLayer && parentLayer->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
             Desktop::focusState()->rawSurfaceFocus(parentLayer->wlSurface()->resource());
         } else {
-            static auto PFOLLOWMOUSE = CConfigValue<Hyprlang::INT>("input:follow_mouse");
+            static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
             if (*PFOLLOWMOUSE == 0 || *PFOLLOWMOUSE == 2 || *PFOLLOWMOUSE == 3) {
                 const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
 

@@ -37,8 +37,6 @@ class CWorkspace {
     bool            m_hasFullscreenWindow = false;
     eFullscreenMode m_fullscreenMode      = FSMODE_NONE;
 
-    wl_array        m_wlrCoordinateArr;
-
     // for animations
     PHLANIMVAR<Vector2D>       m_renderOffset;
     PHLANIMVAR<float>          m_alpha;
@@ -54,10 +52,6 @@ class CWorkspace {
     // last window
     PHLWINDOWREF m_lastFocusedWindow;
 
-    // user-set
-    bool m_defaultFloating = false;
-    bool m_defaultPseudo   = false;
-
     // last monitor (used on reconnect)
     std::string m_lastMonitor = "";
 
@@ -67,6 +61,7 @@ class CWorkspace {
     bool        inert();
     MONITORID   monitorID();
     PHLWINDOW   getLastFocusedWindow();
+    PHLWINDOW   getFocusCandidate();
     std::string getConfigName();
     bool        matchesStaticSelector(const std::string& selector);
     void        markInert();
@@ -85,6 +80,7 @@ class CWorkspace {
     void        updateWindows();
     void        setPersistent(bool persistent);
     bool        isPersistent();
+    void        setNoMembersAboveFullscreen();
 
     struct {
         CSignalT<> destroy;

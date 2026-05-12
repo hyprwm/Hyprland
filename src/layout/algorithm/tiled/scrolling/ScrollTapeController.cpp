@@ -39,7 +39,11 @@ const SStripData& CScrollTapeController::getStrip(size_t index) const {
 }
 
 void CScrollTapeController::setOffset(double offset) {
-    m_offset = offset;
+    if (getScrollInhibitor().isInhibited) {
+        m_offset = getScrollInhibitor().offsetWhenInhibited;
+        Log::logger->log(Log::DEBUG, "m_offset not set - scrolling inhibited");
+    } else
+        m_offset = offset;
 }
 
 double CScrollTapeController::getOffset() const {
@@ -48,6 +52,10 @@ double CScrollTapeController::getOffset() const {
 
 void CScrollTapeController::adjustOffset(double delta) {
     m_offset += delta;
+}
+
+struct SScrollInhibitor& CScrollTapeController::getScrollInhibitor() {
+    return m_scrollInhibitor;
 }
 
 size_t CScrollTapeController::addStrip(float size) {
@@ -147,12 +155,8 @@ double CScrollTapeController::calculateStripSize(size_t stripIndex, const CBox& 
     return usablePrimary * m_strips[stripIndex].size;
 }
 
-CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
+CBox CScrollTapeController::calculateStripBox(size_t stripIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
     if (stripIndex >= m_strips.size())
-        return {};
-
-    const auto& strip = m_strips[stripIndex];
-    if (targetIndex >= strip.targetSizes.size())
         return {};
 
     const double usableSecondary = getSecondary(usableArea.size());
@@ -162,13 +166,6 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
     // calculate position along primary axis (strip position)
     double primaryPos  = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     double primarySize = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
-
-    // calculate position along secondary axis (within strip)
-    double secondaryPos = 0.0;
-    for (size_t i = 0; i < targetIndex; ++i) {
-        secondaryPos += strip.targetSizes[i] * usableSecondary;
-    }
-    double secondarySize = strip.targetSizes[targetIndex] * usableSecondary;
 
     // apply camera offset based on direction
     // for RIGHT/DOWN: scroll offset moves content left/up (subtract)
@@ -185,13 +182,42 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
     }
 
     // create the box in primary/secondary coordinates
-    Vector2D pos  = makeVector(primaryPos, secondaryPos);
-    Vector2D size = makeVector(primarySize, secondarySize);
+    Vector2D pos  = makeVector(primaryPos, 0.0);
+    Vector2D size = makeVector(primarySize, usableSecondary);
 
     // translate to workspace position
     pos = pos + workspaceOffset;
 
     return CBox{pos, size};
+}
+
+CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
+    if (stripIndex >= m_strips.size())
+        return {};
+
+    const auto& strip = m_strips[stripIndex];
+    if (targetIndex >= strip.targetSizes.size())
+        return {};
+
+    CBox         stripBox        = calculateStripBox(stripIndex, usableArea, workspaceOffset, fullscreenOnOne);
+    const double usableSecondary = getSecondary(usableArea.size());
+
+    double       secondaryPos = 0.0;
+    for (size_t i = 0; i < targetIndex; ++i) {
+        secondaryPos += strip.targetSizes[i] * usableSecondary;
+    }
+
+    const double secondarySize = strip.targetSizes[targetIndex] * usableSecondary;
+
+    if (isPrimaryHorizontal()) {
+        stripBox.y = workspaceOffset.y + secondaryPos;
+        stripBox.h = secondarySize;
+    } else {
+        stripBox.x = workspaceOffset.x + secondaryPos;
+        stripBox.w = secondarySize;
+    }
+
+    return stripBox;
 }
 
 double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne) {
@@ -204,12 +230,12 @@ double CScrollTapeController::calculateCameraOffset(const CBox& usableArea, bool
 
     // if the content fits in viewport, center it
     if (maxExtent < usablePrimary)
-        m_offset = std::round((maxExtent - usablePrimary) / 2.0);
+        setOffset(std::round((maxExtent - usablePrimary) / 2.0));
 
     // if the offset is negative but we already extended and fit method is not center, reset offset to 0
     static const auto PFITMETHOD = CConfigValue<Hyprlang::INT>("scrolling:focus_fit_method");
     if (maxExtent > usablePrimary && m_offset < 0.0 && *PFITMETHOD != 0)
-        m_offset = 0.0;
+        setOffset(0.0);
 
     return m_offset;
 }
@@ -231,7 +257,7 @@ void CScrollTapeController::centerStrip(size_t stripIndex, const CBox& usableAre
     const double stripStart    = calculateStripStart(stripIndex, usableArea, fullscreenOnOne);
     const double stripSize     = calculateStripSize(stripIndex, usableArea, fullscreenOnOne);
 
-    m_offset = stripStart - (usablePrimary - stripSize) / 2.0;
+    setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
 }
 
 void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne) {
@@ -248,11 +274,11 @@ void CScrollTapeController::fitStrip(size_t stripIndex, const CBox& usableArea, 
     if (lo > hi) {
         // strip is wider than viewport (e.g. during monitor reconnection after suspend),
         // center the strip instead of hitting the std::clamp assertion
-        m_offset = stripStart - (usablePrimary - stripSize) / 2.0;
+        setOffset(stripStart - (usablePrimary - stripSize) / 2.0);
         return;
     }
 
-    m_offset = std::clamp(m_offset, lo, hi);
+    setOffset(std::clamp(m_offset, lo, hi));
 }
 
 bool CScrollTapeController::isStripVisible(size_t stripIndex, const CBox& usableArea, bool fullscreenOnOne, bool full) const {
@@ -275,13 +301,14 @@ size_t CScrollTapeController::getStripAtCenter(const CBox& usableArea, bool full
         return 0;
 
     const double usablePrimary = getPrimary(usableArea.size());
-    double       currentPos    = m_offset;
+    const double viewCenter    = m_offset + usablePrimary / 2.0;
+    double       currentEnd    = 0.0;
 
     for (size_t i = 0; i < m_strips.size(); ++i) {
         const double stripSize = calculateStripSize(i, usableArea, fullscreenOnOne);
-        currentPos += stripSize;
+        currentEnd += stripSize;
 
-        if (currentPos >= usablePrimary / 2.0 - 2.0)
+        if (currentEnd >= viewCenter - 2.0)
             return i;
     }
 

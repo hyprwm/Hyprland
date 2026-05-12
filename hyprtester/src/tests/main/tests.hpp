@@ -1,12 +1,9 @@
 #pragma once
+#include <map>
 
-#include <vector>
-#include <functional>
+#include "../shared.hpp"
 
-inline std::vector<std::function<bool()>> testFns;
+inline std::map<const char*, CTestCase&> mainTestCases;
 
-#define REGISTER_TEST_FN(fn)                                                                                                                                                       \
-    static auto _register_fn = [] {                                                                                                                                                \
-        testFns.emplace_back(fn);                                                                                                                                                  \
-        return 1;                                                                                                                                                                  \
-    }();
+// Where `TEST_CASE` macros will store generated test cases:
+#define TEST_CASES_STORAGE mainTestCases

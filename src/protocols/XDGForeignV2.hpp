@@ -42,10 +42,15 @@ class CXDGImportedResourceV2 {
     CXDGImportedResourceV2(SP<CZxdgImportedV2> resource, SP<CXDGExportedResourceV2> exported, const std::string& handle);
     ~CXDGImportedResourceV2();
 
+    bool good() const;
+    void invalidate();
+
   private:
     SP<CZxdgImportedV2>        m_resource;
     WP<CXDGExportedResourceV2> m_exported;
     std::string                m_handle;
+    bool                       m_invalid       = false;
+    bool                       m_destroyedSent = false;
 
     struct {
         CHyprSignalListener exportedDestroyed;

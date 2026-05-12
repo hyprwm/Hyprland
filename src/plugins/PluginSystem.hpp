@@ -3,6 +3,7 @@
 #include "../defines.hpp"
 #include "../helpers/defer/Promise.hpp"
 #include "../helpers/time/Timer.hpp"
+#include "../config/values/types/IValue.hpp"
 #include "PluginAPI.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
 #include <csetjmp>
@@ -25,9 +26,10 @@ class CPlugin {
 
     std::vector<IHyprWindowDecoration*> m_registeredDecorations;
     //std::vector<std::pair<std::string, WP<HOOK_CALLBACK_FN>>> m_registeredCallbacks;
-    std::vector<std::string>         m_registeredDispatchers;
-    std::vector<WP<SHyprCtlCommand>> m_registeredHyprctlCommands;
-    std::vector<std::string>         m_registeredAlgos;
+    std::vector<std::string>                m_registeredDispatchers;
+    std::vector<WP<SHyprCtlCommand>>        m_registeredHyprctlCommands;
+    std::vector<std::string>                m_registeredAlgos;
+    std::vector<WP<Config::Values::IValue>> m_registeredApiValues;
 };
 
 class CPluginSystem {

@@ -91,7 +91,7 @@ static std::expected<std::optional<SVCGTTable16>, std::string> readVCGT16(cmsHPR
         for (int c = 0; c < 3; ++c) {
             table.ch[c].resize(table.entries);
             for (uint16_t i = 0; i < table.entries; ++i) {
-                const uint8_t* p = raw.data() + tableOff + static_cast<ptrdiff_t>((c * table.entries + i) * 2);
+                const uint8_t* p = raw.data() + tableOff + sc<ptrdiff_t>((c * table.entries + i) * 2);
                 table.ch[c][i]   = bigEndianU16(p); // 0 ... 65535
             }
         }
@@ -232,7 +232,7 @@ static std::expected<void, std::string> buildIcc3DLut(cmsHPROFILE profile, SImag
 }
 
 std::expected<SImageDescription, std::string> SImageDescription::fromICC(const std::filesystem::path& file) {
-    static auto     PVCGTENABLED = CConfigValue<Hyprlang::INT>("render:icc_vcgt_enabled");
+    static auto     PVCGTENABLED = CConfigValue<Config::INTEGER>("render:icc_vcgt_enabled");
 
     std::error_code ec;
     if (!std::filesystem::exists(file, ec) || ec)

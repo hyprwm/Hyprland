@@ -112,7 +112,7 @@ CPrimarySelectionDevice::CPrimarySelectionDevice(SP<CZwpPrimarySelectionDeviceV1
     m_resource->setOnDestroy([this](CZwpPrimarySelectionDeviceV1* r) { PROTO::primarySelection->destroyResource(this); });
 
     m_resource->setSetSelection([](CZwpPrimarySelectionDeviceV1* r, wl_resource* sourceR, uint32_t serial) {
-        static auto PPRIMARYSEL = CConfigValue<Hyprlang::INT>("misc:middle_click_paste");
+        static auto PPRIMARYSEL = CConfigValue<Config::INTEGER>("misc:middle_click_paste");
 
         if (!*PPRIMARYSEL) {
             LOGM(Log::DEBUG, "Ignoring primary selection: disabled in config");

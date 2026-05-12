@@ -34,6 +34,7 @@ if(NOT HYPR_SHADER_GEN_RESULT EQUAL 0)
 endif()
 
 find_package(PkgConfig REQUIRED)
+find_package(Python3 COMPONENTS Interpreter QUIET)
 
 # Try to find canihavesomecoffee's udis86 using pkgconfig vmd/udis86 does not
 # provide a .pc file and won't be detected this way
@@ -103,6 +104,8 @@ add_compile_options(
   -Wall
   -Wextra
   -Wpedantic
+  -Wno-keyword-macro
+  -Wno-unused-result
   -Wno-unused-parameter
   -Wno-unused-value
   -Wno-missing-field-initializers
@@ -130,8 +133,8 @@ find_package(glslang CONFIG REQUIRED)
 set(AQUAMARINE_MINIMUM_VERSION 0.9.3)
 set(HYPRLANG_MINIMUM_VERSION 0.6.7)
 set(HYPRCURSOR_MINIMUM_VERSION 0.1.7)
-set(HYPRUTILS_MINIMUM_VERSION 0.11.1)
-set(HYPRGRAPHICS_MINIMUM_VERSION 0.1.6)
+set(HYPRUTILS_MINIMUM_VERSION 0.13.1)
+set(HYPRGRAPHICS_MINIMUM_VERSION 0.5.1)
 
 pkg_check_modules(aquamarine_dep REQUIRED IMPORTED_TARGET aquamarine>=${AQUAMARINE_MINIMUM_VERSION})
 pkg_check_modules(hyprlang_dep REQUIRED IMPORTED_TARGET hyprlang>=${HYPRLANG_MINIMUM_VERSION})
@@ -268,7 +271,10 @@ pkg_check_modules(
   gio-2.0
   re2
   muparser
-  lcms2)
+  lcms2
+)
+
+pkg_search_module(LUA REQUIRED IMPORTED_TARGET GLOBAL lua55 lua5.5 lua-55 lua-5.5 lua>=5.5 lua<5.6)
 
 find_package(hyprwayland-scanner 0.3.10 REQUIRED)
 
@@ -286,8 +292,8 @@ add_library(hyprland_lib STATIC ${SRCFILES})
 add_executable(Hyprland src/main.cpp ${TRACY_CPP_FILES})
 target_link_libraries(Hyprland hyprland_lib)
 
-target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS})
-target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS})
+target_include_directories(hyprland_lib PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
+target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS})
 
 set(USE_GPROF OFF)
 
@@ -421,6 +427,7 @@ target_link_libraries(
   PkgConfig::hyprcursor_dep
   PkgConfig::hyprgraphics_dep
   PkgConfig::deps
+  PkgConfig::LUA
 )
 
 target_link_libraries(
@@ -437,6 +444,28 @@ endif()
 
 # used by `make installheaders`, to ensure the headers are generated
 add_custom_target(generate-protocol-headers)
+
+if(Python3_Interpreter_FOUND)
+  add_custom_target(
+    generate-lua-stubs ALL
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/meta/generateLuaStubs.py --root ${CMAKE_SOURCE_DIR}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Generating Lua API stubs for LuaLS"
+    VERBATIM)
+
+  add_dependencies(hyprland_lib generate-lua-stubs)
+  add_dependencies(Hyprland generate-lua-stubs)
+
+  add_custom_target(
+    check-lua-stubs
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/meta/generateLuaStubs.py --root ${CMAKE_SOURCE_DIR} --check
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Checking Lua API stubs are up to date"
+    VERBATIM)
+else()
+  message(FATAL_ERROR "Python3 interpreter not found, which is required for the build")
+endif()
+
 set(PROTOCOL_SOURCES "")
 
 function(protocolnew protoPath protoName external)
@@ -575,6 +604,12 @@ else()
   message(STATUS "hyprpm is enabled (NO_HYPRPM not defined)")
 endif()
 
+# Set proper permissions for directories, otherwise they could end up 700
+set(CMAKE_INSTALL_DEFAULT_DIRECTORY_PERMISSIONS
+    OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE)
+
 # binary and symlink
 install(TARGETS Hyprland)
 
@@ -601,9 +636,13 @@ file(GLOB_RECURSE INSTALLABLE_ASSETS "assets/install/*")
 install(FILES ${INSTALLABLE_ASSETS}
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
 
-# default config
-install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.conf
+# default lua config
+install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.lua
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr)
+
+# LuaLS stubs
+install(FILES ${CMAKE_SOURCE_DIR}/meta/hl.meta.lua
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/hypr/stubs)
 
 # portal config
 install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf

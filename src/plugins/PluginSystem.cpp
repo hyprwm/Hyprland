@@ -2,11 +2,11 @@
 
 #include <dlfcn.h>
 #include <ranges>
-#include "../config/legacy/ConfigManager.hpp"
+#include "../config/ConfigManager.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 #include "../managers/permissions/DynamicPermissionManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../notification/NotificationOverlay.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../i18n/Engine.hpp"
 
@@ -175,9 +175,8 @@ void CPluginSystem::unloadPlugin(const CPlugin* plugin, bool eject) {
             HyprlandAPI::unregisterHyprCtlCommand(plugin->m_handle, sp);
     }
 
-    // FIXME: this is wrong and if I forget to fix this by the time I add another config parser
-    // this will explode and I will be mad because I am a RETARD
-    Config::Legacy::mgr()->removePluginConfig(plugin->m_handle);
+    if (Config::mgr())
+        Config::mgr()->onPluginUnload(plugin->m_handle);
 
     // save these two for dlclose and a log,
     // as erase_if will kill the pointer
@@ -228,8 +227,8 @@ void CPluginSystem::updateConfigPlugins(const std::vector<std::string>& plugins,
             if (result->hasError()) {
                 const auto NAME = path.contains('/') ? path.substr(path.find_last_of('/') + 1) : path;
                 Log::logger->log(Log::ERR, "CPluginSystem::updateConfigPlugins: failed to load plugin {}: {}", NAME, result->error());
-                g_pHyprNotificationOverlay->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, {{"name", NAME}, {"error", result->error()}}),
-                                                            CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
+                Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, {{"name", NAME}, {"error", result->error()}}),
+                                                         CHyprColor{0, 0, 0, 0}, 5000, ICON_ERROR);
                 return;
             }
 

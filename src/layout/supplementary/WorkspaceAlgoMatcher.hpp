@@ -21,6 +21,7 @@ namespace Layout::Supplementary {
 
         SP<CAlgorithm> createAlgorithmForWorkspace(PHLWORKSPACE w);
         void           updateWorkspaceLayouts();
+        std::string    getNameForTiledAlgo(const Layout::ITiledAlgorithm* algo);
         std::string    getNameForTiledAlgo(const std::type_info* type);
 
         // these fns can fail due to name collisions

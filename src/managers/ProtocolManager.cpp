@@ -97,7 +97,9 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
     else if (!ISMIRROR && (!PROTO::outputs.contains(pMonitor->m_name) || PROTO::outputs.at(pMonitor->m_name)->isDefunct())) {
         if (PROTO::outputs.contains(pMonitor->m_name))
             PROTO::outputs.erase(pMonitor->m_name);
-        PROTO::outputs.emplace(pMonitor->m_name, makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
+        auto p = PROTO::outputs.emplace(pMonitor->m_name,
+                                        makeShared<CWLOutputProtocol>(&wl_output_interface, 4, std::format("WLOutput ({})", pMonitor->m_name), pMonitor->m_self.lock()));
+        p.first->second->m_self = p.first->second;
     }
 
     if (PROTO::colorManagement && g_pCompositor->shouldChangePreferredImageDescription()) {
@@ -108,11 +110,10 @@ void CProtocolManager::onMonitorModeChange(PHLMONITOR pMonitor) {
 
 CProtocolManager::CProtocolManager() {
 
-    static const auto PENABLECM = CConfigValue<Hyprlang::INT>("render:cm_enabled");
-    static const auto PDEBUGCM  = CConfigValue<Hyprlang::INT>("debug:full_cm_proto");
-    static const auto PCMV1_2   = CConfigValue<Hyprlang::INT>("experimental:wp_cm_1_2");
-
-    static const auto PENABLECT = CConfigValue<Hyprlang::INT>("render:commit_timing_enabled");
+    static const auto PENABLECM = CConfigValue<Config::INTEGER>("render:cm_enabled");
+    static const auto PDEBUGCM  = CConfigValue<Config::INTEGER>("debug:full_cm_proto");
+    static const auto PCMV1_2   = CConfigValue<Config::INTEGER>("experimental:wp_cm_1_2");
+    static const auto PENABLECT = CConfigValue<Config::INTEGER>("render:commit_timing_enabled");
 
     // Outputs are a bit dumb, we have to agree.
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {

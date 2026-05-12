@@ -54,10 +54,10 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, xray, false)
         DEFINE_PROP(bool, noScreenShare, false)
 
-        DEFINE_PROP(Hyprlang::INT, order, 0)
-        DEFINE_PROP(Hyprlang::INT, aboveLock, 0)
+        DEFINE_PROP(Config::INTEGER, order, 0)
+        DEFINE_PROP(Config::INTEGER, aboveLock, 0)
 
-        DEFINE_PROP(Hyprlang::FLOAT, ignoreAlpha, 0.F)
+        DEFINE_PROP(Config::FLOAT, ignoreAlpha, 0.F)
 
         DEFINE_PROP(std::string, animationStyle, std::string(""))
 

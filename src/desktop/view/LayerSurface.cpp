@@ -388,7 +388,7 @@ void CLayerSurface::onCommit() {
         if (!WASEXCLUSIVE && ISEXCLUSIVE)
             g_pInputManager->m_exclusiveLSes.push_back(m_self);
         else if (WASEXCLUSIVE && !ISEXCLUSIVE)
-            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other.lock() || other.lock() == m_self.lock(); });
+            std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
         // if the surface was focused and interactive but now isn't, refocus
         if (WASLASTFOCUS && m_layerSurface->m_current.interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
@@ -426,12 +426,10 @@ bool CLayerSurface::isFadedOut() {
 }
 
 int CLayerSurface::popupsCount() {
-    if (!m_layerSurface || !m_mapped || m_fadingOut)
+    if (!m_layerSurface || !m_mapped || m_fadingOut || !m_popupHead)
         return 0;
 
-    int no = -1; // we have one dummy
-    m_popupHead->breadthfirst([](WP<Desktop::View::CPopup> p, void* data) { *sc<int*>(data) += 1; }, &no);
-    return no;
+    return m_popupHead->popupTreeCount();
 }
 
 MONITORID CLayerSurface::monitorID() {

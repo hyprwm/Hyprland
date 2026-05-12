@@ -14,6 +14,13 @@ namespace Aquamarine {
     struct SPollFD;
 };
 
+struct SEventLoopDoLaterLock {
+    SEventLoopDoLaterLock(uint64_t seq);
+    ~SEventLoopDoLaterLock();
+
+    uint64_t seq = 0;
+};
+
 class CEventLoopManager {
   public:
     CEventLoopManager(wl_display* display, wl_event_loop* wlEventLoop);
@@ -30,12 +37,16 @@ class CEventLoopManager {
     // schedules a recalc of the timers
     void scheduleRecalc();
 
-    // schedules a function to run later, aka in a wayland idle event.
-    void doLater(const std::function<void()>& fn);
+    // schedules a function to run later, aka in a wayland idle event. Returns a sequence which can be used to remove it.
+    uint64_t doLater(const std::function<void()>& fn);
+    void     removeDoLater(uint64_t seq);
+
+    // automatically cleaned up doLater instance
+    [[nodiscard]] UP<SEventLoopDoLaterLock> doLaterLock(const std::function<void()>& fn);
 
     struct SIdleData {
-        wl_event_source*                   eventSource = nullptr;
-        std::vector<std::function<void()>> fns;
+        wl_event_source*                                        eventSource = nullptr;
+        std::vector<std::pair<uint64_t, std::function<void()>>> fns;
     };
 
     struct SReadableWaiter {

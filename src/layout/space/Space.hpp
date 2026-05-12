@@ -12,6 +12,18 @@
 #include <expected>
 
 namespace Layout {
+
+    enum eRecalculateReason : uint8_t {
+        RECALCULATE_REASON_UNKNOWN, // when the recalculate reason is unknown or not important to preserve
+        RECALCULATE_REASON_WORKSPACE_CHANGE,
+        RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
+        RECALCULATE_REASON_TOGGLE_FULLSCREEN,
+        RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES,
+        RECALCULATE_REASON_RENDER_MOINTOR,
+    };
+
+    eRecalculateReason recalcMonitorReasonToRecalcReason(CLayoutManager::eRecalculateMonitorReason reason);
+
     class ITarget;
     class CAlgorithm;
 
@@ -20,38 +32,38 @@ namespace Layout {
         static SP<CSpace> create(PHLWORKSPACE w);
         ~CSpace() = default;
 
-        void                             add(SP<ITarget> t);
-        void                             remove(SP<ITarget> t);
-        void                             move(SP<ITarget> t, std::optional<Vector2D> focalPoint = std::nullopt);
+        void                            add(SP<ITarget> t);
+        void                            remove(SP<ITarget> t);
+        void                            move(SP<ITarget> t, std::optional<Vector2D> focalPoint = std::nullopt);
 
-        void                             swap(SP<ITarget> a, SP<ITarget> b);
+        void                            swap(SP<ITarget> a, SP<ITarget> b);
 
-        SP<ITarget>                      getNextCandidate(SP<ITarget> old);
+        SP<ITarget>                     getNextCandidate(SP<ITarget> old);
 
-        void                             setAlgorithmProvider(SP<CAlgorithm> algo);
-        void                             recheckWorkArea();
-        void                             setFullscreen(SP<ITarget> t, eFullscreenMode mode);
+        void                            setAlgorithmProvider(SP<CAlgorithm> algo);
+        void                            recheckWorkArea();
+        eFullscreenRequestResult        setFullscreen(SP<ITarget> t, eFullscreenMode currentEffectiveMode, eFullscreenMode mode);
 
-        void                             moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
+        void                            moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        void                             recalculate();
+        void                            recalculate(eRecalculateReason reason = RECALCULATE_REASON_UNKNOWN);
 
-        void                             toggleTargetFloating(SP<ITarget> t);
+        void                            toggleTargetFloating(SP<ITarget> t);
 
-        std::expected<void, std::string> layoutMsg(const std::string_view& sv);
-        std::optional<Vector2D>          predictSizeForNewTiledTarget();
+        Config::ErrorResult             layoutMsg(const std::string_view& sv);
+        std::optional<Vector2D>         predictSizeForNewTiledTarget();
 
-        const CBox&                      workArea(bool floating = false) const;
-        PHLWORKSPACE                     workspace() const;
-        CBox                             targetPositionLocal(SP<ITarget> t) const;
+        const CBox&                     workArea(bool floating = false) const;
+        PHLWORKSPACE                    workspace() const;
+        CBox                            targetPositionLocal(SP<ITarget> t) const;
 
-        void                             resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
-        void                             moveTarget(const Vector2D& Δ, SP<ITarget> target);
-        void                             setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
+        void                            resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner = CORNER_NONE);
+        void                            moveTarget(const Vector2D& Δ, SP<ITarget> target);
+        void                            setTargetGeom(const CBox& box, SP<ITarget> target); // only for float
 
-        SP<CAlgorithm>                   algorithm() const;
+        SP<CAlgorithm>                  algorithm() const;
 
-        const std::vector<WP<ITarget>>&  targets() const;
+        const std::vector<WP<ITarget>>& targets() const;
 
       private:
         CSpace(PHLWORKSPACE parent);
@@ -68,4 +80,6 @@ namespace Layout {
         // for recalc
         CHyprSignalListener m_geomUpdateCallback;
     };
+
+    bool isHardRecalculateReason(eRecalculateReason reason);
 };

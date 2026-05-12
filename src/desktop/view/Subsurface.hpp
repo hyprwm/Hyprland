@@ -40,7 +40,7 @@ namespace Desktop::View {
         void                           onMap();
         void                           onUnmap();
 
-        void                           recheckDamageForSubsurfaces();
+        void                           recheckDamageForSubsurfaces(int depth = 0);
 
         WP<Desktop::View::CSubsurface> m_self;
 
@@ -58,6 +58,9 @@ namespace Desktop::View {
         WP<CWLSubsurfaceResource> m_subsurface;
         Vector2D                  m_lastSize     = {};
         Vector2D                  m_lastPosition = {};
+        Vector2D                  m_lastRecheckGlobalPos;
+        Vector2D                  m_lastRecheckGlobalSize;
+        bool                      m_hasLastRecheckGeometry = false;
 
         // if nullptr, means it's a dummy node
         WP<Desktop::View::CSubsurface>              m_parent;

@@ -93,8 +93,7 @@ namespace {
          }},
         {"disabled", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); },
          [](ILuaConfigValue* v, CMonitorRuleParser& p) {
-             if (*sc<const Config::BOOL*>(v->data()))
-                 p.setDisabled();
+             p.rule().m_disabled = *sc<const Config::BOOL*>(v->data());
              return true;
          }},
         {"transform", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 7); },

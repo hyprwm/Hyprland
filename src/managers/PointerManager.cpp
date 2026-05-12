@@ -43,6 +43,8 @@ CPointerManager::CPointerManager() {
         });
     });
 
+    m_hooks.monitorLayoutChanged = Event::bus()->m_events.monitor.layoutChanged.listen([this] { onMonitorLayoutChange(); });
+
     m_hooks.monitorPreRender = Event::bus()->m_events.monitor.preCommit.listen([this](PHLMONITOR monitor) {
         auto state = stateFor(monitor);
         if (!state)

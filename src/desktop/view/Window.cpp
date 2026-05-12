@@ -2067,7 +2067,7 @@ void CWindow::mapWindow() {
         (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
 
         // don't steal pointer focus with X11 when buttons are held (e.g., during drags)
-        if (!(m_isX11 && g_pInputManager->hasHeldButtons())) {
+        if (!m_isX11 || !g_pInputManager->hasHeldButtons()) {
             // this window should gain focus: if it's grouped, preserve fullscreen state.
             const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
             if (IS_LAST_IN_FS && SAME_GROUP) {

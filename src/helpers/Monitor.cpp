@@ -829,9 +829,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     m_customDrmMode = {};
     m_currentMode   = nullptr;
 
-    m_output->state->setFormat(DRM_FORMAT_XRGB8888);
+    const auto initialFormat = m_drmFormat != DRM_FORMAT_INVALID ? m_drmFormat : DRM_FORMAT_XRGB8888;
+    m_output->state->setFormat(initialFormat);
     m_prevDrmFormat = m_drmFormat;
-    m_drmFormat     = DRM_FORMAT_XRGB8888;
+    m_drmFormat     = initialFormat;
     m_output->state->resetExplicitFences();
 
     if (Env::isTrace()) {

@@ -1348,6 +1348,21 @@ bool CWindow::isModal() {
     return (m_xwaylandSurface && m_xwaylandSurface->m_modal);
 }
 
+bool CWindow::isX11Popup() {
+    if (!m_isX11 || !m_xwaylandSurface)
+        return false;
+
+    for (auto const& a : m_xwaylandSurface->m_atoms) {
+        if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"])
+            return true;
+    }
+
+    return false;
+}
+
 Vector2D CWindow::realToReportSize() {
     if (!m_isX11)
         return m_realSize->goal().clamp(Vector2D{0, 0}, Math::VECTOR2D_MAX);
@@ -2054,7 +2069,7 @@ void CWindow::mapWindow() {
         // don't steal pointer focus with X11 when buttons are held (e.g., during drags)
         if (!(m_isX11 && g_pInputManager->hasHeldButtons())) {
             // this window should gain focus: if it's grouped, preserve fullscreen state.
-            const bool SAME_GROUP = m_group->has(LAST_FOCUS_WINDOW);
+            const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
             if (IS_LAST_IN_FS && SAME_GROUP) {
                 Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
                 g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE);

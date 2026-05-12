@@ -1259,11 +1259,6 @@ static void moveWindowIntoGroupHelper(PHLWINDOW pWindow, PHLWINDOW pWindowInDire
 
     updateRelativeCursorCoords();
 
-    if (pWindow->m_monitor != pWindowInDirection->m_monitor) {
-        pWindow->moveToWorkspace(pWindowInDirection->m_workspace);
-        pWindow->m_monitor = pWindowInDirection->m_monitor;
-    }
-
     if (pWindow->m_group)
         pWindow->m_group->remove(pWindow);
 

@@ -381,7 +381,6 @@ namespace Desktop::View {
         PHLWINDOW                  getSwallower();
         bool                       isX11OverrideRedirect();
         bool                       isModal();
-        bool                       isX11Popup();
         Vector2D                   realToReportSize();
         Vector2D                   realToReportPosition();
         Vector2D                   xwaylandSizeToReal(Vector2D size);

@@ -1483,7 +1483,8 @@ bool CWindow::isX11Popup() {
         if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] ||
-            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"])
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] ||
+            a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"])
             return true;
     }
 

@@ -656,7 +656,15 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (pFoundWindow == Desktop::focusState()->window())
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
-            if (FOLLOWMOUSE != 0 || pFoundWindow == Desktop::focusState()->window())
+#ifndef NO_XWAYLAND
+            // X11 popup windows need pointer focus for proper menu interaction even with follow_mouse=0
+            // This allows menu cascading and other pointer-based interactions to work correctly
+            const bool shouldGiveX11PointerFocus = pFoundWindow && pFoundWindow->isX11Popup() && Desktop::focusState()->window() && Desktop::focusState()->window()->m_isX11;
+#else
+            const bool shouldGiveX11PointerFocus = false;
+#endif
+
+            if (FOLLOWMOUSE != 0 || pFoundWindow == Desktop::focusState()->window() || shouldGiveX11PointerFocus)
                 g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
 
             if (g_pSeatManager->m_state.pointerFocus == foundSurface)

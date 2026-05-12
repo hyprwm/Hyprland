@@ -188,6 +188,7 @@ class CPointerManager {
 
     struct {
         CHyprSignalListener monitorAdded;
+        CHyprSignalListener monitorLayoutChanged;
         CHyprSignalListener monitorPreRender;
     } m_hooks;
 };

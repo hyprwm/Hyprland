@@ -317,8 +317,9 @@ def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
         for name, ctor, _ in entry_regex.findall(body):
             out[class_name][name] = lua_type_from_config_ctor(ctor)
 
-    # required / conventional fields not included in descriptor arrays
+    # required / conventional fields not included / special in descriptor arrays
     out["HL.MonitorSpec"]["output"] = "string"
+    out["HL.MonitorSpec"]["scale"] = "string|number"
     out["HL.DeviceSpec"]["name"] = "string"
     out["HL.WorkspaceRuleSpec"]["workspace"] = "string"
     out["HL.WorkspaceRuleSpec"]["enabled"] = "boolean"

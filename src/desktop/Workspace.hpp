@@ -73,6 +73,7 @@ class CWorkspace {
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
     PHLWINDOW   getFullscreenWindow();
+    bool        hasFullscreen();
     bool        isVisible();
     bool        isVisibleNotCovered();
     void        rename(const std::string& name = "");

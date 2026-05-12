@@ -61,19 +61,6 @@ using namespace NColorManagement;
 using namespace Render::GL;
 using namespace Monitor;
 
-// True if the workspace has compositor-level OR layout-managed (e.g. scrolling) fullscreen.
-// Mirrors the check in CMonitor::inFullscreenMode so layer-fade decisions on workspace
-// change stay consistent with rendering, focus, and DS eligibility.
-namespace {
-    static bool workspaceHasFullscreen(const PHLWORKSPACE& ws) {
-        if (!ws)
-            return false;
-        if (ws->m_hasFullscreenWindow)
-            return true;
-        return ws->m_space && ws->m_space->algorithm() && ws->m_space->algorithm()->layoutFullscreenCoversMonitor();
-    }
-}
-
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -1461,16 +1448,15 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, workspaceHasFullscreen(pWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        pWorkspace, pWorkspace->hasFullscreen() ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
     g_pCompositor->updateSuspendedStates();
 
     if (m_activeSpecialWorkspace)
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(m_activeSpecialWorkspace,
-                                                               workspaceHasFullscreen(m_activeSpecialWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
-                                                                                                                  CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            m_activeSpecialWorkspace, m_activeSpecialWorkspace->hasFullscreen() ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -1517,7 +1503,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
 
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            m_activeWorkspace, workspaceHasFullscreen(m_activeWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            m_activeWorkspace, m_activeWorkspace->hasFullscreen() ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1550,7 +1536,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
         g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            PACTIVEWORKSPACE, workspaceHasFullscreen(PACTIVEWORKSPACE) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+            PACTIVEWORKSPACE, PACTIVEWORKSPACE && PACTIVEWORKSPACE->hasFullscreen() ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }
@@ -1616,7 +1602,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-        pWorkspace, workspaceHasFullscreen(pWorkspace) ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        pWorkspace, pWorkspace->hasFullscreen() ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 

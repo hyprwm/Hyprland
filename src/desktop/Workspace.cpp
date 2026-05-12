@@ -9,6 +9,7 @@
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
@@ -411,6 +412,12 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
     }
 
     return nullptr;
+}
+
+bool CWorkspace::hasFullscreen() {
+    if (m_hasFullscreenWindow)
+        return true;
+    return m_space && m_space->algorithm() && m_space->algorithm()->layoutFullscreenCoversMonitor();
 }
 
 bool CWorkspace::isVisible() {

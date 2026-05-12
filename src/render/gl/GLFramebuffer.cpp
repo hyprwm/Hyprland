@@ -124,13 +124,18 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t packStride = minStride(PFORMAT, m_size.x);
-    int      glFormat   = PFORMAT->glFormat;
+    uint32_t    packStride = minStride(PFORMAT, m_size.x);
+    int         glFormat   = PFORMAT->glFormat;
+
+    static auto stripSwizzleAlpha = [](std::array<GLint, 4> arr) {
+        arr[3] = GL_ONE;
+        return arr;
+    };
 
     if (PFORMAT->swizzle.has_value()) {
-        if (PFORMAT->swizzle == SWIZZLE_RGBA)
+        if (stripSwizzleAlpha(*PFORMAT->swizzle) == stripSwizzleAlpha(SWIZZLE_RGBA))
             glFormat = GL_RGBA;
-        else if (PFORMAT->swizzle == SWIZZLE_BGRA)
+        else if (stripSwizzleAlpha(*PFORMAT->swizzle) == stripSwizzleAlpha(SWIZZLE_BGRA))
             glFormat = GL_BGRA_EXT;
         else {
             LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");

@@ -9,9 +9,10 @@ class CWLSurfaceResource;
 class CXWaylandSurfaceResource;
 
 #ifdef NO_XWAYLAND
-using xcb_pixmap_t         = uint32_t;
-using xcb_window_t         = uint32_t;
-using xcb_icccm_wm_hints_t = struct {
+using xcb_pixmap_t = uint32_t;
+using xcb_window_t = uint32_t;
+using xcb_atom_t   = uint32_t;
+struct xcb_icccm_wm_hints_t {
     int32_t      flags;
     uint32_t     input;
     int32_t      initial_state;
@@ -21,7 +22,7 @@ using xcb_icccm_wm_hints_t = struct {
     xcb_pixmap_t icon_mask;
     xcb_window_t window_group;
 };
-using xcb_size_hints_t = struct {
+struct xcb_size_hints_t {
     uint32_t flags;
     int32_t  x, y;
     int32_t  width, height;
@@ -111,12 +112,15 @@ class CXWaylandSurface {
     void unmap();
     void considerMap();
     void setWithdrawn(bool withdrawn);
+    void recheckSupportedProps();
 
     struct {
         CHyprSignalListener destroyResource;
         CHyprSignalListener destroySurface;
         CHyprSignalListener commitSurface;
     } m_listeners;
+
+    std::unordered_map<xcb_atom_t, bool> m_supportedProps;
 
     friend class CXWM;
 };

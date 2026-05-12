@@ -1,6 +1,7 @@
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
 #include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
 #include "InputManager.hpp"
 
@@ -12,18 +13,18 @@ void CUnifiedWorkspaceSwipeGesture::begin() {
     if (isGestureInProgress())
         return;
 
-    const auto PWORKSPACE = g_pCompositor->m_lastMonitor->m_activeWorkspace;
+    const auto PWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
 
-    Debug::log(LOG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
+    Log::logger->log(Log::DEBUG, "CUnifiedWorkspaceSwipeGesture::begin: Starting a swipe from {}", PWORKSPACE->m_name);
 
     m_workspaceBegin = PWORKSPACE;
     m_delta          = 0;
-    m_monitor        = g_pCompositor->m_lastMonitor;
+    m_monitor        = Desktop::focusState()->monitor();
     m_avgSpeed       = 0;
     m_speedPoints    = 0;
 
     if (PWORKSPACE->m_hasFullscreenWindow) {
-        for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
+        for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
             *ls->m_alpha = 1.f;
         }
     }
@@ -33,13 +34,13 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     if (!isGestureInProgress())
         return;
 
-    static auto  PSWIPEDIST             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
-    static auto  PSWIPENEW              = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
-    static auto  PSWIPEDIRLOCK          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock");
-    static auto  PSWIPEDIRLOCKTHRESHOLD = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_direction_lock_threshold");
-    static auto  PSWIPEFOREVER          = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_forever");
-    static auto  PSWIPEUSER             = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
-    static auto  PWORKSPACEGAP          = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto  PSWIPEDIST             = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
+    static auto  PSWIPENEW              = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
+    static auto  PSWIPEDIRLOCK          = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_direction_lock");
+    static auto  PSWIPEDIRLOCKTHRESHOLD = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_direction_lock_threshold");
+    static auto  PSWIPEFOREVER          = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_forever");
+    static auto  PSWIPEUSER             = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_use_r");
+    static auto  PWORKSPACEGAP          = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
 
     const auto   SWIPEDISTANCE = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
     const auto   XDISTANCE     = m_monitor->m_size.x + *PWORKSPACEGAP;
@@ -178,12 +179,12 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     if (!isGestureInProgress())
         return;
 
-    static auto PSWIPEPERC    = CConfigValue<Hyprlang::FLOAT>("gestures:workspace_swipe_cancel_ratio");
-    static auto PSWIPEDIST    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_distance");
-    static auto PSWIPEFORC    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_min_speed_to_force");
-    static auto PSWIPENEW     = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_create_new");
-    static auto PSWIPEUSER    = CConfigValue<Hyprlang::INT>("gestures:workspace_swipe_use_r");
-    static auto PWORKSPACEGAP = CConfigValue<Hyprlang::INT>("general:gaps_workspaces");
+    static auto PSWIPEPERC    = CConfigValue<Config::FLOAT>("gestures:workspace_swipe_cancel_ratio");
+    static auto PSWIPEDIST    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_distance");
+    static auto PSWIPEFORC    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_min_speed_to_force");
+    static auto PSWIPENEW     = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_create_new");
+    static auto PSWIPEUSER    = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_use_r");
+    static auto PWORKSPACEGAP = CConfigValue<Config::INTEGER>("general:gaps_workspaces");
     const auto  ANIMSTYLE     = m_workspaceBegin->m_renderOffset->getStyle();
     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
 
@@ -245,7 +246,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDLeft, m_monitor->m_id));
             PWORKSPACEL = g_pCompositor->getWorkspaceByID(workspaceIDLeft);
-            PWORKSPACEL->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
@@ -260,7 +260,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the left");
+        Log::logger->log(Log::DEBUG, "Ended swipe to the left");
 
         pSwitchedTo = PWORKSPACEL;
     } else {
@@ -272,7 +272,6 @@ void CUnifiedWorkspaceSwipeGesture::end() {
         else {
             m_monitor->changeWorkspace(g_pCompositor->createNewWorkspace(workspaceIDRight, m_monitor->m_id));
             PWORKSPACER = g_pCompositor->getWorkspaceByID(workspaceIDRight);
-            PWORKSPACER->rememberPrevWorkspace(m_workspaceBegin);
         }
 
         PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);
@@ -287,11 +286,10 @@ void CUnifiedWorkspaceSwipeGesture::end() {
 
         g_pInputManager->unconstrainMouse();
 
-        Debug::log(LOG, "Ended swipe to the right");
+        Log::logger->log(Log::DEBUG, "Ended swipe to the right");
 
         pSwitchedTo = PWORKSPACER;
     }
-    m_workspaceBegin->rememberPrevWorkspace(pSwitchedTo);
 
     g_pHyprRenderer->damageMonitor(m_monitor.lock());
 
@@ -307,7 +305,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     g_pInputManager->refocus();
 
     // apply alpha
-    for (auto const& ls : g_pCompositor->m_lastMonitor->m_layerSurfaceLayers[2]) {
+    for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {
         *ls->m_alpha = pSwitchedTo->m_hasFullscreenWindow && pSwitchedTo->m_fullscreenMode == FSMODE_FULLSCREEN ? 0.f : 1.f;
     }
 }

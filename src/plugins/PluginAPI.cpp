@@ -2,11 +2,12 @@
 #include "../Compositor.hpp"
 #include "../debug/HyprCtl.hpp"
 #include "../plugins/PluginSystem.hpp"
-#include "../managers/HookSystemManager.hpp"
-#include "../managers/LayoutManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../config/ConfigManager.hpp"
-#include "../debug/HyprNotificationOverlay.hpp"
+#include "../config/legacy/ConfigManager.hpp"
+#include "../config/lua/ConfigManager.hpp"
+#include "../notification/NotificationOverlay.hpp"
+#include "../layout/target/Target.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -37,9 +38,9 @@ APICALL SP<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle,
     if (!PLUGIN)
         return nullptr;
 
-    auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
-    return PFN;
+    //auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
+    //PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
+    return nullptr;
 }
 
 APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN> fn) {
@@ -48,8 +49,8 @@ APICALL bool HyprlandAPI::unregisterCallback(HANDLE handle, SP<HOOK_CALLBACK_FN>
     if (!PLUGIN)
         return false;
 
-    g_pHookSystem->unhook(fn);
-    std::erase_if(PLUGIN->m_registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
+    //g_pHookSystem->unhook(fn);
+    // std::erase_if(PLUGIN->m_registeredCallbacks, [&](const auto& other) { return other.second.lock() == fn; });
 
     return true;
 }
@@ -62,29 +63,48 @@ APICALL std::string HyprlandAPI::invokeHyprctlCommand(const std::string& call, c
 }
 
 APICALL bool HyprlandAPI::addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout) {
-    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
-
-    if (!PLUGIN)
-        return false;
-
-    PLUGIN->m_registeredLayouts.push_back(layout);
-
-    return g_pLayoutManager->addLayout(name, layout);
+    return false;
 }
 
 APICALL bool HyprlandAPI::removeLayout(HANDLE handle, IHyprLayout* layout) {
+    return false;
+}
+
+APICALL bool HyprlandAPI::addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
     if (!PLUGIN)
         return false;
 
-    std::erase(PLUGIN->m_registeredLayouts, layout);
+    PLUGIN->m_registeredAlgos.emplace_back(name);
 
-    return g_pLayoutManager->removeLayout(layout);
+    return Layout::Supplementary::algoMatcher()->registerTiledAlgo(name, typeInfo, std::move(factory));
+}
+
+APICALL bool HyprlandAPI::addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredAlgos.emplace_back(name);
+
+    return Layout::Supplementary::algoMatcher()->registerFloatingAlgo(name, typeInfo, std::move(factory));
+}
+
+APICALL bool HyprlandAPI::removeAlgo(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    std::erase(PLUGIN->m_registeredAlgos, name);
+
+    return Layout::Supplementary::algoMatcher()->unregisterAlgo(name);
 }
 
 APICALL bool HyprlandAPI::reloadConfig() {
-    g_pEventLoopManager->doLater([] { g_pConfigManager->reload(); });
+    g_pEventLoopManager->doLater([] { Config::mgr()->reload(); });
     return true;
 }
 
@@ -94,7 +114,7 @@ APICALL bool HyprlandAPI::addNotification(HANDLE handle, const std::string& text
     if (!PLUGIN)
         return false;
 
-    g_pHyprNotificationOverlay->addNotification(text, color, timeMs);
+    Notification::overlay()->addNotification(text, color, timeMs);
 
     return true;
 }
@@ -130,7 +150,7 @@ APICALL bool HyprlandAPI::addWindowDecoration(HANDLE handle, PHLWINDOW pWindow, 
 
     pWindow->addWindowDeco(std::move(pDecoration));
 
-    g_pLayoutManager->getCurrentLayout()->recalculateWindow(pWindow);
+    pWindow->layoutTarget()->recalc();
 
     return true;
 }
@@ -156,6 +176,9 @@ APICALL bool HyprlandAPI::removeWindowDecoration(HANDLE handle, IHyprWindowDecor
 APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
+
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
 
@@ -165,12 +188,15 @@ APICALL bool HyprlandAPI::addConfigValue(HANDLE handle, const std::string& name,
     if (!name.starts_with("plugin:"))
         return false;
 
-    g_pConfigManager->addPluginConfigVar(handle, name, value);
+    Config::Legacy::mgr()->addPluginConfigVar(handle, name, value);
     return true;
 }
 
 APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return false;
 
     if (!g_pPluginSystem->m_allowConfigVars)
         return false;
@@ -178,20 +204,23 @@ APICALL bool HyprlandAPI::addConfigKeyword(HANDLE handle, const std::string& nam
     if (!PLUGIN)
         return false;
 
-    g_pConfigManager->addPluginKeyword(handle, name, fn, opts);
+    Config::Legacy::mgr()->addPluginKeyword(handle, name, fn, opts);
     return true;
 }
 
 APICALL Hyprlang::CConfigValue* HyprlandAPI::getConfigValue(HANDLE handle, const std::string& name) {
     auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
 
+    if (Config::mgr()->type() != Config::CONFIG_LEGACY)
+        return nullptr;
+
     if (!PLUGIN)
         return nullptr;
 
     if (name.starts_with("plugin:"))
-        return g_pConfigManager->getHyprlangConfigValuePtr(name.substr(7), "plugin");
+        return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name.substr(7), "plugin");
 
-    return g_pConfigManager->getHyprlangConfigValuePtr(name);
+    return Config::Legacy::mgr()->getHyprlangConfigValuePtr(name);
 }
 
 APICALL void* HyprlandAPI::getFunctionAddressFromSignature(HANDLE handle, const std::string& sig) {
@@ -282,7 +311,7 @@ APICALL bool addNotificationV2(HANDLE handle, const std::unordered_map<std::stri
         if (iterator != data.end())
             icon = std::any_cast<eIcons>(iterator->second);
 
-        g_pHyprNotificationOverlay->addNotification(text, COLOR, TIME, icon);
+        Notification::overlay()->addNotification(text, COLOR, TIME, icon);
 
     } catch (std::exception& e) {
         // bad any_cast most likely, plugin error
@@ -350,11 +379,11 @@ APICALL std::vector<SFunctionMatch> HyprlandAPI::findFunctionsByName(HANDLE hand
     };
 
     if (SYMBOLS.empty()) {
-        Debug::log(ERR, R"(Unable to search for function "{}": no symbols found in binary (is "{}" in path?))", name,
+        Log::logger->log(Log::ERR, R"(Unable to search for function "{}": no symbols found in binary (is "{}" in path?))", name,
 #ifdef __clang__
-                   "llvm-nm"
+                         "llvm-nm"
 #else
-                   "nm"
+                         "nm"
 #endif
         );
         return {};
@@ -407,8 +436,63 @@ APICALL bool HyprlandAPI::unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCom
     if (!PLUGIN)
         return false;
 
-    std::erase(PLUGIN->m_registeredHyprctlCommands, cmd);
+    std::erase_if(PLUGIN->m_registeredHyprctlCommands, [&](const auto& other) { return !other || other == cmd; });
     g_pHyprCtl->unregisterCommand(cmd);
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addConfigValueV2(HANDLE handle, SP<Config::Values::IValue> value) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    PLUGIN->m_registeredApiValues.emplace_back(value);
+
+    auto ret = Config::mgr()->registerPluginValue(handle, value);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to register plugin value \"{}\": {}", value->name(), ret.error());
+        return false;
+    }
+
+    value->commence();
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Config::mgr() || Config::mgr()->type() != Config::CONFIG_LUA)
+        return false;
+
+    auto ret = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()))->registerPluginLuaFunction(handle, namespace_, name, fn);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to register lua plugin function {}.{}: {}", namespace_, name, ret.error());
+        return false;
+    }
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::removeLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Config::mgr() || Config::mgr()->type() != Config::CONFIG_LUA)
+        return false;
+
+    auto ret = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()))->unregisterPluginLuaFunction(handle, namespace_, name);
+    if (!ret) {
+        Log::logger->log(Log::ERR, "failed to unregister lua plugin function {}.{}: {}", namespace_, name, ret.error());
+        return false;
+    }
 
     return true;
 }

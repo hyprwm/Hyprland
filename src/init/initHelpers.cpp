@@ -1,3 +1,6 @@
+#include <linux/capability.h>
+#include <sys/prctl.h>
+
 #include "initHelpers.hpp"
 
 bool NInit::isSudo() {
@@ -10,20 +13,24 @@ void NInit::gainRealTime() {
     struct sched_param param;
 
     if (pthread_getschedparam(pthread_self(), &old_policy, &param)) {
-        Debug::log(WARN, "Failed to get old pthread scheduling priority");
+        Log::logger->log(Log::WARN, "Failed to get old pthread scheduling priority");
         return;
     }
 
     param.sched_priority = minPrio;
 
     if (pthread_setschedparam(pthread_self(), SCHED_RR, &param)) {
-        Debug::log(WARN, "Failed to change process scheduling strategy");
+        Log::logger->log(Log::WARN, "Failed to change process scheduling strategy");
         return;
     }
+
+    // NixOS-specific fix to prevent all children from inheriting
+    // CAP_SYS_NICE due to how the security wrapper works.
+    prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_LOWER, CAP_SYS_NICE, 0, 0);
 
     pthread_atfork(nullptr, nullptr, []() {
         const struct sched_param param = {.sched_priority = 0};
         if (pthread_setschedparam(pthread_self(), SCHED_OTHER, &param))
-            Debug::log(WARN, "Failed to reset process scheduling strategy");
+            Log::logger->log(Log::WARN, "Failed to reset process scheduling strategy");
     });
 }

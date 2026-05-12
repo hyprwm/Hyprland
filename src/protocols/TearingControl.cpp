@@ -1,13 +1,12 @@
 #include "TearingControl.hpp"
 #include "../managers/ProtocolManager.hpp"
-#include "../desktop/Window.hpp"
+#include "../desktop/view/Window.hpp"
+#include "../event/EventBus.hpp"
 #include "../Compositor.hpp"
 #include "core/Compositor.hpp"
-#include "../managers/HookSystemManager.hpp"
 
 CTearingControlProtocol::CTearingControlProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
-    static auto P =
-        g_pHookSystem->hookDynamic("destroyWindow", [this](void* self, SCallbackInfo& info, std::any param) { this->onWindowDestroy(std::any_cast<PHLWINDOW>(param)); });
+    static auto P = Event::bus()->m_events.window.destroy.listen([this](PHLWINDOW window) { onWindowDestroy(window); });
 }
 
 void CTearingControlProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
@@ -54,7 +53,7 @@ CTearingControl::CTearingControl(SP<CWpTearingControlV1> resource_, SP<CWLSurfac
     m_resource->setSetPresentationHint([this](CWpTearingControlV1* res, wpTearingControlV1PresentationHint hint) { this->onHint(hint); });
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_wlSurface->resource() == surf_) {
+        if (w->wlSurface()->resource() == surf_) {
             m_window = w;
             break;
         }

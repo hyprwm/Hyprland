@@ -4,11 +4,13 @@
 
 #include <ranges>
 
+#include "helpers/math/Direction.hpp"
 #include "managers/XWaylandManager.hpp"
 #include "managers/KeybindManager.hpp"
 #include "managers/SessionLockManager.hpp"
-#include "desktop/Window.hpp"
-#include "protocols/types/ColorManagement.hpp"
+#include "desktop/view/Window.hpp"
+#include "helpers/cm/ColorManagement.hpp"
+#include "config/shared/workspace/WorkspaceRule.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
@@ -40,6 +42,7 @@ class CCompositor {
     } m_drmRenderNode;
 
     bool                                         m_initialized = false;
+    bool                                         m_safeMode    = false;
     SP<Aquamarine::CBackend>                     m_aqBackend;
 
     std::string                                  m_hyprTempDataRoot = "";
@@ -55,6 +58,7 @@ class CCompositor {
     std::vector<PHLLS>                           m_layers;
     std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
+    std::vector<SP<Desktop::View::IView>>        m_otherViews;
 
     std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
     std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
@@ -65,12 +69,7 @@ class CCompositor {
     void                                         cleanup();
     void                                         bumpNofile();
     void                                         restoreNofile();
-
-    WP<CWLSurfaceResource>                       m_lastFocus;
-    PHLWINDOWREF                                 m_lastWindow;
-    PHLMONITORREF                                m_lastMonitor;
-
-    std::vector<PHLWINDOWREF>                    m_windowFocusHistory; // first element is the most recently focused
+    bool                                         setWatchdogFd(int fd);
 
     bool                                         m_readyToProcess = false;
     bool                                         m_sessionActive  = true;
@@ -99,10 +98,8 @@ class CCompositor {
     PHLMONITOR             getMonitorFromCursor();
     PHLMONITOR             getMonitorFromVector(const Vector2D&);
     void                   removeWindowFromVectorSafe(PHLWINDOW);
-    void                   focusWindow(PHLWINDOW, SP<CWLSurfaceResource> pSurface = nullptr, bool preserveFocusHistory = false);
-    void                   focusSurface(SP<CWLSurfaceResource>, PHLWINDOW pWindowOwner = nullptr);
     bool                   monitorExists(PHLMONITOR);
-    PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint8_t properties, PHLWINDOW pIgnoreWindow = nullptr);
+    PHLWINDOW              vectorToWindowUnified(const Vector2D&, uint16_t properties, PHLWINDOW pIgnoreWindow = nullptr);
     SP<CWLSurfaceResource> vectorToLayerSurface(const Vector2D&, std::vector<PHLLSREF>*, Vector2D*, PHLLS*, bool aboveLockscreen = false);
     SP<CWLSurfaceResource> vectorToLayerPopupSurface(const Vector2D&, PHLMONITOR monitor, Vector2D*, PHLLS*);
     SP<CWLSurfaceResource> vectorWindowToSurface(const Vector2D&, PHLWINDOW, Vector2D& sl);
@@ -118,18 +115,20 @@ class CCompositor {
     bool                   isWindowActive(PHLWINDOW);
     void                   changeWindowZOrder(PHLWINDOW, bool);
     void                   cleanupFadingOut(const MONITORID& monid);
-    PHLWINDOW              getWindowInDirection(PHLWINDOW, char);
-    PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, char dir, PHLWINDOW ignoreWindow = nullptr, bool useVectorAngles = false);
-    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false);
-    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false);
+    PHLWINDOW              getWindowInDirection(PHLWINDOW, Math::eDirection);
+    PHLWINDOW              getWindowInDirection(const CBox& box, PHLWORKSPACE pWorkspace, Math::eDirection dir, bool floatingPreference, PHLWINDOW ignoreWindow = nullptr,
+                                                bool useVectorAngles = false);
+    PHLWINDOW              getWindowCycle(PHLWINDOW cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool prev = false,
+                                          bool allowFullscreenBlocked = false);
+    PHLWINDOW              getWindowCycleHist(PHLWINDOWREF cur, bool focusableOnly = false, std::optional<bool> floating = std::nullopt, bool visible = false, bool next = false,
+                                              bool allowFullscreenBlocked = false);
     WORKSPACEID            getNextAvailableNamedWorkspace();
     bool                   isPointOnAnyMonitor(const Vector2D&);
     bool                   isPointOnReservedArea(const Vector2D& point, const PHLMONITOR monitor = nullptr);
-    CBox                   calculateX11WorkArea();
-    PHLMONITOR             getMonitorInDirection(const char&);
-    PHLMONITOR             getMonitorInDirection(PHLMONITOR, const char&);
+    std::optional<CBox>    calculateX11WorkArea();
+    PHLMONITOR             getMonitorInDirection(Math::eDirection);
+    PHLMONITOR             getMonitorInDirection(PHLMONITOR, Math::eDirection);
     void                   updateAllWindowsAnimatedDecorationValues();
-    void                   updateWindowAnimatedDecorationValues(PHLWINDOW);
     MONITORID              getNextAvailableMonitorID(std::string const& name);
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
@@ -137,7 +136,7 @@ class CCompositor {
     bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
     void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
     void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const SFullscreenState state);
+    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   scheduleFrameForMonitor(PHLMONITOR, Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);
@@ -147,11 +146,9 @@ class CCompositor {
     PHLWINDOW              getWindowByRegex(const std::string&);
     void                   warpCursorTo(const Vector2D&, bool force = false);
     PHLLS                  getLayerSurfaceFromSurface(SP<CWLSurfaceResource>);
-    void                   closeWindow(PHLWINDOW);
     Vector2D               parseWindowVectorArgsRelative(const std::string&, const Vector2D&);
     [[nodiscard]] PHLWORKSPACE          createNewWorkspace(const WORKSPACEID&, const MONITORID&, const std::string& name = "",
                                                            bool isEmpty = true); // will be deleted next frame if left empty and unfocused!
-    void                                setActiveMonitor(PHLMONITOR);
     bool                                isWorkspaceSpecial(const WORKSPACEID&);
     WORKSPACEID                         getNewSpecialID();
     void                                performUserChecks();
@@ -166,31 +163,37 @@ class CCompositor {
     void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                                updateSuspendedStates();
     void                                onNewMonitor(SP<Aquamarine::IOutput> output);
-    void                                ensurePersistentWorkspacesPresent(const std::vector<SWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace = nullptr);
+    void                                ensureWorkspacesOnAssignedMonitors();
     std::optional<unsigned int>         getVTNr();
+    bool                                isVRRActiveOnAnyMonitor() const;
 
-    NColorManagement::SImageDescription getPreferredImageDescription();
+    NColorManagement::PImageDescription getPreferredImageDescription();
+    NColorManagement::PImageDescription getHDRImageDescription();
     bool                                shouldChangePreferredImageDescription();
 
     bool                                supportsDrmSyncobjTimeline() const;
     std::string                         m_explicitConfigPath;
 
   private:
-    void                         initAllSignals();
-    void                         removeAllSignals();
-    void                         cleanEnvironment();
-    void                         setRandomSplash();
-    void                         initManagers(eManagersInitStage stage);
-    void                         prepareFallbackOutput();
-    void                         createLockFile();
-    void                         removeLockFile();
-    void                         setMallocThreshold();
+    void                           initAllSignals();
+    void                           removeAllSignals();
+    void                           cleanEnvironment();
+    void                           setRandomSplash();
+    void                           initManagers(eManagersInitStage stage);
+    void                           prepareFallbackOutput();
+    void                           createLockFile();
+    void                           removeLockFile();
+    void                           setMallocThreshold();
+    void                           openSafeModeBox();
 
-    uint64_t                     m_hyprlandPID    = 0;
-    wl_event_source*             m_critSigSource  = nullptr;
-    rlimit                       m_originalNofile = {};
+    uint64_t                       m_hyprlandPID    = 0;
+    wl_event_source*               m_critSigSource  = nullptr;
+    rlimit                         m_originalNofile = {};
+    Hyprutils::OS::CFileDescriptor m_watchdogWriteFd;
 
-    std::vector<PHLWORKSPACEREF> m_workspaces;
+    std::vector<PHLWORKSPACEREF>   m_workspaces;
 };
 
 inline UP<CCompositor> g_pCompositor;

@@ -13,24 +13,26 @@
 #include <cstdint>
 #include "../WaylandProtocol.hpp"
 #include "../../render/Texture.hpp"
+#include "../types/SurfaceStateQueue.hpp"
 #include "wayland.hpp"
+#include "../../desktop/view/WLSurface.hpp"
 #include "../../helpers/signal/Signal.hpp"
 #include "../../helpers/math/Math.hpp"
 #include "../../helpers/time/Time.hpp"
 #include "../types/Buffer.hpp"
-#include "../types/ColorManagement.hpp"
+#include "../../helpers/cm/ColorManagement.hpp"
 #include "../types/SurfaceRole.hpp"
 #include "../types/SurfaceState.hpp"
 
 class CWLOutputResource;
 class CMonitor;
-class CWLSurface;
 class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
 class CDRMSyncobjSurfaceResource;
+class CFifoResource;
+class CCommitTimerResource;
 class CColorManagementSurface;
-class CFrogColorManagementSurface;
 class CContentType;
 
 class CWLCallbackResource {
@@ -89,8 +91,10 @@ class CWLSurfaceResource {
     void                          resetRole();
 
     struct {
-        CSignalT<>                          precommit; // before commit
-        CSignalT<>                          commit;    // after commit
+        CSignalT<>                          precommit;    // before commit
+        CSignalT<WP<SSurfaceState>>         stateCommit;  // when placing state in queue
+        CSignalT<WP<SSurfaceState>>         stateCommit2; // when placing state in queue used for commit timing so we apply fifo/fences first.
+        CSignalT<>                          commit;       // after commit
         CSignalT<>                          map;
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
@@ -101,16 +105,17 @@ class CWLSurfaceResource {
 
     SSurfaceState                          m_current;
     SSurfaceState                          m_pending;
-    std::queue<UP<SSurfaceState>>          m_pendingStates;
-    bool                                   m_pendingWaiting = false;
+    CSurfaceStateQueue                     m_stateQueue;
 
     WP<CWLSurfaceResource>                 m_self;
-    WP<CWLSurface>                         m_hlSurface;
+    WP<Desktop::View::CWLSurface>          m_hlSurface;
     std::vector<PHLMONITORREF>             m_enteredOutputs;
     bool                                   m_mapped = false;
     std::vector<WP<CWLSubsurfaceResource>> m_subsurfaces;
     SP<ISurfaceRole>                       m_role;
-    WP<CDRMSyncobjSurfaceResource>         m_syncobj; // may not be present
+    WP<CDRMSyncobjSurfaceResource>         m_syncobj;     // may not be present
+    WP<CFifoResource>                      m_fifo;        // may not be present
+    WP<CCommitTimerResource>               m_commitTimer; // may not be present
     WP<CColorManagementSurface>            m_colorManagement;
     WP<CContentType>                       m_contentType;
 
@@ -120,8 +125,10 @@ class CWLSurfaceResource {
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
     void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
-    NColorManagement::SImageDescription    getPreferredImageDescription();
+    NColorManagement::PImageDescription    getPreferredImageDescription();
     void                                   sortSubsurfaces();
+    bool                                   hasVisibleSubsurface();
+    bool                                   isTearing();
 
     // returns a pair: found surface (null if not found) and surface local coords.
     // localCoords param is relative to 0,0 of this surface

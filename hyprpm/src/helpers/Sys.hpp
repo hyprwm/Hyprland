@@ -1,11 +1,13 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
 namespace NSys {
-    bool isSuperuser();
-    int  getUID();
-    int  getEUID();
+    bool                       isSuperuser();
+    int                        getUID();
+    int                        getEUID();
+    std::optional<std::string> findInPath(const std::string& exe);
 
     // NOLINTNEXTLINE
     namespace root {

@@ -75,7 +75,7 @@ void CPointerGesturesProtocol::onGetPinchGesture(CZwpPointerGesturesV1* pMgr, ui
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        LOGM(ERR, "Couldn't create gesture");
+        LOGM(Log::ERR, "Couldn't create gesture");
         return;
     }
 }
@@ -86,7 +86,7 @@ void CPointerGesturesProtocol::onGetSwipeGesture(CZwpPointerGesturesV1* pMgr, ui
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        LOGM(ERR, "Couldn't create gesture");
+        LOGM(Log::ERR, "Couldn't create gesture");
         return;
     }
 }
@@ -97,7 +97,7 @@ void CPointerGesturesProtocol::onGetHoldGesture(CZwpPointerGesturesV1* pMgr, uin
 
     if UNLIKELY (!RESOURCE->good()) {
         pMgr->noMemory();
-        LOGM(ERR, "Couldn't create gesture");
+        LOGM(Log::ERR, "Couldn't create gesture");
         return;
     }
 }

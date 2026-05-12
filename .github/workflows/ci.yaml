@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Hyprland
         run: |
-          CFLAGS=-Werror CXXFLAGS=-Werror make all
+          CFLAGS=-Werror CXXFLAGS=-Werror make nopch
 
       - name: Compress and package artifacts
         run: |
@@ -41,86 +41,38 @@ jobs:
           name: Build archive
           path: Hyprland.tar.xz
 
-  meson:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
-    name: "Build Hyprland with Meson (Arch)"
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux
-    steps:
-      - name: Checkout repository actions
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
-
-      - name: Setup base
-        uses: ./.github/actions/setup_base
-
-      - name: Configure
-        run: meson setup build -Ddefault_library=static
-
-      - name: Compile
-        run: ninja -C build
-
-  no-pch:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
-    name: "Build Hyprland without precompiled headers (Arch)"
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux
-    steps:
-      - name: Checkout repository actions
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
-
-      - name: Setup base
-        uses: ./.github/actions/setup_base
-        with:
-          INSTALL_XORG_PKGS: true
-
-      - name: Compile
-        run: make nopch
-
-  noxwayland:
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
-    name: "Build Hyprland in pure Wayland (Arch)"
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux
-    steps:
-      - name: Checkout repository actions
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
-
-      - name: Setup base
-        uses: ./.github/actions/setup_base
-
-      - name: Configure
-        run: mkdir -p build && cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE:STRING=Release -DNO_XWAYLAND:STRING=true -H./ -B./build -G Ninja
-
-      - name: Compile
-        run: make release
-
   clang-format:
     permissions: read-all
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
-    name: "Code Style (Arch)"
+    name: "Code Style"
     runs-on: ubuntu-latest
     container:
       image: archlinux
     steps:
-      - name: Checkout repository actions
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/actions
 
-      - name: Setup base
-        uses: ./.github/actions/setup_base
-
-      - name: Configure
-        run: meson setup build -Ddefault_library=static
+      - name: Install clang-format
+        run: |
+          pacman --noconfirm --noprogressbar -Syyu
+          pacman --noconfirm --noprogressbar -Sy clang
 
       - name: clang-format check
-        run: ninja -C build clang-format-check
+        run: .github/workflows/clang-format-check.sh "." "llvm" "^subprojects$" ""
+
+      - name: Save PR head commit SHA
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          SHA="${{ github.event.pull_request.head.sha }}"
+          echo "SHA=$SHA" >> $GITHUB_ENV
+      - name: Save latest commit SHA if not PR
+        if: failure() && github.event_name != 'pull_request'
+        shell: bash
+        run: echo "SHA=${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Report failure in job summary
+        if: failure()
+        run: |
+          DEEPLINK="${{ github.server_url }}/${{ github.repository }}/commit/${{ env.SHA }}"
+          echo -e "Format check failed on commit [${GITHUB_SHA:0:8}]($DEEPLINK) with files:\n$(<$GITHUB_WORKSPACE/failing-files.txt)" >> $GITHUB_STEP_SUMMARY

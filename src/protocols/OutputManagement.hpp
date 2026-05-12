@@ -141,8 +141,12 @@ class COutputConfiguration {
     SP<CZwlrOutputConfigurationV1>            m_resource;
     std::vector<WP<COutputConfigurationHead>> m_heads;
     WP<COutputManager>                        m_owner;
+    WP<COutputConfiguration>                  m_self;
 
     bool                                      applyTestConfiguration(bool test);
+
+    friend class COutputManagementProtocol;
+    friend class COutputManager;
 };
 
 class COutputManagementProtocol : public IWaylandProtocol {
@@ -153,6 +157,8 @@ class COutputManagementProtocol : public IWaylandProtocol {
 
     // doesn't have to return one
     SP<SWlrManagerSavedOutputState> getOutputStateFor(PHLMONITOR pMonitor);
+
+    void                            sendPendingSuccessEvents();
 
   private:
     void destroyResource(COutputManager* resource);
@@ -169,6 +175,7 @@ class COutputManagementProtocol : public IWaylandProtocol {
     std::vector<SP<COutputMode>>              m_modes;
     std::vector<SP<COutputConfiguration>>     m_configurations;
     std::vector<SP<COutputConfigurationHead>> m_configurationHeads;
+    std::vector<WP<COutputConfiguration>>     m_pendingConfigurationSuccessEvents;
 
     SP<COutputHead>                           headFromResource(wl_resource* r);
     SP<COutputMode>                           modeFromResource(wl_resource* r);

@@ -38,10 +38,6 @@ enum eInputType : uint8_t {
     INPUT_TYPE_MOTION
 };
 
-struct SCallbackInfo {
-    bool cancelled = false; /* on cancellable events, will cancel the event. */
-};
-
 enum eHyprCtlOutputFormat : uint8_t {
     FORMAT_NORMAL = 0,
     FORMAT_JSON
@@ -62,5 +58,3 @@ struct SDispatchResult {
 using WINDOWID    = int64_t;
 using MONITORID   = int64_t;
 using WORKSPACEID = int64_t;
-
-using HOOK_CALLBACK_FN = std::function<void(void*, SCallbackInfo&, std::any)>;

@@ -23,7 +23,7 @@ CExtIdleNotification::CExtIdleNotification(SP<CExtIdleNotificationV1> resource_,
 
     update();
 
-    LOGM(LOG, "Registered idle-notification for {}ms", timeoutMs_);
+    LOGM(Log::DEBUG, "Registered idle-notification for {}ms", timeoutMs_);
 }
 
 CExtIdleNotification::~CExtIdleNotification() {

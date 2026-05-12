@@ -111,8 +111,10 @@ class CWLDataDeviceResource : public IDataDevice {
     WP<CWLDataDeviceResource>         m_self;
 
   private:
-    SP<CWlDataDevice> m_resource;
-    wl_client*        m_client = nullptr;
+    SP<CWlDataDevice>      m_resource;
+    wl_client*             m_client = nullptr;
+
+    WP<CWLSurfaceResource> m_entered;
 
     friend class CWLDataDeviceProtocol;
 };
@@ -176,11 +178,11 @@ class CWLDataDeviceProtocol : public IWaylandProtocol {
         CHyprSignalListener    dndSurfaceCommit;
 
         // for ending a dnd
-        SP<HOOK_CALLBACK_FN> mouseMove;
-        SP<HOOK_CALLBACK_FN> mouseButton;
-        SP<HOOK_CALLBACK_FN> touchUp;
-        SP<HOOK_CALLBACK_FN> touchMove;
-        SP<HOOK_CALLBACK_FN> tabletTip;
+        CHyprSignalListener mouseMove;
+        CHyprSignalListener mouseButton;
+        CHyprSignalListener touchUp;
+        CHyprSignalListener touchMove;
+        CHyprSignalListener tabletTip;
     } m_dnd;
 
     void abortDrag();

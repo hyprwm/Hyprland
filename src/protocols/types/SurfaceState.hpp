@@ -1,12 +1,41 @@
 #pragma once
 
 #include "../../helpers/math/Math.hpp"
+#include "../../helpers/time/Time.hpp"
+#include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
 
-class CTexture;
+namespace Render {
+    class ITexture;
+}
 class CDRMSyncPointState;
 class CWLCallbackResource;
+
+enum eLockReason : uint8_t {
+    LOCK_REASON_NONE  = 0,
+    LOCK_REASON_FENCE = 1 << 0,
+    LOCK_REASON_FIFO  = 1 << 1,
+    LOCK_REASON_TIMER = 1 << 2
+};
+
+inline eLockReason operator|(eLockReason a, eLockReason b) {
+    return sc<eLockReason>(sc<uint8_t>(a) | sc<uint8_t>(b));
+}
+inline eLockReason operator&(eLockReason a, eLockReason b) {
+    return sc<eLockReason>(sc<uint8_t>(a) & sc<uint8_t>(b));
+}
+inline eLockReason& operator|=(eLockReason& a, eLockReason b) {
+    a = a | b;
+    return a;
+}
+inline eLockReason& operator&=(eLockReason& a, eLockReason b) {
+    a = a & b;
+    return a;
+}
+inline eLockReason operator~(eLockReason a) {
+    return sc<eLockReason>(~sc<uint8_t>(a));
+}
 
 struct SSurfaceState {
     union {
@@ -23,6 +52,7 @@ struct SSurfaceState {
             bool acquire : 1;
             bool acked : 1;
             bool frame : 1;
+            bool fifo : 1;
         } bits;
     } updated;
 
@@ -57,10 +87,20 @@ struct SSurfaceState {
 
     // drm syncobj protocol surface state
     CDRMSyncPointState acquire;
+    eLockReason        lockMask = LOCK_REASON_NONE;
 
     // texture of surface content, used for rendering
-    SP<CTexture> texture;
-    void         updateSynchronousTexture(SP<CTexture> lastTexture);
+    SP<Render::ITexture> texture;
+    void                 updateSynchronousTexture(SP<Render::ITexture> lastTexture);
+
+    // fifo
+    bool barrierSet    = false;
+    bool surfaceLocked = false;
+    bool fifoScheduled = false;
+
+    // commit timing
+    std::optional<Time::steady_dur> pendingTimeout;
+    SP<CEventLoopTimer>             timer;
 
     // helpers
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage

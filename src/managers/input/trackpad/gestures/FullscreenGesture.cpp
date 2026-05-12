@@ -1,6 +1,7 @@
 #include "FullscreenGesture.hpp"
 
 #include "../../../../Compositor.hpp"
+#include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../animation/DesktopAnimationManager.hpp"
 
@@ -29,7 +30,7 @@ CFullscreenTrackpadGesture::CFullscreenTrackpadGesture(const std::string_view& m
 void CFullscreenTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureBegin& e) {
     ITrackpadGesture::begin(e);
 
-    m_window = g_pCompositor->m_lastWindow;
+    m_window = Desktop::focusState()->window();
 
     if (!m_window)
         return;
@@ -76,7 +77,6 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
     if (COMPLETION < 0.2F) {
         // revert the animation
         g_pHyprRenderer->damageWindow(m_window.lock());
-        m_window->m_isFloating = !m_window->m_isFloating;
         g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 1.F : 0.F, m_window.lock());
         g_pCompositor->setWindowFullscreenInternal(m_window.lock(), m_window->m_fullscreenState.internal == FSMODE_NONE ? m_originalMode : FSMODE_NONE);
         return;

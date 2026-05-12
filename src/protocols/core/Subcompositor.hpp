@@ -55,6 +55,7 @@ class CWLSubsurfaceResource {
     SP<CWlSubsurface> m_resource;
 
     void              destroy();
+    void              unlinkFromParent();
 
     struct {
         CHyprSignalListener commitSurface;

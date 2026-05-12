@@ -1,5 +1,4 @@
 #include "SessionLock.hpp"
-#include "../Compositor.hpp"
 #include "../managers/SeatManager.hpp"
 #include "FractionalScale.hpp"
 #include "LockNotify.hpp"
@@ -7,6 +6,7 @@
 #include "core/Output.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../render/Renderer.hpp"
+#include "../desktop/state/FocusState.hpp"
 
 CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_, SP<CWLSurfaceResource> surface_, PHLMONITOR pMonitor_, WP<CSessionLock> owner_) :
     m_resource(resource_), m_sessionLock(owner_), m_surface(surface_), m_monitor(pMonitor_) {
@@ -26,13 +26,13 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
 
     m_listeners.surfaceCommit = m_surface->m_events.commit.listen([this] {
         if (!m_surface->m_current.texture) {
-            LOGM(ERR, "SessionLock attached a null buffer");
+            LOGM(Log::ERR, "SessionLock attached a null buffer");
             m_resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_NULL_BUFFER, "Null buffer attached");
             return;
         }
 
         if (!m_ackdConfigure) {
-            LOGM(ERR, "SessionLock committed without an ack");
+            LOGM(Log::ERR, "SessionLock committed without an ack");
             m_resource->error(EXT_SESSION_LOCK_SURFACE_V1_ERROR_COMMIT_BEFORE_FIRST_ACK, "Committed surface before first ack");
             return;
         }
@@ -47,21 +47,26 @@ CSessionLockSurface::CSessionLockSurface(SP<CExtSessionLockSurfaceV1> resource_,
     });
 
     m_listeners.surfaceDestroy = m_surface->m_events.destroy.listen([this] {
-        LOGM(WARN, "SessionLockSurface object remains but surface is being destroyed???");
+        LOGM(Log::WARN, "SessionLockSurface object remains but surface is being destroyed???");
         m_surface->unmap();
         m_listeners.surfaceCommit.reset();
         m_listeners.surfaceDestroy.reset();
-        if (g_pCompositor->m_lastFocus == m_surface)
-            g_pCompositor->m_lastFocus.reset();
+        if (Desktop::focusState()->surface() == m_surface)
+            Desktop::focusState()->surface().reset();
 
         m_surface.reset();
     });
 
-    PROTO::fractional->sendScale(surface_, pMonitor_->m_scale);
+    if (m_monitor) {
+        PROTO::fractional->sendScale(surface_, m_monitor->m_scale);
+
+        if (m_surface)
+            m_surface->enter(m_monitor.lock());
+
+        m_listeners.monitorMode = m_monitor->m_events.modeChanged.listen([this] { sendConfigure(); });
+    }
 
     sendConfigure();
-
-    m_listeners.monitorMode = m_monitor->m_events.modeChanged.listen([this] { sendConfigure(); });
 }
 
 CSessionLockSurface::~CSessionLockSurface() {
@@ -73,6 +78,11 @@ CSessionLockSurface::~CSessionLockSurface() {
 }
 
 void CSessionLockSurface::sendConfigure() {
+    if (!m_monitor) {
+        LOGM(Log::ERR, "sendConfigure: monitor is gone");
+        return;
+    }
+
     const auto SERIAL = g_pSeatManager->nextSerial(g_pSeatManager->seatResourceForClient(m_resource->client()));
     m_resource->sendConfigure(SERIAL, m_monitor->m_size.x, m_monitor->m_size.y);
 }
@@ -102,7 +112,7 @@ CSessionLock::CSessionLock(SP<CExtSessionLockV1> resource_) : m_resource(resourc
 
     m_resource->setGetLockSurface([this](CExtSessionLockV1* r, uint32_t id, wl_resource* surf, wl_resource* output) {
         if (m_inert) {
-            LOGM(ERR, "Lock is trying to send getLockSurface after it's inert");
+            LOGM(Log::ERR, "Lock is trying to send getLockSurface after it's inert");
             return;
         }
 
@@ -174,7 +184,7 @@ void CSessionLockProtocol::destroyResource(CSessionLockSurface* surf) {
 
 void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
 
-    LOGM(LOG, "New sessionLock with id {}", id);
+    LOGM(Log::DEBUG, "New sessionLock with id {}", id);
 
     const auto CLIENT   = pMgr->client();
     const auto RESOURCE = m_locks.emplace_back(makeShared<CSessionLock>(makeShared<CExtSessionLockV1>(CLIENT, pMgr->version(), id)));
@@ -191,10 +201,19 @@ void CSessionLockProtocol::onLock(CExtSessionLockManagerV1* pMgr, uint32_t id) {
 }
 
 void CSessionLockProtocol::onGetLockSurface(CExtSessionLockV1* lock, uint32_t id, wl_resource* surface, wl_resource* output) {
-    LOGM(LOG, "New sessionLockSurface with id {}", id);
+    LOGM(Log::DEBUG, "New sessionLockSurface with id {}", id);
 
-    auto             PSURFACE = CWLSurfaceResource::fromResource(surface);
-    auto             PMONITOR = CWLOutputResource::fromResource(output)->m_monitor.lock();
+    auto PSURFACE  = CWLSurfaceResource::fromResource(surface);
+    auto OUTPUTRES = CWLOutputResource::fromResource(output);
+    if (!OUTPUTRES) {
+        LOGM(Log::ERR, "onGetLockSurface: invalid output resource");
+        return;
+    }
+    auto PMONITOR = OUTPUTRES->m_monitor.lock();
+    if (!PMONITOR) {
+        LOGM(Log::ERR, "onGetLockSurface: monitor is gone for output resource");
+        return;
+    }
 
     SP<CSessionLock> sessionLock;
     for (auto const& l : m_locks) {

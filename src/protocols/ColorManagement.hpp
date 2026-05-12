@@ -7,7 +7,7 @@
 #include "../helpers/Monitor.hpp"
 #include "core/Compositor.hpp"
 #include "color-management-v1.hpp"
-#include "types/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 
 class CColorManager;
 class CColorManagementOutput;
@@ -46,7 +46,6 @@ class CColorManagementOutput {
 
 class CColorManagementSurface {
   public:
-    CColorManagementSurface(SP<CWLSurfaceResource> surface_); // temporary interface for frog CM
     CColorManagementSurface(SP<CWpColorManagementSurfaceV1> resource, SP<CWLSurfaceResource> surface_);
 
     bool                                       good();
@@ -67,14 +66,11 @@ class CColorManagementSurface {
   private:
     SP<CWpColorManagementSurfaceV1>     m_resource;
     wl_client*                          m_client = nullptr;
-    NColorManagement::SImageDescription m_imageDescription;
-    NColorManagement::SImageDescription m_lastImageDescription;
+    NColorManagement::PImageDescription m_imageDescription;
+    NColorManagement::PImageDescription m_lastImageDescription;
     bool                                m_hasImageDescription = false;
     bool                                m_needsNewMetadata    = false;
     hdr_output_metadata                 m_hdrMetadata;
-
-    friend class CXXColorManagementSurface;
-    friend class CFrogColorManagementSurface;
 };
 
 class CColorManagementFeedbackSurface {
@@ -91,7 +87,7 @@ class CColorManagementFeedbackSurface {
     SP<CWpColorManagementSurfaceFeedbackV1> m_resource;
     wl_client*                              m_client = nullptr;
 
-    uint32_t                                m_currentPreferredId = 0;
+    uint64_t                                m_currentPreferredId = 0;
 
     struct {
         CHyprSignalListener enter;
@@ -113,6 +109,14 @@ class CColorManagementIccCreator {
     WP<CColorManagementIccCreator>      m_self;
 
     NColorManagement::SImageDescription m_settings;
+    struct SIccFile {
+        int      fd     = -1;
+        uint32_t length = 0;
+        uint32_t offset = 0;
+        bool     operator==(const SIccFile& i2) const {
+            return fd == i2.fd;
+        }
+    } m_icc;
 
   private:
     SP<CWpImageDescriptionCreatorIccV1> m_resource;
@@ -150,20 +154,23 @@ class CColorManagementParametricCreator {
 class CColorManagementImageDescription {
   public:
     CColorManagementImageDescription(SP<CWpImageDescriptionV1> resource, bool allowGetInformation);
+    static SP<CColorManagementImageDescription> fromReference(wl_resource* res);
 
-    bool                                 good();
-    wl_client*                           client();
-    SP<CWpImageDescriptionV1>            resource();
+    bool                                        good();
+    wl_client*                                  client();
+    SP<CWpImageDescriptionV1>                   resource();
+    bool                                        sendMaybeReady();
 
-    WP<CColorManagementImageDescription> m_self;
+    WP<CColorManagementImageDescription>        m_self;
 
-    NColorManagement::SImageDescription  m_settings;
+    NColorManagement::PImageDescription         m_settings;
 
   private:
     SP<CWpImageDescriptionV1> m_resource;
     wl_client*                m_client              = nullptr;
     bool                      m_allowGetInformation = false;
 
+    friend class CColorManager;
     friend class CColorManagementOutput;
 };
 
@@ -216,9 +223,6 @@ class CColorManagementProtocol : public IWaylandProtocol {
     friend class CColorManagementIccCreator;
     friend class CColorManagementParametricCreator;
     friend class CColorManagementImageDescription;
-
-    friend class CXXColorManagementSurface;
-    friend class CFrogColorManagementSurface;
 };
 
 namespace PROTO {

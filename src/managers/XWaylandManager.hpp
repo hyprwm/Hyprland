@@ -1,10 +1,9 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include <optional>
 
-class CWindow; // because clangd
-using PHLWINDOW = SP<CWindow>;
 class CWLSurfaceResource;
 
 class CHyprXWaylandManager {
@@ -21,7 +20,9 @@ class CHyprXWaylandManager {
     bool                   shouldBeFloated(PHLWINDOW, bool pending = false);
     void                   checkBorders(PHLWINDOW);
     Vector2D               xwaylandToWaylandCoords(const Vector2D&);
+    Vector2D               xwaylandToWaylandCoords(const Vector2D&, PHLMONITOR);
     Vector2D               waylandToXWaylandCoords(const Vector2D&);
+    Vector2D               waylandToXWaylandCoords(const Vector2D&, PHLMONITOR);
 };
 
 inline UP<CHyprXWaylandManager> g_pXWaylandManager;

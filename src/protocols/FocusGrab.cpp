@@ -3,6 +3,7 @@
 #include <hyprland-focus-grab-v1.hpp>
 #include "../managers/input/InputManager.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../desktop/state/FocusState.hpp"
 #include "core/Compositor.hpp"
 #include <cstdint>
 #include <wayland-server.h>
@@ -104,9 +105,9 @@ void CFocusGrab::refocusKeyboard() {
     }
 
     if (surface)
-        g_pCompositor->focusSurface(surface);
+        Desktop::focusState()->rawSurfaceFocus(surface);
     else
-        LOGM(ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
+        LOGM(Log::ERR, "CFocusGrab::refocusKeyboard called with no committed surfaces. This should never happen.");
 }
 
 void CFocusGrab::commit(bool removeOnly) {

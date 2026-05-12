@@ -1,13 +1,19 @@
 #include "shared.hpp"
+#include <cassert>
 #include <csignal>
 #include <cerrno>
 #include <thread>
 #include <print>
+#include <fstream>
 #include "../shared.hpp"
 #include "../hyprctlCompat.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
+
+// Almost everywhere `Tests::spawnKitty` is used, the return value is immediately tested against `nullptr`
+// and the test fails if it is.
+// TODO: add a test macro for that.
 
 CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();
@@ -26,6 +32,38 @@ CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std:
     // wait while kitty spawns
     int counter = 0;
     while (processAlive(kitty->pid()) && windowCount() == COUNT_BEFORE) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50)
+            return nullptr;
+    }
+
+    if (!processAlive(kitty->pid()))
+        return nullptr;
+
+    return kitty;
+}
+
+CUniquePointer<CProcess> Tests::spawnLayerKitty(const std::string& namespace_, const std::vector<std::string> args) {
+    std::vector<std::string> programArgs = args;
+    if (!namespace_.empty()) {
+        programArgs.insert(programArgs.begin(), "--class");
+        programArgs.insert(programArgs.begin() + 1, namespace_);
+    }
+
+    programArgs.insert(programArgs.begin(), "+kitten");
+    programArgs.insert(programArgs.begin() + 1, "panel");
+
+    CUniquePointer<CProcess> kitty = makeUnique<CProcess>("kitty", programArgs);
+    kitty->addEnv("WAYLAND_DISPLAY", WLDISPLAY);
+    kitty->runAsync();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // wait while the layer spawns
+    int counter = 0;
+    while (processAlive(kitty->pid()) && countOccurrences(getFromSocket("/layers"), std::format("pid: {}", kitty->pid())) == 0) {
         counter++;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -65,7 +103,7 @@ bool Tests::killAllWindows() {
     auto pos = str.find("Window ");
     while (pos != std::string::npos) {
         auto pos2 = str.find(" -> ", pos);
-        getFromSocket("/dispatch killwindow address:0x" + str.substr(pos + 7, pos2 - pos - 7));
+        getFromSocket("/dispatch hl.dsp.window.kill({ window = 'address:0x" + str.substr(pos + 7, pos2 - pos - 7) + "' })");
         pos = str.find("Window ", pos + 5);
     }
 
@@ -96,6 +134,38 @@ void Tests::waitUntilWindowsN(int n) {
     }
 }
 
+int Tests::layerCount() {
+    return countOccurrences(getFromSocket("/layers"), "namespace: ");
+}
+
+bool Tests::killAllLayers() {
+    auto str = getFromSocket("/layers");
+    auto pos = str.find("pid: ");
+    while (pos != std::string::npos) {
+        auto pid = stoi(str.substr(pos + 5, str.find('\n', pos)));
+        kill(pid, 15);
+
+        // we need to wait for a bit because for some reason otherwise we'll end up
+        // with layers with pid -1 if they are all removed at the same time
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        pos = str.find("pid: ", pos + 5);
+    }
+
+    int counter = 0;
+    while (Tests::layerCount() != 0) {
+        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        if (counter > 50) {
+            std::println("{}Timed out waiting for layers to close", Colors::RED);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 std::string Tests::execAndGet(const std::string& cmd) {
     CProcess proc("/bin/sh", {"-c", cmd});
 
@@ -104,4 +174,27 @@ std::string Tests::execAndGet(const std::string& cmd) {
     }
 
     return proc.stdOut();
+}
+
+bool Tests::writeFile(const std::string& name, const std::string& contents) {
+    std::ofstream of(name, std::ios::trunc);
+    if (!of.good())
+        return false;
+
+    of << contents;
+    of.close();
+
+    return true;
+}
+
+std::string Tests::getAttribute(const std::string& hyprlandResponse, std::string attr) {
+    attr += ": ";
+    auto pos = hyprlandResponse.find(attr);
+    if (pos == std::string::npos) {
+        NLog::log("{}Window attribute not found: '{}'", Colors::RED, attr);
+        return "Wrong window attribute";
+    }
+    pos += attr.size();
+    auto pos2 = hyprlandResponse.find('\n', pos);
+    return hyprlandResponse.substr(pos, pos2 - pos);
 }

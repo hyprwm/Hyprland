@@ -1,69 +1,64 @@
 #pragma once
 
 #include "../defines.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include <aquamarine/buffer/Buffer.hpp>
 #include <hyprutils/math/Misc.hpp>
+#include <span>
 
 class IHLBuffer;
 HYPRUTILS_FORWARD(Math, CRegion);
 
-enum eTextureType : int8_t {
-    TEXTURE_INVALID = -1, // Invalid
-    TEXTURE_RGBA    = 0,  // 4 channels
-    TEXTURE_RGBX,         // discard A
-    TEXTURE_EXTERNAL,     // EGLImage
-};
-
-class CTexture {
-  public:
-    CTexture();
-
-    CTexture(CTexture&)        = delete;
-    CTexture(CTexture&&)       = delete;
-    CTexture(const CTexture&&) = delete;
-    CTexture(const CTexture&)  = delete;
-
-    CTexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false);
-
-    CTexture(const SP<Aquamarine::IBuffer> buffer, bool keepDataCopy = false);
-    // this ctor takes ownership of the eglImage.
-    CTexture(const Aquamarine::SDMABUFAttrs&, void* image);
-    ~CTexture();
-
-    void                        destroyTexture();
-    void                        allocate();
-    void                        update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage);
-    const std::vector<uint8_t>& dataCopy();
-    void                        bind();
-    void                        unbind();
-    void                        setTexParameter(GLenum pname, GLint param);
-
-    eTextureType                m_type          = TEXTURE_RGBA;
-    GLenum                      m_target        = GL_TEXTURE_2D;
-    GLuint                      m_texID         = 0;
-    Vector2D                    m_size          = {};
-    void*                       m_eglImage      = nullptr;
-    eTransform                  m_transform     = HYPRUTILS_TRANSFORM_NORMAL;
-    bool                        m_opaque        = false;
-    uint32_t                    m_drmFormat     = 0; // for shm
-    bool                        m_isSynchronous = false;
-
-  private:
-    enum eTextureParam : uint8_t {
-        TEXTURE_PAR_WRAP_S = 0,
-        TEXTURE_PAR_WRAP_T,
-        TEXTURE_PAR_MAG_FILTER,
-        TEXTURE_PAR_MIN_FILTER,
-        TEXTURE_PAR_SWIZZLE_R,
-        TEXTURE_PAR_SWIZZLE_B,
-        TEXTURE_PAR_LAST,
+namespace Render {
+    enum eTextureType : int8_t {
+        TEXTURE_INVALID = -1, // Invalid
+        TEXTURE_RGBA    = 0,  // 4 channels
+        TEXTURE_RGBX,         // discard A
+        TEXTURE_3D_LUT,       // 3D LUT
+        TEXTURE_EXTERNAL,     // EGLImage
     };
 
-    void                                               createFromShm(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size);
-    void                                               createFromDma(const Aquamarine::SDMABUFAttrs&, void* image);
-    inline constexpr std::optional<size_t>             getCacheStateIndex(GLenum pname);
+    class ITexture {
+      public:
+        ITexture(ITexture&)        = delete;
+        ITexture(ITexture&&)       = delete;
+        ITexture(const ITexture&&) = delete;
+        ITexture(const ITexture&)  = delete;
 
-    bool                                               m_keepDataCopy = false;
-    std::vector<uint8_t>                               m_dataCopy;
-    std::array<std::optional<GLint>, TEXTURE_PAR_LAST> m_cachedStates;
-};
+        virtual ~ITexture() = default;
+
+        virtual void                setTexParameter(GLenum pname, GLint param)                                          = 0;
+        virtual void                allocate(const Vector2D& size, uint32_t drmFormat = 0)                              = 0;
+        virtual void                update(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const CRegion& damage) = 0;
+        virtual void                bind() {};
+        virtual void                unbind() {};
+        virtual bool                ok();
+        virtual bool                isDMA();
+
+        const std::vector<uint8_t>& dataCopy();
+
+        eTextureType                m_type      = TEXTURE_RGBA;
+        Vector2D                    m_size      = {};
+        eTransform                  m_transform = HYPRUTILS_TRANSFORM_NORMAL;
+        bool                        m_opaque    = false;
+
+        uint32_t                    m_drmFormat     = 0; // for shm
+        bool                        m_isSynchronous = false;
+
+        // CM
+        NColorManagement::PImageDescription m_imageDescription;
+
+        // TODO move to GLTexture
+        GLuint m_texID   = 0;
+        GLenum magFilter = GL_LINEAR; // useNearestNeighbor overwrites these
+        GLenum minFilter = GL_LINEAR;
+
+      protected:
+        ITexture() = default;
+        ITexture(uint32_t drmFormat, uint8_t* pixels, uint32_t stride, const Vector2D& size, bool keepDataCopy = false, bool opaque = false);
+        ITexture(std::span<const float> lut3D, size_t N);
+
+        bool                 m_keepDataCopy = false;
+        std::vector<uint8_t> m_dataCopy;
+    };
+}

@@ -25,6 +25,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../SharedDefs.hpp"
 #include "../defines.hpp"
 #include "../version.h"
+#include "../config/values/types/IValue.hpp"
 
 #include <any>
 #include <functional>
@@ -68,10 +69,20 @@ struct SVersionInfo {
 #endif
 
 class IHyprLayout;
-class CWindow;
 class IHyprWindowDecoration;
 struct SConfigValue;
-class CWindow;
+class Hypr_dummyClass {};
+extern "C" {
+struct lua_State;
+}
+
+namespace Layout {
+    class ITiledAlgorithm;
+    class IFloatingAlgorithm;
+};
+
+using HOOK_CALLBACK_FN = Hypr_dummyClass;
+using PLUGIN_LUA_FN    = int (*)(lua_State* L);
 
 /*
     These methods are for the plugin to implement
@@ -123,16 +134,20 @@ namespace HyprlandAPI {
         After you have registered ALL of your config values, you may call `getConfigValue`
 
         returns: true on success, false on fail
+
+        deprecated: please use V2
     */
-    APICALL bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
+    APICALL [[deprecated]] bool addConfigValue(HANDLE handle, const std::string& name, const Hyprlang::CConfigValue& value);
 
     /*
         Add a config keyword.
         This method may only be called in "pluginInit"
 
         returns: true on success, false on fail
+
+        deprecated: please use V2
     */
-    APICALL bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
+    APICALL [[deprecated]] bool addConfigKeyword(HANDLE handle, const std::string& name, Hyprlang::PCONFIGHANDLERFUNC fn, Hyprlang::SHandlerOptions opts);
 
     /*
         Get a config value.
@@ -141,10 +156,14 @@ namespace HyprlandAPI {
 
         returns: a pointer to the config value struct, which is guaranteed to be valid for the life of this plugin, unless another `addConfigValue` is called afterwards.
                 nullptr on error.
+
+        Deprecated: please use V2
     */
-    APICALL Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
+    APICALL [[deprecated]] Hyprlang::CConfigValue* getConfigValue(HANDLE handle, const std::string& name);
 
     /*
+        Deprecated: doesn't do anything anymore, use Event::bus()
+
         Register a dynamic (function) callback to a selected event.
         Pointer will be free'd by Hyprland on unregisterCallback().
 
@@ -152,7 +171,7 @@ namespace HyprlandAPI {
 
         WARNING: Losing this pointer will unregister the callback!
     */
-    APICALL [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
+    APICALL [[deprecated]] [[nodiscard]] SP<HOOK_CALLBACK_FN> registerCallbackDynamic(HANDLE handle, const std::string& event, HOOK_CALLBACK_FN fn);
 
     /*
         Unregisters a callback. If the callback was dynamic, frees the memory.
@@ -174,15 +193,26 @@ namespace HyprlandAPI {
         Adds a layout to Hyprland.
 
         returns: true on success. False otherwise.
+
+        deprecated: addTiledAlgo, addFloatingAlgo
     */
-    APICALL bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
+    APICALL [[deprecated]] bool addLayout(HANDLE handle, const std::string& name, IHyprLayout* layout);
 
     /*
         Removes an added layout from Hyprland.
 
         returns: true on success. False otherwise.
+
+        deprecated: V2 removeAlgo
     */
-    APICALL bool removeLayout(HANDLE handle, IHyprLayout* layout);
+    APICALL [[deprecated]] bool removeLayout(HANDLE handle, IHyprLayout* layout);
+
+    /*
+        Algorithm fns. Used for registering and removing. Return success.
+    */
+    APICALL bool addTiledAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::ITiledAlgorithm>()>&& factory);
+    APICALL bool addFloatingAlgo(HANDLE handle, const std::string& name, const std::type_info* typeInfo, std::function<UP<Layout::IFloatingAlgorithm>()>&& factory);
+    APICALL bool removeAlgo(HANDLE handle, const std::string& name);
 
     /*
         Queues a config reload. Does not take effect immediately.
@@ -306,6 +336,32 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool unregisterHyprCtlCommand(HANDLE handle, SP<SHyprCtlCommand> cmd);
+
+    /*
+        Add a new config value. Keep the pointer, you can use it for retrieving the value.
+
+        Please note this value name must start with plugin:, e.g. plugin:my_plugin:value
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addConfigValueV2(HANDLE handle, SP<Config::Values::IValue> value);
+
+    /*
+        Register a plugin-owned Lua C callback under hl.plugin.<namespace>.<name>.
+
+        Callbacks are removed automatically on plugin unload.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name, PLUGIN_LUA_FN fn);
+
+    /*
+        Unregister a plugin-owned Lua C callback from hl.plugin.<namespace>.<name>.
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name);
+
 };
 
 // NOLINTBEGIN

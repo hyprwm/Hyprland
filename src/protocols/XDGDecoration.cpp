@@ -16,7 +16,7 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
             default: modeString = "INVALID"; break;
         }
 
-        LOGM(LOG, "setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString, (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
+        LOGM(Log::DEBUG, "setMode: {}. {} MODE_SERVER_SIDE as reply.", modeString, (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE ? "Sending" : "Ignoring and sending"));
         auto sendMode = xdgModeOnRequestCSD(mode);
         m_resource->sendConfigure(sendMode);
         mostRecentlySent      = sendMode;
@@ -24,7 +24,7 @@ CXDGDecoration::CXDGDecoration(SP<CZxdgToplevelDecorationV1> resource_, wl_resou
     });
 
     m_resource->setUnsetMode([this](CZxdgToplevelDecorationV1*) {
-        LOGM(LOG, "unsetMode. Sending MODE_SERVER_SIDE.");
+        LOGM(Log::DEBUG, "unsetMode. Sending MODE_SERVER_SIDE.");
         auto sendMode = xdgModeOnReleaseCSD();
         m_resource->sendConfigure(sendMode);
         mostRecentlySent      = sendMode;

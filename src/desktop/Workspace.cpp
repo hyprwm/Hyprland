@@ -1,14 +1,23 @@
 #include "Workspace.hpp"
+#include "view/Group.hpp"
+#include "view/LayerSurface.hpp"
 #include "../Compositor.hpp"
-#include "../config/ConfigValue.hpp"
-#include "config/ConfigManager.hpp"
+#include "../config/shared/parserUtils/ParserUtils.hpp"
+#include "../config/shared/animation/AnimationTree.hpp"
+#include "../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../config/supplementary/executor/Executor.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../managers/HookSystemManager.hpp"
+#include "../helpers/Monitor.hpp"
+#include "../layout/space/Space.hpp"
+#include "../layout/target/Target.hpp"
+#include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../event/EventBus.hpp"
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
 using namespace Hyprutils::String;
+using namespace Desktop::View;
 
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
@@ -25,52 +34,48 @@ CWorkspace::CWorkspace(WORKSPACEID id, PHLMONITOR monitor, std::string name, boo
 void CWorkspace::init(PHLWORKSPACE self) {
     m_self = self;
 
-    g_pAnimationManager->createAnimation(Vector2D(0, 0), m_renderOffset, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"),
-                                         self, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(1.f, m_alpha, g_pConfigManager->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
+    g_pAnimationManager->createAnimation(
+        Vector2D(0, 0), m_renderOffset, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self, AVARDAMAGE_ENTIRE);
+    g_pAnimationManager->createAnimation(1.f, m_alpha, Config::animationTree()->getAnimationPropertyConfig(m_isSpecialWorkspace ? "specialWorkspaceIn" : "workspacesIn"), self,
                                          AVARDAMAGE_ENTIRE);
 
-    const auto RULEFORTHIS = g_pConfigManager->getWorkspaceRuleFor(self);
-    if (RULEFORTHIS.defaultName.has_value())
-        m_name = RULEFORTHIS.defaultName.value();
+    const auto RULEFORTHIS = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    if (RULEFORTHIS.m_defaultName.has_value())
+        m_name = RULEFORTHIS.m_defaultName.value();
+    if (RULEFORTHIS.m_animationStyle.has_value())
+        m_animationStyle = RULEFORTHIS.m_animationStyle.value();
 
-    m_focusedWindowHook = g_pHookSystem->hookDynamic("closeWindow", [this](void* self, SCallbackInfo& info, std::any param) {
-        const auto PWINDOW = std::any_cast<PHLWINDOW>(param);
-
-        if (PWINDOW == m_lastFocusedWindow.lock())
+    m_focusedWindowHook = Event::bus()->m_events.window.close.listen([this](PHLWINDOW pWindow) {
+        if (pWindow == m_lastFocusedWindow.lock())
             m_lastFocusedWindow.reset();
     });
 
+    m_space = Layout::CSpace::create(m_self.lock());
+    m_space->setAlgorithmProvider(Layout::Supplementary::algoMatcher()->createAlgorithmForWorkspace(m_self.lock()));
+
     m_inert = false;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(self);
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(self).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
     if (self->m_wasCreatedEmpty)
-        if (auto cmd = WORKSPACERULE.onCreatedEmptyRunCmd)
-            CKeybindManager::spawnWithRules(*cmd, self);
+        if (auto cmd = WORKSPACERULE.m_onCreatedEmptyRunCmd)
+            Config::Supplementary::executor()->spawnWithRules(*cmd, self);
 
     g_pEventManager->postEvent({.event = "createworkspace", .data = m_name});
     g_pEventManager->postEvent({.event = "createworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-    EMIT_HOOK_EVENT("createWorkspace", this);
-}
-
-SWorkspaceIDName CWorkspace::getPrevWorkspaceIDName() const {
-    return m_prevWorkspace;
+    Event::bus()->m_events.workspace.created.emit(self);
 }
 
 CWorkspace::~CWorkspace() {
-    Debug::log(LOG, "Destroying workspace ID {}", m_id);
-
-    // check if g_pHookSystem and g_pEventManager exist, they might be destroyed as in when the compositor is closing.
-    if (g_pHookSystem)
-        g_pHookSystem->unhook(m_focusedWindowHook);
+    Log::logger->log(Log::DEBUG, "Destroying workspace ID {}", m_id);
 
     if (g_pEventManager) {
         g_pEventManager->postEvent({.event = "destroyworkspace", .data = m_name});
         g_pEventManager->postEvent({.event = "destroyworkspacev2", .data = std::format("{},{}", m_id, m_name)});
-        EMIT_HOOK_EVENT("destroyWorkspace", this);
     }
+
+    Event::bus()->m_events.workspace.removed.emit(m_self);
 
     m_events.destroy.emit();
 }
@@ -82,22 +87,16 @@ PHLWINDOW CWorkspace::getLastFocusedWindow() {
     return m_lastFocusedWindow.lock();
 }
 
-void CWorkspace::rememberPrevWorkspace(const PHLWORKSPACE& prev) {
-    if (!prev) {
-        m_prevWorkspace.id   = -1;
-        m_prevWorkspace.name = "";
-        return;
-    }
+PHLWINDOW CWorkspace::getFocusCandidate() {
+    auto pWindow = getLastFocusedWindow();
 
-    if (prev->m_id == m_id) {
-        Debug::log(LOG, "Tried to set prev workspace to the same as current one");
-        return;
-    }
+    if (!pWindow)
+        pWindow = getTopLeftWindow();
 
-    m_prevWorkspace.id   = prev->m_id;
-    m_prevWorkspace.name = prev->m_name;
+    if (!pWindow)
+        pWindow = getFirstWindow();
 
-    prev->m_monitor->addPrevWorkspaceID(prev->m_id);
+    return pWindow;
 }
 
 std::string CWorkspace::getConfigName() {
@@ -156,14 +155,14 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             if (cur == 'r') {
                 WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("r[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 prop = prop.substr(2, prop.length() - 3);
 
                 if (!prop.contains("-")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -171,7 +170,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -179,12 +178,12 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     from = std::stoll(LHS);
                     to   = std::stoll(RHS);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 if (to < from || to < 1 || from < 1) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -195,13 +194,13 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 's') {
                 if (!prop.starts_with("s[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto SHOULDBESPECIAL = configStringToInt(prop);
+                const auto SHOULDBESPECIAL = Config::ParserUtils::parseInt(prop);
 
                 if (SHOULDBESPECIAL && sc<bool>(*SHOULDBESPECIAL) != m_isSpecialWorkspace)
                     return false;
@@ -210,7 +209,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'm') {
                 if (!prop.starts_with("m[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -225,7 +224,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'n') {
                 if (!prop.starts_with("n[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -236,7 +235,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 if (prop.starts_with("e:") && !m_name.ends_with(prop.substr(2)))
                     return false;
 
-                const auto WANTSNAMED = configStringToInt(prop);
+                const auto WANTSNAMED = Config::ParserUtils::parseInt(prop);
 
                 if (WANTSNAMED && *WANTSNAMED != (m_id <= -1337))
                     return false;
@@ -246,7 +245,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
             if (cur == 'w') {
                 WORKSPACEID from = 0, to = 0;
                 if (!prop.starts_with("w[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -284,14 +283,14 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     // try single
 
                     if (!isNumber(prop)) {
-                        Debug::log(LOG, "Invalid selector {}", selector);
+                        Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                         return false;
                     }
 
                     try {
                         from = std::stoll(prop);
                     } catch (std::exception& e) {
-                        Debug::log(LOG, "Invalid selector {}", selector);
+                        Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                         return false;
                     }
 
@@ -314,7 +313,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 const auto LHS = prop.substr(0, DASHPOS), RHS = prop.substr(DASHPOS + 1);
 
                 if (!isNumber(LHS) || !isNumber(RHS)) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -322,12 +321,12 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                     from = std::stoll(LHS);
                     to   = std::stoll(RHS);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
                 if (to < from || to < 1 || from < 1) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -348,7 +347,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
             if (cur == 'f') {
                 if (!prop.starts_with("f[") || !prop.ends_with("]")) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -357,7 +356,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 try {
                     FSSTATE = std::stoi(prop);
                 } catch (std::exception& e) {
-                    Debug::log(LOG, "Invalid selector {}", selector);
+                    Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
                     return false;
                 }
 
@@ -379,7 +378,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                 continue;
             }
 
-            Debug::log(LOG, "Invalid selector {}", selector);
+            Log::logger->log(Log::DEBUG, "Invalid selector {}", selector);
             return false;
         }
 
@@ -420,6 +419,9 @@ bool CWorkspace::isVisible() {
 
 bool CWorkspace::isVisibleNotCovered() {
     const auto PMONITOR = m_monitor.lock();
+    if (!PMONITOR)
+        return false;
+
     if (PMONITOR->m_activeSpecialWorkspace)
         return PMONITOR->m_activeSpecialWorkspace->m_id == m_id;
 
@@ -428,14 +430,22 @@ bool CWorkspace::isVisibleNotCovered() {
 
 int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+
+    if (!m_space)
+        return 0;
+
+    for (auto const& t : m_space->targets()) {
+        if (!t)
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+
+        const auto visibilityFulfilled =
+            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+
+        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
+        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
             continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
             continue;
         no++;
     }
@@ -445,16 +455,19 @@ int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> on
 
 int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->workspaceID() != m_id || !w->m_isMapped)
+    for (auto const& g : Desktop::View::groups()) {
+        const auto HEAD = g->head();
+
+        const auto visibilityFulfilled =
+            g->current() && !g->current()->isHidden() && !g->current()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+
+        if (HEAD->workspaceID() != m_id || !HEAD->m_isMapped)
             continue;
-        if (!w->m_groupData.head)
+        if (onlyTiled.has_value() && HEAD->m_isFloating == onlyTiled.value())
             continue;
-        if (onlyTiled.has_value() && w->m_isFloating == onlyTiled.value())
+        if (onlyPinned.has_value() && HEAD->m_pinned != onlyPinned.value())
             continue;
-        if (onlyPinned.has_value() && w->m_pinned != onlyPinned.value())
-            continue;
-        if (onlyVisible.has_value() && w->isHidden() == onlyVisible.value())
+        if (onlyVisible.has_value() && visibilityFulfilled != onlyVisible.value())
             continue;
         no++;
     }
@@ -463,7 +476,7 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 
 PHLWINDOW CWorkspace::getFirstWindow() {
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->m_isMapped && !w->isHidden())
+        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
             return w;
     }
 
@@ -474,7 +487,7 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -499,13 +512,13 @@ void CWorkspace::updateWindowDecos() {
 }
 
 void CWorkspace::updateWindowData() {
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace != m_self)
             continue;
 
-        w->updateWindowData(WORKSPACERULE);
+        w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
     }
 }
 
@@ -522,27 +535,28 @@ void CWorkspace::rename(const std::string& name) {
     if (g_pCompositor->isWorkspaceSpecial(m_id))
         return;
 
-    Debug::log(LOG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
+    Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);
     m_name = name;
 
-    const auto WORKSPACERULE = g_pConfigManager->getWorkspaceRuleFor(m_self.lock());
-    setPersistent(WORKSPACERULE.isPersistent);
+    const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock()).value_or(Config::CWorkspaceRule{});
+    setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
-    if (WORKSPACERULE.isPersistent)
-        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<SWorkspaceRule>{WORKSPACERULE}, m_self.lock());
+    if (WORKSPACERULE.m_isPersistent.value_or(false))
+        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_isMapped && w->m_workspace == m_self && w->isFullscreen(); });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || w->m_workspace != m_self)
-            continue;
+    if (!m_hasFullscreenWindow)
+        m_fullscreenMode = FSMODE_NONE;
 
-        w->updateDynamicRules();
+    for (auto const& t : m_space->targets()) {
+        if (t->window())
+            t->window()->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ON_WORKSPACE);
     }
 }
 
@@ -560,4 +574,16 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
+}
+
+void CWorkspace::setNoMembersAboveFullscreen() {
+    // make all windows and layers on the same workspace under the fullscreen window
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+            w->m_createdOverFullscreen = false;
+    }
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == m_monitor)
+            ls->m_aboveFullscreen = false;
+    }
 }

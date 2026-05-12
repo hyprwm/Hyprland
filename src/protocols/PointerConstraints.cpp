@@ -1,6 +1,7 @@
 #include "PointerConstraints.hpp"
-#include "../desktop/WLSurface.hpp"
-#include "../Compositor.hpp"
+#include "../desktop/view/WLSurface.hpp"
+#include "../desktop/state/FocusState.hpp"
+#include "../desktop/view/Window.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../managers/SeatManager.hpp"
 #include "core/Compositor.hpp"
@@ -16,7 +17,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
     resource_->setOnDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpLockedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -26,7 +27,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
 
     resource_->setSetRegion([this](CZwpLockedPointerV1* p, wl_resource* region) { onSetRegion(region); });
     resource_->setSetCursorPositionHint([this](CZwpLockedPointerV1* p, wl_fixed_t x, wl_fixed_t y) {
-        static auto PXWLFORCESCALEZERO = CConfigValue<Hyprlang::INT>("xwayland:force_zero_scaling");
+        static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
         if (!m_hlSurface)
             return;
@@ -34,7 +35,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWL
         m_hintSet = true;
 
         float      scale   = 1.f;
-        const auto PWINDOW = m_hlSurface->getWindow();
+        const auto PWINDOW = Desktop::View::CWindow::fromView(m_hlSurface->view());
         if (PWINDOW) {
             const auto ISXWL = PWINDOW->m_isX11;
             scale            = ISXWL && *PXWLFORCESCALEZERO ? PWINDOW->m_X11SurfaceScaledBy : 1.f;
@@ -55,7 +56,7 @@ CPointerConstraint::CPointerConstraint(SP<CZwpConfinedPointerV1> resource_, SP<C
     resource_->setOnDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
     resource_->setDestroy([this](CZwpConfinedPointerV1* p) { PROTO::constraints->destroyPointerConstraint(this); });
 
-    m_hlSurface = CWLSurface::fromResource(surf);
+    m_hlSurface = Desktop::View::CWLSurface::fromResource(surf);
 
     if (!m_hlSurface)
         return;
@@ -126,9 +127,11 @@ void CPointerConstraint::activate() {
 
     // TODO: hack, probably not a super duper great idea
     if (g_pSeatManager->m_state.pointerFocus != m_hlSurface->resource()) {
-        const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
-        const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
-        g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        if (const auto W = Desktop::View::CWindow::fromView(m_hlSurface->view()); !W || !W->m_layoutFlags.cantLockCursor) {
+            const auto SURFBOX = m_hlSurface->getSurfaceBoxGlobal();
+            const auto LOCAL   = SURFBOX.has_value() ? logicPositionHint() - SURFBOX->pos() : Vector2D{};
+            g_pSeatManager->setPointerFocus(m_hlSurface->resource(), LOCAL);
+        }
     }
 
     if (m_locked)
@@ -158,7 +161,7 @@ void CPointerConstraint::onSetRegion(wl_resource* wlRegion) {
     g_pInputManager->simulateMouseMovement(); // to warp the cursor if anything's amiss
 }
 
-SP<CWLSurface> CPointerConstraint::owner() {
+SP<Desktop::View::CWLSurface> CPointerConstraint::owner() {
     return m_hlSurface.lock();
 }
 
@@ -216,14 +219,14 @@ void CPointerConstraintsProtocol::destroyPointerConstraint(CPointerConstraint* h
 
 void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constraint, CZwpPointerConstraintsV1* pMgr) {
     if UNLIKELY (!constraint->good()) {
-        LOGM(ERR, "Couldn't create constraint??");
+        LOGM(Log::ERR, "Couldn't create constraint??");
         pMgr->noMemory();
         m_constraints.pop_back();
         return;
     }
 
     if UNLIKELY (!constraint->owner()) {
-        LOGM(ERR, "New constraint has no CWLSurface owner??");
+        LOGM(Log::ERR, "New constraint has no CWLSurface owner??");
         return;
     }
 
@@ -232,7 +235,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
     const auto DUPES = std::ranges::count_if(m_constraints, [OWNER](const auto& c) { return c->owner() == OWNER; });
 
     if UNLIKELY (DUPES > 1) {
-        LOGM(ERR, "Constraint for surface duped");
+        LOGM(Log::ERR, "Constraint for surface duped");
         pMgr->error(ZWP_POINTER_CONSTRAINTS_V1_ERROR_ALREADY_CONSTRAINED, "Surface already confined");
         m_constraints.pop_back();
         return;
@@ -242,7 +245,7 @@ void CPointerConstraintsProtocol::onNewConstraint(SP<CPointerConstraint> constra
 
     g_pInputManager->m_constraints.emplace_back(constraint);
 
-    if (g_pCompositor->m_lastFocus == OWNER->resource())
+    if (Desktop::focusState()->surface() == OWNER->resource())
         constraint->activate();
 }
 

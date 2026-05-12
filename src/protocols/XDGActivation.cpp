@@ -19,7 +19,7 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
         // TODO: should we send a protocol error of already_used here
         // if it was used? the protocol spec doesn't say _when_ it should be sent...
         if UNLIKELY (m_committed) {
-            LOGM(WARN, "possible protocol error, two commits from one token. Ignoring.");
+            LOGM(Log::WARN, "possible protocol error, two commits from one token. Ignoring.");
             return;
         }
 
@@ -27,7 +27,7 @@ CXDGActivationToken::CXDGActivationToken(SP<CXdgActivationTokenV1> resource_) : 
         // send done with a new token
         m_token = g_pTokenManager->registerNewToken({}, std::chrono::months{12});
 
-        LOGM(LOG, "assigned new xdg-activation token {}", m_token);
+        LOGM(Log::DEBUG, "assigned new xdg-activation token {}", m_token);
 
         m_resource->sendDone(m_token.c_str());
 
@@ -70,7 +70,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
         auto TOKEN = std::ranges::find_if(m_sentTokens, [token](const auto& t) { return t.token == token; });
 
         if UNLIKELY (TOKEN == m_sentTokens.end()) {
-            LOGM(WARN, "activate event for non-existent token {}??", token);
+            LOGM(Log::WARN, "activate event for non-existent token {}??", token);
             return;
         }
 
@@ -81,7 +81,7 @@ void CXDGActivationProtocol::bindManager(wl_client* client, void* data, uint32_t
         const auto             PWINDOW = g_pCompositor->getWindowFromSurface(surf);
 
         if UNLIKELY (!PWINDOW) {
-            LOGM(WARN, "activate event for non-window or gone surface with token {}, ignoring", token);
+            LOGM(Log::WARN, "activate event for non-window or gone surface with token {}, ignoring", token);
             return;
         }
 

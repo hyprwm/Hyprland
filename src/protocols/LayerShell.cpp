@@ -1,6 +1,6 @@
 #include "LayerShell.hpp"
 #include "../Compositor.hpp"
-#include "../desktop/LayerSurface.hpp"
+#include "../desktop/view/LayerSurface.hpp"
 #include "XDGShell.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
@@ -159,7 +159,7 @@ CLayerShellResource::CLayerShellResource(SP<CZwlrLayerSurfaceV1> resource_, SP<C
             return;
         }
 
-        if (!m_pending.anchor || !(m_pending.anchor & anchor)) {
+        if (anchor && (!m_pending.anchor || !(m_pending.anchor & anchor))) {
             r->error(ZWLR_LAYER_SURFACE_V1_ERROR_INVALID_EXCLUSIVE_EDGE, "Exclusive edge doesn't align with anchor");
             return;
         }
@@ -247,9 +247,9 @@ void CLayerShellProtocol::onGetLayerSurface(CZwlrLayerShellV1* pMgr, uint32_t id
     }
 
     SURF->m_role = makeShared<CLayerShellRole>(RESOURCE);
-    g_pCompositor->m_layers.emplace_back(CLayerSurface::create(RESOURCE));
+    g_pCompositor->m_layers.emplace_back(Desktop::View::CLayerSurface::create(RESOURCE));
 
-    LOGM(LOG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
+    LOGM(Log::DEBUG, "New wlr_layer_surface {:x}", (uintptr_t)RESOURCE.get());
 }
 
 CLayerShellRole::CLayerShellRole(SP<CLayerShellResource> ls) : m_layerSurface(ls) {

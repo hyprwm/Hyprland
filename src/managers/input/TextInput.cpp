@@ -1,8 +1,7 @@
 #include "TextInput.hpp"
-#include "../../defines.hpp"
 #include "InputManager.hpp"
 #include "../../protocols/TextInputV1.hpp"
-#include "../../Compositor.hpp"
+#include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/TextInputV3.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
@@ -23,16 +22,10 @@ void CTextInput::initCallbacks() {
         m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
         m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
         m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
-            m_listeners.surfaceUnmap.reset();
-            m_listeners.surfaceDestroy.reset();
-            g_pInputManager->m_relay.removeTextInput(this);
-            if (!g_pInputManager->m_relay.getFocusedTextInput())
-                g_pInputManager->m_relay.deactivateIME(this);
-        });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] { destroy(); });
 
-        if (!g_pCompositor->m_lastFocus.expired() && g_pCompositor->m_lastFocus->client() == INPUT->client())
-            enter(g_pCompositor->m_lastFocus.lock());
+        if (Desktop::focusState()->surface() && Desktop::focusState()->surface()->client() == INPUT->client())
+            enter(Desktop::focusState()->surface());
     } else {
         const auto INPUT = m_v1Input.lock();
 
@@ -40,27 +33,31 @@ void CTextInput::initCallbacks() {
         m_listeners.disable = INPUT->m_events.disable.listen([this] { onDisabled(); });
         m_listeners.commit  = INPUT->m_events.onCommit.listen([this] { onCommit(); });
         m_listeners.reset   = INPUT->m_events.reset.listen([this] { onReset(); });
-        m_listeners.destroy = INPUT->m_events.destroy.listen([this] {
-            m_listeners.surfaceUnmap.reset();
-            m_listeners.surfaceDestroy.reset();
-            g_pInputManager->m_relay.removeTextInput(this);
-            if (!g_pInputManager->m_relay.getFocusedTextInput())
-                g_pInputManager->m_relay.deactivateIME(this);
-        });
+        m_listeners.destroy = INPUT->m_events.destroy.listen([this] { destroy(); });
     }
 }
 
+void CTextInput::destroy() {
+    m_listeners.surfaceUnmap.reset();
+    m_listeners.surfaceDestroy.reset();
+
+    g_pInputManager->m_relay.removeTextInput(this);
+
+    if (!g_pInputManager->m_relay.getFocusedTextInput())
+        g_pInputManager->m_relay.deactivateIME(nullptr, false);
+}
+
 void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
-    Debug::log(LOG, "TI ENABLE");
+    Log::logger->log(Log::DEBUG, "TI ENABLE");
 
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        // Debug::log(WARN, "Enabling TextInput on no IME!");
+        // Log::logger->log(Log::WARN,  "Enabling TextInput on no IME!");
         return;
     }
 
     // v1 only, map surface to PTI
     if (!isV3()) {
-        if (g_pCompositor->m_lastFocus != surfV1 || !m_v1Input->m_active)
+        if (Desktop::focusState()->surface() != surfV1 || !m_v1Input->m_active)
             return;
 
         enter(surfV1);
@@ -71,7 +68,7 @@ void CTextInput::onEnabled(SP<CWLSurfaceResource> surfV1) {
 
 void CTextInput::onDisabled() {
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        //  Debug::log(WARN, "Disabling TextInput on no IME!");
+        //  Log::logger->log(Log::WARN,  "Disabling TextInput on no IME!");
         return;
     }
 
@@ -108,12 +105,12 @@ void CTextInput::onReset() {
 
 void CTextInput::onCommit() {
     if (g_pInputManager->m_relay.m_inputMethod.expired()) {
-        //   Debug::log(WARN, "Committing TextInput on no IME!");
+        //   Log::logger->log(Log::WARN,  "Committing TextInput on no IME!");
         return;
     }
 
     if (!(isV3() ? m_v3Input->m_current.enabled.value : m_v1Input->m_active)) {
-        Debug::log(WARN, "Disabled TextInput commit?");
+        Log::logger->log(Log::WARN, "Disabled TextInput commit?");
         return;
     }
 
@@ -133,7 +130,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     m_listeners.surfaceDestroy.reset();
 
     m_listeners.surfaceUnmap = pSurface->m_events.unmap.listen([this] {
-        Debug::log(LOG, "Unmap TI owner1");
+        Log::logger->log(Log::DEBUG, "Unmap TI owner1");
 
         if (m_enterLocks)
             m_enterLocks--;
@@ -153,7 +150,7 @@ void CTextInput::setFocusedSurface(SP<CWLSurfaceResource> pSurface) {
     });
 
     m_listeners.surfaceDestroy = pSurface->m_events.destroy.listen([this] {
-        Debug::log(LOG, "Destroy TI owner1");
+        Log::logger->log(Log::DEBUG, "Destroy TI owner1");
 
         if (m_enterLocks)
             m_enterLocks--;
@@ -189,7 +186,7 @@ void CTextInput::enter(SP<CWLSurfaceResource> pSurface) {
 
     m_enterLocks++;
     if (m_enterLocks != 1) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 1 locks in enter");
+        Log::logger->log(Log::ERR, "BUG THIS: TextInput has != 1 locks in enter");
         leave();
         m_enterLocks = 1;
     }
@@ -209,7 +206,7 @@ void CTextInput::leave() {
 
     m_enterLocks--;
     if (m_enterLocks != 0) {
-        Debug::log(ERR, "BUG THIS: TextInput has != 0 locks in leave");
+        Log::logger->log(Log::ERR, "BUG THIS: TextInput has != 0 locks in leave");
         m_enterLocks = 0;
     }
 
@@ -305,4 +302,8 @@ bool CTextInput::hasCursorRectangle() {
 
 CBox CTextInput::cursorBox() {
     return CBox{isV3() ? m_v3Input->m_current.box.cursorBox : m_v1Input->m_cursorRectangle};
+}
+
+bool CTextInput::isEnabled() {
+    return isV3() ? m_v3Input->m_current.enabled.value : true;
 }

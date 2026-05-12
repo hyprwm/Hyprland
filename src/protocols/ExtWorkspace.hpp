@@ -21,6 +21,8 @@ class CExtWorkspaceGroupResource {
     void                                  workspaceEnter(const WP<CExtWorkspaceHandleV1>&);
     void                                  workspaceLeave(const WP<CExtWorkspaceHandleV1>&);
 
+    void                                  sendToWorkspaces();
+
     PHLMONITORREF                         m_monitor;
 
   private:

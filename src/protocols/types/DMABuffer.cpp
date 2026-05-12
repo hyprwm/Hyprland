@@ -1,16 +1,18 @@
 #include "DMABuffer.hpp"
 #include "WLBuffer.hpp"
-#include "../../desktop/LayerSurface.hpp"
+#include "../../desktop/view/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
 #if defined(__linux__)
 #include <linux/dma-buf.h>
 #include <linux/sync_file.h>
-#include <sys/ioctl.h>
 #endif
+#include <sys/ioctl.h>
 
 using namespace Hyprutils::OS;
+using namespace Hyprgraphics::Egl;
 
 CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs const& attrs_) : m_attrs(attrs_) {
     m_listeners.resourceDestroy = events.destroy.listen([this] {
@@ -19,8 +21,25 @@ CDMABuffer::CDMABuffer(uint32_t id, wl_client* client, Aquamarine::SDMABUFAttrs 
     });
 
     size       = m_attrs.size;
-    m_opaque   = NFormatUtils::isFormatOpaque(m_attrs.format);
     m_resource = CWLBufferResource::create(makeShared<CWlBuffer>(client, 1, id));
+    m_opaque   = isDrmFormatOpaque(m_attrs.format);
+    m_texture  = g_pHyprRenderer->createTexture(m_attrs, m_opaque); // texture takes ownership of the eglImage
+
+    if UNLIKELY (!m_texture) {
+        Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
+        m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
+        m_texture        = g_pHyprRenderer->createTexture(m_attrs, m_opaque);
+
+        if UNLIKELY (!m_texture) {
+            Log::logger->log(Log::ERR, "CDMABuffer: failed to import EGLImage");
+            return;
+        }
+    }
+
+    m_success = m_texture->ok();
+
+    if UNLIKELY (!m_success)
+        Log::logger->log(Log::ERR, "Failed to create a dmabuf: texture is null");
 }
 
 CDMABuffer::~CDMABuffer() {
@@ -59,35 +78,8 @@ void CDMABuffer::endDataPtr() {
     // FIXME:
 }
 
-SP<CTexture> CDMABuffer::createTexture() {
-    if (m_texture) // dmabuffers only get one texture per buffer.
-        return m_texture;
-
-    g_pHyprRenderer->makeEGLCurrent();
-    auto eglImage = g_pHyprOpenGL->createEGLImage(m_attrs);
-
-    if UNLIKELY (!eglImage) {
-        Debug::log(ERR, "CDMABuffer: failed to import EGLImage, retrying as implicit");
-        m_attrs.modifier = DRM_FORMAT_MOD_INVALID;
-        eglImage         = g_pHyprOpenGL->createEGLImage(m_attrs);
-        if UNLIKELY (!eglImage) {
-            Debug::log(ERR, "CDMABuffer: failed to import EGLImage");
-            return nullptr;
-        }
-    }
-
-    m_texture = makeShared<CTexture>(m_attrs, eglImage); // texture takes ownership of the eglImage
-
-    if UNLIKELY (!m_texture->m_texID) {
-        Debug::log(ERR, "Failed to create a dmabuf: texture is null");
-        return nullptr;
-    }
-
-    return m_texture;
-}
-
 bool CDMABuffer::good() {
-    return m_attrs.success;
+    return m_success;
 }
 
 void CDMABuffer::closeFDs() {

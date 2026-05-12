@@ -39,12 +39,12 @@ class CANRManager {
         bool                 dialogSaidWait = false;
         SP<CAsyncDialogBox>  dialogBox;
 
-        void                 runDialog(const std::string& title, const std::string& appName, const std::string appClass, pid_t dialogWmPID);
+        void                 runDialog(const std::string& appName, const std::string appClass, pid_t dialogWmPID);
         bool                 isRunning();
         void                 killDialog();
         bool                 isDefunct() const;
         bool                 fitsWindow(PHLWINDOW pWindow) const;
-        pid_t                getPid() const;
+        pid_t                getPID() const;
         void                 ping();
     };
 

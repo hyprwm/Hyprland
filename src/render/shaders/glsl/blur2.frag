@@ -1,25 +1,18 @@
 #version 300 es
-precision highp float;
+#define ALLOW_INCLUDES
+#extension GL_ARB_shading_language_include : enable
+
+precision         highp float;
 
 uniform sampler2D tex;
-uniform float radius;
-uniform vec2 halfpixel;
+uniform float     radius;
+uniform vec2      halfpixel;
 
-in vec2 v_texcoord;
+in vec2           v_texcoord;
 layout(location = 0) out vec4 fragColor;
 
+#include "blur2.glsl"
+
 void main() {
-    vec2 uv = v_texcoord / 2.0;
-
-    vec4 sum = texture(tex, uv + vec2(-halfpixel.x * 2.0, 0.0) * radius);
-
-    sum += texture(tex, uv + vec2(-halfpixel.x,  halfpixel.y) * radius) * 2.0;
-    sum += texture(tex, uv + vec2(0.0,           halfpixel.y * 2.0) * radius);
-    sum += texture(tex, uv + vec2(halfpixel.x,   halfpixel.y) * radius) * 2.0;
-    sum += texture(tex, uv + vec2(halfpixel.x * 2.0, 0.0) * radius);
-    sum += texture(tex, uv + vec2(halfpixel.x,  -halfpixel.y) * radius) * 2.0;
-    sum += texture(tex, uv + vec2(0.0,          -halfpixel.y * 2.0) * radius);
-    sum += texture(tex, uv + vec2(-halfpixel.x, -halfpixel.y) * radius) * 2.0;
-
-    fragColor = sum / 12.0;
+    fragColor = blur2(v_texcoord, tex, radius, halfpixel);
 }

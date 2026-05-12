@@ -12,17 +12,17 @@ CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : m_popup(popup_) {
     m_listeners.map     = popup_->m_events.map.listen([this] { onMap(); });
     m_listeners.unmap   = popup_->m_events.unmap.listen([this] { onUnmap(); });
     m_listeners.destroy = popup_->m_events.destroy.listen([this] { onDestroy(); });
-    m_surface           = CWLSurface::create();
+    m_surface           = Desktop::View::CWLSurface::create();
     m_surface->assign(popup_->surface());
 }
 
-SP<CWLSurface> CInputPopup::queryOwner() {
+SP<Desktop::View::CWLSurface> CInputPopup::queryOwner() {
     const auto FOCUSED = g_pInputManager->m_relay.getFocusedTextInput();
 
     if (!FOCUSED)
         return nullptr;
 
-    return CWLSurface::fromResource(FOCUSED->focusedSurface());
+    return Desktop::View::CWLSurface::fromResource(FOCUSED->focusedSurface());
 }
 
 void CInputPopup::onDestroy() {
@@ -30,7 +30,7 @@ void CInputPopup::onDestroy() {
 }
 
 void CInputPopup::onMap() {
-    Debug::log(LOG, "Mapped an IME Popup");
+    Log::logger->log(Log::DEBUG, "Mapped an IME Popup");
 
     updateBox();
     damageEntire();
@@ -44,7 +44,7 @@ void CInputPopup::onMap() {
 }
 
 void CInputPopup::onUnmap() {
-    Debug::log(LOG, "Unmapped an IME Popup");
+    Log::logger->log(Log::DEBUG, "Unmapped an IME Popup");
 
     damageEntire();
 }
@@ -57,7 +57,7 @@ void CInputPopup::damageEntire() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::damageentire");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::damageentire");
         return;
     }
     CBox box = globalBox();
@@ -68,7 +68,7 @@ void CInputPopup::damageSurface() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::damagesurface");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::damagesurface");
         return;
     }
 
@@ -120,11 +120,18 @@ void CInputPopup::updateBox() {
     CBox cursorBoxLocal({-popupOffset.x, -popupOffset.y}, cursorBoxParent.size());
     m_popup->sendInputRectangle(cursorBoxLocal);
 
-    CBox popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
-    if (popupBoxParent != m_lastBoxLocal) {
+    CBox       popupBoxParent(cursorBoxParent.pos() + popupOffset, currentPopupSize);
+    const bool boxChanged = popupBoxParent != m_lastBoxLocal;
+    if (boxChanged)
+        damageEntire(); // damage the old location before updating
+
+    m_lastBoxLocal = popupBoxParent;
+
+    // Since a redraw request is not always sent when only the position is updated,
+    // a manual redraw may be required in some cases.
+    if (boxChanged)
         damageEntire();
-        m_lastBoxLocal = popupBoxParent;
-    }
+
     damageSurface();
 
     if (const auto PM = g_pCompositor->getMonitorFromCursor(); PM && PM->m_id != m_lastMonitor) {
@@ -143,7 +150,7 @@ CBox CInputPopup::globalBox() {
     const auto OWNER = queryOwner();
 
     if (!OWNER) {
-        Debug::log(ERR, "BUG THIS: No owner in imepopup::globalbox");
+        Log::logger->log(Log::ERR, "BUG THIS: No owner in imepopup::globalbox");
         return {};
     }
     CBox parentBox = OWNER->getSurfaceBoxGlobal().value_or(CBox{0, 0, 500, 500});

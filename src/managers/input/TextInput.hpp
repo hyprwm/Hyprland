@@ -29,6 +29,7 @@ class CTextInput {
     void                   onCommit();
     void                   onReset();
 
+    bool                   isEnabled();
     bool                   hasCursorRectangle();
     CBox                   cursorBox();
 
@@ -37,6 +38,8 @@ class CTextInput {
   private:
     void                   setFocusedSurface(SP<CWLSurfaceResource> pSurface);
     void                   initCallbacks();
+
+    void                   destroy();
 
     WP<CWLSurfaceResource> m_focusedSurface;
     int                    m_enterLocks = 0;

@@ -51,7 +51,7 @@ class CDRMSyncobjSurfaceResource {
     CDRMSyncPointState              m_pendingRelease;
 
     struct {
-        CHyprSignalListener surfacePrecommit;
+        CHyprSignalListener surfaceStateCommit;
     } m_listeners;
 };
 

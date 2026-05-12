@@ -1,7 +1,5 @@
 #include "IHyprWindowDecoration.hpp"
 
-class CWindow;
-
 IHyprWindowDecoration::IHyprWindowDecoration(PHLWINDOW pWindow) : m_window(pWindow) {
     ;
 }

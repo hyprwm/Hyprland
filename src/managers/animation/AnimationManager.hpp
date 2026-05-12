@@ -6,6 +6,7 @@
 #include "../../defines.hpp"
 #include "../../helpers/AnimatedVariable.hpp"
 #include "../../desktop/DesktopTypes.hpp"
+#include "../../helpers/time/Timer.hpp"
 #include "../eventLoop/EventLoopTimer.hpp"
 
 class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
@@ -13,20 +14,22 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     CHyprAnimationManager();
 
     void         tick();
+    void         frameTick();
     virtual void scheduleTick();
     virtual void onTicked();
+
+    // Reset tick state after session changes (suspend/wake, lock/unlock)
+    void resetTickState();
 
     using SAnimationPropertyConfig = Hyprutils::Animation::SAnimationPropertyConfig;
     template <Animable VarType>
     void createAnimation(const VarType& v, PHLANIMVAR<VarType>& pav, SP<SAnimationPropertyConfig> pConfig, eAVarDamagePolicy policy) {
         constexpr const eAnimatedVarType EAVTYPE = typeToeAnimatedVarType<VarType>;
-        const auto                       PAV     = makeShared<CAnimatedVariable<VarType>>();
+        pav                                      = makeUnique<CAnimatedVariable<VarType>>();
 
-        PAV->create(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), PAV, v);
-        PAV->setConfig(pConfig);
-        PAV->m_Context.eDamagePolicy = policy;
-
-        pav = std::move(PAV);
+        pav->create2(EAVTYPE, sc<Hyprutils::Animation::CAnimationManager*>(this), pav, v);
+        pav->setConfig(pConfig);
+        pav->m_Context.eDamagePolicy = policy;
     }
 
     template <Animable VarType>
@@ -52,7 +55,9 @@ class CHyprAnimationManager : public Hyprutils::Animation::CAnimationManager {
     float               m_lastTickTimeMs;
 
   private:
-    bool m_tickScheduled = false;
+    bool   m_tickScheduled = false;
+    bool   m_lastTickValid = false;
+    CTimer m_lastTickTimer;
 };
 
 inline UP<CHyprAnimationManager> g_pAnimationManager;

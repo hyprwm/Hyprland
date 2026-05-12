@@ -7,8 +7,6 @@
 
 #ifndef NO_XWAYLAND
 
-#include <ranges>
-
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_xID(xID_), m_geometry(geometry_), m_overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};
     if (g_pXWayland->m_wm->m_xres) {
@@ -42,7 +40,41 @@ CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_x
         free(reply); // NOLINT(cppcoreguidelines-no-malloc)
     }
 
+    // FIXME: this is a race, we need to listen to props changed
+    recheckSupportedProps();
+
     m_events.resourceChange.listenStatic([this] { ensureListeners(); });
+}
+
+void CXWaylandSurface::recheckSupportedProps() {
+    m_supportedProps.clear();
+
+    auto  listCookie = xcb_list_properties(g_pXWayland->m_wm->getConnection(), m_xID);
+    auto* listReply  = xcb_list_properties_reply(g_pXWayland->m_wm->getConnection(), listCookie, nullptr);
+    auto  getCookie  = xcb_get_property(g_pXWayland->m_wm->getConnection(), 0, m_xID, HYPRATOMS["WM_PROTOCOLS"], XCB_ATOM_ATOM, 0, 32);
+    auto* getReply   = xcb_get_property_reply(g_pXWayland->m_wm->getConnection(), getCookie, nullptr);
+
+    if (listReply) {
+        const auto* atoms = xcb_list_properties_atoms(listReply);
+        auto        len   = xcb_list_properties_atoms_length(listReply);
+
+        for (auto i = 0; i < len; ++i) {
+            m_supportedProps[atoms[i]] = true;
+        }
+
+        free(listReply);
+    }
+
+    if (getReply) {
+        const auto* protocols = sc<xcb_atom_t*>(xcb_get_property_value(getReply));
+        const auto  len       = xcb_get_property_value_length(getReply) / sizeof(xcb_atom_t);
+
+        for (auto i = 0u; i < len; ++i) {
+            m_supportedProps[protocols[i]] = true;
+        }
+
+        free(getReply);
+    }
 }
 
 void CXWaylandSurface::ensureListeners() {
@@ -98,7 +130,7 @@ void CXWaylandSurface::map() {
     m_mapped = true;
     m_surface->map();
 
-    Debug::log(LOG, "XWayland surface {:x} mapping", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "XWayland surface {:x} mapping", rc<uintptr_t>(this));
 
     m_events.map.emit();
 
@@ -118,7 +150,7 @@ void CXWaylandSurface::unmap() {
     m_events.unmap.emit();
     m_surface->unmap();
 
-    Debug::log(LOG, "XWayland surface {:x} unmapping", rc<uintptr_t>(this));
+    Log::logger->log(Log::DEBUG, "XWayland surface {:x} unmapping", rc<uintptr_t>(this));
 
     g_pXWayland->m_wm->updateClientList();
 }
@@ -128,17 +160,17 @@ void CXWaylandSurface::considerMap() {
         return;
 
     if (!m_surface) {
-        Debug::log(LOG, "XWayland surface: considerMap, nope, no surface");
+        Log::logger->log(Log::DEBUG, "XWayland surface: considerMap, nope, no surface");
         return;
     }
 
     if (m_surface->m_current.texture) {
-        Debug::log(LOG, "XWayland surface: considerMap, sure, we have a buffer");
+        Log::logger->log(Log::DEBUG, "XWayland surface: considerMap, sure, we have a buffer");
         map();
         return;
     }
 
-    Debug::log(LOG, "XWayland surface: considerMap, nope, we don't have a buffer");
+    Log::logger->log(Log::DEBUG, "XWayland surface: considerMap, nope, we don't have a buffer");
 }
 
 bool CXWaylandSurface::wantsFocus() {
@@ -226,10 +258,19 @@ void CXWaylandSurface::restackToTop() {
 }
 
 void CXWaylandSurface::close() {
-    xcb_client_message_data_t msg = {};
-    msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
-    msg.data32[1]                 = XCB_CURRENT_TIME;
-    g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
+
+    // Recheck the supported props, check if we maybe have WM_DELETE_WINDOW.
+    recheckSupportedProps();
+
+    if (m_supportedProps[HYPRATOMS["WM_DELETE_WINDOW"]]) {
+        xcb_client_message_data_t msg = {};
+        msg.data32[0]                 = HYPRATOMS["WM_DELETE_WINDOW"];
+        msg.data32[1]                 = XCB_CURRENT_TIME;
+        g_pXWayland->m_wm->sendWMMessage(m_self.lock(), &msg, XCB_EVENT_MASK_NO_EVENT);
+    } else {
+        xcb_kill_client(g_pXWayland->m_wm->getConnection(), m_self->m_xID);
+        xcb_flush(g_pXWayland->m_wm->getConnection());
+    }
 }
 
 void CXWaylandSurface::setWithdrawn(bool withdrawn_) {
@@ -250,7 +291,7 @@ void CXWaylandSurface::ping() {
     bool supportsPing = std::ranges::find(m_protocols, HYPRATOMS["_NET_WM_PING"]) != m_protocols.end();
 
     if (!supportsPing) {
-        Debug::log(TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
+        Log::logger->log(Log::TRACE, "CXWaylandSurface: XID {} does not support ping, just sending an instant reply", m_xID);
         g_pANRManager->onResponse(m_self.lock());
         return;
     }

@@ -11,6 +11,7 @@ class CRelativePointer {
     CRelativePointer(SP<CZwpRelativePointerV1> resource_);
 
     void       sendRelativeMotion(uint64_t time, const Vector2D& delta, const Vector2D& deltaUnaccel);
+    void       sendRelativeMotion(uint32_t timeHi, uint32_t timeLo, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dxUnaccel, wl_fixed_t dyUnaccel);
 
     bool       good();
     wl_client* client();

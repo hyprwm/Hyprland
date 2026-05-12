@@ -43,7 +43,7 @@ std::vector<SInstanceData> instances() {
     } catch (std::exception& e) { return {}; }
 
     for (const auto& el : std::filesystem::directory_iterator(getRuntimeDir())) {
-        if (!el.is_directory() || !std::filesystem::exists(el.path().string() + "/hyprland.lock"))
+        if (!std::filesystem::exists(el.path() / "hyprland.lock"))
             continue;
 
         // read lock
@@ -74,7 +74,7 @@ std::vector<SInstanceData> instances() {
 
     std::erase_if(result, [&](const auto& el) { return kill(el.pid, 0) != 0 && errno == ESRCH; });
 
-    std::sort(result.begin(), result.end(), [&](const auto& a, const auto& b) { return a.time < b.time; });
+    std::ranges::sort(result, [&](const auto& a, const auto& b) { return a.time < b.time; });
 
     return result;
 }

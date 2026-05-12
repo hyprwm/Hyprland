@@ -1,0 +1,154 @@
+#include "LayerRuleApplicator.hpp"
+#include "LayerRule.hpp"
+#include "../Engine.hpp"
+#include "../../view/LayerSurface.hpp"
+#include "../../types/OverridableVar.hpp"
+#include "../../../event/EventBus.hpp"
+#include <tuple>
+
+using namespace Desktop;
+using namespace Desktop::Rule;
+
+namespace {
+    template <typename T>
+    void resetRuleProp(std::pair<Desktop::Types::COverridableVar<T>, std::underlying_type_t<Desktop::Rule::eRuleProperty>>& prop,
+                       std::underlying_type_t<Desktop::Rule::eRuleProperty> props, Desktop::Types::eOverridePriority prio) {
+        auto& [value, propMask] = prop;
+
+        if (!(propMask & props))
+            return;
+
+        if (prio == Desktop::Types::PRIORITY_WINDOW_RULE)
+            propMask &= ~props;
+
+        value.unset(prio);
+    }
+}
+
+CLayerRuleApplicator::CLayerRuleApplicator(PHLLS ls) : m_ls(ls) {
+    ;
+}
+
+void CLayerRuleApplicator::resetProps(std::underlying_type_t<eRuleProperty> props, Types::eOverridePriority prio) {
+    std::apply([&](auto&... prop) { (resetRuleProp(prop, props, prio), ...); },
+               std::forward_as_tuple(m_noanim, m_blur, m_blurPopups, m_dimAround, m_xray, m_noScreenShare, m_order, m_aboveLock, m_ignoreAlpha, m_animationStyle));
+
+    if (prio == Types::PRIORITY_WINDOW_RULE)
+        std::erase_if(m_otherProps.props, [props](const auto& el) { return !el.second || el.second->propMask & props; });
+}
+
+void CLayerRuleApplicator::applyDynamicRule(const SP<CLayerRule>& rule) {
+    for (const auto& effectData : rule->effects()) {
+        const auto  key    = effectData.key;
+        const auto& effect = effectData.raw;
+        const auto& value  = effectData.value;
+
+        switch (key) {
+            default: {
+                if (key <= LAYER_RULE_EFFECT_LAST_STATIC) {
+                    Log::logger->log(Log::TRACE, "CLayerRuleApplicator::applyDynamicRule: Skipping effect {}, not dynamic", sc<std::underlying_type_t<eLayerRuleEffect>>(key));
+                    break;
+                }
+
+                // custom type, add to our vec
+                if (!m_otherProps.props.contains(key)) {
+                    m_otherProps.props.emplace(key,
+                                               makeUnique<SCustomPropContainer>(SCustomPropContainer{
+                                                   .idx      = key,
+                                                   .propMask = rule->getPropertiesMask(),
+                                                   .effect   = effect,
+                                               }));
+                } else {
+                    auto& e = m_otherProps.props[key];
+                    e->propMask |= rule->getPropertiesMask();
+                    e->effect = effect;
+                }
+
+                break;
+            }
+            case LAYER_RULE_EFFECT_NONE: {
+                Log::logger->log(Log::ERR, "CLayerRuleApplicator::applyDynamicRule: BUG THIS: LAYER_RULE_EFFECT_NONE??");
+                break;
+            }
+            case LAYER_RULE_EFFECT_NO_ANIM: {
+                m_noanim.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noanim.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_BLUR: {
+                m_blur.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_blur.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_BLUR_POPUPS: {
+                m_blurPopups.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_blurPopups.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_DIM_AROUND: {
+                m_dimAround.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_dimAround.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_XRAY: {
+                m_xray.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_xray.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_NO_SCREEN_SHARE: {
+                m_noScreenShare.first.set(std::get<bool>(value), Types::PRIORITY_WINDOW_RULE);
+                m_noScreenShare.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_ORDER: {
+                m_order.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
+                m_order.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_ABOVE_LOCK: {
+                m_aboveLock.first.set(std::get<int64_t>(value), Types::PRIORITY_WINDOW_RULE);
+                m_aboveLock.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_IGNORE_ALPHA: {
+                m_ignoreAlpha.first.set(std::get<float>(value), Types::PRIORITY_WINDOW_RULE);
+                m_ignoreAlpha.second |= rule->getPropertiesMask();
+                break;
+            }
+            case LAYER_RULE_EFFECT_ANIMATION: {
+                m_animationStyle.first.set(std::get<std::string>(value), Types::PRIORITY_WINDOW_RULE);
+                m_animationStyle.second |= rule->getPropertiesMask();
+                break;
+            }
+        }
+    }
+}
+
+void CLayerRuleApplicator::propertiesChanged(std::underlying_type_t<eRuleProperty> props) {
+    if (!m_ls)
+        return;
+
+    resetProps(props);
+
+    // FIXME: this will not update properties correctly if we implement dynamic rules for
+    // layers, due to effects overlapping on 0 prop intersection.
+    // See WindowRule.cpp, and ::propertiesChanged there.
+
+    for (const auto& r : ruleEngine()->rules()) {
+        if (r->type() != RULE_TYPE_LAYER)
+            continue;
+
+        if (!(r->getPropertiesMask() & props))
+            continue;
+
+        auto wr = reinterpretPointerCast<CLayerRule>(r);
+
+        if (!wr->matches(m_ls.lock()))
+            continue;
+
+        applyDynamicRule(wr);
+    }
+
+    // for plugins
+    Event::bus()->m_events.layer.updateRules.emit(m_ls.lock());
+}

@@ -1,13 +1,15 @@
-self: {
-  config,
+self:
+{
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (pkgs.stdenv.hostPlatform) system;
 
   package = self.packages.${system}.default;
-in {
+in
+{
   config = {
     wayland.windowManager.hyprland.package = lib.mkDefault package;
   };

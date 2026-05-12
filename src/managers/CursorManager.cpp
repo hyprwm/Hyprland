@@ -3,8 +3,8 @@
 #include "../config/ConfigValue.hpp"
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
-#include "../managers/HookSystemManager.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = sc<CCursorManager*>(data);
@@ -16,7 +16,7 @@ static void hcLogger(enum eHyprcursorLogLevel level, char* message) {
     if (level == HC_LOG_TRACE)
         return;
 
-    Debug::log(NONE, "[hc] {}", message);
+    Log::logger->log(Log::DEBUG, "[hc] {}", message);
 }
 
 CCursorBuffer::CCursorBuffer(cairo_surface_t* surf, const Vector2D& size_, const Vector2D& hot_) : m_hotspot(hot_), m_stride(cairo_image_surface_get_stride(surf)) {
@@ -71,7 +71,7 @@ void CCursorBuffer::endDataPtr() {
 CCursorManager::CCursorManager() {
     m_hyprcursor               = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), hcLogger);
     m_xcursor                  = makeUnique<CXCursorManager>();
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
 
     if (m_hyprcursor->valid() && *PUSEHYPRCURSOR) {
         // find default size. First, HYPRCURSOR_SIZE then default to 24
@@ -79,25 +79,25 @@ CCursorManager::CCursorManager() {
         if (SIZE) {
             try {
                 m_size = std::stoi(SIZE);
-            } catch (...) { ; }
+            } catch (...) { Log::logger->log(Log::WARN, "Invalid HYPRCURSOR_SIZE value \"{}\"", SIZE); }
         }
 
         if (m_size <= 0) {
-            Debug::log(WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
+            Log::logger->log(Log::WARN, "HYPRCURSOR_SIZE size not set, defaulting to size 24");
             m_size = 24;
         }
     } else {
-        Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_theme);
+        Log::logger->log(Log::ERR, "Hyprcursor failed loading theme \"{}\", falling back to Xcursor.", m_theme);
 
         auto const* SIZE = getenv("XCURSOR_SIZE");
         if (SIZE) {
             try {
                 m_size = std::stoi(SIZE);
-            } catch (...) { ; }
+            } catch (...) { Log::logger->log(Log::WARN, "Invalid XCURSOR_SIZE value \"{}\"", SIZE); }
         }
 
         if (m_size <= 0) {
-            Debug::log(WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
+            Log::logger->log(Log::WARN, "XCURSOR_SIZE size not set, defaulting to size 24");
             m_size = 24;
         }
     }
@@ -111,7 +111,7 @@ CCursorManager::CCursorManager() {
 
     updateTheme();
 
-    static auto P = g_pHookSystem->hookDynamic("monitorLayoutChanged", [this](void* self, SCallbackInfo& info, std::any param) { this->updateTheme(); });
+    static auto P = Event::bus()->m_events.monitor.layoutChanged.listen([this] { this->updateTheme(); });
 }
 
 CCursorManager::~CCursorManager() {
@@ -128,7 +128,7 @@ SP<Aquamarine::IBuffer> CCursorManager::getCursorBuffer() {
     return !m_cursorBuffers.empty() ? m_cursorBuffers.back() : nullptr;
 }
 
-void CCursorManager::setCursorSurface(SP<CWLSurface> surf, const Vector2D& hotspot) {
+void CCursorManager::setCursorSurface(SP<Desktop::View::CWLSurface> surf, const Vector2D& hotspot) {
     if (!surf || !surf->resource())
         g_pPointerManager->resetCursorImage();
     else
@@ -160,7 +160,7 @@ void CCursorManager::setAnimationTimer(const int& frame, const int& delay) {
 
 void CCursorManager::setCursorFromName(const std::string& name) {
 
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
 
     auto        setXCursor = [this](auto const& name) {
         float scale = std::ceil(m_cursorScale);
@@ -203,7 +203,7 @@ void CCursorManager::setCursorFromName(const std::string& name) {
             }
 
             if (m_currentCursorShapeData.images.empty()) {
-                Debug::log(ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
+                Log::logger->log(Log::ERR, "BUG THIS: No fallback found for a cursor in setCursorFromName");
                 return false;
             }
         }
@@ -272,7 +272,7 @@ SCursorImageData CCursorManager::dataFor(const std::string& name) {
 }
 
 void CCursorManager::setXWaylandCursor() {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     const auto  CURSOR         = dataFor("left_ptr");
     if (CURSOR.surface && *PUSEHYPRCURSOR)
         g_pXWayland->setCursor(cairo_image_surface_get_data(CURSOR.surface), cairo_image_surface_get_stride(CURSOR.surface), {CURSOR.size, CURSOR.size},
@@ -286,7 +286,7 @@ void CCursorManager::setXWaylandCursor() {
 }
 
 void CCursorManager::updateTheme() {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
 
     for (auto const& m : g_pCompositor->m_monitors) {
@@ -314,7 +314,7 @@ void CCursorManager::updateTheme() {
 }
 
 bool CCursorManager::changeTheme(const std::string& name, const int size) {
-    static auto PUSEHYPRCURSOR = CConfigValue<Hyprlang::INT>("cursor:enable_hyprcursor");
+    static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     m_theme                    = name.empty() ? "" : name;
     m_size                     = size <= 0 ? 24 : size;
     auto xcursor_theme         = getenv("XCURSOR_THEME") ? getenv("XCURSOR_THEME") : "default";
@@ -328,7 +328,7 @@ bool CCursorManager::changeTheme(const std::string& name, const int size) {
 
         m_hyprcursor = makeUnique<Hyprcursor::CHyprcursorManager>(m_theme.empty() ? nullptr : m_theme.c_str(), options);
         if (!m_hyprcursor->valid()) {
-            Debug::log(ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_theme);
+            Log::logger->log(Log::ERR, "Hyprcursor failed loading theme \"{}\", falling back to XCursor.", m_theme);
             m_xcursor->loadTheme(m_theme.empty() ? xcursor_theme : m_theme, m_size, m_cursorScale);
         }
     } else

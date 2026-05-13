@@ -741,8 +741,10 @@ void CWindow::setInputBlocked(eWindowInputBlockReason reason, bool blocked) {
     else
         m_inputBlockReasons &= ~MASK;
 
-    if (blocked && Desktop::focusState()->window() == m_self)
-        Desktop::focusState()->window().reset();
+    const auto IS_BLOCKED = isInputBlocked();
+
+    if (IS_BLOCKED && Desktop::focusState()->window() == m_self)
+        Desktop::focusState()->fullWindowFocus(nullptr, eFocusReason::FOCUS_REASON_DESKTOP_STATE_CHANGE);
 }
 
 bool CWindow::isInputBlocked() const {

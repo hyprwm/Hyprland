@@ -109,6 +109,12 @@ void CGroup::add(PHLWINDOW w) {
     w->m_target->setSpaceGhost(m_target->space());
     w->m_target->setFloating(m_target->floating());
 
+    // a window in a group lives on the group's monitor/workspace
+    if (const auto WS = m_target->workspace(); WS && w->m_monitor != WS->m_monitor) {
+        w->m_monitor = WS->m_monitor;
+        w->moveToWorkspace(WS);
+    }
+
     if (*INSERT_AFTER_CURRENT) {
         m_windows.insert(m_windows.begin() + m_current + 1, w);
         m_current++;

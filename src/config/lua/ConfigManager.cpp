@@ -297,6 +297,21 @@ void CConfigManager::reinitLuaState() {
     lua_getglobal(m_lua, "package");
     lua_pushstring(m_lua, luaPath.c_str());
     lua_setfield(m_lua, -2, "path");
+
+    lua_pushstring(m_lua, "");
+    lua_setfield(m_lua, -2, "cpath");
+    lua_pushnil(m_lua);
+    lua_setfield(m_lua, -2, "loadlib");
+
+    lua_getfield(m_lua, -1, "searchers");
+    if (lua_istable(m_lua, -1)) {
+        lua_pushnil(m_lua);
+        lua_rawseti(m_lua, -2, 4);
+        lua_pushnil(m_lua);
+        lua_rawseti(m_lua, -2, 3);
+    }
+    lua_pop(m_lua, 1);
+
     lua_pop(m_lua, 1);
 
     lua_getglobal(m_lua, "require");

@@ -1131,7 +1131,7 @@ bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target) co
 
     return dataFor(TARGET) == target;
 }
-// only for FSMODE_FULLSCREEN
+
 float CScrollingAlgorithm::fullscreenColumnWidth() const {
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor || !m_scrollingData || !m_scrollingData->controller)
         return 1.F;
@@ -1147,7 +1147,7 @@ float CScrollingAlgorithm::fullscreenColumnWidth() const {
 
     return std::max(1.F, sc<float>(monitorPrimary / usablePrimary));
 }
-// only for FSMODE_FULLSCREEN ????????
+// Works for both fullscreen and maximise sinde usableArea is the same as work area in Scrolling Layout
 bool CScrollingAlgorithm::fullscreenColumnCoversMonitor(SP<SColumnData> col) const {
     if (!col || !m_scrollingData || !m_scrollingData->controller || !m_parent || !m_parent->space() || !m_parent->space()->workspace() ||
         !m_parent->space()->workspace()->m_monitor)
@@ -1172,14 +1172,6 @@ bool CScrollingAlgorithm::fullscreenColumnCoversMonitor(SP<SColumnData> col) con
 
     return COL_START <= VIEW_START + 1.0 && COL_END >= VIEW_END - 1.0;
 }
-
-
-// TODO ERSTARR -> MIGHT NEED THIS LATER
-bool CScrollingAlgorithm::fullscreenColumnCoversWorkArea(SP<SColumnData> col) const {
-
-
-}
-
 
 void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {
     if (m_lastFullscreenCover == coversMonitor)

@@ -129,6 +129,9 @@ in
       };
     }
     (lib.mkIf cfg.enable {
+      # Allows lua stub file to be accessed from /run/current-system/sw/share/hypr
+      environment.pathsToLink = [ "/share/hypr" ];
+
       environment.etc."xdg/hypr/hyprland.conf" =
         let
           shouldGenerate = cfg.extraConfig != "" || cfg.settings != { } || cfg.plugins != [ ];

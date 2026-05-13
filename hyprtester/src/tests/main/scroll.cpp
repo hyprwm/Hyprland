@@ -217,22 +217,22 @@ TEST_CASE(scrollFullscreen) {
         ASSERT_CONTAINS(str, "class: kitty_scroll_B");
     }
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"left\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus l')"));
 
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "class: kitty_scroll_A");
     }
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"right\" })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"right\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus r')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus r')"));
 
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "class: kitty_scroll_C");
     }
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ direction = \"left\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus l')"));
 
     {
         auto str = getFromSocket("/activewindow");

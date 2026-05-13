@@ -115,6 +115,13 @@ void CMonitorRuleManager::scheduleReload() {
         return;
 
     m_reloadScheduled = true;
+
+    g_pEventLoopManager->doLater([this] {
+        if (m_reloadScheduled) {
+            performMonitorReload();
+            m_reloadScheduled = false;
+        }
+    });
 }
 
 void CMonitorRuleManager::performMonitorReload() {

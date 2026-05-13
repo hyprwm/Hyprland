@@ -47,6 +47,9 @@ TEST_CASE(crashOnGeomUpdate) {
 
     // shouldnt crash
     OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
+
+    // restore HEADLESS-2 position so subsequent tests don't inherit the relocated monitor
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x0', scale = '1' })"));
 }
 
 // Test if size + pos is preserved after fs cycle

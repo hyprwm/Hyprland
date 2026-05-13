@@ -1543,7 +1543,7 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                             intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                         break;
                     case Math::DIRECTION_RIGHT:
-                        if (isAdjacent(POSB.x, POSB.x + SIZEB.x, POSA.x, POSA.x + SIZEA.x))
+                        if (isAdjacent(POSB.x, POSB.x + SIZEB.x, POSA.x, POSA.x + SIZEA.x)) // TODO ERSTARR: This is the failing point for keybind focus broken
                             intersectLength = std::max(0.0, std::min(POSA.y + SIZEA.y, POSB.y + SIZEB.y) - std::max(POSA.y, POSB.y));
                         break;
                     case Math::DIRECTION_UP:

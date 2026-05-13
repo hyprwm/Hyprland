@@ -121,6 +121,20 @@ void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {
 }
 
 void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Vector2D> focalPoint) {
+    if (target->window() && target->window()->m_pinned) {
+        // check if we intersect at all.
+
+        const auto BOX = target->position();
+
+        if (!m_parent->space() || !m_parent->space()->workspace() || !m_parent->space()->workspace()->m_monitor)
+            return;
+
+        const auto THIS_BOX = m_parent->space()->workspace()->m_monitor->logicalBox();
+
+        if (!THIS_BOX.intersection(BOX).empty())
+            return;
+    }
+
     auto       LAST_SIZE    = target->lastFloatingSize();
     const auto CURRENT_SIZE = target->position().size();
 

@@ -202,7 +202,17 @@ SUBTEST(repeat) {
 }
 
 SUBTEST(keyRepeat) {
-    EXPECT(checkFlag(), false);
+    // wait until flag becomes false (CI timing can vary)
+    bool ok = false;
+    for (int i = 0; i < 20; ++i) {
+        if (!checkFlag()) {
+            ok = true;
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    EXPECT(ok, true);
+
     EXPECT(getFromSocket("/eval hl.bind('Y', hl.dsp.exec_cmd('touch " + flagFile + "'), { repeating = true })"), "ok");
     EXPECT(getFromSocket("r/eval hl.config({ input = { repeat_delay = 100 } })"), "ok");
     // press keybind

@@ -42,7 +42,8 @@ bool CDragStateController::updateDragWindow() {
     if (m_dragThresholdReached) {
         if (WAS_FULLSCREEN) {
             Log::logger->log(Log::DEBUG, "Dragging a fullscreen window");
-            g_pCompositor->setWindowFullscreenInternal(DRAGGINGTARGET->window(), FSMODE_NONE);
+            auto window = DRAGGINGTARGET->window();
+            g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE, window->m_fullscreen_LayoutHandled);
         }
 
         const auto PWORKSPACE     = DRAGGINGTARGET->workspace();

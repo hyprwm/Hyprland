@@ -52,14 +52,14 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
         case 2:
             // undo fs, unless we force a cycle
             if (!forceFSCycle) {
-                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
+                g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE, FSWINDOW->m_fullscreen_LayoutHandled);
                 break;
             }
             [[fallthrough]];
         case 1:
             // replace fullscreen
-            g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE);
-            g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE);
+            g_pCompositor->setWindowFullscreenInternal(FSWINDOW, FSMODE_NONE, FSWINDOW->m_fullscreen_LayoutHandled);
+            g_pCompositor->setWindowFullscreenInternal(pWindow, FSMODE, pWindow->m_fullscreen_LayoutHandled);
             break;
 
         default: Log::logger->log(Log::ERR, "Invalid misc:on_focus_under_fullscreen mode: {}", *PONFOCUSUNDERFS); break;

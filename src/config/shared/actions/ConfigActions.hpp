@@ -37,8 +37,8 @@ namespace Config::Actions {
     ActionResult floatWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult pseudoWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult pinWindow(eTogglableAction action, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
-    ActionResult fullscreenWindow(eFullscreenMode mode, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
-    ActionResult fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult fullscreenWindow(eFullscreenMode mode, bool layoutAware, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
+    ActionResult fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, bool layoutAware, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
     ActionResult moveFocus(Math::eDirection dir);
     ActionResult focus(PHLWINDOW window);

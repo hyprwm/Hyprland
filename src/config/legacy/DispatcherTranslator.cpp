@@ -160,7 +160,7 @@ static SDispatchResult fullscreen(const std::string& args) {
     const eFullscreenMode MODE = ARGS.size() > 0 && ARGS[0] == "1" ? FSMODE_MAXIMIZED : FSMODE_FULLSCREEN;
 
     if (ARGS.size() <= 1 || ARGS[1] == "toggle")
-        return wrap(Actions::fullscreenWindow(MODE));
+        return wrap(Actions::fullscreenWindow(MODE, true));
 
     // "set" means enable, "unset" means disable - but the Action toggles.
     // We need to check current state ourselves.
@@ -170,11 +170,11 @@ static SDispatchResult fullscreen(const std::string& args) {
 
     if (ARGS[1] == "set") {
         if (!PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     } else if (ARGS[1] == "unset") {
         if (PWINDOW->isEffectiveInternalFSMode(MODE))
-            return wrap(Actions::fullscreenWindow(MODE));
+            return wrap(Actions::fullscreenWindow(MODE, true));
         return {};
     }
 
@@ -199,7 +199,7 @@ static SDispatchResult fullscreenstate(const std::string& args) {
     eFullscreenMode im = internalMode != -1 ? sc<eFullscreenMode>(internalMode) : PWINDOW->m_fullscreenState.internal;
     eFullscreenMode cm = clientMode != -1 ? sc<eFullscreenMode>(clientMode) : PWINDOW->m_fullscreenState.client;
 
-    return wrap(Actions::fullscreenWindow(im, cm));
+    return wrap(Actions::fullscreenWindow(im, cm, true));
 }
 
 static SDispatchResult movetoworkspace(const std::string& args) {

@@ -83,7 +83,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && layoutManagedFullscreen()) { // ERSTARR -> THIS IS ONLY FOR MAXIMISE
+    if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();

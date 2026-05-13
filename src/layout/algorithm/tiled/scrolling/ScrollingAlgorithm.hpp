@@ -4,6 +4,7 @@
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
+#include "desktop/Workspace.hpp"
 
 #include <optional>
 #include <vector>
@@ -164,7 +165,7 @@ namespace Layout::Tiled {
         bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
         bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;
         void                                updateFullscreenFade(bool coversMonitor);
-        void                                clearFullscreenTarget(SP<ITarget> target = nullptr);
+        void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);

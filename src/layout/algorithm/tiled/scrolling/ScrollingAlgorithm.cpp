@@ -631,7 +631,8 @@ CScrollingAlgorithm::CScrollingAlgorithm() {
 }
 
 CScrollingAlgorithm::~CScrollingAlgorithm() {
-    clearFullscreenTarget();
+    clearFullscreenTarget(m_maximizeTargets);
+    clearFullscreenTarget(m_fullscreenTargets);
     updateFullscreenFade(false);
 
     m_configCallback.reset();
@@ -721,7 +722,7 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     if (!DATA)
         return;
 
-    clearFullscreenTarget(target);
+    clearFullscreenTarget((target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets) , target);
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column
@@ -1065,7 +1066,7 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     }
 
     if (isFullscreenTarget(TDATA) || request.target->layoutManagedFullscreen()) {
-        clearFullscreenTarget(request.target);
+        clearFullscreenTarget((request.target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), request.target);
         request.target->setFullscreenMode(FSMODE_NONE);
         return request.effectiveMode == FSMODE_NONE ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_DEFAULT;
     }
@@ -1218,7 +1219,7 @@ void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {
                                                            coversMonitor ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 }
 
-void CScrollingAlgorithm::clearFullscreenTarget(SP<ITarget> target) {
+void CScrollingAlgorithm::clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target) {
     bool cleared = false;
 
     auto clear = [&](SP<ITarget> t) {
@@ -1228,12 +1229,12 @@ void CScrollingAlgorithm::clearFullscreenTarget(SP<ITarget> target) {
         cleared = true;
     };
 
-    for (auto it = m_fullscreenTargets.begin(); it != m_fullscreenTargets.end();) {
+    for (auto it = fullscreenTargetList.begin(); it != fullscreenTargetList.end();) {
         const auto TARGET = it->target.lock();
 
         if (!TARGET || (target && TARGET != target)) {
             if (!TARGET)
-                it = m_fullscreenTargets.erase(it);
+                it = fullscreenTargetList.erase(it);
             else
                 ++it;
             continue;
@@ -1246,7 +1247,7 @@ void CScrollingAlgorithm::clearFullscreenTarget(SP<ITarget> target) {
         if (const auto COL = TDATA ? TDATA->column.lock() : nullptr; COL && it->restoreColumnWidth)
             COL->setColumnWidth(*it->restoreColumnWidth);
 
-        it = m_fullscreenTargets.erase(it);
+        it = fullscreenTargetList.erase(it);
     }
 
     if (target && target->layoutManagedFullscreen())

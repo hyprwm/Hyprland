@@ -1202,3 +1202,39 @@ TEST_CASE(execRulesTagMutation) {
 
     Tests::killAllWindows();
 }
+
+TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
+    ASSERT(!!Tests::spawnKitty("a"), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'enable' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin()"));
+
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_CONTAINS(str, "pinned: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 1900, y = 1000 })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2' })"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        ASSERT_CONTAINS(str, "workspace ID 2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    {
+        auto str = getFromSocket("/workspaces");
+        ASSERT_CONTAINS(str, "workspace ID 1");
+    }
+
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_CONTAINS(str, "pinned: 1");
+        ASSERT_CONTAINS(str, "at: 1900,1000");
+    }
+}

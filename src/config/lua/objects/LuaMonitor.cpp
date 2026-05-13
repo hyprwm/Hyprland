@@ -105,7 +105,19 @@ static int monitorIndex(lua_State* L) {
         }
     } else if (key == "focused")
         lua_pushboolean(L, mon == Desktop::focusState()->monitor());
-    else
+    else if (key == "cm")
+        lua_pushstring(L, NCMType::toString(mon->m_cmType).c_str());
+    else if (key == "reserved") {
+        lua_newtable(L);
+        lua_pushnumber(L, mon->m_reservedArea.top());
+        lua_setfield(L, -2, "top");
+        lua_pushnumber(L, mon->m_reservedArea.right());
+        lua_setfield(L, -2, "right");
+        lua_pushnumber(L, mon->m_reservedArea.bottom());
+        lua_setfield(L, -2, "bottom");
+        lua_pushnumber(L, mon->m_reservedArea.left());
+        lua_setfield(L, -2, "left");
+    } else
         lua_pushnil(L);
 
     return 1;

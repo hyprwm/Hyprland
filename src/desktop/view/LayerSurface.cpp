@@ -8,10 +8,11 @@
 #include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../state/MonitorState.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -45,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     }
 
     if (pMonitor->m_mirrorOf)
-        pMonitor = g_pCompositor->m_monitors.front();
+        pMonitor = State::monitorState()->monitors().front();
 
     pLS->m_monitor = pMonitor;
     pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
@@ -80,7 +81,7 @@ CLayerSurface::~CLayerSurface() {
     if (m_wlSurface)
         m_wlSurface->unassign();
 
-    for (auto const& mon : g_pCompositor->m_realMonitors) {
+    for (auto const& mon : State::monitorState()->allMonitors()) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
         }
@@ -230,7 +231,7 @@ void CLayerSurface::onUnmap() {
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
-    if (!m_monitor || g_pCompositor->m_unsafeState) {
+    if (!m_monitor) {
         Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(m_self.lock());
@@ -447,7 +448,7 @@ pid_t CLayerSurface::getPID() {
 }
 
 void CLayerSurface::updateSurfaceScaleTransformDetails() {
-    if (!aliveAndVisible() || g_pCompositor->m_unsafeState)
+    if (!aliveAndVisible())
         return;
 
     const auto PMONITOR = m_monitor.lock();

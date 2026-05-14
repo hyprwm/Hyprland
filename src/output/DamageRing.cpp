@@ -1,5 +1,7 @@
 #include "DamageRing.hpp"
 
+using namespace Monitor;
+
 void CDamageRing::setSize(const Vector2D& size_) {
     if (size_ == m_size)
         return;

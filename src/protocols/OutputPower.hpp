@@ -6,8 +6,6 @@
 #include "wlr-output-power-management-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CMonitor;
-
 class COutputPower {
   public:
     COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor);

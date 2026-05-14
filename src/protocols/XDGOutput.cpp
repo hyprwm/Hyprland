@@ -1,6 +1,6 @@
 #include "XDGOutput.hpp"
 #include "../config/ConfigValue.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../event/EventBus.hpp"
 #include "core/Output.hpp"

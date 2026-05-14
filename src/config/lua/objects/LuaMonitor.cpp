@@ -3,8 +3,7 @@
 #include "LuaObjectHelpers.hpp"
 
 #include "../bindings/LuaBindingsInternal.hpp"
-
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
 #include <string_view>

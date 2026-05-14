@@ -5,6 +5,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 using namespace Render::GL;
+using namespace Monitor;
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;
@@ -67,15 +68,18 @@ void CMonitorFrameScheduler::onPresented() {
 
     m_pendingThird = false;
 
-    g_pEventLoopManager->doLater([m = PMONITOR] {
-        if (!m)
+    g_pEventLoopManager->doLater([m = PHLMONITORREF{PMONITOR}] {
+        if (!m || !m->m_output)
             return;
-        g_pHyprRenderer->commitPendingAndDoExplicitSync(m); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
+
+        auto ml = m.lock();
+
+        g_pHyprRenderer->commitPendingAndDoExplicitSync(ml); // commit the pending frame. If it didn't fire yet (is not rendered) it doesn't matter. Syncs will wait.
 
         // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
         // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
-        if (m->m_damage.hasChanged())
-            g_pCompositor->scheduleFrameForMonitor(m);
+        if (ml->m_damage.hasChanged())
+            g_pCompositor->scheduleFrameForMonitor(ml);
     });
 }
 
@@ -135,16 +139,8 @@ void CMonitorFrameScheduler::onFinishRender() {
 }
 
 bool CMonitorFrameScheduler::canRender() {
-    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
+    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive) {
         Log::logger->log(Log::WARN, "Attempted to render frame on inactive session!");
-
-        if (g_pCompositor->m_unsafeState && std::ranges::any_of(g_pCompositor->m_monitors.begin(), g_pCompositor->m_monitors.end(), [&](auto& m) {
-                return m->m_output != g_pCompositor->m_unsafeOutput->m_output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
-
         return false; // cannot draw on session inactive (different tty)
     }
 

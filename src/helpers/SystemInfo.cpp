@@ -6,6 +6,7 @@
 #include "../plugins/PluginSystem.hpp"
 #include "../render/OpenGL.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../state/MonitorState.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -238,7 +239,7 @@ std::string SystemInfo::getSystemInfo() {
 
         result += "\n\nMonitor info:";
 
-        for (const auto& m : g_pCompositor->m_monitors) {
+        for (const auto& m : State::monitorState()->monitors()) {
             result += std::format("\n\tPanel {}: {}x{}, {} {} {} {} -> backend {}\n\t\texplicit {}\n\t\tedid:\n\t\t\thdr {}\n\t\t\tchroma {}\n\t\t\tbt2020 {}\n\t\tvrr capable "
                                   "{}\n\t\tnon-desktop {}\n\t\t",
                                   m->m_name, sc<int>(m->m_pixelSize.x), sc<int>(m->m_pixelSize.y), m->m_output->name, m->m_output->make, m->m_output->model, m->m_output->serial,

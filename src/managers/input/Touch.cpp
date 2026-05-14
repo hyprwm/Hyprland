@@ -5,7 +5,7 @@
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../event/EventBus.hpp"
 #include "../SeatManager.hpp"

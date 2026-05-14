@@ -24,7 +24,10 @@
 #include "../../desktop/rule/layerRule/LayerRule.hpp"
 #include "../../debug/HyprCtl.hpp"
 #include "../../layout/LayoutManager.hpp"
-
+#include "../../desktop/state/FocusState.hpp"
+#include "../../layout/space/Space.hpp"
+#include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -1044,7 +1047,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
                          "Further logs will be written to {}",
                          g_pCompositor->m_instancePath + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         // mark blur dirty
         m->m_blurFBDirty = true;
 
@@ -1085,7 +1088,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_layoutManager->recalculateMonitor(m);
         }
     }

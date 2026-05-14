@@ -28,8 +28,8 @@ namespace Config::Supplementary {
         void scheduleRefresh(PropRefreshBits reason);
 
       private:
-        bool            m_scheduled = false;
-        PropRefreshBits m_propsTripped;
+        bool            m_scheduled    = false;
+        PropRefreshBits m_propsTripped = 0;
     };
 
     UP<CPropRefresher>& refresher();

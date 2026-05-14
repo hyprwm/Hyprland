@@ -317,7 +317,7 @@ bool CKeybindManager::ensureMouseBindState() {
 }
 
 bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
-    if (!g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
+    if (!g_pCompositor->m_sessionActive) {
         m_pressedKeys.clear();
         return true;
     }

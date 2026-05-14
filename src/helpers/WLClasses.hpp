@@ -9,7 +9,6 @@
 #include "memory/Memory.hpp"
 #include "signal/Signal.hpp"
 
-class CMonitor;
 class IPointer;
 class IKeyboard;
 class CWLSurfaceResource;

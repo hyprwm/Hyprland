@@ -9,7 +9,6 @@
 
 #include <vector>
 
-class CMonitor;
 class IHLBuffer;
 namespace Screenshare {
     class CScreenshareSession;

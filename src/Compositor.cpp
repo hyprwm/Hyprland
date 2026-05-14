@@ -25,6 +25,7 @@
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "managers/screenshare/ScreenshareManager.hpp"
+#include "state/FallbackState.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -680,6 +681,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
             Desktop::History::windowTracker();
             Desktop::History::workspaceTracker();
 
+            // init fallback state
+            State::fallbackState();
+
         } break;
         case STAGE_LATE: {
             Log::logger->log(Log::DEBUG, "Creating CHyprCtl");
@@ -743,27 +747,6 @@ void CCompositor::removeLockFile() {
         std::filesystem::remove(PATH);
 }
 
-void CCompositor::prepareFallbackOutput() {
-    // create a backup monitor
-    SP<Aquamarine::IBackendImplementation> headless;
-    for (auto const& impl : m_aqBackend->getImplementations()) {
-        if (impl->type() == Aquamarine::AQ_BACKEND_HEADLESS) {
-            headless = impl;
-            break;
-        }
-    }
-
-    if (!headless) {
-        Log::logger->log(Log::WARN, "No headless in prepareFallbackOutput?!");
-        return;
-    }
-
-    headless->createOutput();
-
-    if (m_monitors.empty())
-        enterUnsafeState();
-}
-
 void CCompositor::startCompositor() {
     signal(SIGPIPE, SIG_IGN);
 
@@ -782,8 +765,6 @@ void CCompositor::startCompositor() {
     }
 
     Log::logger->log(Log::DEBUG, "Running on WAYLAND_DISPLAY: {}", m_wlDisplaySocket);
-
-    prepareFallbackOutput();
 
     g_pHyprRenderer->setCursorFromName("left_ptr");
 
@@ -2213,7 +2194,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
 
-    if (!validMapped(PWINDOW) || g_pCompositor->m_unsafeState)
+    if (!validMapped(PWINDOW))
         return;
 
     state.internal = std::clamp(state.internal, sc<eFullscreenMode>(0), FSMODE_MAX);
@@ -2914,46 +2895,6 @@ void CCompositor::arrangeMonitors() {
 #endif
 }
 
-void CCompositor::enterUnsafeState() {
-    if (m_unsafeState)
-        return;
-
-    Log::logger->log(Log::DEBUG, "Entering unsafe state");
-
-    if (!m_unsafeOutput->m_enabled)
-        m_unsafeOutput->onConnect(false);
-
-    m_unsafeState = true;
-
-    Desktop::focusState()->rawMonitorFocus(m_unsafeOutput.lock());
-}
-
-void CCompositor::leaveUnsafeState() {
-    if (!m_unsafeState)
-        return;
-
-    Log::logger->log(Log::DEBUG, "Leaving unsafe state");
-
-    m_unsafeState = false;
-
-    PHLMONITOR pNewMonitor = nullptr;
-    for (auto const& pMonitor : m_monitors) {
-        if (pMonitor->m_output != m_unsafeOutput->m_output) {
-            pNewMonitor = pMonitor;
-            break;
-        }
-    }
-
-    RASSERT(pNewMonitor, "Tried to leave unsafe without a monitor");
-
-    if (m_unsafeOutput->m_enabled)
-        m_unsafeOutput->onDisconnect();
-
-    for (auto const& m : m_monitors) {
-        scheduleFrameForMonitor(m);
-    }
-}
-
 void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));
@@ -3024,20 +2965,18 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
 void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     // add it to real
     auto PNEWMONITOR = g_pCompositor->m_realMonitors.emplace_back(makeShared<CMonitor>(output));
-    if (std::string("HEADLESS-1") == output->name) {
-        g_pCompositor->m_unsafeOutput = PNEWMONITOR;
-        output->name                  = "FALLBACK"; // we are allowed to do this :)
-    }
 
     Log::logger->log(Log::DEBUG, "New output with name {}", output->name);
 
-    PNEWMONITOR->m_name             = output->name;
-    PNEWMONITOR->m_self             = PNEWMONITOR;
-    const bool FALLBACK             = g_pCompositor->m_unsafeOutput ? output == g_pCompositor->m_unsafeOutput->m_output : false;
-    PNEWMONITOR->m_id               = FALLBACK ? MONITOR_INVALID : g_pCompositor->getNextAvailableMonitorID(output->name);
-    PNEWMONITOR->m_isUnsafeFallback = FALLBACK;
+    PNEWMONITOR->m_name = output->name;
+    PNEWMONITOR->m_self = PNEWMONITOR;
 
     Event::bus()->m_events.monitor.newMon.emit(PNEWMONITOR);
+
+    const auto FALLBACK = PNEWMONITOR == State::fallbackState()->fallbackOutput();
+
+    PNEWMONITOR->m_id               = FALLBACK ? MONITOR_FALLBACK : g_pCompositor->getNextAvailableMonitorID(output->name);
+    PNEWMONITOR->m_isUnsafeFallback = FALLBACK;
 
     if (!FALLBACK)
         PNEWMONITOR->onConnect(false);

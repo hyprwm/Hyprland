@@ -2631,9 +2631,6 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
     if (!pSurface)
         return; // wut?
 
-    if (g_pCompositor->m_unsafeState)
-        return;
-
     const auto WLSURF = Desktop::View::CWLSurface::fromResource(pSurface);
     if (!WLSURF) {
         Log::logger->log(Log::ERR, "BUG THIS: No CWLSurface for surface in damageSurface!!!");
@@ -2687,9 +2684,6 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
 }
 
 void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
-    if (g_pCompositor->m_unsafeState)
-        return;
-
     CBox       windowBox        = pWindow->getFullWindowBoundingBox();
     const auto PWINDOWWORKSPACE = pWindow->m_workspace;
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned)
@@ -2711,7 +2705,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 }
 
 void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
-    if (g_pCompositor->m_unsafeState || pMonitor->isMirror())
+    if (pMonitor->isMirror())
         return;
 
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};
@@ -2724,9 +2718,6 @@ void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
 }
 
 void IHyprRenderer::damageBox(const CBox& box, bool skipFrameSchedule) {
-    if (g_pCompositor->m_unsafeState)
-        return;
-
     for (auto const& m : g_pCompositor->m_monitors) {
         if (m->isMirror())
             continue; // don't damage mirrors traditionally

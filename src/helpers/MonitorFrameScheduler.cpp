@@ -135,16 +135,8 @@ void CMonitorFrameScheduler::onFinishRender() {
 }
 
 bool CMonitorFrameScheduler::canRender() {
-    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
+    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive) {
         Log::logger->log(Log::WARN, "Attempted to render frame on inactive session!");
-
-        if (g_pCompositor->m_unsafeState && std::ranges::any_of(g_pCompositor->m_monitors.begin(), g_pCompositor->m_monitors.end(), [&](auto& m) {
-                return m->m_output != g_pCompositor->m_unsafeOutput->m_output;
-            })) {
-            // restore from unsafe state
-            g_pCompositor->leaveUnsafeState();
-        }
-
         return false; // cannot draw on session inactive (different tty)
     }
 

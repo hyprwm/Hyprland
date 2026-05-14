@@ -440,11 +440,6 @@ void CMonitor::onDisconnect(bool destroy) {
 
     Log::logger->log(Log::DEBUG, "Removed monitor {}!", m_name);
 
-    if (!BACKUPMON) {
-        Log::logger->log(Log::WARN, "Unplugged last monitor, entering an unsafe state. Good luck my friend.");
-        g_pCompositor->enterUnsafeState();
-    }
-
     m_enabled             = false;
     m_renderingInitPassed = false;
 
@@ -487,7 +482,7 @@ void CMonitor::onDisconnect(bool destroy) {
         Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
 
     if (Desktop::focusState()->monitor() == m_self)
-        Desktop::focusState()->rawMonitorFocus(BACKUPMON ? BACKUPMON : g_pCompositor->m_unsafeOutput.lock());
+        Desktop::focusState()->rawMonitorFocus(BACKUPMON);
 
     if (g_pHyprRenderer->m_mostHzMonitor == m_self) {
         int        mostHz         = 0;
@@ -1109,12 +1104,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     updateVCGTRamps();
 
     // Set scale for all surfaces on this monitor, needed for some clients
-    // but not on unsafe state to avoid crashes
-    if (!g_pCompositor->m_unsafeState) {
-        for (auto const& w : g_pCompositor->m_windows) {
-            w->updateSurfaceScaleTransformDetails();
-        }
+    for (auto const& w : g_pCompositor->m_windows) {
+        w->updateSurfaceScaleTransformDetails();
     }
+
     // updato us
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
 

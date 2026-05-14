@@ -765,9 +765,6 @@ Vector2D CPointerManager::closestValid(const Vector2D& pos) {
 }
 
 void CPointerManager::damageIfSoftware() {
-    if (g_pCompositor->m_unsafeState)
-        return;
-
     auto b = getCursorBoxGlobal().expand(4);
 
     for (auto const& mw : m_monitorStates) {

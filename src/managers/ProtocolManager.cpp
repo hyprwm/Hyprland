@@ -119,8 +119,7 @@ CProtocolManager::CProtocolManager() {
     static auto P = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR M) {
         // ignore mirrored outputs. I don't think this will ever be hit as mirrors are applied after
         // this event is emitted iirc.
-        // also ignore the fallback
-        if (M->isMirror() || M == g_pCompositor->m_unsafeOutput)
+        if (M->isMirror())
             return;
 
         if (PROTO::outputs.contains(M->m_name))

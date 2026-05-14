@@ -97,7 +97,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
 
     const bool NOACTIVEMONS = std::ranges::all_of(g_pCompositor->m_monitors, [](const auto& m) { return !m->m_enabled || !m->m_dpmsStatus; });
 
-    if (NOACTIVEMONS || g_pCompositor->m_unsafeState) {
+    if (NOACTIVEMONS) {
         // Normally the locked event is sent after each output rendered a lock screen frame.
         // When there are no active outputs, send it right away.
         m_sessionLock->lock->sendLocked();

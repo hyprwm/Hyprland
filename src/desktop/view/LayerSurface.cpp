@@ -231,7 +231,7 @@ void CLayerSurface::onUnmap() {
 
     std::erase_if(g_pInputManager->m_exclusiveLSes, [this](const auto& other) { return !other || other == m_self; });
 
-    if (!m_monitor || g_pCompositor->m_unsafeState) {
+    if (!m_monitor) {
         Log::logger->log(Log::WARN, "Layersurface unmapping on invalid monitor (removed?) ignoring.");
 
         g_pCompositor->addToFadingOutSafe(m_self.lock());

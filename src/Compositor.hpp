@@ -71,11 +71,9 @@ class CCompositor {
     void                                         restoreNofile();
     bool                                         setWatchdogFd(int fd);
 
-    bool                                         m_readyToProcess = false;
-    bool                                         m_sessionActive  = true;
-    bool                                         m_dpmsStateOn    = true;
-    bool                                         m_unsafeState    = false; // unsafe state is when there is no monitors
-    PHLMONITORREF                                m_unsafeOutput;           // fallback output for the unsafe state
+    bool                                         m_readyToProcess         = false;
+    bool                                         m_sessionActive          = true;
+    bool                                         m_dpmsStateOn            = true;
     bool                                         m_isShuttingDown         = false;
     bool                                         m_finalRequests          = false;
     bool                                         m_desktopEnvSet          = false;
@@ -157,8 +155,6 @@ class CCompositor {
     void                                scheduleMonitorStateRecheck();
     void                                arrangeMonitors();
     void                                checkMonitorOverlaps();
-    void                                enterUnsafeState();
-    void                                leaveUnsafeState();
     void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                                updateSuspendedStates();
@@ -182,7 +178,6 @@ class CCompositor {
     void                           cleanEnvironment();
     void                           setRandomSplash();
     void                           initManagers(eManagersInitStage stage);
-    void                           prepareFallbackOutput();
     void                           createLockFile();
     void                           removeLockFile();
     void                           setMallocThreshold();

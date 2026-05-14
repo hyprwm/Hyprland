@@ -35,9 +35,6 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : m_resource(
 
     // send all heads at start
     for (auto const& m : g_pCompositor->m_realMonitors) {
-        if (m == g_pCompositor->m_unsafeOutput)
-            continue;
-
         LOGM(Log::DEBUG, " | sending output head for {}", m->m_name);
 
         makeAndSendNewHead(m);
@@ -70,9 +67,6 @@ void COutputManager::makeAndSendNewHead(PHLMONITOR pMonitor) {
 }
 
 void COutputManager::ensureMonitorSent(PHLMONITOR pMonitor) {
-    if (pMonitor == g_pCompositor->m_unsafeOutput)
-        return;
-
     for (auto const& hw : m_heads) {
         auto h = hw.lock();
 

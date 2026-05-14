@@ -3,7 +3,7 @@
 
 #include "../../shared.hpp"
 
-inline std::map<const char*, CTestCase&> miscTestCases;
+inline std::map<std::string, CTestCase&> miscTestCases;
 
 // Where `TEST_CASE` macros will store generated test cases:
 #define TEST_CASES_STORAGE miscTestCases

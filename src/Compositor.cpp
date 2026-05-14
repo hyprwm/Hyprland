@@ -2311,7 +2311,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
     // state later, it does it wrong
     PWORKSPACE->updateWindows();
-    PWORKSPACE->m_space->recalculate();
+    PWORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN : Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
     PWORKSPACE->forceReportSizesToWindows();
 
     g_pInputManager->recheckIdleInhibitorStatus();

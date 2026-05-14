@@ -124,25 +124,8 @@ bool CGLFramebuffer::readPixels(CHLBufferReference buffer, uint32_t offsetX, uin
 
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    uint32_t    packStride = minStride(PFORMAT, m_size.x);
-    int         glFormat   = PFORMAT->glFormat;
-
-    static auto stripSwizzleAlpha = [](std::array<GLint, 4> arr) {
-        arr[3] = GL_ONE;
-        return arr;
-    };
-
-    if (PFORMAT->swizzle.has_value()) {
-        if (stripSwizzleAlpha(*PFORMAT->swizzle) == stripSwizzleAlpha(SWIZZLE_RGBA))
-            glFormat = GL_RGBA;
-        else if (stripSwizzleAlpha(*PFORMAT->swizzle) == stripSwizzleAlpha(SWIZZLE_BGRA))
-            glFormat = GL_BGRA_EXT;
-        else {
-            LOGM(Log::ERR, "Copied frame via shm might be broken or color flipped");
-            glFormat = GL_RGBA;
-        }
-    } else if (glFormat == GL_RGBA)
-        glFormat = GL_BGRA_EXT;
+    uint32_t packStride = minStride(PFORMAT, m_size.x);
+    int      glFormat   = getReadbackFormat(*PFORMAT);
 
     // This could be optimized by using a pixel buffer object to make this async,
     // but really clients should just use a dma buffer anyways.

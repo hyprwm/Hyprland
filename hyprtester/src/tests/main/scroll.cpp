@@ -241,6 +241,50 @@ TEST_CASE(scrollFullscreen) {
     }
 }
 
+TEST_CASE(scrollMaximize) {
+    OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    NLog::log("{}Testing Scrolling Maximize", Colors::GREEN);
+
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_A"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_B"), true);
+    ASSERT(!!Tests::spawnKitty("kitty_scroll_C"), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = \"class:kitty_scroll_B\" })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.fullscreen({mode = 'maximized'})"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1870,1040");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_B");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus l')"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_A");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus r')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus r')"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_C");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('focus l')"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "size: 1870,1040");
+        ASSERT_CONTAINS(str, "class: kitty_scroll_B");
+        ASSERT_CONTAINS(str, "fullscreen: 1");
+    }
+}
+
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
 
     /*

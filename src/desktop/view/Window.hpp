@@ -78,12 +78,6 @@ namespace Desktop::View {
         SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
     };
 
-    enum eFullscreenHandler : uint8_t {
-        FULLSCREEN_HANDLER_NONE = 0, // not FS
-        FULLSCREEN_HANDLER_DEFAULT,
-        FULLSCREEN_HANDLER_LAYOUT_SCROLLING,
-    };
-
     enum eWindowAlpha : uint8_t {
         WINDOW_ALPHA_FADE = 0,
         WINDOW_ALPHA_ACTIVE,
@@ -175,7 +169,6 @@ namespace Desktop::View {
         bool             m_firstMap        = false; // for layouts
         bool             m_isFloating      = false;
         SFullscreenState m_fullscreenState = {.internal = FSMODE_NONE, .client = FSMODE_NONE};
-        eFullscreenHandler m_fullscreenHandler = FULLSCREEN_HANDLER_NONE;
         std::string      m_title           = "";
         std::string      m_class           = "";
         std::string      m_initialTitle    = "";

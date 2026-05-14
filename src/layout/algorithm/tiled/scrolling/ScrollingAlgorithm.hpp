@@ -4,7 +4,6 @@
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
-#include "desktop/Workspace.hpp"
 
 #include <optional>
 #include <vector>
@@ -178,7 +177,7 @@ namespace Layout::Tiled {
         float                               defaultColumnWidth();
 
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
-        std::vector<SFullscreenScrollState> m_maximizeTargets; // ERSTARR -> any init functions that may init m_fullscreenTargets must be done to this!
+        std::vector<SFullscreenScrollState> m_maximizeTargets;
         bool                                m_lastFullscreenCover = false;
 
         friend struct SScrollingData;

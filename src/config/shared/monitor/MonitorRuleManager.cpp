@@ -7,6 +7,7 @@
 #include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include <ranges>
 
@@ -120,7 +121,7 @@ void CMonitorRuleManager::scheduleReload() {
 void CMonitorRuleManager::performMonitorReload() {
     bool overAgain = false;
 
-    for (auto const& m : g_pCompositor->m_realMonitors) {
+    for (auto const& m : State::monitorState()->allMonitors()) {
         if (!m->m_output || m->m_isUnsafeFallback)
             continue;
 
@@ -146,7 +147,7 @@ void CMonitorRuleManager::performMonitorReload() {
 }
 
 void CMonitorRuleManager::ensureMonitorStatus() {
-    for (auto const& rm : g_pCompositor->m_realMonitors) {
+    for (auto const& rm : State::monitorState()->allMonitors()) {
         if (!rm->m_output || rm->m_isUnsafeFallback)
             continue;
 
@@ -248,7 +249,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
         return;
     }
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         ensureVRRForDisplay(m);
     }
 }

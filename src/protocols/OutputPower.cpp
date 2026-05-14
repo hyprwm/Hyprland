@@ -1,6 +1,7 @@
 #include "OutputPower.hpp"
 #include "core/Output.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 
 COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor_) : m_resource(resource_), m_monitor(pMonitor_) {
     if UNLIKELY (!m_resource->resource())
@@ -18,7 +19,9 @@ COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor
 
     m_resource->sendMode(m_monitor->m_dpmsStatus ? ZWLR_OUTPUT_POWER_V1_MODE_ON : ZWLR_OUTPUT_POWER_V1_MODE_OFF);
 
-    m_listeners.monitorDestroy = m_monitor->m_events.destroy.listen([this] {
+    m_listeners.monitorDestroy = Event::bus()->m_events.monitor.destroyMon.listen([this](PHLMONITOR m) {
+        if (m != m_monitor)
+            return;
         m_monitor.reset();
         m_resource->sendFailed();
     });

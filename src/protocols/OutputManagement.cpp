@@ -5,6 +5,7 @@
 #include "../event/EventBus.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
+#include "../state/MonitorState.hpp"
 
 using namespace Aquamarine;
 
@@ -34,7 +35,7 @@ COutputManager::COutputManager(SP<CZwlrOutputManagerV1> resource_) : m_resource(
     });
 
     // send all heads at start
-    for (auto const& m : g_pCompositor->m_realMonitors) {
+    for (auto const& m : State::monitorState()->allMonitors()) {
         LOGM(Log::DEBUG, " | sending output head for {}", m->m_name);
 
         makeAndSendNewHead(m);
@@ -93,7 +94,10 @@ COutputHead::COutputHead(SP<CZwlrOutputHeadV1> resource_, PHLMONITOR pMonitor_) 
     m_resource->setRelease([this](CZwlrOutputHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
     m_resource->setOnDestroy([this](CZwlrOutputHeadV1* r) { PROTO::outputManagement->destroyResource(this); });
 
-    m_listeners.monitorDestroy = m_monitor->m_events.destroy.listen([this] {
+    m_listeners.monitorDestroy = Event::bus()->m_events.monitor.destroyMon.listen([this](PHLMONITOR m) {
+        if (m != m_monitor)
+            return;
+
         m_resource->sendFinished();
 
         for (auto const& mw : m_modes) {
@@ -612,7 +616,7 @@ void COutputManagementProtocol::destroyResource(COutputConfigurationHead* resour
 }
 
 void COutputManagementProtocol::updateAllOutputs() {
-    for (auto const& m : g_pCompositor->m_realMonitors) {
+    for (auto const& m : State::monitorState()->allMonitors()) {
         for (auto const& mgr : m_managers) {
             mgr->ensureMonitorSent(m);
         }

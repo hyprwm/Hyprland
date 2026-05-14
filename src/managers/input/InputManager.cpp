@@ -214,7 +214,7 @@ void CInputManager::sendMotionEventsToFocused() {
 void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, std::optional<Vector2D> overridePos) {
     m_lastInputMouse = mouse;
 
-    if (!g_pCompositor->m_readyToProcess || g_pCompositor->m_isShuttingDown)
+    if (g_pCompositor->m_isShuttingDown)
         return;
 
     Vector2D const mouseCoords        = overridePos.value_or(getMouseCoordsInternal());

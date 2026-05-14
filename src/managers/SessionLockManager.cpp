@@ -6,9 +6,10 @@
 #include "../render/Renderer.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/SessionLock.hpp"
-#include "./managers/SeatManager.hpp"
-#include "./managers/input/InputManager.hpp"
-#include "./managers/eventLoop/EventLoopManager.hpp"
+#include "../managers/SeatManager.hpp"
+#include "../managers/input/InputManager.hpp"
+#include "../managers/eventLoop/EventLoopManager.hpp"
+#include "../state/MonitorState.hpp"
 #include <algorithm>
 #include <ranges>
 
@@ -80,7 +81,7 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_sessionLock.reset();
         g_pInputManager->refocus();
 
-        for (auto const& m : g_pCompositor->m_monitors)
+        for (auto const& m : State::monitorState()->monitors())
             g_pHyprRenderer->damageMonitor(m);
     });
 
@@ -88,14 +89,14 @@ void CSessionLockManager::onNewSessionLock(SP<CSessionLock> pLock) {
         m_sessionLock.reset();
         Desktop::focusState()->rawSurfaceFocus(nullptr);
 
-        for (auto const& m : g_pCompositor->m_monitors)
+        for (auto const& m : State::monitorState()->monitors())
             g_pHyprRenderer->damageMonitor(m);
     });
 
     Desktop::focusState()->rawSurfaceFocus(nullptr);
     g_pSeatManager->setGrab(nullptr);
 
-    const bool NOACTIVEMONS = std::ranges::all_of(g_pCompositor->m_monitors, [](const auto& m) { return !m->m_enabled || !m->m_dpmsStatus; });
+    const bool NOACTIVEMONS = std::ranges::all_of(State::monitorState()->monitors(), [](const auto& m) { return !m->m_enabled || !m->m_dpmsStatus; });
 
     if (NOACTIVEMONS) {
         // Normally the locked event is sent after each output rendered a lock screen frame.
@@ -161,7 +162,7 @@ void CSessionLockManager::onLockscreenRenderedOnMonitor(uint64_t id) {
 
     m_sessionLock->lockedMonitors.emplace(id);
     const bool LOCKED =
-        std::ranges::all_of(g_pCompositor->m_monitors, [this](auto m) { return !m->m_enabled || !m->m_dpmsStatus || m_sessionLock->lockedMonitors.contains(m->m_id); });
+        std::ranges::all_of(State::monitorState()->monitors(), [this](auto m) { return !m->m_enabled || !m->m_dpmsStatus || m_sessionLock->lockedMonitors.contains(m->m_id); });
 
     if (LOCKED && m_sessionLock->lock->good()) {
         removeSendLockedTimer();

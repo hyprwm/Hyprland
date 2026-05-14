@@ -3,6 +3,7 @@
 #include "core/Compositor.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -77,7 +78,7 @@ void CFifoResource::presented() {
 
 bool CFifoResource::checkMonitors(bool needsSchedule) {
     if (m_surface->m_enteredOutputs.empty() && m_surface->m_hlSurface) {
-        for (auto& m : g_pCompositor->m_monitors) {
+        for (auto& m : State::monitorState()->monitors()) {
             if (!m || !m->m_enabled)
                 continue;
 

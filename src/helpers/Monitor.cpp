@@ -34,6 +34,7 @@
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
+#include "../state/MonitorState.hpp"
 #include "time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -61,7 +62,7 @@ using namespace NColorManagement;
 using namespace Render::GL;
 using namespace Monitor;
 
-CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
+CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
@@ -170,9 +171,7 @@ void CMonitor::onConnect(bool noRule) {
         m_output              = nullptr;
         m_renderingInitPassed = false;
 
-        Log::logger->log(Log::DEBUG, "Removing monitor {} from realMonitors", m_name);
-
-        std::erase_if(g_pCompositor->m_realMonitors, [&](PHLMONITOR& el) { return el.get() == this; });
+        State::monitorState()->remove(m_self.lock());
     });
 
     m_listeners.state = m_output->events.state.listen([this](const Aquamarine::IOutput::SStateEvent& event) {
@@ -264,21 +263,6 @@ void CMonitor::onConnect(bool noRule) {
         return;
     }
 
-    PHLMONITOR* thisWrapper = nullptr;
-
-    // find the wrap
-    for (auto& m : g_pCompositor->m_realMonitors) {
-        if (m->m_id == m_id) {
-            thisWrapper = &m;
-            break;
-        }
-    }
-
-    RASSERT(thisWrapper->get(), "CMonitor::onConnect: Had no wrapper???");
-
-    if (std::ranges::find_if(g_pCompositor->m_monitors, [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end())
-        g_pCompositor->m_monitors.push_back(*thisWrapper);
-
     m_enabled = true;
 
     m_output->state->resetExplicitFences();
@@ -304,9 +288,9 @@ void CMonitor::onConnect(bool noRule) {
             continue;
 
         const auto CURRENTMON = ws->m_monitor.lock();
-        const bool ORPHANED   = !CURRENTMON || std::ranges::none_of(g_pCompositor->m_monitors, [&](const auto& mon) { return mon == CURRENTMON; });
+        const bool ORPHANED   = !CURRENTMON || std::ranges::none_of(State::monitorState()->monitors(), [&](const auto& mon) { return mon == CURRENTMON; });
         const bool RETURNING  = ws->m_lastMonitor == m_name;
-        const bool RECOVERY   = g_pCompositor->m_monitors.size() == 1 && ORPHANED; // temporarily recover orphaned workspaces
+        const bool RECOVERY   = State::monitorState()->monitors().size() == 1 && ORPHANED; // temporarily recover orphaned workspaces
 
         if (RETURNING || RECOVERY) {
             g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
@@ -337,7 +321,7 @@ void CMonitor::onConnect(bool noRule) {
 
     // verify last mon valid
     bool found = false;
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (m == Desktop::focusState()->monitor()) {
             found = true;
             break;
@@ -401,7 +385,7 @@ void CMonitor::onDisconnect(bool destroy) {
 
     // Cleanup everything. Move windows back, snap cursor, shit.
     PHLMONITOR BACKUPMON = nullptr;
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (m.get() != this) {
             BACKUPMON = m;
             break;
@@ -488,7 +472,7 @@ void CMonitor::onDisconnect(bool destroy) {
         int        mostHz         = 0;
         PHLMONITOR pMonitorMostHz = nullptr;
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m->m_refreshRate > mostHz && m != m_self) {
                 pMonitorMostHz = m;
                 mostHz         = m->m_refreshRate;
@@ -497,8 +481,6 @@ void CMonitor::onDisconnect(bool destroy) {
 
         g_pHyprRenderer->m_mostHzMonitor = pMonitorMostHz;
     }
-
-    std::erase_if(g_pCompositor->m_monitors, [&](PHLMONITOR& el) { return el.get() == this; });
 }
 
 static NColorManagement::eTransferFunction chooseTF(NTransferFunction::eTF tf) {
@@ -1274,30 +1256,13 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         m_position = RULE.m_offset;
 
-        // push to mvmonitors
-
-        PHLMONITOR* thisWrapper = nullptr;
-
-        // find the wrap
-        for (auto& m : g_pCompositor->m_realMonitors) {
-            if (m->m_id == m_id) {
-                thisWrapper = &m;
-                break;
-            }
-        }
-
-        RASSERT(thisWrapper->get(), "CMonitor::setMirror: Had no wrapper???");
-
-        if (std::ranges::find_if(g_pCompositor->m_monitors, [&](auto& other) { return other.get() == this; }) == g_pCompositor->m_monitors.end())
-            g_pCompositor->m_monitors.push_back(*thisWrapper);
-
         setupDefaultWS(RULE);
 
         auto cpy = RULE;
         applyMonitorRule(std::move(cpy), true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m.get() != this) {
                 BACKUPMON = m;
                 break;
@@ -1324,18 +1289,16 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         m_mirrorOf->m_mirrors.push_back(m_self);
 
-        // remove from mvmonitors
-        std::erase_if(g_pCompositor->m_monitors, [&](const auto& other) { return other == m_self; });
-
         g_pCompositor->scheduleMonitorStateRecheck();
 
-        Desktop::focusState()->rawMonitorFocus(g_pCompositor->m_monitors.front());
+        Desktop::focusState()->rawMonitorFocus(State::monitorState()->monitors().front());
 
         // Software lock mirrored monitor
         g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
     }
 
     m_events.modeChanged.emit();
+    Event::bus()->m_events.monitor.layoutChanged.emit();
 }
 
 float CMonitor::getDefaultScale() {

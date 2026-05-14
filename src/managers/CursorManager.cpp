@@ -5,6 +5,7 @@
 #include "../xwayland/XWayland.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 static int cursorAnimTimer(SP<CEventLoopTimer> self, void* data) {
     const auto cursorMgr = sc<CCursorManager*>(data);
@@ -289,7 +290,7 @@ void CCursorManager::updateTheme() {
     static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     float       highestScale   = 1.0;
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (m->m_scale > highestScale)
             highestScale = m->m_scale;
     }
@@ -307,7 +308,7 @@ void CCursorManager::updateTheme() {
             m_hyprcursor->loadThemeStyle(m_currentStyleInfo);
     }
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         m->m_forceFullFrames = 5;
         g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
     }

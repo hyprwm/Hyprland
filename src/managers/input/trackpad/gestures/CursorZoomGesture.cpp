@@ -3,6 +3,7 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../helpers/Monitor.hpp"
 #include "../../../../managers/input/InputManager.hpp"
+#include "../../../../state/MonitorState.hpp"
 #include <hyprutils/string/Numeric.hpp>
 
 CCursorZoomTrackpadGesture::CCursorZoomTrackpadGesture(const std::string& first, const std::string& second) {
@@ -39,7 +40,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
     if (m_mode == MODE_TOGGLE)
         m_zoomed = !m_zoomed;
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         switch (m_mode) {
             case MODE_TOGGLE:
                 static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");

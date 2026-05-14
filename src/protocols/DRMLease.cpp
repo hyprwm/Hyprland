@@ -1,6 +1,7 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
 #include "../helpers/Monitor.hpp"
+#include "../event/EventBus.hpp"
 #include "drm-lease-v1.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"
 #include "protocols/WaylandProtocol.hpp"
@@ -167,7 +168,9 @@ CDRMLeaseConnectorResource::CDRMLeaseConnectorResource(WP<CDRMLeaseDeviceResourc
 
     m_resource->setData(this);
 
-    m_listeners.destroyMonitor = m_monitor->m_events.destroy.listen([this] {
+    m_listeners.destroyMonitor = Event::bus()->m_events.monitor.destroyMon.listen([this](PHLMONITOR m) {
+        if (m != m_monitor)
+            return;
         m_resource->sendWithdrawn();
         m_dead = true;
     });

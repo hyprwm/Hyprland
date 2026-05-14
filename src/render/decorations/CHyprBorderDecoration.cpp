@@ -4,6 +4,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
+#include "../../state/MonitorState.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -128,7 +129,7 @@ void CHyprBorderDecoration::damageEntire() {
 
     const CBox borderExtents = borderRegion.getExtents();
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         const CBox monitorBox = {m->m_position, m->m_size};
         if (borderExtents.intersection(monitorBox).empty())
             continue;

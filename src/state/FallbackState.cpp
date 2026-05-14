@@ -1,4 +1,5 @@
 #include "FallbackState.hpp"
+#include "MonitorState.hpp"
 
 #include "../Compositor.hpp"
 #include "../event/EventBus.hpp"
@@ -24,10 +25,10 @@ CFallbackStateKeeper::~CFallbackStateKeeper() = default;
 
 void CFallbackStateKeeper::initSignals() {
     m_listeners.monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR removed) {
-        if (g_pCompositor->m_monitors.size() > 1)
+        if (State::monitorState()->monitors().size() > 1)
             return;
 
-        if (!g_pCompositor->m_monitors.empty() && g_pCompositor->m_monitors.front() != removed)
+        if (!State::monitorState()->monitors().empty() && State::monitorState()->monitors().front() != removed)
             return;
 
         if (removed == m_fallbackOutput)
@@ -39,8 +40,10 @@ void CFallbackStateKeeper::initSignals() {
     });
 
     m_listeners.newMon = Event::bus()->m_events.monitor.newMon.listen([this](PHLMONITOR added) {
-        if (!m_fallbackOutput && added->m_name == "FALLBACK")
-            m_fallbackOutput = added;
+        if (!m_fallbackOutput && added->m_name == "FALLBACK") {
+            m_fallbackOutput                     = added;
+            m_fallbackOutput->m_isUnsafeFallback = true;
+        }
     });
 
     m_listeners.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR added) {
@@ -59,12 +62,10 @@ void CFallbackStateKeeper::initSignals() {
     // can run properly
 
     m_listeners.ready = Event::bus()->m_events.ready.listen([this] {
-        initOutput();
-
         m_launchTimer = makeShared<CEventLoopTimer>(
             std::chrono::milliseconds(READY_TIMEOUT_TO_UNSAFE_MS),
             [this](SP<CEventLoopTimer> self, void* data) {
-                if (!g_pCompositor->m_monitors.empty() && (g_pCompositor->m_monitors.size() > 1 || g_pCompositor->m_monitors.front() != m_fallbackOutput)) {
+                if (!State::monitorState()->monitors().empty() && (State::monitorState()->monitors().size() > 1 || State::monitorState()->monitors().front() != m_fallbackOutput)) {
                     Log::logger->log(Log::WARN, "[FallbackStateKeeper] Launch timeout of {}ms exceeded, but we have monitors?!", READY_TIMEOUT_TO_UNSAFE_MS);
                     m_launchTimer.reset();
                     return;
@@ -114,11 +115,13 @@ void CFallbackStateKeeper::setFallbackActive(bool enabled) {
     m_fallbackActive = enabled;
 
     if (enabled)
-        m_fallbackOutput->onConnect(false);
-    else
-        m_fallbackOutput->onDisconnect();
+        initOutput();
+    else {
+        State::monitorState()->remove(m_fallbackOutput);
+        m_fallbackOutput.reset();
+    }
 }
 
 PHLMONITOR CFallbackStateKeeper::fallbackOutput() const {
-    return m_fallbackOutput.lock();
+    return m_fallbackOutput;
 }

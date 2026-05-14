@@ -24,7 +24,7 @@ namespace State {
 
         void                setFallbackActive(bool enabled);
 
-        PHLMONITORREF       m_fallbackOutput;
+        PHLMONITOR          m_fallbackOutput;
         bool                m_fallbackActive = false;
 
         SP<CEventLoopTimer> m_launchTimer;

@@ -59,6 +59,7 @@ using namespace Hyprutils::OS;
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../state/MonitorState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -319,7 +320,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             result += CHyprCtl::getMonitorData(m, format);
         }
 
@@ -327,7 +328,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
 
         result += "]";
     } else {
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             if (!m->m_output || m->m_id == -1)
                 continue;
 
@@ -631,7 +632,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
 
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format(
                 R"#("{}": {{
     "levels": {{
@@ -680,7 +681,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
         result += "\n}\n";
 
     } else {
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format("Monitor {}:\n", mon->m_name);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
@@ -1190,7 +1191,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
@@ -1202,7 +1203,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
             if (m->m_activeWorkspace)
@@ -1216,7 +1217,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
         mgr->reloadRules();
         // Damage all monitors to redraw static layers.
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }
@@ -1726,7 +1727,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     bool       added = false;
 
     if (!vars[3].empty()) {
-        for (auto const& m : g_pCompositor->m_realMonitors) {
+        for (auto const& m : State::monitorState()->allMonitors()) {
             if (m->m_name == vars[3])
                 return "Name already taken";
         }
@@ -2092,7 +2093,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
@@ -2113,7 +2114,7 @@ std::string CHyprCtl::getReply(std::string request) {
             ws->updateWindowDecos();
         }
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }

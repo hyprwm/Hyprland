@@ -7,6 +7,7 @@
 #include "managers/animation/AnimationManager.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
+#include "../state/MonitorState.hpp"
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlManagerV1>&& resource_) : m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
@@ -51,7 +52,7 @@ CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlM
 
         LOGM(Log::DEBUG, "Committing ctms to outputs");
 
-        for (auto& m : g_pCompositor->m_monitors) {
+        for (auto& m : State::monitorState()->monitors()) {
             if (!m_ctms.contains(m->m_name)) {
                 PROTO::ctm->setCTM(m, Mat3x3::identity());
                 continue;
@@ -73,7 +74,7 @@ CHyprlandCTMControlResource::~CHyprlandCTMControlResource() {
     if (m_blocked)
         return;
 
-    for (auto& m : g_pCompositor->m_monitors) {
+    for (auto& m : State::monitorState()->monitors()) {
         PROTO::ctm->setCTM(m, Mat3x3::identity());
     }
 }

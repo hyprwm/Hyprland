@@ -12,6 +12,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../event/EventBus.hpp"
+#include "../../state/MonitorState.hpp"
 
 using namespace Desktop;
 using namespace Desktop::View;
@@ -45,7 +46,7 @@ PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     }
 
     if (pMonitor->m_mirrorOf)
-        pMonitor = g_pCompositor->m_monitors.front();
+        pMonitor = State::monitorState()->monitors().front();
 
     pLS->m_monitor = pMonitor;
     pMonitor->m_layerSurfaceLayers[resource->m_current.layer].emplace_back(pLS);
@@ -80,7 +81,7 @@ CLayerSurface::~CLayerSurface() {
     if (m_wlSurface)
         m_wlSurface->unassign();
 
-    for (auto const& mon : g_pCompositor->m_realMonitors) {
+    for (auto const& mon : State::monitorState()->allMonitors()) {
         for (auto& lsl : mon->m_layerSurfaceLayers) {
             std::erase_if(lsl, [this](auto& ls) { return ls.expired() || ls.get() == this; });
         }

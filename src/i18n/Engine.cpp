@@ -114,7 +114,7 @@ I18n::CI18nEngine::CI18nEngine() {
     // da_DK (Danish)
     huEngine->registerEntry("da_DK", TXT_KEY_ANR_TITLE, "Applikationen Svarer Ikke");
     huEngine->registerEntry("da_DK", TXT_KEY_ANR_CONTENT, "En applikation {title} - {class} svarer ikke.\nHvad vil du gøre ved det?");
-    huEngine->registerEntry("da_DK", TXT_KEY_ANR_OPTION_TERMINATE, "Luk");
+    huEngine->registerEntry("da_DK", TXT_KEY_ATXT_KEY_PERMISSION_REQUEST_CURSOR_POSNR_OPTION_TERMINATE, "Luk");
     huEngine->registerEntry("da_DK", TXT_KEY_ANR_OPTION_WAIT, "Vent");
     huEngine->registerEntry("da_DK", TXT_KEY_ANR_PROP_UNKNOWN, "(ukendt)");
 
@@ -772,6 +772,7 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Un'applicazione <b>{app}</b> richiede un'autorizzazione sconosciuta.");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Un'applicazione <b>{app}</b> sta provando a catturare il tuo schermo.\n\nVuoi permetterglielo?");
+    huEngine->registerEntry("pt_BR", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "Un'applicatione <b>{app}</b> sta provando a leggere la posizione del cursore. \n\nVuoi permetterglielo?");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
                             "Un'applicazione <b>{app}</b> sta provando a caricare un plugin: <b>{plugin}</b>.\n\nVuoi permetterglielo?");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "È stata rilevata una nuova tastiera: <b>{keyboard}</b>.\n\nLe vuoi permettere di operare?");

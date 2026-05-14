@@ -172,3 +172,9 @@ void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACE ws) {
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);
 }
+
+void Objects::CLuaWorkspace::push(lua_State* L, PHLWORKSPACEREF ws) {
+    new (lua_newuserdata(L, sizeof(PHLWORKSPACEREF))) PHLWORKSPACEREF(ws ? ws->m_self : nullptr);
+    luaL_getmetatable(L, MT);
+    lua_setmetatable(L, -2);
+}

@@ -33,6 +33,8 @@ void CFallbackStateKeeper::initSignals() {
         if (removed == m_fallbackOutput)
             return;
 
+        Log::logger->log(Log::DEBUG, "[FallbackStateKeeper] Monitor {} removed, entering fallback", removed->m_name);
+
         setFallbackActive(true);
     });
 
@@ -48,6 +50,8 @@ void CFallbackStateKeeper::initSignals() {
         if (added == m_fallbackOutput)
             return;
 
+        Log::logger->log(Log::DEBUG, "[FallbackStateKeeper] Monitor {} added, leaving fallback", added->m_name);
+
         setFallbackActive(false);
     });
 
@@ -60,8 +64,15 @@ void CFallbackStateKeeper::initSignals() {
         m_launchTimer = makeShared<CEventLoopTimer>(
             std::chrono::milliseconds(READY_TIMEOUT_TO_UNSAFE_MS),
             [this](SP<CEventLoopTimer> self, void* data) {
-                Log::logger->log(Log::WARN, "[FallbackStateKeeper] Launch timeout exceeded, entering fallback state.");
+                if (!g_pCompositor->m_monitors.empty() && (g_pCompositor->m_monitors.size() > 1 || g_pCompositor->m_monitors.front() != m_fallbackOutput)) {
+                    Log::logger->log(Log::WARN, "[FallbackStateKeeper] Launch timeout of {}ms exceeded, but we have monitors?!", READY_TIMEOUT_TO_UNSAFE_MS);
+                    m_launchTimer.reset();
+                    return;
+                }
+
+                Log::logger->log(Log::WARN, "[FallbackStateKeeper] Launch timeout of {}ms exceeded, entering fallback state.", READY_TIMEOUT_TO_UNSAFE_MS);
                 setFallbackActive(true);
+                m_launchTimer.reset();
             },
             nullptr);
 
@@ -69,6 +80,8 @@ void CFallbackStateKeeper::initSignals() {
     });
 
     m_listeners.start = Event::bus()->m_events.start.listen([this] {
+        Log::logger->log(Log::WARN, "[FallbackStateKeeper] Start fired, removing fallback timer");
+
         g_pEventLoopManager->removeTimer(m_launchTimer);
         m_launchTimer = nullptr;
 

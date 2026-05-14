@@ -373,11 +373,11 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                 "excluding fake buttons (e.g. BTN_TOOL_*) and keys (KEY_*). Check wev if you have any doubts regarding the ID. 0 means default.",
                 0, {.min = 0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Float>("input:tablettool:pressure_range_min",
-                  "Set the minimum pressure range for the tool, a negative number will set the default minimum pressure value. This is usually 0.0",
-                  -1.0, {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                  "Set the minimum pressure range for the tool, a negative number will set the default minimum pressure value. This is usually 0.0", -1.0,
+                  {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
         MS<Float>("input:tablettool:pressure_range_max",
-                  "Set the maximum pressure range for the tool, a negative number will set the default maximum pressure value. This is usually 1.0",
-                  -1.0, {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
+                  "Set the maximum pressure range for the tool, a negative number will set the default maximum pressure value. This is usually 1.0", -1.0,
+                  {.min = -1.0, .max = 1.0, .refresh = Supplementary::REFRESH_INPUT_DEVICES}),
 
         /*
          * gestures:

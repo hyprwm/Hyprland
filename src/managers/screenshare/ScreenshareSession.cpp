@@ -5,7 +5,9 @@
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
@@ -102,8 +104,19 @@ void CScreenshareSession::calculateConstraints() {
 
     // TODO: maybe support more that just monitor format in the future?
     m_formats.clear();
-    m_formats.push_back(NFormatUtils::alphaFormat(PMONITOR->getPreferredReadFormat()));
-    m_formats.push_back(PMONITOR->getPreferredReadFormat()); // some clients don't like alpha formats
+    const auto preferredReadFormat = PMONITOR->getPreferredReadFormat();
+    auto       format              = getPixelFormatFromDRM(preferredReadFormat);
+
+    if (!format) {
+        LOGM(Log::ERR, "Missing support for format, BUG REPORT this");
+        return;
+    }
+
+    const auto altFormat = format->withAlpha ? format->alphaStripped : format->alphaAdded;
+    if (altFormat != DRM_FORMAT_INVALID && altFormat != preferredReadFormat)
+        m_formats.push_back(altFormat);
+
+    m_formats.push_back(preferredReadFormat);
 
     // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT won't work here
     for (auto& format : m_formats) {

@@ -5,6 +5,9 @@
 #include "../macros.hpp"
 #include <xf86drm.h>
 #include <drm_fourcc.h>
+#include <hyprgraphics/egl/Egl.hpp>
+
+using namespace Hyprgraphics::Egl;
 
 SHMFormat NFormatUtils::drmToShm(DRMFormat drm) {
     switch (drm) {
@@ -69,6 +72,13 @@ std::string NFormatUtils::drmModifierName(uint64_t mod) {
 }
 
 DRMFormat NFormatUtils::alphaFormat(DRMFormat prevFormat) {
+    const auto format = getPixelFormatFromDRM(prevFormat);
+    if (format) {
+        if (format->alphaStripped != DRM_FORMAT_INVALID)
+            return format->alphaStripped;
+    }
+
+    Log::logger->log(Log::DEBUG, "NFormatUtils::alphaFormat format not found falling back to manual switch case handling");
     switch (prevFormat) {
         case DRM_FORMAT_XRGB8888: return DRM_FORMAT_ARGB8888;
         case DRM_FORMAT_XBGR8888: return DRM_FORMAT_ABGR8888;

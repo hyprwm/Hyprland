@@ -15,4 +15,6 @@ TEST_CASE(state) {
         auto str = getFromSocket("/monitors");
         ASSERT_CONTAINS(str, "FALLBACK");
     }
+
+    OK(getFromSocket("/reload"));
 }

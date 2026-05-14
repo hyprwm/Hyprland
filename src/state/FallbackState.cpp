@@ -30,6 +30,9 @@ void CFallbackStateKeeper::initSignals() {
         if (!g_pCompositor->m_monitors.empty() && g_pCompositor->m_monitors.front() != removed)
             return;
 
+        if (removed == m_fallbackOutput)
+            return;
+
         setFallbackActive(true);
     });
 
@@ -68,6 +71,8 @@ void CFallbackStateKeeper::initSignals() {
     m_listeners.start = Event::bus()->m_events.start.listen([this] {
         g_pEventLoopManager->removeTimer(m_launchTimer);
         m_launchTimer = nullptr;
+
+        setFallbackActive(false);
     });
 }
 

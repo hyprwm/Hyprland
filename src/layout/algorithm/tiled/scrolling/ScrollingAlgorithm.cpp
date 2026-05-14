@@ -512,7 +512,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                         } else {
                             TARGET->layoutBox.x = WORKAREA.x;
                             TARGET->layoutBox.w = WORKAREA.w;
-                        }        
+                        }
                     }
                 } else
                     TARGET->layoutBox = CBox{WORKAREA.pos() - Vector2D{100000.0, 100000.0}, Vector2D{1.0, 1.0}};
@@ -520,7 +520,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TARGET->layoutBox = controller->calculateTargetBox(i, j, USABLE, WORKAREA.pos(), *PFSONONE);
 
             if (TARGET->target)
-                TARGET->target->setPositionGlobal(targetBoxWithGaps(TARGET->layoutBox, i, j, FS));
+                TARGET->target->setPositionGlobal(targetBoxWithGaps(TARGET->layoutBox, i, j, FS && TARGET->target->fullscreenMode() == FSMODE_FULLSCREEN));
 
             if (forceInstant && TARGET->target)
                 TARGET->target->warpPositionSize();
@@ -722,7 +722,7 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     if (!DATA)
         return;
 
-    clearFullscreenTarget((target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets) , target);
+    clearFullscreenTarget((target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), target);
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column
@@ -957,16 +957,17 @@ void CScrollingAlgorithm::syncFullscreenTargets() {
         ++it;
     }
 
-
     for (const auto& COL : m_scrollingData->columns) {
         for (const auto& TDATA : COL->targetDatas) {
-            const auto TARGET = TDATA->target.lock();
+            const auto            TARGET               = TDATA->target.lock();
             const eFullscreenMode targetFullscreenMode = TARGET->fullscreenMode();
-            if (!TARGET || !TARGET->layoutManagedFullscreen() || targetFullscreenMode != FSMODE_FULLSCREEN || targetFullscreenMode != FSMODE_MAXIMIZED || TARGET->space() != m_parent->space())
+            if (!TARGET || !TARGET->layoutManagedFullscreen() || targetFullscreenMode != FSMODE_FULLSCREEN || targetFullscreenMode != FSMODE_MAXIMIZED ||
+                TARGET->space() != m_parent->space())
                 continue;
 
             if (!fullscreenStateForTarget(TARGET, targetFullscreenMode))
-                (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets).emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
+                (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets)
+                    .emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
 
             COL->setColumnWidth((targetFullscreenMode == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));
         }
@@ -1025,16 +1026,13 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
     } else if (request.effectiveMode == FSMODE_MAXIMIZED) {
-        
-        const auto CURRENT_COL = TDATA->column.lock();
 
+        const auto CURRENT_COL = TDATA->column.lock();
 
         if (!fullscreenStateForTarget(request.target, FSMODE_MAXIMIZED)) {
             m_maximizeTargets.emplace_back(
                 SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{CURRENT_COL->getColumnWidth()} : std::nullopt});
         }
-
-        
 
         if (CURRENT_COL->targetDatas.size() > 1) {
             const auto lastTarget = CURRENT_COL->targetDatas.back();

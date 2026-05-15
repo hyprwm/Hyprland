@@ -147,6 +147,8 @@ void CMonitorRuleManager::performMonitorReload() {
 }
 
 void CMonitorRuleManager::ensureMonitorStatus() {
+
+    // FIXME: this should not be needed, why can applyMonitorRule invalidate shit aarggghhh
     std::vector<PHLMONITORREF> refs;
     for (const auto& r : State::monitorState()->allMonitors()) {
         refs.emplace_back(r);

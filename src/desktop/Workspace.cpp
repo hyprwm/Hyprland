@@ -410,9 +410,9 @@ PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
         if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
             if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
                 continue;
-            
+
             return w;
-    }
+        }
     }
 
     return nullptr;

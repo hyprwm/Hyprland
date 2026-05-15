@@ -2706,7 +2706,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
 }
 
 void IHyprRenderer::damageMonitor(PHLMONITOR pMonitor) {
-    if (pMonitor->isMirror())
+    if (!pMonitor || pMonitor->isMirror())
         return;
 
     CBox damageBox = {0, 0, INT16_MAX, INT16_MAX};

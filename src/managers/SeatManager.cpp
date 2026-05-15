@@ -688,8 +688,12 @@ void CSeatManager::setGrab(SP<CSeatGrab> grab) {
         if (refocus) {
             auto candidate = Desktop::focusState()->window();
 
-            if (candidate)
+            if (candidate && candidate->m_workspace && candidate->m_workspace->isVisibleNotCovered())
                 Desktop::focusState()->rawWindowFocus(candidate, Desktop::FOCUS_REASON_FFM);
+            else {
+                const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+                g_pInputManager->refocusLastWindow(PMONITOR);
+            }
         }
 
         if (oldGrab->m_onEnd)

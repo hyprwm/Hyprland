@@ -203,8 +203,9 @@ vec4
 #endif
 
 #if USE_MIRROR
-    pixColors[0] *= alpha * additionalAlpha;
-    pixColors[1] *= alpha * additionalAlpha;
+    vec4[2] pixColors;
+    pixColors[0] = pixColor * alpha * additionalAlpha;
+    pixColors[1] = pixColors[0];
     return pixColors;
 #else
     pixColor *= alpha * additionalAlpha;

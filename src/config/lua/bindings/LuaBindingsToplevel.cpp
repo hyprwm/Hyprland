@@ -8,6 +8,7 @@
 
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../plugins/PluginSystem.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -275,6 +276,33 @@ static int hlVersion(lua_State* L) {
     return 1;
 }
 
+static int hlGetPlugins(lua_State* L) {
+    if (!g_pPluginSystem) {
+        lua_newtable(L);
+        return 1;
+    }
+
+    const auto PLUGINS = g_pPluginSystem->getAllPlugins();
+
+    lua_createtable(L, PLUGINS.size(), 0);
+
+    int i = 1;
+    for (const auto& plugin : PLUGINS) {
+        lua_createtable(L, 0, 4);
+        lua_pushstring(L, plugin->m_name.c_str());
+        lua_setfield(L, -2, "name");
+        lua_pushstring(L, plugin->m_author.c_str());
+        lua_setfield(L, -2, "author");
+        lua_pushstring(L, plugin->m_version.c_str());
+        lua_setfield(L, -2, "version");
+        lua_pushstring(L, plugin->m_description.c_str());
+        lua_setfield(L, -2, "description");
+        lua_rawseti(L, -2, i++);
+    }
+
+    return 1;
+}
+
 static int hlExecCmd(lua_State* L) {
     auto cmd = Internal::argStr(L, 1);
 
@@ -431,6 +459,7 @@ void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
 
     Internal::setFn(L, "dispatch", hlDispatch);
     Internal::setFn(L, "version", hlVersion);
+    Internal::setFn(L, "get_loaded_plugins", hlGetPlugins);
     Internal::setFn(L, "exec_cmd", hlExecCmd);
 
     Internal::setFn(L, "unbind", hlUnbind);

@@ -1835,6 +1835,8 @@ void CWindow::mapWindow() {
     std::string requestedWorkspace = "";
     bool        workspaceSilent    = false;
 
+    bool        monitorSilent = false;
+
     if (*PINITIALWSTRACKING) {
         const auto WINDOWENV = getEnv();
         if (WINDOWENV.contains("HL_INITIAL_WORKSPACE_TOKEN")) {
@@ -1895,17 +1897,20 @@ void CWindow::mapWindow() {
             if (MONITORSTR == "unset")
                 m_monitor = PMONITOR;
             else {
-                const auto MONITOR = g_pCompositor->getMonitorFromString(MONITORSTR);
+                const auto ARGPOS  = MONITORSTR.find_last_of(' ');
+                monitorSilent      = ARGPOS != std::string::npos && MONITORSTR.substr(ARGPOS).contains("silent");
+                const auto MONITOR = g_pCompositor->getMonitorFromString(MONITORSTR.substr(0, ARGPOS));
 
                 if (MONITOR) {
                     m_monitor = MONITOR;
 
                     const auto PMONITORFROMID = m_monitor.lock();
 
-                    if (m_monitor != PMONITOR) { // NOLINTNEXTLINE
+                    if (m_monitor != PMONITOR && !monitorSilent) // NOLINTNEXTLINE
                         Config::Actions::focusMonitor(PMONITORFROMID);
-                        PMONITOR = PMONITORFROMID;
-                    }
+
+                    PMONITOR = PMONITORFROMID;
+
                     m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
                     PWORKSPACE  = m_workspace;
 
@@ -2175,7 +2180,7 @@ void CWindow::mapWindow() {
     }
 
     if (!m_ruleApplicator->noFocus().valueOrDefault() && !m_noInitialFocus && (!isX11OverrideRedirect() || (m_isX11 && m_xwaylandSurface->wantsFocus())) && !workspaceSilent &&
-        (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
+        !monitorSilent && (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
 
         // don't steal pointer focus with X11 when buttons are held (e.g., during drags)
         if (!m_isX11 || !g_pInputManager->hasHeldButtons()) {

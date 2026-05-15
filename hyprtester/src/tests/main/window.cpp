@@ -1238,3 +1238,27 @@ TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
         ASSERT_CONTAINS(str, "at: 1900,1000");
     }
 }
+
+TEST_CASE(monitorrule) {
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'monitorrule', match = { class = 'monitor_kitty' }, monitor = 'HEADLESS-3' })"));
+
+    Tests::spawnKitty("monitor_kitty");
+    ASSERT(Tests::windowCount(), 1);
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "monitor: 2");
+    EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-3");
+
+    Tests::killAllWindows();
+    OK(getFromSocket("/reload"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/eval hl.window_rule({ name = 'monitorrule', match = { class = 'silent_kitty' }, monitor = 'HEADLESS-3 silent' })"));
+
+    Tests::spawnKitty("silent_kitty");
+    ASSERT(Tests::windowCount(), 1);
+    EXPECT_CONTAINS(getFromSocket("/clients"), "monitor: 2");
+    EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-2");
+
+    OK(getFromSocket("/output remove HEADLESS-3"));
+}

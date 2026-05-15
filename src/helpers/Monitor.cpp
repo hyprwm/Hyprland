@@ -627,8 +627,10 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     // if it's disabled, disable and ignore
     if (RULE->m_disabled) {
-        if (m_enabled)
+        if (m_enabled) {
             onDisconnect();
+            Event::bus()->m_events.monitor.layoutChanged.emit();
+        }
 
         m_events.modeChanged.emit();
 

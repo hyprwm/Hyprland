@@ -147,11 +147,16 @@ void CMonitorRuleManager::performMonitorReload() {
 }
 
 void CMonitorRuleManager::ensureMonitorStatus() {
-    for (auto const& rm : State::monitorState()->allMonitors()) {
-        if (!rm->m_output || rm->m_isUnsafeFallback)
+    std::vector<PHLMONITORREF> refs;
+    for (const auto& r : State::monitorState()->allMonitors()) {
+        refs.emplace_back(r);
+    }
+
+    for (auto const& rm : refs) {
+        if (!rm || !rm->m_output || rm->m_isUnsafeFallback)
             continue;
 
-        auto rule = get(rm);
+        auto rule = get(rm.lock());
 
         if (rule.m_disabled == rm->m_enabled)
             rm->applyMonitorRule(std::move(rule));

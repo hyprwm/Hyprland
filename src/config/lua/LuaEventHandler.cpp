@@ -127,10 +127,9 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
         dispatch("workspace.created", 1, [&] { CLuaWorkspace::push(m_lua, ws); });
     }));
     m_listeners.push_back(bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF wsRef) {
-        const auto ws = wsRef.lock();
-        if (!ws)
+        if (!wsRef)
             return;
-        dispatch("workspace.removed", 1, [&] { CLuaWorkspace::push(m_lua, ws); });
+        dispatch("workspace.removed", 1, [&] { CLuaWorkspace::push(m_lua, wsRef); });
     }));
     m_listeners.push_back(bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE ws, PHLMONITOR mon) {
         dispatch("workspace.move_to_monitor", 2, [&] {

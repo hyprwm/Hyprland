@@ -117,6 +117,7 @@ void CFallbackStateKeeper::setFallbackActive(bool enabled) {
     if (enabled)
         initOutput();
     else {
+        m_fallbackOutput->onDisconnect();
         State::monitorState()->remove(m_fallbackOutput);
         m_fallbackOutput.reset();
     }

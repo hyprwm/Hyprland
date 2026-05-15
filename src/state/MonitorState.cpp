@@ -20,7 +20,10 @@ UP<CMonitorStateTracker>& State::monitorState() {
 }
 
 CMonitorStateTracker::CMonitorStateTracker() {
-    m_listeners.monitorAdded   = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR m) { m_monitors.emplace_back(m); });
+    m_listeners.monitorAdded   = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR m) {
+        if (!std::ranges::contains(m_monitors, m))
+            m_monitors.emplace_back(m);
+    });
     m_listeners.monitorRemoved = Event::bus()->m_events.monitor.removed.listen([this](PHLMONITOR m) { std::erase(m_monitors, m); });
 
     // keep track of mirrors

@@ -456,9 +456,11 @@ void CMonitor::onDisconnect(bool destroy) {
         m_activeWorkspace->m_visible = false;
     m_activeWorkspace.reset();
 
-    m_output->state->resetExplicitFences();
-    m_output->state->setAdaptiveSync(false);
-    m_output->state->setEnabled(false);
+    if (m_output) {
+        m_output->state->resetExplicitFences();
+        m_output->state->setAdaptiveSync(false);
+        m_output->state->setEnabled(false);
+    }
 
     if (!m_state.commit())
         Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");

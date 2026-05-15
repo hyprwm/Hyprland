@@ -121,11 +121,17 @@ void CMonitorRuleManager::scheduleReload() {
 void CMonitorRuleManager::performMonitorReload() {
     bool overAgain = false;
 
-    for (auto const& m : State::monitorState()->allMonitors()) {
-        if (!m->m_output || m->m_isUnsafeFallback)
+    // FIXME: this should not be needed, why can applyMonitorRule invalidate shit aarggghhh
+    std::vector<PHLMONITORREF> refs;
+    for (const auto& r : State::monitorState()->allMonitors()) {
+        refs.emplace_back(r);
+    }
+
+    for (auto const& m : refs) {
+        if (!m || !m->m_output || m->m_isUnsafeFallback)
             continue;
 
-        auto rule = get(m);
+        auto rule = get(m.lock());
 
         if (!m->applyMonitorRule(Config::CMonitorRule{rule})) {
             overAgain = true;

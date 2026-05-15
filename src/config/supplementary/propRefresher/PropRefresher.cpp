@@ -36,6 +36,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 g_pInputManager->setPointerConfigs();     // update mouse cfgs
                 g_pInputManager->setTouchDeviceConfigs(); // update touch device cfgs
                 g_pInputManager->setTabletConfigs();      // update tablets
+                g_pInputManager->setTabletToolConfigs();  // update tablettools
             }
 
             if (m_propsTripped & REFRESH_SCREEN_SHADER)

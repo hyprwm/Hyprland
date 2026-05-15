@@ -128,6 +128,7 @@ class CInputManager {
     void               setPointerConfigs();
     void               setTouchDeviceConfigs(SP<ITouch> dev = nullptr);
     void               setTabletConfigs();
+    void               setTabletToolConfigs();
 
     void               updateCapabilities();
     void               updateKeyboardsLeds(SP<IKeyboard>);

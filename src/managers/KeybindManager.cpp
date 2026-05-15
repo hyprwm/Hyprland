@@ -601,6 +601,11 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
+        // only process submap's keybinds when within the submap at the time of trigger
+        // to prevent multiple dispatches for the same keybind in multiple submaps
+        if (key.submapAtPress.name != k->submap.name)
+            continue;
+
         if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || (k->submap.name != Config::Actions::state()->m_currentSubmap && !k->submapUniversal) || k->shadowed))
             continue;
 

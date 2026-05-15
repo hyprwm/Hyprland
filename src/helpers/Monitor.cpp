@@ -209,8 +209,6 @@ void CMonitor::onConnect(bool noRule) {
 
     m_tearingState.canTear = m_output->getBackend()->type() == Aquamarine::AQ_BACKEND_DRM;
 
-    m_name = m_output->name;
-
     m_description = m_output->description;
     // remove comma character from description. This allow monitor specific rules to work on monitor with comma on their description
     std::erase(m_description, ',');
@@ -242,7 +240,7 @@ void CMonitor::onConnect(bool noRule) {
         m_output->state->setEnabled(false);
 
         if (!m_state.commit())
-            Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_output->name);
+            Log::logger->log(Log::ERR, "Couldn't commit disabled state on output {}", m_name);
 
         m_enabled = false;
 
@@ -279,7 +277,7 @@ void CMonitor::onConnect(bool noRule) {
 
     m_damage.setSize(m_transformedSize);
 
-    Log::logger->log(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_output->name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
+    Log::logger->log(Log::DEBUG, "Added new monitor with name {} at {:j0} with size {:j0}, pointer {:x}", m_name, m_position, m_pixelSize, rc<uintptr_t>(m_output.get()));
 
     setupDefaultWS(monitorRule);
 
@@ -371,7 +369,7 @@ void CMonitor::onDisconnect(bool destroy) {
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
         return;
 
-    Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_output->name);
+    Log::logger->log(Log::DEBUG, "onDisconnect called for {}", m_name);
 
     m_events.disconnect.emit();
     if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
@@ -716,7 +714,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     // last fallback is always preferred mode
     if (!m_output->preferredMode())
-        Log::logger->log(Log::ERR, "Monitor {} has NO PREFERRED MODE", m_output->name);
+        Log::logger->log(Log::ERR, "Monitor {} has NO PREFERRED MODE", m_name);
     else
         requestedModes.push_back(m_output->preferredMode());
 
@@ -1054,7 +1052,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     m_output->scheduleFrame();
 
     if (!m_state.commit())
-        Log::logger->log(Log::ERR, "Couldn't commit output named {}", m_output->name);
+        Log::logger->log(Log::ERR, "Couldn't commit output named {}", m_name);
 
     Vector2D xfmd     = m_transform % 2 == 1 ? Vector2D{m_pixelSize.y, m_pixelSize.x} : m_pixelSize;
     m_size            = (xfmd / m_scale).round();

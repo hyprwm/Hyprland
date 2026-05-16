@@ -201,8 +201,8 @@ void CWindowTarget::updatePos() {
 
         calcPos += (availableSpace - calcSize) / 2.0;
 
-        calcPos.x = std::clamp(calcPos.x, MONITOR_WORKAREA.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w - calcSize.x);
-        calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y);
+        calcPos.x = std::clamp(calcPos.x, MONITOR_WORKAREA.x, std::max(MONITOR_WORKAREA.x, MONITOR_WORKAREA.x + MONITOR_WORKAREA.w - calcSize.x));
+        calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, std::max(MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y));
     }
 
     if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {

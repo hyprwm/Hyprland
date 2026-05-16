@@ -2187,7 +2187,7 @@ void CWindow::mapWindow() {
                 if (pWorkspace->m_isSpecialWorkspace)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
                 else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !m_noInitialFocus) // NOLINTNEXTLINE
-                    Config::Actions::changeWorkspace(requestedWorkspaceName);
+                    Config::Actions::changeWorkspace(pWorkspace);
 
                 PMONITOR = Desktop::focusState()->monitor();
             }

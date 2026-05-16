@@ -460,10 +460,10 @@ void CMonitor::onDisconnect(bool destroy) {
         m_output->state->resetExplicitFences();
         m_output->state->setAdaptiveSync(false);
         m_output->state->setEnabled(false);
-    }
 
-    if (!m_state.commit())
-        Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
+        if (!m_state.commit())
+            Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::onDisconnect");
+    }
 
     if (Desktop::focusState()->monitor() == m_self)
         Desktop::focusState()->rawMonitorFocus(BACKUPMON);
@@ -2502,6 +2502,9 @@ bool CMonitorState::test() {
 }
 
 bool CMonitorState::updateSwapchain() {
+    if (!m_owner->m_output)
+        return false;
+
     const auto& OPTIONS = m_owner->m_output->swapchain->currentOptions();
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;

@@ -36,17 +36,17 @@ class CPluginSystem {
   public:
     CPluginSystem();
 
-    SP<CPromise<CPlugin*>> loadPlugin(const std::string& path, eSpecialPidTypes pidType = SPECIAL_PID_TYPE_NONE);
-    void                   unloadPlugin(const CPlugin* plugin, bool eject = false);
-    void                   unloadAllPlugins();
-    void                   updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
-    CPlugin*               getPluginByPath(const std::string& path);
-    CPlugin*               getPluginByHandle(HANDLE handle);
-    std::vector<CPlugin*>  getAllPlugins();
-    size_t                 pluginCount();
-    void                   sigGetPlugins(CPlugin** data, size_t len);
+    SP<CPromise<CPlugin*>>              loadPlugin(const std::string& path, eSpecialPidTypes pidType = SPECIAL_PID_TYPE_NONE);
+    void                                unloadPlugin(const CPlugin* plugin, bool eject = false);
+    void                                unloadAllPlugins();
+    void                                updateConfigPlugins(const std::vector<std::string>& plugins, bool& changed);
+    [[nodiscard]] CPlugin*              getPluginByPath(const std::string& path);
+    [[nodiscard]] CPlugin*              getPluginByHandle(HANDLE handle);
+    [[nodiscard]] std::vector<CPlugin*> getAllPlugins();
+    [[nodiscard]] size_t                pluginCount();
+    void                                sigGetPlugins(CPlugin** data, size_t len);
 
-    bool                   m_allowConfigVars = false;
+    bool                                m_allowConfigVars = false;
 
   private:
     std::vector<UP<CPlugin>>             m_loadedPlugins;

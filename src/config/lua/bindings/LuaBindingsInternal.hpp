@@ -137,7 +137,6 @@ namespace Config::Lua::Bindings::Internal {
     int                                                pushSuccessResult(lua_State* L, const Config::Actions::SActionResult& r = {});
     int                                                pushErrorResult(lua_State* L, const Config::Actions::SActionError& e);
     void                                               reportError(lua_State* L, const Config::Actions::SActionError& e);
-    PHLWORKSPACE                                       resolveWorkspaceStr(const std::string& args);
     PHLMONITOR                                         resolveMonitorStr(const std::string& args);
     std::string                                        getSourceInfo(lua_State* L, int stackLevel = 1);
 

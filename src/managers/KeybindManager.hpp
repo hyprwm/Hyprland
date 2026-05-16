@@ -60,7 +60,8 @@ struct SKeybind {
     std::string                     displayKey = "";
 
     // DO NOT INITIALIZE
-    bool shadowed = false;
+    bool shadowed       = false;
+    bool releasePending = false;
 };
 
 enum eFocusWindowMode : uint8_t {

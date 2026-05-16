@@ -28,6 +28,8 @@ class CHyprInnerGlowDecoration : public IHyprWindowDecoration {
     void                               render(PHLMONITOR, float const& a);
 
   private:
+    bool         visible();
+
     PHLWINDOWREF m_window;
 
     Vector2D     m_lastWindowPos;

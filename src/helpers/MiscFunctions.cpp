@@ -488,7 +488,7 @@ PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
     if (ws->m_id == PCURRENTWS->m_id && *PBACKANDFORTH) {
         const auto PREVWSIDNAME = Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWS);
         if (PREVWSIDNAME.id == WORKSPACE_INVALID)
-            return nullptr;
+            return ws;
 
         auto pprevws = g_pCompositor->getWorkspaceByID(PREVWSIDNAME.id);
         if (!pprevws)

@@ -72,6 +72,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                         continue;
 
                     m->m_forceFullFrames = 2;
+                    g_pHyprRenderer->damageMonitor(m);
                     g_pCompositor->scheduleFrameForMonitor(m);
                 }
             }

@@ -91,6 +91,14 @@ void CScreenshareSession::init() {
         calculateConstraints();
         m_events.constraintsChanged.emit();
     });
+    m_listeners.configReloaded     = Event::bus()->m_events.config.reloaded.listen([this] {
+        static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
+        static auto       prev       = *PFORCE8BIT;
+        if (prev != *PFORCE8BIT) {
+            prev = *PFORCE8BIT;
+            calculateConstraints();
+        }
+    });
 
     calculateConstraints();
 }

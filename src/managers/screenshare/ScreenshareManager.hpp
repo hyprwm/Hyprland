@@ -87,6 +87,7 @@ namespace Screenshare {
             CHyprSignalListener windowDestroyed;
             CHyprSignalListener windowSizeChanged;
             CHyprSignalListener windowMonitorChanged;
+            CHyprSignalListener configReloaded;
         } m_listeners;
 
         void screenshareEvents(bool started);

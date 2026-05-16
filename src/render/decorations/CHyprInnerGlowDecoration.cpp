@@ -66,7 +66,7 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
     static auto PGLOWRANGE = CConfigValue<Hyprlang::INT>("decoration:glow:range");
     static auto PGLOWPOWER = CConfigValue<Hyprlang::INT>("decoration:glow:render_power");
 
-    if (!*PGLOW)
+    if (!*PGLOW || !visible())
         return;
 
     const auto PWINDOW = m_window.lock();
@@ -102,4 +102,9 @@ void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
 eDecorationLayer CHyprInnerGlowDecoration::getDecorationLayer() {
     return DECORATION_LAYER_OVER;
+}
+
+bool CHyprInnerGlowDecoration::visible() {
+    static auto PENABLED = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
+    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault();
 }

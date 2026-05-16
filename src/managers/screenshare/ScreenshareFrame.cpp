@@ -12,8 +12,11 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "helpers/cm/ColorManagement.hpp"
 #include "helpers/time/Time.hpp"
+#include <glib.h>
+#include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprgraphics/egl/Egl.hpp>
 #include <wayland-server-protocol.h>
@@ -352,15 +355,17 @@ void CScreenshareFrame::renderWorkspace() {
         return;
     const auto PMONITOR = m_session->monitor();
     const auto PWORKSPACE = m_session->m_workspace.lock();
-
     const auto NOW = Time::steadyNow();
+
+    CBox GEOMETRY = {m_session->m_captureBox.x, m_session->m_captureBox.y, m_session->m_captureBox.size().x, m_session->m_captureBox.size().y};
 
     g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
     g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    g_pHyprRenderer->renderWorkspaceWindows(PMONITOR, PWORKSPACE, NOW);
+    //g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, NOW, g_pHyprRenderer->renderSessionLockSurface);
+    g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, NOW, GEOMETRY);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
     //g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, Render::RENDER_PASS_ALL, true, true);
     //g_pHyprRenderer->renderWorkspace

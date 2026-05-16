@@ -43,6 +43,7 @@
 #include "../protocols/Screencopy.hpp"
 #include "../protocols/ToplevelExport.hpp"
 #include "../protocols/ToplevelMapping.hpp"
+#include "../protocols/WorkspaceExport.hpp"
 #include "../protocols/TextInputV1.hpp"
 #include "../protocols/GlobalShortcuts.hpp"
 #include "../protocols/XDGDialog.hpp"
@@ -208,6 +209,7 @@ CProtocolManager::CProtocolManager() {
     // Screensharing Protocols
     PROTO::screencopy         = makeUnique<CScreencopyProtocol>(&zwlr_screencopy_manager_v1_interface, 3, "Screencopy");
     PROTO::toplevelExport     = makeUnique<CToplevelExportProtocol>(&hyprland_toplevel_export_manager_v1_interface, 2, "ToplevelExport");
+    PROTO::workspaceExport    = makeUnique<CWorkspaceExportProtocol>(&hyprland_workspace_export_manager_v1_interface, 1, "WorkspaceExport");
     PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(); // ctor inits actual protos, output and toplevel
     PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 

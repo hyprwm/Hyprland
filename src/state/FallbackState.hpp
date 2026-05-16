@@ -29,6 +29,8 @@ namespace State {
 
         SP<CEventLoopTimer> m_launchTimer;
 
+        bool                m_fallbackStateUpdateDeferred = false;
+
         struct {
             CHyprSignalListener newMon;
             CHyprSignalListener monitorRemoved;

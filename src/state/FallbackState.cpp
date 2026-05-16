@@ -93,7 +93,7 @@ void CFallbackStateKeeper::initSignals() {
         g_pEventLoopManager->removeTimer(m_launchTimer);
         m_launchTimer = nullptr;
 
-        setFallbackActive(false);
+        g_pEventLoopManager->doLater([this] { setFallbackActive(false); });
     });
 }
 
@@ -119,15 +119,28 @@ void CFallbackStateKeeper::setFallbackActive(bool enabled) {
     if (enabled == m_fallbackActive)
         return;
 
+    if (m_fallbackStateUpdateDeferred)
+        return;
+
     m_fallbackActive = enabled;
 
-    if (enabled)
-        initOutput();
-    else if (m_fallbackOutput) {
-        m_fallbackOutput->onDisconnect();
-        State::monitorState()->remove(m_fallbackOutput);
-        m_fallbackOutput.reset();
-    }
+    g_pEventLoopManager->doLater([this] {
+        m_fallbackStateUpdateDeferred = false;
+
+        // edge case, dk if possible.
+        if (m_fallbackActive == !!m_fallbackOutput)
+            return;
+
+        if (m_fallbackActive)
+            initOutput();
+        else if (m_fallbackOutput) {
+            m_fallbackOutput->onDisconnect();
+            m_fallbackOutput->m_output->destroy();
+            m_fallbackOutput.reset();
+        }
+    });
+
+    m_fallbackStateUpdateDeferred = true;
 }
 
 PHLMONITOR CFallbackStateKeeper::fallbackOutput() const {

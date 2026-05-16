@@ -688,9 +688,8 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         // If the keybind was found before and belongs to a different submap
         // Do not trigger it again since the same keybind might exist in the submap definition
         // with different action.
-        if (found && (key.submapAtPress.name != k->submap.name)) {
+        if (found && (key.submapAtPress.name != k->submap.name))
             continue;
-        }
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.

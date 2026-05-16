@@ -40,7 +40,14 @@ void CFallbackStateKeeper::initSignals() {
     });
 
     m_listeners.newMon = Event::bus()->m_events.monitor.newMon.listen([this](PHLMONITOR added) {
-        if (!m_fallbackOutput && added->m_name == "FALLBACK") {
+        if (added->m_name == "FALLBACK") {
+            if (m_fallbackOutput) {
+                Log::logger->log(Log::ERR, "[FallbackStateKeeper] BUG THIS: 'FALLBACK' added but already exists");
+                m_fallbackOutput->onDisconnect();
+                State::monitorState()->remove(m_fallbackOutput);
+                m_fallbackOutput.reset();
+            }
+
             m_fallbackOutput                     = added;
             m_fallbackOutput->m_isUnsafeFallback = true;
         }
@@ -116,7 +123,7 @@ void CFallbackStateKeeper::setFallbackActive(bool enabled) {
 
     if (enabled)
         initOutput();
-    else {
+    else if (m_fallbackOutput) {
         m_fallbackOutput->onDisconnect();
         State::monitorState()->remove(m_fallbackOutput);
         m_fallbackOutput.reset();

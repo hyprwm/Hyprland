@@ -197,7 +197,9 @@ constexpr std::optional<size_t> CGLTexture::getCacheStateIndex(GLenum pname) {
         case GL_TEXTURE_MAG_FILTER: return TEXTURE_PAR_MAG_FILTER;
         case GL_TEXTURE_MIN_FILTER: return TEXTURE_PAR_MIN_FILTER;
         case GL_TEXTURE_SWIZZLE_R: return TEXTURE_PAR_SWIZZLE_R;
+        case GL_TEXTURE_SWIZZLE_G: return TEXTURE_PAR_SWIZZLE_G;
         case GL_TEXTURE_SWIZZLE_B: return TEXTURE_PAR_SWIZZLE_B;
+        case GL_TEXTURE_SWIZZLE_A: return TEXTURE_PAR_SWIZZLE_A;
         default: return std::nullopt;
     }
 }

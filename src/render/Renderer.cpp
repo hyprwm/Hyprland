@@ -2,6 +2,7 @@
 #include "../Compositor.hpp"
 #include "../helpers/math/Math.hpp"
 #include <algorithm>
+#include <aquamarine/buffer/Buffer.hpp>
 #include <aquamarine/output/Output.hpp>
 #include <cmath>
 #include <filesystem>
@@ -1729,8 +1730,16 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer =
-            m_renderMode == RENDER_MODE_TO_OVERLAY ? pMonitor->m_output->getOverlayPlane()->swapchain->next(&bufferAge) : pMonitor->m_output->swapchain->next(&bufferAge);
+        if (m_renderMode == RENDER_MODE_TO_OVERLAY) {
+            const auto& plane = pMonitor->m_output->getOverlayPlane();
+            if (!plane->swapchain) {
+                Log::logger->log(Log::ERR, "Failed to acquire overlay swapchain for {}", pMonitor->m_name);
+                return false;
+            } else
+                Log::logger->log(Log::TRACE, "Got overlay swapchain for {}, plane id={}", pMonitor->m_name, plane->id);
+            m_currentBuffer = plane->swapchain->next(&bufferAge);
+        } else
+            m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
         if (!m_currentBuffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;

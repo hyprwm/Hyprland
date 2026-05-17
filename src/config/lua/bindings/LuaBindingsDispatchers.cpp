@@ -1,6 +1,8 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <lua.h>
+#include <string>
 
 #include "../../supplementary/executor/Executor.hpp"
 
@@ -638,7 +640,10 @@ static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
         g_pKeybindManager->m_currentKeybind->releasePending = true;
 
-    return Internal::checkResult(L, CA::mouse("resizewindow"));
+    int paramRaw = (int)lua_tonumber(L, lua_upvalueindex(1));
+    int param    = paramRaw < 0 ? 0 : paramRaw;
+
+    return Internal::checkResult(L, CA::mouse("resizewindow " + std::to_string(param)));
 }
 
 static int hlWindowClose(lua_State* L) {
@@ -1014,13 +1019,13 @@ static int hlWindowDrag(lua_State* L) {
 }
 
 static int hlWindowResize(lua_State* L) {
-    if (lua_gettop(L) == 0 || lua_isnil(L, 1)) {
-        lua_pushcclosure(L, dsp_mouseResize, 0);
+    if (lua_gettop(L) == 0 || lua_isnil(L, 1) || lua_isnumber(L, 1)) {
+        lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }
 
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.window.resize: expected no args, or a table { x, y, relative?, window? }");
+        return Internal::configError(L, "hl.window.resize: expected no args, a number, or a table { x, y, relative?, window? }");
 
     return hlWindowResizeExact(L);
 }

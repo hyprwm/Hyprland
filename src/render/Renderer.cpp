@@ -1738,7 +1738,8 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     int bufferAge = 0;
 
     if (!buffer) {
-        m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);
+        m_currentBuffer =
+            m_renderMode == RENDER_MODE_TO_OVERLAY ? pMonitor->m_output->getOverlayPlane()->swapchain->next(&bufferAge) : pMonitor->m_output->swapchain->next(&bufferAge);
         if (!m_currentBuffer) {
             Log::logger->log(Log::ERR, "Failed to acquire swapchain buffer for {}", pMonitor->m_name);
             return false;
@@ -2103,7 +2104,19 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         m_renderData.useNearestNeighbor = false;
     }
 
-    CRegion damage, finalDamage;
+    CRegion damage, finalDamage, overlayDamage;
+
+    bool    usingOverlay = shouldUseOverlay(pMonitor, pMonitor->m_activeWorkspace);
+    if (usingOverlay) {
+        if (!beginRender(pMonitor, overlayDamage, RENDER_MODE_TO_OVERLAY)) {
+            Log::logger->log(Log::ERR, "renderer: couldn't beginRender() to overlay!");
+            usingOverlay = false;
+        }
+        CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
+        renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, RL_OVERLAY);
+        endRender();
+    }
+
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {
         Log::logger->log(Log::ERR, "renderer: couldn't beginRender()!");
         return;
@@ -2139,7 +2152,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             renderCursor = false;
         } else {
             CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
-            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox);
+            renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, usingOverlay ? RL_PRIMARY : RL_ALL);
 
             renderLockscreen(pMonitor, NOW, renderBox);
 

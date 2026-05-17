@@ -67,7 +67,9 @@ namespace Render {
             RL_NORMAL = 1 << 1, // regular windows
             RL_TOP    = 1 << 2, // everything above regular windows
 
-            RL_ALL = RL_BOTTOM | RL_NORMAL | RL_TOP,
+            RL_ALL     = RL_BOTTOM | RL_NORMAL | RL_TOP,
+            RL_PRIMARY = RL_BOTTOM | RL_NORMAL,
+            RL_OVERLAY = RL_TOP,
         };
 
         virtual eType                       type() = 0;

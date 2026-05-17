@@ -1,5 +1,5 @@
 #include "HyprCtl.hpp"
-#include "helpers/Monitor.hpp"
+#include "output/Monitor.hpp"
 
 #include <algorithm>
 #include <format>
@@ -59,6 +59,7 @@ using namespace Hyprutils::OS;
 #include "../desktop/rule/Engine.hpp"
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
+#include "../state/MonitorState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -130,18 +131,18 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
     "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
 };
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
     "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
     "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
     "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
 };
 
-std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isSolitaryBlocked(true);
     if (!reasons)
         return "null";
@@ -149,7 +150,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < Monitor::CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -160,17 +161,17 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"", "\"RECORD\"", "\"SW\"",
     "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"FAILED\"", "\"CM\"",
 };
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
     "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors",   "screen record/screenshot", "software renders/cursors",
     "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "activation failed", "color management",
 };
 
-std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
         return "null";
@@ -178,7 +179,7 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? DS_REASONS_JSON : DS_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::DS_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::DS_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -189,22 +190,22 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
     "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"", "\"HW_CURSOR\"",
 };
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
-                                                                                 "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
+                                                                                          "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
 
-std::string                                              CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string                                                       CHyprCtl::getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
-    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
+    if (!reasons || (reasons == Monitor::CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
 
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? TEARING_REASONS_JSON : TEARING_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::TC_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::TC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -215,7 +216,7 @@ std::string                                              CHyprCtl::getTearingBlo
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->m_output || m->m_id == -1)
         return "";
@@ -319,7 +320,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
 
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             result += CHyprCtl::getMonitorData(m, format);
         }
 
@@ -327,7 +328,7 @@ static std::string monitorsRequest(eHyprCtlOutputFormat format, std::string requ
 
         result += "]";
     } else {
-        for (auto const& m : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
+        for (auto const& m : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
             if (!m->m_output || m->m_id == -1)
                 continue;
 
@@ -631,7 +632,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "{\n";
 
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format(
                 R"#("{}": {{
     "levels": {{
@@ -680,7 +681,7 @@ static std::string layersRequest(eHyprCtlOutputFormat format, std::string reques
         result += "\n}\n";
 
     } else {
-        for (auto const& mon : g_pCompositor->m_monitors) {
+        for (auto const& mon : State::monitorState()->monitors()) {
             result += std::format("Monitor {}:\n", mon->m_name);
             int                                     layerLevel = 0;
             static const std::array<std::string, 4> levelNames = {"background", "bottom", "top", "overlay"};
@@ -1190,7 +1191,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
     if (COMMAND.contains("blur") || COMMAND == "source") {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
@@ -1202,7 +1203,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     // decorations will probably need a repaint
     if (COMMAND.contains("decoration:") || COMMAND.contains("border") || COMMAND == "workspace" || COMMAND.contains("zoom_factor") || COMMAND == "source") {
         static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             *(m->m_cursorZoom) = *PZOOMFACTOR;
             g_pHyprRenderer->damageMonitor(m);
             if (m->m_activeWorkspace)
@@ -1216,7 +1217,7 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     if (COMMAND.contains("layerrule") || COMMAND.contains("layerrule[")) {
         mgr->reloadRules();
         // Damage all monitors to redraw static layers.
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }
@@ -1726,7 +1727,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     bool       added = false;
 
     if (!vars[3].empty()) {
-        for (auto const& m : g_pCompositor->m_realMonitors) {
+        for (auto const& m : State::monitorState()->allMonitors()) {
             if (m->m_name == vars[3])
                 return "Name already taken";
         }
@@ -2092,7 +2093,7 @@ std::string CHyprCtl::getReply(std::string request) {
 
         g_pHyprRenderer->m_reloadScreenShader = true;
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             if (m)
                 m->m_blurFBDirty = true;
         }
@@ -2113,7 +2114,7 @@ std::string CHyprCtl::getReply(std::string request) {
             ws->updateWindowDecos();
         }
 
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_pHyprRenderer->damageMonitor(m);
         }
     }

@@ -25,7 +25,6 @@
 #include "../types/SurfaceState.hpp"
 
 class CWLOutputResource;
-class CMonitor;
 class CWLSurfaceResource;
 class CWLSubsurfaceResource;
 class CViewportResource;
@@ -99,8 +98,8 @@ class CWLSurfaceResource {
         CSignalT<>                          unmap;
         CSignalT<SP<CWLSubsurfaceResource>> newSubsurface;
         CSignalT<>                          destroy;
-        CSignalT<SP<CMonitor>>              enter;
-        CSignalT<SP<CMonitor>>              leave;
+        CSignalT<PHLMONITOR>                enter;
+        CSignalT<PHLMONITOR>                leave;
     } m_events;
 
     SSurfaceState                          m_current;

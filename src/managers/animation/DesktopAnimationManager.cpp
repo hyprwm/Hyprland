@@ -10,7 +10,7 @@
 
 #include "../../config/shared/animation/AnimationTree.hpp"
 
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../Compositor.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"

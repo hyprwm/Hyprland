@@ -3,7 +3,7 @@
 #include "space/Space.hpp"
 #include "target/Target.hpp"
 
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../Compositor.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Group.hpp"

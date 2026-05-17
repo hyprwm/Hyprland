@@ -442,7 +442,7 @@ void CWindow::updateToplevel() {
 }
 
 void CWindow::updateSurfaceScaleTransformDetails(bool force) {
-    if (!m_isMapped || m_hidden || g_pCompositor->m_unsafeState)
+    if (!m_isMapped || m_hidden)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastSurfaceMonitorID);

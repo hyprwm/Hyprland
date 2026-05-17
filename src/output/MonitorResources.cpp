@@ -1,5 +1,5 @@
 #include "MonitorResources.hpp"
-#include "./cm/ColorManagement.hpp"
+#include "../helpers/cm/ColorManagement.hpp"
 #include "../render/Renderer.hpp"
 #include <algorithm>
 #include <format>

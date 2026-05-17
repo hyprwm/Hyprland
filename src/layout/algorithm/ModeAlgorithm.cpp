@@ -2,7 +2,7 @@
 
 #include "../space/Space.hpp"
 #include "Algorithm.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 
 using namespace Layout;

@@ -7,7 +7,7 @@
 #include "../../../desktop/rule/Engine.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../managers/TokenManager.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <chrono>

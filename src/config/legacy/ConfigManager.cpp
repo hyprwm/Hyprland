@@ -29,6 +29,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../../state/MonitorState.hpp"
 
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
@@ -1044,7 +1045,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     if (disableStdout && m_isFirstLaunch)
         Log::logger->log(Log::DEBUG, "Disabling stdout logs! Check the log for further logs.");
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         // mark blur dirty
         m->m_blurFBDirty = true;
 
@@ -1085,7 +1086,7 @@ std::string CConfigManager::parseKeyword(const std::string& COMMAND, const std::
 
     // invalidate layouts if they changed
     if (COMMAND == "monitor" || COMMAND.contains("gaps_") || COMMAND.starts_with("dwindle:") || COMMAND.starts_with("master:")) {
-        for (auto const& m : g_pCompositor->m_monitors) {
+        for (auto const& m : State::monitorState()->monitors()) {
             g_layoutManager->recalculateMonitor(m);
         }
     }

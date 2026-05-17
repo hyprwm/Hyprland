@@ -8,7 +8,7 @@
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../event/EventBus.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 
 using namespace Layout;
 

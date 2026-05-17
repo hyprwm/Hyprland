@@ -52,15 +52,12 @@ class CCompositor {
     std::string                                  m_instancePath      = "";
     std::string                                  m_currentSplash     = "error";
 
-    std::vector<PHLMONITOR>                      m_monitors;
-    std::vector<PHLMONITOR>                      m_realMonitors; // for all monitors, even those turned off
     std::vector<PHLWINDOW>                       m_windows;
     std::vector<PHLLS>                           m_layers;
     std::vector<PHLWINDOWREF>                    m_windowsFadingOut;
     std::vector<PHLLSREF>                        m_surfacesFadingOut;
     std::vector<SP<Desktop::View::IView>>        m_otherViews;
 
-    std::unordered_map<std::string, MONITORID>   m_monitorIDMap;
     std::unordered_map<std::string, WORKSPACEID> m_seenMonitorWorkspaceMap; // map of seen monitor names to workspace IDs
 
     void                                         initServer(std::string socketName, int socketFd);
@@ -71,11 +68,8 @@ class CCompositor {
     void                                         restoreNofile();
     bool                                         setWatchdogFd(int fd);
 
-    bool                                         m_readyToProcess = false;
-    bool                                         m_sessionActive  = true;
-    bool                                         m_dpmsStateOn    = true;
-    bool                                         m_unsafeState    = false; // unsafe state is when there is no monitors
-    PHLMONITORREF                                m_unsafeOutput;           // fallback output for the unsafe state
+    bool                                         m_sessionActive          = true;
+    bool                                         m_dpmsStateOn            = true;
     bool                                         m_isShuttingDown         = false;
     bool                                         m_finalRequests          = false;
     bool                                         m_desktopEnvSet          = false;
@@ -129,7 +123,6 @@ class CCompositor {
     PHLMONITOR             getMonitorInDirection(Math::eDirection);
     PHLMONITOR             getMonitorInDirection(PHLMONITOR, Math::eDirection);
     void                   updateAllWindowsAnimatedDecorationValues();
-    MONITORID              getNextAvailableMonitorID(std::string const& name);
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
     PHLMONITOR             getMonitorFromString(const std::string&);
@@ -157,12 +150,9 @@ class CCompositor {
     void                                scheduleMonitorStateRecheck();
     void                                arrangeMonitors();
     void                                checkMonitorOverlaps();
-    void                                enterUnsafeState();
-    void                                leaveUnsafeState();
     void                                setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                                setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                                updateSuspendedStates();
-    void                                onNewMonitor(SP<Aquamarine::IOutput> output);
     void                                ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
     void                                ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace = nullptr);
     void                                ensureWorkspacesOnAssignedMonitors();
@@ -182,7 +172,6 @@ class CCompositor {
     void                           cleanEnvironment();
     void                           setRandomSplash();
     void                           initManagers(eManagersInitStage stage);
-    void                           prepareFallbackOutput();
     void                           createLockFile();
     void                           removeLockFile();
     void                           setMallocThreshold();

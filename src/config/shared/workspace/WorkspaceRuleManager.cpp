@@ -1,7 +1,7 @@
 #include "WorkspaceRuleManager.hpp"
 
 #include "../../../Compositor.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 
 #include <hyprutils/string/String.hpp>
 

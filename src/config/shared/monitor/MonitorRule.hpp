@@ -24,32 +24,40 @@ namespace Config {
         DIR_AUTO_CENTER_RIGHT
     };
 
+    enum eMonitorRuleComparisonResult : uint8_t {
+        COMPARISON_FULL_MATCH = 0, // nothing is different
+        COMPARISON_SOFT_MISMATCH,  // only minor differences not needing a modeset
+        COMPARISON_NO_MATCH        // needs a modeset
+    };
+
     class CMonitorRule {
       public:
         CMonitorRule()  = default;
         ~CMonitorRule() = default;
 
-        eAutoDirs              m_autoDir       = DIR_AUTO_NONE;
-        std::string            m_name          = "";
-        Vector2D               m_resolution    = Vector2D(1280, 720);
-        Vector2D               m_offset        = Vector2D(0, 0);
-        float                  m_scale         = 1;
-        float                  m_refreshRate   = 60; // Hz
-        bool                   m_disabled      = false;
-        wl_output_transform    m_transform     = WL_OUTPUT_TRANSFORM_NORMAL;
-        std::string            m_mirrorOf      = "";
-        bool                   m_enable10bit   = false;
-        NCMType::eCMType       m_cmType        = NCMType::CM_SRGB;
-        NTransferFunction::eTF m_sdrEotf       = NTransferFunction::TF_DEFAULT;
-        float                  m_sdrSaturation = 1.F; // SDR -> HDR
-        float                  m_sdrBrightness = 1.F; // SDR -> HDR
-        Desktop::CReservedArea m_reservedArea;
-        std::string            m_iccFile;
+        eMonitorRuleComparisonResult compare(const CMonitorRule& other) const;
 
-        int                    m_supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
-        int                    m_supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
-        float                  m_sdrMinLuminance   = 0.2F; // SDR -> HDR
-        int                    m_sdrMaxLuminance   = 80;   // SDR -> HDR
+        eAutoDirs                    m_autoDir       = DIR_AUTO_NONE;
+        std::string                  m_name          = "";
+        Vector2D                     m_resolution    = Vector2D(1280, 720);
+        Vector2D                     m_offset        = Vector2D(0, 0);
+        float                        m_scale         = 1;
+        float                        m_refreshRate   = 60; // Hz
+        bool                         m_disabled      = false;
+        wl_output_transform          m_transform     = WL_OUTPUT_TRANSFORM_NORMAL;
+        std::string                  m_mirrorOf      = "";
+        bool                         m_enable10bit   = false;
+        NCMType::eCMType             m_cmType        = NCMType::CM_SRGB;
+        NTransferFunction::eTF       m_sdrEotf       = NTransferFunction::TF_DEFAULT;
+        float                        m_sdrSaturation = 1.F; // SDR -> HDR
+        float                        m_sdrBrightness = 1.F; // SDR -> HDR
+        Desktop::CReservedArea       m_reservedArea;
+        std::string                  m_iccFile;
+
+        int                          m_supportsWideColor = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+        int                          m_supportsHDR       = 0;    // 0 - auto, 1 - force enable, -1 - force disable
+        float                        m_sdrMinLuminance   = 0.2F; // SDR -> HDR
+        int                          m_sdrMaxLuminance   = 80;   // SDR -> HDR
 
         // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
         float              m_minLuminance    = -1.F; // >= 0 overrides EDID

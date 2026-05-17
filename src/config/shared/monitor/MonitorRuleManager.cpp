@@ -2,11 +2,12 @@
 
 #include "../../../debug/log/Logger.hpp"
 #include "../../../protocols/OutputManagement.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include <ranges>
 
@@ -20,7 +21,7 @@ UP<CMonitorRuleManager>& Config::monitorRuleMgr() {
 CMonitorRuleManager::CMonitorRuleManager() {
     m_listeners.preChecksRender = Event::bus()->m_events.render.preChecks.listen([this](PHLMONITOR m) {
         if (m_reloadScheduled)
-            performMonitorReload();
+            ensureMonitorStatus();
 
         m_reloadScheduled = false;
     });
@@ -117,44 +118,53 @@ void CMonitorRuleManager::scheduleReload() {
     m_reloadScheduled = true;
 }
 
-void CMonitorRuleManager::performMonitorReload() {
-    bool overAgain = false;
+void CMonitorRuleManager::ensureMonitorStatus() {
+    std::vector<PHLMONITOR> monsForRefresh;
 
-    for (auto const& m : g_pCompositor->m_realMonitors) {
-        if (!m->m_output || m->m_isUnsafeFallback)
+    for (auto const& m : State::monitorState()->allMonitors()) {
+        if (!m || !m->m_output || m->m_isUnsafeFallback)
             continue;
 
         auto rule = get(m);
 
+        auto cmp = rule.compare(m->m_activeMonitorRule);
+
+        if (cmp == COMPARISON_FULL_MATCH)
+            continue;
+
+        monsForRefresh.emplace_back(m);
+
+        if (cmp == COMPARISON_SOFT_MISMATCH)
+            continue;
+
         if (!m->applyMonitorRule(Config::CMonitorRule{rule})) {
-            overAgain = true;
-            break;
+            Log::logger->log(Log::ERR, "[MonitorRuleManager] failed to apply rule to {}!", m->m_name);
+            continue;
         }
-
-        // ensure mirror
-        m->setMirror(rule.m_mirrorOf);
-
-        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
     }
-
-    if (overAgain)
-        performMonitorReload();
 
     m_reloadScheduled = false;
 
-    Event::bus()->m_events.monitor.layoutChanged.emit();
-}
+    if (monsForRefresh.empty())
+        return;
 
-void CMonitorRuleManager::ensureMonitorStatus() {
-    for (auto const& rm : g_pCompositor->m_realMonitors) {
-        if (!rm->m_output || rm->m_isUnsafeFallback)
+    for (const auto& m : monsForRefresh) {
+        if (!m->m_output)
             continue;
 
-        auto rule = get(rm);
+        if (m->m_enabled == m->m_activeMonitorRule.m_disabled)
+            m->m_activeMonitorRule.m_disabled ? m->onDisconnect() : m->onConnect(true);
 
-        if (rule.m_disabled == rm->m_enabled)
-            rm->applyMonitorRule(std::move(rule));
+        g_pHyprRenderer->arrangeLayersForMonitor(m->m_id);
+        m->setMirror(m->m_activeMonitorRule.m_mirrorOf);
     }
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        w->updateSurfaceScaleTransformDetails();
+    }
+
+    g_pCompositor->scheduleMonitorStateRecheck();
+    Event::bus()->m_events.monitor.layoutChanged.emit();
 }
 
 void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
@@ -248,7 +258,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
         return;
     }
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         ensureVRRForDisplay(m);
     }
 }

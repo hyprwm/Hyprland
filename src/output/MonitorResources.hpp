@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Monitor.hpp"
-#include "Format.hpp"
-#include "time/Timer.hpp"
+#include "../helpers/Format.hpp"
+#include "../helpers/time/Timer.hpp"
 #include "../render/Framebuffer.hpp"
 #include <hyprutils/math/Vector2D.hpp>
 #include <vector>
@@ -42,6 +42,6 @@ namespace Monitor {
 
         std::vector<SResource>              m_workBuffers;
 
-        friend class ::CMonitor;
+        friend class CMonitor;
     };
 }

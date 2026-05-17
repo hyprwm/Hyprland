@@ -27,8 +27,6 @@ namespace Config {
         std::vector<CMonitorRule>&       allMut();
 
       private:
-        void                      performMonitorReload();
-
         std::vector<CMonitorRule> m_rules;
         bool                      m_reloadScheduled = false;
 

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <utility>
 #include "core/Output.hpp"
+#include "../state/MonitorState.hpp"
 
 CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerResource> manager, UP<CExtWorkspaceGroupHandleV1> resource, PHLMONITORREF monitor) :
     m_monitor(std::move(monitor)), m_manager(std::move(manager)), m_resource(std::move(resource)) {
@@ -14,7 +15,11 @@ CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerRe
     m_resource->setData(this);
     m_manager->m_resource->sendWorkspaceGroup(m_resource.get());
 
-    m_listeners.destroyed = m_monitor->m_events.destroy.listen([this] { m_resource->sendRemoved(); });
+    m_listeners.destroyed = Event::bus()->m_events.monitor.destroyMon.listen([this](PHLMONITOR m) {
+        if (m != m_monitor)
+            return;
+        m_resource->sendRemoved();
+    });
 
     m_resource->setOnDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
     m_resource->setDestroy([this](auto) { PROTO::extWorkspace->destroyGroup(m_self); });
@@ -232,7 +237,7 @@ void CExtWorkspaceManagerResource::init(WP<CExtWorkspaceManagerResource> self) {
 
     m_self = self;
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         onMonitorCreated(m);
     }
 

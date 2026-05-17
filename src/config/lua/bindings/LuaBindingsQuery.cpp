@@ -11,6 +11,7 @@
 #include "../../../desktop/view/LayerSurface.hpp"
 #include "../../../desktop/view/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
+#include "../../../state/MonitorState.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -200,7 +201,7 @@ static int hlGetActiveSpecialWorkspace(lua_State* L) {
 static int hlGetMonitors(lua_State* L) {
     lua_newtable(L);
     int i = 1;
-    for (const auto& mon : g_pCompositor->m_monitors) {
+    for (const auto& mon : State::monitorState()->monitors()) {
         Objects::CLuaMonitor::push(L, mon);
         lua_rawseti(L, -2, i++);
     }
@@ -340,7 +341,7 @@ static int hlGetLayers(lua_State* L) {
 
     lua_newtable(L);
     int i = 1;
-    for (const auto& mon : g_pCompositor->m_monitors) {
+    for (const auto& mon : State::monitorState()->monitors()) {
         if (query.monitor && mon != *query.monitor)
             continue;
 

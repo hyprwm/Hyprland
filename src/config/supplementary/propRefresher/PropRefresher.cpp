@@ -9,6 +9,7 @@
 #include "../../../layout/LayoutManager.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../desktop/rule/Engine.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
 #include "../../shared/inotify/ConfigWatcher.hpp"
@@ -43,7 +44,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 g_pHyprRenderer->m_reloadScreenShader = true;
 
             if (m_propsTripped & REFRESH_BLUR_FB) {
-                for (auto const& m : g_pCompositor->m_monitors) {
+                for (auto const& m : State::monitorState()->monitors()) {
                     if (m)
                         m->m_blurFBDirty = true;
                 }
@@ -68,7 +69,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 Config::monitorRuleMgr()->scheduleReload();
                 Config::monitorRuleMgr()->ensureVRR();
 
-                for (const auto& m : g_pCompositor->m_monitors) {
+                for (const auto& m : State::monitorState()->monitors()) {
                     if (!m)
                         continue;
 
@@ -81,14 +82,14 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
             if (m_propsTripped & REFRESH_LAYOUTS) {
                 Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
-                for (auto const& m : g_pCompositor->m_monitors) {
+                for (auto const& m : State::monitorState()->monitors()) {
                     g_layoutManager->recalculateMonitor(m);
                     g_pHyprRenderer->damageMonitor(m);
                 }
             }
 
             if (m_propsTripped & REFRESH_CURSOR_ZOOMS) {
-                for (auto const& m : g_pCompositor->m_monitors) {
+                for (auto const& m : State::monitorState()->monitors()) {
                     *(m->m_cursorZoom) = *PZOOMFACTOR;
                     if (m->m_activeWorkspace)
                         m->m_activeWorkspace->m_space->recalculate();

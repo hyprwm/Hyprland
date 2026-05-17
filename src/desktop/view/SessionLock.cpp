@@ -2,7 +2,7 @@
 
 #include "../../protocols/SessionLock.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 
 #include "../../Compositor.hpp"
 

@@ -4,7 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include "WaylandProtocol.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "core/Compositor.hpp"
 #include "color-management-v1.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
@@ -194,7 +194,7 @@ class CColorManagementProtocol : public IWaylandProtocol {
     virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
     void         onImagePreferredChanged(uint32_t preferredId);
-    void         onMonitorImageDescriptionChanged(WP<CMonitor> monitor);
+    void         onMonitorImageDescriptionChanged(PHLMONITORREF monitor);
 
     bool         isClientCMAware(wl_client* client);
 

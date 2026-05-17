@@ -10,6 +10,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../protocols/core/Compositor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "RectPassElement.hpp"
 #include "macros.hpp"
 
@@ -193,7 +194,7 @@ CRegion CRenderPass::render(const CRegion& damage_) {
     if (*PDEBUGPASS) {
         renderDebugData();
         g_pEventLoopManager->doLater([] {
-            for (auto& m : g_pCompositor->m_monitors) {
+            for (auto& m : State::monitorState()->monitors()) {
                 g_pHyprRenderer->damageMonitor(m);
             }
         });

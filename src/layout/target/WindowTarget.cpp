@@ -5,7 +5,7 @@
 
 #include "../../protocols/core/Compositor.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../xwayland/XSurface.hpp"
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"

@@ -7,7 +7,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../desktop/state/FocusState.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 
 #include "../../debug/log/Logger.hpp"

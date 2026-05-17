@@ -29,7 +29,7 @@
 #include "../../Compositor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/KeybindManager.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../render/Renderer.hpp"

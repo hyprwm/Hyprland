@@ -7,7 +7,7 @@
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"

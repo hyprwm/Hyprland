@@ -38,7 +38,9 @@ namespace Render::GL {
             TEXTURE_PAR_MAG_FILTER,
             TEXTURE_PAR_MIN_FILTER,
             TEXTURE_PAR_SWIZZLE_R,
+            TEXTURE_PAR_SWIZZLE_G,
             TEXTURE_PAR_SWIZZLE_B,
+            TEXTURE_PAR_SWIZZLE_A,
             TEXTURE_PAR_LAST,
         };
 

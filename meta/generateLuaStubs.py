@@ -634,7 +634,7 @@ def generate_stub(root: Path) -> str:
             [
                 ("fingers", "integer", False),
                 ("direction", "string", False),
-                ("action", "string", False),
+                ("action", "string|function", False),
                 ("mods", "string", True),
                 ("scale", "number", True),
                 ("mode", "string", True),

@@ -1995,6 +1995,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
         auto    PSURFACE       = Desktop::View::CWLSurface::fromResource(data.surface);
         if (PSURFACE && PSURFACE->m_hasBackgroundEffect && !PSURFACE->m_blurRegion.empty()) {
             CRegion protocolBlur = PSURFACE->m_blurRegion.copy();
+            protocolBlur.intersect(CBox{0, 0, box.width, box.height});
             protocolBlur.scale(m_renderData.pMonitor->m_scale);
             protocolBlur.translate(box.pos());
             if (blurClipRegion.empty())

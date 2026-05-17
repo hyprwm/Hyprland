@@ -4,7 +4,7 @@
 #include "XDGShell.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 
 void CLayerShellResource::SState::reset() {
     anchor        = 0;

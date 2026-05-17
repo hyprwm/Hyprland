@@ -1,7 +1,7 @@
 #include "GammaControl.hpp"
 #include <fcntl.h>
 #include <unistd.h>
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../protocols/core/Output.hpp"
 #include "../render/Renderer.hpp"
 using namespace Hyprutils::OS;

@@ -9,7 +9,7 @@
 #include <src/managers/PointerManager.hpp>
 #include <src/managers/SeatManager.hpp>
 #include <src/managers/input/trackpad/TrackpadGestures.hpp>
-#include <src/helpers/Monitor.hpp>
+#include <src/output/Monitor.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleEffectContainer.hpp>
 #include <src/desktop/rule/layerRule/LayerRuleEffectContainer.hpp>
 #include <src/desktop/rule/windowRule/WindowRuleApplicator.hpp>

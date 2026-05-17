@@ -3,7 +3,7 @@
 
 #include "../Compositor.hpp"
 #include "../event/EventBus.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 #include <aquamarine/backend/Headless.hpp>

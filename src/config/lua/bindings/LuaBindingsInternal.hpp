@@ -14,7 +14,7 @@
 
 #include "../../../Compositor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 #include "../../../managers/KeybindManager.hpp"

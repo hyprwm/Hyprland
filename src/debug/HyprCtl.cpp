@@ -1,5 +1,5 @@
 #include "HyprCtl.hpp"
-#include "helpers/Monitor.hpp"
+#include "output/Monitor.hpp"
 
 #include <algorithm>
 #include <format>
@@ -131,18 +131,18 @@ static std::string availableModesForOutput(PHLMONITOR pMonitor, eHyprCtlOutputFo
     return result;
 }
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"NOTIFICATION\"", "\"LOCK\"",      "\"WORKSPACE\"", "\"WINDOWED\"", "\"DND\"",        "\"SPECIAL\"",  "\"ALPHA\"",       "\"OFFSET\"",
     "\"CANDIDATE\"", "\"OPAQUE\"",       "\"TRANSFORM\"", "\"OVERLAYS\"",  "\"FLOAT\"",    "\"WORKSPACES\"", "\"SURFACES\"", "\"CONFIGERROR\"",
 };
 
-const std::array<const char*, CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::SC_CHECKS_COUNT> SOLITARY_REASONS_TEXT = {
     "unknown reason",    "notification",     "session lock",     "invalid workspace", "windowed mode", "dnd active",
     "special workspace", "alpha channel",    "workspace offset", "missing candidate", "not opaque",    "surface transformations",
     "other overlays",    "floating windows", "other workspaces", "subsurfaces",       "config error",
 };
 
-std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getSolitaryBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isSolitaryBlocked(true);
     if (!reasons)
         return "null";
@@ -150,7 +150,7 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? SOLITARY_REASONS_JSON : SOLITARY_REASONS_TEXT;
 
-    for (uint32_t i = 0; i < CMonitor::SC_CHECKS_COUNT; i++) {
+    for (uint32_t i = 0; i < Monitor::CMonitor::SC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -161,17 +161,17 @@ std::string CHyprCtl::getSolitaryBlockedReason(Hyprutils::Memory::CSharedPointer
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_JSON = {
     "\"UNKNOWN\"",   "\"USER\"",    "\"WINDOWED\"",  "\"CONTENT\"", "\"MIRROR\"", "\"RECORD\"", "\"SW\"",
     "\"CANDIDATE\"", "\"SURFACE\"", "\"TRANSFORM\"", "\"DMA\"",     "\"FAILED\"", "\"CM\"",
 };
 
-const std::array<const char*, CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
+const std::array<const char*, Monitor::CMonitor::DS_CHECKS_COUNT> DS_REASONS_TEXT = {
     "unknown reason",    "user settings",   "windowed mode",           "content type",   "monitor mirrors",   "screen record/screenshot", "software renders/cursors",
     "missing candidate", "invalid surface", "surface transformations", "invalid buffer", "activation failed", "color management",
 };
 
-std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getDSBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isDSBlocked(true);
     if (!reasons)
         return "null";
@@ -179,7 +179,7 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? DS_REASONS_JSON : DS_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::DS_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::DS_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -190,22 +190,22 @@ std::string CHyprCtl::getDSBlockedReason(Hyprutils::Memory::CSharedPointer<CMoni
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_JSON = {
     "\"UNKNOWN\"", "\"NOT_TORN\"", "\"USER\"", "\"ZOOM\"", "\"SUPPORT\"", "\"CANDIDATE\"", "\"WINDOW\"", "\"HW_CURSOR\"",
 };
 
-const std::array<const char*, CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
-                                                                                 "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
+const std::array<const char*, Monitor::CMonitor::TC_CHECKS_COUNT> TEARING_REASONS_TEXT = {"unknown reason",           "next frame is not torn", "user settings",   "zoom",
+                                                                                          "not supported by monitor", "missing candidate",      "window settings", "hw cursor"};
 
-std::string                                              CHyprCtl::getTearingBlockedReason(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string                                                       CHyprCtl::getTearingBlockedReason(PHLMONITOR m, eHyprCtlOutputFormat format) {
     const auto reasons = m->isTearingBlocked(true);
-    if (!reasons || (reasons == CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
+    if (!reasons || (reasons == Monitor::CMonitor::TC_NOT_TORN && m->m_tearingState.activelyTearing))
         return "null";
 
     std::string reasonStr = "";
     const auto  TEXTS     = format == eHyprCtlOutputFormat::FORMAT_JSON ? TEARING_REASONS_JSON : TEARING_REASONS_TEXT;
 
-    for (int i = 0; i < CMonitor::TC_CHECKS_COUNT; i++) {
+    for (int i = 0; i < Monitor::CMonitor::TC_CHECKS_COUNT; i++) {
         if (reasons & (1 << i)) {
             if (reasonStr != "")
                 reasonStr += ",";
@@ -216,7 +216,7 @@ std::string                                              CHyprCtl::getTearingBlo
     return format == eHyprCtlOutputFormat::FORMAT_JSON ? "[" + reasonStr + "]" : reasonStr;
 }
 
-std::string CHyprCtl::getMonitorData(Hyprutils::Memory::CSharedPointer<CMonitor> m, eHyprCtlOutputFormat format) {
+std::string CHyprCtl::getMonitorData(PHLMONITOR m, eHyprCtlOutputFormat format) {
     std::string result;
     if (!m->m_output || m->m_id == -1)
         return "";

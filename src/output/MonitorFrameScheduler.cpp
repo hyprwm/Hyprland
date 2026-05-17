@@ -5,6 +5,7 @@
 #include "../managers/eventLoop/EventLoopManager.hpp"
 
 using namespace Render::GL;
+using namespace Monitor;
 
 CMonitorFrameScheduler::CMonitorFrameScheduler(PHLMONITOR m) : m_monitor(m) {
     ;

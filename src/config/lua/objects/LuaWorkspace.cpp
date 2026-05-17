@@ -6,7 +6,7 @@
 
 #include "../../../desktop/Workspace.hpp"
 #include "../../../desktop/view/Group.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../layout/space/Space.hpp"
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/algorithm/TiledAlgorithm.hpp"

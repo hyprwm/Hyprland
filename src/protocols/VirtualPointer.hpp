@@ -7,7 +7,7 @@
 #include "wlr-virtual-pointer-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../devices/IPointer.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 
 class CVirtualPointerV1Resource {
   public:

@@ -7,7 +7,7 @@
 #include <ranges>
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../types/DMABuffer.hpp"
@@ -616,7 +616,7 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
         auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
         parent          = subsurface->t1Parent();
     }
-    WP<CMonitor> monitor;
+    PHLMONITORREF monitor;
     if (parent->m_enteredOutputs.size() == 1)
         monitor = parent->m_enteredOutputs[0];
     else if (m_hlSurface.valid() && WINDOW)

@@ -79,7 +79,7 @@
 #include "errorOverlay/Overlay.hpp"
 #include "notification/NotificationOverlay.hpp"
 #include "debug/Overlay.hpp"
-#include "helpers/MonitorFrameScheduler.hpp"
+#include "output/MonitorFrameScheduler.hpp"
 #include "i18n/Engine.hpp"
 #include "layout/LayoutManager.hpp"
 #include "layout/target/WindowTarget.hpp"
@@ -491,9 +491,7 @@ void CCompositor::initAllSignals() {
                     g_pAnimationManager->resetTickState();
 
                 for (auto const& m : State::monitorState()->monitors()) {
-                    scheduleFrameForMonitor(m);
-                    auto cpy = m->m_activeMonitorRule;
-                    m->applyMonitorRule(std::move(cpy), true);
+                    m->m_activeMonitorRule = {}; // rules were lost
                 }
 
                 Config::monitorRuleMgr()->scheduleReload();

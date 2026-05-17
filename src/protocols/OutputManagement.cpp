@@ -3,7 +3,7 @@
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../event/EventBus.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../state/MonitorState.hpp"
 

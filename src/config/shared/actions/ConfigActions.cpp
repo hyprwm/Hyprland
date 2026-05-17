@@ -1157,7 +1157,7 @@ ActionResult Actions::forceRendererReload() {
             continue;
 
         auto rule = Config::monitorRuleMgr()->get(m);
-        if (!m->applyMonitorRule(std::move(rule), true)) {
+        if (!m->applyMonitorRule(std::move(rule))) {
             overAgain = true;
             break;
         }

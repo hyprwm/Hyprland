@@ -9,7 +9,6 @@
 
 #include <vector>
 
-class CMonitor;
 namespace Screenshare {
     class CScreenshareSession;
     class CScreenshareFrame;

@@ -6,7 +6,7 @@
 #include "../../../space/Space.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 
 using namespace Layout;
 using namespace Layout::Floating;

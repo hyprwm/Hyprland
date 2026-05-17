@@ -8,7 +8,7 @@
 #include "../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../event/EventBus.hpp"

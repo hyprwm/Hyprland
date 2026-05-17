@@ -33,7 +33,7 @@
 #include "../event/EventBus.hpp"
 #include "../helpers/CursorShapes.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
@@ -2211,7 +2211,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
 static const hdr_output_metadata NO_HDR_METADATA = {.hdmi_metadata_type1 = hdr_metadata_infoframe{.eotf = 0}};
 
-static hdr_output_metadata       createHDRMetadata(SImageDescription settings, SP<CMonitor> monitor) {
+static hdr_output_metadata       createHDRMetadata(SImageDescription settings, PHLMONITOR monitor) {
     uint8_t eotf = 0;
     switch (settings.transferFunction) {
         case CM_TRANSFER_FUNCTION_GAMMA22:

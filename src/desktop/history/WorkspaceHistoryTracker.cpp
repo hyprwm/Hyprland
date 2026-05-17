@@ -1,6 +1,6 @@
 #include "WorkspaceHistoryTracker.hpp"
 
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../Workspace.hpp"
 #include "../state/FocusState.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"

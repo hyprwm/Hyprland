@@ -6,8 +6,6 @@
 #include "wlr-gamma-control-unstable-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CMonitor;
-
 class CGammaControl {
   public:
     CGammaControl(SP<CZwlrGammaControlV1> resource_, wl_resource* output);

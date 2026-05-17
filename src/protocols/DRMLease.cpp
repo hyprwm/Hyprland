@@ -1,6 +1,6 @@
 #include "DRMLease.hpp"
 #include "../Compositor.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "drm-lease-v1.hpp"
 #include "managers/eventLoop/EventLoopManager.hpp"

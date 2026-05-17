@@ -2,11 +2,11 @@
 #include "FallbackState.hpp"
 
 #include "../event/EventBus.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../protocols/ColorManagement.hpp"
-#include "../helpers/MonitorFrameScheduler.hpp"
+#include "../output/MonitorFrameScheduler.hpp"
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 
@@ -140,7 +140,7 @@ void CMonitorStateTracker::add(PHLMONITOR mon) {
 }
 
 void CMonitorStateTracker::add(SP<Aquamarine::IOutput> output) {
-    add(makeShared<CMonitor>(output));
+    add(makeShared<Monitor::CMonitor>(output));
 }
 
 void CMonitorStateTracker::remove(PHLMONITOR mon) {

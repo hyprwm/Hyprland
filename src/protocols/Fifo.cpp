@@ -1,7 +1,7 @@
 #include "Fifo.hpp"
 #include "Compositor.hpp"
 #include "core/Compositor.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
 

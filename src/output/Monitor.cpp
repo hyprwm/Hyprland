@@ -1,9 +1,9 @@
 #include "Monitor.hpp"
-#include "MiscFunctions.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
 #include "../helpers/TransferFunction.hpp"
-#include "math/Math.hpp"
+#include "../helpers/math/Math.hpp"
 #include "../protocols/ColorManagement.hpp"
 #include "../Compositor.hpp"
 #include "../config/ConfigValue.hpp"
@@ -35,11 +35,12 @@
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../state/MonitorState.hpp"
-#include "time/Time.hpp"
+#include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
-#include "Drm.hpp"
+#include "../helpers/Drm.hpp"
+#include "MonitorFrameScheduler.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
@@ -183,7 +184,7 @@ void CMonitor::onConnect(bool noRule) {
 
             Log::logger->log(Log::DEBUG, "Reapplying monitor rule for {} from a state request", m_name);
             auto cpy = m_activeMonitorRule;
-            applyMonitorRule(std::move(cpy), true);
+            applyMonitorRule(std::move(cpy));
             return;
         }
 
@@ -225,7 +226,7 @@ void CMonitor::onConnect(bool noRule) {
 
     if (m_enabled && !monitorRule.m_disabled) {
         auto cpy = monitorRule;
-        applyMonitorRule(std::move(cpy), m_pixelSize == Vector2D{});
+        applyMonitorRule(std::move(cpy));
 
         m_output->state->resetExplicitFences();
         m_output->state->setEnabled(true);
@@ -269,7 +270,7 @@ void CMonitor::onConnect(bool noRule) {
     // set mode, also applies
     if (!noRule) {
         auto cpy = monitorRule;
-        applyMonitorRule(std::move(cpy), true);
+        applyMonitorRule(std::move(cpy));
     }
 
     if (!m_state.commit())
@@ -612,7 +613,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
     }
 }
 
-bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force) {
+bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     static auto PDISABLESCALECHECKS = CConfigValue<Config::INTEGER>("debug:disable_scale_checks");
 
@@ -627,10 +628,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     // if it's disabled, disable and ignore
     if (RULE->m_disabled) {
-        if (m_enabled) {
-            onDisconnect();
-            Event::bus()->m_events.monitor.layoutChanged.emit();
-        }
+        m_output->state->resetExplicitFences();
+        m_output->state->setAdaptiveSync(false);
+        m_output->state->setEnabled(false);
+
+        if (!m_state.commit())
+            Log::logger->log(Log::WARN, "state.commit() failed in CMonitor::applyMonitorRule");
 
         m_events.modeChanged.emit();
 
@@ -640,53 +643,6 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     // don't touch VR headsets
     if (m_output->nonDesktop)
         return true;
-
-    if (!m_enabled) {
-        onConnect(true); // enable it.
-        Log::logger->log(Log::DEBUG, "Monitor {} is disabled but is requested to be enabled", m_name);
-        force = true;
-    }
-
-    const bool sameResolution =
-        DELTALESSTHAN(m_pixelSize.x, RULE->m_resolution.x, 1) && DELTALESSTHAN(m_pixelSize.y, RULE->m_resolution.y, 1) && m_pixelSize.x > 1 && m_pixelSize.y > 1;
-
-    const bool sameRefreshRate = DELTALESSTHAN(m_refreshRate, RULE->m_refreshRate, 1);
-
-    const bool sameScale = m_setScale == RULE->m_scale;
-
-    const bool samePosition =
-        (DELTALESSTHAN(m_position.x, RULE->m_offset.x, 1) && DELTALESSTHAN(m_position.y, RULE->m_offset.y, 1)) || RULE->m_offset == Vector2D(-INT32_MAX, -INT32_MAX);
-
-    const bool sameTransform  = m_transform == RULE->m_transform;
-    const bool sameColorProps = RULE->m_enable10bit == m_enabled10bit && RULE->m_cmType == m_cmType && RULE->m_sdrSaturation == m_sdrSaturation &&
-        RULE->m_sdrBrightness == m_sdrBrightness && RULE->m_sdrMinLuminance == m_sdrMinLuminance && RULE->m_sdrMaxLuminance == m_sdrMaxLuminance &&
-        RULE->m_supportsWideColor == m_supportsWideColor && RULE->m_supportsHDR == m_supportsHDR && RULE->m_minLuminance == m_minLuminance &&
-        RULE->m_maxLuminance == m_maxLuminance && RULE->m_maxAvgLuminance == m_maxAvgLuminance;
-
-    const bool sameDrmMode = !std::memcmp(&m_customDrmMode, &RULE->m_drmMode, sizeof(m_customDrmMode));
-
-    const bool sameAutoDir      = m_autoDir == RULE->m_autoDir;
-    const bool sameReservedArea = m_reservedArea == RULE->m_reservedArea;
-
-    // these props do not alter the backend state. We can just apply them.
-    m_autoDir      = RULE->m_autoDir;
-    m_reservedArea = RULE->m_reservedArea;
-
-    if (!force && sameResolution && sameRefreshRate && sameScale && samePosition && sameTransform && sameColorProps && sameDrmMode) {
-        Log::logger->log(Log::DEBUG, "Not applying a new rule to {} because it's already applied.", m_name);
-
-        if (!sameReservedArea) {
-            g_pHyprRenderer->arrangeLayersForMonitor(m_id);
-            Event::bus()->m_events.monitor.layoutChanged.emit();
-        }
-
-        if (!sameAutoDir)
-            g_pCompositor->arrangeMonitors();
-
-        setMirror(RULE->m_mirrorOf);
-
-        return true;
-    }
 
     bool autoScale = false;
 
@@ -1081,27 +1037,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         m_background.reset();
     }
 
-    g_pCompositor->scheduleMonitorStateRecheck();
-
     m_damage.setSize(m_transformedSize);
 
     updateVCGTRamps();
 
-    // Set scale for all surfaces on this monitor, needed for some clients
-    for (auto const& w : g_pCompositor->m_windows) {
-        w->updateSurfaceScaleTransformDetails();
-    }
-
-    // updato us
-    g_pHyprRenderer->arrangeLayersForMonitor(m_id);
-
-    // reload to fix mirrors
-    Config::monitorRuleMgr()->scheduleReload();
-
     Log::logger->log(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale,
                      sc<int>(m_transform), m_position, sc<int>(m_enabled10bit));
-
-    Event::bus()->m_events.monitor.layoutChanged.emit();
 
     m_events.modeChanged.emit();
 
@@ -1252,16 +1193,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         }
 
         m_mirrorOf.reset();
-
-        // set rule
-        const auto RULE = Config::monitorRuleMgr()->get(m_self.lock());
-
-        m_position = RULE.m_offset;
-
-        setupDefaultWS(RULE);
-
-        auto cpy = RULE;
-        applyMonitorRule(std::move(cpy), true); // will apply the offset and stuff
     } else {
         PHLMONITOR BACKUPMON = nullptr;
         for (auto const& m : State::monitorState()->monitors()) {
@@ -1290,8 +1221,6 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
         m_mirrorOf = PMIRRORMON;
 
         m_mirrorOf->m_mirrors.push_back(m_self);
-
-        g_pCompositor->scheduleMonitorStateRecheck();
 
         Desktop::focusState()->rawMonitorFocus(State::monitorState()->monitors().front());
 

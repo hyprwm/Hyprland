@@ -5,7 +5,7 @@
 #include "../config/ConfigValue.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "managers/animation/AnimationManager.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../state/MonitorState.hpp"
 

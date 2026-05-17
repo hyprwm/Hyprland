@@ -1,6 +1,6 @@
 #include "ImageCaptureSource.hpp"
 #include "core/Output.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../desktop/view/Window.hpp"
 #include "ForeignToplevel.hpp"
 

@@ -1,7 +1,7 @@
 #include "CursorZoomGesture.hpp"
 
 #include "../../../../Compositor.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../state/MonitorState.hpp"
 #include <hyprutils/string/Numeric.hpp>

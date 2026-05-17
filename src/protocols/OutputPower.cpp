@@ -1,6 +1,6 @@
 #include "OutputPower.hpp"
 #include "core/Output.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 
 COutputPower::COutputPower(SP<CZwlrOutputPowerV1> resource_, PHLMONITOR pMonitor_) : m_resource(resource_), m_monitor(pMonitor_) {

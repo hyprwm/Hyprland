@@ -5,7 +5,7 @@
 #include "../managers/TokenManager.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/history/WorkspaceHistoryTracker.hpp"
-#include "Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>

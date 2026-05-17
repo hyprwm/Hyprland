@@ -9,7 +9,6 @@
 #include "../helpers/signal/Signal.hpp"
 #include "types/SurfaceRole.hpp"
 
-class CMonitor;
 class CXDGPopupResource;
 class CWLSurfaceResource;
 class CLayerShellResource;

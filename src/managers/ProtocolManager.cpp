@@ -69,7 +69,7 @@
 #include "../protocols/CommitTiming.hpp"
 #include "../protocols/XDGForeignV2.hpp"
 
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../render/Renderer.hpp"
 #include "../Compositor.hpp"

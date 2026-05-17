@@ -7,6 +7,8 @@
 #include "desktop/DesktopTypes.hpp"
 #include "render/Renderer.hpp"
 
+using namespace Monitor;
+
 void CMonitorZoomController::pinAnchor(const Vector2D& anchor) {
     m_pinnedAnchor = anchor;
     m_anchorPinned = true;

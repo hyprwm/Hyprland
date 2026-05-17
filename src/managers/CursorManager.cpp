@@ -3,7 +3,7 @@
 #include "../config/ConfigValue.hpp"
 #include "PointerManager.hpp"
 #include "../xwayland/XWayland.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
 

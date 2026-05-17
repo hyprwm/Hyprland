@@ -6,7 +6,6 @@
 #include "wayland.hpp"
 #include "../../helpers/signal/Signal.hpp"
 
-class CMonitor;
 class CWLOutputProtocol;
 
 class CWLOutputResource {

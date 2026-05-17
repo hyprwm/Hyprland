@@ -5,12 +5,12 @@
 #include "../devices/Tablet.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../desktop/view/WLSurface.hpp"
+#include "../desktop/DesktopTypes.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include <tuple>
 
-class CMonitor;
 class IHID;
 namespace Render {
     class ITexture;

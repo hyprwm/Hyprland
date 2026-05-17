@@ -13,24 +13,24 @@ class CHLBufferReference;
 class IHLBuffer : public Aquamarine::IBuffer {
   public:
     virtual ~IHLBuffer();
-    virtual Aquamarine::eBufferCapability caps()                        = 0;
-    virtual Aquamarine::eBufferType       type()                        = 0;
-    virtual void                          update(const CRegion& damage) = 0;
-    virtual bool                          isSynchronous()               = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
-    virtual bool                          good()                        = 0;
-    virtual void                          sendRelease();
-    virtual void                          lock();
-    virtual void                          unlock();
-    virtual bool                          locked();
+    virtual Aquamarine::eBufferCapability       caps()                        = 0;
+    virtual Aquamarine::eBufferType             type()                        = 0;
+    virtual void                                update(const CRegion& damage) = 0;
+    virtual bool                                isSynchronous()               = 0; // whether the updates to this buffer are synchronous, aka happen over cpu
+    virtual bool                                good()                        = 0;
+    virtual void                                sendRelease();
+    virtual void                                lock();
+    virtual void                                unlock();
+    virtual bool                                locked();
 
-    void                                  onBackendRelease(const std::function<void()>& fn);
-    void                                  addReleasePoint(CDRMSyncPointState& point);
+    void                                        onBackendRelease(const std::function<void()>& fn);
+    void                                        addReleasePoint(CDRMSyncPointState& point);
 
-    SP<Render::ITexture>                  m_texture;
-    bool                                  m_opaque = false;
-    SP<CWLBufferResource>                 m_resource;
-    std::vector<UP<CSyncReleaser>>        m_syncReleasers;
-    Hyprutils::OS::CFileDescriptor        m_syncFd;
+    SP<Render::ITexture>                        m_texture;
+    bool                                        m_opaque = false;
+    SP<CWLBufferResource>                       m_resource;
+    std::vector<UP<CSyncReleaser>>              m_syncReleasers;
+    std::vector<Hyprutils::OS::CFileDescriptor> m_syncFds;
 
     struct {
         CHyprSignalListener backendRelease;

@@ -106,71 +106,72 @@ class CMonitor {
     CMonitor(SP<Aquamarine::IOutput> output);
     ~CMonitor();
 
-    Vector2D                    m_position         = Vector2D(-1, -1); // means unset
-    Vector2D                    m_xwaylandPosition = Vector2D(-1, -1); // means unset
-    Config::eAutoDirs           m_autoDir          = Config::DIR_AUTO_NONE;
-    Vector2D                    m_size             = Vector2D(0, 0);
-    Vector2D                    m_pixelSize        = Vector2D(0, 0);
-    Vector2D                    m_transformedSize  = Vector2D(0, 0);
+    Vector2D                       m_position         = Vector2D(-1, -1); // means unset
+    Vector2D                       m_xwaylandPosition = Vector2D(-1, -1); // means unset
+    Config::eAutoDirs              m_autoDir          = Config::DIR_AUTO_NONE;
+    Vector2D                       m_size             = Vector2D(0, 0);
+    Vector2D                       m_pixelSize        = Vector2D(0, 0);
+    Vector2D                       m_transformedSize  = Vector2D(0, 0);
 
-    MONITORID                   m_id                     = MONITOR_INVALID;
-    PHLWORKSPACE                m_activeWorkspace        = nullptr;
-    PHLWORKSPACE                m_activeSpecialWorkspace = nullptr;
-    float                       m_setScale               = 1; // scale set by cfg
-    float                       m_scale                  = 1; // real scale
+    MONITORID                      m_id                     = MONITOR_INVALID;
+    PHLWORKSPACE                   m_activeWorkspace        = nullptr;
+    PHLWORKSPACE                   m_activeSpecialWorkspace = nullptr;
+    float                          m_setScale               = 1; // scale set by cfg
+    float                          m_scale                  = 1; // real scale
 
-    std::string                 m_name             = "";
-    std::string                 m_description      = "";
-    std::string                 m_shortDescription = "";
+    std::string                    m_name             = "";
+    std::string                    m_description      = "";
+    std::string                    m_shortDescription = "";
 
-    drmModeModeInfo             m_customDrmMode = {};
+    drmModeModeInfo                m_customDrmMode = {};
 
-    Desktop::CReservedArea      m_reservedArea;
+    Desktop::CReservedArea         m_reservedArea;
 
-    CMonitorState               m_state;
-    CDamageRing                 m_damage;
+    CMonitorState                  m_state;
+    CDamageRing                    m_damage;
 
-    SP<Aquamarine::IOutput>     m_output;
-    float                       m_refreshRate     = 60; // Hz
-    int                         m_forceFullFrames = 0;
-    bool                        m_scheduledRecalc = false;
-    wl_output_transform         m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
-    float                       m_xwaylandScale   = 1.f;
+    SP<Aquamarine::IOutput>        m_output;
+    float                          m_refreshRate     = 60; // Hz
+    int                            m_forceFullFrames = 0;
+    bool                           m_scheduledRecalc = false;
+    wl_output_transform            m_transform       = WL_OUTPUT_TRANSFORM_NORMAL;
+    float                          m_xwaylandScale   = 1.f;
 
-    std::optional<Vector2D>     m_forceSize;
-    SP<Aquamarine::SOutputMode> m_currentMode;
-    SP<Aquamarine::CSwapchain>  m_cursorSwapchain;
-    uint32_t                    m_drmFormat     = DRM_FORMAT_INVALID;
-    uint32_t                    m_prevDrmFormat = DRM_FORMAT_INVALID;
+    std::optional<Vector2D>        m_forceSize;
+    SP<Aquamarine::SOutputMode>    m_currentMode;
+    SP<Aquamarine::CSwapchain>     m_cursorSwapchain;
+    uint32_t                       m_drmFormat     = DRM_FORMAT_INVALID;
+    uint32_t                       m_prevDrmFormat = DRM_FORMAT_INVALID;
 
-    CMonitorZoomController      m_zoomController;
+    CMonitorZoomController         m_zoomController;
 
-    bool                        m_dpmsStatus       = true;
-    bool                        m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
-    bool                        m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
-    NCMType::eCMType            m_cmType           = NCMType::CM_SRGB;
-    NTransferFunction::eTF      m_sdrEotf          = NTransferFunction::TF_DEFAULT;
-    float                       m_sdrSaturation    = 1.0f;
-    float                       m_sdrBrightness    = 1.0f;
-    float                       m_sdrMinLuminance  = 0.2f;
-    int                         m_sdrMaxLuminance  = 80;
-    bool                        m_createdByUser    = false;
-    bool                        m_isUnsafeFallback = false;
+    bool                           m_dpmsStatus       = true;
+    bool                           m_vrrActive        = false; // this can be TRUE even if VRR is not active in the case that this display does not support it.
+    bool                           m_enabled10bit     = false; // as above, this can be TRUE even if 10 bit failed.
+    NCMType::eCMType               m_cmType           = NCMType::CM_SRGB;
+    NTransferFunction::eTF         m_sdrEotf          = NTransferFunction::TF_DEFAULT;
+    float                          m_sdrSaturation    = 1.0f;
+    float                          m_sdrBrightness    = 1.0f;
+    float                          m_sdrMinLuminance  = 0.2f;
+    int                            m_sdrMaxLuminance  = 80;
+    bool                           m_createdByUser    = false;
+    bool                           m_isUnsafeFallback = false;
 
-    SP<CEventLoopTimer>         m_dpmsRetryTimer;
+    SP<CEventLoopTimer>            m_dpmsRetryTimer;
 
-    bool                        m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
-    bool                        m_renderingActive = false;
+    bool                           m_pendingFrame    = false; // if we schedule a frame during rendering, reschedule it after
+    bool                           m_renderingActive = false;
 
-    bool                        m_ratsScheduled = false;
-    CTimer                      m_lastPresentationTimer;
+    bool                           m_ratsScheduled = false;
+    CTimer                         m_lastPresentationTimer;
+    std::optional<Time::steady_tp> m_estimatedNextVblank;
 
-    bool                        m_isBeingLeased = false;
+    bool                           m_isBeingLeased = false;
 
-    Config::CMonitorRule        m_activeMonitorRule;
+    Config::CMonitorRule           m_activeMonitorRule;
 
-    SP<Render::ITexture>        m_splash;
-    SP<Render::ITexture>        m_background;
+    SP<Render::ITexture>           m_splash;
+    SP<Render::ITexture>           m_background;
 
     // explicit sync
     Hyprutils::OS::CFileDescriptor m_inFence; // TODO: remove when aq uses CFileDescriptor

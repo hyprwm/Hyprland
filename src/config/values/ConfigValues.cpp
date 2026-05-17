@@ -686,6 +686,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Bool>("scrolling:follow_focus", "when a window is focused, should the layout move to bring it into view automatically", true),
         MS<Float>("scrolling:follow_min_visible", "when a window is focused, require that at least a given fraction of it is visible for focus to follow", 0.4,
                   {.min = 0.0, .max = 1.0}),
+        MS<Float>("scrolling:focus_edge_ms", "when a window is focused, require that at least a given amount of time of cursor hovering the edge", 250, {.min = 0, .max = 3000}),
         MS<String>("scrolling:explicit_column_widths", "A comma-separated list of preconfigured widths for colresize +conf/-conf", "0.333, 0.5, 0.667, 1.0"),
         MS<String>("scrolling:direction", "Direction in which new windows appear and the layout scrolls", "right", {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<Bool>("scrolling:wrap_focus", "Determines if column focus wraps around", true),

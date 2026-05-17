@@ -44,8 +44,12 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
 
             if (m_propsTripped & REFRESH_BLUR_FB) {
                 for (auto const& m : g_pCompositor->m_monitors) {
-                    if (m)
-                        m->m_blurFBDirty = true;
+                    if (!m)
+                        continue;
+
+                    m->m_blurFBDirty     = true;
+                    m->m_forceFullFrames = 2;
+                    g_pCompositor->scheduleFrameForMonitor(m);
                 }
             }
 
@@ -62,6 +66,15 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 }
 
                 g_pCompositor->updateAllWindowsAnimatedDecorationValues();
+
+                for (auto const& m : g_pCompositor->m_monitors) {
+                    if (!m)
+                        continue;
+
+                    m->m_forceFullFrames = 2;
+                    g_pHyprRenderer->damageMonitor(m);
+                    g_pCompositor->scheduleFrameForMonitor(m);
+                }
             }
 
             if (m_propsTripped & REFRESH_MONITOR_STATES) {

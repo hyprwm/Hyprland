@@ -48,8 +48,7 @@ namespace Layout::Tiled {
         void                     insertStrip(ssize_t afterIndex, float size = 1.0F);
         void                     removeStrip(size_t index);
         size_t                   stripCount() const;
-        SStripData&              getStrip(size_t index);
-        const SStripData&        getStrip(size_t index) const;
+        SP<SStripData>           getStrip(size_t index);
         void                     swapStrips(size_t a, size_t b);
 
         void                     setOffset(double offset);
@@ -75,17 +74,17 @@ namespace Layout::Tiled {
         size_t                   getStripAtCenter(const CBox& usableArea, bool fullscreenOnOne = false) const;
 
       private:
-        eScrollDirection        m_direction = SCROLL_DIR_RIGHT;
-        std::vector<SStripData> m_strips;
-        double                  m_offset = 0.0;
-        struct SScrollInhibitor m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
+        eScrollDirection            m_direction = SCROLL_DIR_RIGHT;
+        std::vector<SP<SStripData>> m_strips;
+        double                      m_offset = 0.0;
+        struct SScrollInhibitor     m_scrollInhibitor; // for inhibiting scrolling (prevents the viewport from moving)
 
-        double                  getPrimary(const Vector2D& v) const;
-        double                  getSecondary(const Vector2D& v) const;
-        void                    setPrimary(Vector2D& v, double val) const;
-        void                    setSecondary(Vector2D& v, double val) const;
-        bool                    isBeingDragged() const;
+        double                      getPrimary(const Vector2D& v) const;
+        double                      getSecondary(const Vector2D& v) const;
+        void                        setPrimary(Vector2D& v, double val) const;
+        void                        setSecondary(Vector2D& v, double val) const;
+        bool                        isBeingDragged() const;
 
-        Vector2D                makeVector(double primary, double secondary) const;
+        Vector2D                    makeVector(double primary, double secondary) const;
     };
 };

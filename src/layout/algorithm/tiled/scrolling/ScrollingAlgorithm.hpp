@@ -3,7 +3,6 @@
 #include "../../TiledAlgorithm.hpp"
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
-#include "../../../../helpers/signal/Signal.hpp"
 
 #include <optional>
 #include <vector>
@@ -54,16 +53,19 @@ namespace Layout::Tiled {
         WP<SColumnData>                       self;
 
         // Helper methods to access controller-managed data
-        float getColumnWidth() const;
-        void  setColumnWidth(float width);
-        float getTargetSize(size_t idx) const;
-        void  setTargetSize(size_t idx, float size);
-        float getTargetSize(SP<SScrollingTargetData> target) const;
-        void  setTargetSize(SP<SScrollingTargetData> target, float size);
+        float          getColumnWidth() const;
+        void           setColumnWidth(float width);
+        float          getTargetSize(size_t idx) const;
+        void           setTargetSize(size_t idx, float size);
+        float          getTargetSize(SP<SScrollingTargetData> target) const;
+        void           setTargetSize(SP<SScrollingTargetData> target, float size);
+
+        SP<SStripData> resolveStrip() const;
+        float          renormalizeForNewTarget();
     };
 
     struct SScrollingData {
-        SScrollingData(CScrollingAlgorithm* algo);
+        SScrollingData(CScrollingAlgorithm& algo);
 
         std::vector<SP<SColumnData>> columns;
 
@@ -81,11 +83,11 @@ namespace Layout::Tiled {
         bool                         visible(SP<SColumnData> c, bool full = false);
         void                         centerCol(SP<SColumnData> c);
         void                         fitCol(SP<SColumnData> c);
-        void                         centerOrFitCol(SP<SColumnData> c);
+        void                         centerOrFitCol(SP<SColumnData> c, bool forceFit = false);
 
         void                         recalculate(bool forceInstant = false);
 
-        CScrollingAlgorithm*         algorithm = nullptr;
+        CScrollingAlgorithm&         algorithm;
         WP<SScrollingData>           self;
         std::optional<double>        lockedCameraOffset;
     };
@@ -155,29 +157,30 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target);
-        SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
-        bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
-        float                               fullscreenColumnWidth() const;
-        bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
-        void                                updateFullscreenFade(bool coversMonitor);
-        void                                clearFullscreenTarget(SP<ITarget> target = nullptr);
+        void                                    syncFullscreenTargets();
+        SP<SFullscreenScrollState>              fullscreenStateForTarget(SP<ITarget> target);
+        SP<SFullscreenScrollState>              fullscreenStateForData(SP<SScrollingTargetData> target);
+        SP<SScrollingTargetData>                findFullscreenTargetData(bool requireCovers) const;
+        SP<SScrollingTargetData>                fullscreenTargetDataForColumn(SP<SColumnData> col) const;
+        bool                                    isFullscreenTarget(SP<SScrollingTargetData> target) const;
+        float                                   fullscreenColumnWidth() const;
+        bool                                    fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
+        void                                    updateFullscreenFade(bool coversMonitor);
+        void                                    clearFullscreenTarget(SP<ITarget> target = nullptr);
 
-        SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
-        SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);
+        SP<SScrollingTargetData>                findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
+        SP<SScrollingTargetData>                closestNode(const Vector2D& posGlobglobgabgalab);
 
-        void                                focusTargetUpdate(SP<ITarget> target);
-        void                                moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
-        void                                focusOnInput(SP<ITarget> target, eInputMode input);
+        void                                    focusTargetUpdate(SP<ITarget> target);
+        void                                    moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
+        void                                    focusOnInput(SP<ITarget> target, eInputMode input);
 
-        void                                expelTarget(SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx);
+        void                                    expelTarget(SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx);
 
-        float                               defaultColumnWidth();
+        float                                   defaultColumnWidth();
 
-        std::vector<SFullscreenScrollState> m_fullscreenTargets;
-        bool                                m_lastFullscreenCover = false;
+        std::vector<SP<SFullscreenScrollState>> m_fullscreenTargets;
+        bool                                    m_lastFullscreenCover = false;
 
         friend struct SScrollingData;
     };

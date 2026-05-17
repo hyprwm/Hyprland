@@ -30,11 +30,7 @@ size_t CScrollTapeController::stripCount() const {
     return m_strips.size();
 }
 
-SStripData& CScrollTapeController::getStrip(size_t index) {
-    return m_strips[index];
-}
-
-const SStripData& CScrollTapeController::getStrip(size_t index) const {
+SP<SStripData> CScrollTapeController::getStrip(size_t index) {
     return m_strips[index];
 }
 
@@ -59,8 +55,8 @@ struct SScrollInhibitor& CScrollTapeController::getScrollInhibitor() {
 }
 
 size_t CScrollTapeController::addStrip(float size) {
-    m_strips.emplace_back();
-    m_strips.back().size = size;
+    m_strips.emplace_back(makeShared<SStripData>());
+    m_strips.back()->size = size;
     return m_strips.size() - 1;
 }
 
@@ -72,8 +68,8 @@ void CScrollTapeController::insertStrip(ssize_t afterIndex, float size) {
 
     afterIndex = std::clamp(afterIndex, sc<ssize_t>(-1L), sc<ssize_t>(INT32_MAX));
 
-    SStripData newStrip;
-    newStrip.size = size;
+    auto newStrip  = makeShared<SStripData>();
+    newStrip->size = size;
     m_strips.insert(m_strips.begin() + afterIndex + 1, newStrip);
 }
 
@@ -122,7 +118,7 @@ double CScrollTapeController::calculateMaxExtent(const CBox& usableArea, bool fu
     const double usablePrimary = getPrimary(usableArea.size());
 
     for (const auto& strip : m_strips) {
-        total += usablePrimary * strip.size;
+        total += usablePrimary * strip->size;
     }
 
     return total;
@@ -136,7 +132,7 @@ double CScrollTapeController::calculateStripStart(size_t stripIndex, const CBox&
     double       current       = 0.0;
 
     for (size_t i = 0; i < stripIndex; ++i) {
-        const double stripSize = (fullscreenOnOne && m_strips.size() == 1) ? usablePrimary : usablePrimary * m_strips[i].size;
+        const double stripSize = (fullscreenOnOne && m_strips.size() == 1) ? usablePrimary : usablePrimary * m_strips[i]->size;
         current += stripSize;
     }
 
@@ -152,7 +148,7 @@ double CScrollTapeController::calculateStripSize(size_t stripIndex, const CBox& 
     if (fullscreenOnOne && m_strips.size() == 1)
         return usablePrimary;
 
-    return usablePrimary * m_strips[stripIndex].size;
+    return usablePrimary * m_strips[stripIndex]->size;
 }
 
 CBox CScrollTapeController::calculateStripBox(size_t stripIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne) {
@@ -196,7 +192,7 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
         return {};
 
     const auto& strip = m_strips[stripIndex];
-    if (targetIndex >= strip.targetSizes.size())
+    if (targetIndex >= strip->targetSizes.size())
         return {};
 
     CBox         stripBox        = calculateStripBox(stripIndex, usableArea, workspaceOffset, fullscreenOnOne);
@@ -204,10 +200,10 @@ CBox CScrollTapeController::calculateTargetBox(size_t stripIndex, size_t targetI
 
     double       secondaryPos = 0.0;
     for (size_t i = 0; i < targetIndex; ++i) {
-        secondaryPos += strip.targetSizes[i] * usableSecondary;
+        secondaryPos += strip->targetSizes[i] * usableSecondary;
     }
 
-    const double secondarySize = strip.targetSizes[targetIndex] * usableSecondary;
+    const double secondarySize = strip->targetSizes[targetIndex] * usableSecondary;
 
     if (isPrimaryHorizontal()) {
         stripBox.y = workspaceOffset.y + secondaryPos;
@@ -319,15 +315,15 @@ void CScrollTapeController::swapStrips(size_t a, size_t b) {
     if (a >= m_strips.size() || b >= m_strips.size())
         return;
 
-    std::swap(m_strips.at(a), m_strips.at(b));
+    std::swap(m_strips[a], m_strips[b]);
 }
 
 bool CScrollTapeController::isBeingDragged() const {
     for (const auto& s : m_strips) {
-        if (!s.userData)
+        if (!s || !s->userData)
             continue;
 
-        for (const auto& d : s.userData->targetDatas) {
+        for (const auto& d : s->userData->targetDatas) {
             if (d->target == g_layoutManager->dragController()->target())
                 return true;
         }

@@ -2,7 +2,6 @@
 
 #include <hyprutils/string/String.hpp>
 #include <lua.h>
-#include <string>
 
 #include "Check.hpp"
 
@@ -670,10 +669,10 @@ static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
         g_pKeybindManager->m_currentKeybind->releasePending = true;
 
-    int paramRaw = (int)lua_tonumber(L, lua_upvalueindex(1));
-    int param    = paramRaw < 0 ? 0 : paramRaw;
+    auto paramRaw = lua_tostring(L, lua_upvalueindex(1));
+    auto param = paramRaw == nullptr ? "0" : std::string(paramRaw);
 
-    return Internal::checkResult(L, CA::mouse("resizewindow " + std::to_string(param)));
+    return Internal::checkResult(L, CA::mouse("resizewindow " + param));
 }
 
 static int hlWindowClose(lua_State* L) {

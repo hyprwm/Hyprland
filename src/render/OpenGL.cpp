@@ -1990,33 +1990,35 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
         static auto PBLURIGNOREOPACITY = CConfigValue<Config::INTEGER>("decoration:blur:ignore_opacity");
 
-        g_pHyprRenderer->pushMonitorTransformEnabled(true);
-        bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
-        if (!data.blockBlurOptimization)
-            g_pHyprRenderer->m_renderData.renderModif.enabled = false;
+        if (data.blurredBG) {
+            g_pHyprRenderer->pushMonitorTransformEnabled(true);
+            bool renderModif = g_pHyprRenderer->m_renderData.renderModif.enabled;
+            if (!data.blockBlurOptimization)
+                g_pHyprRenderer->m_renderData.renderModif.enabled = false;
 
-        renderTextureInternal(data.blurredBG, box,
-                              STextureRenderData{
-                                  .damage         = data.damage,
-                                  .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
-                                  .round          = data.round,
-                                  .roundingPower  = data.roundingPower,
-                                  .discardActive  = false,
-                                  .allowCustomUV  = true,
-                                  .noAA           = false,
-                                  .wrapX          = data.wrapX,
-                                  .wrapY          = data.wrapY,
-                                  .discardMode    = data.discardMode,
-                                  .discardOpacity = data.discardOpacity,
-                                  .clipRegion     = data.clipRegion,
-                                  .currentLS      = data.currentLS,
+            renderTextureInternal(data.blurredBG, box,
+                                  STextureRenderData{
+                                      .damage         = data.damage,
+                                      .a              = (*PBLURIGNOREOPACITY ? data.blurA : data.a * data.blurA) * data.overallA,
+                                      .round          = data.round,
+                                      .roundingPower  = data.roundingPower,
+                                      .discardActive  = false,
+                                      .allowCustomUV  = true,
+                                      .noAA           = false,
+                                      .wrapX          = data.wrapX,
+                                      .wrapY          = data.wrapY,
+                                      .discardMode    = data.discardMode,
+                                      .discardOpacity = data.discardOpacity,
+                                      .clipRegion     = data.clipRegion,
+                                      .currentLS      = data.currentLS,
 
-                                  .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
-                                  .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
-                              });
+                                      .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
+                                      .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
+                                  });
 
-        g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
-        g_pHyprRenderer->popMonitorTransformEnabled();
+            g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
+            g_pHyprRenderer->popMonitorTransformEnabled();
+        }
 
         if (NEEDS_STENCIL)
             setCapStatus(GL_STENCIL_TEST, false);

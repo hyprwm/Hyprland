@@ -119,6 +119,7 @@ class CCompositor {
     PHLWINDOW              getForceFocus();
     void                   scheduleMonitorStateRecheck();
     void                   arrangeMonitors();
+    void                   recheckFloatingWindowsOnScreen();
     void                   checkMonitorOverlaps();
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);

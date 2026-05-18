@@ -12,9 +12,11 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
+#include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "helpers/cm/ColorManagement.hpp"
 #include "helpers/time/Time.hpp"
+#include "protocols/WaylandProtocol.hpp"
 #include <glib.h>
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Region.hpp>
@@ -353,25 +355,43 @@ void CScreenshareFrame::renderWindow() {
 void CScreenshareFrame::renderWorkspace() {
     if(m_session->m_type != SHARE_WORKSPACE || done())
         return;
-    const auto PMONITOR = m_session->monitor();
-    const auto PWORKSPACE = m_session->m_workspace.lock();
-    const auto NOW = Time::steadyNow();
 
-    CBox GEOMETRY = {m_session->m_captureBox.x, m_session->m_captureBox.y, m_session->m_captureBox.size().x, m_session->m_captureBox.size().y};
+    const auto PWORKSPACE = m_session->m_workspace.lock();
+    if (!PWORKSPACE || PWORKSPACE->inert())
+        return;
+    
+    const auto PMONITOR = PWORKSPACE->m_monitor.lock();
+    if (!PMONITOR) {
+        LOGM(Log::ERR, "FOOERR: renderWorkspace: no monitor");
+        return;
+    }
+    
+    const auto NOW = Time::steadyNow();
 
     g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
     g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
     g_pHyprRenderer->m_renderData.transformDamage = false;
     g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
 
-    //g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, NOW, g_pHyprRenderer->renderSessionLockSurface);
-    g_pHyprRenderer->renderWorkspace(PMONITOR, PWORKSPACE, NOW, GEOMETRY);
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = PWORKSPACE->isVisible();
+
+    for(auto const& w : g_pCompositor->m_windows) {
+        if(!w->m_isMapped || w->isHidden()) 
+            continue;
+
+        if(w->m_workspace != PWORKSPACE) 
+            continue;
+
+        const Vector2D remappedPos = (w->m_realPosition->value() - PMONITOR->m_position) * PMONITOR->m_scale;
+
+        g_pHyprRenderer->renderWindow(w, PMONITOR, NOW,
+            false,
+            Render::RENDER_PASS_ALL,
+            false,
+            true);
+    }
+
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
-    //g_pHyprRenderer->renderWindow(PWINDOW, PMONITOR, NOW, false, Render::RENDER_PASS_ALL, true, true);
-    //g_pHyprRenderer->renderWorkspace
-    //g_pHyprRenderer->renderWorkspaceWindows
-    //g_pHyprRenderer->renderWorkspaceWindowsFullscreen
-    //g_pHyprRenderer->renderAllClientsForWorkspace
 }
 
 void CScreenshareFrame::render() {

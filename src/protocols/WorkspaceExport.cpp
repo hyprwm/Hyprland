@@ -1,3 +1,4 @@
+#include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "hyprland-workspace-export-v1.hpp"
 #include "WaylandProtocol.hpp"
@@ -36,6 +37,8 @@ void CWorkspaceExportClient::captureWorkspace(uint32_t frame, int32_t overlayCur
         return;
     }
 
+    workspace->setPersistent(true);
+
     auto session = Screenshare::mgr()->getManagedSession(m_resource->client(), workspace);
 
     // create a frame
@@ -71,7 +74,7 @@ CWorkspaceExportFrame::CWorkspaceExportFrame(SP<CHyprlandWorkspaceExportFrameV1>
 
     auto formats = m_session->allowedFormats();
     if (formats.empty()) {
-        LOGM(Log::ERR, "No format supported by renderer in toplevel export protocol");
+        LOGM(Log::ERR, "No format supported by renderer in workspace export protocol");
         m_resource->sendFailed();
         return;
     }
@@ -99,8 +102,12 @@ void CWorkspaceExportFrame::shareFrame(wl_resource* buffer, bool ignoreDamage) {
         return;
     }
 
-    if UNLIKELY (m_session.expired() || !m_session->monitor()) {
-        LOGM(Log::ERR, "Session stopped for frame {:x}", (uintptr_t)this);
+    if UNLIKELY (m_session.expired()) {
+        //if(!m_session->monitor()) {
+        //    LOGM(Log::WARN, "Workspace is not in any monitor");
+        //    return;
+        //}
+        LOGM(Log::ERR, "FOOO: Session stopped for frame {:x}", (uintptr_t)this);
         m_resource->sendFailed();
         return;
     }

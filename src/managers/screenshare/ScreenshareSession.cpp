@@ -6,7 +6,9 @@
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
 #include "color-management-v1.hpp"
+#include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "protocols/WaylandProtocol.hpp"
 
 using namespace Screenshare;
 
@@ -18,9 +20,33 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) 
 }
 
 CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* client) : m_type(SHARE_WORKSPACE), m_workspace(workspace), m_client(client) {
-    if UNLIKELY (!m_workspace)
+    if UNLIKELY (!m_workspace) {
+        LOGM(Log::ERR, "FOOO FUck yoururouo");
         return;
-    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] { stop(); });
+    }
+    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] {LOGM(Log::DEBUG, "FOOVENT: destroyed"); stop(); });
+    m_listeners.workspaceMonitorChanged = m_workspace->m_events.monitorChanged.listen([this] {
+        LOGM(Log::DEBUG, "FOOVENT: monitor changed");
+        const auto MON = m_workspace->m_monitor.lock();
+        if (!MON) { stop(); return; }
+
+        m_listeners.monitorDestroyed   = MON->m_events.disconnect.listen([this]() { stop(); });
+        m_listeners.monitorModeChanged = MON->m_events.modeChanged.listen([this]() {
+            calculateConstraints();
+            m_events.constraintsChanged.emit();
+        });
+    });
+
+    m_listeners.workspaceActiveChanged = m_workspace->m_events.activeChanged.listen([this] {
+        LOGM(Log::DEBUG, "FOOVENT: Active changed");
+        if (!m_workspace->isVisible()) {
+            LOGM(Log::ERR, "INSIDE: Active changed and the workspace is not visible");
+        }
+        else {
+            LOGM(Log::ERR, "INSIDE: Workspace visible again!");
+        }
+    });
+
     init();
 }
 
@@ -102,10 +128,6 @@ void CScreenshareSession::init() {
     // scale capture box since it's in logical coords; round to integer pixel
     // dims so m_bufferSize matches the int32 size we send to the client
     m_captureBox.scale(monitor()->m_scale).round();
-//=======
-//    // scale capture box since it's in logical coords
-//    m_captureBox.scale(monitor()->m_scale); // TODO: the monitor return for SHARE_WORKSPACE might be nullptr
-//>>>>>>> 48d5ca1d (feat: added SHARE_WORKSPACE cases)
 
     m_listeners.monitorDestroyed   = monitor()->m_events.disconnect.listen([this]() { stop(); });
     m_listeners.monitorModeChanged = monitor()->m_events.modeChanged.listen([this]() {
@@ -191,10 +213,9 @@ PHLMONITOR CScreenshareSession::monitor() const {
     if (m_type == SHARE_WINDOW && m_window.expired())
         return nullptr;
     if (m_type == SHARE_WORKSPACE) {
-        for(auto& mon : g_pCompositor->m_monitors) {
-            if(mon->m_activeWorkspace == m_workspace) {
-                return mon;
-            }
+        PHLMONITOR mon = m_workspace.lock()->m_monitor.lock();
+        if(mon) {
+            return mon;
         }
         return nullptr;
     }

@@ -2903,6 +2903,9 @@ void CCompositor::arrangeMonitors() {
     PROTO::xdgOutput->updateAllOutputs();
     Event::bus()->m_events.monitor.layoutChanged.emit();
 
+    // Recheck floating windows after layout changes to prevent them going offscreen
+    g_pEventLoopManager->doLater([]() { g_pCompositor->recheckFloatingWindowsOnScreen(); });
+
 #ifndef NO_XWAYLAND
     const auto box = g_pCompositor->calculateX11WorkArea();
     if (g_pXWayland && g_pXWayland->m_wm) {
@@ -2913,6 +2916,46 @@ void CCompositor::arrangeMonitors() {
     }
 
 #endif
+}
+
+void CCompositor::recheckFloatingWindowsOnScreen() {
+    for (auto const& w : m_windows) {
+        if (!w->m_isMapped || !w->m_isFloating || w->m_pinned || w->isFullscreen())
+            continue;
+
+        const CBox WBOX = w->getWindowMainSurfaceBox();
+
+        // Check if the window intersects any enabled monitor
+        const bool IN = std::ranges::any_of(m_monitors, [&WBOX](const auto& m) {
+            if (!m->m_enabled)
+                return false;
+            CBox MONBOX = m->logicalBox();
+            return !MONBOX.intersection(WBOX).empty();
+        });
+
+        if (IN)
+            continue;
+
+        // Window is offscreen — find the best monitor to move it to
+        auto monitor = w->m_monitor.lock();
+
+        if (!monitor || !monitor->m_enabled)
+            monitor = getMonitorFromVector(WBOX.middle());
+
+        if (!monitor)
+            continue;
+
+        // Clamp the window position to the nearest edge/corner of the target monitor,
+        // preserving the user's positional intent rather than centering
+        const auto MONBOX = monitor->logicalBox();
+        const auto NEW_X  = std::clamp(WBOX.x, MONBOX.x, MONBOX.x + MONBOX.w - WBOX.w);
+        const auto NEW_Y  = std::clamp(WBOX.y, MONBOX.y, MONBOX.y + MONBOX.h - WBOX.h);
+        w->layoutTarget()->setPositionGlobal(CBox{NEW_X, NEW_Y, WBOX.w, WBOX.h});
+
+        // Reassign workspace if the window's current workspace doesn't belong to this monitor
+        if (w->m_workspace && w->m_workspace->m_monitor.lock() != monitor)
+            moveWindowToWorkspaceSafe(w, monitor->m_activeWorkspace);
+    }
 }
 
 void CCompositor::enterUnsafeState() {

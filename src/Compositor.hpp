@@ -156,6 +156,7 @@ class CCompositor {
     PHLWINDOW                           getForceFocus();
     void                                scheduleMonitorStateRecheck();
     void                                arrangeMonitors();
+    void                                recheckFloatingWindowsOnScreen();
     void                                checkMonitorOverlaps();
     void                                enterUnsafeState();
     void                                leaveUnsafeState();

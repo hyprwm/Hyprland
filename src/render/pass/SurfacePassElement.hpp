@@ -30,6 +30,9 @@ class CSurfacePassElement : public IPassElement {
         bool                   blur                  = false;
         bool                   blockBlurOptimization = false;
 
+        uint8_t                wrapX = CLAMP_TO_EDGE;
+        uint8_t                wrapY = CLAMP_TO_EDGE;
+
         // only for windows, not popups
         bool squishOversized = true;
 

@@ -22,6 +22,7 @@
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/VarList.hpp>
+#include <array>
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::String;
 
@@ -122,8 +123,19 @@ class CTestMouse : public IPointer {
     bool m_isVirtual = false;
 };
 
-SP<CTestMouse>         g_mouse;
-SP<CTestKeyboard>      g_keyboard;
+SP<CTestMouse>                   g_mouse;
+SP<CTestKeyboard>                g_keyboard;
+std::array<SP<CTestKeyboard>, 2> g_staleEnterKeyboards;
+
+static void cleanupStaleEnterKeyboards() {
+    for (auto& keyboard : g_staleEnterKeyboards) {
+        if (!keyboard)
+            continue;
+
+        keyboard->destroy();
+        keyboard.reset();
+    }
+}
 
 static SDispatchResult pressAlt(std::string in) {
     g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
@@ -360,6 +372,64 @@ static SDispatchResult keybind(std::string in) {
     return {};
 }
 
+static SDispatchResult staleEnterSetup(std::string in) {
+    cleanupStaleEnterKeyboards();
+
+    for (size_t i = 0; i < g_staleEnterKeyboards.size(); ++i) {
+        auto keyboard          = CTestKeyboard::create(false);
+        keyboard->m_hlName     = std::format("test-stale-keyboard-{}", i);
+        keyboard->m_deviceName = keyboard->m_hlName;
+        g_pInputManager->newKeyboard(keyboard);
+        g_staleEnterKeyboards[i] = std::move(keyboard);
+    }
+
+    return {};
+}
+
+static SDispatchResult staleEnterKey(std::string in) {
+    CVarList2 data(std::move(in));
+
+    size_t    idx;
+    uint32_t  key;
+    bool      pressed;
+    try {
+        idx     = std::stoul(std::string{data[0]});
+        key     = std::stoul(std::string{data[1]});
+        pressed = std::stoul(std::string{data[2]}) == 1;
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    if (idx >= g_staleEnterKeyboards.size())
+        return {.success = false, .error = "keyboard index out of range"};
+
+    if (!g_staleEnterKeyboards[idx])
+        return {.success = false, .error = "keyboard not initialized"};
+
+    g_staleEnterKeyboards[idx]->sendKey(key, pressed);
+    return {};
+}
+
+static SDispatchResult staleEnterDestroy(std::string in) {
+    size_t idx;
+    try {
+        idx = std::stoul(in);
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    if (idx >= g_staleEnterKeyboards.size())
+        return {.success = false, .error = "keyboard index out of range"};
+
+    if (!g_staleEnterKeyboards[idx])
+        return {.success = false, .error = "keyboard not initialized"};
+
+    g_staleEnterKeyboards[idx]->destroy();
+    g_staleEnterKeyboards[idx].reset();
+    return {};
+}
+
+static SDispatchResult staleEnterCleanup(std::string in) {
+    cleanupStaleEnterKeyboards();
+    return {};
+}
+
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
@@ -583,6 +653,25 @@ static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
 
+static int luaStaleEnterSetup(lua_State* L) {
+    return luaResult(L, ::staleEnterSetup(""));
+}
+
+static int luaStaleEnterKey(lua_State* L) {
+    const auto idx     = (int)luaL_checkinteger(L, 1);
+    const auto key     = (int)luaL_checkinteger(L, 2);
+    const auto pressed = (int)luaL_checkinteger(L, 3);
+    return luaResult(L, ::staleEnterKey(std::format("{},{},{}", idx, key, pressed)));
+}
+
+static int luaStaleEnterDestroy(lua_State* L) {
+    return luaResult(L, ::staleEnterDestroy(std::to_string((int)luaL_checkinteger(L, 1))));
+}
+
+static int luaStaleEnterCleanup(lua_State* L) {
+    return luaResult(L, ::staleEnterCleanup(""));
+}
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
 
@@ -609,6 +698,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
+    addLuaFn("stale_enter_setup", ::luaStaleEnterSetup);
+    addLuaFn("stale_enter_key", ::luaStaleEnterKey);
+    addLuaFn("stale_enter_destroy", ::luaStaleEnterDestroy);
+    addLuaFn("stale_enter_cleanup", ::luaStaleEnterCleanup);
 
     // init mouse
     g_mouse = CTestMouse::create(false);
@@ -622,6 +715,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 }
 
 APICALL EXPORT void PLUGIN_EXIT() {
+    cleanupStaleEnterKeyboards();
     g_mouse->destroy();
     g_mouse.reset();
     g_keyboard->destroy();

@@ -300,6 +300,7 @@ class CInputManager {
 
     bool                  shareKeyFromAllKBs(uint32_t key, bool pressed);
     uint32_t              shareModsFromAllKBs(uint32_t depressed);
+    void                  rebuildSeatPressedCacheFromKeyboards();
     std::vector<uint32_t> m_pressed;
     uint32_t              m_lastMods = 0;
 

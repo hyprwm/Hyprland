@@ -78,7 +78,8 @@ class IKeyboard : public IHID {
     void                              updateXkbStateWithKey(uint32_t xkbKey, bool pressed);
     void                              updateKeymapFD();
     bool                              getPressed(uint32_t key);
-    bool                              shareStates();
+    const std::vector<uint32_t>&      getPressedKeys() const;
+    bool                              shareStates() const;
     void                              setShareStatesAuto(bool shareStates);
 
     bool                              m_active     = false;

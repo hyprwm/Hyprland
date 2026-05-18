@@ -80,4 +80,7 @@ void CMonitorLayoutController::arrange() const {
     }
 
 #endif
+
+    // Recheck floating windows after layout changes to prevent them going offscreen
+    g_pEventLoopManager->doLater([]() { g_pCompositor->recheckFloatingWindowsOnScreen(); });
 }

@@ -114,6 +114,7 @@ class CCompositor {
     void                   performUserChecks();
     void                   moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW              getForceFocus();
+    void                   recheckFloatingWindowsOnScreen();
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();

@@ -2400,6 +2400,51 @@ PHLWINDOW CCompositor::getForceFocus() {
     return nullptr;
 }
 
+void CCompositor::recheckFloatingWindowsOnScreen() {
+    const auto& realMonitors = State::monitorState()->monitors();
+
+    for (auto const& w : m_windows) {
+        if (!w->m_isMapped || !w->m_isFloating || w->m_pinned || w->isFullscreen())
+            continue;
+
+        const CBox WBOX = w->getWindowMainSurfaceBox();
+
+        const bool IN = std::ranges::any_of(realMonitors, [&WBOX](const auto& m) {
+            if (!m->m_enabled || m->m_name == State::FALLBACK_OUTPUT_NAME)
+                return false;
+            CBox MONBOX = m->logicalBox();
+            return !MONBOX.intersection(WBOX).empty();
+        });
+
+        if (IN)
+            continue;
+
+        // Window is offscreen — find the best monitor to move it to
+        auto monitor = w->m_monitor.lock();
+
+        if (!monitor || !monitor->m_enabled || monitor->m_name == State::FALLBACK_OUTPUT_NAME) {
+            const auto queryResult = State::monitorState()->query().vec(WBOX.middle()).run();
+            monitor                = queryResult ? dynamicPointerCast<Monitor::CMonitor>(queryResult) : nullptr;
+        }
+
+        // If still no valid monitor, use the focused monitor as last resort
+        if (!monitor || monitor->m_name == State::FALLBACK_OUTPUT_NAME)
+            monitor = Desktop::focusState()->monitor();
+
+        if (!monitor)
+            continue;
+
+        // Clamp to nearest edge/corner rather than centering, preserving positional intent
+        const auto MONBOX = monitor->logicalBox();
+        const auto NEW_X  = std::clamp(WBOX.x, MONBOX.x, MONBOX.x + MONBOX.w - WBOX.w);
+        const auto NEW_Y  = std::clamp(WBOX.y, MONBOX.y, MONBOX.y + MONBOX.h - WBOX.h);
+        w->layoutTarget()->setPositionGlobal(CBox{NEW_X, NEW_Y, WBOX.w, WBOX.h});
+
+        if (w->m_workspace && w->m_workspace->m_monitor.lock() != monitor)
+            moveWindowToWorkspaceSafe(w, monitor->m_activeWorkspace);
+    }
+}
+
 void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));

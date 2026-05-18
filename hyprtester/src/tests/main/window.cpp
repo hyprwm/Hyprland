@@ -1360,3 +1360,65 @@ TEST_CASE(mouseResize) {
     EXPECT_CONTAINS(getFromSocket("/clients"), "size: 700,200");
 #undef RESET_WINDOW
 }
+
+// Verifies that floating windows offscreen are clamped back on-screen
+// after a monitor layout change, and their workspace is reassigned.
+// Regression test for https://github.com/hyprwm/Hyprland/issues/10030
+TEST_CASE(floatingWindowRecheckOnLayoutChange) {
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
+    if (!spawnKitty("kitty_offscreen"))
+        FAIL_TEST("Could not spawn kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 50000, y = 50000 })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_offscreen");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = 'auto-right', scale = '1' })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_offscreen");
+        ASSERT_CONTAINS(str, "floating: 1");
+
+        auto at = Tests::getAttribute(str, "at");
+        EXPECT_NOT_CONTAINS(at, "50000");
+    }
+}
+
+// Verifies that a floating window on a removed monitor gets moved to the
+// remaining monitor and its workspace is reassigned.
+// Regression test for https://github.com/hyprwm/Hyprland/issues/10030
+TEST_CASE(floatingWindowWorkspaceReassignOnMonitorRemove) {
+    OK(getFromSocket("/output create headless HEADLESS-FLOAT-TEST"));
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-FLOAT-TEST', mode = '1920x1080@60', position = 'auto-right', scale = '1' })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-FLOAT-TEST' })"));
+
+    if (!spawnKitty("kitty_reassign"))
+        FAIL_TEST("Could not spawn kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
+
+    {
+        auto str = getFromSocket("/activewindow");
+        ASSERT_CONTAINS(str, "class: kitty_reassign");
+        ASSERT_CONTAINS(str, "floating: 1");
+    }
+
+    OK(getFromSocket("/output remove HEADLESS-FLOAT-TEST"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    {
+        auto str = getFromSocket("/clients");
+        ASSERT_CONTAINS(str, "class: kitty_reassign");
+        EXPECT_NOT_CONTAINS(str, "HEADLESS-FLOAT-TEST");
+    }
+}

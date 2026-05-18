@@ -17,6 +17,7 @@
 #include "helpers/cm/ColorManagement.hpp"
 #include "helpers/time/Time.hpp"
 #include "protocols/WaylandProtocol.hpp"
+#include "render/types.hpp"
 #include <glib.h>
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Region.hpp>
@@ -375,22 +376,18 @@ void CScreenshareFrame::renderWorkspace() {
 
     g_pHyprRenderer->m_bBlockSurfaceFeedback = PWORKSPACE->isVisible();
 
-    for(auto const& w : g_pCompositor->m_windows) {
-        if(!w->m_isMapped || w->isHidden()) 
-            continue;
+    //g_pHyprRenderer->renderWorkspaceWindows(PMONITOR, PWORKSPACE, NOW);
+    //g_pHyprRenderer->renderBackground(PMONITOR);
+    //for(auto const& w : g_pCompositor->m_windows) {
+    //    if(!w->m_isMapped || w->isHidden()) 
+    //        continue;
 
-        if(w->m_workspace != PWORKSPACE) 
-            continue;
+    //    if(w->m_workspace != PWORKSPACE) 
+    //        continue;
 
-        const Vector2D remappedPos = (w->m_realPosition->value() - PMONITOR->m_position) * PMONITOR->m_scale;
-
-        g_pHyprRenderer->renderWindow(w, PMONITOR, NOW,
-            false,
-            Render::RENDER_PASS_ALL,
-            false,
-            true);
-    }
-
+    //    g_pHyprRenderer->renderWindow(w, PMONITOR, NOW, false, Render::RENDER_PASS_ALL, false, true);
+    //}
+    g_pHyprRenderer->renderWorkspaceOffScreen(PMONITOR, PWORKSPACE, NOW);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 }
 

@@ -44,7 +44,7 @@ class CTexPassElement : public IPassElement {
         uint8_t                wrapX = CLAMP_TO_EDGE;
         uint8_t                wrapY = CLAMP_TO_EDGE;
 
-        uint32_t               discardMode    = DISCARD_OPAQUE;
+        uint8_t                discardMode    = DISCARD_OPAQUE;
         float                  discardOpacity = 0.f;
 
         CRegion                clipRegion;

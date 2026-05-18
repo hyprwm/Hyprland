@@ -62,7 +62,7 @@ namespace Screenshare {
         CScreenshareSession(PHLMONITOR monitor, wl_client* client);
         CScreenshareSession(PHLMONITOR monitor, CBox captureRegion, wl_client* client);
         CScreenshareSession(PHLWINDOW window, wl_client* client);
-        CScreenshareSession(PHLWORKSPACE workspace, wl_client* client); //THKINH: just add workspace when I don't know what to do
+        CScreenshareSession(PHLWORKSPACE workspace, wl_client* client);
 
         WP<CScreenshareSession>  m_self;
         bool                     m_stopped = false;
@@ -70,7 +70,7 @@ namespace Screenshare {
         eScreenshareType         m_type = SHARE_NONE;
         PHLMONITORREF            m_monitor;
         PHLWINDOWREF             m_window;
-        PHLWORKSPACEREF          m_workspace; //THKINH:  the current active workspace
+        PHLWORKSPACEREF          m_workspace; //the current active workspace
         CBox                     m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
 
         wl_client*               m_client = nullptr;
@@ -212,7 +212,7 @@ namespace Screenshare {
         WP<CScreenshareSession> getManagedSession(wl_client* client, PHLMONITOR monitor);
         WP<CScreenshareSession> getManagedSession(wl_client* client, PHLMONITOR monitor, CBox captureBox);
         WP<CScreenshareSession> getManagedSession(wl_client* client, PHLWINDOW window);
-        WP<CScreenshareSession> getManagedSession(wl_client* client, PHLWORKSPACE workspace); //THKINH: shared ptr to a workspace
+        WP<CScreenshareSession> getManagedSession(wl_client* client, PHLWORKSPACE workspace);
 
         UP<CCursorshareSession> newCursorSession(wl_client* client, WP<CWLPointerResource> pointer);
 
@@ -254,7 +254,7 @@ struct std::formatter<Screenshare::eScreenshareType> : std::formatter<std::strin
             case Screenshare::SHARE_MONITOR:    return formatter<string>::format("monitor", ctx);
             case Screenshare::SHARE_WINDOW:     return formatter<string>::format("window", ctx);
             case Screenshare::SHARE_REGION:     return formatter<string>::format("region", ctx);
-            case Screenshare::SHARE_WORKSPACE:  return formatter<string>::format("workspace", ctx); //THKINH: Added for workspace capturing
+            case Screenshare::SHARE_WORKSPACE:  return formatter<string>::format("workspace", ctx);
             case Screenshare::SHARE_NONE:       return formatter<string>::format("ERR NONE", ctx);
           
         }

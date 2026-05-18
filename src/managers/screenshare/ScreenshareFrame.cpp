@@ -61,7 +61,6 @@ bool CScreenshareFrame::done() const {
         return true;
     
     if(m_session->m_type == SHARE_WORKSPACE && (!m_session->monitor()))
-        //TODO: THKINH IMPLEMENT WORKSPACE SUPPORT
         return true;
 
     if (!m_shared)
@@ -363,7 +362,7 @@ void CScreenshareFrame::renderWorkspace() {
     
     const auto PMONITOR = PWORKSPACE->m_monitor.lock();
     if (!PMONITOR) {
-        LOGM(Log::ERR, "FOOERR: renderWorkspace: no monitor");
+        LOGM(Log::ERR, "renderWorkspace: no monitor");
         return;
     }
     
@@ -420,7 +419,7 @@ void CScreenshareFrame::render() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
-        case SHARE_WORKSPACE: renderWorkspace(); break; //TODO: THKINH IMPLEMENT WORKSPACE SUPPORT
+        case SHARE_WORKSPACE: renderWorkspace(); break;
         case SHARE_NONE:
         default: return;
     }
@@ -515,7 +514,7 @@ void CScreenshareFrame::storeTempFB() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
-        case SHARE_WORKSPACE: renderWorkspace(); break; //TODO THKINH IMPLEMENT WORKSPACE SUPPORT
+        case SHARE_WORKSPACE: renderWorkspace(); break; 
         case SHARE_NONE:
         default: return;
     }
@@ -533,7 +532,7 @@ wl_output_transform CScreenshareFrame::transform() const {
         case SHARE_MONITOR: return m_session->monitor()->m_transform;
         default:
         case SHARE_WINDOW: return WL_OUTPUT_TRANSFORM_NORMAL;
-        case SHARE_WORKSPACE: return WL_OUTPUT_TRANSFORM_NORMAL; //TODO: THKINH IMPLEMENT WORKSPACE SUPPORT 
+        case SHARE_WORKSPACE: return WL_OUTPUT_TRANSFORM_NORMAL; 
     }
 }
 

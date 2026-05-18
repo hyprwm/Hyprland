@@ -21,12 +21,10 @@ CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) 
 
 CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* client) : m_type(SHARE_WORKSPACE), m_workspace(workspace), m_client(client) {
     if UNLIKELY (!m_workspace) {
-        LOGM(Log::ERR, "FOOO FUck yoururouo");
         return;
     }
-    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] {LOGM(Log::DEBUG, "FOOVENT: destroyed"); stop(); });
+    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] {stop(); });
     m_listeners.workspaceMonitorChanged = m_workspace->m_events.monitorChanged.listen([this] {
-        LOGM(Log::DEBUG, "FOOVENT: monitor changed");
         const auto MON = m_workspace->m_monitor.lock();
         if (!MON) { stop(); return; }
 
@@ -38,11 +36,12 @@ CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* clie
     });
 
     m_listeners.workspaceActiveChanged = m_workspace->m_events.activeChanged.listen([this] {
-        LOGM(Log::DEBUG, "FOOVENT: Active changed");
         if (!m_workspace->isVisible()) {
+            //TODO: 
             LOGM(Log::ERR, "INSIDE: Active changed and the workspace is not visible");
         }
         else {
+            //TODO: 
             LOGM(Log::ERR, "INSIDE: Workspace visible again!");
         }
     });

@@ -103,10 +103,7 @@ void CWorkspaceExportFrame::shareFrame(wl_resource* buffer, bool ignoreDamage) {
     }
 
     if UNLIKELY (m_session.expired()) {
-        if(!m_session->monitor()) {
-            LOGM(Log::WARN, "FOOO: Workspace is not in any monitor");
-        }
-        LOGM(Log::ERR, "FOOO: Session stopped for frame {:x}", (uintptr_t)this);
+        LOGM(Log::ERR, "Session stopped for frame {:x}", (uintptr_t)this);
         m_resource->sendFailed();
         return;
     }

@@ -601,7 +601,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || (k->submap.name != Config::Actions::state()->m_currentSubmap && !k->submapUniversal) || k->shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || ((k->submap.name != key.submapAtPress.name) && !k->submapUniversal) || k->shadowed))
             continue;
 
         if (device) {
@@ -684,12 +684,6 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             found = true; // suppress the event
             continue;
         }
-
-        // If the keybind was found before and belongs to a different submap
-        // Do not trigger it again since the same keybind might exist in the submap definition
-        // with different action.
-        if (found && (key.submapAtPress.name != k->submap.name))
-            continue;
 
         if (!pressed) {
             // Require mods to be matching when the key was first pressed.

@@ -662,8 +662,9 @@ def generate_stub(root: Path) -> str:
         emit_class_block(
             "HL.NotificationOptions",
             [
+                ("text", "string", False),
+                ("timeout", "number", False),
                 ("color", "string", True),
-                ("timeout", "number", True),
                 ("icon", "integer|string", True),
                 ("font_size", "number", True),
             ],

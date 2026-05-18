@@ -171,7 +171,7 @@ namespace Render::GL {
             bool                   allowCustomUV = false;
             bool                   allowDim      = true;
             bool                   noAA          = false; // unused
-            GLenum                 wrapX = GL_CLAMP_TO_EDGE, wrapY = GL_CLAMP_TO_EDGE;
+            uint8_t                wrapX = WRAP_CLAMP_TO_EDGE, wrapY = WRAP_CLAMP_TO_EDGE;
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;
 

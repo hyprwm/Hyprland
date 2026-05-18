@@ -109,9 +109,8 @@ static eValidResult isBarrierValidAgainstMonitor(int x1, int y1, int x2, int y2,
     int        mx1 = monitor->m_position.x;
     int        my1 = monitor->m_position.y;
 
-    const auto scale  = std::max(monitor->m_scale, 1.F);
-    const int  width  = static_cast<int>(monitor->m_pixelSize.x / scale);
-    const int  height = static_cast<int>(monitor->m_pixelSize.y / scale);
+    const int  width  = static_cast<int>(monitor->m_size.x);
+    const int  height = static_cast<int>(monitor->m_size.y);
 
     int        mx2 = mx1 + width - 1;
     int        my2 = my1 + height - 1;

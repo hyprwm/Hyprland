@@ -1021,6 +1021,8 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
                 ret += "a";
             if (kb->hasDescription)
                 ret += "d";
+            if (kb->allowInputCapture)
+                ret += "x";
 
             ret += std::format("\n\tmodmask: {}\n\tsubmap: {}\n\tkey: {}\n\tkeycode: {}\n\tcatchall: {}\n\tdescription: {}\n\tdispatcher: {}\n\targ: {}\n\n", kb->modmask,
                                kb->submap.name, kb->key.empty() ? kb->displayKey : kb->key, kb->keycode, kb->catchAll, kb->description, kb->handler, kb->arg);
@@ -1047,13 +1049,14 @@ static std::string bindsRequest(eHyprCtlOutputFormat format, std::string request
     "keycode": {},
     "catch_all": {},
     "description": "{}",
+    "allow_input_capture": {},
     "dispatcher": "{}",
     "arg": "{}"
 }},)#",
                 kb->locked ? "true" : "false", kb->mouse ? "true" : "false", kb->release ? "true" : "false", kb->repeat ? "true" : "false", kb->longPress ? "true" : "false",
-                kb->nonConsuming ? "true" : "false", kb->autoConsuming ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask, escapeJSONStrings(kb->submap.name),
-                kb->submapUniversal, escapeJSONStrings(kb->key), kb->keycode, kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description), escapeJSONStrings(kb->handler),
-                escapeJSONStrings(kb->arg));
+                kb->nonConsuming ? "true" : "false", kb->autoConsuming ? "true" : "false", kb->allowInputCapture ? "true" : "false", kb->hasDescription ? "true" : "false", kb->modmask,
+                escapeJSONStrings(kb->submap.name), kb->submapUniversal, escapeJSONStrings(kb->key), kb->keycode, kb->catchAll ? "true" : "false", escapeJSONStrings(kb->description),
+                escapeJSONStrings(kb->handler), escapeJSONStrings(kb->arg));
         }
         trimTrailingComma(ret);
         ret += "]";

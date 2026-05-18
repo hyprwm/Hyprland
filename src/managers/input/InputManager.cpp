@@ -1592,7 +1592,8 @@ void CInputManager::onKeyboardKey(const IKeyboard::SKeyEvent& event, SP<IKeyboar
         return;
 
     PROTO::inputCapture->key(event.keycode, event.state);
-    bool passEvent = DISALLOWACTION;
+
+    bool passEvent = DISALLOWACTION && !PROTO::inputCapture->isCaptured();
 
     if (!DISALLOWACTION)
         passEvent = g_pKeybindManager->onKeyEvent(event, pKeyboard) && !PROTO::inputCapture->isCaptured();

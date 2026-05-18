@@ -70,12 +70,13 @@ namespace Desktop::View {
     };
 
     enum eSuppressEvents : uint8_t {
-        SUPPRESS_NONE               = 0,
-        SUPPRESS_FULLSCREEN         = 1 << 0,
-        SUPPRESS_MAXIMIZE           = 1 << 1,
-        SUPPRESS_ACTIVATE           = 1 << 2,
-        SUPPRESS_ACTIVATE_FOCUSONLY = 1 << 3,
-        SUPPRESS_FULLSCREEN_OUTPUT  = 1 << 4,
+        SUPPRESS_NONE                  = 0,
+        SUPPRESS_FULLSCREEN            = 1 << 0,
+        SUPPRESS_MAXIMIZE              = 1 << 1,
+        SUPPRESS_ACTIVATE              = 1 << 2,
+        SUPPRESS_ACTIVATE_FOCUSONLY    = 1 << 3,
+        SUPPRESS_FULLSCREEN_OUTPUT     = 1 << 4,
+        SUPPRESS_X11_CONFIGURE_REQUEST = 1 << 5,
     };
 
     enum eWindowAlpha : uint8_t {

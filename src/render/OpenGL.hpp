@@ -175,7 +175,7 @@ namespace Render::GL {
             bool                   cmBackToSRGB   = false;
             bool                   finalMonitorCM = false;
 
-            uint32_t               discardMode    = DISCARD_OPAQUE;
+            uint8_t                discardMode    = DISCARD_OPAQUE;
             float                  discardOpacity = 0.f;
 
             CRegion                clipRegion;

@@ -1815,14 +1815,14 @@ void CWindow::mapWindow() {
     const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
     const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal : FSMODE_NONE;
 
-    auto        PMONITOR = Desktop::focusState()->monitor();
+    auto        pMonitor = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
         Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
-        PMONITOR = Desktop::focusState()->monitor();
+        pMonitor = Desktop::focusState()->monitor();
     }
-    auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-    m_monitor       = PMONITOR;
-    m_workspace     = PWORKSPACE;
+    auto pWorkspace = pMonitor->m_activeSpecialWorkspace ? pMonitor->m_activeSpecialWorkspace : pMonitor->m_activeWorkspace;
+    m_monitor       = pMonitor;
+    m_workspace     = pWorkspace;
     m_isMapped      = true;
     m_readyToDelete = false;
     m_fadingOut     = false;
@@ -1895,7 +1895,7 @@ void CWindow::mapWindow() {
         if (!m_ruleApplicator->static_.monitor.empty()) {
             const auto& MONITORSTR = m_ruleApplicator->static_.monitor;
             if (MONITORSTR == "unset")
-                m_monitor = PMONITOR;
+                m_monitor = pMonitor;
             else {
                 const auto ARGPOS  = MONITORSTR.find_last_of(' ');
                 monitorSilent      = ARGPOS != std::string::npos && MONITORSTR.substr(ARGPOS).contains("silent");
@@ -1906,13 +1906,13 @@ void CWindow::mapWindow() {
 
                     const auto PMONITORFROMID = m_monitor.lock();
 
-                    if (m_monitor != PMONITOR && !monitorSilent) // NOLINTNEXTLINE
+                    if (m_monitor != pMonitor && !monitorSilent) // NOLINTNEXTLINE
                         Config::Actions::focusMonitor(PMONITORFROMID);
 
-                    PMONITOR = PMONITORFROMID;
+                    pMonitor = PMONITORFROMID;
 
-                    m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-                    PWORKSPACE  = m_workspace;
+                    m_workspace = pMonitor->m_activeSpecialWorkspace ? pMonitor->m_activeSpecialWorkspace : pMonitor->m_activeWorkspace;
+                    pWorkspace  = m_workspace;
 
                     Log::logger->log(Log::DEBUG, "Rule monitor, applying to {:mw}", m_self.lock());
                     requestedFSMonitor = MONITOR_INVALID;
@@ -1931,7 +1931,7 @@ void CWindow::mapWindow() {
 
             const auto JUSTWORKSPACE = WORKSPACERQ.contains(' ') ? WORKSPACERQ.substr(0, WORKSPACERQ.find_first_of(' ')) : WORKSPACERQ;
 
-            if (JUSTWORKSPACE == PWORKSPACE->m_name || JUSTWORKSPACE == "name:" + PWORKSPACE->m_name)
+            if (JUSTWORKSPACE == pWorkspace->m_name || JUSTWORKSPACE == "name:" + pWorkspace->m_name)
                 requestedWorkspace = "";
 
             Log::logger->log(Log::DEBUG, "Rule workspace matched by {}, {} applied.", m_self.lock(), m_ruleApplicator->static_.workspace);
@@ -2047,9 +2047,9 @@ void CWindow::mapWindow() {
             workspaceSilent = true;
 
         auto joined = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
-        if (joined.starts_with("empty") && PWORKSPACE->getWindows() == 0) {
-            requestedWorkspaceID   = PWORKSPACE->m_id;
-            requestedWorkspaceName = PWORKSPACE->m_name;
+        if (joined.starts_with("empty") && pWorkspace->getWindows() == 0) {
+            requestedWorkspaceID   = pWorkspace->m_id;
+            requestedWorkspaceName = pWorkspace->m_name;
         } else {
             auto result            = getWorkspaceIDNameFromString(joined);
             requestedWorkspaceID   = result.id;
@@ -2057,12 +2057,10 @@ void CWindow::mapWindow() {
         }
 
         if (requestedWorkspaceID != WORKSPACE_INVALID) {
-            auto pWorkspace = g_pCompositor->getWorkspaceByID(requestedWorkspaceID);
+            pWorkspace = g_pCompositor->getWorkspaceByID(requestedWorkspaceID);
 
             if (!pWorkspace)
                 pWorkspace = g_pCompositor->createNewWorkspace(requestedWorkspaceID, monitorID(), requestedWorkspaceName, false);
-
-            PWORKSPACE = pWorkspace;
 
             m_workspace = pWorkspace;
             m_monitor   = pWorkspace->m_monitor;
@@ -2073,10 +2071,10 @@ void CWindow::mapWindow() {
             if (!workspaceSilent) {
                 if (pWorkspace->m_isSpecialWorkspace)
                     pWorkspace->m_monitor->setSpecialWorkspace(pWorkspace);
-                else if (PMONITOR->activeWorkspaceID() != requestedWorkspaceID && !m_noInitialFocus) // NOLINTNEXTLINE
-                    Config::Actions::changeWorkspace(requestedWorkspaceName);
+                else if (pMonitor->activeWorkspaceID() != requestedWorkspaceID && !m_noInitialFocus) // NOLINTNEXTLINE
+                    Config::Actions::changeWorkspace(pWorkspace);
 
-                PMONITOR = Desktop::focusState()->monitor();
+                pMonitor = Desktop::focusState()->monitor();
             }
 
             requestedFSMonitor = MONITOR_INVALID;
@@ -2092,12 +2090,12 @@ void CWindow::mapWindow() {
 
         const auto PMONITORFROMID = m_monitor.lock();
 
-        if (m_monitor != PMONITOR) { // NOLINTNEXTLINE
+        if (m_monitor != pMonitor) { // NOLINTNEXTLINE
             Config::Actions::focusMonitor(PMONITORFROMID);
-            PMONITOR = PMONITORFROMID;
+            pMonitor = PMONITORFROMID;
         }
-        m_workspace = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
-        PWORKSPACE  = m_workspace;
+        m_workspace = pMonitor->m_activeSpecialWorkspace ? pMonitor->m_activeSpecialWorkspace : pMonitor->m_activeWorkspace;
+        pWorkspace  = m_workspace;
 
         Log::logger->log(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
     }
@@ -2109,7 +2107,7 @@ void CWindow::mapWindow() {
         m_swallowed->m_currentlySwallowed = true;
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
-    g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
+    g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), pWorkspace->m_name, m_class, m_title)});
     Event::bus()->m_events.window.openEarly.emit(m_self.lock());
 
     if (*PAUTOGROUP                                                                        // auto_group enabled
@@ -2247,7 +2245,7 @@ void CWindow::mapWindow() {
 
     m_firstMap = false;
 
-    Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", PMONITOR->m_name, m_realPosition->goal(), m_realSize->goal());
+    Log::logger->log(Log::DEBUG, "Map request dispatched, monitor {}, window pos: {:5j}, window size: {:5j}", pMonitor->m_name, m_realPosition->goal(), m_realSize->goal());
 
     // emit the hook event here after basic stuff has been initialized
     Event::bus()->m_events.window.open.emit(m_self.lock());
@@ -2266,11 +2264,11 @@ void CWindow::mapWindow() {
     // recalc the values for this window
     updateDecorationValues();
     // avoid this window being visible
-    if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
+    if (pWorkspace->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
 
-    g_pCompositor->setPreferredScaleForSurface(wlSurface()->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(wlSurface()->resource(), PMONITOR->m_transform);
+    g_pCompositor->setPreferredScaleForSurface(wlSurface()->resource(), pMonitor->m_scale);
+    g_pCompositor->setPreferredTransformForSurface(wlSurface()->resource(), pMonitor->m_transform);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();
@@ -2281,10 +2279,10 @@ void CWindow::mapWindow() {
     if (m_workspace)
         m_workspace->updateWindows();
 
-    if (PMONITOR && isX11OverrideRedirect()) {
+    if (pMonitor && isX11OverrideRedirect()) {
         static auto PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
         if (*PXWLFORCESCALEZERO)
-            m_X11SurfaceScaledBy = PMONITOR->m_scale;
+            m_X11SurfaceScaledBy = pMonitor->m_scale;
     }
 }
 

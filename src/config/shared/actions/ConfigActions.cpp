@@ -809,6 +809,8 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
             parsePropTrivial(PWINDOW->m_ruleApplicator->noScreenShare(), VAL);
         else if (PROP == "no_vrr")
             parsePropTrivial(PWINDOW->m_ruleApplicator->noVRR(), VAL);
+        else if (PROP == "no_auto_hdr")
+            parsePropTrivial(PWINDOW->m_ruleApplicator->noAutoHDR(), VAL);
         else if (PROP == "persistent_size")
             parsePropTrivial(PWINDOW->m_ruleApplicator->persistentSize(), VAL);
         else if (PROP == "stay_focused")

@@ -16,7 +16,7 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
         lastSafeMode = g_pCompositor->m_safeMode;
 
         if (g_pCompositor->m_safeMode)
-            return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string(), .type = CONFIG_TYPE_SPECIAL};
+            return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.lua").string(), .type = CONFIG_TYPE_SPECIAL};
 
         if (!g_pCompositor->m_explicitConfigPath.empty())
             return SConfigStateReply{.path = g_pCompositor->m_explicitConfigPath, .type = CONFIG_TYPE_EXPLICIT};

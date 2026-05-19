@@ -41,10 +41,10 @@ For dispatchers without parameters it can be anything.
 Returns: \f[I]ok\f[R] on success, and an error message on failure.
 .TP
 Examples:
-\f[B]hyprctl\f[R] \f[I]dispatch exec kitty\f[R]
+\f[B]hyprctl\f[R] \f[I]dispatch "hl.dsp.exec_cmd('kitty')"\f[R]
 .RS
 .PP
-\f[B]hyprctl\f[R] \f[I]dispatch pseudo x\f[R]
+\f[B]hyprctl\f[R] \f[I]dispatch "hl.dsp.window.close()"\f[R]
 .RE
 .RE
 .PP
@@ -52,6 +52,7 @@ Examples:
 .RS
 .PP
 Set a config keyword dynamically.
+This will not work if your config provider is lua.
 .PP
 Returns: \f[I]ok\f[R] on success, and an error message on failure.
 .TP

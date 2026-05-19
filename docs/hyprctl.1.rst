@@ -29,13 +29,15 @@ CONTROL COMMANDS
     Returns: *ok* on success, and an error message on failure.
 
     Examples:
-        **hyprctl** *dispatch exec kitty*
+        **hyprctl** *dispatch "hl.dsp.exec_cmd('kitty')"*
 
-        **hyprctl** *dispatch pseudo x*
+        **hyprctl** *dispatch "hl.dsp.window.close()"*
 
 **keyword**
 
     Set a config keyword dynamically.
+
+    This will not work if your config provider is lua.
 
     Returns: *ok* on success, and an error message on failure.
 

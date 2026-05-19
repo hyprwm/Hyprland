@@ -161,7 +161,13 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
                 continue;
 
             k->sendEnter(surf, &keys);
-            k->sendMods(m_keyboard->m_modifiersState.depressed, m_keyboard->m_modifiersState.latched, m_keyboard->m_modifiersState.locked, m_keyboard->m_modifiersState.group);
+            uint32_t locked = m_keyboard->m_modifiersState.locked;
+            for (auto const& kb : g_pInputManager->m_keyboards) {
+                if (!kb->m_enabled || !kb->shareStates() || (kb->isVirtual() && g_pInputManager->shouldIgnoreVirtualKeyboard(kb)))
+                    continue;
+                locked |= kb->m_modifiersState.locked;
+            }
+            k->sendMods(m_keyboard->m_modifiersState.depressed, m_keyboard->m_modifiersState.latched, locked, m_keyboard->m_modifiersState.group);
         }
     }
 

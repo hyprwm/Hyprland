@@ -772,6 +772,8 @@ I18n::CI18nEngine::CI18nEngine() {
 
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Un'applicazione <b>{app}</b> richiede un'autorizzazione sconosciuta.");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Un'applicazione <b>{app}</b> sta provando a catturare il tuo schermo.\n\nVuoi permetterglielo?");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS,
+                            "Un'applicazione <b>{app}</b> sta provando a leggere la posizione del cursore.\n\nVuoi permetterglielo?");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
                             "Un'applicazione <b>{app}</b> sta provando a caricare un plugin: <b>{plugin}</b>.\n\nVuoi permetterglielo?");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "È stata rilevata una nuova tastiera: <b>{keyboard}</b>.\n\nLe vuoi permettere di operare?");

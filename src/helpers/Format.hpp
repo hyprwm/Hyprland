@@ -17,5 +17,4 @@ namespace NFormatUtils {
     bool        isFormatYUV(uint32_t drmFormat);
     std::string drmFormatName(DRMFormat drm);
     std::string drmModifierName(uint64_t mod);
-    DRMFormat   alphaFormat(DRMFormat prevFormat);
 };

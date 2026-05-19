@@ -114,6 +114,7 @@ namespace Desktop::Rule {
         DEFINE_PROP(bool, noFollowMouse, false, WINDOW_RULE_EFFECT_NO_FOLLOW_MOUSE)
         DEFINE_PROP(bool, noScreenShare, false, WINDOW_RULE_EFFECT_NO_SCREEN_SHARE)
         DEFINE_PROP(bool, noVRR, false, WINDOW_RULE_EFFECT_NO_VRR)
+        DEFINE_PROP(bool, noAutoHDR, false, WINDOW_RULE_EFFECT_NO_AUTO_HDR)
         DEFINE_PROP(bool, persistentSize, false, WINDOW_RULE_EFFECT_PERSISTENT_SIZE)
         DEFINE_PROP(bool, stayFocused, false, WINDOW_RULE_EFFECT_STAY_FOCUSED)
         DEFINE_PROP(bool, confinePointer, false, WINDOW_RULE_EFFECT_CONFINE_POINTER)

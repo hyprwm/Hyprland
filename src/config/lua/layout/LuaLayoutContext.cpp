@@ -2,12 +2,14 @@
 
 #include "LuaLayoutTarget.hpp"
 #include "../bindings/LuaBindingsInternal.hpp"
+#include "../bindings/Check.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <string_view>
 
 using namespace Config::Lua::Layouts;
+using namespace Config::Lua;
 
 void Config::Lua::Layouts::pushBox(lua_State* L, const CBox& box) {
     lua_newtable(L);
@@ -61,39 +63,63 @@ static size_t targetCountFromContext(lua_State* L, int idx) {
 
 static int ctxGridCell(lua_State* L) {
     const auto AREA = areaFromContext(L, 1);
-    const int  i    = std::max(1, sc<int>(luaL_checkinteger(L, 2)));
-    const int  cols = std::max(1, sc<int>(luaL_checkinteger(L, 3)));
-    int        rows = 0;
+    const auto i    = Bindings::Check::integer(L, 2);
+    if (!i)
+        return Bindings::Internal::configError(L, std::format("grid_cell: bad argument 2: {}", i.error()));
+
+    const auto cols = Bindings::Check::integer(L, 3);
+    if (!cols)
+        return Bindings::Internal::configError(L, std::format("grid_cell: bad argument 3: {}", cols.error()));
+
+    const int index = std::max(1, sc<int>(*i));
+    const int width = std::max(1, sc<int>(*cols));
+    int       rows  = 0;
 
     if (lua_gettop(L) >= 4 && lua_isnumber(L, 4))
         rows = std::max(1, sc<int>(lua_tointeger(L, 4)));
     else {
         const auto count = std::max<size_t>(1, targetCountFromContext(L, 1));
-        rows             = std::max(1, sc<int>(std::ceil(sc<double>(count) / sc<double>(cols))));
+        rows             = std::max(1, sc<int>(std::ceil(sc<double>(count) / sc<double>(width))));
     }
 
-    const int row = (i - 1) / cols;
-    const int col = (i - 1) % cols;
+    const int row = (index - 1) / width;
+    const int col = (index - 1) % width;
 
-    pushBox(L, CBox{AREA.x + AREA.w * col / cols, AREA.y + AREA.h * row / rows, AREA.w / cols, AREA.h / rows}.noNegativeSize());
+    pushBox(L, CBox{AREA.x + AREA.w * col / width, AREA.y + AREA.h * row / rows, AREA.w / width, AREA.h / rows}.noNegativeSize());
     return 1;
 }
 
 static int ctxColumn(lua_State* L) {
     const auto AREA = areaFromContext(L, 1);
-    const int  i    = std::max(1, sc<int>(luaL_checkinteger(L, 2)));
-    const int  n    = std::max(1, sc<int>(luaL_checkinteger(L, 3)));
+    const auto i    = Bindings::Check::integer(L, 2);
+    if (!i)
+        return Bindings::Internal::configError(L, std::format("column: bad argument 2: {}", i.error()));
 
-    pushBox(L, CBox{AREA.x + AREA.w * (i - 1) / n, AREA.y, AREA.w / n, AREA.h}.noNegativeSize());
+    const auto n = Bindings::Check::integer(L, 3);
+    if (!n)
+        return Bindings::Internal::configError(L, std::format("column: bad argument 3: {}", n.error()));
+
+    const int index = std::max(1, sc<int>(*i));
+    const int count = std::max(1, sc<int>(*n));
+
+    pushBox(L, CBox{AREA.x + AREA.w * (index - 1) / count, AREA.y, AREA.w / count, AREA.h}.noNegativeSize());
     return 1;
 }
 
 static int ctxRow(lua_State* L) {
     const auto AREA = areaFromContext(L, 1);
-    const int  i    = std::max(1, sc<int>(luaL_checkinteger(L, 2)));
-    const int  n    = std::max(1, sc<int>(luaL_checkinteger(L, 3)));
+    const auto i    = Bindings::Check::integer(L, 2);
+    if (!i)
+        return Bindings::Internal::configError(L, std::format("row: bad argument 2: {}", i.error()));
 
-    pushBox(L, CBox{AREA.x, AREA.y + AREA.h * (i - 1) / n, AREA.w, AREA.h / n}.noNegativeSize());
+    const auto n = Bindings::Check::integer(L, 3);
+    if (!n)
+        return Bindings::Internal::configError(L, std::format("row: bad argument 3: {}", n.error()));
+
+    const int index = std::max(1, sc<int>(*i));
+    const int count = std::max(1, sc<int>(*n));
+
+    pushBox(L, CBox{AREA.x, AREA.y + AREA.h * (index - 1) / count, AREA.w, AREA.h / count}.noNegativeSize());
     return 1;
 }
 
@@ -102,17 +128,23 @@ static int ctxSplit(lua_State* L) {
     if (!boxFromTable(L, 2, area))
         return Config::Lua::Bindings::Internal::configError(L, "ctx:split expects a box table as first argument");
 
-    const std::string_view side  = luaL_checkstring(L, 3);
-    const double           ratio = std::clamp(luaL_checknumber(L, 4), 0.0, 1.0);
+    const auto side = Config::Lua::Bindings::Check::string(L, 1);
+    if (!side)
+        return Config::Lua::Bindings::Internal::configError(L, std::format("split: bad argument 1: {}", side.error()));
+    const auto ratio = Bindings::Check::number(L, 4);
+    if (!ratio)
+        return Bindings::Internal::configError(L, std::format("split: bad argument 4: {}", ratio.error()));
 
-    if (side == "left")
-        pushBox(L, CBox{area.x, area.y, area.w * ratio, area.h}.noNegativeSize());
-    else if (side == "right")
-        pushBox(L, CBox{area.x + area.w * (1.0 - ratio), area.y, area.w * ratio, area.h}.noNegativeSize());
-    else if (side == "top" || side == "up")
-        pushBox(L, CBox{area.x, area.y, area.w, area.h * ratio}.noNegativeSize());
-    else if (side == "bottom" || side == "down")
-        pushBox(L, CBox{area.x, area.y + area.h * (1.0 - ratio), area.w, area.h * ratio}.noNegativeSize());
+    const double clampedRatio = std::clamp(*ratio, 0.0, 1.0);
+
+    if (*side == "left")
+        pushBox(L, CBox{area.x, area.y, area.w * clampedRatio, area.h}.noNegativeSize());
+    else if (*side == "right")
+        pushBox(L, CBox{area.x + area.w * (1.0 - clampedRatio), area.y, area.w * clampedRatio, area.h}.noNegativeSize());
+    else if (*side == "top" || *side == "up")
+        pushBox(L, CBox{area.x, area.y, area.w, area.h * clampedRatio}.noNegativeSize());
+    else if (*side == "bottom" || *side == "down")
+        pushBox(L, CBox{area.x, area.y + area.h * (1.0 - clampedRatio), area.w, area.h * clampedRatio}.noNegativeSize());
     else
         return Config::Lua::Bindings::Internal::configError(L, "ctx:split side must be left, right, top, or bottom");
 

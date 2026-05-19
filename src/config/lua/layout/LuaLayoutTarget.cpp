@@ -4,6 +4,7 @@
 #include "../bindings/LuaBindingsInternal.hpp"
 #include "../objects/LuaObjectHelpers.hpp"
 #include "../objects/LuaWindow.hpp"
+#include "../bindings/Check.hpp"
 
 #include "../../../layout/target/Target.hpp"
 
@@ -36,26 +37,29 @@ static int layoutTargetPlace(lua_State* L) {
 }
 
 static int layoutTargetIndex(lua_State* L) {
-    auto*                  ref = sc<SLuaLayoutTargetRef*>(luaL_checkudata(L, 1, TARGET_MT));
-    const std::string_view key = luaL_checkstring(L, 2);
+    auto*      ref = sc<SLuaLayoutTargetRef*>(luaL_checkudata(L, 1, TARGET_MT));
 
-    auto                   target = ref->target.lock();
+    const auto key = Bindings::Check::string(L, 2);
+    if (!key)
+        return Bindings::Internal::configError(L, std::format("HL.LayoutTarget.__index: bad argument 2: {}", key.error()));
+
+    auto target = ref->target.lock();
     if (!target) {
         lua_pushnil(L);
         return 1;
     }
 
-    if (key == "index")
+    if (*key == "index")
         lua_pushinteger(L, sc<lua_Integer>(ref->index));
-    else if (key == "window") {
+    else if (*key == "window") {
         const auto window = target->window();
         if (window)
             Objects::CLuaWindow::push(L, window);
         else
             lua_pushnil(L);
-    } else if (key == "box")
+    } else if (*key == "box")
         pushBox(L, target->position());
-    else if (key == "place" || key == "set_box")
+    else if (*key == "place" || *key == "set_box")
         lua_pushcfunction(L, layoutTargetPlace);
     else
         lua_pushnil(L);

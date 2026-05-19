@@ -156,14 +156,14 @@ namespace Layout::Tiled {
         };
 
         void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target);
+        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
         SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
         bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
         float                               fullscreenColumnWidth() const;
         bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
         void                                updateFullscreenFade(bool coversMonitor);
-        void                                clearFullscreenTarget(SP<ITarget> target = nullptr);
+        void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);
@@ -177,6 +177,7 @@ namespace Layout::Tiled {
         float                               defaultColumnWidth();
 
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
+        std::vector<SFullscreenScrollState> m_maximizeTargets;
         bool                                m_lastFullscreenCover = false;
 
         friend struct SScrollingData;

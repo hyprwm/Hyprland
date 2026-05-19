@@ -405,10 +405,14 @@ MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
-PHLWINDOW CWorkspace::getFullscreenWindow() {
+PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->isFullscreen())
+        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
+            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
+                continue;
+
             return w;
+        }
     }
 
     return nullptr;

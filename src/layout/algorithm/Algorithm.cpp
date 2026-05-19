@@ -113,8 +113,9 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
 
     if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
-
+        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow(false);
+        // prevent tiled fullscreen scrolling window from being brought into view when fullscreening a floating window in the same workspace.
+        // TODO: this is a patch. Recommend handling setting of fullscreen windows's size and position in their fullscreen functions and removing this hack entirely.
         if (PFULLWINDOW) {
             if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
                 *PFULLWINDOW->m_realPosition = PMONITOR->m_position;

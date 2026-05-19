@@ -63,7 +63,7 @@ void CWindowTarget::updatePos() {
 
     // if we are in maximized, force the box to be max work area.
     // TODO: this shouldn't be here.
-    if (fullscreenMode() == FSMODE_MAXIMIZED)
+    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen())
         ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
 
     if (!m_space->workspace())
@@ -83,7 +83,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && layoutManagedFullscreen()) {
+    if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();

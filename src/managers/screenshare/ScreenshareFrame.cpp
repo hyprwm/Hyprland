@@ -12,9 +12,17 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
 #include "../../render/pass/RectPassElement.hpp"
+#include "debug/log/Logger.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "helpers/cm/ColorManagement.hpp"
+#include "helpers/time/Time.hpp"
+#include "protocols/WaylandProtocol.hpp"
+#include "render/types.hpp"
+#include <glib.h>
+#include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprgraphics/egl/Egl.hpp>
+#include <wayland-server-protocol.h>
 
 using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
@@ -50,6 +58,9 @@ bool CScreenshareFrame::done() const {
         return true;
 
     if (m_session->m_type == SHARE_WINDOW && (!m_session->monitor() || !validMapped(m_session->m_window)))
+        return true;
+    
+    if(m_session->m_type == SHARE_WORKSPACE && (!m_session->monitor()))
         return true;
 
     if (!m_shared)
@@ -188,8 +199,8 @@ void CScreenshareFrame::renderMonitor() {
 
     // render monitor texture
     CBox       monbox = CBox{{}, PMONITOR->m_pixelSize}
-                            .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
-                            .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
+                        .transform(Math::wlTransformToHyprutils(Math::invertTransform(PMONITOR->m_transform)), PMONITOR->m_pixelSize.x, PMONITOR->m_pixelSize.y)
+                        .translate(-m_session->m_captureBox.pos()); // vvvv kinda ass-backwards but that's how I designed the renderer... sigh.
 
     const auto OLD                                    = g_pHyprRenderer->m_renderData.renderModif.enabled;
     g_pHyprRenderer->m_renderData.renderModif.enabled = false;
@@ -341,6 +352,44 @@ void CScreenshareFrame::renderWindow() {
     g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal() - PWINDOW->m_realPosition->value(), true);
 }
 
+void CScreenshareFrame::renderWorkspace() {
+    if(m_session->m_type != SHARE_WORKSPACE || done())
+        return;
+
+    const auto PWORKSPACE = m_session->m_workspace.lock();
+    if (!PWORKSPACE || PWORKSPACE->inert())
+        return;
+    
+    const auto PMONITOR = PWORKSPACE->m_monitor.lock();
+    if (!PMONITOR) {
+        LOGM(Log::ERR, "renderWorkspace: no monitor");
+        return;
+    }
+    
+    const auto NOW = Time::steadyNow();
+
+    g_pHyprRenderer->m_renderData.fbSize = m_bufferSize;
+    g_pHyprRenderer->setProjectionType(Render::RPT_EXPORT);
+    g_pHyprRenderer->m_renderData.transformDamage = false;
+    g_pHyprRenderer->setViewport(0, 0, m_bufferSize.x, m_bufferSize.y);
+
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = PWORKSPACE->isVisible();
+
+    //g_pHyprRenderer->renderWorkspaceWindows(PMONITOR, PWORKSPACE, NOW);
+    //g_pHyprRenderer->renderBackground(PMONITOR);
+    //for(auto const& w : g_pCompositor->m_windows) {
+    //    if(!w->m_isMapped || w->isHidden()) 
+    //        continue;
+
+    //    if(w->m_workspace != PWORKSPACE) 
+    //        continue;
+
+    //    g_pHyprRenderer->renderWindow(w, PMONITOR, NOW, false, Render::RENDER_PASS_ALL, false, true);
+    //}
+    g_pHyprRenderer->renderWorkspaceOffScreen(PMONITOR, PWORKSPACE, NOW);
+    g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+}
+
 void CScreenshareFrame::render() {
     const auto PERM = g_pDynamicPermissionManager->clientPermissionMode(m_session->m_client, PERMISSION_TYPE_SCREENCOPY);
 
@@ -370,6 +419,7 @@ void CScreenshareFrame::render() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_WORKSPACE: renderWorkspace(); break;
         case SHARE_NONE:
         default: return;
     }
@@ -464,6 +514,7 @@ void CScreenshareFrame::storeTempFB() {
         case SHARE_REGION: // TODO: could this be better? this is how screencopy works
         case SHARE_MONITOR: renderMonitor(); break;
         case SHARE_WINDOW: renderWindow(); break;
+        case SHARE_WORKSPACE: renderWorkspace(); break; 
         case SHARE_NONE:
         default: return;
     }
@@ -481,6 +532,7 @@ wl_output_transform CScreenshareFrame::transform() const {
         case SHARE_MONITOR: return m_session->monitor()->m_transform;
         default:
         case SHARE_WINDOW: return WL_OUTPUT_TRANSFORM_NORMAL;
+        case SHARE_WORKSPACE: return WL_OUTPUT_TRANSFORM_NORMAL; 
     }
 }
 

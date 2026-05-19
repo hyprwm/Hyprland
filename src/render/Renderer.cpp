@@ -51,6 +51,7 @@
 #include "./pass/PreBlurElement.hpp"
 #include "types.hpp"
 #include <hyprgraphics/color/Color.hpp>
+#include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
 #include <hyprutils/math/Region.hpp>
 #include <hyprutils/math/Vector2D.hpp>
@@ -523,6 +524,182 @@ void IHyprRenderer::bindOffMain() {
 
 void IHyprRenderer::bindBackOnMain() {
     bindFB(m_renderData.mainFB);
+}
+
+void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+
+    if (!pMonitor || !pWorkspace || !pWorkspace->isPersistent())
+        return;
+
+    renderBackground(pMonitor);
+
+    for (auto const& w : g_pCompositor->m_windows) {
+
+        if (!w->m_isMapped)
+            continue;
+
+        // intentionally DO NOT skip hidden windows
+        if (w->m_workspace != pWorkspace)
+            continue;
+
+        if (!w->wlSurface() || !w->wlSurface()->resource())
+            continue;
+
+        CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
+
+        const auto REALPOS = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : pWorkspace->m_renderOffset->value());
+
+        CBox textureBox = {
+            REALPOS.x,
+            REALPOS.y,
+            std::max(w->m_realSize->value().x, 5.0),
+            std::max(w->m_realSize->value().y, 5.0)
+        };
+
+        renderdata.pos = textureBox.pos();
+        renderdata.w   = textureBox.w;
+        renderdata.h   = textureBox.h;
+
+        renderdata.surface = w->wlSurface()->resource();
+
+        renderdata.dontRound =
+            w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+
+        renderdata.fadeAlpha = 1.f;
+        renderdata.alpha     = 1.f;
+
+        renderdata.decorate = !w->m_X11DoesntWantBorders && !renderdata.dontRound;
+
+        renderdata.rounding = renderdata.dontRound ? 0 : w->rounding() * pMonitor->m_scale;
+
+        renderdata.roundingPower = renderdata.dontRound ?  2.f : w->roundingPower();
+
+        renderdata.blur    = shouldBlur(w);
+        renderdata.pWindow = w;
+        //renderdata.clipBox = geometry;
+
+        CRegion rg =
+            w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() + w->m_floatingOffset).scale(pMonitor->m_scale);
+        renderdata.clipBox = rg.getExtents();
+
+        const bool TRANSFORMERS = !w->m_transformers.empty();
+
+        if (TRANSFORMERS) {
+            bindOffMain();
+
+            for (auto const& t : w->m_transformers)
+                t->preWindowRender(&renderdata);
+        }
+
+        // decorations under
+        if (renderdata.decorate) {
+
+            for (auto const& wd : w->m_windowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_BOTTOM)
+                    continue;
+                wd->draw(pMonitor, 1.f);
+            }
+
+            for (auto const& wd : w->m_windowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_UNDER)
+                    continue;
+                wd->draw(pMonitor, 1.f);
+            }
+        }
+
+        // main surfaces
+        renderdata.surfaceCounter = 0;
+        w->wlSurface()->resource()->breadthfirst(
+            [this, &renderdata, &w]( SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+
+                if (!s->m_current.texture)
+                    return;
+
+                if (s->m_current.size.x < 1 ||
+                    s->m_current.size.y < 1)
+                    return;
+
+                renderdata.localPos    = offset;
+                renderdata.texture     = s->m_current.texture;
+                renderdata.surface     = s;
+                renderdata.mainSurface = s == w->wlSurface()->resource();
+
+                m_renderPass.add( makeUnique<CSurfacePassElement>(renderdata));
+                renderdata.surfaceCounter++;
+            },
+            nullptr);
+
+        // decorations over
+        if (renderdata.decorate) {
+
+            for (auto const& wd : w->m_windowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_OVER)
+                    continue;
+                wd->draw(pMonitor, 1.f);
+            }
+        }
+
+        // transformers
+        if (TRANSFORMERS) {
+            SP<IFramebuffer> last = m_renderData.currentFB;
+
+            for (auto const& t : w->m_transformers)
+                last = t->transform(last);
+
+            bindBackOnMain();
+            renderOffToMain(last);
+        }
+
+        // popup rendering
+        if (!w->m_isX11 && w->m_popupHead) {
+
+            CBox geom = w->m_xdgSurface->m_current.geometry;
+
+            renderdata.pos -= geom.pos();
+
+            renderdata.dontRound       = true;
+            renderdata.popup           = true;
+            renderdata.squishOversized = false;
+
+            w->m_popupHead->breadthfirst(
+                [this, &renderdata]( WP<Desktop::View::CPopup> popup, void* data) {
+                    if (!popup->aliveAndVisible())
+                        return;
+
+                    const auto pos = popup->coordsRelativeToParent();
+
+                    const auto OLDPOS = renderdata.pos;
+
+                    renderdata.pos += pos;
+
+                    popup->wlSurface()->resource()->breadthfirst(
+                        [this, &renderdata]( SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
+
+                            if (!s->m_current.texture)
+                                return;
+
+                            renderdata.localPos    = offset;
+                            renderdata.texture     = s->m_current.texture;
+                            renderdata.surface     = s;
+                            renderdata.mainSurface = false;
+
+                            m_renderPass.add( makeUnique<CSurfacePassElement>( renderdata));
+                        }, data);
+
+                    renderdata.pos = OLDPOS;
+                },
+                &renderdata);
+        }
+
+        // overlay decorations
+        if (renderdata.decorate) {
+            for (auto const& wd : w->m_windowDecorations) {
+                if (wd->getDecorationLayer() != DECORATION_LAYER_OVERLAY)
+                    continue;
+                wd->draw(pMonitor, 1.f);
+            }
+        }
+    }
 }
 
 void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {

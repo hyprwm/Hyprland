@@ -638,7 +638,10 @@ static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
         g_pKeybindManager->m_currentKeybind->releasePending = true;
 
-    return Internal::checkResult(L, CA::mouse("resizewindow"));
+    auto paramRaw = lua_tostring(L, lua_upvalueindex(1));
+    auto param = paramRaw == nullptr ? "0" : std::string(paramRaw);
+
+    return Internal::checkResult(L, CA::mouse("resizewindow " + param));
 }
 
 static int hlWindowClose(lua_State* L) {
@@ -1014,13 +1017,13 @@ static int hlWindowDrag(lua_State* L) {
 }
 
 static int hlWindowResize(lua_State* L) {
-    if (lua_gettop(L) == 0 || lua_isnil(L, 1)) {
-        lua_pushcclosure(L, dsp_mouseResize, 0);
+    if (lua_gettop(L) == 0 || lua_isnil(L, 1) || lua_isnumber(L, 1)) {
+        lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }
 
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.window.resize: expected no args, or a table { x, y, relative?, window? }");
+        return Internal::configError(L, "hl.window.resize: expected no args, a number, or a table { x, y, relative?, window? }");
 
     return hlWindowResizeExact(L);
 }

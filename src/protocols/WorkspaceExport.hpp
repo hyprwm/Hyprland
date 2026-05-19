@@ -22,14 +22,13 @@ class CWorkspaceExportClient {
     SP<CHyprlandWorkspaceExportManagerV1> m_resource;
     WP<CWorkspaceExportClient>            m_self;
 
-    wl_client* m_savedClient = nullptr;
+    wl_client*                            m_savedClient = nullptr;
 
     // CHANGED: Takes a workspaceName instead of a PHLWINDOW handle
     void captureWorkspace(uint32_t frame, int32_t overlayCursor, PHLWORKSPACE workspace);
 
     friend class CWorkspaceExportProtocol;
 };
-
 
 class CWorkspaceExportFrame {
   public:
@@ -48,12 +47,11 @@ class CWorkspaceExportFrame {
     CHLBufferReference                   m_buffer;
     Time::steady_tp                      m_timestamp;
 
-    void shareFrame(wl_resource* buffer, bool ignoreDamage);
+    void                                 shareFrame(wl_resource* buffer, bool ignoreDamage);
 
     friend class CWorkspaceExportProtocol;
     friend class CWorkspaceExportClient;
 };
-
 
 class CWorkspaceExportProtocol : public IWaylandProtocol {
   public:

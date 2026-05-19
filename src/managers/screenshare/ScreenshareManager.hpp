@@ -70,7 +70,7 @@ namespace Screenshare {
         eScreenshareType         m_type = SHARE_NONE;
         PHLMONITORREF            m_monitor;
         PHLWINDOWREF             m_window;
-        PHLWORKSPACEREF          m_workspace; //the current active workspace
+        PHLWORKSPACEREF          m_workspace;       //the current active workspace
         CBox                     m_captureBox = {}; // given capture area in logical coordinates (see xdg_output)
 
         wl_client*               m_client = nullptr;
@@ -91,8 +91,8 @@ namespace Screenshare {
             CHyprSignalListener windowSizeChanged;
             CHyprSignalListener windowMonitorChanged;
             CHyprSignalListener workspaceDestroyed;
-            CHyprSignalListener workspaceActiveChanged; //Keep rendering
-            CHyprSignalListener workspaceMonitorChanged; //Don't know what to do yet, I think we can just keep rendering 
+            CHyprSignalListener workspaceActiveChanged;  //Keep rendering
+            CHyprSignalListener workspaceMonitorChanged; //Don't know what to do yet, I think we can just keep rendering
         } m_listeners;
 
         void screenshareEvents(bool started);
@@ -251,12 +251,11 @@ template <>
 struct std::formatter<Screenshare::eScreenshareType> : std::formatter<std::string> {
     auto format(const Screenshare::eScreenshareType& res, std::format_context& ctx) const {
         switch (res) {
-            case Screenshare::SHARE_MONITOR:    return formatter<string>::format("monitor", ctx);
-            case Screenshare::SHARE_WINDOW:     return formatter<string>::format("window", ctx);
-            case Screenshare::SHARE_REGION:     return formatter<string>::format("region", ctx);
-            case Screenshare::SHARE_WORKSPACE:  return formatter<string>::format("workspace", ctx);
-            case Screenshare::SHARE_NONE:       return formatter<string>::format("ERR NONE", ctx);
-          
+            case Screenshare::SHARE_MONITOR: return formatter<string>::format("monitor", ctx);
+            case Screenshare::SHARE_WINDOW: return formatter<string>::format("window", ctx);
+            case Screenshare::SHARE_REGION: return formatter<string>::format("region", ctx);
+            case Screenshare::SHARE_WORKSPACE: return formatter<string>::format("workspace", ctx);
+            case Screenshare::SHARE_NONE: return formatter<string>::format("ERR NONE", ctx);
         }
         return formatter<string>::format("error", ctx);
     }

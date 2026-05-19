@@ -39,8 +39,8 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
                 return;
         }
 
-        if(frame->m_session->m_type == SHARE_WORKSPACE) {
-            if(frame->m_session->monitor() != monitor)
+        if (frame->m_session->m_type == SHARE_WORKSPACE) {
+            if (frame->m_session->monitor() != monitor)
                 return;
         }
         frame->copy();
@@ -103,7 +103,6 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWO
     m_sessions.emplace_back(session);
 
     return session;
-
 }
 
 UP<CCursorshareSession> CScreenshareManager::newCursorSession(wl_client* client, WP<CWLPointerResource> pointer) {
@@ -132,7 +131,8 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client
     return getManagedSession(SHARE_WORKSPACE, client, nullptr, workspace, nullptr, {});
 }
 
-WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWORKSPACE workspace, PHLWINDOW window, CBox captureBox) {
+WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWORKSPACE workspace, PHLWINDOW window,
+                                                               CBox captureBox) {
     if (type == SHARE_NONE)
         return {};
 

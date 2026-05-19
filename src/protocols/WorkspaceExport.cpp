@@ -30,7 +30,7 @@ CWorkspaceExportClient::CWorkspaceExportClient(SP<CHyprlandWorkspaceExportManage
     m_savedClient = m_resource->client();
 }
 
-void CWorkspaceExportClient::captureWorkspace(uint32_t frame, int32_t overlayCursor, PHLWORKSPACE workspace){
+void CWorkspaceExportClient::captureWorkspace(uint32_t frame, int32_t overlayCursor, PHLWORKSPACE workspace) {
 
     if UNLIKELY (!workspace) {
         LOGM(Log::ERR, "Couldn't capture (workspace doesn't exist)");
@@ -43,8 +43,7 @@ void CWorkspaceExportClient::captureWorkspace(uint32_t frame, int32_t overlayCur
 
     // create a frame
     const auto FRAME = PROTO::workspaceExport->m_frames.emplace_back(
-        makeShared<CWorkspaceExportFrame>(makeShared<CHyprlandWorkspaceExportFrameV1>(m_resource->client(), m_resource->version(), frame), session, 
-            !!overlayCursor));
+        makeShared<CWorkspaceExportFrame>(makeShared<CHyprlandWorkspaceExportFrameV1>(m_resource->client(), m_resource->version(), frame), session, !!overlayCursor));
 
     if UNLIKELY (!FRAME->good()) {
         LOGM(Log::ERR, "Couldn't alloc frame for sharing! (no memory)");
@@ -161,7 +160,7 @@ void CWorkspaceExportFrame::shareFrame(wl_resource* buffer, bool ignoreDamage) {
     }
 }
 
-CWorkspaceExportProtocol::CWorkspaceExportProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver,name) {
+CWorkspaceExportProtocol::CWorkspaceExportProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
     ;
 }
 
@@ -179,7 +178,7 @@ void CWorkspaceExportProtocol::bindManager(wl_client* client, void* data, uint32
     LOGM(Log::DEBUG, "Bound client successfully!");
 }
 
-void CWorkspaceExportProtocol::destroyResource(CWorkspaceExportClient* client){
+void CWorkspaceExportProtocol::destroyResource(CWorkspaceExportClient* client) {
     std::erase_if(m_frames, [&](const auto& other) { return other->m_client.get() == client; });
     std::erase_if(m_clients, [&](const auto& other) { return other.get() == client; });
 }
@@ -187,7 +186,3 @@ void CWorkspaceExportProtocol::destroyResource(CWorkspaceExportClient* client){
 void CWorkspaceExportProtocol::destroyResource(CWorkspaceExportFrame* frame) {
     std::erase_if(m_frames, [&](const auto& other) { return other.get() == frame; });
 }
-
-
-
-

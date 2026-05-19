@@ -526,7 +526,7 @@ void IHyprRenderer::bindBackOnMain() {
     bindFB(m_renderData.mainFB);
 }
 
-void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
 
     if (!pMonitor || !pWorkspace || !pWorkspace->isPersistent())
         return;
@@ -547,14 +547,9 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
 
         CSurfacePassElement::SRenderData renderdata = {pMonitor, time};
 
-        const auto REALPOS = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : pWorkspace->m_renderOffset->value());
+        const auto                       REALPOS = w->m_realPosition->value() + (w->m_pinned ? Vector2D{} : pWorkspace->m_renderOffset->value());
 
-        CBox textureBox = {
-            REALPOS.x,
-            REALPOS.y,
-            std::max(w->m_realSize->value().x, 5.0),
-            std::max(w->m_realSize->value().y, 5.0)
-        };
+        CBox                             textureBox = {REALPOS.x, REALPOS.y, std::max(w->m_realSize->value().x, 5.0), std::max(w->m_realSize->value().y, 5.0)};
 
         renderdata.pos = textureBox.pos();
         renderdata.w   = textureBox.w;
@@ -562,8 +557,7 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
 
         renderdata.surface = w->wlSurface()->resource();
 
-        renderdata.dontRound =
-            w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+        renderdata.dontRound = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
 
         renderdata.fadeAlpha = 1.f;
         renderdata.alpha     = 1.f;
@@ -572,14 +566,13 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
 
         renderdata.rounding = renderdata.dontRound ? 0 : w->rounding() * pMonitor->m_scale;
 
-        renderdata.roundingPower = renderdata.dontRound ?  2.f : w->roundingPower();
+        renderdata.roundingPower = renderdata.dontRound ? 2.f : w->roundingPower();
 
         renderdata.blur    = shouldBlur(w);
         renderdata.pWindow = w;
         //renderdata.clipBox = geometry;
 
-        CRegion rg =
-            w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() + w->m_floatingOffset).scale(pMonitor->m_scale);
+        CRegion rg         = w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() + w->m_floatingOffset).scale(pMonitor->m_scale);
         renderdata.clipBox = rg.getExtents();
 
         const bool TRANSFORMERS = !w->m_transformers.empty();
@@ -610,13 +603,11 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
         // main surfaces
         renderdata.surfaceCounter = 0;
         w->wlSurface()->resource()->breadthfirst(
-            [this, &renderdata, &w]( SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-
+            [this, &renderdata, &w](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                 if (!s->m_current.texture)
                     return;
 
-                if (s->m_current.size.x < 1 ||
-                    s->m_current.size.y < 1)
+                if (s->m_current.size.x < 1 || s->m_current.size.y < 1)
                     return;
 
                 renderdata.localPos    = offset;
@@ -624,7 +615,7 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == w->wlSurface()->resource();
 
-                m_renderPass.add( makeUnique<CSurfacePassElement>(renderdata));
+                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             nullptr);
@@ -662,7 +653,7 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
             renderdata.squishOversized = false;
 
             w->m_popupHead->breadthfirst(
-                [this, &renderdata]( WP<Desktop::View::CPopup> popup, void* data) {
+                [this, &renderdata](WP<Desktop::View::CPopup> popup, void* data) {
                     if (!popup->aliveAndVisible())
                         return;
 
@@ -673,8 +664,7 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
                     renderdata.pos += pos;
 
                     popup->wlSurface()->resource()->breadthfirst(
-                        [this, &renderdata]( SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
-
+                        [this, &renderdata](SP<CWLSurfaceResource> s, const Vector2D& offset, void* data) {
                             if (!s->m_current.texture)
                                 return;
 
@@ -683,8 +673,9 @@ void IHyprRenderer::renderWorkspaceOffScreen( PHLMONITOR pMonitor, PHLWORKSPACE 
                             renderdata.surface     = s;
                             renderdata.mainSurface = false;
 
-                            m_renderPass.add( makeUnique<CSurfacePassElement>( renderdata));
-                        }, data);
+                            m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                        },
+                        data);
 
                     renderdata.pos = OLDPOS;
                 },

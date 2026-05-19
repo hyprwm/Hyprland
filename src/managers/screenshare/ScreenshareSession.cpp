@@ -23,10 +23,13 @@ CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* clie
     if UNLIKELY (!m_workspace) {
         return;
     }
-    m_listeners.workspaceDestroyed = m_workspace->m_events.destroy.listen([this] {stop(); });
+    m_listeners.workspaceDestroyed      = m_workspace->m_events.destroy.listen([this] { stop(); });
     m_listeners.workspaceMonitorChanged = m_workspace->m_events.monitorChanged.listen([this] {
         const auto MON = m_workspace->m_monitor.lock();
-        if (!MON) { stop(); return; }
+        if (!MON) {
+            stop();
+            return;
+        }
 
         m_listeners.monitorDestroyed   = MON->m_events.disconnect.listen([this]() { stop(); });
         m_listeners.monitorModeChanged = MON->m_events.modeChanged.listen([this]() {
@@ -37,18 +40,16 @@ CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* clie
 
     m_listeners.workspaceActiveChanged = m_workspace->m_events.activeChanged.listen([this] {
         if (!m_workspace->isVisible()) {
-            //TODO: 
+            //TODO:
             LOGM(Log::ERR, "INSIDE: Active changed and the workspace is not visible");
-        }
-        else {
-            //TODO: 
+        } else {
+            //TODO:
             LOGM(Log::ERR, "INSIDE: Workspace visible again!");
         }
     });
 
     init();
 }
-
 
 CScreenshareSession::CScreenshareSession(PHLWINDOW window, wl_client* client) : m_type(SHARE_WINDOW), m_window(window), m_client(client) {
     if UNLIKELY (!m_window)
@@ -104,11 +105,9 @@ void CScreenshareSession::init() {
     uintptr_t ptr;
     if (m_type == SHARE_WINDOW && !m_window.expired()) {
         ptr = (uintptr_t)m_window.get();
-    }
-    else if (m_type == SHARE_WORKSPACE && !m_workspace.expired()) {
+    } else if (m_type == SHARE_WORKSPACE && !m_workspace.expired()) {
         ptr = (uintptr_t)m_workspace.get();
-    }
-    else {
+    } else {
         ptr = m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get();
     }
     LOGM(Log::TRACE, "Created screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);
@@ -213,7 +212,7 @@ PHLMONITOR CScreenshareSession::monitor() const {
         return nullptr;
     if (m_type == SHARE_WORKSPACE) {
         PHLMONITOR mon = m_workspace.lock()->m_monitor.lock();
-        if(mon) {
+        if (mon) {
             return mon;
         }
         return nullptr;

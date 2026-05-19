@@ -1899,7 +1899,7 @@ void CWindow::mapWindow() {
             else {
                 const auto ARGPOS  = MONITORSTR.find_last_of(' ');
                 monitorSilent      = ARGPOS != std::string::npos && MONITORSTR.substr(ARGPOS).contains("silent");
-                const auto MONITOR = g_pCompositor->getMonitorFromString(MONITORSTR.substr(0, ARGPOS));
+                const auto MONITOR = g_pCompositor->getMonitorFromString(monitorSilent ? MONITORSTR.substr(0, ARGPOS) : MONITORSTR);
 
                 if (MONITOR) {
                     m_monitor = MONITOR;

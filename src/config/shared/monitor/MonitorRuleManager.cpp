@@ -32,7 +32,14 @@ void CMonitorRuleManager::clear() {
 
 void CMonitorRuleManager::add(CMonitorRule&& x) {
     std::erase_if(m_rules, [&x](const auto& e) { return e.m_name == x.m_name; });
+    auto name = x.m_name;
     m_rules.emplace_back(std::move(x));
+
+    // A user-issued `monitor=` rule should take precedence over any state a
+    // wlr-output-management client (e.g. kanshi) cached for the same output.
+    // The cache repopulates the next time a wlr client commits, so this only
+    // resets the layered override; it doesn't break wlr-output-management.
+    PROTO::outputManagement->forgetMonitor(name);
 
     scheduleReload();
 }

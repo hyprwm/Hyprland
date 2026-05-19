@@ -654,6 +654,15 @@ SP<SWlrManagerSavedOutputState> COutputManagementProtocol::getOutputStateFor(PHL
     return nullptr;
 }
 
+void COutputManagementProtocol::forgetMonitor(const std::string& name) {
+    if (name.empty())
+        return;
+
+    for (auto const& m : m_managers) {
+        m->m_monitorStates.erase(name);
+    }
+}
+
 void COutputManagementProtocol::sendPendingSuccessEvents() {
     if (m_pendingConfigurationSuccessEvents.empty())
         return;

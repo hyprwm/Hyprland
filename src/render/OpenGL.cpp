@@ -1442,6 +1442,17 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     return shader;
 }
 
+static GLenum wrapModeToGl(const uint8_t wrapMode) {
+    if (wrapMode == CLAMP_TO_EDGE)
+        return GL_CLAMP_TO_EDGE;
+    else if (wrapMode == REPEAT)
+        return GL_REPEAT;
+    else {
+        RASSERT(false, "Invalid wrap mode")
+        return 0;
+    }
+}
+
 void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, const STextureRenderData& data) {
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT(tex, "Attempted to draw nullptr texture!");
@@ -1469,8 +1480,8 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     glActiveTexture(GL_TEXTURE0);
     tex->bind();
 
-    tex->setTexParameter(GL_TEXTURE_WRAP_S, data.wrapX);
-    tex->setTexParameter(GL_TEXTURE_WRAP_T, data.wrapY);
+    tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
+    tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapModeToGl(data.wrapY));
 
     if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
         tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);

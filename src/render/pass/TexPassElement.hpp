@@ -13,6 +13,11 @@ enum eDiscardMode : uint8_t {
     DISCARD_ALPHA  = 1 << 1
 };
 
+enum eWrapMode : uint8_t {
+    CLAMP_TO_EDGE,
+    REPEAT,
+};
+
 class CTexPassElement : public IPassElement {
   public:
     struct SRenderData {
@@ -36,7 +41,10 @@ class CTexPassElement : public IPassElement {
         bool                   allowCustomUV = false;
         SP<CWLSurfaceResource> surface       = nullptr;
 
-        uint32_t               discardMode    = DISCARD_OPAQUE;
+        uint8_t                wrapX = CLAMP_TO_EDGE;
+        uint8_t                wrapY = CLAMP_TO_EDGE;
+
+        uint8_t                discardMode    = DISCARD_OPAQUE;
         float                  discardOpacity = 0.f;
 
         CRegion                clipRegion;

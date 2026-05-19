@@ -53,6 +53,10 @@ static int monitorIndex(lua_State* L) {
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.x));
     else if (key == "height")
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.y));
+    else if (key == "physicalWidth")
+        lua_pushinteger(L, sc<int>(mon->m_output->physicalSize.x));
+    else if (key == "physicalHeight")
+        lua_pushinteger(L, sc<int>(mon->m_output->physicalSize.y));
     else if (key == "refresh_rate")
         lua_pushnumber(L, mon->m_refreshRate);
     else if (key == "x")

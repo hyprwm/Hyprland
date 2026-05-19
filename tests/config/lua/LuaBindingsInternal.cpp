@@ -303,6 +303,27 @@ TEST(ConfigLuaBindingsInternal, pluginBindingIsTableWithLoadFunction) {
     lua_pop(L, 2);
 }
 
+TEST(ConfigLuaBindingsInternal, getMonitorsReadsOptionsFromArguments) {
+    CLuaState  state;
+    const auto lua = state.get();
+
+    lua_newtable(lua);
+    Internal::registerQueryBindings(lua);
+    lua_setglobal(lua, "hl");
+
+    ASSERT_EQ(luaL_dostring(lua, R"(
+        assert(type(hl.get_monitors()) == "table")
+        assert(type(hl.get_monitors(nil)) == "table")
+        assert(type(hl.get_monitors({})) == "table")
+        assert(type(hl.get_monitors({ all = false })) == "table")
+        assert(type(hl.get_monitors({ all = true })) == "table")
+        assert(hl.get_monitors({ all = "true" }) == nil)
+        assert(hl.get_monitors(true) == nil)
+    )"),
+              LUA_OK)
+        << lua_tostring(lua, -1);
+}
+
 TEST(ConfigLuaBindingsInternal, deprecationNoticesOnlyIncludeUsedDeprecatedValues) {
     CScopedCompositor compositor;
     CLuaState         state;

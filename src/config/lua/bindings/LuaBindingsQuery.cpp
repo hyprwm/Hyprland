@@ -16,6 +16,8 @@
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
@@ -202,12 +204,33 @@ static int hlGetActiveSpecialWorkspace(lua_State* L) {
 }
 
 static int hlGetMonitors(lua_State* L) {
+    bool allMonitors = false;
+
+    if (!lua_isnoneornil(L, 1)) {
+        if (!lua_istable(L, 1))
+            return Internal::configError(L, "hl.get_monitors: expected no args or a table of options");
+
+        {
+            lua_getfield(L, 1, "all");
+            Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+            if (!lua_isnil(L, -1)) {
+                const auto all = Check::boolean(L, -1);
+                if (!all)
+                    return Internal::configError(L, "hl.get_monitors: option 'all': {}", all.error());
+
+                allMonitors = *all;
+            }
+        }
+    }
+
     lua_newtable(L);
     int i = 1;
-    for (const auto& mon : State::monitorState()->monitors()) {
+    for (const auto& mon : allMonitors ? State::monitorState()->allMonitors() : State::monitorState()->monitors()) {
         Objects::CLuaMonitor::push(L, mon);
         lua_rawseti(L, -2, i++);
     }
+
     return 1;
 }
 

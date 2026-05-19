@@ -144,6 +144,8 @@ static int monitorIndex(lua_State* L) {
         lua_pushinteger(L, sc<int>(mon->m_transform));
     else if (key == "dpms_status")
         lua_pushboolean(L, mon->m_dpmsStatus);
+    else if (key == "enabled")
+        lua_pushboolean(L, mon->enabled());
     else if (key == "vrr_active")
         lua_pushboolean(L, mon->m_vrrActive);
     else if (key == "is_mirror")

@@ -608,7 +608,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         if (!k->locked && g_pSessionLockManager->isSessionLocked())
             continue;
 
-        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || (k->submap.name != Config::Actions::state()->m_currentSubmap && !k->submapUniversal) || k->shadowed))
+        if (!IGNORECONDITIONS && ((modmask != k->modmask && !k->ignoreMods) || ((k->submap.name != key.submapAtPress.name) && !k->submapUniversal) || k->shadowed))
             continue;
 
         if (device) {

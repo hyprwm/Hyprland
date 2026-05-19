@@ -34,6 +34,13 @@ eTransform Math::wlTransformToHyprutils(wl_output_transform t) {
     return eTransform::HYPRUTILS_TRANSFORM_NORMAL;
 }
 
+eTransform Math::invertTransform(eTransform tr) {
+    if ((tr & HYPRUTILS_TRANSFORM_90) && !(tr & HYPRUTILS_TRANSFORM_FLIPPED))
+        tr = sc<eTransform>(tr ^ sc<int>(HYPRUTILS_TRANSFORM_180));
+
+    return tr;
+}
+
 wl_output_transform Math::invertTransform(wl_output_transform tr) {
     if ((tr & WL_OUTPUT_TRANSFORM_90) && !(tr & WL_OUTPUT_TRANSFORM_FLIPPED))
         tr = sc<wl_output_transform>(tr ^ sc<int>(WL_OUTPUT_TRANSFORM_180));

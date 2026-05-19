@@ -1263,9 +1263,6 @@ TEST_CASE(monitorrule) {
     OK(getFromSocket("/output remove HEADLESS-3"));
 }
 
-// Verifies that floating windows offscreen are clamped back on-screen
-// after a monitor layout change, and their workspace is reassigned.
-// Regression test for https://github.com/hyprwm/Hyprland/issues/10030
 TEST_CASE(floatingWindowRecheckOnLayoutChange) {
     // Use HEADLESS-2 (1920x1080 at auto-right, so position 1920,0)
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
@@ -1273,70 +1270,51 @@ TEST_CASE(floatingWindowRecheckOnLayoutChange) {
     if (!spawnKitty("kitty_offscreen"))
         FAIL_TEST("Could not spawn kitty");
 
-    // Make it floating
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
 
-    // Move it way offscreen (beyond any monitor bounds)
     OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 50000, y = 50000 })"));
-
-    // Verify the window is now offscreen
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "class: kitty_offscreen");
         ASSERT_CONTAINS(str, "floating: 1");
     }
 
-    // Trigger a monitor layout change by re-applying a monitor rule.
-    // This calls arrangeMonitors() which triggers recheckFloatingWindowsOnScreen()
+    // re-apply monitor rule to trigger layout change
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = 'auto-right', scale = '1' })"));
 
-    // Give doLater a moment to execute
+    // wait for doLater
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // The window should now be clamped back on-screen (within HEADLESS-2's bounds)
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "class: kitty_offscreen");
         ASSERT_CONTAINS(str, "floating: 1");
-
-        // Verify the window position is within reasonable bounds (not at 50000,50000 anymore)
         auto at = Tests::getAttribute(str, "at");
         EXPECT_NOT_CONTAINS(at, "50000");
     }
 }
 
-// Verifies that a floating window on a removed monitor gets moved to the
-// remaining monitor and its workspace is reassigned.
 TEST_CASE(floatingWindowWorkspaceReassignOnMonitorRemove) {
-    // Create a temporary third monitor
     OK(getFromSocket("/output create headless HEADLESS-FLOAT-TEST"));
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-FLOAT-TEST', mode = '1920x1080@60', position = 'auto-right', scale = '1' })"));
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    // Focus the new monitor and spawn a floating window there
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-FLOAT-TEST' })"));
 
     if (!spawnKitty("kitty_reassign"))
         FAIL_TEST("Could not spawn kitty");
 
     OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'set' })"));
-
-    // Verify it's on the new monitor
     {
         auto str = getFromSocket("/activewindow");
         ASSERT_CONTAINS(str, "class: kitty_reassign");
         ASSERT_CONTAINS(str, "floating: 1");
     }
 
-    // Remove the monitor — the window should be moved and its workspace reassigned
     OK(getFromSocket("/output remove HEADLESS-FLOAT-TEST"));
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // The window should still exist and be on a valid workspace
     {
         auto str = getFromSocket("/clients");
         ASSERT_CONTAINS(str, "class: kitty_reassign");
-        // It should NOT contain the removed monitor's name
         EXPECT_NOT_CONTAINS(str, "HEADLESS-FLOAT-TEST");
     }
 }

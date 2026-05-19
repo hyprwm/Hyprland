@@ -1028,6 +1028,7 @@ TEST_CASE(testScrollingViewBehaviourEventLoopManagerDoLater) {
     /*
      CEventLoopManager::doLater() must not move scrolling viewport.
      The reason an event was queued is not saved, therefore it is not possible to clearly tell when and when not to move scrolling viewport
+     In this test, we test this by setting a workspace rule, which queues a doLater() call in the Event Loop Manager
      --------------------------------------------------------------------------------------------------------------------------------------
     */
 

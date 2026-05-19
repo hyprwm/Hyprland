@@ -92,8 +92,12 @@ void main() {
         );
 #endif
 #if USE_MIRROR
+#if USE_CM
     pixColor    = pixColors[0];
     mirrorColor = pixColors[1];
+#else
+    mirrorColor = pixColor;
+#endif
 #endif
 
 #if USE_TINT

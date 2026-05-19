@@ -137,9 +137,9 @@ static int windowIndex(lua_State* L) {
             lua_rawseti(L, -2, i++);
         }
     } else if (key == "swallowing") {
-        const auto swallowed = w->m_swallowed.lock();
-        if (swallowed)
-            Objects::CLuaWindow::push(L, swallowed);
+        const auto swallowee = w->m_swallowee.lock();
+        if (swallowee)
+            Objects::CLuaWindow::push(L, swallowee);
         else
             lua_pushnil(L);
     } else if (key == "focus_history_id")

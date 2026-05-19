@@ -531,6 +531,12 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
     if (!pMonitor || !pWorkspace || !pWorkspace->isPersistent())
         return;
 
+    if(pWorkspace->hasFullscreen()) {
+        auto const& w = pWorkspace->getFullscreenWindow();
+        renderWindow(w, pMonitor, time, false, RENDER_PASS_ALL, false, true);
+        return;
+    }
+
     renderBackground(pMonitor);
 
     for (auto const& w : g_pCompositor->m_windows) {

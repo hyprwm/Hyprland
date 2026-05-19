@@ -612,6 +612,7 @@ def generate_stub(root: Path) -> str:
                 ("description", "string", True),
                 ("desc", "string", True),
                 ("device", "{inclusive?: boolean, list?: string[]}", True),
+                ("allow_input_capture", "boolean", True),
             ],
         )
     )

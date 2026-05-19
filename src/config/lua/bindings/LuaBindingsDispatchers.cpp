@@ -1,12 +1,14 @@
 #include "LuaBindingsInternal.hpp"
 
 #include <hyprutils/string/String.hpp>
+#include <lua.h>
 
 #include "../../supplementary/executor/Executor.hpp"
 
 #include "../../../managers/SeatManager.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "config/shared/actions/ConfigActions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -219,6 +221,10 @@ static int dsp_forceIdle(lua_State* L) {
     return Internal::checkResult(L, CA::forceIdle((float)lua_tonumber(L, lua_upvalueindex(1))));
 }
 
+static int dsp_releaseInputCapture(lua_State* L) {
+	return Internal::checkResult(L, CA::releaseInputCapture());
+}
+
 static int hlExecCmd(lua_State* L) {
     const auto proc       = luaL_checkstring(L, 1);
     const bool hasRuleArg = !lua_isnoneornil(L, 2);
@@ -304,6 +310,11 @@ static int hlForceIdle(lua_State* L) {
     lua_pushnumber(L, luaL_checknumber(L, 1));
     lua_pushcclosure(L, dsp_forceIdle, 1);
     return 1;
+}
+
+static int hlReleaseInputCapture(lua_State* L) {
+	lua_pushcclosure(L, dsp_releaseInputCapture, 1);
+	return 1;
 }
 
 static std::expected<uint32_t, std::string> resolveKeycode(const std::string& key) {
@@ -1306,6 +1317,7 @@ void Internal::registerDispatcherBindings(lua_State* L) {
         Internal::setFn(L, "global", hlGlobal);
         Internal::setFn(L, "force_renderer_reload", hlForceRendererReload);
         Internal::setFn(L, "force_idle", hlForceIdle);
+		Internal::setFn(L, "release_input_capture", hlReleaseInputCapture);
         Internal::setFn(L, "focus", hlFocus);
         Internal::setFn(L, "no_op", hlNoop);
     }

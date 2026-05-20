@@ -1100,8 +1100,10 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
 }
 
 void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
-    static auto PXPMODE          = CConfigValue<Config::INTEGER>("render:xp_mode");
-    static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
+    static auto PBLUROCCUPIEDWORKSPACE = CConfigValue<Config::BOOL>("decoration:blur:occupied_workspace");
+    static auto PBLUR                  = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
+    static auto PXPMODE                = CConfigValue<Config::INTEGER>("render:xp_mode");
+    static auto PSESSIONLOCKXRAY       = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
 
     if UNLIKELY (!pMonitor)
         return;
@@ -1174,6 +1176,37 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         renderFadeouts(pMonitor, Desktop::FADEOUT_PLANE_LAYER_BOTTOM);
     }
 
+    const bool SPECIALFADEACTIVE            = pMonitor->m_specialFade->value() != 0.F;
+    const bool OCCUPIEDWORKSPACEBLURENABLED = *PBLUROCCUPIEDWORKSPACE;
+    const auto SPECIALANIMPROGRS            = SPECIALFADEACTIVE ? pMonitor->m_specialFade->getCurveValue() : 0.F;
+    const bool ANIMOUT                      = !pMonitor->m_activeSpecialWorkspace;
+    const float SPECIALBLURA                = SPECIALFADEACTIVE ? (ANIMOUT ? (1.0 - SPECIALANIMPROGRS) : SPECIALANIMPROGRS) : 0.F;
+    PHLWORKSPACE TOPSPECIALWORKSPACE        = pMonitor->m_activeSpecialWorkspace;
+    if (!TOPSPECIALWORKSPACE && SPECIALFADEACTIVE) {
+        for (auto const& ws : State::workspaceState()->workspaces()) {
+            if (ws->m_alpha->value() > 0.F && ws->m_isSpecialWorkspace) {
+                TOPSPECIALWORKSPACE = ws.lock();
+                break;
+            }
+        }
+    }
+    const auto TOPWORKSPACE = TOPSPECIALWORKSPACE ? TOPSPECIALWORKSPACE : pMonitor->m_activeWorkspace;
+    const bool TOPOCCUPIED  = TOPWORKSPACE && std::ranges::any_of(Desktop::windowState()->windows(), [&](const auto& w) {
+        return w->m_workspace == TOPWORKSPACE && w->m_isMapped && !w->isHidden() && w->visibleByAlpha();
+    });
+    const bool ACTIVEOCCUPIEDWORKSPACEBLURRED = OCCUPIEDWORKSPACEBLURENABLED && *PBLUR && pWorkspace == pMonitor->m_activeWorkspace && TOPOCCUPIED && TOPWORKSPACE == pWorkspace;
+    const bool SPECIALOCCUPIEDWORKSPACEBLURRED = OCCUPIEDWORKSPACEBLURENABLED && *PBLUR && TOPOCCUPIED && TOPWORKSPACE == TOPSPECIALWORKSPACE;
+
+    if (ACTIVEOCCUPIEDWORKSPACEBLURRED && SPECIALBLURA < 1.F) {
+        CRectPassElement::SRectData data;
+        data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
+        data.color = CHyprColor(0, 0, 0, 0);
+        data.blur  = true;
+        data.blurA = 1.F - SPECIALBLURA;
+
+        m_renderPass.add(makeUnique<CRectPassElement>(data));
+    }
+
     // pre window pass
     if (preBlurQueued(pMonitor))
         m_renderPass.add(makeUnique<CPreBlurElement>());
@@ -1192,12 +1225,14 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }
 
-    if UNLIKELY (pMonitor->m_specialBlur->value() != 0.F) {
+    const float SPECIALBLUR = std::max(pMonitor->m_specialBlur->value(), SPECIALOCCUPIEDWORKSPACEBLURRED ? SPECIALBLURA : 0.F);
+
+    if UNLIKELY (SPECIALBLUR != 0.F) {
         CRectPassElement::SRectData data;
         data.box   = {translate.x, translate.y, pMonitor->m_transformedSize.x * scale, pMonitor->m_transformedSize.y * scale};
         data.color = CHyprColor(0, 0, 0, 0);
         data.blur  = true;
-        data.blurA = pMonitor->m_specialBlur->value();
+        data.blurA = SPECIALBLUR;
 
         m_renderPass.add(makeUnique<CRectPassElement>(data));
     }

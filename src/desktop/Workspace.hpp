@@ -72,8 +72,7 @@ class CWorkspace {
     bool        hasUrgentWindow();
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
-    PHLWINDOW   getFullscreenWindow(bool includeLayoutHandledFullscreen = true);
-    bool        hasFullscreen();
+    PHLWINDOW   getFullscreenWindow();
     bool        isVisible();
     bool        isVisibleNotCovered();
     void        rename(const std::string& name = "");
@@ -81,7 +80,6 @@ class CWorkspace {
     void        updateWindows();
     void        setPersistent(bool persistent);
     bool        isPersistent();
-    void        setNoMembersAboveFullscreen();
 
     struct {
         CSignalT<> destroy;

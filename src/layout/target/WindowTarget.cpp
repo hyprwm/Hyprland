@@ -11,6 +11,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
 #include "../../state/MonitorState.hpp"
+#include "desktop/Workspace.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -44,10 +45,11 @@ void CWindowTarget::updatePos() {
     if (!m_space)
         return;
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
-        return;
+    // floating non-fs window
+    if (floating() && !isFullscreen()) {
+        m_window->m_position = m_box.logicalBox.pos();
+        m_window->m_size     = m_box.logicalBox.size();
 
-    if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
@@ -57,12 +59,15 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Tiled is more complicated.
+    // Default handled fullscreen window - tiled or floating
+    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen()) {
+        *m_window->m_realPosition = m_box.logicalBox.pos();
+        *m_window->m_realSize     = m_box.logicalBox.size();
 
-    // if we are in maximized, force the box to be max work area.
-    // TODO: this shouldn't be here.
-    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen())
-        ITarget::setPositionGlobal({.logicalBox = m_space->workArea(floating())});
+        m_window->sendWindowSize();
+        m_window->updateWindowDecos();
+        return;
+    }
 
     if (!m_space->workspace())
         return;
@@ -81,7 +86,8 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
+    // Layout handled FS window
+    if (isFullscreen() && layoutManagedFullscreen()) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();
@@ -95,8 +101,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
-        return;
+    // Default handled maximised window (Tiled or floating), Tiled non-FS windows
 
     g_pHyprRenderer->damageWindow(window());
 
@@ -128,7 +133,7 @@ void CWindowTarget::updatePos() {
 
         Vector2D          ratioPadding;
 
-        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
+        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && !isFullscreen()) {
             const Vector2D originalSize = MONITOR_WORKAREA.size();
 
             const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
@@ -156,7 +161,7 @@ void CWindowTarget::updatePos() {
         calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
     }
 
-    if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
+    if (isPseudo() && !isFullscreen()) {
         // Calculate pseudo
         float scale = 1;
 
@@ -197,7 +202,7 @@ void CWindowTarget::updatePos() {
         calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, std::max(MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y));
     }
 
-    if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {
+    if (m_window->onSpecialWorkspace() && !isFullscreen()) {
         // if special, we adjust the coords a bit
         static auto PSCALEFACTOR = CConfigValue<Config::FLOAT>("dwindle:special_scale_factor");
 
@@ -358,6 +363,10 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 
 PHLWINDOW CWindowTarget::window() const {
     return m_window.lock();
+}
+
+bool CWindowTarget::isFullscreen() {
+    return m_window->isFullscreen();
 }
 
 eFullscreenMode CWindowTarget::fullscreenMode() {

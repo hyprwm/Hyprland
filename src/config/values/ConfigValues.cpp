@@ -246,6 +246,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:vibrancy", "Increase saturation of blurred colors.", 0.1696, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:vibrancy_darkness", "How strong the effect of vibrancy is on dark areas.", 0, {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Bool>("decoration:blur:special", "whether to blur behind the special workspace (note: expensive)", false, {.refresh = Supplementary::REFRESH_BLUR_FB}),
+        MS<Bool>("decoration:blur:occupied_workspace", "whether to blur the workspace background when it has visible windows (note: expensive)", false,
+                 {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Bool>("decoration:blur:popups", "whether to blur popups (e.g. right-click menus)", false, {.refresh = Supplementary::REFRESH_BLUR_FB}),
         MS<Float>("decoration:blur:popups_ignorealpha", "works like ignorealpha in layer rules. If pixel opacity is below set value, will not blur.", 0.2,
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),

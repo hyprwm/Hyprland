@@ -376,6 +376,26 @@ void CScreenshareFrame::renderWorkspace() {
     g_pHyprRenderer->m_bBlockSurfaceFeedback = PWORKSPACE->isVisible();
     g_pHyprRenderer->renderWorkspaceOffScreen(PMONITOR, PWORKSPACE, NOW);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
+
+    if(!m_overlayCursor) 
+        return;
+
+    auto pointerSurfaceResource = g_pSeatManager->m_state.pointerFocus.lock();
+
+    if (!pointerSurfaceResource)
+        return;
+
+    auto pointerSurface = Desktop::View::CWLSurface::fromResource(pointerSurfaceResource);
+    if (!pointerSurface)
+        return;
+
+    auto box = pointerSurface->getSurfaceBoxGlobal();
+    if (!box.has_value())
+        return;
+
+    if (Desktop::focusState()->window()->m_workspace != PWORKSPACE)
+        return;
+    CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
 }
 
 void CScreenshareFrame::render() {

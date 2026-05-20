@@ -576,8 +576,12 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
         renderdata.blur    = shouldBlur(w);
         renderdata.pWindow = w;
 
-        CRegion rg         = w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() + w->m_floatingOffset).scale(pMonitor->m_scale);
-        renderdata.clipBox = rg.getExtents();
+        if (w->m_isFloating && !w->isFullscreen() && pWorkspace->m_renderOffset->isBeingAnimated() && !w->m_pinned) {
+            CRegion rg =
+                w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() 
+                        + w->m_floatingOffset).scale(pMonitor->m_scale);
+            renderdata.clipBox = rg.getExtents();
+        }
 
         const bool TRANSFORMERS = !w->m_transformers.empty();
 

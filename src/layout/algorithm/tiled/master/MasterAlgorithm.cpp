@@ -503,6 +503,29 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
+
+    // TODO: Patch - make changes inside calculateWorkspace to make this part redundant
+    const auto WORKSPACE = m_parent->space()->workspace();
+
+    if (!WORKSPACE)
+        return;
+
+    const auto MONITOR = WORKSPACE->m_monitor;
+    if (!MONITOR)
+        return;
+
+    if (WORKSPACE->m_hasFullscreenWindow) {
+
+        const auto& FULLSCREEN_TARGET = WORKSPACE->getFullscreenWindow()->m_target;
+
+        if (WORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+            const CBox MONBOX = MONITOR->logicalBox();
+            FULLSCREEN_TARGET->setPositionGlobal(MONBOX);
+        } else if (WORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
+            const CBox WORKAREA = WORKSPACE->m_space->workArea(FULLSCREEN_TARGET->floating());
+            FULLSCREEN_TARGET->setPositionGlobal(WORKAREA);
+        }
+    }
 }
 
 Config::ErrorResult CMasterAlgorithm::layoutMsg(const std::string_view& sv) {

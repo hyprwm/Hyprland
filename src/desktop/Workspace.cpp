@@ -1,4 +1,5 @@
 #include "Workspace.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -410,23 +411,28 @@ MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
-PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
-            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
-                continue;
+PHLWINDOW CWorkspace::getFullscreenWindow() {
 
-            return w;
+    // Either Default or Layout Handled FS window that covers the monitor/work area
+
+    // If there are more than one monitor/work area covering fullscreen window in the workspace, the floating one is assumed to be 'ontop' of the tiled one, and is chosen as the FS window in the workspace
+    // TODO - instead of assuming that a floating FS window will be layered ontop of any tiled FS window in all cases, query which on is "ontop" and choose that.
+
+    if (!m_hasFullscreenWindow)
+        return nullptr;
+
+    PHLWINDOW fullscreenWindow = nullptr;
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == m_self && w->isFullscreen()) {
+            if (!fullscreenWindow)
+                fullscreenWindow = w;
+            else if (w->m_isFloating)
+                fullscreenWindow = w;
         }
     }
 
-    return nullptr;
-}
-
-bool CWorkspace::hasFullscreen() {
-    if (m_hasFullscreenWindow)
-        return true;
-    return m_space && m_space->algorithm() && m_space->algorithm()->layoutFullscreenCoversMonitor();
+    return fullscreenWindow;
 }
 
 bool CWorkspace::isVisible() {
@@ -578,7 +584,7 @@ void CWorkspace::changeID(int64_t id) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->fullscreenMode() != FSMODE_NONE && !t->layoutManagedFullscreen(); });
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->isFullscreen(); });
 
     if (!m_hasFullscreenWindow)
         m_fullscreenMode = FSMODE_NONE;
@@ -603,16 +609,4 @@ void CWorkspace::setPersistent(bool persistent) {
 
 bool CWorkspace::isPersistent() {
     return m_persistent;
-}
-
-void CWorkspace::setNoMembersAboveFullscreen() {
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : Desktop::windowState()->windows()) {
-        if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_pinned)
-            w->m_createdOverFullscreen = false;
-    }
-    for (auto const& ls : Desktop::layerState()->layers()) {
-        if (ls->m_monitor == m_monitor)
-            ls->m_aboveFullscreen = false;
-    }
 }

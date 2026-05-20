@@ -36,7 +36,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
 
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
-        pWindow->m_createdOverFullscreen = true;
+        pWindow->m_allowedOverFullscreen = true;
         pWindow->updateFullscreenInputState();
         Animation::Workspace::setFullscreenFloatingFade(pWindow, 1.F);
         g_pHyprRenderer->damageWindow(pWindow);
@@ -73,11 +73,15 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         if (!pWindow->m_workspace)
             return;
 
-        const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
-        if (CURRENT_FS_MODE != FSMODE_NONE) {
-            const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
-            if (RESULT.overrideFocusWindow)
-                pWindow = RESULT.overrideFocusWindow;
+        // Don't cycle FS cycle if the current FS widow is default handled
+        const auto FSWINDOW = pWindow->m_workspace->getFullscreenWindow();
+        if (FSWINDOW && !FSWINDOW->m_target->layoutManagedFullscreen()) {
+            const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
+            if (CURRENT_FS_MODE != FSMODE_NONE) {
+                const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
+                if (RESULT.overrideFocusWindow)
+                    pWindow = RESULT.overrideFocusWindow;
+            }
         }
     }
 

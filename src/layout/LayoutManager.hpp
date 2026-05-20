@@ -61,7 +61,8 @@ namespace Layout {
     };
 
     enum eFullscreenRequestResult : uint8_t {
-        FULLSCREEN_REQUEST_DEFAULT = 0,
+        FULLSCREEN_REQUEST_FAILED = 0,
+        FULLSCREEN_REQUEST_DEFAULT,
         FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT,
     };
 

@@ -1514,15 +1514,16 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    Animation::Workspace::setFullscreenFadeAnimation(pWorkspace, pWorkspace->hasFullscreen() ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
     Desktop::globalWindowController()->updateSuspendedStates();
 
     if (m_activeSpecialWorkspace)
-        Animation::Workspace::setFullscreenFadeAnimation(
-            m_activeSpecialWorkspace, m_activeSpecialWorkspace->hasFullscreen() ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            m_activeSpecialWorkspace, m_activeSpecialWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
@@ -1582,8 +1583,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
                 g_pInputManager->refocus();
         }
 
-        Animation::Workspace::setFullscreenFadeAnimation(m_activeWorkspace,
-                                                         m_activeWorkspace->hasFullscreen() ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+            m_activeWorkspace, m_activeWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -1618,8 +1619,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
-        Animation::Workspace::setFullscreenFadeAnimation(
-            PACTIVEWORKSPACE, PACTIVEWORKSPACE && PACTIVEWORKSPACE->hasFullscreen() ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
+                                                               PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
+                                                                                                                             CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }
@@ -1684,7 +1686,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     g_pHyprRenderer->damageMonitor(m_self.lock());
 
-    Animation::Workspace::setFullscreenFadeAnimation(pWorkspace, pWorkspace->hasFullscreen() ? Animation::Workspace::ANIMATION_TYPE_IN : Animation::Workspace::ANIMATION_TYPE_OUT);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        pWorkspace, pWorkspace->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
@@ -2419,33 +2422,18 @@ bool CMonitor::inHDR() {
 
 bool CMonitor::inFullscreenMode() {
     // Check special workspace first since it renders on top of regular workspaces
-    if (m_activeSpecialWorkspace &&
-        ((m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) ||
-         (m_activeSpecialWorkspace->m_space && m_activeSpecialWorkspace->m_space->algorithm() && m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor())))
+    if (m_activeSpecialWorkspace && (m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN))
         return true;
-    return m_activeWorkspace &&
-        ((m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN) ||
-         (m_activeWorkspace->m_space && m_activeWorkspace->m_space->algorithm() && m_activeWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()));
+    return m_activeWorkspace && (m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN);
 }
 
 PHLWINDOW CMonitor::getFullscreenWindow() {
     // Check special workspace first since it renders on top of regular workspaces
-    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+    if (m_activeSpecialWorkspace && (m_activeSpecialWorkspace->m_hasFullscreenWindow && m_activeSpecialWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN))
         return m_activeSpecialWorkspace->getFullscreenWindow();
 
-    if (m_activeSpecialWorkspace && m_activeSpecialWorkspace->m_space && m_activeSpecialWorkspace->m_space->algorithm() &&
-        m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()) {
-        const auto TARGET = m_activeSpecialWorkspace->m_space->algorithm()->layoutFullscreenTarget();
-        return TARGET ? TARGET->window() : nullptr;
-    }
-
-    if (m_activeWorkspace && m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN)
+    if (m_activeWorkspace && (m_activeWorkspace->m_hasFullscreenWindow && m_activeWorkspace->m_fullscreenMode == FSMODE_FULLSCREEN))
         return m_activeWorkspace->getFullscreenWindow();
-
-    if (m_activeWorkspace && m_activeWorkspace->m_space && m_activeWorkspace->m_space->algorithm() && m_activeWorkspace->m_space->algorithm()->layoutFullscreenCoversMonitor()) {
-        const auto TARGET = m_activeWorkspace->m_space->algorithm()->layoutFullscreenTarget();
-        return TARGET ? TARGET->window() : nullptr;
-    }
 
     return nullptr;
 }

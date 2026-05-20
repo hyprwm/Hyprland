@@ -11,6 +11,7 @@
 #include "../../render/Renderer.hpp"
 
 #include "../../debug/log/Logger.hpp"
+#include <hyprutils/math/Box.hpp>
 
 using namespace Layout;
 
@@ -104,28 +105,6 @@ size_t CAlgorithm::floatingTargets() const {
 void CAlgorithm::recalculate(eRecalculateReason reason) {
     m_tiled->recalculate(reason);
     m_floating->recalculate(reason);
-
-    const auto PWORKSPACE = m_space->workspace();
-    if (!PWORKSPACE)
-        return;
-
-    const auto PMONITOR = PWORKSPACE->m_monitor;
-
-    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
-        // massive hack from the fullscreen func
-        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow(false);
-        // prevent tiled fullscreen scrolling window from being brought into view when fullscreening a floating window in the same workspace.
-        // TODO: this is a patch. Recommend handling setting of fullscreen windows's size and position in their fullscreen functions and removing this hack entirely.
-        if (PFULLWINDOW) {
-            if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-                *PFULLWINDOW->m_realPosition = PMONITOR->m_position;
-                *PFULLWINDOW->m_realSize     = PMONITOR->m_size;
-            } else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED)
-                PFULLWINDOW->layoutTarget()->setPositionGlobal(m_space->workArea());
-        }
-
-        return;
-    }
 }
 
 void CAlgorithm::recenter(SP<ITarget> t) {
@@ -168,10 +147,6 @@ SP<ITarget> CAlgorithm::layoutFullscreenTarget() const {
         return TARGET;
 
     return m_floating->layoutFullscreenTarget();
-}
-
-bool CAlgorithm::layoutFullscreenCoversMonitor() const {
-    return m_tiled->layoutFullscreenCoversMonitor() || m_floating->layoutFullscreenCoversMonitor();
 }
 
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {

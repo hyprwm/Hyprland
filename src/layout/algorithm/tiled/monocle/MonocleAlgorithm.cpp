@@ -132,6 +132,9 @@ void CMonocleAlgorithm::recalculate(eRecalculateReason reason) {
 
     const auto WORK_AREA = m_parent->space()->workArea();
 
+    if (m_parent->space()->workspace()->m_hasFullscreenWindow)
+        return;
+
     for (size_t i = 0; i < m_targetDatas.size(); ++i) {
         const auto& DATA   = m_targetDatas[i];
         const auto  TARGET = DATA->target.lock();

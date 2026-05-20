@@ -134,7 +134,7 @@ static int hlBind(lua_State* L) {
         return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", res.error()));
 
     if (!Internal::pushDispatcherFunction(L, 2))
-        return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
+        return Internal::configError(L, "hl.bind: dispatcher must be a callable object (e.g. a function, or hl.dsp.window.close())");
 
     if (kb.catchAll && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
@@ -321,7 +321,7 @@ static int hlExecCmd(lua_State* L) {
 
 static int hlDispatch(lua_State* L) {
     if (!Internal::pushDispatcherFunction(L, 1))
-        return Internal::configError(L, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
+        return Internal::configError(L, "hl.dispatch: expected a function or callable object (e.g. hl.dsp.window.close())");
 
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)

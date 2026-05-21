@@ -2573,7 +2573,7 @@ void CMonitorState::applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMod
 }
 
 bool CMonitor::needsACopyFB() {
-    return !m_mirrors.empty() || Screenshare::mgr()->outputNeedsCopyFB(m_self.lock());
+    return !m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_self.lock());
 }
 
 bool CMonitor::needsUnmodifiedCopy() {

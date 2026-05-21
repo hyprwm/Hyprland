@@ -962,10 +962,16 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
 
         if (!fullscreenStateForTarget(request.target, FSMODE_FULLSCREEN)) {
 
+            float targetColumnWidth = 0.0F;
+
             // If the window was maximised
+            if (fullscreenStateForTarget(request.target, FSMODE_MAXIMIZED))
+                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(request.target);
+            else
+                targetColumnWidth = CURRENT_COL->getColumnWidth();
 
             m_fullscreenTargets.emplace_back(
-                SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{CURRENT_COL->getColumnWidth()} : std::nullopt});
+                SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
         }
 
         // more that one window in column
@@ -997,8 +1003,18 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
         const auto CURRENT_COL = TDATA->column.lock();
 
         if (!fullscreenStateForTarget(request.target, FSMODE_MAXIMIZED)) {
+
+            float targetColumnWidth = 0.0F;
+
+            // If the window was fullscreened
+            if (fullscreenStateForTarget(request.target, FSMODE_FULLSCREEN))
+                targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(request.target);
+            else
+                targetColumnWidth = CURRENT_COL->getColumnWidth();
+
+
             m_maximizeTargets.emplace_back(
-                SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{CURRENT_COL->getColumnWidth()} : std::nullopt});
+                SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
         }
 
         // more that one window in column
@@ -1173,6 +1189,24 @@ void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(m_parent->space()->workspace(),
                                                            coversMonitor ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 }
+
+float CScrollingAlgorithm::getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target) {
+    if (!target || target->fullscreenMode() == FSMODE_NONE)
+        return 0.5; // fallback to col width of 0.5
+
+    const auto& fsTargets = (fullscreenStateForTarget(target, FSMODE_FULLSCREEN) ? m_fullscreenTargets : m_maximizeTargets);
+
+    for (auto it = fsTargets.begin(); it != fsTargets.end();) {
+
+        if (it->target.lock() == target)
+            return it->restoreColumnWidth.value_or(0.5F);
+
+        ++it;
+    }
+
+    return 0.5F;
+}
+
 
 void CScrollingAlgorithm::syncFullscreenTargets() {
 

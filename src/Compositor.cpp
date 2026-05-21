@@ -2196,6 +2196,8 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
 
 // TODO: move fs functions to Desktop::
 void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
+    if (!PWINDOW)
+        return;
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
     else

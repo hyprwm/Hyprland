@@ -1820,6 +1820,10 @@ void CWindow::mapWindow() {
         Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
         PMONITOR = Desktop::focusState()->monitor();
     }
+    if (!PMONITOR || (!PMONITOR->m_activeSpecialWorkspace && !PMONITOR->m_activeWorkspace)) {
+        Log::logger->log(Log::ERR, "mapWindow: no valid monitor/workspace, aborting map for {:x}", (uintptr_t)this);
+        return;
+    }
     auto PWORKSPACE = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
     m_monitor       = PMONITOR;
     m_workspace     = PWORKSPACE;

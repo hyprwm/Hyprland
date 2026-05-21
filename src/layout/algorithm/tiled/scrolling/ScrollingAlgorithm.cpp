@@ -921,7 +921,7 @@ void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
 }
 
 
-CScrollingAlgorithm::SFullscreenScrollState* CScrollingAlgorithm::fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode) { // ERSTARR: redo this; all FS/MAX actions now must set FSMODE window
+CScrollingAlgorithm::SFullscreenScrollState* CScrollingAlgorithm::fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode) {
     if (!target)
         return nullptr;
 

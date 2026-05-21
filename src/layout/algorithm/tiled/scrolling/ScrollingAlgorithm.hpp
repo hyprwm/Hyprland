@@ -155,7 +155,6 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        void                                syncFullscreenTargets();
         SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
         SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
         SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
@@ -163,6 +162,7 @@ namespace Layout::Tiled {
         float                               fullscreenColumnWidth() const;
         bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
         void                                updateFullscreenFade(bool coversMonitor);
+        void                                syncFullscreenTargets();
         void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);

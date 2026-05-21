@@ -41,10 +41,10 @@ For dispatchers without parameters it can be anything.
 Returns: \f[I]ok\f[R] on success, and an error message on failure.
 .TP
 Examples:
-\f[B]hyprctl\f[R] \f[I]dispatch exec kitty\f[R]
+\f[B]hyprctl\f[R] \f[I]dispatch "hl.dsp.exec_cmd('kitty')"\f[R]
 .RS
 .PP
-\f[B]hyprctl\f[R] \f[I]dispatch pseudo x\f[R]
+\f[B]hyprctl\f[R] \f[I]dispatch "hl.dsp.window.close()"\f[R]
 .RE
 .RE
 .PP
@@ -52,6 +52,7 @@ Examples:
 .RS
 .PP
 Set a config keyword dynamically.
+This will not work if your config provider is lua (refer to \f[B]eval\f[R]).
 .PP
 Returns: \f[I]ok\f[R] on success, and an error message on failure.
 .TP
@@ -61,6 +62,20 @@ Examples:
 .PP
 \f[B]hyprctl\f[R] \f[I]keyword general:border_size 10\f[R]
 .RE
+.RE
+.PP
+\f[B]eval\f[R]
+.RS
+.PP
+Evaluate arbitrary Lua expressions dynamically when using a Lua-based config provider.
+.PP
+Returns: \f[I]ok\f[R] on success, and an error message on failure.
+.TP
+Examples:
+\f[B]hyprctl\f[R] \f[I]eval 'hl.config({ general = { border_size = 10 } })'\f[R]
+.RS
+.PP
+\f[B]hyprctl\f[R] \f[I]eval 'hl.bind("SUPER + SHIFT + Q", hl.dsp.exec_cmd("firefox"))'\f[R]
 .RE
 .PP
 \f[B]reload\f[R]

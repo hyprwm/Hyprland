@@ -87,6 +87,19 @@ class CTestKeyboard : public IKeyboard {
         m_keyboardEvents.key.emit(event);
     }
 
+    void setMods(uint32_t depressed, uint32_t latched, uint32_t locked, uint32_t group) {
+        m_modifiersState.depressed = depressed;
+        m_modifiersState.latched   = latched;
+        m_modifiersState.locked    = locked;
+        m_modifiersState.group     = group;
+        m_keyboardEvents.modifiers.emit(IKeyboard::SModifiersEvent{
+            .depressed = depressed,
+            .latched   = latched,
+            .locked    = locked,
+            .group     = group,
+        });
+    }
+
     void destroy() {
         m_events.destroy.emit();
     }
@@ -124,6 +137,7 @@ class CTestMouse : public IPointer {
 
 SP<CTestMouse>         g_mouse;
 SP<CTestKeyboard>      g_keyboard;
+SP<CTestKeyboard>      g_keyboard2;
 
 static SDispatchResult pressAlt(std::string in) {
     g_pInputManager->m_lastMods = in == "1" ? HL_MODIFIER_ALT : 0;
@@ -360,6 +374,47 @@ static SDispatchResult keybind(std::string in) {
     return {};
 }
 
+static SDispatchResult keybind2(std::string in) {
+    CVarList2 data(std::move(in));
+    bool      press;
+    uint32_t  modifier;
+    uint32_t  key;
+    try {
+        press    = std::stoul(std::string{data[0]}) == 1;
+        modifier = std::stoul(std::string{data[1]});
+        key      = std::stoul(std::string{data[2]}) - 8;
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    uint32_t modifierMask = 0;
+    if (modifier > 0)
+        modifierMask = 1 << (modifier - 1);
+    g_pInputManager->m_lastMods = modifierMask;
+    g_keyboard2->sendKey(key, press);
+
+    return {};
+}
+
+static SDispatchResult setMods(std::string in) {
+    CVarList2 data(std::move(in));
+    try {
+        uint32_t          kbIndex   = std::stoul(std::string{data[0]});
+        uint32_t          depressed = std::stoul(std::string{data[1]});
+        uint32_t          latched   = std::stoul(std::string{data[2]});
+        uint32_t          locked    = std::stoul(std::string{data[3]});
+        uint32_t          group     = std::stoul(std::string{data[4]});
+
+        SP<CTestKeyboard> kb = (kbIndex == 0) ? g_keyboard : g_keyboard2;
+        kb->setMods(depressed, latched, locked, group);
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    return {};
+}
+
+static SDispatchResult nullfocus(std::string in) {
+    g_pSeatManager->setKeyboardFocus(nullptr);
+    return {};
+}
+
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
@@ -555,6 +610,26 @@ static int luaKeybind(lua_State* L) {
     return luaResult(L, ::keybind(std::format("{},{},{}", press, modifier, key)));
 }
 
+static int luaKeybind2(lua_State* L) {
+    const auto press    = (int)luaL_checkinteger(L, 1);
+    const auto modifier = (int)luaL_checkinteger(L, 2);
+    const auto key      = (int)luaL_checkinteger(L, 3);
+    return luaResult(L, ::keybind2(std::format("{},{},{}", press, modifier, key)));
+}
+
+static int luaSetMods(lua_State* L) {
+    const auto kbIndex   = (int)luaL_checkinteger(L, 1);
+    const auto depressed = (int)luaL_checkinteger(L, 2);
+    const auto latched   = (int)luaL_checkinteger(L, 3);
+    const auto locked    = (int)luaL_checkinteger(L, 4);
+    const auto group     = (int)luaL_checkinteger(L, 5);
+    return luaResult(L, ::setMods(std::format("{},{},{},{},{}", kbIndex, depressed, latched, locked, group)));
+}
+
+static int luaNullfocus(lua_State* L) {
+    return luaResult(L, ::nullfocus(""));
+}
+
 static int luaAddWindowRule(lua_State* L) {
     return luaResult(L, ::addWindowRule(""));
 }
@@ -602,6 +677,9 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("scroll", ::luaScroll);
     addLuaFn("click", ::luaClick);
     addLuaFn("keybind", ::luaKeybind);
+    addLuaFn("keybind2", ::luaKeybind2);
+    addLuaFn("set_mods", ::luaSetMods);
+    addLuaFn("nullfocus", ::luaNullfocus);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
@@ -618,6 +696,10 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     g_keyboard = CTestKeyboard::create(false);
     g_pInputManager->newKeyboard(g_keyboard);
 
+    // init keyboard2
+    g_keyboard2 = CTestKeyboard::create(false);
+    g_pInputManager->newKeyboard(g_keyboard2);
+
     return {"hyprtestplugin", "hyprtestplugin", "Vaxry", "1.0"};
 }
 
@@ -626,4 +708,6 @@ APICALL EXPORT void PLUGIN_EXIT() {
     g_mouse.reset();
     g_keyboard->destroy();
     g_keyboard.reset();
+    g_keyboard2->destroy();
+    g_keyboard2.reset();
 }

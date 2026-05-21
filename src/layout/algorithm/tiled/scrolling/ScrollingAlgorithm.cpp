@@ -957,6 +957,12 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     if (!TDATA)
         return FULLSCREEN_REQUEST_FAILED;
 
+    if (request.effectiveMode == FSMODE_NONE)
+        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
+    else
+        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_SCROLLING;
+
+    
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
         const auto CURRENT_COL = TDATA->column.lock();
 
@@ -1047,10 +1053,10 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     if (isFullscreenTarget(TDATA) || request.target->layoutManagedFullscreen()) {
         clearFullscreenTarget((request.target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), request.target);
         request.target->setFullscreenMode(FSMODE_NONE);
-        return request.effectiveMode == FSMODE_NONE ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_DEFAULT;
+        return request.effectiveMode == FSMODE_NONE ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_FAILED;
     }
 
-    return FULLSCREEN_REQUEST_DEFAULT;
+    return FULLSCREEN_REQUEST_FAILED;
 }
 
 SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {

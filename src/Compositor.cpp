@@ -1963,6 +1963,13 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
     const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
 
+    // Set fullscreen handler of window. Layout handled FS will set this in their layout specific functions
+    if (NEW_EFFECTIVE_MODE == FSMODE_NONE)
+        PWINDOW->m_fullscreenHandler = FULLSCREEN_HANDLER_NONE;
+    else if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT)
+        PWINDOW->m_fullscreenHandler = FULLSCREEN_HANDLER_DEFAULT;
+
+
     if (LAYOUT_HANDLED_FULLSCREEN) {
         PWORKSPACE->m_fullscreenMode      = FSMODE_NONE;
         PWORKSPACE->m_hasFullscreenWindow = false;

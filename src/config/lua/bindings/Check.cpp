@@ -1,5 +1,7 @@
 #include "Check.hpp"
 
+#include <format>
+
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
 

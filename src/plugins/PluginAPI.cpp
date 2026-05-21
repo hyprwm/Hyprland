@@ -8,6 +8,7 @@
 #include "../notification/NotificationOverlay.hpp"
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "event/EventBus.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 
@@ -493,6 +494,38 @@ APICALL bool HyprlandAPI::removeLuaFunction(HANDLE handle, const std::string& na
         Log::logger->log(Log::ERR, "failed to unregister lua plugin function {}.{}: {}", namespace_, name, ret.error());
         return false;
     }
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::addEvent(HANDLE handle, SP<Event::CEventBus::CCustomEvent> event) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Event::bus()->m_events.plugin.try_emplace(event->m_name, event).second) {
+        Log::logger->log(Log::ERR, "failed to register event {}: event already registered.", event->m_name);
+        return false;
+    }
+
+    Event::bus()->m_events.pluginEventAdded.emit(event);
+
+    return true;
+}
+
+APICALL bool HyprlandAPI::removeEvent(HANDLE handle, const std::string& name) {
+    auto* const PLUGIN = g_pPluginSystem->getPluginByHandle(handle);
+
+    if (!PLUGIN)
+        return false;
+
+    if (!Event::bus()->m_events.plugin.erase(name)) {
+        Log::logger->log(Log::ERR, "failed to unregister event {}: event not registered.", name);
+        return false;
+    }
+
+    Event::bus()->m_events.pluginEventRemoved.emit(name);
 
     return true;
 }

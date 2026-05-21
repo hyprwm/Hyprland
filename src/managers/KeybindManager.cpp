@@ -425,7 +425,7 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e, SP<IPointer> po
 
     bool found = false;
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
-        if (e.delta < 0)
+        if (e.delta > 0)
             found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true, nullptr, pointer).passEvent;
         else
             found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true, nullptr, pointer).passEvent;

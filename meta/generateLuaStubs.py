@@ -13,6 +13,7 @@ from typing import Iterable
 @dataclass
 class ApiNode:
     methods: set[str] = field(default_factory=set)
+    fields: dict[str, str] = field(default_factory=dict)
     children: dict[str, "ApiNode"] = field(default_factory=dict)
 
 
@@ -64,7 +65,9 @@ def find_matching_brace(text: str, open_brace_idx: int) -> int:
     raise ValueError("Unbalanced braces while parsing C++ source")
 
 
-def extract_function_bodies(source: str, header_pattern: re.Pattern[str]) -> list[tuple[re.Match[str], str]]:
+def extract_function_bodies(
+    source: str, header_pattern: re.Pattern[str]
+) -> list[tuple[re.Match[str], str]]:
     out: list[tuple[re.Match[str], str]] = []
     for match in header_pattern.finditer(source):
         open_idx = source.find("{", match.end() - 1)
@@ -93,9 +96,12 @@ def parse_binding_tree(root: Path) -> tuple[ApiNode, set[str]]:
     callable_namespaces: set[str] = set()
 
     register_header = re.compile(
-        r"void\s+(?:(?:Config::Lua::Bindings::)?Internal::)?register\w+Bindings\s*\([^)]*\)\s*\{", re.MULTILINE
+        r"void\s+(?:(?:Config::Lua::Bindings::)?Internal::)?register\w+Bindings\s*\([^)]*\)\s*\{",
+        re.MULTILINE,
     )
-    set_fn = re.compile(r'(?:Internal::)?set(?:Mgr)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,')
+    set_fn = re.compile(
+        r'(?:Internal::)?set(?:Mgr)?Fn\(\s*L\s*,(?:\s*mgr\s*,)?\s*"([^"]+)"\s*,'
+    )
     set_field = re.compile(r'lua_setfield\(L,\s*-2,\s*"([^"]+)"\s*\);')
 
     for cpp in sorted(lua_dir.rglob("*.cpp")):
@@ -119,6 +125,16 @@ def parse_binding_tree(root: Path) -> tuple[ApiNode, set[str]]:
             for raw_line in body.splitlines():
                 line = raw_line.strip()
                 if not line:
+                    continue
+
+                if line.startswith("//! @fields:"):
+                    fields = [f.strip() for f in line[12:].strip()[1:-1].split(",")]
+
+                    for f in fields:
+                        name, *type_part = f.split(":")
+                        field_type = type_part[0] if type_part else "any"
+
+                        stack[-1].fields[name.strip()] = field_type.strip()
                     continue
 
                 if "lua_newtable(L)" in line:
@@ -156,7 +172,9 @@ def parse_binding_tree(root: Path) -> tuple[ApiNode, set[str]]:
 def parse_object_classes(root: Path) -> dict[str, ObjectClass]:
     objects_dir = root / "src/config/lua/objects"
     mt_regex = re.compile(r'static constexpr const char\* MT = "([^"]+)";')
-    index_header = re.compile(r"static int\s+\w*Index\s*\(lua_State\* L\)\s*\{", re.MULTILINE)
+    index_header = re.compile(
+        r"static int\s+\w*Index\s*\(lua_State\* L\)\s*\{", re.MULTILINE
+    )
     cond_regex = re.compile(r"(?:if|else\s+if)\s*\(([^)]*\bkey\b[^)]*)\)")
     push_class_regex = re.compile(r"Objects::CLua([A-Za-z0-9_]+)::push")
 
@@ -185,7 +203,9 @@ def parse_object_classes(root: Path) -> dict[str, ObjectClass]:
 
         for i, cond in enumerate(cond_matches):
             start = cond.start()
-            end = cond_matches[i + 1].start() if i + 1 < len(cond_matches) else len(body)
+            end = (
+                cond_matches[i + 1].start() if i + 1 < len(cond_matches) else len(body)
+            )
             segment = body[start:end]
 
             keys = re.findall(r'"([^"]+)"', cond.group(1))
@@ -226,7 +246,9 @@ def parse_object_classes(root: Path) -> dict[str, ObjectClass]:
                 if key in obj.fields:
                     existing = set(obj.fields[key].split("|"))
                     merged = existing | set(type_str.split("|"))
-                    obj.fields[key] = "|".join(sorted(merged, key=lambda t: (t == "nil", t)))
+                    obj.fields[key] = "|".join(
+                        sorted(merged, key=lambda t: (t == "nil", t))
+                    )
                 else:
                     obj.fields[key] = type_str
 
@@ -372,7 +394,9 @@ def query_struct_to_type(struct_name: str) -> str:
     return f"HL.{name}"
 
 
-def parse_query_filter_types(root: Path) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
+def parse_query_filter_types(
+    root: Path,
+) -> tuple[dict[str, dict[str, str]], dict[str, str]]:
     source = read_text(root / "src/config/lua/bindings/LuaBindingsQuery.cpp")
 
     parse_header = re.compile(
@@ -398,7 +422,9 @@ def parse_query_filter_types(root: Path) -> tuple[dict[str, dict[str, str]], dic
             helper = dm.group(2)
             query_types[type_name][field_name] = helper_to_lua_type(helper)
 
-        helper_calls = re.finditer(r'Internal::tableOpt([A-Za-z_]+)\(L,\s*idx,\s*"([^"]+)"', body)
+        helper_calls = re.finditer(
+            r'Internal::tableOpt([A-Za-z_]+)\(L,\s*idx,\s*"([^"]+)"', body
+        )
         for hm in helper_calls:
             helper = hm.group(1)
             field_name = hm.group(2)
@@ -435,7 +461,11 @@ def format_union_alias(name: str, values: Iterable[str]) -> list[str]:
     return lines
 
 
-def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], operator_call: str | None = None) -> list[str]:
+def emit_class_block(
+    class_name: str,
+    fields: list[tuple[str, str, bool]],
+    operator_call: str | None = None,
+) -> list[str]:
     lines = [f"---@class {class_name}"]
     if operator_call:
         lines.append(f"---@operator call:{operator_call}")
@@ -522,8 +552,12 @@ def generate_stub(root: Path) -> str:
     lines.append("---@alias HL.MonitorSelector string|integer|HL.Monitor")
     lines.append("---@alias HL.WorkspaceSelector string|integer|HL.Workspace")
     lines.append("---@alias HL.WindowSelector string|integer|HL.Window")
-    lines.append("---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string")
-    lines.append("---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}")
+    lines.append(
+        "---@alias HL.Vec2Like HL.Vec2|{x:number, y:number}|{number, number}|string"
+    )
+    lines.append(
+        "---@alias HL.CssGap integer|{top?:integer, right?:integer, bottom?:integer, left?:integer}"
+    )
     lines.append("---@alias HL.Gradient string|{colors:string[], angle?:number}")
     lines.append("")
     lines.append("---@class HL.Dispatcher")
@@ -574,10 +608,26 @@ def generate_stub(root: Path) -> str:
             [
                 ("area", "HL.Box", False),
                 ("targets", "HL.LayoutTarget[]", False),
-                ("grid_cell", "fun(self: HL.LayoutContext, i: integer, cols: integer, rows?: integer): HL.Box", False),
-                ("column", "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box", False),
-                ("row", "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box", False),
-                ("split", "fun(self: HL.LayoutContext, box: HL.Box, side: 'left'|'right'|'top'|'bottom'|'up'|'down', ratio: number): HL.Box", False),
+                (
+                    "grid_cell",
+                    "fun(self: HL.LayoutContext, i: integer, cols: integer, rows?: integer): HL.Box",
+                    False,
+                ),
+                (
+                    "column",
+                    "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box",
+                    False,
+                ),
+                (
+                    "row",
+                    "fun(self: HL.LayoutContext, i: integer, n: integer): HL.Box",
+                    False,
+                ),
+                (
+                    "split",
+                    "fun(self: HL.LayoutContext, box: HL.Box, side: 'left'|'right'|'top'|'bottom'|'up'|'down', ratio: number): HL.Box",
+                    False,
+                ),
             ],
         )
     )
@@ -588,7 +638,11 @@ def generate_stub(root: Path) -> str:
             "HL.LayoutProvider",
             [
                 ("recalculate", "fun(ctx: HL.LayoutContext): nil", False),
-                ("layout_msg", "fun(ctx: HL.LayoutContext, msg: string): boolean|string|nil", True),
+                (
+                    "layout_msg",
+                    "fun(ctx: HL.LayoutContext, msg: string): boolean|string|nil",
+                    True,
+                ),
             ],
         )
     )
@@ -634,7 +688,7 @@ def generate_stub(root: Path) -> str:
             [
                 ("fingers", "integer", False),
                 ("direction", "string", False),
-                ("action", "string|function", False),
+                ("action", "integer|function", False),
                 ("mods", "string", True),
                 ("scale", "number", True),
                 ("mode", "string", True),
@@ -673,7 +727,9 @@ def generate_stub(root: Path) -> str:
     lines.append("")
 
     for class_name in sorted(query_types.keys()):
-        fields = [(name, typ, True) for name, typ in sorted(query_types[class_name].items())]
+        fields = [
+            (name, typ, True) for name, typ in sorted(query_types[class_name].items())
+        ]
         lines.extend(emit_class_block(class_name, fields))
         lines.append("")
 
@@ -709,14 +765,28 @@ def generate_stub(root: Path) -> str:
 
         full_prefix = "hl" + ("." + ".".join(path) if path else "")
 
+        for field in sorted(node.fields):
+            full_name = f"{full_prefix}.{field}"
+            fields.append((field, node.fields[field], False))
+
         for method in sorted(node.methods):
             full_name = f"{full_prefix}.{method}"
-            default_method_type = "fun(...): HL.Dispatcher" if path and path[0] == "dsp" else "fun(...): any"
+            default_method_type = (
+                "fun(...): HL.Dispatcher"
+                if path and path[0] == "dsp"
+                else "fun(...): any"
+            )
             method_type = api_signatures.get(full_name, default_method_type)
             fields.append((method, method_type, False))
 
         for child_name in sorted(node.children.keys()):
-            fields.append((child_name, namespace_class_name(path + [child_name]), False))
+            child_type = namespace_class_name(path + [child_name])
+            if child_name in callable_namespaces:
+                # wider suppor for this rather than ---@operator
+                child_type += " | " + api_signatures.get(f"{full_prefix}.{child_name}", "fun(...): any")
+            fields.append(
+                (child_name, child_type, False)
+            )
 
         if path == ["plugin"]:
             fields.append(("[string]", "any", False))
@@ -759,7 +829,9 @@ def write_if_changed(path: Path, content: str) -> bool:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate LuaLS stubs for Hyprland Lua config API")
+    parser = argparse.ArgumentParser(
+        description="Generate LuaLS stubs for Hyprland Lua config API"
+    )
     parser.add_argument(
         "--root",
         type=Path,
@@ -791,7 +863,10 @@ def main() -> int:
 
         existing = read_text(output)
         if existing != content:
-            print(f"[lua-stubs] generated stubs are out of date: {output}", file=sys.stderr)
+            print(
+                f"[lua-stubs] generated stubs are out of date: {output}",
+                file=sys.stderr,
+            )
             return 1
 
         print(f"[lua-stubs] up to date: {output}")

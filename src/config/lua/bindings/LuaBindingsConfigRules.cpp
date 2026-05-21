@@ -6,6 +6,7 @@
 #include "../types/LuaConfigBool.hpp"
 #include "../types/LuaConfigCssGap.hpp"
 #include "../types/LuaConfigFloat.hpp"
+#include "../types/LuaConfigGestureAction.hpp"
 #include "../types/LuaConfigGradient.hpp"
 #include "../types/LuaConfigInt.hpp"
 #include "../types/LuaConfigString.hpp"
@@ -33,6 +34,7 @@
 #include "../../../managers/input/trackpad/gestures/DispatcherGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/FloatGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/FullscreenGesture.hpp"
+#include "../../../managers/input/trackpad/gestures/ITrackpadGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/LuaFunctionGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/MoveGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/ResizeGesture.hpp"
@@ -42,6 +44,7 @@
 #include "../../../managers/permissions/DynamicPermissionManager.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <lua.h>
 
 using namespace Config;
 using namespace Config::Lua;
@@ -720,6 +723,7 @@ static int hlWorkspaceRule(lua_State* L) {
 }
 
 static int hlGesture(lua_State* L) {
+    lua_remove(L, 1); // skip self from __call(self, args)
     if (!lua_istable(L, 1))
         return Internal::configError(L, R"(hl.gesture: expected a table, e.g. { fingers = 3, direction = "horizontal", action = "workspace" })");
 
@@ -746,13 +750,30 @@ static int hlGesture(lua_State* L) {
         // we can ref that fucker and call him later
         lua_getfield(L, 1, "action");
 
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            return Internal::configError(L, "hl.gesture: 'action' field expected to be callable, or one of hl.gesture.* constants");
+        }
+
+        bool is_callable = false;
+
         if (lua_isfunction(L, -1)) {
+            is_callable = true;
+        } else if (lua_getmetatable(L, -1)) {
+            lua_getfield(L, -1, "__call");
+            is_callable = lua_isfunction(L, -1);
+            lua_pop(L, 2);
+        }
+
+        if (is_callable) {
             lua_pushvalue(L, -1);
             functionRef = luaL_ref(L, LUA_REGISTRYINDEX);
             Lua::mgr()->registerLuaRef(functionRef);
+        } else if (!lua_isinteger(L, -1)) {
+            const char* bad_type = lua_typename(L, lua_type(L, -1));
+            lua_pop(L, 1);
+            return Internal::configError(L, "hl.gesture: 'action' must be a callable or an hl.gesture constant (got %s)", bad_type);
         }
-
-        lua_pop(L, 1);
     }
 
     // bitch ass macro because it's kinda long to get these things and it's ugly
@@ -818,38 +839,42 @@ static int hlGesture(lua_State* L) {
     std::expected<void, std::string> result;
 
     if (functionRef != LUA_NOREF) {
-        // this is a lua fn gesture
         result = g_pTrackpadGestures->addGesture(makeUnique<CLuaFunctionGesture>(functionRef), fingerCount, direction, modMask, deltaScale, disableInhibit);
-    } else {
-        CLuaConfigString actionParser("");
-        auto             actionErr = Internal::parseTableField(L, 1, "action", actionParser);
-        if (actionErr.errorCode != PARSE_ERROR_OK)
-            return Internal::configError(L, std::format("hl.gesture: {}", actionErr.message));
+        if (!result)
+            return Internal::configError(L, std::format("hl.gesture: {}", result.error()));
+        return 0;
+    }
 
-        const auto& action = actionParser.parsed();
+    lua_getfield(L, 1, "action");
+    if (!lua_isnumber(L, -1)) {
+        lua_pop(L, 1);
+        return Internal::configError(L, "hl.gesture: 'action' must be a valid enum integer (e.g., hl.gesture.WORKSPACE)!");
+    }
 
-        if (action == "workspace")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CWorkspaceSwipeGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "resize")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CResizeTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "move")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "special")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CSpecialWorkspaceGesture>(workspaceName), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "close")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CCloseTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "float")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CFloatTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "fullscreen")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CFullscreenTrackpadGesture>(mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "cursor_zoom" || action == "cursorZoom")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CCursorZoomTrackpadGesture>(zoomLevel, mode), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "scroll_move")
-            result = g_pTrackpadGestures->addGesture(makeUnique<CScrollMoveTrackpadGesture>(), fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else if (action == "unset")
-            result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit);
-        else
-            return Internal::configError(L, std::format("hl.gesture: unknown action \"{}\"", action));
+    int rawAction = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    eGestureAction                   action  = static_cast<eGestureAction>(rawAction);
+    CUniquePointer<ITrackpadGesture> gesture = nullptr;
+
+    switch (action) {
+        case eGestureAction::WORKSPACE: gesture = makeUnique<CWorkspaceSwipeGesture>(); break;
+        case eGestureAction::RESIZE: gesture = makeUnique<CResizeTrackpadGesture>(); break;
+        case eGestureAction::MOVE: gesture = makeUnique<CMoveTrackpadGesture>(); break;
+        case eGestureAction::SPECIAL: gesture = makeUnique<CSpecialWorkspaceGesture>(workspaceName); break;
+        case eGestureAction::CLOSE: gesture = makeUnique<CCloseTrackpadGesture>(); break;
+        case eGestureAction::FLOAT: gesture = makeUnique<CFloatTrackpadGesture>(mode); break;
+        case eGestureAction::FULLSCREEN: gesture = makeUnique<CFullscreenTrackpadGesture>(mode); break;
+        case eGestureAction::CURSOR_ZOOM: gesture = makeUnique<CCursorZoomTrackpadGesture>(zoomLevel, mode); break;
+        case eGestureAction::SCROLL_MOVE: gesture = makeUnique<CScrollMoveTrackpadGesture>(); break;
+
+        case eGestureAction::UNSET: result = g_pTrackpadGestures->removeGesture(fingerCount, direction, modMask, deltaScale, disableInhibit); break;
+
+        default: return Internal::configError(L, std::format("hl.gesture: unknown action ID {}", rawAction));
+    }
+
+    if (gesture) {
+        result = g_pTrackpadGestures->addGesture(std::move(gesture), fingerCount, direction, modMask, deltaScale, disableInhibit);
     }
 
     if (!result)
@@ -1292,7 +1317,24 @@ void Internal::registerConfigRuleBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "load", hlPluginLoad);
     lua_setfield(L, -2, "plugin");
 
-    Internal::setFn(L, "gesture", hlGesture);
     Internal::setFn(L, "curve", hlCurve);
     Internal::setFn(L, "animation", hlAnimation);
+
+    lua_newtable(L);
+    int gestureTableIdx = lua_gettop(L);
+
+    //! @fields: [WORKSPACE:integer, RESIZE:integer, SCROLL_MOVE:integer]
+    //! @fields: [SPECIAL:integer, CLOSE:integer, FLOAT:integer, MOVE:integer]
+    //! @fields: [UNSET:integer, FULLSCREEN:integer, CURSOR_ZOOM:integer]
+    for (size_t i = 0; i < GESTURE_ACTION_NAMES.size(); ++i) {
+        lua_pushinteger(L, static_cast<int>(i));
+        lua_setfield(L, gestureTableIdx, GESTURE_ACTION_NAMES[i]);
+    }
+
+    lua_newtable(L);
+    lua_pushcfunction(L, hlGesture);
+    lua_setfield(L, -2, "__call");
+
+    lua_setmetatable(L, -2);
+    lua_setfield(L, -2, "gesture");
 }

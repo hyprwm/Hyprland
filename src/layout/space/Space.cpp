@@ -160,7 +160,7 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> t, eFullscreenMode cu
     const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(t, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
 
     t->setLayoutManagedFullscreen(REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT &&
-                                  (mode == FSMODE_FULLSCREEN || mode == FSMODE_MAXIMIZED)); // ERSTARR -> set maximise window as layoutmanagedFS
+                                  (mode == FSMODE_FULLSCREEN || mode == FSMODE_MAXIMIZED));
     if (REQUEST_RESULT != FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT)
         t->setFullscreenMode(mode);
 

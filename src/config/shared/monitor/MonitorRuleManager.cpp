@@ -72,7 +72,7 @@ CMonitorRule CMonitorRuleManager::get(const PHLMONITOR PMONITOR) {
         }
 
         if (CONFIG->committedProperties & OUTPUT_HEAD_COMMITTED_ADAPTIVE_SYNC) {
-            Log::logger->log(Log::DEBUG, " > overriding vrr: {} -> {}", rule.m_vrr.value_or(0), CONFIG->adaptiveSync);
+            Log::logger->log(Log::DEBUG, " > overriding vrr: {} -> {}", rule.m_vrr, CONFIG->adaptiveSync);
             rule.m_vrr = sc<int>(CONFIG->adaptiveSync);
         }
 
@@ -166,7 +166,7 @@ void CMonitorRuleManager::ensureVRR(PHLMONITOR pMonitor) {
         if (!m->m_output || m->m_createdByUser)
             return;
 
-        const auto USEVRR = m->m_activeMonitorRule.m_vrr.has_value() ? m->m_activeMonitorRule.m_vrr.value() : *PVRR;
+        const auto USEVRR = m->m_activeMonitorRule.m_vrr >= 0 ? m->m_activeMonitorRule.m_vrr : *PVRR;
 
         if (USEVRR == 0) {
             if (m->m_vrrActive) {

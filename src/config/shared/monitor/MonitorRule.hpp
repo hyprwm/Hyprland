@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <optional>
 #include <xf86drmMode.h>
 
 #include "../../../helpers/math/Math.hpp"
@@ -52,11 +51,11 @@ namespace Config {
         int                    m_sdrMaxLuminance   = 80;   // SDR -> HDR
 
         // Incorrect values will result in reduced luminance range or incorrect tonemapping. Shouldn't damage the HW. Use with care in case of a faulty monitor firmware.
-        float              m_minLuminance    = -1.F; // >= 0 overrides EDID
-        int                m_maxLuminance    = -1;   // >= 0 overrides EDID
-        int                m_maxAvgLuminance = -1;   // >= 0 overrides EDID
+        float           m_minLuminance    = -1.F; // >= 0 overrides EDID
+        int             m_maxLuminance    = -1;   // >= 0 overrides EDID
+        int             m_maxAvgLuminance = -1;   // >= 0 overrides EDID
 
-        drmModeModeInfo    m_drmMode = {};
-        std::optional<int> m_vrr;
+        drmModeModeInfo m_drmMode = {};
+        int             m_vrr     = -1; // -1 = inherit misc:vrr, 0 = off, 1 = on, 2 = fullscreen, 3 = fullscreen_game
     };
 };

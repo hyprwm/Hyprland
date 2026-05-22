@@ -1,5 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
+#include "Check.hpp"
+
 #include "../objects/LuaLayerSurface.hpp"
 #include "../objects/LuaMonitor.hpp"
 #include "../objects/LuaWindow.hpp"
@@ -242,8 +244,16 @@ static int hlGetMonitorAt(lua_State* L) {
         x = *tx;
         y = *ty;
     } else {
-        x = luaL_checknumber(L, 1);
-        y = luaL_checknumber(L, 2);
+        const auto tx = Check::number(L, 1);
+        if (!tx)
+            return Internal::configError(L, std::format("get_monitor_at: bad argument 1: {}", tx.error()));
+
+        const auto ty = Check::number(L, 2);
+        if (!ty)
+            return Internal::configError(L, std::format("get_monitor_at: bad argument 2: {}", ty.error()));
+
+        x = *tx;
+        y = *ty;
     }
 
     const auto PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D{x, y});

@@ -3,6 +3,7 @@
 #include "LuaLayoutContext.hpp"
 #include "LuaLayoutTarget.hpp"
 #include "../ConfigManager.hpp"
+#include "../bindings/Check.hpp"
 #include "../bindings/LuaBindingsInternal.hpp"
 
 #include "../../../debug/log/Logger.hpp"
@@ -303,11 +304,14 @@ void CConfigManager::clearLuaLayoutProviders() {
 }
 
 static int hlLayoutRegister(lua_State* L) {
-    auto*       mgr  = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
-    const char* name = luaL_checkstring(L, 1);
+    auto*      mgr  = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
+    const auto name = Bindings::Check::string(L, 1);
+    if (!name)
+        return Bindings::Internal::configError(L, std::format("layout.register: bad argument 1: {}", name.error()));
+
     luaL_checktype(L, 2, LUA_TTABLE);
 
-    auto result = mgr->registerLuaLayoutProvider(name, L, 2);
+    auto result = mgr->registerLuaLayoutProvider(*name, L, 2);
     if (!result)
         return Config::Lua::Bindings::Internal::configError(L, "hl.layout.register: {}", result.error());
 

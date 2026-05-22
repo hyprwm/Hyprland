@@ -1,4 +1,5 @@
 #include "LuaBindingsInternal.hpp"
+#include "Check.hpp"
 
 #include "../objects/LuaLayerRule.hpp"
 #include "../objects/LuaWindowRule.hpp"
@@ -569,9 +570,16 @@ static int hlPermission(lua_State* L) {
         typeStr = *t;
         modeStr = *m;
     } else {
-        binary  = luaL_checkstring(L, 1);
-        typeStr = luaL_checkstring(L, 2);
-        modeStr = luaL_checkstring(L, 3);
+        auto b = Check::string(L, 1);
+        auto t = Check::string(L, 2);
+        auto m = Check::string(L, 3);
+
+        if (!b || !t || !m)
+            return Internal::configError(L, "hl.permission: expected binary, type, mode");
+
+        binary  = *b;
+        typeStr = *t;
+        modeStr = *m;
     }
 
     if (binary.empty())
@@ -910,9 +918,13 @@ static int hlConfig(lua_State* L) {
 }
 
 static int hlGetConfig(lua_State* L) {
-    auto*       self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
+    auto* self = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
-    std::string key = luaL_checkstring(L, 1);
+    auto  arg = Check::string(L, 1);
+    if (!arg)
+        return Internal::configError(L, std::format("hl.get_config: bad type for arg 1, {}", arg.error()));
+
+    std::string key = *arg;
 
     auto        it = self->m_configValues.find(key);
     if (it == self->m_configValues.end()) {

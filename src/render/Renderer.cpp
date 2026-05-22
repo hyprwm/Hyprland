@@ -49,6 +49,7 @@
 #include "OpenGL.hpp"
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
+#include "../protocols/types/SurfaceState.hpp"
 #include "types.hpp"
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
@@ -191,11 +192,12 @@ IHyprRenderer::IHyprRenderer() {
                 if (!w->wlSurface() || !w->wlSurface()->resource() || shouldRenderWindow(w.lock()))
                     continue;
 
-                w->wlSurface()->resource()->frame(Time::steadyNow());
-                auto FEEDBACK = makeUnique<CQueuedPresentationData>(w->wlSurface()->resource());
-                FEEDBACK->attachMonitor(Desktop::focusState()->monitor());
-                FEEDBACK->discarded();
-                PROTO::presentation->queueData(std::move(FEEDBACK));
+                w->wlSurface()->resource()->breadthfirst(
+                    [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
+                        surf->m_stateQueue.unlockFirst(LOCK_REASON_FENCE | LOCK_REASON_FIFO | LOCK_REASON_TIMER);
+                        surf->presentFeedback(Time::steadyNow(), Desktop::focusState()->monitor(), true);
+                    },
+                    nullptr);
             }
 
             if (dirty)

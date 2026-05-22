@@ -1646,343 +1646,338 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
                 centerOrFit(USED_COL);
                 m_scrollingData->recalculate();
             }
-        }
-    } else if (ARGS[1] == "all") {
-        // fit all columns on screen
-        const size_t LEN = m_scrollingData->columns.size();
-        for (const auto& c : m_scrollingData->columns) {
-            c->setColumnWidth(1.F / (float)LEN);
-        }
 
-        m_scrollingData->controller->setOffset(0);
-        m_scrollingData->recalculate();
-    } else if (ARGS[1] == "toend") {
-        // fit all columns on screen that start from the current and end on the last
-        bool   begun   = false;
-        size_t foundAt = 0;
-        for (size_t i = 0; i < m_scrollingData->columns.size(); ++i) {
-            if (!begun && !m_scrollingData->columns[i]->has(PWINDOW->layoutTarget()))
-                continue;
-
-            if (!begun) {
-                begun   = true;
-                foundAt = i;
+        } else if (ARGS[1] == "all") {
+            // fit all columns on screen
+            const size_t LEN = m_scrollingData->columns.size();
+            for (const auto& c : m_scrollingData->columns) {
+                c->setColumnWidth(1.F / (float)LEN);
             }
 
-            m_scrollingData->columns[i]->setColumnWidth(1.F / (float)(m_scrollingData->columns.size() - foundAt));
-        }
+            m_scrollingData->controller->setOffset(0);
+            m_scrollingData->recalculate();
+        } else if (ARGS[1] == "toend") {
+            // fit all columns on screen that start from the current and end on the last
+            bool   begun   = false;
+            size_t foundAt = 0;
+            for (size_t i = 0; i < m_scrollingData->columns.size(); ++i) {
+                if (!begun && !m_scrollingData->columns[i]->has(PWINDOW->layoutTarget()))
+                    continue;
 
-        if (!begun)
-            return notFound("couldn't find beginning");
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
 
-        const auto USABLE = usableArea();
-
-        double     off = 0;
-        for (size_t i = 0; i < foundAt; ++i) {
-            off += USABLE.w * m_scrollingData->columns[i]->getColumnWidth();
-        }
-
-        m_scrollingData->controller->setOffset(off);
-        m_scrollingData->recalculate();
-    } else if (ARGS[1] == "tobeg") {
-        // fit all columns on screen that start from the current and end on the last
-        bool   begun   = false;
-        size_t foundAt = 0;
-        for (int64_t i = (int64_t)m_scrollingData->columns.size() - 1; i >= 0; --i) {
-            if (!begun && !m_scrollingData->columns[i]->has(PWINDOW->layoutTarget()))
-                continue;
-
-            if (!begun) {
-                begun   = true;
-                foundAt = i;
+                m_scrollingData->columns[i]->setColumnWidth(1.F / (float)(m_scrollingData->columns.size() - foundAt));
             }
 
-            m_scrollingData->columns[i]->setColumnWidth(1.F / (float)(foundAt + 1));
-        }
+            if (!begun)
+                return notFound("couldn't find beginning");
 
-        if (!begun)
-            return {};
-
-        m_scrollingData->controller->setOffset(0);
-        m_scrollingData->recalculate();
-    } else if (ARGS[1] == "visible") {
-        // fit all columns on screen that start from the current and end on the last
-
-        bool                         begun   = false;
-        size_t                       foundAt = 0;
-        std::vector<SP<SColumnData>> visible;
-        for (size_t i = 0; i < m_scrollingData->columns.size(); ++i) {
-            if (!begun && !m_scrollingData->visible(m_scrollingData->columns[i]))
-                continue;
-
-            if (!begun) {
-                begun   = true;
-                foundAt = i;
-            }
-
-            if (!m_scrollingData->visible(m_scrollingData->columns[i]))
-                break;
-
-            visible.emplace_back(m_scrollingData->columns[i]);
-        }
-
-        if (!begun)
-            return {};
-
-        double off = 0;
-
-        if (foundAt != 0) {
             const auto USABLE = usableArea();
 
+            double     off = 0;
             for (size_t i = 0; i < foundAt; ++i) {
                 off += USABLE.w * m_scrollingData->columns[i]->getColumnWidth();
             }
+
+            m_scrollingData->controller->setOffset(off);
+            m_scrollingData->recalculate();
+        } else if (ARGS[1] == "tobeg") {
+            // fit all columns on screen that start from the current and end on the last
+            bool   begun   = false;
+            size_t foundAt = 0;
+            for (int64_t i = (int64_t)m_scrollingData->columns.size() - 1; i >= 0; --i) {
+                if (!begun && !m_scrollingData->columns[i]->has(PWINDOW->layoutTarget()))
+                    continue;
+
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
+
+                m_scrollingData->columns[i]->setColumnWidth(1.F / (float)(foundAt + 1));
+            }
+
+            if (!begun)
+                return {};
+
+            m_scrollingData->controller->setOffset(0);
+            m_scrollingData->recalculate();
+        } else if (ARGS[1] == "visible") {
+            // fit all columns on screen that start from the current and end on the last
+
+            bool                         begun   = false;
+            size_t                       foundAt = 0;
+            std::vector<SP<SColumnData>> visible;
+            for (size_t i = 0; i < m_scrollingData->columns.size(); ++i) {
+                if (!begun && !m_scrollingData->visible(m_scrollingData->columns[i]))
+                    continue;
+
+                if (!begun) {
+                    begun   = true;
+                    foundAt = i;
+                }
+
+                if (!m_scrollingData->visible(m_scrollingData->columns[i]))
+                    break;
+
+                visible.emplace_back(m_scrollingData->columns[i]);
+            }
+
+            if (!begun)
+                return {};
+
+            double off = 0;
+
+            if (foundAt != 0) {
+                const auto USABLE = usableArea();
+
+                for (size_t i = 0; i < foundAt; ++i) {
+                    off += USABLE.w * m_scrollingData->columns[i]->getColumnWidth();
+                }
+            }
+
+            for (const auto& v : visible) {
+                v->setColumnWidth(1.F / (float)visible.size());
+            }
+
+            m_scrollingData->controller->setOffset(off);
+            m_scrollingData->recalculate();
+        }
+    } else if (ARGS[0] == "focus") {
+        const auto        TDATA          = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        static const auto PNOFALLBACK    = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
+        static const auto PCONFWRAPFOCUS = CConfigValue<Config::INTEGER>("scrolling:wrap_focus");
+
+        if (!TDATA || ARGS[1].empty())
+            return noTarget("no window to focus");
+
+        // Determine if we're in vertical scroll mode (strips are horizontal)
+        const bool isVerticalScroll = (getDynamicDirection() == SCROLL_DIR_DOWN || getDynamicDirection() == SCROLL_DIR_UP);
+
+        // Map direction keys based on scroll mode:
+        // Horizontal scroll (RIGHT/LEFT): u/d move within strip, l/r move between strips
+        // Vertical scroll (DOWN/UP): l/r move within strip, u/d move between strips
+        char dirChar = ARGS[1][0];
+
+        // Convert to semantic directions
+        bool isPrevInStrip = (!isVerticalScroll && (dirChar == 'u' || dirChar == 't')) || (isVerticalScroll && dirChar == 'l');
+        bool isNextInStrip = (!isVerticalScroll && (dirChar == 'b' || dirChar == 'd')) || (isVerticalScroll && dirChar == 'r');
+        bool isPrevStrip   = (!isVerticalScroll && dirChar == 'l') || (isVerticalScroll && (dirChar == 'u' || dirChar == 't'));
+        bool isNextStrip   = (!isVerticalScroll && dirChar == 'r') || (isVerticalScroll && (dirChar == 'b' || dirChar == 'd'));
+
+        if (isPrevInStrip) {
+            // Move to previous target within current strip
+            auto PREV = TDATA->column->prev(TDATA);
+            if (!PREV) {
+                if (!*PNOFALLBACK)
+                    PREV = TDATA->column->targetDatas.back();
+                else
+                    return notFound("fallback disabled (no target)");
+            }
+
+            focusTargetUpdate(PREV->target.lock());
+            if (PREV->target->window())
+                g_pCompositor->warpCursorTo(PREV->target->window()->middle());
+        } else if (isNextInStrip) {
+            // Move to next target within current strip
+            auto NEXT = TDATA->column->next(TDATA);
+            if (!NEXT) {
+                if (!*PNOFALLBACK)
+                    NEXT = TDATA->column->targetDatas.front();
+                else
+                    return notFound("fallback disabled (no target)");
+            }
+
+            focusTargetUpdate(NEXT->target.lock());
+            if (NEXT->target->window())
+                g_pCompositor->warpCursorTo(NEXT->target->window()->middle());
+        } else if (isPrevStrip) {
+            // Move to previous strip
+            auto PREV = m_scrollingData->prev(TDATA->column.lock());
+            if (!PREV) {
+                if (*PNOFALLBACK) {
+                    centerOrFit(TDATA->column.lock());
+                    m_scrollingData->recalculate();
+                    if (TDATA->target->window())
+                        g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
+                    return {};
+                } else
+                    PREV = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
+            }
+
+            auto pTargetData = findBestNeighbor(TDATA, PREV);
+            if (pTargetData) {
+                focusTargetUpdate(pTargetData->target.lock());
+                centerOrFit(PREV);
+                m_scrollingData->recalculate();
+                if (pTargetData->target->window())
+                    g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
+            }
+        } else if (isNextStrip) {
+            // Move to next strip
+            auto NEXT = m_scrollingData->next(TDATA->column.lock());
+            if (!NEXT) {
+                if (*PNOFALLBACK) {
+                    centerOrFit(TDATA->column.lock());
+                    m_scrollingData->recalculate();
+                    if (TDATA->target->window())
+                        g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
+                    return {};
+                } else
+                    NEXT = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
+            }
+
+            auto pTargetData = findBestNeighbor(TDATA, NEXT);
+            if (pTargetData) {
+                focusTargetUpdate(pTargetData->target.lock());
+                centerOrFit(NEXT);
+                m_scrollingData->recalculate();
+                if (pTargetData->target->window())
+                    g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
+            }
+        }
+    } else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {
+        const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        if (!TDATA)
+            return noTarget("no window focused");
+
+        const auto CURRENT_COL = TDATA->column.lock();
+        if (!CURRENT_COL)
+            return stateErr("no current col");
+
+        // consume the first target from adjCol into dstCol
+        auto consumeTarget = [&](SP<SColumnData> dstCol, SP<SColumnData> adjCol) {
+            const auto target = adjCol->targetDatas.front();
+            adjCol->remove(target->target.lock());
+            dstCol->add(target);
+            m_scrollingData->centerOrFitCol(dstCol);
+        };
+
+        if (ARGS[0] == "promote") {
+            auto idx = m_scrollingData->idx(CURRENT_COL);
+            expelTarget(TDATA, CURRENT_COL, idx == -1 ? std::nullopt : std::optional<int64_t>{idx});
+        } else if (ARGS[0] == "expel") {
+            if (CURRENT_COL->targetDatas.size() < 2)
+                return stateErr("column has only one window");
+
+            const auto lastTarget = CURRENT_COL->targetDatas.back();
+            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
+            const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
+            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
+
+            expelTarget(lastTarget, CURRENT_COL, insertIdx);
+        } else if (ARGS[0] == "consume") {
+            const auto NEXT_COL = m_scrollingData->next(CURRENT_COL);
+            if (!NEXT_COL)
+                return notFound("no next column");
+
+            consumeTarget(CURRENT_COL, NEXT_COL);
+        } else if (ARGS[0] == "consume_or_expel") {
+            if (ARGS.size() < 2)
+                return invalidArg("not enough args");
+
+            const std::string& direction = ARGS[1];
+            const bool         prev      = direction == "prev";
+            const bool         next      = direction == "next";
+
+            if (!prev && !next)
+                return invalidArg("invalid direction, expected prev or next");
+
+            if (CURRENT_COL->targetDatas.size() > 1) {
+                const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
+                expelTarget(TDATA, CURRENT_COL, prev ? currentIdx - 1 : currentIdx);
+            } else {
+                const auto ADJ_COL = prev ? m_scrollingData->prev(CURRENT_COL) : m_scrollingData->next(CURRENT_COL);
+                if (!ADJ_COL)
+                    return notFound("no adjacent column");
+
+                CURRENT_COL->remove(TDATA->target.lock());
+                ADJ_COL->add(TDATA);
+                m_scrollingData->centerOrFitCol(ADJ_COL);
+            }
         }
 
-        for (const auto& v : visible) {
-            v->setColumnWidth(1.F / (float)visible.size());
-        }
-
-        m_scrollingData->controller->setOffset(off);
         m_scrollingData->recalculate();
-    }
-}
-else if (ARGS[0] == "focus") {
-    const auto        TDATA          = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-    static const auto PNOFALLBACK    = CConfigValue<Config::INTEGER>("general:no_focus_fallback");
-    static const auto PCONFWRAPFOCUS = CConfigValue<Config::INTEGER>("scrolling:wrap_focus");
+    } else if (ARGS[0] == "swapcol") {
+        static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::INTEGER>("scrolling:wrap_swapcol");
 
-    if (!TDATA || ARGS[1].empty())
-        return noTarget("no window to focus");
-
-    // Determine if we're in vertical scroll mode (strips are horizontal)
-    const bool isVerticalScroll = (getDynamicDirection() == SCROLL_DIR_DOWN || getDynamicDirection() == SCROLL_DIR_UP);
-
-    // Map direction keys based on scroll mode:
-    // Horizontal scroll (RIGHT/LEFT): u/d move within strip, l/r move between strips
-    // Vertical scroll (DOWN/UP): l/r move within strip, u/d move between strips
-    char dirChar = ARGS[1][0];
-
-    // Convert to semantic directions
-    bool isPrevInStrip = (!isVerticalScroll && (dirChar == 'u' || dirChar == 't')) || (isVerticalScroll && dirChar == 'l');
-    bool isNextInStrip = (!isVerticalScroll && (dirChar == 'b' || dirChar == 'd')) || (isVerticalScroll && dirChar == 'r');
-    bool isPrevStrip   = (!isVerticalScroll && dirChar == 'l') || (isVerticalScroll && (dirChar == 'u' || dirChar == 't'));
-    bool isNextStrip   = (!isVerticalScroll && dirChar == 'r') || (isVerticalScroll && (dirChar == 'b' || dirChar == 'd'));
-
-    if (isPrevInStrip) {
-        // Move to previous target within current strip
-        auto PREV = TDATA->column->prev(TDATA);
-        if (!PREV) {
-            if (!*PNOFALLBACK)
-                PREV = TDATA->column->targetDatas.back();
-            else
-                return notFound("fallback disabled (no target)");
-        }
-
-        focusTargetUpdate(PREV->target.lock());
-        if (PREV->target->window())
-            g_pCompositor->warpCursorTo(PREV->target->window()->middle());
-    } else if (isNextInStrip) {
-        // Move to next target within current strip
-        auto NEXT = TDATA->column->next(TDATA);
-        if (!NEXT) {
-            if (!*PNOFALLBACK)
-                NEXT = TDATA->column->targetDatas.front();
-            else
-                return notFound("fallback disabled (no target)");
-        }
-
-        focusTargetUpdate(NEXT->target.lock());
-        if (NEXT->target->window())
-            g_pCompositor->warpCursorTo(NEXT->target->window()->middle());
-    } else if (isPrevStrip) {
-        // Move to previous strip
-        auto PREV = m_scrollingData->prev(TDATA->column.lock());
-        if (!PREV) {
-            if (*PNOFALLBACK) {
-                centerOrFit(TDATA->column.lock());
-                m_scrollingData->recalculate();
-                if (TDATA->target->window())
-                    g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
-                return {};
-            } else
-                PREV = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.back() : m_scrollingData->columns.front();
-        }
-
-        auto pTargetData = findBestNeighbor(TDATA, PREV);
-        if (pTargetData) {
-            focusTargetUpdate(pTargetData->target.lock());
-            centerOrFit(PREV);
-            m_scrollingData->recalculate();
-            if (pTargetData->target->window())
-                g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
-        }
-    } else if (isNextStrip) {
-        // Move to next strip
-        auto NEXT = m_scrollingData->next(TDATA->column.lock());
-        if (!NEXT) {
-            if (*PNOFALLBACK) {
-                centerOrFit(TDATA->column.lock());
-                m_scrollingData->recalculate();
-                if (TDATA->target->window())
-                    g_pCompositor->warpCursorTo(TDATA->target->window()->middle());
-                return {};
-            } else
-                NEXT = (*PCONFWRAPFOCUS == 1) ? m_scrollingData->columns.front() : m_scrollingData->columns.back();
-        }
-
-        auto pTargetData = findBestNeighbor(TDATA, NEXT);
-        if (pTargetData) {
-            focusTargetUpdate(pTargetData->target.lock());
-            centerOrFit(NEXT);
-            m_scrollingData->recalculate();
-            if (pTargetData->target->window())
-                g_pCompositor->warpCursorTo(pTargetData->target->window()->middle());
-        }
-    }
-}
-else if (ARGS[0] == "promote" || ARGS[0] == "consume" || ARGS[0] == "expel" || ARGS[0] == "consume_or_expel") {
-    const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-    if (!TDATA)
-        return noTarget("no window focused");
-
-    const auto CURRENT_COL = TDATA->column.lock();
-    if (!CURRENT_COL)
-        return stateErr("no current col");
-
-    // consume the first target from adjCol into dstCol
-    auto consumeTarget = [&](SP<SColumnData> dstCol, SP<SColumnData> adjCol) {
-        const auto target = adjCol->targetDatas.front();
-        adjCol->remove(target->target.lock());
-        dstCol->add(target);
-        m_scrollingData->centerOrFitCol(dstCol);
-    };
-
-    if (ARGS[0] == "promote") {
-        auto idx = m_scrollingData->idx(CURRENT_COL);
-        expelTarget(TDATA, CURRENT_COL, idx == -1 ? std::nullopt : std::optional<int64_t>{idx});
-    } else if (ARGS[0] == "expel") {
-        if (CURRENT_COL->targetDatas.size() < 2)
-            return stateErr("column has only one window");
-
-        const auto lastTarget = CURRENT_COL->targetDatas.back();
-        const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
-        const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
-        const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
-
-        expelTarget(lastTarget, CURRENT_COL, insertIdx);
-    } else if (ARGS[0] == "consume") {
-        const auto NEXT_COL = m_scrollingData->next(CURRENT_COL);
-        if (!NEXT_COL)
-            return notFound("no next column");
-
-        consumeTarget(CURRENT_COL, NEXT_COL);
-    } else if (ARGS[0] == "consume_or_expel") {
         if (ARGS.size() < 2)
             return invalidArg("not enough args");
 
+        const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        if (!TDATA)
+            return noTarget("no window");
+
+        const auto CURRENT_COL = TDATA->column.lock();
+        if (!CURRENT_COL)
+            return stateErr("no current col");
+
+        if (m_scrollingData->columns.size() < 2)
+            return stateErr("not enough columns to swap");
+
+        const int64_t currentIdx = m_scrollingData->idx(CURRENT_COL);
+        const size_t  colCount   = m_scrollingData->columns.size();
+
+        if (currentIdx == -1)
+            return stateErr("no current column");
+
         const std::string& direction = ARGS[1];
-        const bool         prev      = direction == "prev";
-        const bool         next      = direction == "next";
+        int64_t            targetIdx = -1;
 
-        if (!prev && !next)
-            return invalidArg("invalid direction, expected prev or next");
-
-        if (CURRENT_COL->targetDatas.size() > 1) {
-            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
-            expelTarget(TDATA, CURRENT_COL, prev ? currentIdx - 1 : currentIdx);
-        } else {
-            const auto ADJ_COL = prev ? m_scrollingData->prev(CURRENT_COL) : m_scrollingData->next(CURRENT_COL);
-            if (!ADJ_COL)
-                return notFound("no adjacent column");
-
-            CURRENT_COL->remove(TDATA->target.lock());
-            ADJ_COL->add(TDATA);
-            m_scrollingData->centerOrFitCol(ADJ_COL);
-        }
-    }
-
-    m_scrollingData->recalculate();
-}
-else if (ARGS[0] == "swapcol") {
-    static const auto PCONFWRAPSWAPCOL = CConfigValue<Config::INTEGER>("scrolling:wrap_swapcol");
-
-    if (ARGS.size() < 2)
-        return invalidArg("not enough args");
-
-    const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-    if (!TDATA)
-        return noTarget("no window");
-
-    const auto CURRENT_COL = TDATA->column.lock();
-    if (!CURRENT_COL)
-        return stateErr("no current col");
-
-    if (m_scrollingData->columns.size() < 2)
-        return stateErr("not enough columns to swap");
-
-    const int64_t currentIdx = m_scrollingData->idx(CURRENT_COL);
-    const size_t  colCount   = m_scrollingData->columns.size();
-
-    if (currentIdx == -1)
-        return stateErr("no current column");
-
-    const std::string& direction = ARGS[1];
-    int64_t            targetIdx = -1;
-
-    // wrap around swaps
-    if (direction == "l")
-        if (*PCONFWRAPSWAPCOL == 1)
-            targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
+        // wrap around swaps
+        if (direction == "l")
+            if (*PCONFWRAPSWAPCOL == 1)
+                targetIdx = (currentIdx == 0) ? (colCount - 1) : (currentIdx - 1);
+            else
+                targetIdx = (currentIdx == 0) ? 0 : (currentIdx - 1);
+        else if (direction == "r")
+            if (*PCONFWRAPSWAPCOL == 1)
+                targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
+            else
+                targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);
         else
-            targetIdx = (currentIdx == 0) ? 0 : (currentIdx - 1);
-    else if (direction == "r")
-        if (*PCONFWRAPSWAPCOL == 1)
-            targetIdx = (currentIdx == (int64_t)colCount - 1) ? 0 : (currentIdx + 1);
+            return invalidArg("no target (invalid direction?)");
+        ;
+
+        std::swap(m_scrollingData->columns.at(currentIdx), m_scrollingData->columns.at(targetIdx));
+
+        m_scrollingData->controller->swapStrips(currentIdx, targetIdx);
+
+        m_scrollingData->centerOrFitCol(CURRENT_COL);
+        m_scrollingData->recalculate();
+    } else if (ARGS[0] == "center") {
+        const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
+        if (!TDATA)
+            return noTarget("no window");
+
+        const auto CURRENT_COL = TDATA->column.lock();
+        if (!CURRENT_COL)
+            return stateErr("no current col");
+
+        m_scrollingData->centerCol(CURRENT_COL);
+        m_scrollingData->recalculate();
+    } else if (ARGS[0] == "inhibit_scroll") {
+        // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
+
+        if (ARGS.size() > 2)
+            return invalidArg("too many args");
+
+        // Toggle
+        if (ARGS.size() == 1)
+            m_scrollingData->controller->getScrollInhibitor().isInhibited ? uninhibitScroll() : inhibitScroll();
+        // Explicit Disable
+        else if (ARGS[1] == "0" || ARGS[1] == "false")
+            uninhibitScroll();
+        // Explicit Enable
         else
-            targetIdx = (currentIdx == (int64_t)colCount - 1) ? (colCount - 1) : (currentIdx + 1);
-    else
-        return invalidArg("no target (invalid direction?)");
-    ;
+            inhibitScroll();
+    } else
+        return invalidArg("no such layoutmsg for scrolling");
 
-    std::swap(m_scrollingData->columns.at(currentIdx), m_scrollingData->columns.at(targetIdx));
-
-    m_scrollingData->controller->swapStrips(currentIdx, targetIdx);
-
-    m_scrollingData->centerOrFitCol(CURRENT_COL);
-    m_scrollingData->recalculate();
-}
-else if (ARGS[0] == "center") {
-    const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
-    if (!TDATA)
-        return noTarget("no window");
-
-    const auto CURRENT_COL = TDATA->column.lock();
-    if (!CURRENT_COL)
-        return stateErr("no current col");
-
-    m_scrollingData->centerCol(CURRENT_COL);
-    m_scrollingData->recalculate();
-}
-else if (ARGS[0] == "inhibit_scroll") {
-    // Inhibits/Uninhibits scrolling: The tape does not move for the currently active workspace while this option is active
-
-    if (ARGS.size() > 2)
-        return invalidArg("too many args");
-
-    // Toggle
-    if (ARGS.size() == 1)
-        m_scrollingData->controller->getScrollInhibitor().isInhibited ? uninhibitScroll() : inhibitScroll();
-    // Explicit Disable
-    else if (ARGS[1] == "0" || ARGS[1] == "false")
-        uninhibitScroll();
-    // Explicit Enable
-    else
-        inhibitScroll();
-}
-else return invalidArg("no such layoutmsg for scrolling");
-
-return {};
+    return {};
 }
 
 void CScrollingAlgorithm::moveTape(float delta) {

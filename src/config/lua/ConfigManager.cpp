@@ -623,17 +623,30 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
     m_isEvaluating = true;
 
     Hyprutils::Utils::CScopeGuard x([this] { m_isEvaluating = false; });
-
-    if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {
-        std::string err = lua_tostring(m_lua, -1);
+    if (luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str()) != LUA_OK) {
         lua_pop(m_lua, 1);
-        return std::format("error: {}", err);
+        if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {
+            std::string err = lua_tostring(m_lua, -1);
+            lua_pop(m_lua, 1);
+            return std::format("error: {}", err);
+        }
     }
 
-    if (guardedPCall(0, 0, 0, LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
+    if (guardedPCall(0, LUA_MULTRET, 0, LUA_TIMEOUT_EVAL_MS, "hyprctl eval") != LUA_OK) {
         std::string err = lua_tostring(m_lua, -1);
         lua_pop(m_lua, 1);
         return std::format("error: {}", err);
+    } else if (lua_gettop(m_lua) > 0) {
+        int nstack = lua_gettop(m_lua);
+        std::string ret;
+        for (int i = 1; i <= nstack; ++i) {
+            if (i > 1)
+                ret += "\t";
+            ret += std::string(luaL_tolstring(m_lua, i, NULL));
+            lua_pop(m_lua, 1);
+        }
+        lua_pop(m_lua, nstack);
+        return ret;
     }
 
     if (!m_errors.empty() || !m_evalIssues.empty()) {

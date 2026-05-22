@@ -593,6 +593,11 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
         }
     }
 
+    // store a bindsHit vec first, then run all the callbacks.
+    // this is because since lua fns can arbitrarily bind/unbind, we don't want to
+    // invalidate the vec while iterating
+    std::vector<SP<SKeybind>> bindsHit;
+
     for (auto& k : m_keybinds) {
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
@@ -729,6 +734,18 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             continue;
         }
 
+        bindsHit.emplace_back(k);
+
+        if (k->handler == "submap") {
+            found = true; // don't process keybinds on submap change.
+            break;
+        }
+    }
+
+    for (const auto& k : bindsHit) {
+        const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
+        const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
+
         const auto DISPATCHER = m_dispatchers.find(k->mouse ? "mouse" : k->handler);
 
         k->releasePending = false; // reset this flag if it's set
@@ -774,7 +791,7 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
             m_repeatKeyTimer->updateTimeout(std::chrono::milliseconds(KEEB->m_repeatDelay));
         }
 
-        if (!k->nonConsuming && !(k->autoConsuming && !res.success))
+        if (!k->nonConsuming && (!k->autoConsuming || res.success))
             found = true;
     }
 

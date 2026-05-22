@@ -15,7 +15,8 @@ namespace Layout {
 
     enum eRecalculateReason : uint8_t {
         RECALCULATE_REASON_UNKNOWN, // when the recalculate reason is unknown or not important to preserve
-        RECALCULATE_REASON_EVENT_LOOP_DO_LATER,
+        RECALCULATE_REASON_PROP_REFRESH,
+        RECALCULATE_REASON_CREATE_SPACE,
         RECALCULATE_REASON_WORKSPACE_CHANGE,
         RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE,
         RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN,

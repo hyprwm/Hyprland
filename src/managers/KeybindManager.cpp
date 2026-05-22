@@ -15,6 +15,7 @@
 #include "../managers/input/InputManager.hpp"
 #include "../layout/LayoutManager.hpp"
 #include "../event/EventBus.hpp"
+#include "../helpers/Monitor.hpp"
 
 #include <string>
 #include <cstring>
@@ -317,7 +318,7 @@ bool CKeybindManager::ensureMouseBindState() {
 }
 
 bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
-    if (!g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState) {
+    if (!g_pCompositor->m_sessionActive || (g_pCompositor->m_unsafeState && (!g_pCompositor->m_unsafeOutput || !g_pCompositor->m_unsafeOutput->m_enabled))) {
         m_pressedKeys.clear();
         return true;
     }

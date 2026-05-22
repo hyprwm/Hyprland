@@ -668,9 +668,11 @@ static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
         g_pKeybindManager->m_currentKeybind->releasePending = true;
 
-    auto keepAspectRatio = lua_tostring(L, lua_upvalueindex(1));
+    auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
+    if (!keepAspectRatio)
+        return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
 
-    return Internal::checkResult(L, CA::mouse("resizewindow " + std::string(keepAspectRatio)));
+    return Internal::checkResult(L, CA::mouse("resizewindow " + *keepAspectRatio));
 }
 
 static int hlWindowClose(lua_State* L) {

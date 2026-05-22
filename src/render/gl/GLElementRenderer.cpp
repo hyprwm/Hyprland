@@ -121,6 +121,8 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
             .roundingPower  = m_data.roundingPower,
             .discardActive  = m_data.discardActive,
             .allowCustomUV  = m_data.allowCustomUV,
+            .wrapX          = m_data.wrapX,
+            .wrapY          = m_data.wrapY,
             .cmBackToSRGB   = m_data.cmBackToSRGB,
             .discardMode    = m_data.ignoreAlpha.has_value() ? sc<uint32_t>(DISCARD_ALPHA) : m_data.discardMode,
             .discardOpacity = m_data.ignoreAlpha.has_value() ? *m_data.ignoreAlpha : m_data.discardOpacity,

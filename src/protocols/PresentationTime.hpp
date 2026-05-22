@@ -19,8 +19,6 @@ class CQueuedPresentationData {
     void presented();
     void discarded();
 
-    bool m_done = false;
-
   private:
     bool                   m_wasPresented = false;
     bool                   m_zeroCopy     = false;
@@ -51,11 +49,12 @@ class CPresentationProtocol : public IWaylandProtocol {
   public:
     CPresentationProtocol(const wl_interface* iface, const int& ver, const std::string& name);
 
-    virtual void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
+    virtual void              bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id);
 
-    void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
-    void         queueData(UP<CQueuedPresentationData>&& data);
-    bool         hasPendingFeedbacks() const;
+    void                      onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void                      queueData(UP<CQueuedPresentationData>&& data);
+    bool                      hasPendingFeedbacks() const;
+    WP<CPresentationFeedback> getFeedback(WP<CWLSurfaceResource> forSurface);
 
   private:
     void onManagerResourceDestroy(wl_resource* res);

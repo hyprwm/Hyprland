@@ -755,25 +755,19 @@ static int hlGesture(lua_State* L) {
             return Internal::configError(L, "hl.gesture: 'action' field expected to be callable, or one of hl.gesture.* constants");
         }
 
-        bool is_callable = false;
-
-        if (lua_isfunction(L, -1)) {
-            is_callable = true;
-        } else if (lua_getmetatable(L, -1)) {
-            lua_getfield(L, -1, "__call");
-            is_callable = lua_isfunction(L, -1);
-            lua_pop(L, 2);
-        }
-
-        if (is_callable) {
+        if (Internal::isLuaCallable(L, -1)) {
             lua_pushvalue(L, -1);
             functionRef = luaL_ref(L, LUA_REGISTRYINDEX);
             Lua::mgr()->registerLuaRef(functionRef);
-        } else if (!lua_isinteger(L, -1)) {
+        }
+
+        else if (!lua_isinteger(L, -1)) {
             const char* bad_type = lua_typename(L, lua_type(L, -1));
             lua_pop(L, 1);
             return Internal::configError(L, "hl.gesture: 'action' must be a callable or an hl.gesture constant (got %s)", bad_type);
         }
+
+        lua_pop(L, 1);
     }
 
     // bitch ass macro because it's kinda long to get these things and it's ugly

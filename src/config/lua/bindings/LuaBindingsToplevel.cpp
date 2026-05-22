@@ -347,7 +347,9 @@ static int hlDispatch(lua_State* L) {
 static int hlOn(lua_State* L) {
     auto*       mgr       = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
     const char* eventName = luaL_checkstring(L, 1);
-    luaL_checktype(L, 2, LUA_TFUNCTION);
+
+    if (!Internal::isLuaCallable(L, 2))
+        return Internal::configError(L, "hl.on: arg #2 'callback' must be a lua callable (e.g. a function)");
 
     lua_pushvalue(L, 2);
     int        ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -384,7 +386,8 @@ static int hlUnbind(lua_State* L) {
 static int hlTimer(lua_State* L) {
     auto* mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
-    luaL_checktype(L, 1, LUA_TFUNCTION);
+    if (!Internal::isLuaCallable(L, 1))
+        return Internal::configError(L, "hl.timer: arg #1 'callback' must be a lua callable (e.g. a function)");
     luaL_checktype(L, 2, LUA_TTABLE);
 
     lua_getfield(L, 2, "timeout");

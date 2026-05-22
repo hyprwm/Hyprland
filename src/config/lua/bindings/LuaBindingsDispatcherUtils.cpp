@@ -126,31 +126,19 @@ int Internal::wrapDispatcher(lua_State* L) {
 }
 
 bool Internal::pushDispatcherFunction(lua_State* L, int idx) {
-    if (lua_isfunction(L, idx)) {
-        lua_pushvalue(L, idx);
-        return true;
-    }
-
     auto* dispatcher = sc<SDispatcherRef*>(luaL_testudata(L, idx, DISPATCHER_MT));
-    if (dispatcher && dispatcher->ref != LUA_NOREF) {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, dispatcher->ref);
-        if (lua_isfunction(L, -1))
-            return true;
+    if (!dispatcher || dispatcher->ref == LUA_NOREF) {
+        if (!Internal::isLuaCallable(L, idx))
+            return false;
 
-        lua_pop(L, 1);
-        return false;
-    }
-
-    if (!lua_getmetatable(L, idx))
-        return false;
-
-    lua_getfield(L, -1, "__call");
-    if (lua_isfunction(L, -1)) {
-        lua_pop(L, 2);
         lua_pushvalue(L, idx);
         return true;
     }
-    lua_pop(L, 2);
 
+    lua_rawgeti(L, LUA_REGISTRYINDEX, dispatcher->ref);
+    if (lua_isfunction(L, -1))
+        return true;
+
+    lua_pop(L, 1);
     return false;
 }

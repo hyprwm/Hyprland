@@ -4,6 +4,9 @@
 #include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "../state/MonitorState.hpp"
+#include "../desktop/view/View.hpp"
+#include "../render/Renderer.hpp"
+#include <hyprutils/memory/WeakPtr.hpp>
 
 CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> surface) : m_resource(std::move(resource_)), m_surface(surface) {
     if UNLIKELY (!m_resource->resource())
@@ -57,9 +60,13 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (!state->fifoScheduled)
             return;
 
-        // only lock once its mapped.
-        if (m_surface->m_mapped)
-            m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
+        // only lock once its mapped and visible
+        if (m_surface->m_mapped && m_surface->m_hlSurface) {
+            const auto& view = m_surface->m_hlSurface->view();
+            if (view && view->visible() &&
+                (view->type() != Desktop::View::VIEW_TYPE_WINDOW || g_pHyprRenderer->shouldRenderWindow(dynamicPointerCast<Desktop::View::CWindow>(view))))
+                m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
+        }
     });
 }
 

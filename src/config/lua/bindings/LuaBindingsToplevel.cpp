@@ -134,7 +134,7 @@ static int hlBind(lua_State* L) {
         return Internal::configError(L, std::format("hl.bind: failed to parse key string: {}", res.error()));
 
     if (!Internal::pushDispatcherFunction(L, 2))
-        return Internal::configError(L, "hl.bind: dispatcher must be a dispatcher (e.g. hl.dsp.window.close()) or a lua function");
+        return Internal::configError(L, "hl.bind: dispatcher must be a callable object (e.g. a function, or hl.dsp.window.close())");
 
     if (kb.catchAll && mgr->m_currentSubmap.empty())
         return Internal::configError(L, "hl.bind: catchall keybinds are only allowed in submaps.");
@@ -321,7 +321,7 @@ static int hlExecCmd(lua_State* L) {
 
 static int hlDispatch(lua_State* L) {
     if (!Internal::pushDispatcherFunction(L, 1))
-        return Internal::configError(L, "hl.dispatch: expected a dispatcher (e.g. hl.dsp.window.close())");
+        return Internal::configError(L, "hl.dispatch: expected a function or callable object (e.g. hl.dsp.window.close())");
 
     int status = LUA_OK;
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr)
@@ -347,7 +347,9 @@ static int hlDispatch(lua_State* L) {
 static int hlOn(lua_State* L) {
     auto*       mgr       = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
     const char* eventName = luaL_checkstring(L, 1);
-    luaL_checktype(L, 2, LUA_TFUNCTION);
+
+    if (!Internal::isLuaCallable(L, 2))
+        return Internal::configError(L, "hl.on: arg #2 'callback' must be a lua callable (e.g. a function)");
 
     lua_pushvalue(L, 2);
     int        ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -384,7 +386,8 @@ static int hlUnbind(lua_State* L) {
 static int hlTimer(lua_State* L) {
     auto* mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
-    luaL_checktype(L, 1, LUA_TFUNCTION);
+    if (!Internal::isLuaCallable(L, 1))
+        return Internal::configError(L, "hl.timer: arg #1 'callback' must be a lua callable (e.g. a function)");
     luaL_checktype(L, 2, LUA_TTABLE);
 
     lua_getfield(L, 2, "timeout");

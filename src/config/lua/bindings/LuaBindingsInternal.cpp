@@ -580,3 +580,23 @@ bool Internal::hasTableField(lua_State* L, int tableIdx, const char* field) {
     lua_pop(L, 1);
     return true;
 }
+
+bool Internal::isLuaCallable(lua_State* L, int idx) {
+    if (lua_isfunction(L, idx))
+        return true;
+
+    if (!lua_getmetatable(L, idx))
+        return false;
+
+    lua_getfield(L, -1, "__call");
+    bool callable = lua_isfunction(L, -1);
+
+    if (!callable && lua_getmetatable(L, -1)) {
+        lua_getfield(L, -1, "__call");
+        callable = lua_isfunction(L, -1);
+        lua_pop(L, 2);
+    }
+
+    lua_pop(L, 2);
+    return callable;
+}

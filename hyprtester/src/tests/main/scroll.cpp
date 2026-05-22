@@ -1027,8 +1027,8 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
 
     /*
      Scheduled prop refresh must not move scrolling viewport.
-     The reason an event was queued is not saved, therefore it is not possible to clearly tell when and when not to move scrolling viewport
-     In this test, we test this by setting a workspace rule, which schedules a prop refresh in the Event Loop Manager
+     The reason a prop refresh was queued is not saved, therefore it is not possible to clearly tell when and when not to move scrolling viewport
+     In this test, we test this by setting a workspace rule, which schedules a prop refresh
      --------------------------------------------------------------------------------------------------------------------------------------
     */
 

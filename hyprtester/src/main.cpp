@@ -20,10 +20,9 @@
 #undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/clients/tests.hpp"
 #undef TEST_CASES_STORAGE // Prevent redefinition warning
-#include "tests/plugin/plugin.hpp"
+#include "tests/misc/tests.hpp"
 #include "tests/shared.hpp"
 
-#include <algorithm>
 #include <filesystem>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
@@ -251,27 +250,10 @@ int main(int argc, char** argv, char** envp) {
     failedTests += countFailed(clientTestCases);
     totalTests += clientTestCases.size();
 
-    // TODO: the two tests below should not be hardcoded, include them somewhere
-
-    NLog::log("{}running plugin test", Colors::YELLOW);
-    if (!testPlugin()) {
-        NLog::log("{}Test failed: plugin test", Colors::RED);
-        failedTestNames.emplace_back("plugin/plugin test");
-        failedTests++;
-    } else {
-        NLog::log("{}Test passed: plugin test", Colors::GREEN);
-    }
-    totalTests++;
-
-    NLog::log("{}running vkb test from plugin", Colors::YELLOW);
-    if (!testVkb()) {
-        NLog::log("{}Test failed: vkb test from plugin", Colors::RED);
-        failedTestNames.emplace_back("plugin/vkb test from plugin");
-        failedTests++;
-    } else {
-        NLog::log("{}Test passed: vkb test from plugin", Colors::GREEN);
-    }
-    totalTests++;
+    NLog::log("{}running misc tests", Colors::YELLOW);
+    runTests(miscTestCases, "clients", failedTestNames);
+    failedTests += countFailed(miscTestCases);
+    totalTests += miscTestCases.size();
 
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);

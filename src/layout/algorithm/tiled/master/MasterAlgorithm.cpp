@@ -208,6 +208,9 @@ void CMasterAlgorithm::removeTarget(SP<ITarget> target) {
 
     const auto  PNODE = getNodeFromTarget(target);
 
+    if (!PNODE)
+        return;
+
     if (target->fullscreenMode() != FSMODE_NONE)
         g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
 

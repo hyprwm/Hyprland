@@ -1205,6 +1205,7 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 }
 
 bool CWindow::isFullscreen() const {
+    // ERSTARR - TODO: Reimplement this
     return m_fullscreenState.internal != FSMODE_NONE;
 }
 

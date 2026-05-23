@@ -60,6 +60,10 @@ PHLWINDOW CWindowGroupTarget::window() const {
     return m_group->current();
 }
 
+bool CWindowGroupTarget::isFullscreen() {
+    // ERSTARR - TODO: implement this
+}
+
 eFullscreenMode CWindowGroupTarget::fullscreenMode() {
     return m_group->current()->m_fullscreenState.internal;
 }

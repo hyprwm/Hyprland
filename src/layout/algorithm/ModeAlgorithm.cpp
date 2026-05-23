@@ -24,9 +24,10 @@ SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
     return nullptr;
 }
 
-bool IModeAlgorithm::layoutFullscreenCoversMonitor() const {
-    return false;
-}
+// REDUNDANT: all FS windows must set their internal FS state
+// bool IModeAlgorithm::layoutFullscreenCoversMonitor() const {
+//     return false;
+// }
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
     Vector2D   focalPoint;

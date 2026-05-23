@@ -10,10 +10,13 @@
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../plugins/PluginSystem.hpp"
+#include "managers/KeybindManager.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
+#include <lua.h>
+#include <xkbcommon/xkbcommon.h>
 
 using namespace Config;
 using namespace Config::Lua;
@@ -392,6 +395,39 @@ static int hlUnbind(lua_State* L) {
     return 0;
 }
 
+static int hlIsKeyDown(lua_State* L) {
+    auto*         mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
+
+    xkb_keycode_t keycode;
+    if (lua_isstring(L, 1)) {
+        auto     key = lua_tostring(L, 1);
+
+        SKeybind kb;
+        kb.submap.name  = mgr->m_currentSubmap;
+        kb.submap.reset = mgr->m_currentSubmapReset;
+
+        if (auto res = parseKeyString(kb, key); !res)
+            return Internal::configError(L, std::format("hl.is_key_down: failed to parse key string: {}", res.error()));
+
+        keycode = kb.keycode;
+    } else if (lua_isinteger(L, 1)) {
+        keycode = lua_tointeger(L, 1);
+        if (!xkb_keycode_is_legal_x11(keycode) && !xkb_keycode_is_legal_ext(keycode))
+            return Internal::configError(L, std::format("hl.is_key_down: invalid keycode {}", keycode));
+    } else
+        return Internal::configError(L, std::format("hl.is_key_down: bad argument 1: expected string or integer"));
+
+    auto isKeyDown = false;
+    for (auto& k : g_pKeybindManager->m_pressedKeys) {
+        if (k.keycode == keycode) {
+            isKeyDown = true;
+            break;
+        }
+    }
+    lua_pushboolean(L, isKeyDown);
+    return 0;
+}
+
 static int hlTimer(lua_State* L) {
     auto* mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -474,4 +510,6 @@ void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setFn(L, "exec_cmd", hlExecCmd);
 
     Internal::setFn(L, "unbind", hlUnbind);
+
+    Internal::setFn(L, "is_key_down", hlIsKeyDown);
 }

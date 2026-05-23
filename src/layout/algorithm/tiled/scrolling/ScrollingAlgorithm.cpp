@@ -17,6 +17,7 @@
 #include "../../../../event/EventBus.hpp"
 #include "desktop/Workspace.hpp"
 
+#include <algorithm>
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
 #include <hyprutils/string/ConstVarList.hpp>
@@ -957,20 +958,64 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     if (!TDATA)
         return FULLSCREEN_REQUEST_FAILED;
 
-    if (request.effectiveMode == FSMODE_NONE)
-        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
-    else
+    const auto TARGET = TDATA->target.lock();
+    if (!TARGET)
+        return FULLSCREEN_REQUEST_FAILED;
+
+    // set m_layoutManagedFullscreen
+    TARGET->setLayoutManagedFullscreen(request.effectiveMode != FSMODE_NONE);
+
+    // Set workspace fullscreen attributes
+    TARGET->workspace()->m_hasFullscreenWindow = true;
+    TARGET->workspace()->m_fullscreenMode = request.effectiveMode;
+    
+    // set fullscreen handler
+    if (request.effectiveMode != FSMODE_NONE && TARGET->window())
         TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_SCROLLING;
+    else
+        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
+
+    // internal fullscreen mode is set below
+
+    // expel if there is more than one window in a column when FSing a target.
+    const auto expelIfMoreThanOneWindowInColDuringFS = [&](eFullscreenMode mode) -> void {
+        auto  currentCol       = TDATA->column.lock();
+        const float targetColumnWidth = mode == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F;
+
+        // more that one window in column
+        if (currentCol->targetDatas.size() > 1) {
+            const auto lastTarget = currentCol->targetDatas.back();
+            const auto currentIdx = m_scrollingData->idx(currentCol);
+            const auto NEXT_COL   = m_scrollingData->next(currentCol);
+            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
+
+            expelTarget(lastTarget, currentCol, insertIdx);
+
+            // update the current column after expelling target
+            currentCol = TDATA->column.lock();
+
+            currentCol->setColumnWidth(targetColumnWidth);
+            // move new column into view
+            m_scrollingData->centerOrFitCol(currentCol);
+        } else {
+            currentCol->setColumnWidth(targetColumnWidth);
+            // move it into view
+            m_scrollingData->centerOrFitCol(currentCol);
+        }
+    };
+
+
 
     
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
         const auto CURRENT_COL = TDATA->column.lock();
-
-        if (!fullscreenStateForTarget(request.target, FSMODE_FULLSCREEN)) {
+        
+        // if current target isn't fullscreen, save its column width
+        if (!isFullscreenTarget(TDATA, FSMODE_FULLSCREEN)) {
 
             float targetColumnWidth = 0.0F;
 
-            // If the window was maximised
+            // If the window was maximised, save the col width it had before being FSed at all
             if (fullscreenStateForTarget(request.target, FSMODE_MAXIMIZED))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(request.target);
             else
@@ -980,27 +1025,9 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
                 SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
         }
 
-        // more that one window in column
-        if (CURRENT_COL->targetDatas.size() > 1) {
-            const auto lastTarget = CURRENT_COL->targetDatas.back();
-            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
-            const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
-            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
+        expelIfMoreThanOneWindowInColDuringFS(FSMODE_FULLSCREEN);
 
-            expelTarget(lastTarget, CURRENT_COL, insertIdx);
-
-            // get new column data after expelling target
-            const auto NEW_COLUMN = TDATA->column;
-
-            NEW_COLUMN->setColumnWidth(fullscreenColumnWidth());
-            // move new column into view
-            m_scrollingData->centerOrFitCol(NEW_COLUMN.lock());
-        } else {
-            CURRENT_COL->setColumnWidth(fullscreenColumnWidth());
-            // move it into view
-            m_scrollingData->centerOrFitCol(CURRENT_COL);
-        }
-
+        // set internal fullscreen mode
         request.target->setFullscreenMode(FSMODE_FULLSCREEN);
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
@@ -1008,11 +1035,11 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
 
         const auto CURRENT_COL = TDATA->column.lock();
 
-        if (!fullscreenStateForTarget(request.target, FSMODE_MAXIMIZED)) {
+        if (!isFullscreenTarget(TDATA, FSMODE_MAXIMIZED)) {
 
             float targetColumnWidth = 0.0F;
 
-            // If the window was fullscreened
+            // If the window was fullscreened, save the col width it had before being FSed at all
             if (fullscreenStateForTarget(request.target, FSMODE_FULLSCREEN))
                 targetColumnWidth = getTargetColumnWidthBeforeFullscreenOrMaximise(request.target);
             else
@@ -1023,40 +1050,18 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
                 SFullscreenScrollState{.target = request.target, .restoreColumnWidth = CURRENT_COL ? std::optional<float>{targetColumnWidth} : std::nullopt});
         }
 
-        // more that one window in column
-        if (CURRENT_COL->targetDatas.size() > 1) {
-            const auto lastTarget = CURRENT_COL->targetDatas.back();
-            const auto currentIdx = m_scrollingData->idx(CURRENT_COL);
-            const auto NEXT_COL   = m_scrollingData->next(CURRENT_COL);
-            const auto insertIdx  = !NEXT_COL ? std::nullopt : std::optional<int64_t>{currentIdx};
+        expelIfMoreThanOneWindowInColDuringFS(FSMODE_MAXIMIZED);
 
-            expelTarget(lastTarget, CURRENT_COL, insertIdx);
-
-            // get new column data after expelling target
-            auto NEW_COLUMN = TDATA->column;
-
-            NEW_COLUMN->setColumnWidth(1.F);
-            // move new column into view
-            m_scrollingData->centerOrFitCol(NEW_COLUMN.lock());
-        } else {
-            CURRENT_COL->setColumnWidth(1.F);
-            // move it into view
-            m_scrollingData->centerOrFitCol(CURRENT_COL);
-        }
-
-        // set FS mode
+        // set internal fullscreen mode
         request.target->setFullscreenMode(FSMODE_MAXIMIZED);
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
     }
 
-    if (isFullscreenTarget(TDATA) || request.target->layoutManagedFullscreen()) {
-        clearFullscreenTarget((request.target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), request.target);
-        request.target->setFullscreenMode(FSMODE_NONE);
-        return request.effectiveMode == FSMODE_NONE ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_FAILED;
-    }
-
-    return FULLSCREEN_REQUEST_FAILED;
+    // UnFS target
+    clearFullscreenTarget((TARGET->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), TARGET);
+    request.target->setFullscreenMode(FSMODE_NONE);
+    return (request.effectiveMode == FSMODE_NONE && !isFullscreenTarget(TDATA)) ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_FAILED;
 }
 
 SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
@@ -1107,15 +1112,41 @@ SP<SScrollingTargetData> CScrollingAlgorithm::fullscreenTargetDataForColumn(SP<S
     return nullptr;
 }
 
-bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target) const {
+bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode) const {
     if (!target)
         return false;
-
+    
+    
     const auto TARGET = target->target.lock();
-    if (!TARGET || !TARGET->layoutManagedFullscreen() || TARGET->fullscreenMode() == FSMODE_NONE)
+    
+    if (!TARGET)
         return false;
 
-    return dataFor(TARGET) == target;
+    const auto modeValue = mode.has_value() ? mode.value() : false;
+    
+    // target must have window
+    if (!TARGET->window())
+        return false;
+
+
+    // Only accept layoutmanged fullscreens
+    if (!TARGET->layoutManagedFullscreen())
+        return false;
+
+
+    // If target isn't fullscreen, or mode provided and internal fs mode doesn't match
+    if (TARGET->fullscreenMode() == FSMODE_NONE || modeValue != TARGET->fullscreenMode()) // second part of the or works because FSMODE_NONE = 0. If that changes, this has to be adjusted
+        return false;
+
+    // target data doesn't match -- Redundancy
+    if (!dataFor(TARGET) == target)
+        return false;
+
+    // Check if the target is inside the list of fullscreen targets scrolling maintains
+    const auto& fsTargets = (mode.value_or(TARGET->fullscreenMode()) == FSMODE_FULLSCREEN) ? m_fullscreenTargets : m_maximizeTargets;
+    
+    return std::ranges::any_of(fsTargets.begin(), fsTargets.end(), [&TARGET](const auto& elem) { return elem.target.lock() == TARGET; });
+
 }
 
 float CScrollingAlgorithm::fullscreenColumnWidth() const {

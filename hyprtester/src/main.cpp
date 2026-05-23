@@ -46,9 +46,16 @@ using Path = std::filesystem::path;
 
 #define SP CSharedPointer
 
+namespace {
+    struct STestsInfo {
+        unsigned long long       failed, total;
+        std::vector<std::string> failedNames;
+    };
+}
+
 static SP<CProcess> hyprlandProc;
 
-static bool         launchHyprland(Path configPath, Path binaryPath) {
+static bool launchHyprland(Path configPath, Path binaryPath) {
     NLog::log("{}Launching Hyprland", Colors::YELLOW);
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
@@ -170,29 +177,24 @@ static bool preTestCleanup() {
     return !failed;
 }
 
-static void runTests(std::map<const char*, CTestCase&>& testCases, std::string_view suiteName, std::vector<std::string>& failedTestNames) {
+static void runTests(std::map<const char*, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
     for (auto& [name, tc] : testCases) {
         // Clean up before every test
-        NLog::log("{}Cleaning up", Colors::YELLOW);
+        NLog::log("{}Cleaning up", Colors::YELLOW); 
         (void)preTestCleanup();
 
         NLog::log("{}Running test {}", Colors::BLUE, name);
         tc.test();
+
         if (tc.failed) {
             NLog::log("{}Test failed: {}", Colors::RED, name);
-            failedTestNames.emplace_back(std::string{suiteName} + "/" + name);
+            testsInfo.failedNames.emplace_back(suiteName + "/" + name);
+            testsInfo.failed += 1;
         } else
             NLog::log("{}Test passed: {}", Colors::GREEN, name);
     }
-}
 
-static long long countFailed(const std::map<const char*, CTestCase&>& testCases) {
-    long long ans = 0;
-    for (const auto& [_, tc] : testCases) {
-        if (tc.failed)
-            ans++;
-    }
-    return ans;
+    testsInfo.total += testCases.size();
 }
 
 int main(int argc, char** argv, char** envp) {
@@ -237,40 +239,32 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::log("{}Loaded plugin", Colors::YELLOW);
 
-    long long                failedTests = 0, totalTests = 0;
-    std::vector<std::string> failedTestNames;
+    struct STestsInfo tInfo = {0};
 
     NLog::log("{}Running main tests", Colors::YELLOW);
-    runTests(mainTestCases, "main", failedTestNames);
-    failedTests += countFailed(mainTestCases);
-    totalTests += mainTestCases.size();
+    runTests(mainTestCases, "main", tInfo);
 
     NLog::log("{}Running protocol client tests", Colors::YELLOW);
-    runTests(clientTestCases, "clients", failedTestNames);
-    failedTests += countFailed(clientTestCases);
-    totalTests += clientTestCases.size();
+    runTests(clientTestCases, "clients", tInfo);
 
-    NLog::log("{}running misc tests", Colors::YELLOW);
-    runTests(miscTestCases, "clients", failedTestNames);
-    failedTests += countFailed(miscTestCases);
-    totalTests += miscTestCases.size();
+    NLog::log("{}Running misc tests", Colors::YELLOW);
+    runTests(miscTestCases, "misc", tInfo);
 
     // kill hyprland
     NLog::log("{}dispatching exit", Colors::YELLOW);
     getFromSocket("/dispatch hl.dsp.exit()");
 
-    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, totalTests - failedTests, Colors::RESET, totalTests);
-    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, failedTests, Colors::RESET, totalTests);
-    if (!failedTestNames.empty()) {
+    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failed, Colors::RESET, tInfo.total);
+    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failed, Colors::RESET, tInfo.total);
+    if (!tInfo.failedNames.empty()) {
         NLog::log("{}Failed tests:", Colors::RED);
-        for (const auto& name : failedTestNames) {
+        for (const auto& name : tInfo.failedNames) {
             NLog::log("{}\t- {}", Colors::RED, name);
         }
     }
 
     kill(hyprlandProc->pid(), SIGKILL);
-
     hyprlandProc.reset();
 
-    return failedTests > 0;
+    return tInfo.failed > 0;
 }

@@ -58,6 +58,7 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
@@ -1114,7 +1115,30 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
         for (auto const& w : g_pCompositor->m_windows) {
             w->updateSurfaceScaleTransformDetails();
         }
+
+        for (auto const& lsl : m_layerSurfaceLayers) {
+            for (auto const& ls : lsl) {
+                if (!ls->aliveAndVisible())
+                    continue;
+
+                auto SURF = ls->m_layerSurface->m_surface.lock();
+                if (!SURF)
+                    continue;
+
+                SURF->breadthfirst(
+                    [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+                        const auto PSURFACE = CWLSurface::fromResource(s);
+                        if (PSURFACE && PSURFACE->m_lastScaleFloat == m_scale)
+                            return;
+
+                        g_pCompositor->setPreferredScaleForSurface(s, m_scale);
+                        g_pCompositor->setPreferredTransformForSurface(s, m_transform);
+                    },
+                    nullptr);
+            }
+        }
     }
+
     // updato us
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
 

@@ -20,6 +20,16 @@ uniform float range;
 uniform float shadowPower;
 uniform float thick;
 
+// Gradients are in OkLabA!!!! {l, a, b, alpha}
+uniform vec4  gradient[10];
+uniform vec4  gradient2[10];
+uniform int   gradientLength;
+uniform int   gradient2Length;
+uniform float angle;
+uniform float angle2;
+uniform float gradientLerp;
+uniform float alpha;
+
 #if USE_CM
 uniform int sourceTF; // eTransferFunction
 #endif
@@ -37,7 +47,8 @@ void main() {
 #else
     fragColor =
 #endif
-        getShadow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, windowTopLeft, windowBottomRight, thick
+        getShadow(pixColor, colorSRGB, v_texcoord, radius, roundingPower, topLeft, fullSize, range, shadowPower, bottomRight, windowTopLeft, windowBottomRight, thick,
+                  gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp, alpha
 #if USE_CM
                   ,
                   sourceTF

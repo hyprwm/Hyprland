@@ -97,8 +97,17 @@ bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
     if (!validMapped(PWINDOW))
         return false;
 
-    if (PWINDOW->m_realShadowColor->value() == CHyprColor(0, 0, 0, 0))
-        return false; // don't draw invisible shadows
+    {
+        bool allTransparent = true;
+        for (auto& c : PWINDOW->m_realShadowColor.m_colors) {
+            if (c.a > 0.001f) {
+                allTransparent = false;
+                break;
+            }
+        }
+        if (allTransparent)
+            return false; // don't draw invisible shadows
+    }
 
     if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())
         return false;
@@ -190,7 +199,22 @@ void CHyprDropShadowDecoration::render(PHLMONITOR pMonitor, float const& a) {
 
     g_pHyprRenderer->disableScissor();
 
-    drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, PWINDOW->m_realShadowColor->value(), a);
+    auto       grad     = PWINDOW->m_realShadowColor;
+    const bool ANIMATED = PWINDOW->m_shadowFadeAnimationProgress->isBeingAnimated();
+
+    if (PWINDOW->m_shadowAngleAnimationProgress->enabled()) {
+        grad.m_angle += PWINDOW->m_shadowAngleAnimationProgress->value() * M_PI * 2;
+        grad.m_angle = normalizeAngleRad(grad.m_angle);
+
+        if (ANIMATED)
+            PWINDOW->m_realShadowColorPrevious.m_angle = grad.m_angle;
+    }
+
+    if (ANIMATED)
+        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, PWINDOW->m_realShadowColorPrevious, grad,
+                           PWINDOW->m_shadowFadeAnimationProgress->value(), a);
+    else
+        drawShadowInternal(data.fullBox, data.rounding * pMonitor->m_scale, data.roundingPower, data.size * pMonitor->m_scale, grad, a);
 
     reposition();
 }
@@ -199,7 +223,7 @@ eDecorationLayer CHyprDropShadowDecoration::getDecorationLayer() {
     return DECORATION_LAYER_BOTTOM;
 }
 
-void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, float roundingPower, int range, CHyprColor color, float a) {
+void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad, float a) {
     static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
 
     if (box.w < 1 || box.h < 1)
@@ -207,17 +231,41 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
 
     g_pHyprRenderer->blend(true);
 
-    color.a *= a;
-
-    if (*PSHADOWSHARP)
+    if (*PSHADOWSHARP) {
+        CHyprColor flatColor = grad.m_colors.empty() ? CHyprColor(0, 0, 0, 0) : grad.m_colors[0];
+        flatColor.a *= a;
         g_pHyprRenderer->draw(
             CRectPassElement::SRectData{
                 .box           = box,
-                .color         = color,
+                .color         = flatColor,
                 .round         = round,
                 .roundingPower = roundingPower,
             },
             box);
-    else
-        g_pHyprRenderer->drawShadow(box, round, roundingPower, range, color, 1.F);
+    } else
+        g_pHyprRenderer->drawShadow(box, round, roundingPower, range, grad, a);
+}
+
+void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1,
+                                                   const Config::CGradientValueData& grad2, float lerp, float a) {
+    static auto PSHADOWSHARP = CConfigValue<Config::INTEGER>("decoration:shadow:sharp");
+
+    if (box.w < 1 || box.h < 1)
+        return;
+
+    g_pHyprRenderer->blend(true);
+
+    if (*PSHADOWSHARP) {
+        CHyprColor flatColor = grad1.m_colors.empty() ? CHyprColor(0, 0, 0, 0) : grad1.m_colors[0];
+        flatColor.a *= a;
+        g_pHyprRenderer->draw(
+            CRectPassElement::SRectData{
+                .box           = box,
+                .color         = flatColor,
+                .round         = round,
+                .roundingPower = roundingPower,
+            },
+            box);
+    } else
+        g_pHyprRenderer->drawShadow(box, round, roundingPower, range, grad1, grad2, lerp, a);
 }

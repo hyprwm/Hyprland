@@ -7,9 +7,8 @@
 
 #include "defines.h"
 #include "rounding.glsl"
-#if USE_CM
 #include "cm_helpers.glsl"
-#endif
+#include "gradient.glsl"
 
 float pixAlphaRoundedDistance(float distanceToCorner, float radius, float range, float shadowPower) {
     if (distanceToCorner > radius) {
@@ -58,7 +57,8 @@ vec4[2]
 vec4
 #endif
     getShadow(vec4 pixColor, vec4 colorSRGB, vec2 v_texcoord, float borderRadius, float roundingPower, vec2 topLeft, vec2 fullSize, float range, float shadowPower,
-              vec2 bottomRight, vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius
+              vec2 bottomRight, vec2 windowTopLeft, vec2 windowBottomRight, float windowRadius, int gradientLength, vec4 gradient[10], float angle, int gradient2Length,
+              vec4 gradient2[10], float angle2, float gradientLerp, float alpha
 #if USE_CM
               ,
               int srcTF
@@ -70,6 +70,11 @@ vec4
     bool  done = false;
 
     vec2  pixCoord = fullSize * v_texcoord;
+
+    if (gradientLength > 0)
+        pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
+
+    pixColor.a *= alpha;
 
     // ok, now we check the distance to a border.
     // corners

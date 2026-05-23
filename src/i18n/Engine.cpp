@@ -771,18 +771,16 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("it_IT", TXT_KEY_ANR_PROP_UNKNOWN, "(sconosciuto)");
 
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_UNKNOWN, "Un'applicazione <b>{app}</b> richiede un'autorizzazione sconosciuta.");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Un'applicazione <b>{app}</b> sta provando a catturare il tuo schermo.\n\nVuoi permetterglielo?");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS,
-                            "Un'applicazione <b>{app}</b> sta provando a leggere la posizione del cursore.\n\nVuoi permetterglielo?");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_PLUGIN,
-                            "Un'applicazione <b>{app}</b> sta provando a caricare un plugin: <b>{plugin}</b>.\n\nVuoi permetterglielo?");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "È stata rilevata una nuova tastiera: <b>{keyboard}</b>.\n\nLe vuoi permettere di operare?");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_SCREENCOPY, "Un'applicazione <b>{app}</b> sta tentando di catturare il tuo schermo.\n\nVuoi autorizzarla?");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_CURSOR_POS, "Un'applicazione <b>{app}</b> sta tentando di leggere la posizione del cursore.\n\nVuoi autorizzarla?");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_PLUGIN, "Un'applicazione <b>{app}</b> sta tentando di caricare un plugin: <b>{plugin}</b>.\n\nVuoi autorizzarla?");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_REQUEST_KEYBOARD, "È stata rilevata una nuova tastiera: <b>{keyboard}</b>.\n\nVuoi autorizzarla a operare?");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_UNKNOWN_NAME, "(sconosciuto)");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_TITLE, "Richiesta di autorizzazione");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Consiglio: Puoi impostare una regola persistente nel tuo file di configurazione di Hyprland.");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW, "Permetti");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Permetti e ricorda");
-    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW_ONCE, "Permetti una volta");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_PERSISTENCE_HINT, "Suggerimento: puoi impostare una regola persistente nel tuo file di configurazione di Hyprland.");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW, "Consenti");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW_AND_REMEMBER, "Consenti e ricorda");
+    huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_ALLOW_ONCE, "Consenti una volta");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_DENY, "Nega");
     huEngine->registerEntry("it_IT", TXT_KEY_PERMISSION_UNKNOWN_WAYLAND_APP, "Applicazione sconosciuta (wayland client ID {wayland_id})");
 
@@ -796,11 +794,24 @@ I18n::CI18nEngine::CI18nEngine() {
                             "I tuoi schermi sono configurati incorrettamente. Lo schermo {name} si sovrappone con altri nel layout.\nConsulta la wiki (voce Schermi) per "
                             "altre informazioni. Questo <b>causerà</b> problemi.");
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_MONITOR_MODE_FAIL, "Lo schermo {name} non ha potuto impostare alcuna modalità richiesta, sarà usata la modalità {mode}.");
-    huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE,
-                            "Fattore di scala non valido per lo schermo {name}: {scale}, utilizzando il fattore suggerito: {fixed_scale}");
+    huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_MONITOR_AUTO_SCALE, "Fattore di scala non valido per lo schermo {name}: {scale}; verrà usato quello consigliato: {fixed_scale}");
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_FAILED_TO_LOAD_PLUGIN, "Impossibile caricare il plugin {name}: {error}");
-    huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Impossibile ricaricare gli shader CM, sarà usato rgba/rgbx.");
+    huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "Impossibile ricaricare gli shader CM, verrà usato rgba/rgbx.");
     huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Schermo {name}: la gamma di colori ampia è abilitata ma lo schermo non è in modalità 10-bit.");
+    huEngine->registerEntry("it_IT", TXT_KEY_NOTIF_NO_WATCHDOG,
+                            "Hyprland è stato avviato senza start-hyprland. Ciò è assolutamente sconsigliato a meno che tu non sia in un ambiente di debug.");
+
+    huEngine->registerEntry("it_IT", TXT_KEY_SAFE_MODE_TITLE, "Modalità sicura");
+    huEngine->registerEntry(
+        "it_IT", TXT_KEY_SAFE_MODE_DESCRIPTION,
+        "Hyprland è stato avviato in modalità sicura, dato che l'ultima sessione è crashata.\nLa modalità sicura impedisce alla tua configurazione di essere caricata. Puoi "
+        "risolvere i problemi in questo ambiente, o caricare la tua configurazione con il pulsante sottostante.\nVerranno usate le scorciatoie predefinite: SUPER+Q per kitty, "
+        "SUPER+R per un runner di base, "
+        "SUPER+M per uscire.\nAl riavvio "
+        "Hyprland verrà avviato in modalità normale.");
+    huEngine->registerEntry("it_IT", TXT_KEY_SAFE_MODE_BUTTON_LOAD_CONFIG, "Carica la configurazione");
+    huEngine->registerEntry("it_IT", TXT_KEY_SAFE_MODE_BUTTON_OPEN_CRASH_REPORT_DIR, "Apri la cartella delle segnalazioni di crash");
+    huEngine->registerEntry("it_IT", TXT_KEY_SAFE_MODE_BUTTON_UNDERSTOOD, "Va bene, chiudi");
 
     // ja_JP (Japanese)
     huEngine->registerEntry("ja_JP", TXT_KEY_ANR_TITLE, "アプリが応答しません");

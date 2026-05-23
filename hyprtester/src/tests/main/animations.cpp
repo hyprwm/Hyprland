@@ -1,9 +1,8 @@
-#include "../../Log.hpp"
 #include "tests.hpp"
+
+#include "../../Log.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include <hyprutils/os/Process.hpp>
-#include <hyprutils/memory/WeakPtr.hpp>
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;

@@ -2,10 +2,7 @@
 
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
-#include "hyprtester/src/Log.hpp"
-
-#include <hyprutils/os/Process.hpp>
-#include <hyprutils/memory/WeakPtr.hpp>
+#include "../../Log.hpp"
 
 TEST_CASE(plugin) {
     const auto RESPONSE = getFromSocket("/eval hl.plugin.test.test()");

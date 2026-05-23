@@ -241,14 +241,14 @@ int main(int argc, char** argv, char** envp) {
 
     struct STestsInfo tInfo = {0};
 
+    NLog::info("Running misc tests");
+    runTests(miscTestCases, "misc", tInfo);
+
     NLog::info("Running main tests");
     runTests(mainTestCases, "main", tInfo);
 
     NLog::info("Running protocol client tests");
     runTests(clientTestCases, "clients", tInfo);
-
-    NLog::info("Running misc tests");
-    runTests(miscTestCases, "misc", tInfo);
 
     // kill hyprland
     NLog::info("dispatching exit");

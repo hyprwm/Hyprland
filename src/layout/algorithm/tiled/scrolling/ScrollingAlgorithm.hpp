@@ -163,10 +163,6 @@ namespace Layout::Tiled {
 
 
         /**
-        * @brief Returns whether the window of @p target is a fullscreen window. 
-        * @param mode If provided, only returns `true` if the target's window's fullscreen mode matches @p mode.
-        *             If absent, returns `true` for any active fullscreen mode.
-        * @return if target's window is fullscreen or not
         * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`
         * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
         */

@@ -966,7 +966,7 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     TARGET->setLayoutManagedFullscreen(request.effectiveMode != FSMODE_NONE);
 
     // Set workspace fullscreen attributes
-    TARGET->workspace()->m_hasFullscreenWindow = true;
+    TARGET->workspace()->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
     TARGET->workspace()->m_fullscreenMode = request.effectiveMode;
     
     // set fullscreen handler

@@ -5,7 +5,7 @@
 #include "../managers/ANRManager.hpp"
 #include "../helpers/time/Time.hpp"
 
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 
 CXWaylandSurface::CXWaylandSurface(uint32_t xID_, CBox geometry_, bool OR) : m_xID(xID_), m_geometry(geometry_), m_overrideRedirect(OR) {
     xcb_res_query_client_ids_cookie_t client_id_cookie = {0};

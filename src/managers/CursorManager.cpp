@@ -272,6 +272,7 @@ SCursorImageData CCursorManager::dataFor(const std::string& name) {
 }
 
 void CCursorManager::setXWaylandCursor() {
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     static auto PUSEHYPRCURSOR = CConfigValue<Config::INTEGER>("cursor:enable_hyprcursor");
     const auto  CURSOR         = dataFor("left_ptr");
     if (CURSOR.surface && *PUSEHYPRCURSOR)
@@ -283,6 +284,7 @@ void CCursorManager::setXWaylandCursor() {
 
         g_pXWayland->setCursor(rc<uint8_t*>(icon.pixels.data()), icon.size.x * 4, icon.size, icon.hotspot);
     }
+#endif
 }
 
 void CCursorManager::updateTheme() {

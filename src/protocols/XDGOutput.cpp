@@ -46,7 +46,7 @@ void CXDGOutputProtocol::onManagerGetXDGOutput(CZxdgOutputManagerV1* mgr, uint32
     const auto  CLIENT   = mgr->client();
 
     CXDGOutput* pXDGOutput = m_xdgOutputs.emplace_back(makeUnique<CXDGOutput>(makeShared<CZxdgOutputV1>(CLIENT, mgr->version(), id), PMONITOR)).get();
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (g_pXWayland && g_pXWayland->m_server && g_pXWayland->m_server->m_xwaylandClient == CLIENT)
         pXDGOutput->m_isXWayland = true;
 #endif

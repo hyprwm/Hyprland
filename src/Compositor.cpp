@@ -2905,7 +2905,7 @@ void CCompositor::arrangeMonitors() {
     PROTO::xdgOutput->updateAllOutputs();
     Event::bus()->m_events.monitor.layoutChanged.emit();
 
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     const auto box = g_pCompositor->calculateX11WorkArea();
     if (g_pXWayland && g_pXWayland->m_wm) {
         if (box)

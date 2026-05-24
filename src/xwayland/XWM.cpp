@@ -2,9 +2,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 #include <xcb/xfixes.h>
 #include <xcb/xproto.h>
-#ifndef NO_XWAYLAND
 
 #include <fcntl.h>
 #include <cstring>

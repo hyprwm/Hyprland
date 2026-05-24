@@ -8,7 +8,7 @@
 class CWLSurfaceResource;
 class CXWaylandSurfaceResource;
 
-#ifdef NO_XWAYLAND
+#if defined(NO_XWAYLAND) || defined(USE_XWAYLAND_SATELLITE)
 using xcb_pixmap_t = uint32_t;
 using xcb_window_t = uint32_t;
 using xcb_atom_t   = uint32_t;

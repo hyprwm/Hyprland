@@ -364,26 +364,33 @@ if(NO_XWAYLAND)
   message(STATUS "Using the NO_XWAYLAND flag, disabling XWayland!")
   add_compile_definitions(NO_XWAYLAND)
 else()
-  message(STATUS "XWAYLAND Enabled (NO_XWAYLAND not defined) checking deps...")
-  set(XWAYLAND_DEPENDENCIES
-    xcb
-    xcb-render
-    xcb-xfixes
-    xcb-icccm
-    xcb-composite
-    xcb-res
-    xcb-errors)
+  option(USE_XWAYLAND_SATELLITE "Use xwayland-satellite instead of built-in XWayland/XWM" ON)
 
-  pkg_check_modules(
-    xdeps
-    REQUIRED
-    IMPORTED_TARGET
-    ${XWAYLAND_DEPENDENCIES})
+  if(USE_XWAYLAND_SATELLITE)
+    message(STATUS "XWAYLAND Enabled via xwayland-satellite (USE_XWAYLAND_SATELLITE=ON)")
+    add_compile_definitions(USE_XWAYLAND_SATELLITE)
+  else()
+    message(STATUS "XWAYLAND Enabled with built-in XWM (USE_XWAYLAND_SATELLITE=OFF) checking deps...")
+    set(XWAYLAND_DEPENDENCIES
+      xcb
+      xcb-render
+      xcb-xfixes
+      xcb-icccm
+      xcb-composite
+      xcb-res
+      xcb-errors)
 
-  string(JOIN ", " PKGCONFIG_XWAYLAND_DEPENDENCIES ${XWAYLAND_DEPENDENCIES})
-  string(PREPEND PKGCONFIG_XWAYLAND_DEPENDENCIES ", ")
+    pkg_check_modules(
+      xdeps
+      REQUIRED
+      IMPORTED_TARGET
+      ${XWAYLAND_DEPENDENCIES})
 
-  target_link_libraries(hyprland_lib PUBLIC PkgConfig::xdeps)
+    string(JOIN ", " PKGCONFIG_XWAYLAND_DEPENDENCIES ${XWAYLAND_DEPENDENCIES})
+    string(PREPEND PKGCONFIG_XWAYLAND_DEPENDENCIES ", ")
+
+    target_link_libraries(hyprland_lib PUBLIC PkgConfig::xdeps)
+  endif()
 endif()
 
 configure_file(hyprland.pc.in hyprland.pc @ONLY)

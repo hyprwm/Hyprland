@@ -7,8 +7,14 @@
 #include "XSurface.hpp"
 
 #ifndef NO_XWAYLAND
+
+#ifdef USE_XWAYLAND_SATELLITE
+#include "XWaylandSatellite.hpp"
+#else
 #include "Server.hpp"
 #include "XWM.hpp"
+#endif
+
 #else
 class CXWaylandServer;
 class CXWM;
@@ -19,21 +25,27 @@ class CXWayland {
     CXWayland(const bool wantsEnabled);
 
 #ifndef NO_XWAYLAND
+#ifdef USE_XWAYLAND_SATELLITE
+    UP<CXWaylandSatellite> m_satellite;
+#else
     UP<CXWaylandServer> m_server;
     UP<CXWM>            m_wm;
 #endif
+#endif
     bool enabled();
 
+#ifndef USE_XWAYLAND_SATELLITE
     void setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot);
+#endif
 
   private:
     bool m_enabled = false;
 };
 
-inline UP<CXWayland>                             g_pXWayland;
+inline UP<CXWayland> g_pXWayland;
 
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
-#ifndef NO_XWAYLAND
     HYPRATOM("_NET_SUPPORTED"),
     HYPRATOM("_NET_SUPPORTING_WM_CHECK"),
     HYPRATOM("_NET_WM_NAME"),
@@ -127,5 +139,5 @@ inline std::unordered_map<std::string, uint32_t> HYPRATOMS = {
     HYPRATOM("DELETE"),
     HYPRATOM("TEXT"),
     HYPRATOM("INCR"),
-#endif
 };
+#endif

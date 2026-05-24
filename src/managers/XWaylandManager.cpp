@@ -108,6 +108,7 @@ void CHyprXWaylandManager::sendCloseWindow(PHLWINDOW pWindow) {
 
 bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
     if (pWindow->m_isX11) {
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
         for (const auto& a : pWindow->m_xwaylandSurface->m_atoms)
             if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DIALOG"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLBAR"] ||
                 a == HYPRATOMS["_NET_WM_WINDOW_TYPE_UTILITY"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_TOOLTIP"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] ||
@@ -122,6 +123,7 @@ bool CHyprXWaylandManager::shouldBeFloated(PHLWINDOW pWindow, bool pending) {
 
                 return true;
             }
+#endif
 
         if (pWindow->isModal() || pWindow->m_xwaylandSurface->m_transient ||
             (pWindow->m_xwaylandSurface->m_role.contains("task_dialog") || pWindow->m_xwaylandSurface->m_role.contains("pop-up")) || pWindow->m_xwaylandSurface->m_overrideRedirect)
@@ -149,6 +151,7 @@ void CHyprXWaylandManager::checkBorders(PHLWINDOW pWindow) {
     if (!pWindow->m_isX11)
         return;
 
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     for (auto const& a : pWindow->m_xwaylandSurface->m_atoms) {
         if (a == HYPRATOMS["_NET_WM_WINDOW_TYPE_POPUP_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_NOTIFICATION"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"] ||
             a == HYPRATOMS["_NET_WM_WINDOW_TYPE_COMBO"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_MENU"] || a == HYPRATOMS["_NET_WM_WINDOW_TYPE_SPLASH"] ||
@@ -158,6 +161,7 @@ void CHyprXWaylandManager::checkBorders(PHLWINDOW pWindow) {
             return;
         }
     }
+#endif
 
     if (pWindow->isX11OverrideRedirect())
         pWindow->m_X11DoesntWantBorders = true;

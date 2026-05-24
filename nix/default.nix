@@ -49,9 +49,11 @@
   wayland-protocols,
   wayland-scanner,
   xwayland,
+  xwayland-satellite,
   debug ? false,
   withTests ? debug,
   enableXWayland ? true,
+  enableXWaylandSatellite ? true,
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   wrapRuntimeDeps ? true,
   version ? "git",
@@ -125,7 +127,7 @@ customStdenv.mkDerivation (finalAttrs: {
             ../systemd
             ../VERSION
             (fs.fileFilter (file: file.hasExt "1") ../docs)
-            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in" || file.hasExt "lua" ) ../example)
+            (fs.fileFilter (file: file.hasExt "conf" || file.hasExt "in" || file.hasExt "lua") ../example)
             (fs.fileFilter (file: file.hasExt "sh") ../scripts)
             (fs.fileFilter (file: file.name == "CMakeLists.txt") ../.)
             (optional withTests [
@@ -207,7 +209,7 @@ customStdenv.mkDerivation (finalAttrs: {
     ]
     (optionals customStdenv.hostPlatform.isBSD [ epoll-shim ])
     (optionals customStdenv.hostPlatform.isMusl [ libexecinfo ])
-    (optionals enableXWayland [
+    (optionals (enableXWayland && !enableXWaylandSatellite) [
       libxcb
       libxcb-errors
       libxcb-render-util
@@ -228,6 +230,7 @@ customStdenv.mkDerivation (finalAttrs: {
   cmakeFlags = mapAttrsToList cmakeBool {
     "BUILT_WITH_NIX" = true;
     "NO_XWAYLAND" = !enableXWayland;
+    "USE_XWAYLAND_SATELLITE" = enableXWayland && enableXWaylandSatellite;
     "LEGACY_RENDERER" = legacyRenderer;
     "NO_SYSTEMD" = !withSystemd;
     "CMAKE_DISABLE_PRECOMPILE_HEADERS" = true;
@@ -246,12 +249,15 @@ customStdenv.mkDerivation (finalAttrs: {
     ${optionalString wrapRuntimeDeps ''
       wrapProgram $out/bin/Hyprland \
         --suffix PATH : ${
-          makeBinPath [
-            binutils
-            hyprland-guiutils
-            pciutils
-            pkgconf
-          ]
+          makeBinPath (
+            [
+              binutils
+              hyprland-guiutils
+              pciutils
+              pkgconf
+            ]
+            ++ optional (enableXWayland && enableXWaylandSatellite) xwayland-satellite
+          )
         }
     ''}
 

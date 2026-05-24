@@ -1,5 +1,5 @@
 #include <cstdint>
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 
 #include <format>
 #include <string>

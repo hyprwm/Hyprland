@@ -427,7 +427,7 @@ void CWLDataDeviceProtocol::destroyResource(CWLDataOfferResource* resource) {
 }
 
 SP<IDataDevice> CWLDataDeviceProtocol::dataDeviceForClient(wl_client* c) {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (g_pXWayland && g_pXWayland->m_server && c == g_pXWayland->m_server->m_xwaylandClient)
         return g_pXWayland->m_wm->getDataDevice();
 #endif
@@ -457,7 +457,7 @@ void CWLDataDeviceProtocol::sendSelectionToDevice(SP<IDataDevice> dev, SP<IDataS
         OFFER->m_self   = OFFER;
         offer           = OFFER;
     }
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     else if (const auto X11 = dev->getX11(); X11)
         offer = g_pXWayland->m_wm->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), sel);
 #endif
@@ -680,7 +680,7 @@ void CWLDataDeviceProtocol::updateDrag() {
         OFFER->m_self   = OFFER;
         offer           = OFFER;
     }
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     else if (const auto X11 = m_dnd.focusedDevice->getX11(); X11)
         offer = g_pXWayland->m_wm->createX11DataOffer(g_pSeatManager->m_state.keyboardFocus.lock(), m_dnd.currentSource.lock());
 #endif

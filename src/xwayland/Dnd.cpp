@@ -1,5 +1,5 @@
 #include "Dnd.hpp"
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 #include "XWM.hpp"
 #include "XWayland.hpp"
 #include "Server.hpp"
@@ -14,7 +14,7 @@ using namespace Hyprutils::OS;
 #define PROPERTY_LENGTH       1
 #define PROPERTY_OFFSET       0
 
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
 static xcb_atom_t dndActionToAtom(uint32_t actions) {
     if (actions & WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
         return HYPRATOMS["XdndActionCopy"];
@@ -89,7 +89,7 @@ SP<IDataSource> CX11DataOffer::getSource() {
 }
 
 void CX11DataOffer::markDead() {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     std::erase(g_pXWayland->m_wm->m_dndDataOffers, m_self);
 #endif
 }
@@ -99,7 +99,7 @@ void CX11DataDevice::sendDataOffer(SP<IDataOffer> offer) {
 }
 
 void CX11DataDevice::sendEnter(uint32_t serial, SP<CWLSurfaceResource> surf, const Vector2D& local, SP<IDataOffer> offer) {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     auto XSURF = g_pXWayland->m_wm->windowForWayland(surf);
 
     if (!XSURF) {
@@ -158,7 +158,7 @@ void CX11DataDevice::cleanupState() {
 }
 
 void CX11DataDevice::sendLeave() {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (!m_lastSurface)
         return;
 
@@ -174,7 +174,7 @@ void CX11DataDevice::sendLeave() {
 }
 
 void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (!m_lastSurface || !m_lastOffer || !m_lastOffer->getSource())
         return;
 
@@ -196,7 +196,7 @@ void CX11DataDevice::sendMotion(uint32_t timeMs, const Vector2D& local) {
 }
 
 void CX11DataDevice::sendDrop() {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (!m_lastSurface || !m_lastOffer) {
         Log::logger->log(Log::ERR, "CX11DataDevice::sendDrop: No surface or offer");
         return;
@@ -282,7 +282,7 @@ void CX11DataSource::sendDndAction(wl_data_device_manager_dnd_action a) {
 }
 
 void CX11DataDevice::forceCleanupDnd() {
-#ifndef NO_XWAYLAND
+#if !defined(NO_XWAYLAND) && !defined(USE_XWAYLAND_SATELLITE)
     if (m_lastOffer) {
         auto source = m_lastOffer->getSource();
         if (source) {

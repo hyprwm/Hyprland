@@ -5,6 +5,30 @@
 
 CXWayland::CXWayland(const bool wantsEnabled) {
 #ifndef NO_XWAYLAND
+
+#ifdef USE_XWAYLAND_SATELLITE
+    // xwayland-satellite mode
+    if (!wantsEnabled) {
+        Log::logger->log(Log::DEBUG, "XWayland has been disabled, cleaning up...");
+        unsetenv("DISPLAY");
+        m_enabled = false;
+        return;
+    }
+
+    Log::logger->log(Log::DEBUG, "Starting XWayland via xwayland-satellite");
+
+    m_satellite = makeUnique<CXWaylandSatellite>();
+
+    if (!m_satellite->setup(g_pCompositor->m_wlEventLoop)) {
+        Log::logger->log(Log::WARN, "XWayland satellite failed to set up: X11 apps will not work.");
+        m_satellite.reset();
+        return;
+    }
+
+    m_enabled = true;
+
+#else
+    // Built-in XWayland mode (legacy)
     // Disable Xwayland and clean up if the user disabled it.
     if (!wantsEnabled) {
         Log::logger->log(Log::DEBUG, "XWayland has been disabled, cleaning up...");
@@ -34,11 +58,14 @@ CXWayland::CXWayland(const bool wantsEnabled) {
     }
 
     m_enabled = true;
+#endif
+
 #else
     Log::logger->log(Log::DEBUG, "Not starting XWayland: disabled at compile time");
 #endif
 }
 
+#ifndef USE_XWAYLAND_SATELLITE
 void CXWayland::setCursor(unsigned char* pixData, uint32_t stride, const Vector2D& size, const Vector2D& hotspot) {
 #ifndef NO_XWAYLAND
     if (!m_wm) {
@@ -49,6 +76,7 @@ void CXWayland::setCursor(unsigned char* pixData, uint32_t stride, const Vector2
     m_wm->setCursor(pixData, stride, size, hotspot);
 #endif
 }
+#endif
 
 bool CXWayland::enabled() {
     return m_enabled;

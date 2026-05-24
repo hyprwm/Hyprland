@@ -1875,23 +1875,7 @@ void CMonitor::updateSurfaceScaleTransformDetails() {
 
     for (auto const& lsl : m_layerSurfaceLayers) {
         for (auto const& ls : lsl) {
-            if (!ls->aliveAndVisible())
-                continue;
-
-            auto surf = ls->m_layerSurface->m_surface.lock();
-            if (!surf)
-                continue;
-
-            surf->breadthfirst(
-                [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
-                    const auto PSURFACE = CWLSurface::fromResource(s);
-                    if (PSURFACE && PSURFACE->m_lastScaleFloat == m_scale)
-                        return;
-
-                    g_pCompositor->setPreferredScaleForSurface(s, m_scale);
-                    g_pCompositor->setPreferredTransformForSurface(s, m_transform);
-                },
-                nullptr);
+            ls->updateSurfaceScaleTransformDetails();
         }
     }
 }

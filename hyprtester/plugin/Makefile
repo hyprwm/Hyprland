@@ -8,7 +8,7 @@ TARGET = hyprtestplugin.so
 all: $(TARGET)
 
 $(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) -I../.. -I../../protocols $(INCLUDES) $^ $> -o $@ $(LIBS) -O2
+	$(CXX) $(CXXFLAGS) -I../.. -I../../protocols $(INCLUDES) -I${LUA_INCLUDES} $^ $> -o $@ $(LIBS) -O2
 
 clean:
 	rm -f ./$(TARGET)

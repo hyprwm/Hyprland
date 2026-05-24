@@ -144,6 +144,8 @@ void CMonitorRuleManager::performMonitorReload() {
 
     m_reloadScheduled = false;
 
+    ensureVRR();
+
     Event::bus()->m_events.monitor.layoutChanged.emit();
 }
 

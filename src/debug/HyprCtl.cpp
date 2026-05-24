@@ -1582,6 +1582,8 @@ static std::string dispatchGetProp(eHyprCtlOutputFormat format, std::string requ
         return windowPropToString(PWINDOW->m_ruleApplicator->noScreenShare());
     else if (PROP == "no_vrr")
         return windowPropToString(PWINDOW->m_ruleApplicator->noVRR());
+    else if (PROP == "no_auto_hdr")
+        return windowPropToString(PWINDOW->m_ruleApplicator->noAutoHDR());
     else if (PROP == "persistent_size")
         return windowPropToString(PWINDOW->m_ruleApplicator->persistentSize());
     else if (PROP == "stay_focused")

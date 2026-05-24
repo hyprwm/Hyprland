@@ -162,43 +162,6 @@ bool CScreenshareManager::isOutputBeingSSd(PHLMONITOR monitor) {
     });
 }
 
-bool CScreenshareManager::outputNeedsCopyFB(PHLMONITOR monitor) {
-    return outputCopyFBState(monitor).needsCopyFB();
-}
-
-CScreenshareManager::SOutputCopyFBState CScreenshareManager::outputCopyFBState(PHLMONITOR monitor) {
-    SOutputCopyFBState state;
-
-    for (const auto& session : m_sessions) {
-        if (!session || !session->isActive() || (session->m_type != SHARE_MONITOR && session->m_type != SHARE_REGION) || session->m_monitor != monitor)
-            continue;
-
-        state.activeSessions++;
-        if (session->m_sharing)
-            state.sharingSessions++;
-
-        if (session->m_type == SHARE_MONITOR)
-            state.monitorSessions++;
-        else if (session->m_type == SHARE_REGION)
-            state.regionSessions++;
-    }
-
-    for (const auto& frame : m_pendingFrames) {
-        if (!frame || frame->done() || !frame->m_shared || frame->m_session->monitor() != monitor)
-            continue;
-
-        if (frame->m_session->m_type == SHARE_MONITOR) {
-            state.pendingFrames++;
-            state.pendingMonitorFrames++;
-        } else if (frame->m_session->m_type == SHARE_REGION) {
-            state.pendingFrames++;
-            state.pendingRegionFrames++;
-        }
-    }
-
-    return state;
-}
-
 CScreenshareManager::SManagedSession::SManagedSession(UP<CScreenshareSession>&& session) : m_session(std::move(session)) {
     ;
 }

@@ -475,7 +475,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<String>("misc:splash_font_family", "Changes the font used to render the splash text.", "[[EMPTY]]"),
         MS<Int>("misc:force_default_wallpaper", "Force any of the 3 default wallpapers. [-1/0/1/2]", -1, {.min = -1, .max = 2}),
         MS<Int>("misc:vrr", "controls the VRR (Adaptive Sync) of your monitors", 0,
-                {.min = 0, .max = 3, .map = OptionMap{{"off", 0}, {"on", 1}, {"fullscreen", 2}, {"fullscreen_game", 3}}}),
+                {.min = 0, .max = 3, .map = OptionMap{{"off", 0}, {"on", 1}, {"fullscreen", 2}, {"fullscreen_game", 3}}, .refresh = Supplementary::REFRESH_MONITOR_STATES}),
         MS<Bool>("misc:mouse_move_enables_dpms", "If DPMS is set to off, wake up the monitors if the mouse moves", false),
         MS<Bool>("misc:key_press_enables_dpms", "If DPMS is set to off, wake up the monitors if a key is pressed.", false),
         MS<Bool>("misc:name_vk_after_proc", "Name virtual keyboards after the processes that create them.", true),

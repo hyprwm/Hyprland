@@ -62,7 +62,10 @@ void CBackgroundEffect::setResource(SP<CExtBackgroundEffectSurfaceV1> resource) 
             g_pHyprRenderer->damageBox(*box);
     });
 
-    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] { PROTO::backgroundEffect->destroyEffect(this); });
+    m_listeners.surfaceDestroyed = m_surface->m_events.destroy.listen([this] {
+        if (!m_resource)
+            PROTO::backgroundEffect->destroyEffect(this);
+    });
 }
 
 void CBackgroundEffect::destroy() {

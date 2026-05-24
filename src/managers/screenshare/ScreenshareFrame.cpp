@@ -29,8 +29,11 @@ CScreenshareFrame::~CScreenshareFrame() {
     if (m_failed || !m_shared)
         return;
 
-    if (!m_copied && m_callback)
-        m_callback(RESULT_NOT_COPIED);
+    if (!m_copied && m_callback) {
+        FScreenshareCallback cb;
+        std::swap(cb, m_callback);
+        cb(RESULT_NOT_COPIED);
+    }
 }
 
 bool CScreenshareFrame::done() const {

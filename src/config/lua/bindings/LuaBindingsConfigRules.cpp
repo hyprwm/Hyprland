@@ -625,15 +625,40 @@ static int hlWorkspaceRule(lua_State* L) {
     }
 
     const std::string sourceInfo = Internal::getSourceInfo(L);
-
+    
+    
     lua_getfield(L, 1, "workspace");
-    if (!lua_isstring(L, -1)) {
-        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field is required and must be a string", sourceInfo));
+    
+    long wsId = 0;
+    std::string wsStr;
+    std::string wsName;
+    bool isAutoID = true;
+
+    if (lua_isstring(L, -1)) {
+        wsStr = lua_tostring(L, -1);
+        const auto& [wsId, wsName, isAutoID] = getWorkspaceIDNameFromString(wsStr);
+        lua_pop(L, 1);
+    }
+    else if (const auto ws = Internal::workspaceFromLuaSelectorOrObject(L, -1, "hl.workspace_rule"); ws) {
+
+        // get the info from the workspace object
+
+        wsStr = std::to_string(ws->m_id); // for workspace objects, selector string is the ID
+        wsId = ws->m_id;
+        wsName = ws->m_name;
+        isAutoID = false; // must exist if the workspace ID exists
+        lua_pop(L, 1);
+    }
+    else {
+        self->addError(std::format("{}: hl.workspace_rule: 'workspace' field is required and must be a string or workspace object", sourceInfo));
         lua_pop(L, 1);
         return 0;
     }
-    const std::string wsStr = lua_tostring(L, -1);
-    lua_pop(L, 1);
+
+
+
+
+    // const std::string wsStr = lua_tostring(L, -1);
 
     bool enabled = true;
     lua_getfield(L, 1, "enabled");
@@ -641,7 +666,7 @@ static int hlWorkspaceRule(lua_State* L) {
         enabled = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
 
-    const auto& [wsId, wsName, isAutoID] = getWorkspaceIDNameFromString(wsStr);
+    // const auto& [wsId, wsName, isAutoID] = getWorkspaceIDNameFromString(wsStr);
 
     Config::CWorkspaceRule wsRule;
     wsRule.m_workspaceString = wsStr;

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <filesystem>
 #include <set>
+#include <string>
 #include <sys/utsname.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -147,6 +148,24 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             result.id = WORKSPACE->m_id;
         }
         result.name = WORKSPACENAME;
+    } else if (in.starts_with("id:")) {
+        const std::string WORKSPACEIDSTRING = in.substr(in.find_first_of(':') + 1);
+
+        if (isNumber(WORKSPACEIDSTRING)) {
+            const int  WORKSPACEID = std::stoi(WORKSPACEIDSTRING);
+            const auto WORKSPACE   = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+
+            if (!WORKSPACE) {
+                result.id = g_pCompositor->getNextAvailableNamedWorkspace();
+            } else {
+                result.id = WORKSPACE->m_id;
+            }
+            result.name = WORKSPACE->m_name;
+        } else {
+            Log::logger->log(Log::ERR, "id: is not numeric");
+            return {WORKSPACE_INVALID};
+        }
+
     } else if (in.starts_with("empty")) {
         const bool same_mon = in.substr(5).contains("m");
         const bool next     = in.substr(5).contains("n");
@@ -453,7 +472,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     return {WORKSPACE_INVALID};
                 }
             } else if (isNumber(in))
-                result.id = std::max(std::stoi(in), 1);
+                result.id = std::stoi(in);
             else {
                 // maybe name
                 const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);

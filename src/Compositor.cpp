@@ -3064,31 +3064,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_monitor == PNEWMONITOR) {
             w->m_lastSurfaceMonitorID = MONITOR_INVALID;
-            w->updateSurfaceScaleTransformDetails();
         }
     }
 
-    for (auto const& lsl : PNEWMONITOR->m_layerSurfaceLayers) {
-        for (auto const& ls : lsl) {
-            if (!ls->aliveAndVisible())
-                continue;
-
-            auto SURF = ls->m_layerSurface->m_surface.lock();
-            if (!SURF)
-                continue;
-
-            SURF->breadthfirst(
-                [PNEWMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
-                    const auto PSURFACE = CWLSurface::fromResource(s);
-                    if (PSURFACE && PSURFACE->m_lastScaleFloat == PNEWMONITOR->m_scale)
-                        return;
-
-                    g_pCompositor->setPreferredScaleForSurface(s, PNEWMONITOR->m_scale);
-                    g_pCompositor->setPreferredTransformForSurface(s, PNEWMONITOR->m_transform);
-                },
-                nullptr);
-        }
-    }
+    PNEWMONITOR->updateSurfaceScaleTransformDetails();
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->m_frameScheduler->onFrame();

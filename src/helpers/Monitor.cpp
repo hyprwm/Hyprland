@@ -1109,35 +1109,7 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateVCGTRamps();
 
-    // Set scale for all surfaces on this monitor, needed for some clients
-    // but not on unsafe state to avoid crashes
-    if (!g_pCompositor->m_unsafeState) {
-        for (auto const& w : g_pCompositor->m_windows) {
-            w->updateSurfaceScaleTransformDetails();
-        }
-
-        for (auto const& lsl : m_layerSurfaceLayers) {
-            for (auto const& ls : lsl) {
-                if (!ls->aliveAndVisible())
-                    continue;
-
-                auto SURF = ls->m_layerSurface->m_surface.lock();
-                if (!SURF)
-                    continue;
-
-                SURF->breadthfirst(
-                    [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
-                        const auto PSURFACE = CWLSurface::fromResource(s);
-                        if (PSURFACE && PSURFACE->m_lastScaleFloat == m_scale)
-                            return;
-
-                        g_pCompositor->setPreferredScaleForSurface(s, m_scale);
-                        g_pCompositor->setPreferredTransformForSurface(s, m_transform);
-                    },
-                    nullptr);
-            }
-        }
-    }
+    updateSurfaceScaleTransformDetails();
 
     // updato us
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
@@ -1890,6 +1862,38 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         reasons |= TC_WINDOW;
 
     return reasons;
+}
+
+void CMonitor::updateSurfaceScaleTransformDetails() {
+    if (g_pCompositor->m_unsafeState)
+        return;
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_monitor == m_self)
+            w->updateSurfaceScaleTransformDetails();
+    }
+
+    for (auto const& lsl : m_layerSurfaceLayers) {
+        for (auto const& ls : lsl) {
+            if (!ls->aliveAndVisible())
+                continue;
+
+            auto surf = ls->m_layerSurface->m_surface.lock();
+            if (!surf)
+                continue;
+
+            surf->breadthfirst(
+                [this](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+                    const auto PSURFACE = CWLSurface::fromResource(s);
+                    if (PSURFACE && PSURFACE->m_lastScaleFloat == m_scale)
+                        return;
+
+                    g_pCompositor->setPreferredScaleForSurface(s, m_scale);
+                    g_pCompositor->setPreferredTransformForSurface(s, m_transform);
+                },
+                nullptr);
+        }
+    }
 }
 
 bool CMonitor::updateTearing() {

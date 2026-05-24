@@ -3,7 +3,6 @@
 #include "DefaultConfig.hpp"
 #include "Emergency.hpp"
 
-#include <climits>
 #include <algorithm>
 #include <cctype>
 #include <functional>
@@ -23,15 +22,11 @@
 #include "../shared/inotify/ConfigWatcher.hpp"
 
 #include "../../desktop/rule/Engine.hpp"
-#include "../../helpers/MiscFunctions.hpp"
-
 #include "../../event/EventBus.hpp"
 #include "../../Compositor.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../helpers/Monitor.hpp"
-#include "../../layout/space/Space.hpp"
-#include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
 #include "../../xwayland/XWayland.hpp"
@@ -40,7 +35,6 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../managers/input/trackpad/TrackpadGestures.hpp"
 #include "../../notification/NotificationOverlay.hpp"
-#include "../../render/decorations/CHyprGroupBarDecoration.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -558,7 +552,9 @@ void CConfigManager::postConfigReload() {
 
     auto disableStdout = !*PENABLESTDOUT;
     if (disableStdout && m_isFirstLaunch)
-        Log::logger->log(Log::DEBUG, "Disabling stdout logs! Check the log for further logs.");
+        Log::logger->log(Log::DEBUG,
+                         "Disabling stdout logs (debug:enable_stdout_logs=0). "
+                         "Further logs will be written to $XDG_RUNTIME_DIR/hypr/<instance>/hyprland.log");
 
     handlePluginLoads();
 

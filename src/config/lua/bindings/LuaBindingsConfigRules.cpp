@@ -131,7 +131,8 @@ namespace {
          }},
         {"vrr", []() -> ILuaConfigValue* { return new CLuaConfigInt(-1, -1, 3); },
          [](ILuaConfigValue* v, CMonitorRuleParser& p) {
-             p.rule().m_vrr = sc<int>(*sc<const Config::INTEGER*>(v->data()));
+             const auto VRR = sc<int>(*sc<const Config::INTEGER*>(v->data()));
+             p.rule().m_vrr = VRR < 0 ? std::nullopt : std::optional(VRR);
              return true;
          }},
         {"icc", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); },

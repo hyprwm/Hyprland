@@ -267,7 +267,8 @@ bool CMonitorRuleParser::parseVRR(const std::string& value) {
         return false;
     }
 
-    m_rule.m_vrr = std::stoi(value);
+    const auto VRR = std::stoi(value);
+    m_rule.m_vrr   = VRR < 0 ? std::nullopt : std::optional(VRR);
     return true;
 }
 

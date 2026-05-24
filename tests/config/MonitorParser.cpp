@@ -179,6 +179,11 @@ TEST(Config, monitorParserVRR) {
     CMonitorRuleParser p3("DP-1");
     EXPECT_FALSE(p3.parseVRR("abc"));
     EXPECT_TRUE(p3.getError().has_value());
+
+    // -1 clears the per-monitor override so the monitor follows misc:vrr again
+    CMonitorRuleParser p4("DP-1");
+    EXPECT_TRUE(p4.parseVRR("-1"));
+    EXPECT_FALSE(p4.rule().m_vrr.has_value());
 }
 
 TEST(Config, monitorParserSDRBrightness) {

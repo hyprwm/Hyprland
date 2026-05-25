@@ -652,7 +652,6 @@ static int hlWorkspaceRule(lua_State* L) {
         return 0;
     }
 
-    // const std::string wsStr = lua_tostring(L, -1);
 
     bool enabled = true;
     lua_getfield(L, 1, "enabled");
@@ -660,7 +659,6 @@ static int hlWorkspaceRule(lua_State* L) {
         enabled = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
 
-    // const auto& [wsId, wsName, isAutoID] = getWorkspaceIDNameFromString(wsStr);
 
     Config::CWorkspaceRule wsRule;
     wsRule.m_workspaceString = wsStr;

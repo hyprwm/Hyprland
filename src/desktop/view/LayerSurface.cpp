@@ -219,8 +219,7 @@ void CLayerSurface::onMap() {
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "openlayer", .data = m_namespace});
     Event::bus()->m_events.layer.opened.emit(m_self.lock());
 
-    g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
+    updateSurfaceScaleTransformDetails();
 }
 
 void CLayerSurface::onUnmap() {
@@ -414,8 +413,7 @@ void CLayerSurface::onCommit() {
 
     g_pHyprRenderer->damageSurface(m_wlSurface->resource(), m_position.x, m_position.y);
 
-    g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(m_wlSurface->resource(), PMONITOR->m_transform);
+    updateSurfaceScaleTransformDetails();
 }
 
 bool CLayerSurface::isFadedOut() {
@@ -446,4 +444,30 @@ pid_t CLayerSurface::getPID() {
     wl_client_get_credentials(m_layerSurface->m_surface->getResource()->client(), &PID, nullptr, nullptr);
 
     return PID;
+}
+
+void CLayerSurface::updateSurfaceScaleTransformDetails() {
+    if (!aliveAndVisible() || g_pCompositor->m_unsafeState)
+        return;
+
+    const auto PMONITOR = m_monitor.lock();
+
+    if (!PMONITOR)
+        return;
+
+    auto surf = m_layerSurface->m_surface.lock();
+
+    if (!surf)
+        return;
+
+    surf->breadthfirst(
+        [PMONITOR](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) {
+            const auto PSURFACE = CWLSurface::fromResource(s);
+            if (PSURFACE && PSURFACE->m_lastScaleFloat == PMONITOR->m_scale)
+                return;
+
+            g_pCompositor->setPreferredScaleForSurface(s, PMONITOR->m_scale);
+            g_pCompositor->setPreferredTransformForSurface(s, PMONITOR->m_transform);
+        },
+        nullptr);
 }

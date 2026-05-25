@@ -52,6 +52,7 @@ namespace Layout {
 
         enum eRecalculateMonitorReason : uint8_t {
             RECALCULATE_MONITOR_REASON_UNKNOWN, // when the recalculate monitor reason is unknown or not important to preserve
+            RECALCULATE_MONITOR_REASON_PROP_REFRESH,
             RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE,
             RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE,
             RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN,

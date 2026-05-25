@@ -4,6 +4,8 @@
 #include "Algorithm.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "desktop/Workspace.hpp"
+#include "layout/LayoutManager.hpp"
 
 using namespace Layout;
 
@@ -16,7 +18,38 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
 }
 
 eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
-    (void)request;
+
+    const auto TARGET = request.target;
+
+    if (!TARGET)
+        return FULLSCREEN_REQUEST_FAILED;
+
+
+    if (request.effectiveMode != FSMODE_NONE && TARGET->window())
+        TARGET->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_DEFAULT;
+    else
+        TARGET->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
+
+
+    // set internal fullscreen mode
+    TARGET->setFullscreenMode(request.effectiveMode);
+
+    // set workspace fullscreen attributes
+    if (const auto TARGETWORKSPACE = TARGET->workspace(); TARGETWORKSPACE) {
+        TARGETWORKSPACE->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
+        TARGETWORKSPACE->m_fullscreenMode = request.effectiveMode;
+    }
+    else
+        return FULLSCREEN_REQUEST_FAILED;
+
+
+        
+
+    // TODO: do this in the unified recalculate. At that point, the workspace's vars should have been properly set by scrolling's recalculate() as well
+    // g_pDesktopAnimationManager->setFullscreenFadeAnimation(request.effectiveMode == FSMODE_NONE? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    
+
+
     return FULLSCREEN_REQUEST_DEFAULT;
 }
 

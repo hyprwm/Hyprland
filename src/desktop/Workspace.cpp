@@ -408,7 +408,13 @@ MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
-PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
+PHLWINDOW CWorkspace::getFullscreenWindow() {
+
+    // TODO: return the currently FS window - layout or not.
+
+    // If default handled, merely checking if its size/pos should be enough
+
+    // If layout handled, use the layout spec. function
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
             if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())

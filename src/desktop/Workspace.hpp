@@ -72,7 +72,7 @@ class CWorkspace {
     bool        hasUrgentWindow();
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
-    PHLWINDOW   getFullscreenWindow(bool includeLayoutHandledFullscreen = true);
+    PHLWINDOW   getFullscreenWindow();
     bool        hasFullscreen();
     bool        isVisible();
     bool        isVisibleNotCovered();

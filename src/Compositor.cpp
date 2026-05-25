@@ -1955,26 +1955,12 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
     const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
 
-    PWORKSPACE->m_fullscreenMode      = NEW_EFFECTIVE_MODE;
-    PWORKSPACE->m_hasFullscreenWindow = NEW_EFFECTIVE_MODE != FSMODE_NONE;
 
     PWORKSPACE->setNoMembersAboveFullscreen();
 
     const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
     const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
 
-    // Set fullscreen handler of window. Layout handled FS will set this in their layout specific functions
-    if (NEW_EFFECTIVE_MODE == FSMODE_NONE)
-        PWINDOW->m_fullscreenHandler = FULLSCREEN_HANDLER_NONE;
-    else if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT)
-        PWINDOW->m_fullscreenHandler = FULLSCREEN_HANDLER_DEFAULT;
-
-
-    if (LAYOUT_HANDLED_FULLSCREEN) {
-        PWORKSPACE->m_fullscreenMode      = FSMODE_NONE;
-        PWORKSPACE->m_hasFullscreenWindow = false;
-    } else
-        PWINDOW->m_fullscreenState.internal = state.internal;
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
@@ -1999,10 +1985,7 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
             ls->m_aboveFullscreen = false;
     }
 
-    if (!LAYOUT_HANDLED_FULLSCREEN)
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            PWORKSPACE, PWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
-
+    // After each layout sets the window's properties, sendWindowSize.
     PWINDOW->sendWindowSize(true);
 
     // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible

@@ -111,9 +111,11 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
 
     const auto PMONITOR = PWORKSPACE->m_monitor;
 
-    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
+
+    // Shared fullscreen modifications/tweaks for both default and layout handled fullscreens.
+    if (PWORKSPACE->m_hasFullscreenWindow &&  PMONITOR) {
         // massive hack from the fullscreen func
-        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow(false);
+        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
         // prevent tiled fullscreen scrolling window from being brought into view when fullscreening a floating window in the same workspace.
         // TODO: this is a patch. Recommend handling setting of fullscreen windows's size and position in their fullscreen functions and removing this hack entirely.
         if (PFULLWINDOW) {

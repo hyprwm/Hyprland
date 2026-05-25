@@ -159,9 +159,6 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> target, eFullscreenMo
 
     const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(target, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
 
-    target->setLayoutManagedFullscreen(REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT && (mode != FSMODE_NONE));
-    if (REQUEST_RESULT != FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT)
-        target->setFullscreenMode(mode);
 
     if (REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT) {
         if (const auto WORKSPACE = workspace()) {

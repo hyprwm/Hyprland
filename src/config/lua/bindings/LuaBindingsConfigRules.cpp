@@ -652,13 +652,11 @@ static int hlWorkspaceRule(lua_State* L) {
         return 0;
     }
 
-
     bool enabled = true;
     lua_getfield(L, 1, "enabled");
     if (lua_isboolean(L, -1))
         enabled = lua_toboolean(L, -1) != 0;
     lua_pop(L, 1);
-
 
     Config::CWorkspaceRule wsRule;
     wsRule.m_workspaceString = wsStr;

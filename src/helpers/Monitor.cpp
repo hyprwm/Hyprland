@@ -58,6 +58,7 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
@@ -1108,13 +1109,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateVCGTRamps();
 
-    // Set scale for all surfaces on this monitor, needed for some clients
-    // but not on unsafe state to avoid crashes
-    if (!g_pCompositor->m_unsafeState) {
-        for (auto const& w : g_pCompositor->m_windows) {
-            w->updateSurfaceScaleTransformDetails();
-        }
-    }
+    updateSurfaceScaleTransformDetails();
+
     // updato us
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
 
@@ -1866,6 +1862,22 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
         reasons |= TC_WINDOW;
 
     return reasons;
+}
+
+void CMonitor::updateSurfaceScaleTransformDetails() {
+    if (g_pCompositor->m_unsafeState)
+        return;
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_monitor == m_self)
+            w->updateSurfaceScaleTransformDetails();
+    }
+
+    for (auto const& lsl : m_layerSurfaceLayers) {
+        for (auto const& ls : lsl) {
+            ls->updateSurfaceScaleTransformDetails();
+        }
+    }
 }
 
 bool CMonitor::updateTearing() {

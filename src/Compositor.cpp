@@ -3063,9 +3063,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_monitor == PNEWMONITOR) {
             w->m_lastSurfaceMonitorID = MONITOR_INVALID;
-            w->updateSurfaceScaleTransformDetails();
         }
     }
+
+    PNEWMONITOR->updateSurfaceScaleTransformDetails();
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->m_frameScheduler->onFrame();

@@ -169,6 +169,7 @@ namespace Layout::Tiled {
         bool                                isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const;
         float                               fullscreenColumnWidth() const;
         bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
+        bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;
         void                                updateFullscreenFade(bool coversMonitor);
         float                               getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target);
         void                                syncFullscreenTargets();

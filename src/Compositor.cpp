@@ -1972,6 +1972,8 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
 
     // make all windows and layers on the same workspace under the fullscreen window
+    // ERSTARR TODO IMPORTANT; This part i the source of endless woes. Try to just rip it out and see what happens.
+    // Need to save the floating windows that were created when workspace was FSed and when it unFSes, clear them.
     for (auto const& w : m_windows) {
         if (w->m_workspace == PWORKSPACE) {
             if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)

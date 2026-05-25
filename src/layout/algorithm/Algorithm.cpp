@@ -11,6 +11,7 @@
 #include "../../render/Renderer.hpp"
 
 #include "../../debug/log/Logger.hpp"
+#include <hyprutils/math/Box.hpp>
 
 using namespace Layout;
 
@@ -112,21 +113,27 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
     const auto PMONITOR = PWORKSPACE->m_monitor;
 
 
-    // Shared fullscreen modifications/tweaks for both default and layout handled fullscreens.
-    if (PWORKSPACE->m_hasFullscreenWindow &&  PMONITOR) {
-        // massive hack from the fullscreen func
+    // This is for Default Handled FS only. It's here since multiple layouts share it.
+    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
+        // massive hack from the fullscreen func (?)
         const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
-        // prevent tiled fullscreen scrolling window from being brought into view when fullscreening a floating window in the same workspace.
-        // TODO: this is a patch. Recommend handling setting of fullscreen windows's size and position in their fullscreen functions and removing this hack entirely.
+        if (PFULLWINDOW->m_target->layoutManagedFullscreen())
+            return;
+
+        const auto MONITOR = PWORKSPACE->m_monitor;
+
+        // ERSTARR - This should set pos and update pos.
+        // ERSTARR TODO: warpPositionSize called during default FS event?
         if (PFULLWINDOW) {
             if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-                *PFULLWINDOW->m_realPosition = PMONITOR->m_position;
-                *PFULLWINDOW->m_realSize     = PMONITOR->m_size;
-            } else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED)
-                PFULLWINDOW->layoutTarget()->setPositionGlobal(m_space->workArea());
+                const CBox MONBOX = PWORKSPACE->m_monitor->logicalBox();
+                PFULLWINDOW->layoutTarget()->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
+            }
+            else if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+                const CBox WORKAREA = PWORKSPACE->m_space->workArea(PFULLWINDOW->m_isFloating);
+                PFULLWINDOW->layoutTarget()->setPositionGlobal(WORKAREA);
+            }
         }
-
-        return;
     }
 }
 

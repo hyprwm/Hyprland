@@ -160,13 +160,6 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> target, eFullscreenMo
     const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(target, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
 
 
-    if (REQUEST_RESULT == FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT) {
-        if (const auto WORKSPACE = workspace()) {
-            WORKSPACE->m_fullscreenMode      = FSMODE_NONE;
-            WORKSPACE->m_hasFullscreenWindow = false;
-        }
-    }
-
     if (mode == FSMODE_NONE && m_algorithm && target->floating())
         m_algorithm->recenter(target);
 

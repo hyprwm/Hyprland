@@ -395,7 +395,9 @@ void CScreenshareFrame::renderWorkspace() {
 
     if (Desktop::focusState()->window()->m_workspace != PWORKSPACE)
         return;
+
     CRegion fakeDamage = {0, 0, INT16_MAX, INT16_MAX};
+    g_pPointerManager->renderSoftwareCursorsFor(PMONITOR->m_self.lock(), NOW, fakeDamage, g_pInputManager->getMouseCoordsInternal(), true);
 }
 
 void CScreenshareFrame::render() {

@@ -470,8 +470,8 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                     Log::logger->log(Log::ERR, "Relative workspace on no mon!");
                     return {WORKSPACE_INVALID};
                 }
-            } else if (isNumber(in))
-                result.id = std::stoi(in);
+            } else if (isNumber(in)) // for normal workspaces whose names are numeric
+                result.id = std::max(std::stoi(in), 1);
             else {
                 // maybe name
                 const auto PWORKSPACE = g_pCompositor->getWorkspaceByName(in);

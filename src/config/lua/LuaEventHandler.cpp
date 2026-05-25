@@ -10,6 +10,7 @@
 #include "../../desktop/state/FocusState.hpp"
 
 extern "C" {
+#include <lua.h>
 #include <lauxlib.h>
 }
 
@@ -151,6 +152,14 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
 
     m_listeners.push_back(bus()->m_events.start.listen([this]() { dispatch("hyprland.start", 0, [] {}); }));
     m_listeners.push_back(bus()->m_events.exit.listen([this]() { dispatch("hyprland.shutdown", 0, [] {}); }));
+
+    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
+        dispatch("input.keyboard.key", 1, [&] {
+            lua_pushinteger(m_lua, keyEvent.keycode);
+            lua_pushinteger(m_lua, keyEvent.timeMs);
+            lua_pushinteger(m_lua, keyEvent.state);
+        });
+    }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -230,6 +239,7 @@ const std::unordered_set<std::string>& CLuaEventHandler::knownEvents() {
         "screenshare.state",
         "hyprland.start",
         "hyprland.shutdown",
+        "input.keyboard.key",
     };
     return EVENTS;
 }

@@ -174,6 +174,14 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
         if (!ret)
             Log::logger->log(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
     }));
+
+    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
+        dispatch("input.keyboard.key", 3, [&](lua_State* L) {
+            lua_pushinteger(L, keyEvent.keycode + 8); // Because to xkbcommon it's +8 from libinput
+            lua_pushinteger(L, keyEvent.timeMs);
+            lua_pushinteger(L, keyEvent.state);
+        });
+    }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -286,6 +294,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "screenshare.state",
         "hyprland.start",
         "hyprland.shutdown",
+        "input.keyboard.key",
     };
     for (auto& kv : Event::bus()->m_events.plugin)
         EVENTS.emplace(kv.first);

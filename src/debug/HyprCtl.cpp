@@ -478,7 +478,7 @@ std::string CHyprCtl::getWorkspaceData(PHLWORKSPACE w, eHyprCtlOutputFormat form
     std::string layoutName = "unknown";
     if (w->m_space && w->m_space->algorithm() && w->m_space->algorithm()->tiledAlgo()) {
         const auto& TILED_ALGO = w->m_space->algorithm()->tiledAlgo();
-        layoutName             = Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(&typeid(*TILED_ALGO.get()));
+        layoutName             = Layout::Supplementary::algoMatcher()->getNameForID(Layout::Supplementary::algoMatcher()->getIDForTiledAlgo(TILED_ALGO.get()).value());
     }
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {

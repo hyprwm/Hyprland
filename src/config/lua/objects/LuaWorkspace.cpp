@@ -136,7 +136,7 @@ static int workspaceIndex(lua_State* L) {
         std::string layoutName = "unknown";
         if (ws->m_space && ws->m_space->algorithm() && ws->m_space->algorithm()->tiledAlgo()) {
             const auto& TILED_ALGO = ws->m_space->algorithm()->tiledAlgo();
-            layoutName             = Layout::Supplementary::algoMatcher()->getNameForTiledAlgo(TILED_ALGO.get());
+            layoutName             = Layout::Supplementary::algoMatcher()->getNameForID(Layout::Supplementary::algoMatcher()->getIDForTiledAlgo(TILED_ALGO.get()).value());
         }
         lua_pushstring(L, layoutName.c_str());
     } else if (key == "last_window") {

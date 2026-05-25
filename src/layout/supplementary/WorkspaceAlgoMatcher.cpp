@@ -27,15 +27,21 @@ const UP<CWorkspaceAlgoMatcher>& Supplementary::algoMatcher() {
 }
 
 CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
+    const auto DWINDLE_ID   = nextAlgoID();
+    const auto MASTER_ID    = nextAlgoID();
+    const auto SCROLLING_ID = nextAlgoID();
+    const auto MONOCLE_ID   = nextAlgoID();
+    const auto DEFAULT_ID   = nextAlgoID();
+
     m_tiledAlgos = {
-        {"dwindle", [] { return makeUnique<Tiled::CDwindleAlgorithm>(); }},
-        {"master", [] { return makeUnique<Tiled::CMasterAlgorithm>(); }},
-        {"scrolling", [] { return makeUnique<Tiled::CScrollingAlgorithm>(); }},
-        {"monocle", [] { return makeUnique<Tiled::CMonocleAlgorithm>(); }},
+        {"dwindle", {.id = DWINDLE_ID, .factory = [] { return makeUnique<Tiled::CDwindleAlgorithm>(); }}},
+        {"master", {.id = MASTER_ID, .factory = [] { return makeUnique<Tiled::CMasterAlgorithm>(); }}},
+        {"scrolling", {.id = SCROLLING_ID, .factory = [] { return makeUnique<Tiled::CScrollingAlgorithm>(); }}},
+        {"monocle", {.id = MONOCLE_ID, .factory = [] { return makeUnique<Tiled::CMonocleAlgorithm>(); }}},
     };
 
     m_floatingAlgos = {
-        {"default", [] { return makeUnique<Floating::CDefaultFloatingAlgorithm>(); }},
+        {"default", {.id = DEFAULT_ID, .factory = [] { return makeUnique<Floating::CDefaultFloatingAlgorithm>(); }}},
     };
 
     m_algoNames = {
@@ -45,14 +51,40 @@ CWorkspaceAlgoMatcher::CWorkspaceAlgoMatcher() {
         {&typeid(Tiled::CMonocleAlgorithm), "monocle"},
         {&typeid(Floating::CDefaultFloatingAlgorithm), "default"},
     };
+
+    m_algoIDs = {
+        {&typeid(Tiled::CDwindleAlgorithm), DWINDLE_ID},
+        {&typeid(Tiled::CMasterAlgorithm), MASTER_ID},
+        {&typeid(Tiled::CScrollingAlgorithm), SCROLLING_ID},
+        {&typeid(Tiled::CMonocleAlgorithm), MONOCLE_ID},
+        {&typeid(Floating::CDefaultFloatingAlgorithm), DEFAULT_ID},
+    };
+
+    m_nameIDs = {
+        {"dwindle", DWINDLE_ID}, {"master", MASTER_ID}, {"scrolling", SCROLLING_ID}, {"monocle", MONOCLE_ID}, {"default", DEFAULT_ID},
+    };
+
+    m_idNames = {
+        {DWINDLE_ID, "dwindle"}, {MASTER_ID, "master"}, {SCROLLING_ID, "scrolling"}, {MONOCLE_ID, "monocle"}, {DEFAULT_ID, "default"},
+    };
 }
 
 bool CWorkspaceAlgoMatcher::registerTiledAlgo(const std::string& name, const std::type_info* typeInfo, std::function<UP<ITiledAlgorithm>()>&& factory) {
     if (m_tiledAlgos.contains(name) || m_floatingAlgos.contains(name))
         return false;
 
-    m_tiledAlgos.emplace(name, std::move(factory));
+    const auto ID = nextAlgoID();
+
+    m_tiledAlgos.emplace(name,
+                         STiledAlgoEntry{
+                             .id      = ID,
+                             .factory = std::move(factory),
+                         });
+
     m_algoNames.emplace(typeInfo, name);
+    m_algoIDs.emplace(typeInfo, ID);
+    m_nameIDs.emplace(name, ID);
+    m_idNames.emplace(ID, name);
 
     updateWorkspaceLayouts();
 
@@ -63,8 +95,18 @@ bool CWorkspaceAlgoMatcher::registerFloatingAlgo(const std::string& name, const 
     if (m_tiledAlgos.contains(name) || m_floatingAlgos.contains(name))
         return false;
 
-    m_floatingAlgos.emplace(name, std::move(factory));
+    const auto ID = nextAlgoID();
+
+    m_floatingAlgos.emplace(name,
+                            SFloatingAlgoEntry{
+                                .id      = ID,
+                                .factory = std::move(factory),
+                            });
+
     m_algoNames.emplace(typeInfo, name);
+    m_algoIDs.emplace(typeInfo, ID);
+    m_nameIDs.emplace(name, ID);
+    m_idNames.emplace(ID, name);
 
     updateWorkspaceLayouts();
 
@@ -75,12 +117,22 @@ bool CWorkspaceAlgoMatcher::unregisterAlgo(const std::string& name) {
     if (!m_tiledAlgos.contains(name) && !m_floatingAlgos.contains(name))
         return false;
 
+    std::erase_if(m_algoIDs, [this, &name](const auto& e) {
+        const auto NAME = m_algoNames.find(e.first);
+        return NAME != m_algoNames.end() && NAME->second == name;
+    });
+
     std::erase_if(m_algoNames, [&name](const auto& e) { return e.second == name; });
+
+    m_nameIDs.erase(name);
 
     if (m_floatingAlgos.contains(name))
         m_floatingAlgos.erase(name);
     else
         m_tiledAlgos.erase(name);
+
+    if (const auto ID = getIDForName(name); ID.has_value())
+        m_idNames.erase(*ID);
 
     // this is needed here to avoid situations where a plugin unloads and we still have a UP
     // to a plugin layout
@@ -89,16 +141,18 @@ bool CWorkspaceAlgoMatcher::unregisterAlgo(const std::string& name) {
     return true;
 }
 
-UP<ITiledAlgorithm> CWorkspaceAlgoMatcher::algoForNameTiled(const std::string& s) {
+UP<ITiledAlgorithm> CWorkspaceAlgoMatcher::algoForNameTiled(const std::string& s) const {
     if (m_tiledAlgos.contains(s))
-        return m_tiledAlgos.at(s)();
-    return m_tiledAlgos.at(DEFAULT_TILED_ALGO)();
+        return m_tiledAlgos.at(s).factory();
+
+    return m_tiledAlgos.at(DEFAULT_TILED_ALGO).factory();
 }
 
-UP<IFloatingAlgorithm> CWorkspaceAlgoMatcher::algoForNameFloat(const std::string& s) {
+UP<IFloatingAlgorithm> CWorkspaceAlgoMatcher::algoForNameFloat(const std::string& s) const {
     if (m_floatingAlgos.contains(s))
-        return m_floatingAlgos.at(s)();
-    return m_floatingAlgos.at(DEFAULT_FLOATING_ALGO)();
+        return m_floatingAlgos.at(s).factory();
+
+    return m_floatingAlgos.at(DEFAULT_FLOATING_ALGO).factory();
 }
 
 std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) {
@@ -108,12 +162,15 @@ std::string CWorkspaceAlgoMatcher::tiledAlgoForWorkspace(const PHLWORKSPACE& w) 
     return rule && rule->m_layout.has_value() ? rule->m_layout.value() : *PLAYOUT;
 }
 
+CWorkspaceAlgoMatcher::AlgoID CWorkspaceAlgoMatcher::nextAlgoID() {
+    return m_nextAlgoID++;
+}
+
 SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w) {
     return CAlgorithm::create(algoForNameTiled(tiledAlgoForWorkspace(w)), makeUnique<Floating::CDefaultFloatingAlgorithm>(), w->m_space);
 }
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
-    // TODO: make this ID-based, string comparison is slow
     for (const auto& ws : g_pCompositor->getWorkspaces()) {
         if (!ws)
             continue;
@@ -125,9 +182,13 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
 
         const auto LAYOUT_TO_USE = tiledAlgoForWorkspace(ws.lock());
 
-        const auto CURRENT_LAYOUT = getNameForTiledAlgo(TILED_ALGO.get());
+        const auto CURRENT_LAYOUT_ID = getIDForTiledAlgo(TILED_ALGO.get());
+        auto       TARGET_LAYOUT_ID  = getIDForName(LAYOUT_TO_USE);
 
-        if (CURRENT_LAYOUT == LAYOUT_TO_USE && m_tiledAlgos.contains(LAYOUT_TO_USE))
+        if (!TARGET_LAYOUT_ID.has_value())
+            TARGET_LAYOUT_ID = getIDForName(DEFAULT_TILED_ALGO);
+
+        if (CURRENT_LAYOUT_ID.has_value() && TARGET_LAYOUT_ID.has_value() && *CURRENT_LAYOUT_ID == *TARGET_LAYOUT_ID)
             continue;
 
         // needs a switchup
@@ -135,18 +196,33 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
     }
 }
 
-std::string CWorkspaceAlgoMatcher::getNameForTiledAlgo(const ITiledAlgorithm* algo) {
-    if (!algo)
-        return "unknown";
+std::optional<CWorkspaceAlgoMatcher::AlgoID> CWorkspaceAlgoMatcher::getIDForName(const std::string& name) {
+    if (m_nameIDs.contains(name))
+        return m_nameIDs.at(name);
 
-    if (const auto name = algo->layoutName(); name.has_value())
-        return *name;
-
-    return getNameForTiledAlgo(&typeid(*algo));
+    return std::nullopt;
 }
 
-std::string CWorkspaceAlgoMatcher::getNameForTiledAlgo(const std::type_info* type) {
-    if (m_algoNames.contains(type))
-        return m_algoNames.at(type);
+std::optional<CWorkspaceAlgoMatcher::AlgoID> CWorkspaceAlgoMatcher::getIDForTiledAlgo(const ITiledAlgorithm* algo) {
+    if (!algo)
+        return std::nullopt;
+
+    if (const auto NAME = algo->layoutName(); NAME.has_value())
+        return getIDForName(*NAME);
+
+    return getIDForTiledAlgo(&typeid(*algo));
+}
+
+std::optional<CWorkspaceAlgoMatcher::AlgoID> CWorkspaceAlgoMatcher::getIDForTiledAlgo(const std::type_info* type) {
+    if (m_algoIDs.contains(type))
+        return m_algoIDs.at(type);
+
+    return std::nullopt;
+}
+
+std::string CWorkspaceAlgoMatcher::getNameForID(const AlgoID id) {
+    if (m_idNames.contains(id))
+        return m_idNames.at(id);
+
     return "unknown";
 }

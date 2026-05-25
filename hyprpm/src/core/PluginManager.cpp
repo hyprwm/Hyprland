@@ -313,8 +313,10 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
         progress.printMessageAbove(infoString("Building {}", p.name));
 
+        const auto env = getPluginBuildEnv();
+
         for (auto const& bs : p.buildSteps) {
-            const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && PKG_CONFIG_PATH=\"{}\" {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs), HLVER);
+            const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", m_szWorkingPluginDirectory, env, bs), HLVER);
 
             if (!CMD_RAW) {
                 progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -766,8 +768,10 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
             progress.printMessageAbove(infoString("Building {}", p.name));
 
+            const auto env = getPluginBuildEnv();
+
             for (auto const& bs : p.buildSteps) {
-                const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && PKG_CONFIG_PATH=\"{}\" {}", m_szWorkingPluginDirectory, getPkgConfigPath(), bs), HLVER);
+                const auto CMD_RAW = nixDevelopIfNeeded(std::format("cd {} && {} {}", m_szWorkingPluginDirectory, env, bs), HLVER);
 
                 if (!CMD_RAW) {
                     progress.printMessageAbove(failureString("Failed to build {}: {}", p.name, CMD_RAW.error()));
@@ -1033,6 +1037,22 @@ bool CPluginManager::hasDeps() {
     }
 
     return hasAllDeps;
+}
+
+std::string CPluginManager::getPluginBuildEnv() {
+    std::string env = std::format("PKG_CONFIG_PATH=\"{}\"", getPkgConfigPath());
+
+#if defined(HYPRPM_EXTRA_CFLAGS)
+    if (std::string_view{HYPRPM_EXTRA_CFLAGS}.size() > 0)
+        env += std::format(" CFLAGS=\"{} $CFLAGS\"", HYPRPM_EXTRA_CFLAGS);
+#endif
+
+#if defined(HYPRPM_EXTRA_CXXFLAGS)
+    if (std::string_view{HYPRPM_EXTRA_CXXFLAGS}.size() > 0)
+        env += std::format(" CXXFLAGS=\"{} $CXXFLAGS\"", HYPRPM_EXTRA_CXXFLAGS);
+#endif
+
+    return env;
 }
 
 const std::string& CPluginManager::getPkgConfigPath() {

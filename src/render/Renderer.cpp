@@ -50,6 +50,7 @@
 #include "Texture.hpp"
 #include "./pass/PreBlurElement.hpp"
 #include "types.hpp"
+#include "wlr-layer-shell-unstable-v1.hpp"
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/math/Box.hpp>
 #include <hyprutils/math/Mat3x3.hpp>
@@ -526,6 +527,7 @@ void IHyprRenderer::bindBackOnMain() {
     bindFB(m_renderData.mainFB);
 }
 
+// This is for workspace sharing
 void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
 
     if (!pMonitor || !pWorkspace || !pWorkspace->isPersistent())
@@ -538,6 +540,14 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
     }
 
     renderBackground(pMonitor);
+
+    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND])
+        renderLayer(ls.lock(), pMonitor, time);
+
+    Event::bus()->m_events.render.stage.emit(RENDER_POST_WALLPAPER);
+
+    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM])
+        renderLayer(ls.lock(), pMonitor, time);
 
     for (auto const& w : g_pCompositor->m_windows) {
 
@@ -698,6 +708,21 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
                 wd->draw(pMonitor, 1.f);
             }
         }
+    }
+
+    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_TOP])
+        renderLayer(ls.lock(), pMonitor, time);
+
+    for (auto const& ls : pMonitor->m_layerSurfaceLayers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY])
+        renderLayer(ls.lock(), pMonitor, time);
+
+    for (auto const& imep : g_pInputManager->m_relay.m_inputMethodPopups)
+        renderIMEPopup(imep.get(), pMonitor, time);
+
+    //render other layers
+    for (auto const& lsl : pMonitor->m_layerSurfaceLayers) {
+        for (auto const& ls : lsl)
+            renderLayer(ls.lock(), pMonitor, time, true);
     }
 }
 

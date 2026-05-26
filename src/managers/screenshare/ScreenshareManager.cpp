@@ -144,7 +144,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
             case SHARE_WINDOW: return session->m_session->m_window == window;
             case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
-            case SHARE_WORKSPACE: return session->m_session->m_workspace == workspace; //TODO: implement this
+            case SHARE_WORKSPACE: return session->m_session->m_workspace == workspace; 
             case SHARE_NONE:
             default: return false;
         }
@@ -157,7 +157,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client)); break;
             case SHARE_WINDOW: session = UP<CScreenshareSession>(new CScreenshareSession(window, client)); break;
             case SHARE_REGION: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureBox, client)); break;
-            case SHARE_WORKSPACE: session = UP<CScreenshareSession>(new CScreenshareSession(workspace, client)); break; //TODO: implement this
+            case SHARE_WORKSPACE: session = UP<CScreenshareSession>(new CScreenshareSession(workspace, client)); break;
             case SHARE_NONE:
             default: return {};
         }

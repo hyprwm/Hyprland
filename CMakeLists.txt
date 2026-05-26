@@ -517,16 +517,14 @@ else()
 endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
-set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
-message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
 
-# if(hyprland_protocols_dep_FOUND)
-#   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
-#   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
-# else()
-#   set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
-#   message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
-# endif()
+if(hyprland_protocols_dep_FOUND)
+  pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
+  message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
+else()
+  set(HYPRLAND_PROTOCOLS "subprojects/hyprland-protocols")
+  message(STATUS "hyprland-protocols subproject set to ${HYPRLAND_PROTOCOLS}")
+endif()
 
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1"
             true)

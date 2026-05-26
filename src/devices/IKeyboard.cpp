@@ -447,7 +447,11 @@ bool IKeyboard::getPressed(uint32_t key) {
     return std::ranges::contains(m_pressed, key);
 }
 
-bool IKeyboard::shareStates() {
+const std::vector<uint32_t>& IKeyboard::getPressedKeys() const {
+    return m_pressed;
+}
+
+bool IKeyboard::shareStates() const {
     return m_shareStates;
 }
 

@@ -11,6 +11,7 @@
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
 #include "../../../../managers/input/InputManager.hpp"
+#include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
 
@@ -652,6 +653,10 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
         if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F))
             return;
     }
+
+    // if click, but target is not under cursor, ignore
+    if (input == INPUT_MODE_CLICK && !g_pPointerManager->getCursorBoxGlobal().overlaps(target->position()))
+        return;
 
     // if we moved via non-kb, and it's fully visible, ignore
     if (m_scrollingData->visible(TARGETDATA->column.lock(), true) && input != INPUT_MODE_HARD)

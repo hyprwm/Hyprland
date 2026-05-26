@@ -1262,3 +1262,9 @@ TEST_CASE(monitorrule) {
 
     OK(getFromSocket("/output remove HEADLESS-3"));
 }
+
+TEST_CASE(mouseResize) {
+    OK(getFromSocket("/dispatch hl.dsp.window.resize(nil, { mouse = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ keep_aspect_ratio = true }, { mouse = true })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.resize({ keep_aspect_ratio = false }, { mouse = true })"));
+}

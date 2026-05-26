@@ -1116,3 +1116,35 @@ TEST_CASE(testScrollInhibitor) {
         return;
     }
 }
+
+TEST_CASE(scrollTapeOnClickOutOfWindow) {
+    /*
+     * Do not move tape on click in the direction, but out of the window  
+     */
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { gaps_out = 100 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { follow_min_visible = 1.0, column_width = 0.6 } })"));
+    OK(getFromSocket("r/eval hl.config({ input = { follow_mouse = 1 } })"));
+
+    ASSERT(!!Tests::spawnKitty("A"), true); // A should be at x negative
+    ASSERT(!!Tests::spawnKitty("B"), true);
+
+    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')")); // soft focus A
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })"));   // move cursor to the gap zone
+
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+
+    const auto active = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(active, "class: A");
+
+    const auto posA   = Tests::getAttribute(active, "at");
+    const auto posAx  = std::stoi(posA.substr(0, posA.find(',')));
+    
+    if (posAx < 0) {
+        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"A\" to be < 0.", Colors::GREEN, Colors::RESET);
+    } else {
+        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"A\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
+    }
+}

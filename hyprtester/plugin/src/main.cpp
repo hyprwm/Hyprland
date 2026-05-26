@@ -464,6 +464,18 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
     return {.success = false, .error = std::format("No layer with namespace '{}'", in)};
 }
 
+static SDispatchResult softFocusWindowByClass(std::string in) {
+    for (const auto& window : g_pCompositor->m_windows) {
+        if (window->m_class != in) 
+            continue;
+        
+        Desktop::focusState()->rawWindowFocus(window, Desktop::FOCUS_REASON_FFM);
+        return {};
+    }
+
+    return {.success = false, .error = std::format("No window with class '{}'", in)};
+}
+
 static SDispatchResult floatingFocusOnFullscreen(std::string in) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
 
@@ -579,6 +591,10 @@ static int luaSetPointerFocusLayer(lua_State* L) {
     return luaResult(L, ::setPointerFocusLayer(luaL_checkstring(L, 1)));
 }
 
+static int luaSoftFocusWindowByClass(lua_State* L) {
+    return luaResult(L, ::softFocusWindowByClass(luaL_checkstring(L, 1)));
+}
+
 static int luaFloatingFocusOnFullscreen(lua_State* L) {
     return luaResult(L, ::floatingFocusOnFullscreen(""));
 }
@@ -608,6 +624,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
+    addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);
 
     // init mouse

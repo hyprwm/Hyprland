@@ -144,7 +144,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
             case SHARE_WINDOW: return session->m_session->m_window == window;
             case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
-            case SHARE_WORKSPACE: return session->m_session->m_workspace == workspace; 
+            case SHARE_WORKSPACE: return session->m_session->m_workspace == workspace;
             case SHARE_NONE:
             default: return false;
         }

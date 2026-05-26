@@ -377,7 +377,7 @@ void CScreenshareFrame::renderWorkspace() {
     g_pHyprRenderer->renderWorkspaceOffScreen(PMONITOR, PWORKSPACE, NOW);
     g_pHyprRenderer->m_bBlockSurfaceFeedback = false;
 
-    if(!m_overlayCursor) 
+    if (!m_overlayCursor)
         return;
 
     auto pointerSurfaceResource = g_pSeatManager->m_state.pointerFocus.lock();

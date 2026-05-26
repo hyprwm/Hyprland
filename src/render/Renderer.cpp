@@ -533,7 +533,7 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
     if (!pMonitor || !pWorkspace || !pWorkspace->isPersistent())
         return;
 
-    if(pWorkspace->hasFullscreen()) {
+    if (pWorkspace->hasFullscreen()) {
         auto const& w = pWorkspace->getFullscreenWindow();
         renderWindow(w, pMonitor, time, false, RENDER_PASS_ALL, false, true);
         return;
@@ -571,10 +571,10 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
         renderdata.w   = textureBox.w;
         renderdata.h   = textureBox.h;
 
-        renderdata.surface = w->wlSurface()->resource();
+        renderdata.surface   = w->wlSurface()->resource();
         renderdata.dontRound = w->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
 
-        renderdata.fadeAlpha =  1.f;
+        renderdata.fadeAlpha = 1.f;
         renderdata.alpha     = w->alphaValue(Desktop::View::WINDOW_ALPHA_ACTIVE);
 
         renderdata.decorate = !w->m_X11DoesntWantBorders && !renderdata.dontRound;
@@ -587,9 +587,7 @@ void IHyprRenderer::renderWorkspaceOffScreen(PHLMONITOR pMonitor, PHLWORKSPACE p
         renderdata.pWindow = w;
 
         if (w->m_isFloating && !w->isFullscreen() && pWorkspace->m_renderOffset->isBeingAnimated() && !w->m_pinned) {
-            CRegion rg =
-                w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() 
-                        + w->m_floatingOffset).scale(pMonitor->m_scale);
+            CRegion rg = w->getFullWindowBoundingBox().translate(-pMonitor->m_position + pWorkspace->m_renderOffset->value() + w->m_floatingOffset).scale(pMonitor->m_scale);
             renderdata.clipBox = rg.getExtents();
         }
 

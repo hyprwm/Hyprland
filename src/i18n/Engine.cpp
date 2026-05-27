@@ -249,7 +249,7 @@ I18n::CI18nEngine::CI18nEngine() {
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_CM_RELOAD_FAILED, "CM shader reload failed, falling back to rgba/rgbx.");
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_WIDE_COLOR_NOT_10B, "Monitor {name}: wide color gamut is enabled but the display is not in 10-bit mode.");
     huEngine->registerEntry("en_US", TXT_KEY_NOTIF_NO_WATCHDOG,
-                            "Hyprland was started without start-hyprland. This is highly not recommended unless you are in a debugging environment.");
+                            "Hyprland was started without start-hyprland. This is strongly discouraged unless you are in a debugging environment.");
 
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_TITLE, "Safe Mode");
     huEngine->registerEntry("en_US", TXT_KEY_SAFE_MODE_DESCRIPTION,

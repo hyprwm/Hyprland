@@ -4,12 +4,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
 #include <hyprgraphics/egl/Egl.hpp>
-
-#if defined(__linux__)
-#include <linux/dma-buf.h>
-#include <linux/sync_file.h>
-#endif
-#include <sys/ioctl.h>
+#include "../../helpers/Drm.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprgraphics::Egl;
@@ -92,18 +87,9 @@ void CDMABuffer::closeFDs() {
     m_attrs.planes = 0;
 }
 
-static int doIoctl(int fd, unsigned long request, void* arg) {
-    int ret;
-
-    do {
-        ret = ioctl(fd, request, arg);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-    return ret;
-}
-
 // https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file
 // returns a sync file that will be signalled when dmabuf is ready to be read
-CFileDescriptor CDMABuffer::exportSyncFile() {
+std::vector<CFileDescriptor> CDMABuffer::exportSyncFiles() {
     if (!good())
         return {};
 
@@ -113,7 +99,8 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
     std::vector<CFileDescriptor> syncFds;
     syncFds.reserve(m_attrs.fds.size());
 
-    for (const auto& fd : m_attrs.fds) {
+    for (auto i = 0ul; i < m_attrs.fds.size(); i++) {
+        auto fd = m_attrs.fds[i];
         if (fd == -1)
             continue;
 
@@ -124,40 +111,11 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
                 continue;
         }
 
-        dma_buf_export_sync_file request{
-            .flags = DMA_BUF_SYNC_READ,
-            .fd    = -1,
-        };
-
-        if (doIoctl(fd, DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &request) == 0)
-            syncFds.emplace_back(request.fd);
+        auto fence = DRM::exportFence(fd);
+        if (fence.isValid())
+            syncFds.emplace_back(std::move(fence));
     }
 
-    if (syncFds.empty())
-        return {};
-
-    CFileDescriptor syncFd;
-    for (auto& fd : syncFds) {
-        if (!syncFd.isValid()) {
-            syncFd = std::move(fd);
-            continue;
-        }
-
-        const std::string      name = "merged release fence";
-        struct sync_merge_data data{
-            .name  = {}, // zero-initialize name[]
-            .fd2   = fd.get(),
-            .fence = -1,
-        };
-
-        std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
-
-        if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0)
-            syncFd = CFileDescriptor(data.fence);
-        else
-            syncFd = {};
-    }
-
-    return syncFd;
+    return syncFds;
 #endif
 }

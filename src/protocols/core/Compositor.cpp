@@ -8,6 +8,7 @@
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
 #include "../../helpers/Monitor.hpp"
+#include "../../helpers/Drm.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../types/DMABuffer.hpp"
@@ -148,10 +149,28 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         // fifo and fences first
         m_events.stateCommit.emit(state);
 
-        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success && !state->updated.bits.acquire) {
-            state->buffer->m_syncFd = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFile();
-            if (state->buffer->m_syncFd.isValid())
-                m_stateQueue.lock(state, LOCK_REASON_FENCE);
+        if (state->buffer && state->buffer->type() == Aquamarine::BUFFER_TYPE_DMABUF && state->buffer->dmabuf().success) {
+            static const auto DEADLINE = CConfigValue<Config::INTEGER>("experimental:deadline_client_buffer");
+            auto const        WINDOW   = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+            if (g_pHyprRenderer->explicitSyncSupported()) {
+                if (state->updated.bits.acquire && *DEADLINE && WINDOW && WINDOW->m_monitor && WINDOW->m_monitor->m_solitaryClient == WINDOW) {
+                    Time::steady_tp deadline = Time::steadyNow() + std::chrono::microseconds(100);
+                    DRM::setDeadline(deadline, state->acquire.exportAsFD());
+                } else {
+                    state->buffer->m_syncFds = dc<CDMABuffer*>(state->buffer.m_buffer.get())->exportSyncFiles();
+                    if (!state->buffer->m_syncFds.empty()) {
+                        if (*DEADLINE && WINDOW && WINDOW->m_monitor && WINDOW->m_monitor->m_solitaryClient == WINDOW) {
+                            Time::steady_tp deadline = Time::steadyNow() + std::chrono::microseconds(100);
+                            for (auto& fence : state->buffer->m_syncFds) {
+                                if (fence.isValid())
+                                    DRM::setDeadline(deadline, fence);
+                            }
+                        }
+
+                        m_stateQueue.lock(state, LOCK_REASON_FENCE);
+                    }
+                }
+            }
         }
 
         // now for timer.
@@ -542,9 +561,30 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
     } else if (state->buffer && state->buffer->isSynchronous()) {
         // synchronous (shm) buffers can be read immediately
         m_stateQueue.unlock(state, LOCK_REASON_FENCE);
-    } else if (state->buffer && state->buffer->m_syncFd.isValid()) {
+    } else if (state->buffer && !state->buffer->m_syncFds.empty()) {
         // async buffer and is dmabuf, then we can wait on implicit fences
-        g_pEventLoopManager->doOnReadable(std::move(state->buffer->m_syncFd), [state, whenReadable]() { whenReadable(state, LOCK_REASON_FENCE); });
+        auto fence = std::ranges::find_if(state->buffer->m_syncFds, [](auto& f) { return !Hyprutils::OS::CFileDescriptor::isReadable(f.get()); });
+        if (fence == state->buffer->m_syncFds.end())
+            m_stateQueue.unlock(state, LOCK_REASON_FENCE);
+        else {
+            //#TODO: if multiple fences are not ready, wait for them..
+            auto checkFences = [state, whenReadable](auto&& self) -> void {
+                if (!state || !state->buffer.m_buffer)
+                    return;
+
+                auto fence = std::ranges::find_if(state->buffer->m_syncFds, [](auto& f) { return !Hyprutils::OS::CFileDescriptor::isReadable(f.get()); });
+
+                if (fence == state->buffer->m_syncFds.end()) {
+                    // All fences readable
+                    whenReadable(state, LOCK_REASON_FENCE);
+                    return;
+                }
+
+                g_pEventLoopManager->doOnReadable(fence->duplicate(), [state, whenReadable, self]() mutable { self(self); });
+            };
+
+            checkFences(checkFences);
+        }
     } else {
         // state commit without a buffer.
         m_stateQueue.tryProcess();

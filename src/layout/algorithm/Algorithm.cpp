@@ -106,34 +106,38 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
     m_tiled->recalculate(reason);
     m_floating->recalculate(reason);
 
-    const auto PWORKSPACE = m_space->workspace();
-    if (!PWORKSPACE)
-        return;
-
-    const auto PMONITOR = PWORKSPACE->m_monitor;
 
 
-    // This is for Default Handled FS only. It's here since multiple layouts share it.
-    // TODO: this might be able to be moved into default handled FS's requestFullscreen()
-    if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
-        // massive hack from the fullscreen func (?)
-        const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
-        if (PFULLWINDOW->m_target->layoutManagedFullscreen())
-            return;
+    // TODO: this is to be deleted before merge!
+    // This is now done in default FS handler's requestFullscreen()
+    // const auto PWORKSPACE = m_space->workspace();
+    // if (!PWORKSPACE)
+    //     return;
 
-        const auto MONITOR = PWORKSPACE->m_monitor;
+    // const auto PMONITOR = PWORKSPACE->m_monitor;
 
-        if (PFULLWINDOW) {
-            if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-                const CBox MONBOX = PWORKSPACE->m_monitor->logicalBox();
-                PFULLWINDOW->layoutTarget()->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
-            }
-            else if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
-                const CBox WORKAREA = PWORKSPACE->m_space->workArea(PFULLWINDOW->m_isFloating);
-                PFULLWINDOW->layoutTarget()->setPositionGlobal(WORKAREA);
-            }
-        }
-    }
+
+    // // This is for Default Handled FS only. It's here since multiple layouts share it.
+    // // TODO: this might be able to be moved into default handled FS's requestFullscreen()
+    // if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
+    //     // massive hack from the fullscreen func (?)
+    //     const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();
+    //     if (PFULLWINDOW->m_target->layoutManagedFullscreen())
+    //         return;
+
+    //     const auto MONITOR = PWORKSPACE->m_monitor;
+
+    //     if (PFULLWINDOW) {
+    //         if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
+    //             const CBox MONBOX = PWORKSPACE->m_monitor->logicalBox();
+    //             PFULLWINDOW->layoutTarget()->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
+    //         }
+    //         else if (PWORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
+    //             const CBox WORKAREA = PWORKSPACE->m_space->workArea(PFULLWINDOW->m_isFloating);
+    //             PFULLWINDOW->layoutTarget()->setPositionGlobal(WORKAREA);
+    //         }
+    //     }
+    // }
 }
 
 void CAlgorithm::recenter(SP<ITarget> t) {

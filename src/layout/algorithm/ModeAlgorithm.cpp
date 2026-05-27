@@ -6,6 +6,7 @@
 #include "../../desktop/view/Window.hpp"
 #include "desktop/Workspace.hpp"
 #include "layout/LayoutManager.hpp"
+#include "managers/animation/DesktopAnimationManager.hpp"
 
 using namespace Layout;
 
@@ -44,10 +45,26 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
 
 
         
+    // Set window positions
+    const auto WORKSPACE = m_parent->space()->workspace();
+    if (!WORKSPACE)
+        return FULLSCREEN_REQUEST_FAILED;
 
-    // TODO: do this in the unified recalculate. At that point, the workspace's vars should have been properly set by scrolling's recalculate() as well
-    // g_pDesktopAnimationManager->setFullscreenFadeAnimation(request.effectiveMode == FSMODE_NONE? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
-    
+    const auto MONITOR = WORKSPACE->m_monitor;
+    if (!MONITOR)
+        return FULLSCREEN_REQUEST_FAILED;
+
+    if (request.effectiveMode == FSMODE_FULLSCREEN) {
+        const CBox MONBOX = WORKSPACE->m_monitor->logicalBox();
+        TARGET->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
+    }
+    else if (request.effectiveMode == FSMODE_MAXIMIZED) {
+        const CBox WORKAREA = WORKSPACE->m_space->workArea(TARGET->floating());
+        TARGET->setPositionGlobal(WORKAREA);
+    }
+
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(WORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
+
 
 
     return FULLSCREEN_REQUEST_DEFAULT;

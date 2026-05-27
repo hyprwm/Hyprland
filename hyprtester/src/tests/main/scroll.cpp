@@ -1130,8 +1130,8 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     ASSERT(!!Tests::spawnKitty("A"), true); // A should be at x negative
     ASSERT(!!Tests::spawnKitty("B"), true);
 
-    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')")); // soft focus A
-    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })"));   // move cursor to the gap zone
+    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')"));     // soft focus A
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })")); // move cursor to the gap zone
 
     OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
     OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
@@ -1139,9 +1139,9 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     const auto active = getFromSocket("/activewindow");
     ASSERT_CONTAINS(active, "class: A");
 
-    const auto posA   = Tests::getAttribute(active, "at");
-    const auto posAx  = std::stoi(posA.substr(0, posA.find(',')));
-    
+    const auto posA  = Tests::getAttribute(active, "at");
+    const auto posAx = std::stoi(posA.substr(0, posA.find(',')));
+
     if (posAx < 0) {
         NLog::log("{}Passed: {}Expected the x coordinate of window of class \"A\" to be < 0.", Colors::GREEN, Colors::RESET);
     } else {

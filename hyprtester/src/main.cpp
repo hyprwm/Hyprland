@@ -61,7 +61,7 @@ namespace {
 
 static SP<CProcess> hyprlandProc;
 
-static bool launchHyprland(Path configPath, Path binaryPath) {
+static bool         launchHyprland(Path configPath, Path binaryPath) {
     NLog::info("Launching Hyprland");
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
@@ -178,8 +178,8 @@ static bool preTestCleanup() {
 static void runTests(std::map<const char*, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
     for (auto& [name, tc] : testCases) {
         // Clean up before every test
-        NLog::info("Cleaning up"); 
-            
+        NLog::info("Cleaning up");
+
         if (!preTestCleanup()) // damn it, something really went wrong
             std::exit(1);
 

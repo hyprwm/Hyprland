@@ -521,9 +521,9 @@ static SDispatchResult setPointerFocusLayer(std::string in) {
 
 static SDispatchResult softFocusWindowByClass(std::string in) {
     for (const auto& window : g_pCompositor->m_windows) {
-        if (window->m_class != in) 
+        if (window->m_class != in)
             continue;
-        
+
         Desktop::focusState()->rawWindowFocus(window, Desktop::FOCUS_REASON_FFM);
         return {};
     }

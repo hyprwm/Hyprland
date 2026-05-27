@@ -28,7 +28,6 @@ namespace NLog {
         std::fflush(stdout);
     }
 
-
     template <typename... Args>
     //NOLINTNEXTLINE
     void error(std::format_string<Args...> fmt, Args&&... args) {

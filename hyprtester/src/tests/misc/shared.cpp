@@ -7,4 +7,3 @@
 TEST_CASE(spawnKitty) {
     ASSERT(!!Tests::spawnKitty("kitty"), true);
 }
-

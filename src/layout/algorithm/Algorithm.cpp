@@ -114,6 +114,7 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
 
 
     // This is for Default Handled FS only. It's here since multiple layouts share it.
+    // TODO: this might be able to be moved into default handled FS's requestFullscreen()
     if (PWORKSPACE->m_hasFullscreenWindow && PMONITOR) {
         // massive hack from the fullscreen func (?)
         const auto PFULLWINDOW = PWORKSPACE->getFullscreenWindow();

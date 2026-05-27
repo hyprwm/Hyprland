@@ -48,7 +48,7 @@ void CWindowTarget::updatePos() {
 
 
     // floating non-fs window
-    if (floating() && fullscreenMode() == FSMODE_NONE) {
+    if (floating() && !isFullscreen()) {
         m_window->m_position = m_box.logicalBox.pos();
         m_window->m_size     = m_box.logicalBox.size();
 
@@ -97,7 +97,7 @@ void CWindowTarget::updatePos() {
     }
 
     // Layout handled FS window
-    if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
+    if (isFullscreen() && layoutManagedFullscreen()) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
         nodeBox.round();
@@ -151,7 +151,7 @@ void CWindowTarget::updatePos() {
 
         Vector2D          ratioPadding;
 
-        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && fullscreenMode() == FSMODE_NONE) {
+        if ((*REQUESTEDRATIO).y != 0 && m_space->algorithm()->tiledTargets() <= 1 && !isFullscreen()) {
             const Vector2D originalSize = MONITOR_WORKAREA.size();
 
             const double   requestedRatio = (*REQUESTEDRATIO).x / (*REQUESTEDRATIO).y;
@@ -179,7 +179,7 @@ void CWindowTarget::updatePos() {
         calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
     }
 
-    if (isPseudo() && fullscreenMode() == FSMODE_NONE) {
+    if (isPseudo() && !isFullscreen()) {
         // Calculate pseudo
         float scale = 1;
 
@@ -220,7 +220,7 @@ void CWindowTarget::updatePos() {
         calcPos.y = std::clamp(calcPos.y, MONITOR_WORKAREA.y, std::max(MONITOR_WORKAREA.y, MONITOR_WORKAREA.y + MONITOR_WORKAREA.h - calcSize.y));
     }
 
-    if (m_window->onSpecialWorkspace() && !m_window->isFullscreen()) {
+    if (m_window->onSpecialWorkspace() && !isFullscreen()) {
         // if special, we adjust the coords a bit
         static auto PSCALEFACTOR = CConfigValue<Config::FLOAT>("dwindle:special_scale_factor");
 

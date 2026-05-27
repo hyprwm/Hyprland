@@ -736,18 +736,9 @@ void CHyprOpenGLImpl::begin(PHLMONITOR pMonitor, const CRegion& damage_, SP<IFra
     if (!m_shadersInitialized)
         initShaders();
 
-    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB();
-    const bool NEEDS_COPY_FB = g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB();
-
     g_pHyprRenderer->m_renderData.transformDamage = true;
-    if (HAS_MIRROR_FB != NEEDS_COPY_FB) {
-        // force full damage because the mirror fb will be empty
-        g_pHyprRenderer->m_renderData.damage.set({0, 0, INT32_MAX, INT32_MAX});
-        g_pHyprRenderer->m_renderData.finalDamage.set(g_pHyprRenderer->m_renderData.damage);
-    } else {
-        g_pHyprRenderer->m_renderData.damage.set(damage_);
-        g_pHyprRenderer->m_renderData.finalDamage.set(finalDamage.value_or(damage_));
-    }
+    g_pHyprRenderer->m_renderData.damage.set(damage_);
+    g_pHyprRenderer->m_renderData.finalDamage.set(finalDamage.value_or(damage_));
 
     m_fakeFrame = fb;
 
@@ -811,8 +802,12 @@ void CHyprOpenGLImpl::end() {
 
         // copy the damaged areas into the mirror buffer
         // we can't use the offloadFB for mirroring / ss, as it contains artifacts from blurring
-        if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB() && !m_fakeFrame)
-            saveBufferForMirror(monbox);
+        if UNLIKELY (g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB() && !m_fakeFrame) {
+            if (saveBufferForMirror(monbox))
+                g_pHyprRenderer->m_renderData.pMonitor->resources()->markMirrorFBUpdated();
+            else
+                g_pHyprRenderer->m_renderData.pMonitor->resources()->invalidateMirrorFB();
+        }
 
         const auto TEX = g_pHyprRenderer->m_renderData.currentFB->getTexture();
         g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
@@ -2410,12 +2405,12 @@ void CHyprOpenGLImpl::renderInnerGlow(const CBox& box, int round, float rounding
     glBindVertexArray(0);
 }
 
-void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
+bool CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
     const auto TEX = g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex ? g_pHyprRenderer->m_renderData.pMonitor->resources()->m_mirrorTex :
                                                                                         g_pHyprRenderer->m_renderData.currentFB->getTexture();
     if (!TEX) {
         Log::logger->log(Log::ERR, "Invalid source texture for mirror");
-        return;
+        return false;
     }
     auto fb    = g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB();
     auto guard = g_pHyprRenderer->bindTempFB(fb);
@@ -2434,6 +2429,8 @@ void CHyprOpenGLImpl::saveBufferForMirror(const CBox& box) {
                   });
 
     blend(true);
+
+    return true;
 }
 
 WP<CShader> CHyprOpenGLImpl::useShader(WP<CShader> prog) {

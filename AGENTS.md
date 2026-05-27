@@ -7,12 +7,12 @@
 - For tests, flag missing coverage for changed or new behavior, as long as the testing framework is capable of testing it.
 - For config changes (new / removed options) remind the author to make a separate wiki PR if they haven't linked one yet.
 - Flag silent config breakage: e.g. changing an existing option's behavior. This is not allowed.
-- Flag bad config style that breaks style guidelines and suggest fixes.
-- Flag bad code approaches that break core code guidelines and suggest improvements.
+- Flag bad config style that breaks this project's style guidelines (further below) and suggest fixes.
+- Flag bad code approaches that break this project's core code guidelines (further below) and suggest improvements.
 
 ## Style guidelines
 
-- Code must be clang-formatted.
+- Code must be clang-formatted according to `.clang-format`.
 - single-line if and else statements must come without braces. This rule applies only to if / else, not do / while / other.
 - Avoid function bodies in headers as much as possible.
 - Avoid namespace {} in source files to mark local functions. Prefer `static`.
@@ -40,10 +40,10 @@
  - leave uninitialized primitives (int, float, etc)
 - Avoid, unless absolutely necessary:
  - the C standard library. Use the C++ STL.
- - `malloc` / `free`
+ - `malloc` / `free` / etc
  - C-style pointers. Use SP<> WP<> and UP<> from hyprutils. These are Shared, Weak and Unique pointers respectively. C-style pointers may be used in select scenarios (e.g. destroying fns, where it's impossible to make a mistake) but everywhere else must not be used unless necessary.
  - C-style casts. Use rc<>, sc<>, or cc<> from hyprutils. These are shorthands to equivalent C++ casts.
 - Avoid:
- - violating clang-tidy.
+ - violating clang-tidy (`.clang-tidy`)
  - manual C-style cleanup: `some_c_thing_new()` and `some_c_thing_free()` can be wrapped.
 - Make sure to write tests for code which our Unit (`tests/`) or Integration (`hyprtester/`) tests can test.

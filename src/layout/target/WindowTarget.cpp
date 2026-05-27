@@ -45,9 +45,9 @@ void CWindowTarget::updatePos() {
     if (!m_space)
         return;
 
-    
 
-    // real and render pos are the same
+
+    // floating non-fs window
     if (floating() && fullscreenMode() == FSMODE_NONE) {
         m_window->m_position = m_box.logicalBox.pos();
         m_window->m_size     = m_box.logicalBox.size();
@@ -55,41 +55,32 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
+        // TODO: these are redundant - During FS dispatch, both of them are repeated later down the codepathb
         m_window->sendWindowSize();
         m_window->updateWindowDecos();
 
         return;
     }
+    
 
 
-    // ERSTARR TODO: SET THE VISUAL BOX FOR BELOW MAX AND FS SINCE WE'RE ONLY SETTING THEIR RENDER POS
 
-    // Default handled FS mode = fullscreen; floating or tiled
-    // only set render pos
+    // Default handled fullscreen window - tiled or floating
     if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen()) {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
 
-        // ERSTARR TODO: Surely these are also proc'd somewhere else for FS. find, remove if redundant
-        m_window->updateWindowDecos();
+        // TODO: these are redundant - During FS dispatch, both of them are repeated later down the codepathb
         m_window->sendWindowSize();
+        m_window->updateWindowDecos();
         return;
     }
-    
 
-    // ERSTARR TODO: might have an issue with this(?)
-    // if we are in maximized, force the box to be max work area.
-    // only set render pos
-    if (fullscreenMode() == FSMODE_MAXIMIZED && !layoutManagedFullscreen()) {
-        *m_window->m_realPosition = m_box.logicalBox.pos();
-        *m_window->m_realSize     = m_box.logicalBox.size();
-    }
-    
-    // Tiled is more complicated.
 
     if (!m_space->workspace())
         return;
+
 
     const auto PMONITOR         = m_space->workspace()->m_monitor;
     const auto PWORKSPACE       = m_space->workspace();
@@ -105,8 +96,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    // Layout specific FS window handling
-    // set both real and render pos.
+    // Layout handled FS window
     if ((fullscreenMode() == FSMODE_FULLSCREEN || fullscreenMode() == FSMODE_MAXIMIZED) && layoutManagedFullscreen()) {
         CBox nodeBox   = m_box.logicalBox;
         CBox visualBox = m_box.visualBox.empty() ? nodeBox : m_box.visualBox;
@@ -124,8 +114,9 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-    if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
-        return;
+
+    // Default handled maximised window (Tiled or floating), Tiled non-FS windows
+
 
     g_pHyprRenderer->damageWindow(window());
 

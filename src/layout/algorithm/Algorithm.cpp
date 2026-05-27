@@ -122,8 +122,6 @@ void CAlgorithm::recalculate(eRecalculateReason reason) {
 
         const auto MONITOR = PWORKSPACE->m_monitor;
 
-        // ERSTARR - This should set pos and update pos.
-        // ERSTARR TODO: warpPositionSize called during default FS event?
         if (PFULLWINDOW) {
             if (PWORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
                 const CBox MONBOX = PWORKSPACE->m_monitor->logicalBox();

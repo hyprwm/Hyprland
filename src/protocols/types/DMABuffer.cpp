@@ -3,13 +3,8 @@
 #include "../../desktop/view/LayerSurface.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../helpers/Format.hpp"
+#include "helpers/Drm.hpp"
 #include <hyprgraphics/egl/Egl.hpp>
-
-#if defined(__linux__)
-#include <linux/dma-buf.h>
-#include <linux/sync_file.h>
-#endif
-#include <sys/ioctl.h>
 
 using namespace Hyprutils::OS;
 using namespace Hyprgraphics::Egl;
@@ -92,22 +87,11 @@ void CDMABuffer::closeFDs() {
     m_attrs.planes = 0;
 }
 
-static int doIoctl(int fd, unsigned long request, void* arg) {
-    int ret;
-
-    do {
-        ret = ioctl(fd, request, arg);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-    return ret;
-}
-
-// https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file
-// returns a sync file that will be signalled when dmabuf is ready to be read
 CFileDescriptor CDMABuffer::exportSyncFile() {
     if (!good())
         return {};
 
-#if !defined(__linux__)
+#ifndef __linux__
     return {};
 #else
     std::vector<CFileDescriptor> syncFds;
@@ -124,13 +108,9 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
                 continue;
         }
 
-        dma_buf_export_sync_file request{
-            .flags = DMA_BUF_SYNC_READ,
-            .fd    = -1,
-        };
-
-        if (doIoctl(fd, DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &request) == 0)
-            syncFds.emplace_back(request.fd);
+        CFileDescriptor fence = DRM::exportFence(fd);
+        if (fence.isValid())
+            syncFds.emplace_back(std::move(fence));
     }
 
     if (syncFds.empty())
@@ -143,19 +123,7 @@ CFileDescriptor CDMABuffer::exportSyncFile() {
             continue;
         }
 
-        const std::string      name = "merged release fence";
-        struct sync_merge_data data{
-            .name  = {}, // zero-initialize name[]
-            .fd2   = fd.get(),
-            .fence = -1,
-        };
-
-        std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
-
-        if (doIoctl(syncFd.get(), SYNC_IOC_MERGE, &data) == 0)
-            syncFd = CFileDescriptor(data.fence);
-        else
-            syncFd = {};
+        syncFd = DRM::mergeFence(syncFd, fd);
     }
 
     return syncFd;

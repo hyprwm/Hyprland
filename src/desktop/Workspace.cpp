@@ -424,10 +424,6 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
     return nullptr;
 }
 
-bool CWorkspace::hasFullscreen() {
-    return m_hasFullscreenWindow();
-}
-
 bool CWorkspace::isVisible() {
     return m_visible;
 }

@@ -203,7 +203,7 @@ void CXWaylandSurface::configure(const CBox& box) {
     uint32_t values[] = {box.x, box.y, box.width, box.height, 0};
     xcb_configure_window(g_pXWayland->m_wm->getConnection(), m_xID, mask, values);
 
-    if (m_geometry.width == box.width && m_geometry.height == box.height) {
+    if (box.width == oldSize.x && box.height == oldSize.y) {
         // ICCCM requires a synthetic event when window size is not changed
         xcb_configure_notify_event_t e;
         e.response_type     = XCB_CONFIGURE_NOTIFY;

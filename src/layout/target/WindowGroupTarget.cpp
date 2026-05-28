@@ -61,7 +61,7 @@ PHLWINDOW CWindowGroupTarget::window() const {
 }
 
 bool CWindowGroupTarget::isFullscreen() {
-    // ERSTARR - TODO: implement this
+    return m_group->current()->isFullscreen();
 }
 
 eFullscreenMode CWindowGroupTarget::fullscreenMode() {
@@ -76,7 +76,7 @@ bool CWindowGroupTarget::layoutManagedFullscreen() const {
     return m_group->current()->m_target->layoutManagedFullscreen();
 }
 
-void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) {
+void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) { // ERSTARR TODO: This might be a problem for FSing a window in a group
     ITarget::setLayoutManagedFullscreen(enabled);
 
     for (const auto& w : m_group->windows()) {

@@ -73,6 +73,7 @@ class CWorkspace {
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
     PHLWINDOW   getFullscreenWindow();
+    // If you also need the FS window, use getFullscreenWindow()
     bool        hasFullscreen();
     bool        isVisible();
     bool        isVisibleNotCovered();

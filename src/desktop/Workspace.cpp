@@ -410,16 +410,13 @@ MONITORID CWorkspace::monitorID() {
 
 PHLWINDOW CWorkspace::getFullscreenWindow() {
 
-    // TODO: return the currently FS window - layout or not.
+    // Either Default or Layout Handled FS window that covers the monitor/work area
 
-    // If default handled, merely checking if its size/pos should be enough
+    if (!m_hasFullscreenWindow)
+        return nullptr;
 
-    // If layout handled, use the layout spec. function
     for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->isFullscreen()) { // isFullscreen algo gets layout managed fullscreens
-            if (!includeLayoutHandledFullscreen && w->m_target->layoutManagedFullscreen())
-                continue;
-
+        if (w->m_workspace == m_self && w->isFullscreen()) {
             return w;
         }
     }
@@ -428,9 +425,7 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
 }
 
 bool CWorkspace::hasFullscreen() {
-    if (m_hasFullscreenWindow)
-        return true;
-    return m_space && m_space->algorithm() && m_space->algorithm()->layoutFullscreenCoversMonitor();
+    return getFullscreenWindow();
 }
 
 bool CWorkspace::isVisible() {
@@ -596,7 +591,7 @@ bool CWorkspace::isPersistent() {
     return m_persistent;
 }
 
-void CWorkspace::setNoMembersAboveFullscreen() {
+void CWorkspace::setNoMembersAboveFullscreen() { // ERSTARR TODO - This might be a problem with FSing a floating window when already on a FSed tiled window; the floating window might be non-focusable or hidden after their unFSing (or other floating windows created above the tiled Fs)
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == m_self && !w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)

@@ -835,8 +835,10 @@ std::optional<std::string> CConfigManager::handleMonitorv2(const std::string& ou
     if (VAL && VAL->m_bSetByUser)
         parser.rule().m_sdrSaturation = std::any_cast<Hyprlang::FLOAT>(VAL->getValue());
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "vrr", output.c_str());
-    if (VAL && VAL->m_bSetByUser)
-        parser.rule().m_vrr = std::any_cast<Hyprlang::INT>(VAL->getValue());
+    if (VAL && VAL->m_bSetByUser) {
+        const auto VRR      = sc<int>(std::any_cast<Hyprlang::INT>(VAL->getValue()));
+        parser.rule().m_vrr = VRR < 0 ? std::nullopt : std::optional(VRR);
+    }
     VAL = m_config->getSpecialConfigValuePtr("monitorv2", "transform", output.c_str());
     if (VAL && VAL->m_bSetByUser)
         parser.parseTransform(std::any_cast<Hyprlang::STRING>(VAL->getValue()));

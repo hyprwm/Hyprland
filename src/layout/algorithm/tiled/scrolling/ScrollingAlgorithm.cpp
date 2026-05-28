@@ -1114,8 +1114,9 @@ SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
             if (!fallback)
                 fallback = TDATA;
 
-            if (fullscreenColumnCoversMonitor(TDATA->column.lock()))
-                return TDATA->target.lock();
+            if (const auto TARGET = TDATA->target; TARGET && TARGET->fullscreenMode() == FSMODE_FULLSCREEN ? fullscreenColumnCoversMonitor(TDATA->column.lock()) :
+                                                                                                             fullscreenColumnCoversWorkArea(TDATA->column.lock()))
+                return TARGET.lock();
         }
     }
 
@@ -1172,7 +1173,7 @@ bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target, st
         return false;
 
 
-    // If target isn't fullscreen, or mode provided and internal fs mode doesn't match
+    /** If target isn't fullscreen, or @param mode provided and internal fullscreenMode doesn't match */
     if (TARGET->fullscreenMode() == FSMODE_NONE || modeValue != TARGET->fullscreenMode()) // second part of the or works because FSMODE_NONE = 0. If that changes, this has to be adjusted
         return false;
 

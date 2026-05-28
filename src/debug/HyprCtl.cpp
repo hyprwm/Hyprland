@@ -1103,17 +1103,14 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
 
-    if (Config::mgr()->type() == Config::CONFIG_LUA) {
-        // For lua, this is just a wrapper for `eval("hl.dispatch(in)")
+    if (Config::mgr()->type() == Config::CONFIG_LUA && in.contains("(")) {
+        // Input contains parentheses, so it is a Lua expression (e.g.
+        // hl.plugin.foo.bar("arg")).  Evaluate it through the Lua config
+        // manager.  Dispatcher names registered via addDispatcherV2 never
+        // contain '(', so the direct lookup below will handle them.
         std::string evalStr = std::format("return hl.dispatch({})", in);
         auto        luaMgr  = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
-        auto        ret     = luaMgr->eval(evalStr).value_or("ok");
-
-        if (ret.starts_with("ok") || in.contains("(") /* this likely means the user is passing a valid lua dispatch string */)
-            return ret;
-
-        // the user likely is trying to dispatch old hyprlang stuff via lua, let them know
-        return ret + "\n\n → Note: dispatch in lua is a shorthand for hl.dispatch(...), your syntax might need to be updated.";
+        return luaMgr->eval(evalStr).value_or("ok");
     }
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));

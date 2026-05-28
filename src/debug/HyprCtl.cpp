@@ -1103,14 +1103,20 @@ static std::string dispatchRequest(eHyprCtlOutputFormat format, std::string in) 
     // get rid of the dispatch keyword
     in = in.substr(in.find_first_of(' ') + 1);
 
-    if (Config::mgr()->type() == Config::CONFIG_LUA && in.contains("(")) {
-        // Input contains parentheses, so it is a Lua expression (e.g.
-        // hl.plugin.foo.bar("arg")).  Evaluate it through the Lua config
-        // manager.  Dispatcher names registered via addDispatcherV2 never
-        // contain '(', so the direct lookup below will handle them.
+    if (Config::mgr()->type() == Config::CONFIG_LUA) {
+        // Try Lua evaluation first for expressions (e.g.
+        // hl.plugin.foo.bar("arg")).
         std::string evalStr = std::format("return hl.dispatch({})", in);
         auto        luaMgr  = dynamicPointerCast<Config::Lua::CConfigManager>(WP<Config::IConfigManager>(Config::mgr()));
-        return luaMgr->eval(evalStr).value_or("ok");
+        auto        ret     = luaMgr->eval(evalStr).value_or("ok");
+
+        if (ret.starts_with("ok") || in.contains("("))
+            return ret;
+
+        // Lua evaluation failed and this is not an explicit Lua
+        // expression.  Fall through to the direct dispatcher lookup
+        // so that V2 dispatchers (e.g. plugin:action) still work
+        // regardless of config type.
     }
 
     const auto DISPATCHSTR = in.substr(0, in.find_first_of(' '));

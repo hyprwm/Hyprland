@@ -1200,10 +1200,6 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 
 bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
 
-    // If a window in a workspace is currently fullscreen, its workspace must have this information as well
-    if (!m_workspace->m_hasFullscreenWindow)
-        return false;
-
     // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
     if (m_target->layoutManagedFullscreen()) {
         if (mode.has_value())

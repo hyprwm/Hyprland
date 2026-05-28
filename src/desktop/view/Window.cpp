@@ -882,13 +882,7 @@ bool CWindow::isAllowedOverFullscreen() const {
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace)
-        return false;
-
-    const auto ALGORITHM             = m_workspace->m_space ? m_workspace->m_space->algorithm() : nullptr;
-    const bool HAS_LAYOUT_FULLSCREEN = ALGORITHM && ALGORITHM->layoutFullscreenCoversMonitor();
-
-    if (!m_workspace->m_hasFullscreenWindow && !HAS_LAYOUT_FULLSCREEN)
+    if (!m_workspace || m_workspace->hasFullscreen())
         return false;
 
     return !isAllowedOverFullscreen();
@@ -1205,8 +1199,21 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 }
 
 bool CWindow::isFullscreen() const {
-    // ERSTARR - TODO: Reimplement this
-    return m_fullscreenState.internal != FSMODE_NONE;
+
+    // If a window in a workspace is currently fullscreen, its workspace must have this information as well
+    if (!m_workspace->hasFullscreen())
+        return false;
+
+    // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
+    if (m_target->layoutManagedFullscreen()) {
+        return m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target;
+    }
+    else {
+        // TODO: see if the size and pos are properly set by this point. If they are, include that check as well 
+        if (m_fullscreenState.internal != FSMODE_NONE)
+            return true;
+    }
+
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
@@ -1924,7 +1931,7 @@ void CWindow::mapWindow() {
     static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
 
     const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
-    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
+    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->isFullscreen() : false;
     const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal : FSMODE_NONE;
 
     auto        PMONITOR = Desktop::focusState()->monitor();
@@ -2292,7 +2299,7 @@ void CWindow::mapWindow() {
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_noInitialFocus = true;
 
-    if (m_workspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
+    if (m_workspace->hasFullscreen() && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
         if (*PNEWTAKESOVERFS == 0)
             m_noInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)

@@ -882,7 +882,7 @@ bool CWindow::isAllowedOverFullscreen() const {
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace || m_workspace->hasFullscreen())
+    if (!m_workspace || m_workspace->m_hasFullscreenWindow)
         return false;
 
     return !isAllowedOverFullscreen();
@@ -1201,7 +1201,7 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 bool CWindow::isFullscreen() const {
 
     // If a window in a workspace is currently fullscreen, its workspace must have this information as well
-    if (!m_workspace->hasFullscreen())
+    if (!m_workspace->m_hasFullscreenWindow)
         return false;
 
     // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
@@ -2299,7 +2299,7 @@ void CWindow::mapWindow() {
     if (PLSFROMFOCUS && PLSFROMFOCUS->m_layerSurface->m_current.interactivity != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
         m_noInitialFocus = true;
 
-    if (m_workspace->hasFullscreen() && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
+    if (m_workspace->m_hasFullscreenWindow && !requestedInternalFSMode.has_value() && !requestedClientFSMode.has_value() && !m_isFloating) {
         if (*PNEWTAKESOVERFS == 0)
             m_noInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)

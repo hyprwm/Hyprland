@@ -494,6 +494,9 @@ void SScrollingData::recalculate(bool forceInstant) {
     bool targetWorkspaceHasFullscreen = false;
     eFullscreenMode targetWorkspaceFullscreenMode = FSMODE_NONE;
 
+    // Save if there is a currently FS window (i.e. the FS window covers monitor if fullscreen, or work area if maximised)
+    SP<SScrollingTargetData> CURRENT_FS_TDATA = nullptr;
+
     for (size_t i = 0; i < columns.size(); ++i) {
         const auto& COL = columns[i];
         const auto  FS_TDATA  = algorithm->fullscreenTargetDataForColumn(COL);
@@ -508,6 +511,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                         TARGET->layoutBox = MONBOX;
                         targetWorkspaceHasFullscreen = true;
                         targetWorkspaceFullscreenMode = FSMODE_FULLSCREEN;
+                        CURRENT_FS_TDATA = TARGET;
                     }
                     else {
                         TARGET->layoutBox = controller->calculateStripBox(i, USABLE, WORKAREA.pos(), *PFSONONE);
@@ -524,6 +528,7 @@ void SScrollingData::recalculate(bool forceInstant) {
                         TARGET->layoutBox = WORKAREA;
                         targetWorkspaceHasFullscreen = true;
                         targetWorkspaceFullscreenMode = FSMODE_MAXIMIZED;
+                        CURRENT_FS_TDATA = TARGET;
                     }
                     else {
                         TARGET->layoutBox = controller->calculateStripBox(i, USABLE, WORKAREA.pos(), *PFSONONE);
@@ -551,6 +556,23 @@ void SScrollingData::recalculate(bool forceInstant) {
     }
     WORKSPACE->m_hasFullscreenWindow = targetWorkspaceHasFullscreen;
     WORKSPACE->m_fullscreenMode = targetWorkspaceFullscreenMode;
+
+    // Every time m_hasFullscreenWindow is true, that means that an FS window is currently taking up the entire monitor/work area.
+    // We use that as the flag for determining if Direct Scanout should be enablad now or not
+
+    // ERSTARR TODO: Should work with new scrolling FS. need this tested by others since I don't play games. 
+    // ERSTARR TODO: Layouts must handle this themselves
+    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
+    // ignore if DS is disabled.
+    static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
+    
+    if (const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window(); CURRENTLY_FS_WINDOW &&  (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && CURRENTLY_FS_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
+        auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
+        const auto PMONITOR = CURRENTLY_FS_WINDOW->m_monitor;
+        if (surf)
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, targetWorkspaceHasFullscreen ? PMONITOR->m_self.lock() : nullptr);
+    }
+
 }
 
 double SScrollingData::maxWidth() {

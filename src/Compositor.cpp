@@ -1962,6 +1962,9 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
     const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
 
+    if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_FAILED)
+        Log::logger->log(Log::ERR, "Fullscreen request failed for window: {}", PWINDOW);
+
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
@@ -1973,23 +1976,23 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
 
     // make all windows and layers on the same workspace under the fullscreen window
-    // ERSTARR TODO IMPORTANT; This part i the source of endless woes. Try to just rip it out and see what happens.
+    // ERSTARR TODO IMPORTANT; This part is the source of endless woes. Try to just rip it out and see what happens.
     // Need to save the floating windows that were created when workspace was FSed and when it unFSes, clear them.
-    for (auto const& w : m_windows) {
-        if (w->m_workspace == PWORKSPACE) {
-            if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
-                w->m_createdOverFullscreen = false;
+    // for (auto const& w : m_windows) {
+    //     if (w->m_workspace == PWORKSPACE) {
+    //         if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
+    //             w->m_createdOverFullscreen = false;
 
-            w->updateFullscreenInputState();
-        }
-    }
-    for (auto const& ls : m_layers) {
-        if (ls->m_monitor == PMONITOR)
-            ls->m_aboveFullscreen = false;
-    }
+    //         w->updateFullscreenInputState();
+    //     }
+    // }
+    // for (auto const& ls : m_layers) {
+    //     if (ls->m_monitor == PMONITOR)
+    //         ls->m_aboveFullscreen = false;
+    // }
 
-    // After each layout sets the window's properties, sendWindowSize.
-    PWINDOW->sendWindowSize(true);
+    // ERSTARR TODO - This should be called in updatePos. set breakpoint, test, remove before merge.
+    // PWINDOW->sendWindowSize(true);
 
     // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible
     // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
@@ -2005,6 +2008,10 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     if (!PMONITOR)
         return;
 
+
+    // ERSTARR TODO: Should work with new scrolling FS. need this tested by others since I don't play games. 
+    // ERSTARR TODO -> remove the TODO if this actually works: Layouts must handle this themselves
+    // ERSTARR TODO -> remove name if this works: Maybe move this into default FS handler's requestFullscreen()
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
     if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {

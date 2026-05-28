@@ -35,8 +35,10 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     // set internal fullscreen mode
     TARGET->setFullscreenMode(request.effectiveMode);
 
+    const auto TARGETWORKSPACE = TARGET->workspace();
+
     // set workspace fullscreen attributes
-    if (const auto TARGETWORKSPACE = TARGET->workspace(); TARGETWORKSPACE) {
+    if (TARGETWORKSPACE) {
         TARGETWORKSPACE->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
         TARGETWORKSPACE->m_fullscreenMode = request.effectiveMode;
     }
@@ -46,24 +48,23 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
 
         
     // Set window positions
-    const auto WORKSPACE = m_parent->space()->workspace();
-    if (!WORKSPACE)
+    if (!TARGETWORKSPACE)
         return FULLSCREEN_REQUEST_FAILED;
 
-    const auto MONITOR = WORKSPACE->m_monitor;
+    const auto MONITOR = TARGETWORKSPACE->m_monitor;
     if (!MONITOR)
         return FULLSCREEN_REQUEST_FAILED;
 
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
-        const CBox MONBOX = WORKSPACE->m_monitor->logicalBox();
+        const CBox MONBOX = TARGETWORKSPACE->m_monitor->logicalBox();
         TARGET->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
     }
     else if (request.effectiveMode == FSMODE_MAXIMIZED) {
-        const CBox WORKAREA = WORKSPACE->m_space->workArea(TARGET->floating());
+        const CBox WORKAREA = TARGETWORKSPACE->m_space->workArea(TARGET->floating());
         TARGET->setPositionGlobal(WORKAREA);
     }
 
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(WORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
 
 

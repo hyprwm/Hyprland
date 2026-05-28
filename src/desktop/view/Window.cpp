@@ -1213,7 +1213,7 @@ bool CWindow::isFullscreen() const {
         if (m_fullscreenState.internal != FSMODE_NONE)
             return true;
     }
-
+    return false;
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {

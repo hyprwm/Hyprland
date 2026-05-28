@@ -1146,8 +1146,6 @@ bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target, st
     
     if (!TARGET)
         return false;
-
-    const auto modeValue = mode.has_value() ? mode.value() : false;
     
     // target must have window
     if (!TARGET->window())
@@ -1160,7 +1158,7 @@ bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target, st
 
 
     /** If target isn't fullscreen, or @param mode provided and internal fullscreenMode doesn't match */
-    if (TARGET->fullscreenMode() == FSMODE_NONE || modeValue != TARGET->fullscreenMode()) // second part of the or works because FSMODE_NONE = 0. If that changes, this has to be adjusted
+    if (TARGET->fullscreenMode() == FSMODE_NONE || (mode.has_value() && mode.value() != TARGET->fullscreenMode())) // second part of the or works because FSMODE_NONE = 0. If that changes, this has to be adjusted
         return false;
 
     // target data doesn't match -- Redundancy

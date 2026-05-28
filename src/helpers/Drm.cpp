@@ -4,7 +4,28 @@
 #include <mutex>
 #include <optional>
 #include <sys/stat.h>
+#include <hyprutils/os/FileDescriptor.hpp>
+#include <string>
+#include <algorithm>
 #include "Drm.hpp"
+#include <sys/ioctl.h>
+
+#ifdef __linux__
+#include <linux/dma-buf.h>
+#include <linux/sync_file.h>
+#else
+struct sync_merge_data {
+    char  name[32];
+    __s32 fd2;
+    __s32 fence;
+    __u32 flags;
+    __u32 pad;
+};
+#define SYNC_IOC_MAGIC '>'
+#define SYNC_IOC_MERGE _IOWR(SYNC_IOC_MAGIC, 3, struct sync_merge_data)
+#endif
+
+using namespace Hyprutils::OS;
 
 namespace {
     using SDRMNodePair = std::array<dev_t, 2>;
@@ -66,4 +87,57 @@ bool DRM::sameGpu(int fd1, int fd2) {
     }
 
     return same;
+}
+
+int DRM::doIoctl(int fd, unsigned long request, void* arg) {
+    int ret;
+
+    do {
+        ret = ioctl(fd, request, arg);
+    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+    return ret;
+}
+
+// https://www.kernel.org/doc/html/latest/driver-api/dma-buf.html#c.dma_buf_export_sync_file
+// returns a sync file that will be signalled when dmabuf is ready to be read
+CFileDescriptor DRM::exportFence(int fd) {
+    if (fd < 0)
+        return {};
+
+    CFileDescriptor fence;
+#ifdef __linux__
+    dma_buf_export_sync_file request{
+        .flags = DMA_BUF_SYNC_READ,
+        .fd    = -1,
+    };
+
+    if (doIoctl(fd, DMA_BUF_IOCTL_EXPORT_SYNC_FILE, &request) == 0)
+        fence = CFileDescriptor{request.fd};
+#endif
+
+    return fence;
+}
+
+CFileDescriptor DRM::mergeFence(const CFileDescriptor& fd1, const CFileDescriptor& fd2) {
+    if (!fd1.isValid() || !fd2.isValid())
+        return {};
+
+    CFileDescriptor mergedFence;
+#ifdef __linux__
+    const std::string      name = "merged release fence";
+    struct sync_merge_data data{
+        .name  = {}, // zero-initialize name[]
+        .fd2   = fd2.get(),
+        .fence = -1,
+    };
+
+    std::ranges::copy_n(name.c_str(), std::min(name.size() + 1, sizeof(data.name)), data.name);
+
+    if (doIoctl(fd1.get(), SYNC_IOC_MERGE, &data) == 0)
+        mergedFence = CFileDescriptor(data.fence);
+    else
+        mergedFence = {};
+
+#endif
+    return mergedFence;
 }

@@ -63,6 +63,7 @@ namespace Desktop::View {
         SP<Render::IFramebuffer>                m_snapshotFB;
 
         pid_t                                   getPID();
+        void                                    updateSurfaceScaleTransformDetails();
 
         void                                    onDestroy();
         void                                    onMap();

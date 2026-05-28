@@ -1023,6 +1023,55 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     }
 }
 
+TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
+
+    /*
+     Scheduled prop refresh must not move scrolling viewport.
+     The reason a prop refresh was queued is not saved, therefore it is not possible to clearly tell when and when not to move scrolling viewport
+     In this test, we test this by setting a workspace rule, which schedules a prop refresh
+     --------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+        return;
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty with win class `b`");
+        return;
+    }
+
+    // since follow_focus = false, viewport does not move
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
+
+    // setting a workspace rule queues a doLater() call in the Event Loop Manager
+    OK(getFromSocket("/eval hl.workspace_rule({workspace = hl.get_active_workspace().id,gaps_in = 0})"));
+
+    // Check that the workspace rule is set
+    ASSERT_CONTAINS(getFromSocket("/workspacerules"), "gapsIn: 0 0 0 0");
+
+    // The viewport must not have moved: left corner cords of window should be < 0
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+}
+
 TEST_CASE(testScrollInhibitor) {
 
     /*
@@ -1065,5 +1114,37 @@ TEST_CASE(testScrollInhibitor) {
     } else {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"a\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
         return;
+    }
+}
+
+TEST_CASE(scrollTapeOnClickOutOfWindow) {
+    /*
+     * Do not move tape on click in the direction, but out of the window  
+     */
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+    OK(getFromSocket("r/eval hl.config({ general = { gaps_out = 100 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { follow_min_visible = 1.0, column_width = 0.6 } })"));
+    OK(getFromSocket("r/eval hl.config({ input = { follow_mouse = 1 } })"));
+
+    ASSERT(!!Tests::spawnKitty("A"), true); // A should be at x negative
+    ASSERT(!!Tests::spawnKitty("B"), true);
+
+    OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')"));     // soft focus A
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })")); // move cursor to the gap zone
+
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 1)"));
+    OK(getFromSocket("/eval hl.plugin.test.click(272, 0)"));
+
+    const auto active = getFromSocket("/activewindow");
+    ASSERT_CONTAINS(active, "class: A");
+
+    const auto posA  = Tests::getAttribute(active, "at");
+    const auto posAx = std::stoi(posA.substr(0, posA.find(',')));
+
+    if (posAx < 0) {
+        NLog::log("{}Passed: {}Expected the x coordinate of window of class \"A\" to be < 0.", Colors::GREEN, Colors::RESET);
+    } else {
+        FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"A\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
     }
 }

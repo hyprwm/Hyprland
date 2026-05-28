@@ -197,6 +197,20 @@ namespace Screenshare {
       public:
         CScreenshareManager();
 
+        struct SOutputCopyFBState {
+            uint32_t activeSessions       = 0;
+            uint32_t sharingSessions      = 0;
+            uint32_t pendingFrames        = 0;
+            uint32_t monitorSessions      = 0;
+            uint32_t regionSessions       = 0;
+            uint32_t pendingMonitorFrames = 0;
+            uint32_t pendingRegionFrames  = 0;
+
+            bool     needsCopyFB() const {
+                return pendingFrames > 0;
+            }
+        };
+
         UP<CScreenshareSession> newSession(wl_client* client, PHLMONITOR monitor);
         UP<CScreenshareSession> newSession(wl_client* client, PHLMONITOR monitor, CBox captureRegion);
         UP<CScreenshareSession> newSession(wl_client* client, PHLWINDOW window);
@@ -209,6 +223,8 @@ namespace Screenshare {
 
         void                    onOutputCommit(PHLMONITOR monitor);
         bool                    isOutputBeingSSd(PHLMONITOR monitor);
+        bool                    outputNeedsCopyFB(PHLMONITOR monitor);
+        SOutputCopyFBState      outputCopyFBState(PHLMONITOR monitor);
 
       private:
         std::vector<WP<CScreenshareSession>> m_sessions;

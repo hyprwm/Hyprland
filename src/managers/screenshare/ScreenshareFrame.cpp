@@ -112,6 +112,12 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     m_callback = callback;
     m_shared   = true;
 
+    if (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION) {
+        const auto PMONITOR = m_session->monitor();
+        if (PMONITOR)
+            PMONITOR->addDamage(PMONITOR->resources()->pendingMirrorFBDamage());
+    }
+
     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
     if (m_isFirst) {
         g_pCompositor->scheduleFrameForMonitor(m_session->monitor(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);

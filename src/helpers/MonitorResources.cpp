@@ -1,5 +1,6 @@
 #include "MonitorResources.hpp"
 #include "./cm/ColorManagement.hpp"
+#include "../managers/screenshare/ScreenshareManager.hpp"
 #include "../render/Renderer.hpp"
 #include <algorithm>
 #include <format>
@@ -35,6 +36,7 @@ void CMonitorResources::setImageDescription(NColorManagement::PImageDescription 
         m_monitorMirrorFB->setImageDescription(getMirrorTexImageDescription());
     if (m_mirrorTex)
         m_mirrorTex->m_imageDescription = getMirrorTexImageDescription();
+    invalidateMirrorFB();
 }
 
 SP<Render::IFramebuffer> CMonitorResources::getUnusedWorkBuffer() {
@@ -69,8 +71,54 @@ void CMonitorResources::forEachUnusedFB(std::function<void(SP<Render::IFramebuff
     }
 }
 
-bool CMonitorResources::hasMirrorFB() {
+bool CMonitorResources::hasMirrorFB() const {
     return m_monitorMirrorFB && m_monitorMirrorFB->isAllocated();
+}
+
+bool CMonitorResources::shouldKeepMirrorFB() const {
+    return !m_monitor->m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_monitor.lock());
+}
+
+void CMonitorResources::releaseMirrorFB() {
+    if (m_monitorMirrorFB)
+        m_monitorMirrorFB->release();
+
+    invalidateMirrorFB();
+}
+
+void CMonitorResources::invalidateMirrorFB() {
+    m_mirrorFBValid            = false;
+    m_mirrorFBNeedsFullRefresh = true;
+    m_mirrorFBStaleDamage.clear();
+}
+
+void CMonitorResources::markMirrorFBStale(const CRegion& damage) {
+    if (damage.empty() || !hasMirrorFB() || !m_mirrorFBValid)
+        return;
+
+    m_mirrorFBStaleDamage.add(damage).intersect(CBox{{}, mirrorFBDamageSize()});
+}
+
+void CMonitorResources::markMirrorFBStale() {
+    if (!hasMirrorFB() || !m_mirrorFBValid)
+        return;
+
+    m_mirrorFBNeedsFullRefresh = true;
+    m_mirrorFBStaleDamage.clear();
+}
+
+void CMonitorResources::markMirrorFBUpdated() {
+    m_mirrorFBValid            = true;
+    m_mirrorFBNeedsFullRefresh = false;
+    m_mirrorFBStaleDamage.clear();
+}
+
+CRegion CMonitorResources::pendingMirrorFBDamage() const {
+    const auto DAMAGE_SIZE = mirrorFBDamageSize();
+    if (!hasMirrorFB() || !m_mirrorFBValid || m_mirrorFBNeedsFullRefresh)
+        return CRegion{0, 0, DAMAGE_SIZE.x, DAMAGE_SIZE.y};
+
+    return m_mirrorFBStaleDamage.copy();
 }
 
 SP<Render::IFramebuffer> CMonitorResources::mirrorFB() {
@@ -95,6 +143,10 @@ NColorManagement::PImageDescription CMonitorResources::getMirrorTexImageDescript
         return m_imageDescription;
 
     return DEFAULT_SRGB_IMAGE_DESCRIPTION;
+}
+
+Vector2D CMonitorResources::mirrorFBDamageSize() const {
+    return m_monitor->m_transformedSize;
 }
 
 void CMonitorResources::enableMirror() {

@@ -1699,11 +1699,11 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     else
         setProjectionType(RPT_MONITOR);
 
-    const bool HAS_MIRROR_FB = g_pHyprRenderer->m_renderData.pMonitor->resources()->hasMirrorFB();
-    const bool NEEDS_COPY_FB = g_pHyprRenderer->m_renderData.pMonitor->needsACopyFB();
+    const auto RESOURCES     = g_pHyprRenderer->m_renderData.pMonitor->resources();
+    const bool HAS_MIRROR_FB = RESOURCES->hasMirrorFB();
 
-    if (HAS_MIRROR_FB && !NEEDS_COPY_FB)
-        g_pHyprRenderer->m_renderData.pMonitor->resources()->mirrorFB()->release();
+    if (HAS_MIRROR_FB && !RESOURCES->shouldKeepMirrorFB())
+        RESOURCES->releaseMirrorFB();
 
     if (m_renderMode == RENDER_MODE_FULL_FAKE)
         return beginFullFakeRenderInternal(pMonitor, damage, fb, simple);
@@ -1729,6 +1729,9 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
     if (m_renderMode == RENDER_MODE_NORMAL) {
         damage = pMonitor->m_damage.getBufferDamage(bufferAge);
         pMonitor->m_damage.rotate();
+
+        if (pMonitor->needsACopyFB())
+            damage.add(pMonitor->resources()->pendingMirrorFBDamage());
     }
 
     const auto  res     = beginRenderInternal(pMonitor, damage, simple);
@@ -2016,6 +2019,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     if (canAttemptDirectScanout) {
         if (pMonitor->attemptDirectScanout()) {
+            if (!pMonitor->needsACopyFB())
+                pMonitor->resources()->markMirrorFBStale();
+
             if (!pMonitor->m_directScanoutIsActive) {
                 pMonitor->m_previousFSWindow.reset(); // recalc fs settings
                 pMonitor->m_directScanoutIsActive = true;
@@ -2163,6 +2169,9 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     endRender();
 
     TRACY_GPU_COLLECT;
+
+    if (!pMonitor->needsACopyFB())
+        pMonitor->resources()->markMirrorFBStale(m_renderData.damage);
 
     CRegion    frameDamage{m_renderData.damage};
 

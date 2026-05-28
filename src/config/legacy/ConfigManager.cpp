@@ -1038,8 +1038,9 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
     auto disableStdout = !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:enable_stdout_logs"));
     if (disableStdout && m_isFirstLaunch)
         Log::logger->log(Log::DEBUG,
-                         "Disabling stdout logs (debug:enable_stdout_logs=0). "
-                         "Further logs will be written to $XDG_RUNTIME_DIR/hypr/<instance>/hyprland.log");
+                         "Disabling stdout logs (debug.enable_stdout_logs = 0). "
+                         "Further logs will be written to {}",
+                         g_pCompositor->m_instancePath + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty

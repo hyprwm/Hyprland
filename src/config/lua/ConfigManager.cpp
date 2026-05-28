@@ -553,8 +553,9 @@ void CConfigManager::postConfigReload() {
     auto disableStdout = !*PENABLESTDOUT;
     if (disableStdout && m_isFirstLaunch)
         Log::logger->log(Log::DEBUG,
-                         "Disabling stdout logs (debug:enable_stdout_logs=0). "
-                         "Further logs will be written to $XDG_RUNTIME_DIR/hypr/<instance>/hyprland.log");
+                         "Disabling stdout logs (debug.enable_stdout_logs = 0). "
+                         "Further logs will be written to {}",
+                         g_pCompositor->m_instancePath + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
 
     handlePluginLoads();
 

@@ -41,6 +41,7 @@ class CFractionalScaleProtocol : public IWaylandProtocol {
 
     void         onSurfaceDestroy(SP<CWLSurfaceResource> surf);
     void         sendScale(SP<CWLSurfaceResource> surf, const float& scale);
+    bool         hasKnownScale(SP<CWLSurfaceResource> surf);
 
   private:
     void removeAddon(CFractionalScaleAddon*);

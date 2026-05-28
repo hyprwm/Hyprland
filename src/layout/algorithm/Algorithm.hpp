@@ -45,8 +45,6 @@ namespace Layout {
 
         eFullscreenRequestResult      requestFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
         SP<ITarget>                   layoutFullscreenTarget() const;
-        // REDUNDANT: all FS windows must set their internal FS state
-        // bool                          layoutFullscreenCoversMonitor() const;
 
         void                          updateFloatingAlgo(UP<IFloatingAlgorithm>&& algo);
         void                          updateTiledAlgo(UP<ITiledAlgorithm>&& algo);

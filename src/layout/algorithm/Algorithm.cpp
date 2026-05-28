@@ -182,10 +182,6 @@ SP<ITarget> CAlgorithm::layoutFullscreenTarget() const {
     return m_floating->layoutFullscreenTarget();
 }
 
-// REDUNDANT: all FS windows must set their internal FS state
-// bool CAlgorithm::layoutFullscreenCoversMonitor() const {
-//     return m_tiled->layoutFullscreenCoversMonitor() || m_floating->layoutFullscreenCoversMonitor();
-// }
 
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto swapFirst = [&a, &b](std::vector<WP<ITarget>>& targets) -> bool {

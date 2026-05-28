@@ -1123,20 +1123,6 @@ SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
     return fallback ? fallback->target.lock() : nullptr;
 }
 
-// REDUNDANT: all FS windows must set their internal FS state
-// bool CScrollingAlgorithm::layoutFullscreenCoversMonitor() const {
-//     for (const auto& COL : m_scrollingData->columns) {
-//         for (const auto& TDATA : COL->targetDatas) {
-//             if (!isFullscreenTarget(TDATA))
-//                 continue;
-
-//             if (fullscreenColumnCoversMonitor(TDATA->column.lock()))
-//                 return true;
-//         }
-//     }
-
-//     return false;
-// }
 
 SP<SScrollingTargetData> CScrollingAlgorithm::fullscreenTargetDataForColumn(SP<SColumnData> col) const {
     if (!col)

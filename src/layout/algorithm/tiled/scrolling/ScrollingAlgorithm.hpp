@@ -113,8 +113,6 @@ namespace Layout::Tiled {
 
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
         virtual SP<ITarget>              layoutFullscreenTarget() const;
-        // REDUNDANT: all FS windows must set their internal FS state
-        // virtual bool                     layoutFullscreenCoversMonitor() const;
 
         void                             moveTape(float delta);
         void                             moveTapeNormalized(double delta);

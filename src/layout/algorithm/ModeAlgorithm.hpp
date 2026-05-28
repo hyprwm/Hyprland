@@ -54,11 +54,13 @@ namespace Layout {
         // optional: allow algorithms to own fullscreen semantics for a target.
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
-        // optional: expose an algorithm-owned fullscreen target and whether it is monitor-exclusive.
-        
-        // get the Current layout managed FS target
+        // optional: expose an algorithm-owned fullscreen target
+
+        /**
+        * Get the current layout managed FS target
+        * @return Covers the monitor(`FSMODE_FULLSCREEN`) / work area(`FSMODE_MAXIMIZE`)
+        */
         virtual SP<ITarget> layoutFullscreenTarget() const;
-        // virtual bool        layoutFullscreenCoversMonitor; // for fullscreen - if a FS window covers monitor ----- REDUNDANT: all FS windows must set their internal FS states
 
 
         // Impl'd here: focal point for dir

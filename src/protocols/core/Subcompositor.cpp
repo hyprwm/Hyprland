@@ -1,5 +1,7 @@
 #include "Subcompositor.hpp"
 #include "Compositor.hpp"
+#include "protocols/FractionalScale.hpp"
+#include "../../Compositor.hpp"
 #include <algorithm>
 
 CWLSubsurfaceResource::CWLSubsurfaceResource(SP<CWlSubsurface> resource_, SP<CWLSurfaceResource> surface_, SP<CWLSurfaceResource> parent_) :
@@ -196,6 +198,15 @@ CWLSubcompositorResource::CWLSubcompositorResource(SP<CWlSubcompositor> resource
         RESOURCE->m_self = RESOURCE;
         SURF->m_role     = makeShared<CSubsurfaceRole>(RESOURCE);
         PARENT->m_subsurfaces.emplace_back(RESOURCE);
+
+        if (PROTO::fractional->hasKnownScale(PARENT)) {
+            const auto PARENTSURFACE = Desktop::View::CWLSurface::fromResource(PARENT);
+
+            if (PARENTSURFACE) {
+                g_pCompositor->setPreferredScaleForSurface(SURF, PARENTSURFACE->m_lastScaleFloat);
+                g_pCompositor->setPreferredTransformForSurface(SURF, PARENTSURFACE->m_lastTransform);
+            }
+        }
 
         LOGM(Log::DEBUG, "New wl_subsurface with id {} at {:x}", id, (uintptr_t)RESOURCE.get());
 

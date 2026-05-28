@@ -385,7 +385,7 @@ PHLWINDOW CWindowTarget::window() const {
 
 
 bool CWindowTarget::isFullscreen() {
-    // ERSTARR - TODO: implement this
+    return m_window->isFullscreen();
 }
 
 eFullscreenMode CWindowTarget::fullscreenMode() {

@@ -469,6 +469,14 @@ SUBTEST(submap) {
     press(KEY_P);
     EXPECT_CONTAINS(getFromSocket("/submap"), "default");
 
+    // submap 1 with identical keybind bound inside it
+    press(KEY_U, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+    press(KEY_U, MOD_META);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap3");
+    press(KEY_O);
+    Tests::waitUntilWindowsN(4);
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
     Tests::killAllWindows();
 }
 

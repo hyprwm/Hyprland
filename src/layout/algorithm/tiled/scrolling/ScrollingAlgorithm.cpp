@@ -566,6 +566,9 @@ void SScrollingData::recalculate(bool forceInstant) {
     // ignore if DS is disabled.
     static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
     
+    if (!CURRENT_FS_TDATA || !CURRENT_FS_TDATA->target->window())
+        return;
+
     if (const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window(); CURRENTLY_FS_WINDOW &&  (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && CURRENTLY_FS_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
         auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
         const auto PMONITOR = CURRENTLY_FS_WINDOW->m_monitor;

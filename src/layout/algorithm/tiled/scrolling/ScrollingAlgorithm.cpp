@@ -1324,13 +1324,15 @@ void CScrollingAlgorithm::syncFullscreenTargets() {
     for (const auto& COL : m_scrollingData->columns) {
         for (const auto& TDATA : COL->targetDatas) {
             const auto            TARGET               = TDATA->target.lock();
+            
             // this must either be FSMODE_MAXIMIZE or FSMODE_FULLSCREEN
             const eFullscreenMode targetFullscreenMode = TARGET->fullscreenMode();
-            if (TARGET && TARGET->layoutManagedFullscreen() && TARGET->space() == m_parent->space() && isFullscreenTarget(dataFor(TARGET), targetFullscreenMode))
-                (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets)
-                    .emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
+            
+            if (TARGET && TARGET->layoutManagedFullscreen() && TARGET->space() == m_parent->space() && isFullscreenTarget(dataFor(TARGET), targetFullscreenMode)) {
+                (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets).emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
 
-            COL->setColumnWidth((targetFullscreenMode == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));            
+                COL->setColumnWidth((targetFullscreenMode == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));            
+            }
         }
     }
 }

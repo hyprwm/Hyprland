@@ -1341,7 +1341,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, Math::eDirection 
     if (!PMONITOR)
         return nullptr; // ??
 
-    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
+    const auto WINDOWIDEALBB = pWindow->isFullscreen(/*FSMODE_FULLSCREEN*/) ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved(); // ERSTARR TODO: This might be necessary, it might not be
     const auto PWORKSPACE    = pWindow->m_workspace;
 
     if (!PWORKSPACE)
@@ -1666,7 +1666,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
-            if (w->isFullscreen()) {
+            if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
                 *w->m_realPosition = pMonitorB->m_position;
                 *w->m_realSize     = pMonitorB->m_size;
             }
@@ -1691,7 +1691,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
-            if (w->isFullscreen()) {
+            if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
                 *w->m_realPosition = pMonitorA->m_position;
                 *w->m_realSize     = pMonitorA->m_size;
             }
@@ -1807,7 +1807,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
                     if (w->m_isFloating)
                         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
-                    if (w->isFullscreen()) {
+                    if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
                         *w->m_realPosition = pMonitor->m_position;
                         *w->m_realSize     = pMonitor->m_size;
                     }

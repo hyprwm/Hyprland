@@ -201,6 +201,7 @@ hl.bind(mainMod .. " + u", hl.dsp.submap("submap1"))
 
 hl.define_submap("submap1", function()
     hl.bind("u", hl.dsp.submap("submap2"))
+    hl.bind(mainMod .. " + u", hl.dsp.submap("submap3"))
     hl.bind("i", hl.dsp.submap("submap3"))
     hl.bind("o", hl.dsp.exec_cmd(terminal))
     hl.bind("p", hl.dsp.submap("reset"))

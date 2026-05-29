@@ -725,7 +725,8 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 }
 
 void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
-    frame(when);
+    if (!discarded)
+        frame(when);
 
     auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
     FEEDBACK->attachMonitor(pMonitor);

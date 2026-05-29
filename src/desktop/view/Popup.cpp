@@ -69,7 +69,10 @@ eViewType CPopup::type() const {
 }
 
 bool CPopup::visible() const {
-    if ((!m_mapped || !m_wlSurface->resource()) && (!m_fadingOut || m_alpha->value() > 0.F))
+    if (m_fadingOut && m_alpha->value() > 0.F)
+        return true;
+
+    if (!m_mapped || !m_wlSurface->resource())
         return false;
 
     if (!m_windowOwner.expired())
@@ -319,6 +322,7 @@ void CPopup::onCommit(bool ignoreSiblings) {
 
     if (m_lastSize != m_resource->m_surface->m_surface->m_current.size || m_requestedReposition || m_lastPos != COORDSLOCAL) {
         CBox box = {localToGlobal(m_lastPos), m_lastSize};
+        box.expand(4);
         g_pHyprRenderer->damageBox(box);
         m_lastSize = m_resource->m_surface->m_surface->m_current.size;
         box        = {COORDS, m_lastSize};
@@ -346,8 +350,6 @@ void CPopup::onReposition() {
     Log::logger->log(Log::DEBUG, "Popup {:x} requests reposition", rc<uintptr_t>(this));
 
     m_requestedReposition = true;
-
-    m_lastPos = coordsRelativeToParent();
 
     invalidateTreeExtentsCache();
 

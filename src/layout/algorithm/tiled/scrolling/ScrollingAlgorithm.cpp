@@ -1145,17 +1145,13 @@ bool CScrollingAlgorithm::isFullscreenTarget(SP<SScrollingTargetData> target, st
     
     const auto TARGET = target->target.lock();
     
-    if (!TARGET)
+    // Target must exist
+    // target must have window
+    // Only accept layoutmanged fullscreens
+    // For a window to be FS in scrolling, it must be the only one that occupies its own column
+    if (!TARGET || !TARGET->window() || !TARGET->layoutManagedFullscreen() || target->column->targetDatas.size() > 1)
         return false;
     
-    // target must have window
-    if (!TARGET->window())
-        return false;
-
-
-    // Only accept layoutmanged fullscreens
-    if (!TARGET->layoutManagedFullscreen())
-        return false;
 
 
     /** If target isn't fullscreen, or @param mode provided and internal fullscreenMode doesn't match */
@@ -1277,11 +1273,28 @@ float CScrollingAlgorithm::getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITa
 
 void CScrollingAlgorithm::syncFullscreenTargets() {
 
-    // Fullscreened (mode = FSMODE_FULLSCREEN)
+
+    // This lambda is a copy of CScrollingAlgorithm::isFullscreenTarget() without the check for if the target is in the scrolling maintained fullscreen/maximise target list
+    const auto isFullscreenTargetWithoutTargetsListCheck = [&](SP<SScrollingTargetData> target)->bool{
+        if (!target)
+            return false;
+    
+    
+    const auto TARGET = target->target.lock();
+    
+    if (!TARGET || !TARGET->window() || !TARGET->layoutManagedFullscreen() || target->column->targetDatas.size() > 1 || dataFor(TARGET) != target)
+        return false;
+    
+    return TARGET->fullscreenMode() != FSMODE_NONE;
+
+    };
+
+
+    // Clean stale entries and restore col width - Fullscreened (mode = FSMODE_FULLSCREEN)
     for (auto it = m_fullscreenTargets.begin(); it != m_fullscreenTargets.end();) {
         const auto TARGET = it->target.lock();
 
-        if (!TARGET || TARGET->space() != m_parent->space() || !isFullscreenTarget(dataFor(TARGET), FSMODE_FULLSCREEN)) {
+        if (!TARGET || TARGET->space() != m_parent->space() || (TARGET->layoutManagedFullscreen() && !isFullscreenTarget(dataFor(TARGET), FSMODE_FULLSCREEN))) {
             it = m_fullscreenTargets.erase(it);
             continue;
         }
@@ -1298,11 +1311,11 @@ void CScrollingAlgorithm::syncFullscreenTargets() {
         ++it;
     }
 
-    // Maximised (mode = FSMODE_MAXIMIZED)
+    // Clean stale entries and restore col width - Maximised (mode = FSMODE_MAXIMIZED)
     for (auto it = m_maximizeTargets.begin(); it != m_maximizeTargets.end();) {
         const auto TARGET = it->target.lock();
 
-        if (!TARGET || TARGET->space() != m_parent->space() || !isFullscreenTarget(dataFor(TARGET), FSMODE_MAXIMIZED)) {
+        if (!TARGET || TARGET->space() != m_parent->space() || (TARGET->layoutManagedFullscreen() && !isFullscreenTarget(dataFor(TARGET), FSMODE_MAXIMIZED))) {
             it = m_maximizeTargets.erase(it);
             continue;
         }
@@ -1319,45 +1332,28 @@ void CScrollingAlgorithm::syncFullscreenTargets() {
         ++it;
     }
 
-    // Because we are looking to emplace new entries, we can't check the existing lists to see if a target is already there during CScrollingAlgorithm::isFullscreenTarget() check.
-    // This lambda is a copy of CScrollingAlgorithm::isFullscreenTarget() without that part
-    const auto isFullscreenTargetWithoutVectorCheck = [&](SP<SScrollingTargetData> target)->bool{
-            if (!target)
-        return false;
-    
-    
-    const auto TARGET = target->target.lock();
-    
-    if (!TARGET)
-        return false;
-    
-    if (!TARGET->window())
-        return false;
-
-
-    if (!TARGET->layoutManagedFullscreen())
-        return false;
-
-
-    if (dataFor(TARGET) != target)
-        return false;
-
-    return TARGET->fullscreenMode() != FSMODE_NONE;
-
-    };
 
 
     for (const auto& COL : m_scrollingData->columns) {
         for (const auto& TDATA : COL->targetDatas) {
             const auto            TARGET               = TDATA->target.lock();
             
-            // this must either be FSMODE_MAXIMIZE or FSMODE_FULLSCREEN
-            const eFullscreenMode targetFullscreenMode = TARGET->fullscreenMode();
-            
-            if (TARGET->space() == m_parent->space() && isFullscreenTargetWithoutVectorCheck(dataFor(TARGET))) {
-                (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets).emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
+            const eFullscreenMode TARGETFULLSCREENMODE = TARGET->fullscreenMode();
 
-                COL->setColumnWidth((targetFullscreenMode == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));            
+            // Possible Optimisation: if target isn't FS, it won't be layoutManagedFullscreen anyway) - but left this way for redundancy
+            if (TARGETFULLSCREENMODE == FSMODE_NONE || !TARGET->layoutManagedFullscreen())
+                continue;
+            
+
+            auto fsTargets = TARGETFULLSCREENMODE == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets;
+
+            // If a target is a FS window but not in the fullscreen/maximise target list yet, emplace it.
+            const bool INLIST = std::ranges::any_of(fsTargets, [&](const auto& s) { return s.target.lock() == TARGET; });
+
+            if (TARGET->space() == m_parent->space() && isFullscreenTargetWithoutTargetsListCheck(dataFor(TARGET)) && !INLIST ) {
+                fsTargets.emplace_back(SFullscreenScrollState{.target = TARGET, .restoreColumnWidth = COL ? std::optional<float>{COL->getColumnWidth()} : std::nullopt});
+
+                COL->setColumnWidth((TARGETFULLSCREENMODE == FSMODE_FULLSCREEN ? fullscreenColumnWidth() : 1.F));            
             }
         }
     }

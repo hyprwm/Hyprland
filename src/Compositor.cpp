@@ -1957,16 +1957,16 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
 
 
-    PWORKSPACE->setNoMembersAboveFullscreen(); // ERSTARR TODO - This does more or less the same thing as the commented code blob below. Comment this out, try.
-
+    
     const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
     const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
-
+    
     if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_FAILED) {
         Log::logger->log(Log::ERR, "Fullscreen request failed for window: {}", PWINDOW);
         return;
     }
-
+    
+    PWORKSPACE->setNoMembersAboveFullscreen(); // ERSTARR TODO - This is problematic on scrolling
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
@@ -1977,24 +1977,9 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     PWINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
 
-    // make all windows and layers on the same workspace under the fullscreen window
-    // ERSTARR TODO IMPORTANT; This part is the source of endless woes. Try to just rip it out and see what happens.
-    // Need to save the floating windows that were created when workspace was FSed and when it unFSes, clear them.
-    // for (auto const& w : m_windows) {
-    //     if (w->m_workspace == PWORKSPACE) {
-    //         if (!w->isFullscreen() && !w->m_fadingOut && !w->m_pinned)
-    //             w->m_createdOverFullscreen = false;
 
-    //         w->updateFullscreenInputState();
-    //     }
-    // }
-    // for (auto const& ls : m_layers) {
-    //     if (ls->m_monitor == PMONITOR)
-    //         ls->m_aboveFullscreen = false;
-    // }
-
-    // ERSTARR TODO - This should be called in updatePos. set breakpoint, test, remove before merge.
-    // PWINDOW->sendWindowSize(true);
+    // TODO redundancy since it should be called earlier
+    PWINDOW->sendWindowSize(true);
 
     // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible
     // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that

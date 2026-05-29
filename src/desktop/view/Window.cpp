@@ -871,11 +871,12 @@ bool CWindow::acceptsInput() const {
 }
 
 bool CWindow::isAllowedOverFullscreen() const { // ERSTARR TODO - This is going to be a pain
-    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
-        return true;
-
+    
     if (!m_workspace)
         return false;
+
+    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
+        return true;
 
     const auto FSWINDOW = m_workspace->getFullscreenWindow();
     return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());

@@ -48,7 +48,8 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
         if (!state || !state->surfaceLocked)
             return;
 
-        static const auto PPEND = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
+        static const auto PPEND  = CConfigValue<Config::INTEGER>("debug:fifo_pending_workaround");
+        static const auto PINVIS = CConfigValue<Hyprlang::INT>("render:not_shown_fifo_lock");
 
         //#TODO:
         // this feels wrong, but if we have no pending frames, presented might never come because
@@ -61,10 +62,24 @@ CFifoResource::CFifoResource(UP<CWpFifoV1>&& resource_, SP<CWLSurfaceResource> s
             return;
 
         // only lock once its mapped and visible
-        if (m_surface->m_mapped && m_surface->m_hlSurface) {
-            const auto& view = m_surface->m_hlSurface->view();
-            if (view && view->visible() &&
-                (view->type() != Desktop::View::VIEW_TYPE_WINDOW || g_pHyprRenderer->shouldRenderWindow(dynamicPointerCast<Desktop::View::CWindow>(view))))
+        if (m_surface->m_mapped) {
+            bool shouldLock = *PINVIS == 0; // always
+            if (!shouldLock && m_surface->m_hlSurface) {
+                const auto& view = m_surface->m_hlSurface->view();
+                if (view) {
+                    const auto& window    = view->type() == Desktop::View::VIEW_TYPE_WINDOW ? dynamicPointerCast<Desktop::View::CWindow>(view) : nullptr;
+                    const bool  isVisible = (view && view->visible() && (!window || g_pHyprRenderer->shouldRenderWindow(window)));
+                    if (isVisible)
+                        shouldLock = true;
+                    else if (*PINVIS == 2) // never
+                        shouldLock = false;
+                    else if (window && window->m_ruleApplicator->renderUnfocused().valueOr(false))
+                        shouldLock = false; // ignore render_unfocused
+                    else
+                        shouldLock = true;
+                }
+            }
+            if (shouldLock)
                 m_surface->m_stateQueue.lock(state, LOCK_REASON_FIFO);
         }
     });

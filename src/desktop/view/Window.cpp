@@ -1890,8 +1890,10 @@ void CWindow::updateDecorationValues() {
 
         if (m_self == Desktop::focusState()->window())
             setShadowColor(*SHADOWCOL);
-        else
-            setShadowColor(*SHADOWCOLINACTIVE);
+        else {
+            const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:shadow:color_inactive");
+            setShadowColor(COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
+        }
     } else {
         Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
         m_realShadowColor = transparent;

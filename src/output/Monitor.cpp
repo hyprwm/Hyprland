@@ -1758,7 +1758,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         return reasons;
     }
 
-    if (!inFullscreenMode()) {
+    if (!inFullscreenMode()) { // ERSTARR TODO - this should be fine but just in case
         reasons |= SC_WINDOWED;
         if (!full)
             return reasons;

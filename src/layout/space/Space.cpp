@@ -155,7 +155,7 @@ void CSpace::recalculate(eRecalculateReason reason) {
 
 eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode mode) {
     if (!target)
-        return FULLSCREEN_REQUEST_DEFAULT;
+        return FULLSCREEN_REQUEST_FAILED;
 
     const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(target, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
 

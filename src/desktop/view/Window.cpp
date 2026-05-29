@@ -881,8 +881,8 @@ bool CWindow::isAllowedOverFullscreen() const { // ERSTARR TODO - This is going 
     return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());
 }
 
-bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace || m_workspace->m_hasFullscreenWindow)
+bool CWindow::isBlockedByFullscreen() const { // TODO ERSTARR - This is probably problematic
+    if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
         return false;
 
     return !isAllowedOverFullscreen();
@@ -1199,6 +1199,9 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
 }
 
 bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
+
+    if (!m_workspace)
+        return false;
 
     // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
     if (m_target->layoutManagedFullscreen()) {

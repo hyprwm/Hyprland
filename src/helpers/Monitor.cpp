@@ -158,6 +158,17 @@ void CMonitor::onConnect(bool noRule) {
             });
         }
 
+        // if the monitor has no pending frames, we wont hit the no damage send frame callback path in rendermonitor
+        // this becomes really noticeable in new render scheduling. causing firefox to simply wait for a new frame callback.
+        // when nothing is scheduling new frames.
+        auto mon = m_self.lock();
+        if (!isMirror() && !g_pHyprRenderer->shouldRenderMonitor(mon)) {
+            auto const NOW = Time::steadyNow();
+            g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeWorkspace, NOW);
+            if (m_activeSpecialWorkspace)
+                g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeSpecialWorkspace, NOW);
+        }
+
         m_frameScheduler->onPresented();
 
         m_events.presented.emit();

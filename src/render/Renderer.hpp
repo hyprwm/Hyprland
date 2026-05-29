@@ -75,6 +75,7 @@ namespace Render {
         void                                damageMirrorsWith(PHLMONITOR, const CRegion&);
         bool                                shouldRenderWindow(PHLWINDOW, PHLMONITOR);
         bool                                shouldRenderWindow(PHLWINDOW);
+        bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();
         void                                setCursorHidden(bool hide);
@@ -184,6 +185,8 @@ namespace Render {
         void                            pushMonitorTransformEnabled(bool enabled);
         void                            popMonitorTransformEnabled();
         bool                            monitorTransformEnabled();
+        void                            sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace,
+                                                                   const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
 
         void                            setProjectionType(const Vector2D& fbSize);
         void                            setProjectionType(eRenderProjectionType projectionType);
@@ -253,8 +256,6 @@ namespace Render {
         void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
         void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
         void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
-        void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace,
-                                        const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
         void renderSessionLockPrimer(PHLMONITOR pMonitor);
         void renderSessionLockMissing(PHLMONITOR pMonitor);
         void renderBackground(PHLMONITOR pMonitor);

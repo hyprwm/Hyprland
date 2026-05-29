@@ -314,6 +314,16 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
     return false;
 }
 
+bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
+    static auto PDAMAGETRACKINGMODE = CConfigValue<Config::INTEGER>("debug:damage_tracking");
+    bool        hasChanged          = monitor->m_output->needsFrame || monitor->m_damage.hasChanged();
+
+    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && monitor->m_forceFullFrames == 0)
+        return false;
+
+    return true;
+}
+
 void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW pWorkspaceWindow = nullptr;
 
@@ -2036,10 +2046,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     const auto NOW = Time::steadyNow();
 
-    // check the damage
-    bool hasChanged = pMonitor->m_output->needsFrame || pMonitor->m_damage.hasChanged();
-
-    if (!hasChanged && *PDAMAGETRACKINGMODE != DAMAGE_TRACKING_NONE && pMonitor->m_forceFullFrames == 0 && damageBlinkCleanup == 0)
+    if (!shouldRenderMonitor(pMonitor) && damageBlinkCleanup == 0)
         return;
 
     if (*PDAMAGETRACKINGMODE == -1) {

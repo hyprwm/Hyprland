@@ -73,11 +73,13 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
         if (!pWindow->m_workspace)
             return;
 
-        const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
-        if (CURRENT_FS_MODE != FSMODE_NONE) {
-            const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
-            if (RESULT.overrideFocusWindow)
+        if (pWindow->m_fullscreenHandler == Desktop::View::FULLSCREEN_HANDLER_DEFAULT) {
+            const auto CURRENT_FS_MODE = pWindow->m_workspace->m_hasFullscreenWindow ? pWindow->m_workspace->m_fullscreenMode : FSMODE_NONE;
+            if (CURRENT_FS_MODE != FSMODE_NONE) {
+                const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
+                if (RESULT.overrideFocusWindow)
                 pWindow = RESULT.overrideFocusWindow;
+            }
         }
     }
 

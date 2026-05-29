@@ -688,8 +688,6 @@ void CWindow::onMap() {
     m_reportedSize = m_pendingReportedSize;
     m_animatingIn  = true;
 
-    updateSurfaceScaleTransformDetails(true);
-
     if (m_isX11)
         return;
 
@@ -2101,6 +2099,8 @@ void CWindow::mapWindow() {
         Log::logger->log(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
     }
 
+    PMONITOR = m_monitor.lock();
+
     // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
     const auto SWALLOWER = getSwallower();
     m_swallowed          = SWALLOWER;
@@ -2227,7 +2227,7 @@ void CWindow::mapWindow() {
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    updateToplevel();
+    updateSurfaceScaleTransformDetails(true);
     m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
 
     if (workspaceSilent) {
@@ -2267,9 +2267,6 @@ void CWindow::mapWindow() {
     // avoid this window being visible
     if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
-
-    g_pCompositor->setPreferredScaleForSurface(wlSurface()->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(wlSurface()->resource(), PMONITOR->m_transform);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();

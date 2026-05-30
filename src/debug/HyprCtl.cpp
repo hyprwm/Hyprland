@@ -524,35 +524,38 @@ static std::string getWorkspaceRuleData(const Config::CWorkspaceRule& r, eHyprCt
         const std::string decorate    = sc<bool>(r.m_decorate) ? std::format(",\n    \"decorate\": {}", boolToString(r.m_decorate.value())) : "";
         const std::string shadow      = sc<bool>(r.m_noShadow) ? std::format(",\n    \"shadow\": {}", boolToString(!r.m_noShadow.value())) : "";
         const std::string defaultName = r.m_defaultName.has_value() ? std::format(",\n    \"defaultName\": \"{}\"", escapeJSONStrings(r.m_defaultName.value())) : "";
+        const std::string onCreatedEmpty =
+            r.m_onCreatedEmptyRunCmd.has_value() ? std::format(",\n    \"onCreatedEmpty\": \"{}\"", escapeJSONStrings(r.m_onCreatedEmptyRunCmd.value())) : "";
 
-        std::string       result =
-            std::format(R"#({{
-    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}
+        std::string result = std::format(R"#({{
+    "workspaceString": "{}"{}{}{}{}{}{}{}{}{}{}{}{}
 }})#",
-                        escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow, defaultName);
+                                         escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut, borderSize, border, rounding, decorate, shadow,
+                                         defaultName, onCreatedEmpty);
 
         return result;
     } else {
-        const std::string monitor     = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
-        const std::string default_    = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
-        const std::string persistent  = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
-        const std::string gapsIn      = sc<bool>(r.m_gapsIn) ?
+        const std::string monitor        = std::format("\tmonitor: {}\n", r.m_monitor.empty() ? "<unset>" : escapeJSONStrings(r.m_monitor));
+        const std::string default_       = std::format("\tdefault: {}\n", sc<bool>(r.m_isDefault) ? boolToString(r.m_isDefault.value()) : "<unset>");
+        const std::string persistent     = std::format("\tpersistent: {}\n", sc<bool>(r.m_isPersistent) ? boolToString(r.m_isPersistent.value()) : "<unset>");
+        const std::string gapsIn         = sc<bool>(r.m_gapsIn) ?
             std::format("\tgapsIn: {} {} {} {}\n", std::to_string(r.m_gapsIn.value().m_top), std::to_string(r.m_gapsIn.value().m_right),
                         std::to_string(r.m_gapsIn.value().m_bottom), std::to_string(r.m_gapsIn.value().m_left)) :
             std::format("\tgapsIn: <unset>\n");
-        const std::string gapsOut     = sc<bool>(r.m_gapsOut) ?
+        const std::string gapsOut        = sc<bool>(r.m_gapsOut) ?
             std::format("\tgapsOut: {} {} {} {}\n", std::to_string(r.m_gapsOut.value().m_top), std::to_string(r.m_gapsOut.value().m_right),
                         std::to_string(r.m_gapsOut.value().m_bottom), std::to_string(r.m_gapsOut.value().m_left)) :
             std::format("\tgapsOut: <unset>\n");
-        const std::string borderSize  = std::format("\tborderSize: {}\n", sc<bool>(r.m_borderSize) ? std::to_string(r.m_borderSize.value()) : "<unset>");
-        const std::string border      = std::format("\tborder: {}\n", sc<bool>(r.m_noBorder) ? boolToString(!r.m_noBorder.value()) : "<unset>");
-        const std::string rounding    = std::format("\trounding: {}\n", sc<bool>(r.m_noRounding) ? boolToString(!r.m_noRounding.value()) : "<unset>");
-        const std::string decorate    = std::format("\tdecorate: {}\n", sc<bool>(r.m_decorate) ? boolToString(r.m_decorate.value()) : "<unset>");
-        const std::string shadow      = std::format("\tshadow: {}\n", sc<bool>(r.m_noShadow) ? boolToString(!r.m_noShadow.value()) : "<unset>");
-        const std::string defaultName = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
+        const std::string borderSize     = std::format("\tborderSize: {}\n", sc<bool>(r.m_borderSize) ? std::to_string(r.m_borderSize.value()) : "<unset>");
+        const std::string border         = std::format("\tborder: {}\n", sc<bool>(r.m_noBorder) ? boolToString(!r.m_noBorder.value()) : "<unset>");
+        const std::string rounding       = std::format("\trounding: {}\n", sc<bool>(r.m_noRounding) ? boolToString(!r.m_noRounding.value()) : "<unset>");
+        const std::string decorate       = std::format("\tdecorate: {}\n", sc<bool>(r.m_decorate) ? boolToString(r.m_decorate.value()) : "<unset>");
+        const std::string shadow         = std::format("\tshadow: {}\n", sc<bool>(r.m_noShadow) ? boolToString(!r.m_noShadow.value()) : "<unset>");
+        const std::string defaultName    = std::format("\tdefaultName: {}\n", r.m_defaultName.value_or("<unset>"));
+        const std::string onCreatedEmpty = std::format("\tonCreatedEmpty: {}\n", r.m_onCreatedEmptyRunCmd.value_or("<unset>"));
 
-        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
-                                         borderSize, border, rounding, decorate, shadow, defaultName);
+        std::string result = std::format("Workspace rule {}:\n{}{}{}{}{}{}{}{}{}{}{}{}\n", escapeJSONStrings(r.m_workspaceString), monitor, default_, persistent, gapsIn, gapsOut,
+                                         borderSize, border, rounding, decorate, shadow, defaultName, onCreatedEmpty);
 
         return result;
     }

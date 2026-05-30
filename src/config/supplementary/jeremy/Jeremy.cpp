@@ -9,11 +9,19 @@ using namespace Config;
 using namespace Config::Supplementary;
 using namespace Config::Supplementary::Jeremy;
 
+static bool needsPathRecheck = false;
+
+//
+void Jeremy::flushCachedCfgPath() {
+    needsPathRecheck = true;
+}
+
 std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
     static bool lastSafeMode = g_pCompositor->m_safeMode;
 
     static auto getCfgPath = []() -> std::expected<SConfigStateReply, std::string> {
-        lastSafeMode = g_pCompositor->m_safeMode;
+        lastSafeMode     = g_pCompositor->m_safeMode;
+        needsPathRecheck = false;
 
         if (g_pCompositor->m_safeMode)
             return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string(), .type = CONFIG_TYPE_SPECIAL};
@@ -39,7 +47,7 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
     };
     static auto CONFIG_PATH = getCfgPath();
 
-    if (lastSafeMode != g_pCompositor->m_safeMode)
+    if (lastSafeMode != g_pCompositor->m_safeMode || needsPathRecheck)
         CONFIG_PATH = getCfgPath();
 
     return CONFIG_PATH;

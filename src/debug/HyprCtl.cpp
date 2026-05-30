@@ -42,6 +42,7 @@ using namespace Hyprutils::OS;
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/shared/monitor/MonitorRuleManager.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
+#include "../config/supplementary/jeremy/Jeremy.hpp"
 #include "../config/values/ConfigValues.hpp"
 #include "../managers/CursorManager.hpp"
 #include "../errorOverlay/Overlay.hpp"
@@ -1233,6 +1234,21 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
 }
 
 static std::string reloadRequest(eHyprCtlOutputFormat format, std::string request) {
+
+    if (request.ends_with("full-reset")) {
+        // perform a full config reset. First, reset config manager and load it anew. Then,
+        // flush all config value caches. This will momentarily degrade performance
+        // but a config load will be slow enough for this not to matter probably
+        Config::mgr().reset();
+        Config::Supplementary::Jeremy::flushCachedCfgPath();
+        Config::initConfigManager();
+        CConfigValueBase::flushCaches();
+        Config::mgr()->init();
+        CConfigValueBase::flushCaches();
+
+        return "ok";
+    }
+
     Config::mgr()->reload();
 
     return "ok";

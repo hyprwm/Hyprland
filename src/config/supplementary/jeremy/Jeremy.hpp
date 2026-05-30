@@ -18,4 +18,5 @@ namespace Config::Supplementary::Jeremy {
     };
 
     std::expected<SConfigStateReply, std::string> getMainConfigPath();
+    void                                          flushCachedCfgPath();
 };

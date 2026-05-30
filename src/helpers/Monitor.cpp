@@ -1919,11 +1919,13 @@ uint16_t CMonitor::isDSBlocked(bool full) {
 
     if (*PDIRECTSCANOUT == 2) {
         const auto FSWINDOW = getFullscreenWindow();
+        const bool forceDS  = FSWINDOW && FSWINDOW->m_ruleApplicator->directScanout().valueOr(false);
+
         if (!PWORKSPACE || !inFullscreenMode() || !FSWINDOW) {
             reasons |= DS_BLOCK_WINDOWED;
             if (!full)
                 return reasons;
-        } else if (FSWINDOW->getContentType() != CONTENT_TYPE_GAME) {
+        } else if (!forceDS && FSWINDOW->getContentType() != CONTENT_TYPE_GAME) {
             reasons |= DS_BLOCK_CONTENT;
             if (!full)
                 return reasons;

@@ -7,9 +7,7 @@
 #include "../../managers/KeybindManager.hpp"
 #include "../../Compositor.hpp"
 
-#include "../../render/decorations/CHyprGroupBarDecoration.hpp"
 #include "../shared/complex/ComplexDataTypes.hpp"
-#include "../ConfigValue.hpp"
 #include "../shared/monitor/MonitorRuleManager.hpp"
 #include "../shared/workspace/WorkspaceRuleManager.hpp"
 #include "../shared/animation/AnimationTree.hpp"
@@ -21,14 +19,11 @@
 #include "../../xwayland/XWayland.hpp"
 #include "../../protocols/OutputManagement.hpp"
 #include "../../managers/animation/AnimationManager.hpp"
-#include "../../desktop/view/LayerSurface.hpp"
 #include "../../desktop/rule/Engine.hpp"
 #include "../../desktop/rule/windowRule/WindowRule.hpp"
 #include "../../desktop/rule/layerRule/LayerRule.hpp"
 #include "../../debug/HyprCtl.hpp"
-#include "../../desktop/state/FocusState.hpp"
-#include "../../layout/space/Space.hpp"
-#include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
+#include "../../layout/LayoutManager.hpp"
 
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
@@ -61,9 +56,8 @@
 #include "../../managers/input/trackpad/gestures/ScrollMoveGesture.hpp"
 
 #include "../../event/EventBus.hpp"
-
 #include "../../protocols/types/ContentType.hpp"
-#include "render/types.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <hyprutils/path/Path.hpp>
@@ -84,6 +78,7 @@
 #include <hyprutils/string/ConstVarList.hpp>
 #include <filesystem>
 #include <memory>
+
 using namespace Hyprutils::String;
 using namespace Hyprutils::Animation;
 using namespace Config;
@@ -1044,7 +1039,10 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 
     auto disableStdout = !std::any_cast<Hyprlang::INT>(m_config->getConfigValue("debug:enable_stdout_logs"));
     if (disableStdout && m_isFirstLaunch)
-        Log::logger->log(Log::DEBUG, "Disabling stdout logs! Check the log for further logs.");
+        Log::logger->log(Log::DEBUG,
+                         "Disabling stdout logs (debug.enable_stdout_logs = 0). "
+                         "Further logs will be written to {}",
+                         g_pCompositor->m_instancePath + (ISDEBUG ? "/hyprlandd.log" : "/hyprland.log"));
 
     for (auto const& m : g_pCompositor->m_monitors) {
         // mark blur dirty

@@ -24,6 +24,7 @@
  - class: `CMyClass`
  - struct: `SMyStruct`
  - interface: `IMyInterface`
+ - class (not struct) member variables: `m_variable`
 - Do not use absolute includes from `src/` in headers: instead of `#include "a/b.hpp"` use `#include "../a/b.hpp"` for example. Protocol headers do not require this.
 
 ## Core code guidelines

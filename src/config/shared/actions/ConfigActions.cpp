@@ -917,10 +917,6 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
         return {};
     }
 
-    g_pInputManager->unconstrainMouse();
-    g_pInputManager->m_emptyFocusCursorSet = false;
-    g_pInputManager->releaseAllMouseButtons();
-
     const auto PMONITORWORKSPACEOWNER = PMONITOR == ws->m_monitor ? PMONITOR : ws->m_monitor.lock();
     if (!PMONITORWORKSPACEOWNER)
         return actionError("Workspace has no monitor", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);

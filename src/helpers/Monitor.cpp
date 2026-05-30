@@ -1404,6 +1404,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     if (pWorkspace == m_activeWorkspace)
         return;
 
+    if (!internal) {
+        g_pInputManager->unconstrainMouse();
+        g_pInputManager->m_emptyFocusCursorSet = false;
+        g_pInputManager->releaseAllMouseButtons();
+    }
+
     const auto POLDWORKSPACE = m_activeWorkspace;
     m_activeWorkspace        = pWorkspace;
 

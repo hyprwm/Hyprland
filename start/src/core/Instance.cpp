@@ -155,6 +155,10 @@ bool CHyprlandInstance::run(bool safeMode) {
     m_wakeupRead  = CFileDescriptor{pipefds[0]};
     m_wakeupWrite = CFileDescriptor{pipefds[1]};
 
+    m_fromHlPid.setFlags(m_fromHlPid.getFlags() | O_CLOEXEC);
+    m_wakeupRead.setFlags(m_wakeupRead.getFlags() | O_CLOEXEC);
+    m_wakeupWrite.setFlags(m_wakeupWrite.getFlags() | O_CLOEXEC);
+
     runHyprlandThread(safeMode);
 
     pollfd pollfds[2] = {

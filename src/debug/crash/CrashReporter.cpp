@@ -39,7 +39,7 @@ static char const* const MESSAGES[] = {
 
 // <random> is not async-signal-safe, fake it with time(NULL) instead
 static char const* getRandomMessage() {
-    return MESSAGES[time(nullptr) % (sizeof(MESSAGES) / sizeof(MESSAGES[0]))];
+    return MESSAGES[time(nullptr) % std::size(MESSAGES)];
 }
 
 [[noreturn]] static inline void exitWithError(char const* err) {
@@ -197,7 +197,7 @@ void CrashReporter::createAndSaveCrash(int sig) {
         -1,
 #endif
     };
-    u_int  miblen        = sizeof(mib) / sizeof(mib[0]);
+    u_int  miblen        = std::size(mib);
     char   exe[PATH_MAX] = "/nonexistent";
     size_t sz            = sizeof(exe);
     sysctl(mib, miblen, &exe, &sz, NULL, 0);

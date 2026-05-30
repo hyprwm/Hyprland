@@ -27,7 +27,7 @@ CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
 
     // TODO: make CFileDescriptor take F_GETFL, F_SETFL
     const int FLAGS = fcntl(m_inotifyFd.get(), F_GETFL, 0);
-    if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK) < 0) {
+    if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK | O_CLOEXEC) < 0) {
         Log::logger->log(Log::ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
         m_inotifyFd.reset();
         return;

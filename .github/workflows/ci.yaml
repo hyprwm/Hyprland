@@ -10,7 +10,7 @@ jobs:
       image: archlinux
     steps:
       - name: Checkout repository actions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           sparse-checkout: .github/actions
 
@@ -50,7 +50,7 @@ jobs:
       image: archlinux
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install clang-format
         run: |

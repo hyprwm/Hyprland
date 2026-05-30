@@ -39,8 +39,16 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 g_pInputManager->setTabletToolConfigs();  // update tablettools
             }
 
-            if (m_propsTripped & REFRESH_SCREEN_SHADER)
+            if (m_propsTripped & REFRESH_SCREEN_SHADER) {
                 g_pHyprRenderer->m_reloadScreenShader = true;
+                for (auto const& m : g_pCompositor->m_monitors) {
+                    if (!m)
+                        continue;
+
+                    m->m_forceFullFrames = 2;
+                    g_pCompositor->scheduleFrameForMonitor(m);
+                }
+            }
 
             if (m_propsTripped & REFRESH_BLUR_FB) {
                 for (auto const& m : g_pCompositor->m_monitors) {

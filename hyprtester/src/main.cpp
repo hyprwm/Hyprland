@@ -48,9 +48,10 @@ using Path = std::filesystem::path;
 
 namespace {
     struct SSettings {
-        Path configPath;
-        Path binaryPath;
-        Path pluginPath;
+        Path                     configPath;
+        Path                     binaryPath;
+        Path                     pluginPath;
+        std::vector<std::string> requestedTests;
     };
 
     struct STestsInfo {
@@ -79,10 +80,11 @@ static bool hyprlandAlive() {
 [[noreturn]] static void helpAndDie(int exit_code) {
     NLog::log("usage: hyprtester [arg [...]].\n");
     NLog::log(R"(Arguments:
-    --help              -h       - Show this message again
-    --config FILE       -c FILE  - Specify config file to use (default: './test.lua')
-    --binary FILE       -b FILE  - Specify Hyprland binary to use (default: '../build/Hyprland')
-    --plugin FILE       -p FILE  - Specify the location of the test plugin (default: './'))");
+    --help              -h         - Show this message again
+    --config FILE       -c FILE    - Specify config file to use (default: './test.lua')
+    --binary FILE       -b FILE    - Specify Hyprland binary to use (default: '../build/Hyprland')
+    --plugin FILE       -p FILE    - Specify the location of the test plugin (default: './')
+    --test [tests]      -t [tests] - Specify list of tests to run (separated by spaces))");
 
     std::exit(exit_code);
 }
@@ -102,9 +104,16 @@ static Path validatePathOrDie(Path path) {
 static SSettings parseSettings(const std::span<const char*> args) {
     static const auto cwd = std::filesystem::current_path();
     SSettings         settings{};
+    bool              testSetOn = false;
 
     for (auto it = args.begin(); it < args.end(); it++) {
         std::string_view value = *it;
+
+        if (testSetOn && !value.starts_with("-")) {
+            settings.requestedTests.emplace_back(value);
+            continue;
+        } else
+            testSetOn = false;
 
         if (value == "--config" || value == "-c") {
             if (std::next(it) == args.end()) {
@@ -127,6 +136,11 @@ static SSettings parseSettings(const std::span<const char*> args) {
 
             settings.pluginPath = validatePathOrDie(*std::next(it));
             it++;
+        } else if (value == "--test" || value == "-t") {
+            if (std::next(it) == args.end())
+                helpAndDie(EXIT_FAILURE);
+
+            testSetOn = true;
         } else if (value == "--help" || value == "-h") {
             helpAndDie(EXIT_SUCCESS);
         } else {
@@ -175,7 +189,7 @@ static bool preTestCleanup() {
     return !failed;
 }
 
-static void runTests(std::map<const char*, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
+static void runTests(std::map<std::string, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
     for (auto& [name, tc] : testCases) {
         // Clean up before every test
         NLog::info("Cleaning up");
@@ -197,10 +211,43 @@ static void runTests(std::map<const char*, CTestCase&>& testCases, std::string s
     testsInfo.total += testCases.size();
 }
 
+static bool quitTests(STestsInfo tInfo) {
+    NLog::info("dispatching exit");
+    getFromSocket("/dispatch hl.dsp.exit()");
+
+    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failed, Colors::RESET, tInfo.total);
+    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failed, Colors::RESET, tInfo.total);
+    if (!tInfo.failedNames.empty()) {
+        NLog::log("{}Failed tests:", Colors::RED);
+        for (const auto& name : tInfo.failedNames) {
+            NLog::log("{}\t- {}", Colors::RED, name);
+        }
+    }
+
+    kill(hyprlandProc->pid(), SIGKILL);
+    hyprlandProc.reset();
+
+    return tInfo.failed > 0;
+}
+
 int main(int argc, char** argv, char** envp) {
 
-    std::span<const char*> args{const_cast<const char**>(argv + 1), sc<std::size_t>(argc - 1)};
-    const SSettings        settings = parseSettings(args);
+    std::span<const char*>            args{const_cast<const char**>(argv + 1), sc<std::size_t>(argc - 1)};
+    const SSettings                   settings = parseSettings(args);
+
+    std::map<std::string, CTestCase&> tempTestList;
+    for (auto& test : settings.requestedTests) {
+        if (mainTestCases.contains(test)) {
+            tempTestList.emplace(test, mainTestCases.at(test));
+            continue;
+        } else if (clientTestCases.contains(test)) {
+            tempTestList.emplace(test, clientTestCases.at(test));
+            continue;
+        } else if (miscTestCases.contains(test)) {
+            tempTestList.emplace(test, miscTestCases.at(test));
+        } else
+            NLog::log("{}ERROR: '{}' Invalid test name", Colors::RED, test);
+    }
 
     NLog::info("launching hl");
     if (!launchHyprland(settings.configPath, settings.binaryPath)) {
@@ -241,6 +288,12 @@ int main(int argc, char** argv, char** envp) {
 
     struct STestsInfo tInfo = {0};
 
+    if (!tempTestList.empty()) {
+        runTests(tempTestList, "custom", tInfo);
+
+        std::exit(quitTests(tInfo));
+    }
+
     NLog::info("Running misc tests");
     runTests(miscTestCases, "misc", tInfo);
 
@@ -250,21 +303,5 @@ int main(int argc, char** argv, char** envp) {
     NLog::info("Running protocol client tests");
     runTests(clientTestCases, "clients", tInfo);
 
-    // kill hyprland
-    NLog::info("dispatching exit");
-    getFromSocket("/dispatch hl.dsp.exit()");
-
-    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failed, Colors::RESET, tInfo.total);
-    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failed, Colors::RESET, tInfo.total);
-    if (!tInfo.failedNames.empty()) {
-        NLog::log("{}Failed tests:", Colors::RED);
-        for (const auto& name : tInfo.failedNames) {
-            NLog::log("{}\t- {}", Colors::RED, name);
-        }
-    }
-
-    kill(hyprlandProc->pid(), SIGKILL);
-    hyprlandProc.reset();
-
-    return tInfo.failed > 0;
+    return quitTests(tInfo);
 }

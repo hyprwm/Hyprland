@@ -37,7 +37,7 @@ static int monitorToString(lua_State* L) {
 
 static int monitorSetWorkspace(lua_State* L) {
     auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
-    const auto id  = Internal::requireTableFieldWorkspaceSelector(L, 1, "workspace", "HLMonitor.set_workspace");
+    const auto id  = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
 
     if (id.empty())
         return 0;

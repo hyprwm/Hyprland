@@ -642,7 +642,7 @@ void CConfigManager::reloadRuleConfigs() {
     // FIXME: this should also remove old values if they are removed
 
     for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        m_config->addSpecialConfigValue("windowrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
+        m_config->addSpecialConfigValue("windowrule", std::string{"match:"}.append(r).c_str(), Hyprlang::STRING{""});
     }
 
     for (const auto& r : Desktop::Rule::windowEffects()->allEffectStrings()) {
@@ -650,7 +650,7 @@ void CConfigManager::reloadRuleConfigs() {
     }
 
     for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        m_config->addSpecialConfigValue("layerrule", ("match:" + r).c_str(), Hyprlang::STRING{""});
+        m_config->addSpecialConfigValue("layerrule", std::string{"match:"}.append(r).c_str(), Hyprlang::STRING{""});
     }
 
     for (const auto& r : Desktop::Rule::layerEffects()->allEffectStrings()) {
@@ -892,7 +892,7 @@ std::optional<std::string> CConfigManager::addRuleFromConfigKey(const std::strin
     SP<Desktop::Rule::CWindowRule> rule = makeShared<Desktop::Rule::CWindowRule>(name);
 
     for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        auto VAL = m_config->getSpecialConfigValuePtr("windowrule", ("match:" + r).c_str(), name.c_str());
+        auto VAL = m_config->getSpecialConfigValuePtr("windowrule", std::string{"match:"}.append(r).c_str(), name.c_str());
         if (VAL && VAL->m_bSetByUser)
             rule->registerMatch(Desktop::Rule::matchPropFromString(r).value_or(Desktop::Rule::RULE_PROP_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }
@@ -919,7 +919,7 @@ std::optional<std::string> CConfigManager::addLayerRuleFromConfigKey(const std::
     SP<Desktop::Rule::CLayerRule> rule = makeShared<Desktop::Rule::CLayerRule>(name);
 
     for (const auto& r : Desktop::Rule::allMatchPropStrings()) {
-        auto VAL = m_config->getSpecialConfigValuePtr("layerrule", ("match:" + r).c_str(), name.c_str());
+        auto VAL = m_config->getSpecialConfigValuePtr("layerrule", std::string{"match:"}.append(r).c_str(), name.c_str());
         if (VAL && VAL->m_bSetByUser)
             rule->registerMatch(Desktop::Rule::matchPropFromString(r).value_or(Desktop::Rule::RULE_PROP_NONE), std::any_cast<Hyprlang::STRING>(VAL->getValue()));
     }

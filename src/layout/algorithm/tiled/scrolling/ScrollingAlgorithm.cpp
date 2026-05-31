@@ -450,16 +450,8 @@ void SScrollingData::recalculate(bool forceInstant) {
     auto* const       PGAPSIN       = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
     const auto        GAPSIN        = (WORKSPACERULE && WORKSPACERULE->m_gapsIn.has_value()) ? WORKSPACERULE->m_gapsIn.value() : *PGAPSIN;
 
-    bool              anyFullscreenCovers = false;
-    for (const auto& COL : columns) {
-        if (algorithm->fullscreenTargetDataForColumn(COL) && (algorithm->fullscreenColumnCoversMonitor(COL) || algorithm->fullscreenColumnCoversWorkArea(COL))) {
-            anyFullscreenCovers = true;
-            break;
-        }
-    }
 
     controller->setDirection(algorithm->getDynamicDirection());
-    algorithm->updateFullscreenFade(anyFullscreenCovers);
 
     const auto targetBoxWithGaps = [&](const CBox& logical, size_t colIdx, size_t targetIdx, bool fullscreenOrHidden) -> STargetBox {
         if (fullscreenOrHidden)
@@ -554,8 +546,45 @@ void SScrollingData::recalculate(bool forceInstant) {
                 TARGET->target->warpPositionSize();
         }
     }
+
+    const bool WORKSPACEFULLSCREENSTATECHANGED = WORKSPACE->m_hasFullscreenWindow != targetWorkspaceHasFullscreen;
+
     WORKSPACE->m_hasFullscreenWindow = targetWorkspaceHasFullscreen;
     WORKSPACE->m_fullscreenMode = targetWorkspaceFullscreenMode;
+
+    bool              anyFullscreenCovers = false;
+    for (const auto& COL : columns) {
+        if (algorithm->fullscreenTargetDataForColumn(COL) && (algorithm->fullscreenColumnCoversMonitor(COL) || algorithm->fullscreenColumnCoversWorkArea(COL))) {
+            anyFullscreenCovers = true;
+            break;
+        }
+    }
+
+    algorithm->updateFullscreenFade(anyFullscreenCovers);
+
+    // After the workspace's state is updated, we must update the input state of the window
+    if (WORKSPACEFULLSCREENSTATECHANGED) {
+
+        const auto FULLSCREENWINDOW = WORKSPACE->getFullscreenWindow();
+
+        // make all windows and layers on the same workspace under the fullscreen window
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (w->m_workspace == WORKSPACE) {
+                if (!w != FULLSCREENWINDOW && !w->m_fadingOut && !w->m_pinned)
+                    w->m_createdOverFullscreen = false;
+
+                w->updateFullscreenInputState();
+            }
+        }
+
+        for (auto const& ls : g_pCompositor->m_layers) {
+            if (ls->m_monitor == WORKSPACE->m_monitor)
+                ls->m_aboveFullscreen = false;
+        }
+    }
+
+
+
 
     // Every time m_hasFullscreenWindow is true, that means that an FS window is currently taking up the entire monitor/work area.
     // We use that as the flag for determining if Direct Scanout should be enablad now or not

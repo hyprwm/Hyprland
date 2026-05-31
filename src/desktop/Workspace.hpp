@@ -80,7 +80,7 @@ class CWorkspace {
     void        updateWindows();
     void        setPersistent(bool persistent);
     bool        isPersistent();
-    void        setNoMembersAboveFullscreen(PHLWINDOW fullscreenWindow = nullptr);
+    void        setNoMembersAboveFullscreen();
 
     struct {
         CSignalT<> destroy;

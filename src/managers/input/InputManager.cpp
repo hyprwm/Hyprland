@@ -91,6 +91,19 @@ CInputManager::CInputManager() {
 
     m_listeners.setCursor = g_pSeatManager->m_events.setCursor.listen([this](const auto& event) { processMouseRequest(event); });
 
+    m_listeners.pointerFocusChange = g_pSeatManager->m_events.pointerFocusChange.listen([this] {
+        if (g_pSeatManager->m_state.pointerFocus)
+            return;
+
+        m_cursorSurfaceInfo.wlSurface->unassign();
+        m_cursorSurfaceInfo.vHotspot = {};
+        m_cursorSurfaceInfo.name     = "left_ptr";
+        m_cursorSurfaceInfo.hidden   = false;
+
+        if (cursorImageUnlocked())
+            g_pHyprRenderer->setCursorFromName(m_cursorSurfaceInfo.name);
+    });
+
     m_listeners.overrideChanged = Cursor::overrideController->m_events.overrideChanged.listen([this](const std::string& shape) {
         if (shape.empty()) {
             m_cursorImageOverridden = false;

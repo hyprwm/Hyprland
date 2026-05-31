@@ -805,7 +805,8 @@ void CScrollingAlgorithm::removeTarget(SP<ITarget> target) {
     if (!DATA)
         return;
 
-    clearFullscreenTarget((target->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), target);
+    // remove the FS state of a tiled window when it is being floated
+    g_pCompositor->setWindowFullscreenInternal(target->window(), FSMODE_NONE);
 
     if (!m_scrollingData->next(DATA->column.lock()) && DATA->column->targetDatas.size() <= 1) {
         // move the view if this is the last column
@@ -1245,10 +1246,6 @@ bool CScrollingAlgorithm::fullscreenColumnCoversWorkArea(SP<SColumnData> col) co
 }
 
 void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {
-    if (m_lastFullscreenCover == coversMonitor)
-        return;
-
-    m_lastFullscreenCover = coversMonitor;
 
     if (!coversMonitor) {
         // prevent stuck focus

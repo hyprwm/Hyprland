@@ -7,7 +7,6 @@
 #include "../../ConfigValue.hpp"
 #include "../../ConfigManager.hpp"
 #include <ranges>
-#include <fcntl.h>
 #include <unistd.h>
 #include <filesystem>
 
@@ -19,17 +18,9 @@ UP<CConfigWatcher>& Config::watcher() {
     return p;
 }
 
-CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init()) {
+CConfigWatcher::CConfigWatcher() : m_inotifyFd(inotify_init1(IN_NONBLOCK | IN_CLOEXEC)) {
     if (!m_inotifyFd.isValid()) {
         Log::logger->log(Log::ERR, "CConfigWatcher couldn't open an inotify node. Config will not be automatically reloaded");
-        return;
-    }
-
-    // TODO: make CFileDescriptor take F_GETFL, F_SETFL
-    const int FLAGS = fcntl(m_inotifyFd.get(), F_GETFL, 0);
-    if (fcntl(m_inotifyFd.get(), F_SETFL, FLAGS | O_NONBLOCK | O_CLOEXEC) < 0) {
-        Log::logger->log(Log::ERR, "CConfigWatcher couldn't non-block inotify node. Config will not be automatically reloaded");
-        m_inotifyFd.reset();
         return;
     }
 }

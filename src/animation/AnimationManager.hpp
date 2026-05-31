@@ -17,6 +17,7 @@ namespace Animation {
 
         void         tick();
         void         frameTick();
+        void         requestTick();
         virtual void scheduleTick();
         virtual void onTicked();
 
@@ -58,6 +59,7 @@ namespace Animation {
 
       private:
         bool   m_tickScheduled = false;
+        bool   m_manualTickRequested = false;
         bool   m_lastTickValid = false;
         CTimer m_lastTickTimer;
     };

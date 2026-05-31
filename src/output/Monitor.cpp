@@ -2667,11 +2667,11 @@ bool CMonitorState::test() {
     return m_owner->m_output->test();
 }
 
-bool CMonitorState::updateSwapchain() {
+bool CMonitorState::updateSwapchain(SP<Aquamarine::CSwapchain> swapchain) {
     if (!m_owner->m_output)
         return false;
 
-    const auto& OPTIONS = m_owner->m_output->swapchain->currentOptions();
+    const auto& OPTIONS = swapchain->currentOptions();
     const auto& STATE   = m_owner->m_output->state->state();
     const auto& MODE    = STATE.mode ? STATE.mode : STATE.customMode;
     if (!MODE) {
@@ -2687,8 +2687,16 @@ bool CMonitorState::updateSwapchain() {
     options.scanout = true;
     options.length  = 3;
     options.size    = MODE->pixelSize;
-    return m_owner->m_output->swapchain->reconfigure(options);
+    return swapchain->reconfigure(options);
 }
+
+bool CMonitorState::updateSwapchain() {
+    if (!m_owner->m_output)
+        return false;
+
+    return updateSwapchain(m_owner->m_output->swapchain);
+}
+
 void CMonitorState::applyModeWithSwapchain(const SP<Aquamarine::SOutputMode>& mode) {
     m_owner->m_output->state->setMode(mode);
     updateSwapchain();

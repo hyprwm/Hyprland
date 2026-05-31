@@ -584,7 +584,7 @@ void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> e
         return;
 
     SMotionBlurData motionBlur = element->m_data.motionBlur;
-    CBox            currentBox = element->m_data.currentBox.copy().scale(pMonitor->m_scale).round();
+    CBox            currentBox = element->m_data.currentBox.copy().round();
     CBox            outputBox  = currentBox;
 
     if (motionBlur.enabled) {

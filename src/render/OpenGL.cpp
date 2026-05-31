@@ -1596,6 +1596,77 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     tex->unbind();
 }
 
+void CHyprOpenGLImpl::renderTextureMesh(SP<ITexture> tex, const CBox& box, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data) {
+    RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture mesh without begin()!");
+    RASSERT(tex, "Attempted to draw nullptr texture mesh!");
+    RASSERT(tex->ok(), "Attempted to draw invalid texture mesh!");
+
+    if (!data.damage || data.damage->empty() || vertices.empty())
+        return;
+
+    CBox newBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+
+    const auto                  MONITOR_INVERTED = Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprRenderer->m_renderData.pMonitor->m_transform));
+    Hyprutils::Math::eTransform TRANSFORM        = tex->m_transform;
+
+    if (g_pHyprRenderer->monitorTransformEnabled())
+        TRANSFORM = Math::composeTransform(MONITOR_INVERTED, TRANSFORM);
+
+    const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM);
+
+    glActiveTexture(GL_TEXTURE0);
+    tex->bind();
+
+    tex->setTexParameter(GL_TEXTURE_WRAP_S, wrapModeToGl(data.wrapX));
+    tex->setTexParameter(GL_TEXTURE_WRAP_T, wrapModeToGl(data.wrapY));
+
+    if (g_pHyprRenderer->m_renderData.useNearestNeighbor) {
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    } else {
+        tex->setTexParameter(GL_TEXTURE_MAG_FILTER, tex->magFilter);
+        tex->setTexParameter(GL_TEXTURE_MIN_FILTER, tex->minFilter);
+    }
+
+    auto shader = renderToFBInternal(tex, data, tex->m_type, newBox);
+
+    shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
+    shader->setUniformInt(SHADER_TEX, 0);
+    GLCALL(glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO)));
+    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO)));
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(SMeshRenderVertex) * vertices.size(), nullptr, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(SMeshRenderVertex) * vertices.size(), vertices.data());
+
+    if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !data.clipRegion.empty()) {
+        CRegion damageClip = g_pHyprRenderer->m_renderData.clipBox;
+
+        if (!data.clipRegion.empty()) {
+            if (g_pHyprRenderer->m_renderData.clipBox.empty())
+                damageClip = data.clipRegion;
+            else
+                damageClip.intersect(data.clipRegion);
+        }
+
+        if (!damageClip.empty()) {
+            damageClip.forEachRect([this, &vertices](const auto& RECT) {
+                scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+                glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
+            });
+        }
+    } else {
+        data.damage->forEachRect([this, &vertices](const auto& RECT) {
+            scissor(&RECT, g_pHyprRenderer->m_renderData.transformDamage);
+            glDrawArrays(GL_TRIANGLES, 0, sc<GLsizei>(vertices.size()));
+        });
+    }
+
+    GLCALL(glBindVertexArray(0));
+    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+    tex->unbind();
+}
+
 void CHyprOpenGLImpl::renderTexturePrimitive(SP<ITexture> tex, const CBox& box) {
     RASSERT(g_pHyprRenderer->m_renderData.pMonitor, "Tried to render texture without begin()!");
     RASSERT((tex->ok()), "Attempted to draw nullptr texture!");
@@ -1994,7 +2065,8 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
 
     static auto PBLEND        = CConfigValue<Config::INTEGER>("render:use_shader_blur_blend");
     const auto  NEEDS_STENCIL = data.discardMode != 0 && (!data.blockBlurOptimization || (data.discardMode & DISCARD_ALPHA));
-    if (!*PBLEND) {
+    const bool  SHADERBLEND   = *PBLEND || data.forceBlurBlend;
+    if (!SHADERBLEND) {
 
         if (NEEDS_STENCIL) {
             scissor(nullptr); // allow the entire window and stencil to render
@@ -2095,14 +2167,14 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     // draw window
     renderTextureInternal(tex, box,
                           STextureRenderData{
-                              .blur           = *PBLEND,
+                              .blur           = SHADERBLEND,
                               .blurredBG      = data.blurredBG,
                               .blurAlphaMatte = data.blurAlphaMatte,
                               .damage         = data.damage,
                               .a              = data.a * data.overallA,
                               .round          = data.round,
                               .roundingPower  = data.roundingPower,
-                              .discardActive  = *PBLEND && NEEDS_STENCIL,
+                              .discardActive  = SHADERBLEND && NEEDS_STENCIL,
                               .allowCustomUV  = true,
                               .allowDim       = true,
                               .noAA           = false,
@@ -2131,8 +2203,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     if (g_pHyprRenderer->m_renderData.damage.empty())
         return;
 
-    CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    CBox innerBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(innerBox);
 
     if (data.borderSize < 1)
         return;
@@ -2141,6 +2213,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->m_renderData.renderModif.combinedScale());
 
     // adjust box
+    CBox newBox = innerBox;
     newBox.x -= scaledBorderSize;
     newBox.y -= scaledBorderSize;
     newBox.width += 2 * scaledBorderSize;
@@ -2190,7 +2263,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = g_pHyprRenderer->m_renderData.damage.copy().intersect(newBox);
-    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
 
     if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0)
         borderRegion.intersect(g_pHyprRenderer->m_renderData.clipBox);
@@ -2217,8 +2290,8 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     if (g_pHyprRenderer->m_renderData.damage.empty())
         return;
 
-    CBox newBox = box;
-    g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
+    CBox innerBox = box;
+    g_pHyprRenderer->m_renderData.renderModif.applyToBox(innerBox);
 
     if (data.borderSize < 1)
         return;
@@ -2227,6 +2300,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     scaledBorderSize     = std::round(scaledBorderSize * g_pHyprRenderer->m_renderData.renderModif.combinedScale());
 
     // adjust box
+    CBox newBox = innerBox;
     newBox.x -= scaledBorderSize;
     newBox.y -= scaledBorderSize;
     newBox.width += 2 * scaledBorderSize;
@@ -2279,7 +2353,7 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     // calculate the border's region, which we need to render over. No need to run the shader on
     // things outside there
     CRegion borderRegion = g_pHyprRenderer->m_renderData.damage.copy().intersect(newBox);
-    borderRegion.subtract(box.copy().expand(-scaledBorderSize - round));
+    borderRegion.subtract(innerBox.copy().expand(-scaledBorderSize - round));
 
     if (g_pHyprRenderer->m_renderData.clipBox.width != 0 && g_pHyprRenderer->m_renderData.clipBox.height != 0)
         borderRegion.intersect(g_pHyprRenderer->m_renderData.clipBox);

@@ -1746,6 +1746,7 @@ bool IHyprRenderer::beginRender(PHLMONITOR pMonitor, CRegion& damage, eRenderMod
                 return false;
             } else
                 Log::logger->log(Log::TRACE, "Got overlay swapchain for {}, plane id={}", pMonitor->m_name, plane->id);
+            pMonitor->m_state.updateSwapchain(plane->swapchain);
             m_currentBuffer = plane->swapchain->next(&bufferAge);
         } else
             m_currentBuffer = pMonitor->m_output->swapchain->next(&bufferAge);

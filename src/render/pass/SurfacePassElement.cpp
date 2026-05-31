@@ -92,7 +92,7 @@ bool CSurfacePassElement::needsLiveBlur() {
 
     const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
-    return BLUR && !NEWOPTIM;
+    return BLUR && (m_data.blockBlurOptimization || !NEWOPTIM);
 }
 
 bool CSurfacePassElement::needsPrecomputeBlur() {
@@ -109,7 +109,7 @@ bool CSurfacePassElement::needsPrecomputeBlur() {
 
     const bool NEWOPTIM = g_pHyprRenderer->shouldUseNewBlurOptimizations(m_data.pLS, m_data.pWindow);
 
-    return BLUR && NEWOPTIM;
+    return BLUR && NEWOPTIM && !m_data.blockBlurOptimization;
 }
 
 std::optional<CBox> CSurfacePassElement::boundingBox() {

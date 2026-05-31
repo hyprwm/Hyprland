@@ -11,7 +11,7 @@
 #include "../../macros.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/decorations/IHyprWindowDecoration.hpp"
-#include "../../render/Transformer.hpp"
+#include "../../render/transformer/Transformer.hpp"
 #include "../DesktopTypes.hpp"
 #include "../types/MultiAnimatedVariable.hpp"
 #include "Popup.hpp"
@@ -24,8 +24,6 @@
 
 class CXDGSurfaceResource;
 class CXWaylandSurface;
-class IWindowTransformer;
-
 namespace Config {
     class CWorkspaceRule;
 }
@@ -244,7 +242,7 @@ namespace Desktop::View {
         UP<Desktop::Rule::CWindowRuleApplicator> m_ruleApplicator;
 
         // Transformers
-        std::vector<UP<IWindowTransformer>> m_transformers;
+        std::vector<UP<Render::IWindowTransformer>> m_transformers;
 
         // animated shadow color
         PHLANIMVAR<CHyprColor> m_realShadowColor;
@@ -299,113 +297,117 @@ namespace Desktop::View {
         }
 
         // methods
-        CBox                       getFullWindowBoundingBox() const;
-        SBoxExtents                getFullWindowExtents() const;
-        CBox                       getWindowBoxUnified(uint64_t props);
-        SBoxExtents                getWindowExtentsUnified(uint64_t props);
-        CBox                       getWindowIdealBoundingBoxIgnoreReserved();
-        void                       addWindowDeco(UP<IHyprWindowDecoration> deco);
-        void                       updateWindowDecos();
-        void                       removeWindowDeco(IHyprWindowDecoration* deco);
-        void                       uncacheWindowDecos();
-        bool                       checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
-        pid_t                      getPID();
-        IHyprWindowDecoration*     getDecorationByType(eDecorationType);
-        void                       updateToplevel();
-        void                       updateSurfaceScaleTransformDetails(bool force = false);
-        void                       moveToWorkspace(PHLWORKSPACE);
-        PHLWINDOW                  x11TransientFor();
-        void                       onUnmap();
-        void                       onMap();
-        void                       setHidden(bool hidden);
-        bool                       isHidden() const;
-        void                       setInputBlocked(eWindowInputBlockReason reason, bool blocked);
-        bool                       isInputBlocked() const;
-        bool                       isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
-        bool                       isInputBlockedOnly(eWindowInputBlockReason reason) const;
-        bool                       acceptsInput() const;
-        bool                       isAllowedOverFullscreen() const;
-        bool                       isBlockedByFullscreen() const;
-        bool                       isFadingOutUnderFullscreen() const;
-        bool                       shouldRenderOverFullscreen() const;
-        void                       updateFullscreenInputState();
-        PHLANIMVAR<float>&         alpha(eWindowAlpha type);
-        const PHLANIMVAR<float>&   alpha(eWindowAlpha type) const;
-        float                      alphaValue(eWindowAlpha type) const;
-        float                      alphaGoal(eWindowAlpha type) const;
-        float                      alphaTotal() const;
-        float                      alphaTotalGoal() const;
-        float                      alphaTotalWithout(eWindowAlpha type) const;
-        float                      effectiveAlpha() const;
-        bool                       visibleByAlpha() const;
-        bool                       visibleByAlphaGoal() const;
-        bool                       targetVisible() const;
-        void                       updateDecorationValues();
-        SBoxExtents                getFullWindowReservedArea();
-        Vector2D                   middle();
-        bool                       opaque();
-        float                      rounding();
-        float                      roundingPower();
-        bool                       canBeTorn();
-        void                       setSuspended(bool suspend);
-        bool                       visibleOnMonitor(PHLMONITOR pMonitor);
-        WORKSPACEID                workspaceID();
-        MONITORID                  monitorID();
-        bool                       onSpecialWorkspace();
-        void                       activate(bool force = false);
-        int                        surfacesCount();
-        bool                       clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                       isFullscreen() const;
-        bool                       isEffectiveInternalFSMode(const eFullscreenMode) const;
-        int                        getRealBorderSize() const;
-        float                      getScrollMouse();
-        float                      getScrollTouchpad();
-        bool                       isScrollMouseOverridden();
-        bool                       isScrollTouchpadOverridden();
-        void                       updateWindowData();
-        void                       updateWindowData(const Config::CWorkspaceRule&);
-        void                       onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
-        bool                       isInCurvedCorner(double x, double y);
-        bool                       hasPopupAt(const Vector2D& pos);
-        int                        popupsCount();
-        void                       setAnimationsToMove();
-        void                       onWorkspaceAnimUpdate();
-        void                       onFocusAnimUpdate();
-        void                       onUpdateState();
-        void                       onUpdateMeta();
-        void                       onX11ConfigureRequest(CBox box);
-        void                       onResourceChangeX11();
-        std::string                fetchTitle();
-        std::string                fetchClass();
-        void                       warpCursor(bool force = false);
-        PHLWINDOW                  getSwallower();
-        bool                       isX11OverrideRedirect();
-        bool                       isModal();
-        Vector2D                   realToReportSize();
-        Vector2D                   realToReportPosition();
-        Vector2D                   xwaylandSizeToReal(Vector2D size);
-        Vector2D                   xwaylandPositionToReal(Vector2D size);
-        void                       updateX11SurfaceScale();
-        void                       sendWindowSize(bool force = false);
-        NContentType::eContentType getContentType();
-        void                       setContentType(NContentType::eContentType contentType);
-        void                       deactivateGroupMembers();
-        bool                       isNotResponding();
-        std::optional<std::string> xdgTag();
-        std::optional<std::string> xdgDescription();
-        PHLWINDOW                  parent();
-        bool                       priorityFocus();
-        SP<CWLSurfaceResource>     getSolitaryResource();
-        Vector2D                   getReportedSize();
-        std::optional<Vector2D>    calculateExpression(const std::string& s);
-        std::optional<Vector2D>    calculateExpression(const Math::SExpressionVec2& expr);
-        std::optional<Vector2D>    minSize();
-        std::optional<Vector2D>    maxSize();
-        SP<Layout::ITarget>        layoutTarget();
-        bool                       canBeGroupedInto(SP<CGroup> group);
-        void                       sendClose();
+        CBox                              getFullWindowBoundingBox() const;
+        SBoxExtents                       getFullWindowExtents() const;
+        CBox                              getWindowBoxUnified(uint64_t props);
+        SBoxExtents                       getWindowExtentsUnified(uint64_t props);
+        CBox                              getWindowIdealBoundingBoxIgnoreReserved();
+        void                              addWindowDeco(UP<IHyprWindowDecoration> deco);
+        void                              updateWindowDecos();
+        void                              removeWindowDeco(IHyprWindowDecoration* deco);
+        void                              uncacheWindowDecos();
+        bool                              checkInputOnDecos(const eInputType, const Vector2D&, std::any = {});
+        pid_t                             getPID();
+        IHyprWindowDecoration*            getDecorationByType(eDecorationType);
+        void                              updateToplevel();
+        void                              updateSurfaceScaleTransformDetails(bool force = false);
+        void                              moveToWorkspace(PHLWORKSPACE);
+        PHLWINDOW                         x11TransientFor();
+        void                              onUnmap();
+        void                              onMap();
+        void                              setHidden(bool hidden);
+        bool                              isHidden() const;
+        void                              setInputBlocked(eWindowInputBlockReason reason, bool blocked);
+        bool                              isInputBlocked() const;
+        bool                              isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const;
+        bool                              isInputBlockedOnly(eWindowInputBlockReason reason) const;
+        bool                              acceptsInput() const;
+        bool                              isAllowedOverFullscreen() const;
+        bool                              isBlockedByFullscreen() const;
+        bool                              isFadingOutUnderFullscreen() const;
+        bool                              shouldRenderOverFullscreen() const;
+        void                              updateFullscreenInputState();
+        PHLANIMVAR<float>&                alpha(eWindowAlpha type);
+        const PHLANIMVAR<float>&          alpha(eWindowAlpha type) const;
+        float                             alphaValue(eWindowAlpha type) const;
+        float                             alphaGoal(eWindowAlpha type) const;
+        float                             alphaTotal() const;
+        float                             alphaTotalGoal() const;
+        float                             alphaTotalWithout(eWindowAlpha type) const;
+        float                             effectiveAlpha() const;
+        bool                              visibleByAlpha() const;
+        bool                              visibleByAlphaGoal() const;
+        bool                              targetVisible() const;
+        void                              updateDecorationValues();
+        SBoxExtents                       getFullWindowReservedArea();
+        Vector2D                          middle();
+        bool                              opaque();
+        float                             rounding();
+        float                             roundingPower();
+        bool                              canBeTorn();
+        void                              setSuspended(bool suspend);
+        bool                              visibleOnMonitor(PHLMONITOR pMonitor);
+        WORKSPACEID                       workspaceID();
+        MONITORID                         monitorID();
+        bool                              onSpecialWorkspace();
+        void                              activate(bool force = false);
+        int                               surfacesCount();
+        bool                              clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
+        bool                              isFullscreen() const;
+        bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
+        int                               getRealBorderSize() const;
+        float                             getScrollMouse();
+        float                             getScrollTouchpad();
+        bool                              isScrollMouseOverridden();
+        bool                              isScrollTouchpadOverridden();
+        void                              updateWindowData();
+        void                              updateWindowData(const Config::CWorkspaceRule&);
+        void                              onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        bool                              isInCurvedCorner(double x, double y);
+        bool                              hasPopupAt(const Vector2D& pos);
+        int                               popupsCount();
+        void                              setAnimationsToMove();
+        void                              onWorkspaceAnimUpdate();
+        void                              onFocusAnimUpdate();
+        std::optional<MotionBlur::SState> motionBlurState(bool allowStale = false) const;
+        void                              damageMotionBlur(bool allowStale = false) const;
+        void                              recordMotionBlur(const CBox& previous, const CBox& current);
+        void                              resetMotionBlur();
+        void                              onUpdateState();
+        void                              onUpdateMeta();
+        void                              onX11ConfigureRequest(CBox box);
+        void                              onResourceChangeX11();
+        std::string                       fetchTitle();
+        std::string                       fetchClass();
+        void                              warpCursor(bool force = false);
+        PHLWINDOW                         getSwallower();
+        bool                              isX11OverrideRedirect();
+        bool                              isModal();
+        Vector2D                          realToReportSize();
+        Vector2D                          realToReportPosition();
+        Vector2D                          xwaylandSizeToReal(Vector2D size);
+        Vector2D                          xwaylandPositionToReal(Vector2D size);
+        void                              updateX11SurfaceScale();
+        void                              sendWindowSize(bool force = false);
+        NContentType::eContentType        getContentType();
+        void                              setContentType(NContentType::eContentType contentType);
+        void                              deactivateGroupMembers();
+        bool                              isNotResponding();
+        std::optional<std::string>        xdgTag();
+        std::optional<std::string>        xdgDescription();
+        PHLWINDOW                         parent();
+        bool                              priorityFocus();
+        SP<CWLSurfaceResource>            getSolitaryResource();
+        Vector2D                          getReportedSize();
+        std::optional<Vector2D>           calculateExpression(const std::string& s);
+        std::optional<Vector2D>           calculateExpression(const Math::SExpressionVec2& expr);
+        std::optional<Vector2D>           minSize();
+        std::optional<Vector2D>           maxSize();
+        SP<Layout::ITarget>               layoutTarget();
+        bool                              canBeGroupedInto(SP<CGroup> group);
+        void                              sendClose();
 
-        CBox                       getWindowMainSurfaceBox() const {
+        CBox                              getWindowMainSurfaceBox() const {
             return {m_realPosition->value().x, m_realPosition->value().y, m_realSize->value().x, m_realSize->value().y};
         }
 

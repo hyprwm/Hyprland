@@ -157,10 +157,12 @@ namespace Render::GL {
         };
 
         struct STextureRenderData {
-            bool                   blur  = false;
+            bool                   blur           = false;
+            bool                   forceBlurBlend = false;
             float                  blurA = 1.F, overallA = 1.F;
             bool                   blockBlurOptimization = false;
             SP<ITexture>           blurredBG;
+            SP<ITexture>           blurAlphaMatte;
 
             const CRegion*         damage        = nullptr;
             SP<CWLSurfaceResource> surface       = nullptr;
@@ -183,6 +185,8 @@ namespace Render::GL {
 
             Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
             Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
+
+            SMotionBlurData        motionBlur;
         };
 
         struct SBorderRenderData {

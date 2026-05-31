@@ -537,6 +537,20 @@ void IHyprRenderer::bindBackOnMain() {
     bindFB(m_renderData.mainFB);
 }
 
+void IHyprRenderer::addPassElement(UP<IPassElement>&& element) {
+    currentPass().add(std::move(element));
+}
+
+CRenderPass& IHyprRenderer::currentPass() {
+    return m_currentPass ? *m_currentPass : m_renderPass;
+}
+
+UP<CScopeGuard> IHyprRenderer::redirectPass(CRenderPass* pass) {
+    const auto oldPass = m_currentPass;
+    m_currentPass      = pass;
+    return makeUnique<CScopeGuard>([this, oldPass] { m_currentPass = oldPass; });
+}
+
 void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
     if (pWindow->isHidden() && !standalone)
         return;
@@ -619,7 +633,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         CRectPassElement::SRectData data;
         data.color = CHyprColor(0, 0, 0, *PDIMAROUND * fullAlpha);
         data.box   = monbox;
-        m_renderPass.add(makeUnique<CRectPassElement>(data));
+        addPassElement(makeUnique<CRectPassElement>(data));
     }
 
     renderdata.pos.x += pWindow->m_floatingOffset.x;
@@ -635,10 +649,15 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
     // render window decorations first, if not fullscreen full
     if (mode == RENDER_PASS_ALL || mode == RENDER_PASS_MAIN) {
 
-        const bool TRANSFORMERSPRESENT = !pWindow->m_transformers.empty();
+        const bool      TRANSFORMEDWINDOW = !pWindow->m_transformers.empty();
+        UP<CRenderPass> transformedPass;
+        UP<CScopeGuard> passRedirect;
+        const bool      windowBlur = renderdata.blur;
 
-        if (TRANSFORMERSPRESENT) {
-            bindOffMain();
+        if (TRANSFORMEDWINDOW) {
+            transformedPass = makeUnique<CRenderPass>();
+            passRedirect    = redirectPass(transformedPass.get());
+            renderdata.blur = false;
 
             for (auto const& t : pWindow->m_transformers) {
                 t->preWindowRender(&renderdata);
@@ -665,7 +684,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
         if ((pWindow->m_isX11 && *PXWLUSENN) || pWindow->m_ruleApplicator->nearestNeighbor().valueOrDefault())
             renderdata.useNearestNeighbor = true;
 
-        if (pWindow->wlSurface()->small() && !pWindow->wlSurface()->m_fillIgnoreSmall && renderdata.blur) {
+        if (!TRANSFORMEDWINDOW && pWindow->wlSurface()->small() && !pWindow->wlSurface()->m_fillIgnoreSmall && renderdata.blur) {
             CBox wb = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
             wb.scale(pMonitor->m_scale).round();
             CRectPassElement::SRectData data;
@@ -675,7 +694,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             data.blur  = true;
             data.blurA = renderdata.fadeAlpha;
             data.xray  = shouldUseNewBlurOptimizations(nullptr, pWindow);
-            m_renderPass.add(makeUnique<CRectPassElement>(data));
+            addPassElement(makeUnique<CRectPassElement>(data));
             renderdata.blur = false;
         }
 
@@ -692,7 +711,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 renderdata.texture     = s->m_current.texture;
                 renderdata.surface     = s;
                 renderdata.mainSurface = s == pWindow->wlSurface()->resource();
-                m_renderPass.add(makeUnique<CSurfacePassElement>(renderdata));
+                addPassElement(makeUnique<CSurfacePassElement>(renderdata));
                 renderdata.surfaceCounter++;
             },
             nullptr);
@@ -708,14 +727,35 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             }
         }
 
-        if (TRANSFORMERSPRESENT) {
-            SP<IFramebuffer> last = m_renderData.currentFB;
-            for (auto const& t : pWindow->m_transformers) {
-                last = t->transform(last);
+        if (TRANSFORMEDWINDOW) {
+            passRedirect.reset();
+
+            CBox currentBox = pWindow->getFullWindowBoundingBox();
+            currentBox.translate((pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value()) + pWindow->m_floatingOffset - pMonitor->m_position);
+
+            SMotionBlurData windowMotionBlur;
+            if (!standalone && !m_bRenderingSnapshot) {
+                for (auto const& t : pWindow->m_transformers) {
+                    t->amendTransformedRenderData(currentBox, &windowMotionBlur);
+                }
             }
 
-            bindBackOnMain();
-            renderOffToMain(last);
+            CBox blurBox = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
+            blurBox.scale(pMonitor->m_scale).round();
+
+            addPassElement(makeUnique<CTransformedWindowPassElement>(CTransformedWindowPassElement::SData{
+                .pass              = std::move(transformedPass),
+                .window            = pWindow,
+                .currentBox        = currentBox,
+                .blurBox           = blurBox,
+                .blur              = windowBlur,
+                .blurA             = renderdata.fadeAlpha,
+                .blurRound         = renderdata.dontRound ? 0 : std::max(renderdata.rounding - 1, 0),
+                .blurRoundingPower = renderdata.roundingPower,
+                .motionBlur        = windowMotionBlur,
+            }));
+
+            renderdata.blur = windowBlur;
         }
     }
 

@@ -24,4 +24,5 @@ uniform float sdrBrightnessMultiplier;
 uniform float maxLuminance;
 uniform float dstMaxLuminance;
 uniform float dstRefLuminance;
+uniform int tonemapMode;
 #endif

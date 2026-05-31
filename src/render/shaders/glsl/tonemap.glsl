@@ -41,8 +41,8 @@ const mat3 ICtCpPQInv = mat3(                                                //
 // ) / 4096.0);
 // const mat3 ICtCpHLGInv = inverse(ICtCpHLG);
 
-vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance) {
-    if (maxLuminance < dstMaxLuminance * 1.01)
+vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance, int tonemapMode) {
+    if (maxLuminance < dstMaxLuminance * 1.01 || tonemapMode == 2)
         return vec4(clamp(color.rgb, vec3(0.0), vec3(dstMaxLuminance)), color[3]);
 
     mat3  toLMS   = BT2020toLMS * dstXYZ;
@@ -54,11 +54,24 @@ vec4 tonemap(vec4 color, mat3 dstXYZ, float maxLuminance, float dstMaxLuminance,
     float E         = pow(clamp(ICtCp[0], 0.0, 1.0), PQ_INV_M2);
     float luminance = pow((max(E - PQ_C1, 0.0)) / (PQ_C2 - PQ_C3 * E), PQ_INV_M1) * HDR_MAX_LUMINANCE;
 
-    float luminanceRatio = max(luminance / dstRefLuminance, 0.0);
-    float srcScale       = maxLuminance / dstRefLuminance;
-    float dstScale       = dstMaxLuminance / dstRefLuminance;
-    float v              = (dstScale * (1.0 + srcScale) - srcScale) / pow(srcScale, 2.0);
-    float newLuminance   = (luminanceRatio * (1.0 + luminanceRatio * v) / (1.0 + luminanceRatio)) * dstRefLuminance;
+    float newLuminance;
+    if (tonemapMode == 3) {
+        // suggested by LionHeartP
+        newLuminance   = luminance;
+        float kneeRatio      = clamp(dstMaxLuminance / maxLuminance, 0.5, 0.85);
+        float knee           = dstMaxLuminance * kneeRatio;
+        if (luminance > knee) {
+            float alpha      = (maxLuminance - dstMaxLuminance) / ((maxLuminance - knee) * (dstMaxLuminance - knee));
+            newLuminance     = knee + (luminance - knee) / (1.0 + alpha * (luminance - knee));
+        }
+    }
+    else {
+        float luminanceRatio = max(luminance / dstRefLuminance, 0.0);
+        float srcScale       = maxLuminance / dstRefLuminance;
+        float dstScale       = dstMaxLuminance / dstRefLuminance;
+        float v              = (dstScale * (1.0 + srcScale) - srcScale) / pow(srcScale, 2.0);
+        newLuminance   = (luminanceRatio * (1.0 + luminanceRatio * v) / (1.0 + luminanceRatio)) * dstRefLuminance;
+    }
 
     E        = pow(clamp(newLuminance / HDR_MAX_LUMINANCE, 0.0, 1.0), PQ_M1);
     ICtCp[0] = pow((PQ_C1 + PQ_C2 * E) / (1.0 + PQ_C3 * E), PQ_M2);

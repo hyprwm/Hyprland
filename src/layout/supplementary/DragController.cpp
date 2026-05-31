@@ -372,7 +372,7 @@ void CDragStateController::mouseMove(const Vector2D& mousePos) {
     }
 
     if (TRACKMOTION)
-        MOTIONWINDOW->recordMotionBlur(previousFull, MOTIONWINDOW->getFullWindowBoundingBox());
+        MOTIONWINDOW->onPositionUpdate(previousFull, MOTIONWINDOW->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_MOUSE);
 
     // get middle point
     Vector2D middle = DRAGGINGTARGET->position().middle();

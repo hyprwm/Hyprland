@@ -102,8 +102,9 @@ namespace Render {
         PHLWINDOWREF           currentWindow;
         WP<CWLSurfaceResource> surface;
 
-        bool                   transformDamage = true;
-        bool                   noSimplify      = false;
+        bool                   transformDamage            = true;
+        bool                   noSimplify                 = false;
+        bool                   renderingTransformedSource = false;
     };
 
     struct STFRange {

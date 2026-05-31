@@ -380,18 +380,29 @@ PHLLS CPopup::layerOwner() const {
 Vector2D CPopup::coordsRelativeToParent() const {
     Vector2D offset;
 
-    if (!m_resource)
+    auto     current = m_self.lock();
+    if (!current)
         return m_lastPos;
 
-    WP<CPopup> current = m_self;
-    offset -= current->m_resource->m_surface->m_current.geometry.pos();
+    const auto RESOURCE = current->m_resource.lock();
+    const auto SURFACE  = RESOURCE ? RESOURCE->m_surface.lock() : nullptr;
+    if (!SURFACE)
+        return m_lastPos;
 
-    while (current->m_parent && current->m_resource) {
+    offset -= SURFACE->m_current.geometry.pos();
 
-        offset += current->wlSurface()->resource()->m_current.offset;
-        offset += current->m_resource->m_geometry.pos();
+    while (current->m_parent) {
+        const auto CURRENTRESOURCE = current->m_resource.lock();
+        const auto WLSURFACE       = current->resource();
+        if (!CURRENTRESOURCE || !WLSURFACE)
+            return m_lastPos;
 
-        current = current->m_parent;
+        offset += WLSURFACE->m_current.offset;
+        offset += CURRENTRESOURCE->m_geometry.pos();
+
+        current = current->m_parent.lock();
+        if (!current)
+            return m_lastPos;
     }
 
     return offset;

@@ -2454,6 +2454,9 @@ void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace
 }
 
 void IHyprRenderer::sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now) {
+    if (!pWorkspace)
+        return;
+
     for (const auto& view : Desktop::View::getViewsForWorkspace(pWorkspace)) {
         if (!view->aliveAndVisible())
             continue;

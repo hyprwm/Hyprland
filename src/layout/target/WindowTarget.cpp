@@ -103,8 +103,6 @@ void CWindowTarget::updatePos() {
     if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen())
         return;
 
-    g_pHyprRenderer->damageWindow(window());
-
     CBox nodeBox = m_box.logicalBox;
     nodeBox.round();
 

@@ -1263,8 +1263,48 @@ TEST_CASE(monitorrule) {
     OK(getFromSocket("/output remove HEADLESS-3"));
 }
 
+
+
 TEST_CASE(mouseResize) {
-    OK(getFromSocket("/dispatch hl.dsp.window.resize(nil, { mouse = true })"));
+#define RESET_WINDOW() \
+      OK(getFromSocket("r/reload")); \
+      OK(getFromSocket("r/eval hl.unbind('mouse:273')")); \
+      OK(getFromSocket("/dispatch hl.dsp.window.resize({ x = 640, y = 400, window = 'class:kitty' })")); \
+      OK(getFromSocket("/dispatch hl.dsp.window.move({ x = 0, y = 0, window = 'class:kitty' })")); \
+      OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 640, y = 400 })")); \
+      EXPECT_CONTAINS(getFromSocket("/clients"), "size: 640,400"); \
+      EXPECT_CONTAINS(getFromSocket("/clients"), "at: 0,0");
+
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty' }, float = true })"));
+    Tests::spawnKitty();
+    ASSERT(Tests::windowCount(), 1);
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty' })"));
+
+    RESET_WINDOW();
+    OK(getFromSocket("r/eval hl.bind('mouse:273', hl.dsp.window.resize(), { mouse = true })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 1)"));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 700, y = 200 })"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 700, y = 200 })")); // Socket needs a delayed second dispatch for the first time only, for some reason?
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 0)"));
+    EXPECT_CONTAINS(getFromSocket("/clients"), "size: 700,200");
+
+    RESET_WINDOW();
+    OK(getFromSocket("r/eval hl.bind('mouse:273', hl.dsp.window.resize({ keep_aspect_ratio = true }), { mouse = true })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 1)"));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 1280, y = 100 })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 0)"));
+    EXPECT_CONTAINS(getFromSocket("/clients"), "size: 1280,800");
+
+    RESET_WINDOW();
+    OK(getFromSocket("/eval hl.window_rule({ match = { class = 'kitty' }, keep_aspect_ratio = true })"));
+    OK(getFromSocket("r/eval hl.bind('mouse:273', hl.dsp.window.resize({ keep_aspect_ratio = false }), { mouse = true })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 1)"));
+    OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 700, y = 200 })"));
+    OK(getFromSocket("/eval hl.plugin.test.click(273, 0)"));
+    EXPECT_CONTAINS(getFromSocket("/clients"), "size: 700,200");
+
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ keep_aspect_ratio = true }, { mouse = true })"));
     OK(getFromSocket("/dispatch hl.dsp.window.resize({ keep_aspect_ratio = false }, { mouse = true })"));
+#undef RESET_WINDOW
 }

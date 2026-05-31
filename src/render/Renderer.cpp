@@ -649,9 +649,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
             passRedirect    = redirectPass(transformedPass.get());
             renderdata.blur = false;
 
-            for (auto const& t : pWindow->m_transformers) {
-                t->preWindowRender(&renderdata);
-            }
+            pWindow->m_transformers.preWindowRender(&renderdata);
         }
 
         if (renderdata.decorate) {
@@ -722,12 +720,11 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
 
             CBox currentBox = pWindow->getFullWindowBoundingBox();
             currentBox.translate((pWindow->m_pinned ? Vector2D{} : PWORKSPACE->m_renderOffset->value()) + pWindow->m_floatingOffset - pMonitor->m_position);
+            CBox            transformedBox = pWindow->m_transformers.transformedExtents(currentBox);
 
             SMotionBlurData windowMotionBlur;
             if (!standalone && !m_bRenderingSnapshot) {
-                for (auto const& t : pWindow->m_transformers) {
-                    t->amendTransformedRenderData(currentBox, &windowMotionBlur);
-                }
+                pWindow->m_transformers.amendTransformedRenderData(transformedBox, &windowMotionBlur);
             }
 
             CBox blurBox = {renderdata.pos.x - pMonitor->m_position.x, renderdata.pos.y - pMonitor->m_position.y, renderdata.w, renderdata.h};
@@ -743,6 +740,8 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
                 .blurRound         = renderdata.dontRound ? 0 : std::max(renderdata.rounding - 1, 0),
                 .blurRoundingPower = renderdata.roundingPower,
                 .motionBlur        = windowMotionBlur,
+                .standalone        = standalone,
+                .renderingSnapshot = m_bRenderingSnapshot,
             }));
 
             renderdata.blur = windowBlur;
@@ -2718,6 +2717,7 @@ void IHyprRenderer::damageWindow(PHLWINDOW pWindow, bool forceFull) {
     if (PWINDOWWORKSPACE && PWINDOWWORKSPACE->m_renderOffset->isBeingAnimated() && !pWindow->m_pinned)
         windowBox.translate(PWINDOWWORKSPACE->m_renderOffset->value());
     windowBox.translate(pWindow->m_floatingOffset);
+    windowBox = pWindow->m_transformers.transformBoxForDamage(windowBox);
 
     for (auto const& m : State::monitorState()->monitors()) {
         if (forceFull || shouldRenderWindow(pWindow, m)) { // only damage if window is rendered on monitor

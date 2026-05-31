@@ -16,7 +16,7 @@ std::optional<CBox> CTransformedWindowPassElement::boundingBox() {
     if (m_data.motionBlur.enabled)
         return m_data.motionBlur.extents();
 
-    return m_data.currentBox;
+    return m_data.transformedBox.empty() ? m_data.currentBox : m_data.transformedBox;
 }
 
 CRegion CTransformedWindowPassElement::opaqueRegion() {

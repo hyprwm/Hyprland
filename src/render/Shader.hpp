@@ -89,6 +89,7 @@ enum eShaderUniform : uint8_t {
     SHADER_MOTION_SAMPLES,
     SHADER_BLUR_ALPHA_MATTE,
     SHADER_BLUR_ALPHA,
+    SHADER_TONEMAP_MODE,
 
     SHADER_LAST,
 };

@@ -140,7 +140,7 @@ static void handleUserSignal(int sig) {
 
 bool CCompositor::setWatchdogFd(int fd) {
     m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
-    m_watchdogWriteFd.setFlags(m_watchdogWriteFd.getFlags() | O_CLOEXEC);
+    m_watchdogWriteFd.setFlags(m_watchdogWriteFd.getFlags() | FD_CLOEXEC);
     return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
 }
 

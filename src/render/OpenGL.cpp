@@ -813,12 +813,23 @@ void CHyprOpenGLImpl::end() {
         g_pHyprRenderer->bindFB(g_pHyprRenderer->m_renderData.outFB);
         blend(false);
 
-        const auto PRIMITIVE_BLOCKED = m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress ||
-            g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != SImageDescription{};
+        const bool NEEDS_CM          = g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->value() != g_pHyprRenderer->m_renderData.mainFB->imageDescription()->value();
+        const bool HAS_FINAL_SHADER  = m_finalScreenShader->program() >= 1 || g_pHyprRenderer->m_crashingInProgress;
+        const bool PRIMITIVE_BLOCKED = NEEDS_CM || HAS_FINAL_SHADER;
 
         if LIKELY (!PRIMITIVE_BLOCKED || g_pHyprRenderer->m_renderMode != RENDER_MODE_NORMAL)
             renderTexturePrimitive(TEX, monbox);
-        else // we need to use renderTexture if we do any CM whatsoever.
+        else if (NEEDS_CM && HAS_FINAL_SHADER) {
+            const auto tempFB   = g_pHyprRenderer->m_renderData.pMonitor->resources()->getUnusedWorkBuffer();
+            const auto saveDesc = tempFB->imageDescription();
+            tempFB->setImageDescription(g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription);
+            auto guard = g_pHyprRenderer->bindTempFB(tempFB);
+            GLFB(tempFB)->clearAfterInvalidation();
+            renderTexture(TEX, monbox, {.finalMonitorCM = true});
+            guard.reset();
+            renderTexture(tempFB->getTexture(), monbox, {.finalMonitorCM = true});
+            tempFB->setImageDescription(saveDesc);
+        } else
             renderTexture(TEX, monbox, {.finalMonitorCM = true});
 
         blend(true);
@@ -1470,7 +1481,7 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
 
     const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM);
 
-    const bool  renderToOutput = m_applyFinalShader && g_pHyprRenderer->workBufferImageDescription()->id() == g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->id();
+    const bool  renderToOutput = m_applyFinalShader && tex->m_imageDescription->id() == g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->id();
 
     glActiveTexture(GL_TEXTURE0);
     tex->bind();

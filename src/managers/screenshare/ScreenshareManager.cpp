@@ -3,6 +3,8 @@
 #include "../../Compositor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../protocols/core/Seat.hpp"
+#include "color-management-v1.hpp"
+#include "desktop/DesktopTypes.hpp"
 
 using namespace Screenshare;
 
@@ -37,6 +39,10 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
                 return;
         }
 
+        if (frame->m_session->m_type == SHARE_WORKSPACE) {
+            if (frame->m_session->monitor() != monitor)
+                return;
+        }
         frame->copy();
     });
 
@@ -85,6 +91,20 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWI
     return session;
 }
 
+UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLWORKSPACE workspace) {
+    if UNLIKELY (!workspace) {
+        LOGM(Log::ERR, "Client requested sharing of a workspace that is gone");
+        return nullptr;
+    }
+
+    UP<CScreenshareSession> session = UP<CScreenshareSession>(new CScreenshareSession(workspace, client));
+
+    session->m_self = session;
+    m_sessions.emplace_back(session);
+
+    return session;
+}
+
 UP<CCursorshareSession> CScreenshareManager::newCursorSession(wl_client* client, WP<CWLPointerResource> pointer) {
     UP<CCursorshareSession> session = UP<CCursorshareSession>(new CCursorshareSession(client, pointer));
 
@@ -95,19 +115,24 @@ UP<CCursorshareSession> CScreenshareManager::newCursorSession(wl_client* client,
 }
 
 WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client, PHLMONITOR monitor) {
-    return getManagedSession(SHARE_MONITOR, client, monitor, nullptr, {});
+    return getManagedSession(SHARE_MONITOR, client, monitor, nullptr, nullptr, {});
 }
 
 WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client, PHLMONITOR monitor, CBox captureBox) {
 
-    return getManagedSession(SHARE_REGION, client, monitor, nullptr, captureBox);
+    return getManagedSession(SHARE_REGION, client, monitor, nullptr, nullptr, captureBox);
 }
 
 WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client, PHLWINDOW window) {
-    return getManagedSession(SHARE_WINDOW, client, nullptr, window, {});
+    return getManagedSession(SHARE_WINDOW, client, nullptr, nullptr, window, {});
 }
 
-WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWINDOW window, CBox captureBox) {
+WP<CScreenshareSession> CScreenshareManager::getManagedSession(wl_client* client, PHLWORKSPACE workspace) {
+    return getManagedSession(SHARE_WORKSPACE, client, nullptr, workspace, nullptr, {});
+}
+
+WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType type, wl_client* client, PHLMONITOR monitor, PHLWORKSPACE workspace, PHLWINDOW window,
+                                                               CBox captureBox) {
     if (type == SHARE_NONE)
         return {};
 
@@ -119,10 +144,10 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
             case SHARE_WINDOW: return session->m_session->m_window == window;
             case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
+            case SHARE_WORKSPACE: return session->m_session->m_workspace == workspace;
             case SHARE_NONE:
             default: return false;
         }
-
         return false;
     });
 
@@ -132,6 +157,7 @@ WP<CScreenshareSession> CScreenshareManager::getManagedSession(eScreenshareType 
             case SHARE_MONITOR: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, client)); break;
             case SHARE_WINDOW: session = UP<CScreenshareSession>(new CScreenshareSession(window, client)); break;
             case SHARE_REGION: session = UP<CScreenshareSession>(new CScreenshareSession(monitor, captureBox, client)); break;
+            case SHARE_WORKSPACE: session = UP<CScreenshareSession>(new CScreenshareSession(workspace, client)); break;
             case SHARE_NONE:
             default: return {};
         }

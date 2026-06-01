@@ -121,6 +121,8 @@ add_compile_options(-fno-lto)
 
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+# Generate the compile_commands.json file to help clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 message(STATUS "Checking deps...")
 
@@ -515,6 +517,7 @@ else()
 endif()
 
 pkg_check_modules(hyprland_protocols_dep hyprland-protocols>=0.6.4)
+
 if(hyprland_protocols_dep_FOUND)
   pkg_get_variable(HYPRLAND_PROTOCOLS hyprland-protocols pkgdatadir)
   message(STATUS "hyprland-protocols dependency set to ${HYPRLAND_PROTOCOLS}")
@@ -528,6 +531,7 @@ protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-global-shortcuts-v1"
 protocolnew("unstable/text-input" "text-input-unstable-v1" false)
 protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-toplevel-export-v1"
             true)
+protocolnew("${HYPRLAND_PROTOCOLS}/protocols" "hyprland-workspace-export-v1" true)
 protocolnew("protocols" "wlr-screencopy-unstable-v1" true)
 protocolnew("protocols" "wlr-gamma-control-unstable-v1" true)
 protocolnew("protocols" "wlr-foreign-toplevel-management-unstable-v1" true)

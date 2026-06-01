@@ -5,12 +5,48 @@
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
+#include "color-management-v1.hpp"
+#include "debug/log/Logger.hpp"
+#include "desktop/DesktopTypes.hpp"
+#include "protocols/WaylandProtocol.hpp"
 
 using namespace Screenshare;
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
     if UNLIKELY (!m_monitor)
         return;
+
+    init();
+}
+
+CScreenshareSession::CScreenshareSession(PHLWORKSPACE workspace, wl_client* client) : m_type(SHARE_WORKSPACE), m_workspace(workspace), m_client(client) {
+    if UNLIKELY (!m_workspace) {
+        return;
+    }
+    m_listeners.workspaceDestroyed      = m_workspace->m_events.destroy.listen([this] { stop(); });
+    m_listeners.workspaceMonitorChanged = m_workspace->m_events.monitorChanged.listen([this] {
+        const auto MON = m_workspace->m_monitor.lock();
+        if (!MON) {
+            stop();
+            return;
+        }
+
+        m_listeners.monitorDestroyed   = MON->m_events.disconnect.listen([this]() { stop(); });
+        m_listeners.monitorModeChanged = MON->m_events.modeChanged.listen([this]() {
+            calculateConstraints();
+            m_events.constraintsChanged.emit();
+        });
+    });
+
+    m_listeners.workspaceActiveChanged = m_workspace->m_events.activeChanged.listen([this] {
+        if (!m_workspace->isVisible()) {
+            //TODO:
+            LOGM(Log::ERR, "INSIDE: Active changed and the workspace is not visible");
+        } else {
+            //TODO:
+            LOGM(Log::ERR, "INSIDE: Workspace visible again!");
+        }
+    });
 
     init();
 }
@@ -66,7 +102,14 @@ bool CScreenshareSession::isActive() {
 }
 
 void CScreenshareSession::init() {
-    uintptr_t ptr = m_type == SHARE_WINDOW && !m_window.expired() ? (uintptr_t)m_window.get() : (m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get());
+    uintptr_t ptr;
+    if (m_type == SHARE_WINDOW && !m_window.expired()) {
+        ptr = (uintptr_t)m_window.get();
+    } else if (m_type == SHARE_WORKSPACE && !m_workspace.expired()) {
+        ptr = (uintptr_t)m_workspace.get();
+    } else {
+        ptr = m_monitor.expired() ? (uintptr_t)nullptr : (uintptr_t)m_monitor.get();
+    }
     LOGM(Log::TRACE, "Created screenshare session for ({}): {}, {:x}", m_type, m_name, ptr);
 
     m_shareStopTimer = makeShared<CEventLoopTimer>(
@@ -116,6 +159,10 @@ void CScreenshareSession::calculateConstraints() {
             m_bufferSize = PMONITOR->m_pixelSize;
             m_name       = PMONITOR->m_name;
             break;
+        case SHARE_WORKSPACE:
+            m_bufferSize = PMONITOR->m_pixelSize;
+            m_name       = m_workspace->m_name;
+            break;
         case SHARE_WINDOW:
             m_bufferSize = (m_window->m_realSize->value() * PMONITOR->m_scale).round();
             m_name       = m_window->m_title;
@@ -163,6 +210,13 @@ Vector2D CScreenshareSession::bufferSize() const {
 PHLMONITOR CScreenshareSession::monitor() const {
     if (m_type == SHARE_WINDOW && m_window.expired())
         return nullptr;
+    if (m_type == SHARE_WORKSPACE) {
+        PHLMONITOR mon = m_workspace.lock()->m_monitor.lock();
+        if (mon) {
+            return mon;
+        }
+        return nullptr;
+    }
     PHLMONITORREF mon = m_type == SHARE_WINDOW ? m_window->m_monitor : m_monitor;
     return mon.expired() ? nullptr : mon.lock();
 }

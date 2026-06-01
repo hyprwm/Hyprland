@@ -8,7 +8,7 @@ index 400b8e10..24ab0916 100644
      target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
 +
 +    pkg_check_modules(ffidep REQUIRED IMPORTED_TARGET libffi)
-+    target_link_libraries(hyprland_lib ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
++    target_link_libraries(hyprland_lib PUBLIC ${CMAKE_SOURCE_DIR}/libwayland-server.a PkgConfig::ffidep)
    endif()
  
    add_compile_options(-fno-pie -fno-builtin -fno-omit-frame-pointer)

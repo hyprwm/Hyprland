@@ -250,6 +250,7 @@ void CShader::createVao() {
 
     m_uniformLocations[SHADER_SHADER_VAO] = shaderVao;
     m_uniformLocations[SHADER_SHADER_VBO] = shaderVbo;
+    m_usesCustomUV                        = false;
 
     RASSERT(m_uniformLocations[SHADER_SHADER_VAO] >= 0, "SHADER_SHADER_VAO could not be created");
     RASSERT(m_uniformLocations[SHADER_SHADER_VBO] >= 0, "SHADER_SHADER_VBO_POS could not be created");
@@ -433,4 +434,12 @@ int CShader::getInitialTime() const {
 
 void CShader::setInitialTime(int time) {
     m_initialTime = time;
+}
+
+bool CShader::usesCustomUV() const {
+    return m_usesCustomUV;
+}
+
+void CShader::setUsesCustomUV(bool usesCustomUV) {
+    m_usesCustomUV = usesCustomUV;
 }

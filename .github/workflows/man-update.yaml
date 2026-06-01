@@ -24,7 +24,7 @@ jobs:
     - name: Build man pages
       run: make man
 
-    - uses: stefanzweifel/git-auto-commit-action@v5
+    - uses: stefanzweifel/git-auto-commit-action@v7
       name: Commit
       with:
         commit_message: "[gha] build man pages"

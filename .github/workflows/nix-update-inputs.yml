@@ -23,6 +23,6 @@ jobs:
         run: nix/update-inputs.sh
 
       - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "[gha] Nix: update inputs"

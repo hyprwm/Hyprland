@@ -588,6 +588,27 @@ TEST_CASE(issue14038) {
     // this should not crash hyprland. If we are alive, we good.
 }
 
+TEST_CASE(issue14134) {
+    OK(getFromSocket("/output create headless HEADLESS-4"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-4' })"));
+
+    if (!spawnKitty("kitty_14134"))
+        FAIL_TEST("Could not spawn kitty");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.float({ action = 'toggle', window = 'class:kitty_14134' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.pin({ action = 'toggle', window = 'class:kitty_14134' })"));
+
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-4', disabled = true })"));
+
+    // will return error, should not be OK.
+    getFromSocket("/dispatch hl.dsp.window.pin({ action = 'toggle', window = 'class:kitty_14134' })");
+
+    OK(getFromSocket("/reload"));
+    Tests::killAllWindows();
+    ASSERT(Tests::windowCount(), 0);
+    OK(getFromSocket("/output remove HEADLESS-4"));
+}
+
 TEST_CASE(specialFloatRecenters) {
     if (!spawnKitty("kitty_special_float_recenter"))
         FAIL_TEST("Could not spawn kitty");

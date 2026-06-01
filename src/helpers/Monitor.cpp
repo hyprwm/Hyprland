@@ -1637,7 +1637,24 @@ void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
 }
 
 void CMonitor::moveTo(const Vector2D& pos) {
+    if (m_position == pos)
+        return;
+
+    const auto OLD_POSITION = m_position;
+
     m_position = pos;
+
+    if (OLD_POSITION == Vector2D{-1, -1})
+        return;
+
+    const auto DELTA = pos - OLD_POSITION;
+
+    for (const auto& w : g_pCompositor->m_windows) {
+        if (!validMapped(w) || !w->m_isFloating || w->m_monitor != m_self)
+            continue;
+
+        w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(DELTA));
+    }
 }
 
 Vector2D CMonitor::middle() {

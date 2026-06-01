@@ -395,6 +395,7 @@ void CMonitor::onDisconnect(bool destroy) {
     }};
 
     m_frameScheduler.reset();
+    clearModeRetry();
 
     if (!m_enabled || g_pCompositor->m_isShuttingDown)
         return;
@@ -946,8 +947,11 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     if (!success) {
         Log::logger->log(Log::ERR, "Monitor {} has NO FALLBACK MODES, and an INVALID one was requested: {:X0}@{:.2f}Hz", m_name, RULE->m_resolution, RULE->m_refreshRate);
+        scheduleModeRetry();
         return true;
     }
+
+    clearModeRetry();
 
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync
@@ -1136,6 +1140,47 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
     m_events.modeChanged.emit();
 
     return true;
+}
+
+void CMonitor::scheduleModeRetry() {
+    static constexpr int  MAX_MODE_RETRIES = 3;
+    static constexpr auto RETRY_DELAY      = std::chrono::seconds(1);
+
+    if (m_modeRetryTimer || m_modeRetryCount >= MAX_MODE_RETRIES)
+        return;
+
+    m_modeRetryCount++;
+
+    Log::logger->log(Log::WARN, "Monitor {} failed to find a valid mode, retrying in 1s ({}/{})", m_name, m_modeRetryCount, MAX_MODE_RETRIES);
+
+    m_modeRetryTimer = makeShared<CEventLoopTimer>(
+        RETRY_DELAY,
+        [self = m_self](SP<CEventLoopTimer>, void*) {
+            const auto PMONITOR = self.lock();
+            if (!PMONITOR)
+                return;
+
+            PMONITOR->m_modeRetryTimer.reset();
+
+            if (!PMONITOR->m_output || !PMONITOR->m_enabled)
+                return;
+
+            auto rule = PMONITOR->m_activeMonitorRule;
+            PMONITOR->applyMonitorRule(std::move(rule), true);
+        },
+        nullptr);
+    g_pEventLoopManager->addTimer(m_modeRetryTimer);
+}
+
+void CMonitor::clearModeRetry() {
+    m_modeRetryCount = 0;
+
+    if (!m_modeRetryTimer)
+        return;
+
+    m_modeRetryTimer->cancel();
+    g_pEventLoopManager->removeTimer(m_modeRetryTimer);
+    m_modeRetryTimer.reset();
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {

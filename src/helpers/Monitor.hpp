@@ -409,10 +409,14 @@ class CMonitor {
     void                    setupDefaultWS(const Config::CMonitorRule&);
     WORKSPACEID             findAvailableDefaultWS();
     void                    commitDPMSState(bool state);
+    void                    scheduleModeRetry();
+    void                    clearModeRetry();
     void                    updateVCGTRamps();
 
-    bool                    m_doneScheduled = false;
-    bool                    m_vcgtRampsSet  = false;
+    bool                    m_doneScheduled  = false;
+    bool                    m_vcgtRampsSet   = false;
+    int                     m_modeRetryCount = 0;
+    SP<CEventLoopTimer>     m_modeRetryTimer;
     std::stack<WORKSPACEID> m_prevWorkSpaces;
 
     // Resources

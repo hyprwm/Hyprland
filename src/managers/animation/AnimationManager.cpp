@@ -170,9 +170,11 @@ void CHyprAnimationManager::tick() {
         PHLWORKSPACE workspace;
         PHLLS        layer;
         PHLMONITOR   monitor;
-        bool         entire = false;
-        bool         border = false;
-        bool         shadow = false;
+        CBox         previousFull;
+        bool         entire            = false;
+        bool         border            = false;
+        bool         shadow            = false;
+        bool         trackWindowMotion = false;
     };
 
     std::vector<SDamageOwner> owners;
@@ -240,6 +242,14 @@ void CHyprAnimationManager::tick() {
         }
     }
 
+    for (auto& owner : owners) {
+        if (!owner.window)
+            continue;
+
+        owner.previousFull      = owner.window->getFullWindowBoundingBox();
+        owner.trackWindowMotion = true;
+    }
+
     // pre-damage each owner once (old state)
     for (const auto& owner : owners) {
         if (owner.window)
@@ -279,6 +289,13 @@ void CHyprAnimationManager::tick() {
             } break;
             default: UNREACHABLE();
         }
+    }
+
+    for (const auto& owner : owners) {
+        if (!owner.window || !owner.trackWindowMotion)
+            continue;
+
+        owner.window->recordMotionBlur(owner.previousFull, owner.window->getFullWindowBoundingBox());
     }
 
     // post-damage each owner once (new state) + schedule frames

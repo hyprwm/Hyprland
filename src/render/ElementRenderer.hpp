@@ -11,6 +11,7 @@
 #include "./pass/TexPassElement.hpp"
 #include "./pass/TextureMatteElement.hpp"
 #include "./pass/InnerGlowPassElement.hpp"
+#include "./pass/TransformedWindowPassElement.hpp"
 #include <hyprutils/math/Region.hpp>
 
 namespace Render {
@@ -44,6 +45,7 @@ namespace Render {
         void preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
         void drawTex(WP<CTexPassElement> element, const CRegion& damage);
         void drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage);
+        void drawTransformedWindow(WP<CTransformedWindowPassElement> element, const CRegion& damage);
         void drawCustom(WP<IPassElement> element, const CRegion& damage);
     };
 }

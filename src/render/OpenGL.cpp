@@ -872,8 +872,8 @@ void CHyprOpenGLImpl::end() {
 }
 
 static const std::vector<std::string> SHADER_INCLUDES = {
-    "defines.h",   "constants.h", "cm_helpers.glsl", "rounding.glsl",    "CM.glsl",    "tonemap.glsl", "gain.glsl",
-    "border.glsl", "shadow.glsl", "inner_glow.glsl", "blurprepare.glsl", "blur1.glsl", "blur2.glsl",   "blurFinish.glsl",
+    "defines.h",   "constants.h",     "cm_helpers.glsl",  "rounding.glsl", "CM.glsl",    "tonemap.glsl",    "gain.glsl",        "border.glsl",
+    "shadow.glsl", "inner_glow.glsl", "blurprepare.glsl", "blur1.glsl",    "blur2.glsl", "blurFinish.glsl", "motion_blur.glsl",
 };
 
 // order matters, see ePreparedFragmentShader
@@ -1138,7 +1138,7 @@ void CHyprOpenGLImpl::renderTexture(SP<ITexture> tex, const CBox& box, STextureR
         data.damage = &g_pHyprRenderer->m_renderData.damage;
     }
 
-    if (data.blur)
+    if (data.blur && !data.forceBlurBlend)
         renderTextureWithBlurInternal(tex, box, data);
     else
         renderTextureInternal(tex, box, data);
@@ -1349,8 +1349,17 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         return WORK_BUFFER_IMAGE_DESCRIPTION;
     }();
 
-    if (data.blur && *PBLEND && data.blurredBG)
+    if (data.blur && data.blurredBG && (*PBLEND || data.forceBlurBlend))
         shaderFeatures |= SH_FEAT_BLUR;
+
+    if (data.blur && data.blurredBG && data.blurAlphaMatte && (*PBLEND || data.forceBlurBlend))
+        shaderFeatures |= SH_FEAT_BLUR_MATTE;
+
+    if (data.forceBlurBlend)
+        shaderFeatures |= SH_FEAT_BLUR_ALPHA_MASK;
+
+    if (data.motionBlur.enabled)
+        shaderFeatures |= SH_FEAT_MOTION_BLUR;
 
     if (data.discardActive)
         shaderFeatures |= SH_FEAT_DISCARD;
@@ -1403,11 +1412,19 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
 
     if (shaderFeatures & SH_FEAT_BLUR) {
         shader->setUniformInt(SHADER_BLURRED_BG, 1);
+        shader->setUniformFloat(SHADER_BLUR_ALPHA, data.blurA);
         shader->setUniformFloat2(SHADER_UV_OFFSET, newBox.x / data.blurredBG->m_size.x, newBox.y / data.blurredBG->m_size.y);
         shader->setUniformFloat2(SHADER_UV_SIZE, newBox.width / data.blurredBG->m_size.x, newBox.height / data.blurredBG->m_size.y);
 
         glActiveTexture(GL_TEXTURE0 + 1);
         data.blurredBG->bind();
+    }
+
+    if (shaderFeatures & SH_FEAT_BLUR_MATTE) {
+        shader->setUniformInt(SHADER_BLUR_ALPHA_MATTE, 2);
+
+        glActiveTexture(GL_TEXTURE0 + 2);
+        data.blurAlphaMatte->bind();
     }
 
     if (data.discardActive) {
@@ -1430,6 +1447,28 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
     shader->setUniformFloat2(SHADER_FULL_SIZE, FULLSIZE.x, FULLSIZE.y);
     shader->setUniformFloat(SHADER_RADIUS, data.round);
     shader->setUniformFloat(SHADER_ROUNDING_POWER, data.roundingPower);
+
+    if (data.motionBlur.enabled) {
+        CBox motionPrev   = data.motionBlur.previous;
+        CBox motionCurr   = data.motionBlur.current;
+        CBox motionSource = data.motionBlur.source;
+        m_renderData.renderModif.applyToBox(motionPrev);
+        m_renderData.renderModif.applyToBox(motionCurr);
+        m_renderData.renderModif.applyToBox(motionSource);
+
+        motionPrev.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                             m_renderData.pMonitor->m_transformedSize.y);
+        motionCurr.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                             m_renderData.pMonitor->m_transformedSize.y);
+        motionSource.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                               m_renderData.pMonitor->m_transformedSize.y);
+
+        shader->setUniformFloat4(SHADER_MOTION_PREV_BOX, motionPrev.x, motionPrev.y, motionPrev.w, motionPrev.h);
+        shader->setUniformFloat4(SHADER_MOTION_CURR_BOX, motionCurr.x, motionCurr.y, motionCurr.w, motionCurr.h);
+        shader->setUniformFloat4(SHADER_MOTION_SOURCE_BOX, motionSource.x, motionSource.y, motionSource.w, motionSource.h);
+        shader->setUniformFloat2(SHADER_MOTION_SOURCE_TEX_SIZE, data.motionBlur.sourceTexSize.x, data.motionBlur.sourceTexSize.y);
+        shader->setUniformInt(SHADER_MOTION_SAMPLES, data.motionBlur.samples);
+    }
 
     if (data.allowDim && g_pHyprRenderer->m_renderData.currentWindow) {
         if (g_pHyprRenderer->m_renderData.currentWindow->m_notRespondingTint->value() > 0) {
@@ -2058,6 +2097,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
                           STextureRenderData{
                               .blur           = *PBLEND,
                               .blurredBG      = data.blurredBG,
+                              .blurAlphaMatte = data.blurAlphaMatte,
                               .damage         = data.damage,
                               .a              = data.a * data.overallA,
                               .round          = data.round,

@@ -108,10 +108,12 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
         {
             // blur settings for m_data.blur == true
             .blur                  = m_data.blur,
+            .forceBlurBlend        = m_data.forceBlurBlend,
             .blurA                 = m_data.blurA,
             .overallA              = m_data.overallA,
             .blockBlurOptimization = m_data.blockBlurOptimization.value_or(false),
             .blurredBG             = m_data.blurredBG,
+            .blurAlphaMatte        = m_data.blurAlphaMatte,
 
             // common settings
             .damage         = m_data.damage.empty() ? &damage : &m_data.damage,
@@ -131,6 +133,7 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
 
             .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
             .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
+            .motionBlur                  = m_data.motionBlur,
         });
 };
 

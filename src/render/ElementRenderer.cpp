@@ -25,6 +25,7 @@ void IElementRenderer::drawElement(WP<IPassElement> element, const CRegion& dama
         case EK_SURFACE: preDrawSurface(dynamicPointerCast<CSurfacePassElement>(element), damage); break;
         case EK_TEXTURE: drawTex(dynamicPointerCast<CTexPassElement>(element), damage); break;
         case EK_TEXTURE_MATTE: drawTexMatte(dynamicPointerCast<CTextureMatteElement>(element), damage); break;
+        case EK_TRANSFORMED_WINDOW: drawTransformedWindow(dynamicPointerCast<CTransformedWindowPassElement>(element), damage); break;
         case EK_CUSTOM: drawCustom(element, damage); break;
         default: Log::logger->log(Log::WARN, "Unimplimented draw for {}", element->passName());
     }
@@ -489,6 +490,131 @@ void IElementRenderer::drawTexMatte(WP<CTextureMatteElement> element, const CReg
         g_pHyprRenderer->popMonitorTransformEnabled();
     } else
         draw(element, damage);
+}
+
+void IElementRenderer::drawTransformedWindow(WP<CTransformedWindowPassElement> element, const CRegion& damage) {
+    if (!element || !element->m_data.pass)
+        return;
+
+    auto&      renderData = g_pHyprRenderer->m_renderData;
+    const auto pMonitor   = renderData.pMonitor;
+    const auto fb         = pMonitor->resources()->getUnusedWorkBuffer();
+    if (!fb)
+        return;
+
+    const CRegion    oldDamage      = renderData.damage.copy();
+    const CRegion    oldFinalDamage = renderData.finalDamage.copy();
+    const auto       oldWindow      = renderData.currentWindow;
+    const auto       oldSurface     = renderData.surface;
+    const CBox       oldClipBox     = renderData.clipBox;
+
+    SP<IFramebuffer> last;
+
+    const auto       transformWindowFB = [&element](SP<IFramebuffer> in) {
+        SP<IFramebuffer> transformed = in;
+
+        if (const auto PWINDOW = element->m_data.window.lock()) {
+            for (auto const& t : PWINDOW->m_transformers) {
+                transformed = t->transform(transformed);
+            }
+        }
+
+        return transformed;
+    };
+
+    {
+        auto guard = g_pHyprRenderer->bindTempFB(fb);
+
+        renderData.currentWindow = element->m_data.window;
+        renderData.surface.reset();
+        renderData.clipBox = {};
+        renderData.damage  = CRegion{0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
+
+        g_pHyprRenderer->draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 0)});
+
+        CBox nestedDamage = element->m_data.currentBox.copy().scale(pMonitor->m_scale).round();
+        nestedDamage.expand(2);
+        element->m_data.pass->render(CRegion{nestedDamage});
+
+        last = transformWindowFB(fb);
+    }
+
+    SP<IFramebuffer>     blurAlphaMatteFB; // keep the matte FB out of the workbuffer pool until the final draw samples it
+    SP<Render::ITexture> blurAlphaMatte;
+    if (element->m_data.blur) {
+        const auto matteFB = pMonitor->resources()->getUnusedWorkBuffer();
+        if (matteFB) {
+            SP<IFramebuffer> matteLast;
+
+            {
+                auto guard = g_pHyprRenderer->bindTempFB(matteFB);
+
+                renderData.currentWindow = element->m_data.window;
+                renderData.surface.reset();
+                renderData.clipBox = {};
+                renderData.damage  = CRegion{0, 0, sc<int>(pMonitor->m_transformedSize.x), sc<int>(pMonitor->m_transformedSize.y)};
+
+                g_pHyprRenderer->draw(CClearPassElement::SClearData{CHyprColor(0, 0, 0, 1)});
+                g_pHyprRenderer->draw(
+                    CRectPassElement::SRectData{
+                        .box           = element->m_data.blurBox,
+                        .color         = CHyprColor(1, 1, 1, 1),
+                        .round         = element->m_data.blurRound,
+                        .roundingPower = element->m_data.blurRoundingPower,
+                    },
+                    renderData.damage);
+
+                matteLast = transformWindowFB(matteFB);
+            }
+
+            if (matteLast && matteLast->getTexture()) {
+                blurAlphaMatteFB = matteLast;
+                blurAlphaMatte   = matteLast->getTexture();
+            }
+        }
+    }
+
+    renderData.damage        = oldDamage;
+    renderData.finalDamage   = oldFinalDamage;
+    renderData.currentWindow = oldWindow;
+    renderData.surface       = oldSurface;
+    renderData.clipBox       = oldClipBox;
+
+    if (!last || !last->getTexture())
+        return;
+
+    SMotionBlurData motionBlur = element->m_data.motionBlur;
+    CBox            currentBox = element->m_data.currentBox.copy().round();
+    CBox            outputBox  = currentBox;
+
+    if (motionBlur.enabled) {
+        motionBlur.previous.scale(pMonitor->m_scale);
+        motionBlur.current.scale(pMonitor->m_scale);
+        motionBlur.source        = motionBlur.current;
+        motionBlur.sourceTexSize = last->getTexture()->m_size;
+        outputBox                = motionBlur.extents().round();
+    } else
+        outputBox = {0, 0, pMonitor->m_transformedSize.x, pMonitor->m_transformedSize.y};
+
+    CTexPassElement::SRenderData data;
+    data.tex        = last->getTexture();
+    data.box        = outputBox;
+    data.a          = 1.F;
+    data.motionBlur = motionBlur;
+
+    const CRegion drawDamage = damage.copy().intersect(outputBox);
+
+    if (element->m_data.blur) {
+        data.blur                  = true;
+        data.forceBlurBlend        = true;
+        data.blockBlurOptimization = true;
+        data.blurA                 = element->m_data.blurA;
+        data.blurAlphaMatte        = blurAlphaMatte;
+        data.discardMode           = 0;
+    }
+
+    (void)blurAlphaMatteFB;
+    g_pHyprRenderer->draw(data, drawDamage);
 }
 
 void IElementRenderer::drawCustom(WP<IPassElement> element, const CRegion& damage) {

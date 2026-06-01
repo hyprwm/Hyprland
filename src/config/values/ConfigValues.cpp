@@ -253,6 +253,9 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Float>("decoration:blur:input_methods_ignorealpha", "works like ignorealpha in layer rules. If pixel opacity is below set value, will not blur.", 0.2,
                   {.min = 0, .max = 1, .refresh = Supplementary::REFRESH_BLUR_FB}),
 
+        MS<Bool>("decoration:motion_blur:enabled", "enable motion blur for moving and resizing windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Int>("decoration:motion_blur:samples", "amount of samples used for motion blur", 7, {.min = 1, .max = 64, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+
         /*
          * animations:
          */

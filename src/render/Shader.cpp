@@ -146,17 +146,24 @@ void CShader::getUniformLocations() {
     m_uniformLocations[SHADER_LUT_3D]               = getUniform("iccLut3D");
     m_uniformLocations[SHADER_LUT_SIZE]             = getUniform("iccLutSize");
     //
-    m_uniformLocations[SHADER_TEX]                 = getUniform("tex");
-    m_uniformLocations[SHADER_BLURRED_BG]          = getUniform("blurredBG");
-    m_uniformLocations[SHADER_UV_SIZE]             = getUniform("uvSize");
-    m_uniformLocations[SHADER_UV_OFFSET]           = getUniform("uvOffset");
-    m_uniformLocations[SHADER_ALPHA]               = getUniform("alpha");
-    m_uniformLocations[SHADER_POS_ATTRIB]          = getAttrib("pos");
-    m_uniformLocations[SHADER_TEX_ATTRIB]          = getAttrib("texcoord");
-    m_uniformLocations[SHADER_MATTE_TEX_ATTRIB]    = getAttrib("texcoordMatte");
-    m_uniformLocations[SHADER_DISCARD_OPAQUE]      = getUniform("discardOpaque");
-    m_uniformLocations[SHADER_DISCARD_ALPHA]       = getUniform("discardAlpha");
-    m_uniformLocations[SHADER_DISCARD_ALPHA_VALUE] = getUniform("discardAlphaValue");
+    m_uniformLocations[SHADER_TEX]                    = getUniform("tex");
+    m_uniformLocations[SHADER_BLURRED_BG]             = getUniform("blurredBG");
+    m_uniformLocations[SHADER_UV_SIZE]                = getUniform("uvSize");
+    m_uniformLocations[SHADER_UV_OFFSET]              = getUniform("uvOffset");
+    m_uniformLocations[SHADER_MOTION_PREV_BOX]        = getUniform("motionPrevBox");
+    m_uniformLocations[SHADER_MOTION_CURR_BOX]        = getUniform("motionCurrBox");
+    m_uniformLocations[SHADER_MOTION_SOURCE_BOX]      = getUniform("motionSourceBox");
+    m_uniformLocations[SHADER_MOTION_SOURCE_TEX_SIZE] = getUniform("motionSourceTexSize");
+    m_uniformLocations[SHADER_MOTION_SAMPLES]         = getUniform("motionSamples");
+    m_uniformLocations[SHADER_BLUR_ALPHA_MATTE]       = getUniform("blurAlphaMatte");
+    m_uniformLocations[SHADER_BLUR_ALPHA]             = getUniform("blurAlpha");
+    m_uniformLocations[SHADER_ALPHA]                  = getUniform("alpha");
+    m_uniformLocations[SHADER_POS_ATTRIB]             = getAttrib("pos");
+    m_uniformLocations[SHADER_TEX_ATTRIB]             = getAttrib("texcoord");
+    m_uniformLocations[SHADER_MATTE_TEX_ATTRIB]       = getAttrib("texcoordMatte");
+    m_uniformLocations[SHADER_DISCARD_OPAQUE]         = getUniform("discardOpaque");
+    m_uniformLocations[SHADER_DISCARD_ALPHA]          = getUniform("discardAlpha");
+    m_uniformLocations[SHADER_DISCARD_ALPHA_VALUE]    = getUniform("discardAlphaValue");
     /* set in createVao
         m_uniformLocations[SHADER_SHADER_VAO]
         m_uniformLocations[SHADER_SHADER_VBO_POS]

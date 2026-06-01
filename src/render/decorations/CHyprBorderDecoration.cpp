@@ -93,7 +93,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
         data.lerp     = m_window->m_borderFadeAnimationProgress->value();
     }
 
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CBorderPassElement>(data));
+    g_pHyprRenderer->addPassElement(makeUnique<CBorderPassElement>(data));
 }
 
 eDecorationType CHyprBorderDecoration::getDecorationType() {

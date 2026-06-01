@@ -7,7 +7,7 @@
 
 using namespace Render::GL;
 
-static bool compareFloat(auto a, auto b) {
+static bool compareFloat(const auto& a, const auto& b) {
     if (a.size() != b.size())
         return false;
 
@@ -373,7 +373,7 @@ void CShader::setUniformfv(eShaderUniform location, GLsizei count, const std::ve
     auto& cached = uniformStatus.at(location);
 
     if (cached.index() != 0) {
-        auto val = std::get<SUniformVData>(cached);
+        const auto& val = std::get<SUniformVData>(cached);
         if (val.count == count && compareFloat(val.value, value))
             return;
     }

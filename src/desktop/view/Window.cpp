@@ -1,6 +1,8 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <ranges>
+#include <span>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
 
@@ -356,20 +358,28 @@ void CWindow::updateWindowDecos() {
 
     m_decosToRemove.clear();
 
-    // make a copy because updateWindow can remove decos.
+    const auto updateDecos = [this](const auto& decos) {
+        for (auto const& wd : decos) {
+            if (std::ranges::find_if(m_windowDecorations, [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
+                continue;
+            wd->updateWindow(m_self.lock());
+        }
+    };
+
+    // Make a copy because updateWindow can remove decos. The built-in set fits inline,
+    // while the fallback preserves support for arbitrary plugin decorations.
+    constexpr size_t                                 INLINE_DECOS = 4;
+    std::array<IHyprWindowDecoration*, INLINE_DECOS> inlineDecos  = {};
+    if (m_windowDecorations.size() <= inlineDecos.size()) {
+        std::ranges::transform(m_windowDecorations, inlineDecos.begin(), [](const auto& deco) { return deco.get(); });
+        updateDecos(std::span{inlineDecos}.first(m_windowDecorations.size()));
+        return;
+    }
+
     std::vector<IHyprWindowDecoration*> decos;
-    // reserve to avoid reallocations
     decos.reserve(m_windowDecorations.size());
-
-    for (auto const& wd : m_windowDecorations) {
-        decos.push_back(wd.get());
-    }
-
-    for (auto const& wd : decos) {
-        if (std::ranges::find_if(m_windowDecorations, [wd](const auto& other) { return other.get() == wd; }) == m_windowDecorations.end())
-            continue;
-        wd->updateWindow(m_self.lock());
-    }
+    std::ranges::transform(m_windowDecorations, std::back_inserter(decos), [](const auto& deco) { return deco.get(); });
+    updateDecos(decos);
 }
 
 void CWindow::addWindowDeco(UP<IHyprWindowDecoration> deco) {

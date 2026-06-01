@@ -68,7 +68,7 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);
             uvBR = Vector2D((bufferSource.x + bufferSource.width) / bufferSize.x, (bufferSource.y + bufferSource.height) / bufferSize.y);
 
-            if (bufferSource.width < 1.0 || bufferSource.height < 1.0 || uvBR.x < 0.00001f || uvBR.y < 0.00001f) {
+            if (uvBR.x < 0.00001f || uvBR.y < 0.00001f) {
                 uvTL = Vector2D();
                 uvBR = Vector2D(1, 1);
             }

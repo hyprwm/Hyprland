@@ -41,7 +41,7 @@ CRegion CDamageRing::getBufferDamage(int age) {
     }
 
     // don't return a ludicrous amount of rects
-    if (damage.getRects().size() > 8)
+    if (pixman_region32_n_rects(damage.pixman()) > 8)
         return damage.getExtents();
 
     return damage;

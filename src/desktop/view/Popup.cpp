@@ -456,12 +456,21 @@ Vector2D CPopup::size() const {
 }
 
 void CPopup::sendScale() {
+    float scale;
     if (!m_windowOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_windowOwner->wlSurface()->m_lastScaleFloat);
+        scale = m_windowOwner->wlSurface()->m_lastScaleFloat;
     else if (!m_layerOwner.expired())
-        g_pCompositor->setPreferredScaleForSurface(m_wlSurface->resource(), m_layerOwner->wlSurface()->m_lastScaleFloat);
+        scale = m_layerOwner->wlSurface()->m_lastScaleFloat;
     else
         UNREACHABLE();
+
+    // Walk the whole surface tree, not just the popup's root surface: a popup
+    // can wrap its content in subsurfaces (e.g. Firefox/GTK render the popup
+    // content in a wp_viewport'd subsurface). Scaling only the root leaves
+    // those subsurfaces at the default 1.0 fractional scale, so under
+    // fractional scaling the content renders at the wrong size and the input
+    // geometry desyncs from the visible geometry. Mirrors CWindow::sendScale.
+    m_wlSurface->resource()->breadthfirst([scale](SP<CWLSurfaceResource> s, const Vector2D& offset, void* d) { g_pCompositor->setPreferredScaleForSurface(s, scale); }, nullptr);
 }
 
 void CPopup::bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {

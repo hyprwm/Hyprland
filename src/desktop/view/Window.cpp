@@ -515,7 +515,11 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         m_monitorMovedFrom = OLDWORKSPACE ? OLDWORKSPACE->monitorID() : -1;
     }
 
+    OLDWORKSPACE->clearFullscreenWindow(m_self.lock());
     m_workspace = pWorkspace;
+    if (isFullscreen())
+        m_workspace->setFullscreenWindow(m_self.lock());
+
     updateFullscreenInputState();
     *alpha(WINDOW_ALPHA_FULLSCREEN) = isBlockedByFullscreen() ? 0.F : 1.F;
 
@@ -2477,8 +2481,10 @@ void CWindow::unmapWindow() {
     // remove the fullscreen window status from workspace if we closed it
     const auto PWORKSPACE = m_workspace;
 
-    if (PWORKSPACE->m_hasFullscreenWindow && isFullscreen())
+    if (PWORKSPACE->m_hasFullscreenWindow && isFullscreen()) {
         PWORKSPACE->m_hasFullscreenWindow = false;
+        PWORKSPACE->clearFullscreenWindow(m_self.lock());
+    }
 
     if (m_group)
         m_group->remove(m_self.lock());

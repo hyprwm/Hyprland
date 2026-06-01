@@ -17,7 +17,7 @@ jobs:
       run: sudo apt install pandoc
 
     - name: Clone repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         token: ${{ secrets.PAT }}
 

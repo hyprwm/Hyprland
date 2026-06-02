@@ -1173,7 +1173,7 @@ TEST_CASE(properFocusBehvaior) {
             EXPECT_CONTAINS(str, "class: d");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.ection = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
         {
             const auto str = getFromSocket("/activewindow");

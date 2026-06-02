@@ -2376,7 +2376,7 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
         const bool FLOAT = regexp.starts_with("floating");
 
         for (auto const& w : m_windows) {
-            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace || !w->acceptsInput())
+            if (!w->m_isMapped || w->m_isFloating != FLOAT || w->m_workspace != Desktop::focusState()->window()->m_workspace)
                 continue;
 
             return w;

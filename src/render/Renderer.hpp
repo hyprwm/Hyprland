@@ -192,8 +192,7 @@ namespace Render {
         void         pushMonitorTransformEnabled(bool enabled);
         void         popMonitorTransformEnabled();
         bool         monitorTransformEnabled();
-        void         sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace,
-                                                const Time::steady_tp& now);
+        void         sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
 
         void         setProjectionType(const Vector2D& fbSize);
         void         setProjectionType(eRenderProjectionType projectionType);

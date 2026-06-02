@@ -55,7 +55,7 @@ namespace Layout {
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
         // optional: expose an algorithm-owned fullscreen target
-
+        
         /**
         * Get the current layout managed FS target
         * @return Covers the monitor(`FSMODE_FULLSCREEN`) / work area(`FSMODE_MAXIMIZE`)

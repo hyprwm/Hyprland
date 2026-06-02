@@ -1884,23 +1884,23 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
 }
 
 // TODO: move fs functions to Desktop::
-void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
+void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force) {
     if (!PWINDOW)
         return;
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE}, force);
     else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client}, force);
 }
 
-void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE) {
+void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force) {
     if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE}, force);
     else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE});
+        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE}, force);
 }
 
-void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state) {
+void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::View::SFullscreenState state, bool force) {
     static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
     static auto PALLOWPINFULLSCREEN = CConfigValue<Config::INTEGER>("binds:allow_pin_fullscreen");
 
@@ -1933,13 +1933,13 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     }
 
     // TODO: update the state on syncFullscreen changes
-    if (!CHANGEINTERNAL && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
+    if (!(force || CHANGEINTERNAL) && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
         return;
 
     PWINDOW->m_fullscreenState.client = state.client;
     g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
 
-    if (!CHANGEINTERNAL) {
+    if (!(force || CHANGEINTERNAL)) {
         PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
                                                      Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
         PWINDOW->updateDecorationValues();

@@ -20,6 +20,9 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
 
 eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
 
+
+    // Default handled fullscreen behaviour
+
     const auto TARGET = request.target;
 
     if (!TARGET)

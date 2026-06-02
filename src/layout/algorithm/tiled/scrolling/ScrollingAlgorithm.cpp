@@ -792,6 +792,10 @@ void CScrollingAlgorithm::newTarget(SP<ITarget> target) {
         }
     }
 
+    // If the new was fullscreened using a different fullscreen handler then scrolling, reset its fullscreen state and fullscreen it using scrolling
+    if (target->fullscreenMode() != FSMODE_NONE && target->window() && target->window()->m_fullscreenHandler != Desktop::View::FULLSCREEN_HANDLER_SCROLLING)
+        g_pCompositor->setWindowFullscreenInternal(target->window() ,target->fullscreenMode(), true);
+
     m_scrollingData->recalculate();
 }
 

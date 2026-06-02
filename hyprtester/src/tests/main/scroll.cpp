@@ -1148,3 +1148,115 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"A\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
     }
 }
+
+TEST_CASE(properFocusBehvaior) {
+    // test that focus history does not fuck with proper workspace preference
+
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
+    auto test = [&] {
+        Tests::spawnKitty("a");
+        ASSERT(Tests::windowCount(), 1);
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+
+        Tests::spawnKitty("b");
+        Tests::spawnKitty("c");
+        Tests::spawnKitty("d");
+
+        ASSERT(Tests::windowCount(), 4);
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: d");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: c");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: b");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: a");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: b");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: c");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: d");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: c");
+        }
+
+        // now we have a situation of:
+        // HEADLESS-2: a
+        // HEADLESS-3: b | c d | -> b is offscreen
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: a");
+        }
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: c");
+        }
+
+        // now we have a history of a being more recent than b, but if we move left, we should still focus b.
+
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+
+        {
+            const auto str = getFromSocket("/activewindow");
+            EXPECT_CONTAINS(str, "class: b");
+        }
+
+        Tests::killAllWindows();
+        Tests::waitUntilWindowsN(0);
+    };
+
+    OK(getFromSocket("/eval hl.config({ binds = { focus_preferred_method = 0 } })")); // set history mode, default
+    test();
+
+    OK(getFromSocket("/eval hl.config({ binds = { focus_preferred_method = 1 } })")); // set length mode
+    test();
+
+    OK(getFromSocket("/output remove HEADLESS-3"));
+}

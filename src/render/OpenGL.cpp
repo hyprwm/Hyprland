@@ -2334,7 +2334,8 @@ void CHyprOpenGLImpl::renderRoundedShadow(const CBox& box, int round, float roun
     if (!grad1.m_colors.empty())
         color = grad1.m_colors[0];
 
-    shader->setUniformFloat4(SHADER_COLOR, color.r, color.g, color.b, color.a);
+    const auto converted = g_pHyprRenderer->getConvertedColor(color.stripA());
+    shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, color.a);
     shader->setUniformFloat4(SHADER_COLOR_SRGB, color.r, color.g, color.b, color.a);
 
     shader->setUniform4fv(SHADER_GRADIENT, grad1.m_colorsOkLabA.size() / 4, grad1.m_colorsOkLabA);

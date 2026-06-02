@@ -71,7 +71,7 @@ vec4
 
     vec2  pixCoord = fullSize * v_texcoord;
 
-    if (gradientLength > 0)
+    if (gradientLength > 0 || gradient2Length > 0)
         pixColor = getColorForCoord(v_texcoord, gradientLength, gradient, angle, gradient2Length, gradient2, angle2, gradientLerp);
 
     pixColor.a *= alpha;

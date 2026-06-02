@@ -17,6 +17,8 @@ vec4 okLabAToSrgb(vec4 lab) {
 }
 
 vec4 getOkColorForCoordArray1(vec2 normalizedCoord, int gradientLength, vec4 gradient[10], float angle) {
+    if (gradientLength <= 0)
+        return vec4(0.0);
     if (gradientLength < 2)
         return gradient[0];
 

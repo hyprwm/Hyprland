@@ -1,5 +1,6 @@
 #include "CHyprDropShadowDecoration.hpp"
 
+#include <algorithm>
 #include "../../Compositor.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../pass/ShadowPassElement.hpp"
@@ -98,15 +99,13 @@ bool CHyprDropShadowDecoration::canRender(PHLMONITOR pMonitor) {
         return false;
 
     {
-        bool allTransparent = true;
-        for (auto& c : PWINDOW->m_realShadowColor.m_colors) {
-            if (c.a > 0.001f) {
-                allTransparent = false;
-                break;
-            }
+        static constexpr auto HAS_ALPHA = [](const auto& c) { return c.a > 0.001f; };
+        if (std::none_of(PWINDOW->m_realShadowColor.m_colors.begin(), PWINDOW->m_realShadowColor.m_colors.end(), HAS_ALPHA)) {
+            if (!PWINDOW->m_shadowFadeAnimationProgress->isBeingAnimated())
+                return false;
+            if (std::none_of(PWINDOW->m_realShadowColorPrevious.m_colors.begin(), PWINDOW->m_realShadowColorPrevious.m_colors.end(), HAS_ALPHA))
+                return false;
         }
-        if (allTransparent)
-            return false; // don't draw invisible shadows
     }
 
     if (!PWINDOW->m_ruleApplicator->decorate().valueOrDefault())

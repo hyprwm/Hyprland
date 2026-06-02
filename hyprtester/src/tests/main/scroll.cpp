@@ -1173,49 +1173,49 @@ TEST_CASE(properFocusBehvaior) {
             EXPECT_CONTAINS(str, "class: d");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.ection = 'l' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: c");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: b");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: a");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: b");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: c");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'r' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'right' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
             EXPECT_CONTAINS(str, "class: d");
         }
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
         {
             const auto str = getFromSocket("/activewindow");
@@ -1242,7 +1242,7 @@ TEST_CASE(properFocusBehvaior) {
 
         // now we have a history of a being more recent than b, but if we move left, we should still focus b.
 
-        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'l' })"));
+        OK(getFromSocket("/dispatch hl.dsp.focus({ direction = 'left' })"));
 
         {
             const auto str = getFromSocket("/activewindow");

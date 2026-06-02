@@ -1158,7 +1158,7 @@ TEST_CASE(properFocusBehvaior) {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
 
         Tests::spawnKitty("a");
-        ASSERT(Tests::windowCount(), 1);
+        Tests::waitUntilWindowsN(1);
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
 
@@ -1166,7 +1166,7 @@ TEST_CASE(properFocusBehvaior) {
         Tests::spawnKitty("c");
         Tests::spawnKitty("d");
 
-        ASSERT(Tests::windowCount(), 4);
+        Tests::waitUntilWindowsN(4);
 
         {
             const auto str = getFromSocket("/activewindow");

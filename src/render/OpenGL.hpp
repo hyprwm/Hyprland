@@ -226,7 +226,7 @@ namespace Render::GL {
 
         void preRender(PHLMONITOR);
 
-        void saveBufferForMirror(const CBox&);
+        bool saveBufferForMirror(const CBox&);
 
         void applyScreenShader(const std::string& path);
 

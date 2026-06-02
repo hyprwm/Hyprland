@@ -599,7 +599,7 @@ void CWorkspace::setNoMembersAboveFullscreen() { // ERSTARR TODO - This might be
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == m_self && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
-            w->m_createdOverFullscreen = false;
+            w->m_allowedOverFullscreen = false;
         }
         w->updateFullscreenInputState();
     }

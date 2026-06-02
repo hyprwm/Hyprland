@@ -187,7 +187,7 @@ namespace Desktop::View {
         bool               m_requestsFloat = false;
 
         // This is for fullscreen apps
-        bool m_createdOverFullscreen = false;
+        bool m_allowedOverFullscreen = true;
 
         // XWayland stuff
         bool  m_isX11                = false;

@@ -1183,9 +1183,9 @@ void CCompositor::changeWindowZOrder(PHLWINDOW pWindow, bool top) {
         return;
 
     if (top)
-        pWindow->m_createdOverFullscreen = true;
+        pWindow->m_allowedOverFullscreen = true;
     else
-        pWindow->m_createdOverFullscreen = false;
+        pWindow->m_allowedOverFullscreen = false;
 
     pWindow->updateFullscreenInputState();
     *pWindow->alpha(WINDOW_ALPHA_FULLSCREEN) = pWindow->isBlockedByFullscreen() ? 0.F : 1.F;

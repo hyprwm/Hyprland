@@ -571,7 +571,7 @@ void SScrollingData::recalculate(bool forceInstant) {
         for (auto const& w : g_pCompositor->m_windows) {
             if (w->m_workspace == WORKSPACE) {
                 if (!w != FULLSCREENWINDOW && !w->m_fadingOut && !w->m_pinned)
-                    w->m_createdOverFullscreen = false;
+                    w->m_allowedOverFullscreen = false;
 
                 w->updateFullscreenInputState();
             }

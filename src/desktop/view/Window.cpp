@@ -875,7 +875,7 @@ bool CWindow::isAllowedOverFullscreen() const { // ERSTARR TODO - This is going 
     if (!m_workspace)
         return false;
 
-    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
+    if (isFullscreen() || m_pinned || m_allowedOverFullscreen)
         return true;
 
     const auto FSWINDOW = m_workspace->getFullscreenWindow();
@@ -1520,7 +1520,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    m_createdOverFullscreen = true;
+    m_allowedOverFullscreen = true;
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 }
@@ -2267,7 +2267,7 @@ void CWindow::mapWindow() {
     updateWindowData();
 
     if (m_isFloating) {
-        m_createdOverFullscreen = true;
+        m_allowedOverFullscreen = true;
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize

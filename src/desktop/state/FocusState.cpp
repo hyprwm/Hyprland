@@ -36,7 +36,7 @@ static SFullscreenWorkspaceFocusResult onFullscreenWorkspaceFocusWindow(PHLWINDO
 
     if (pWindow->m_isFloating) {
         // if the window is floating, just bring it to the top
-        pWindow->m_createdOverFullscreen = true;
+        pWindow->m_allowedOverFullscreen = true;
         pWindow->updateFullscreenInputState();
         g_pDesktopAnimationManager->setFullscreenFloatingFade(pWindow, 1.f);
         g_pHyprRenderer->damageWindow(pWindow);

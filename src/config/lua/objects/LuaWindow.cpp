@@ -120,7 +120,7 @@ static int windowIndex(lua_State* L) {
     else if (key == "fullscreen_client")
         lua_pushinteger(L, sc<lua_Integer>(sc<uint8_t>(w->m_fullscreenState.client)));
     else if (key == "over_fullscreen")
-        lua_pushboolean(L, w->m_createdOverFullscreen);
+        lua_pushboolean(L, w->m_allowedOverFullscreen);
     else if (key == "group") {
         if (!w->m_group) {
             lua_pushnil(L);

@@ -1159,6 +1159,14 @@ SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
 }
 
 
+void CScrollingAlgorithm::setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set) const {
+
+    // TODO
+
+}
+
+
+
 SP<SScrollingTargetData> CScrollingAlgorithm::fullscreenTargetDataForColumn(SP<SColumnData> col) const {
     if (!col)
         return nullptr;
@@ -1276,8 +1284,6 @@ void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {
     if (!m_parent || !m_parent->space() || !m_parent->space()->workspace())
         return;
 
-    // properly update things on top / bottom
-    m_parent->space()->workspace()->setNoMembersAboveFullscreen();
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(m_parent->space()->workspace(),
                                                            coversMonitor ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);

@@ -62,6 +62,8 @@ namespace Layout {
         */
         virtual SP<ITarget> layoutFullscreenTarget() const;
 
+        // optional: allow layouts to own layer/window hiding logic for fullscreen targets
+        virtual void setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set = true) const;
 
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);

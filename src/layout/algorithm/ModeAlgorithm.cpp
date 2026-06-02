@@ -4,7 +4,9 @@
 #include "Algorithm.hpp"
 #include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
+#include "Compositor.hpp"
 #include "desktop/Workspace.hpp"
+#include "desktop/view/LayerSurface.hpp"
 #include "layout/LayoutManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 
@@ -70,6 +72,8 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
 
+    IModeAlgorithm::setNoMembersAboveFullscreen(TARGET, request.effectiveMode != FSMODE_NONE);
+
 
     return FULLSCREEN_REQUEST_DEFAULT;
 }
@@ -77,6 +81,46 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
 SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
     return nullptr;
 }
+
+
+
+void IModeAlgorithm::setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set) const {
+
+    const auto WORKSPACE = fullscreenTarget->workspace();
+    
+    if (!WORKSPACE)
+        return;
+
+    const auto MONITOR = fullscreenTarget->workspace()->m_monitor;
+
+    if (!MONITOR)
+        return;
+
+
+    // Get the currently fullscreen window in the current workspace if not explicitly given
+    const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
+
+    if (!FULLSCREEN_WINDOW)
+        return;
+
+
+    if (set) {
+        // make all windows and layers on the same workspace under the fullscreen window
+        for (auto const& w : g_pCompositor->m_windows) {
+            if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+                w->m_allowedOverFullscreen = false;
+            }
+            w->updateFullscreenInputState();
+        }
+        for (auto const& ls : g_pCompositor->m_layers) {
+            if (ls->m_monitor == MONITOR)
+            ls->m_aboveFullscreen = false;
+        }
+    }
+}
+
+
+
 
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {

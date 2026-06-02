@@ -586,25 +586,3 @@ void CWorkspace::setPersistent(bool persistent) {
 bool CWorkspace::isPersistent() {
     return m_persistent;
 }
-
-void CWorkspace::setNoMembersAboveFullscreen() { // ERSTARR TODO - This might be a problem with FSing a floating window when already on a FSed tiled window; the floating window might be non-focusable or hidden after their unFSing (or other floating windows created above the tiled Fs)
-
-    // Get the currently fullscreen window in the current workspace if not explicitly given
-    const auto FULLSCREEN_WINDOW =  getFullscreenWindow();
-    
-    if (!FULLSCREEN_WINDOW)
-        return;
-
-
-    // make all windows and layers on the same workspace under the fullscreen window
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
-            w->m_allowedOverFullscreen = false;
-        }
-        w->updateFullscreenInputState();
-    }
-    for (auto const& ls : g_pCompositor->m_layers) {
-        if (ls->m_monitor == m_monitor)
-            ls->m_aboveFullscreen = false;
-    }
-}

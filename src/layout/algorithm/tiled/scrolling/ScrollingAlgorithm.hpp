@@ -113,6 +113,7 @@ namespace Layout::Tiled {
 
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
         virtual SP<ITarget>              layoutFullscreenTarget() const;
+        virtual void                     setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set = true) const;
 
         void                             moveTape(float delta);
         void                             moveTapeNormalized(double delta);

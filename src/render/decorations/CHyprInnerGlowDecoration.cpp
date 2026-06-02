@@ -57,7 +57,7 @@ void CHyprInnerGlowDecoration::draw(PHLMONITOR pMonitor, float const& a) {
     CInnerGlowPassElement::SInnerGlowData data;
     data.deco = this;
     data.a    = a;
-    g_pHyprRenderer->m_renderPass.add(makeUnique<CInnerGlowPassElement>(data));
+    g_pHyprRenderer->addPassElement(makeUnique<CInnerGlowPassElement>(data));
 }
 
 void CHyprInnerGlowDecoration::render(PHLMONITOR pMonitor, float const& a) {

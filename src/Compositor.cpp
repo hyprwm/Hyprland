@@ -140,6 +140,7 @@ static void handleUserSignal(int sig) {
 
 bool CCompositor::setWatchdogFd(int fd) {
     m_watchdogWriteFd = Hyprutils::OS::CFileDescriptor{fd};
+    m_watchdogWriteFd.setFlags(m_watchdogWriteFd.getFlags() | FD_CLOEXEC);
     return m_watchdogWriteFd.isValid() && !m_watchdogWriteFd.isClosed();
 }
 
@@ -3048,6 +3049,13 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     if (!PNEWMONITOR->m_enabled || FALLBACK)
         return;
 
+    // Some monitors disconnect and reconnect when receiving no signal (e.g. during dpms off).
+    // Re-apply dpms off so the hotplug doesn't override a user-initiated power-off.
+    if (!g_pCompositor->m_dpmsStateOn) {
+        PNEWMONITOR->setDPMS(false);
+        return;
+    }
+
     // ready to process if we have a real monitor
 
     if ((!g_pHyprRenderer->m_mostHzMonitor || PNEWMONITOR->m_refreshRate > g_pHyprRenderer->m_mostHzMonitor->m_refreshRate) && PNEWMONITOR->m_enabled)
@@ -3064,9 +3072,10 @@ void CCompositor::onNewMonitor(SP<Aquamarine::IOutput> output) {
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_monitor == PNEWMONITOR) {
             w->m_lastSurfaceMonitorID = MONITOR_INVALID;
-            w->updateSurfaceScaleTransformDetails();
         }
     }
+
+    PNEWMONITOR->updateSurfaceScaleTransformDetails();
 
     g_pHyprRenderer->damageMonitor(PNEWMONITOR);
     PNEWMONITOR->m_frameScheduler->onFrame();

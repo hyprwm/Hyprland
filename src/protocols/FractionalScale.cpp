@@ -1,5 +1,6 @@
 #include "FractionalScale.hpp"
 #include <algorithm>
+#include "Compositor.hpp"
 #include "core/Compositor.hpp"
 
 CFractionalScaleProtocol::CFractionalScaleProtocol(const wl_interface* iface, const int& ver, const std::string& name) : IWaylandProtocol(iface, ver, name) {
@@ -44,11 +45,11 @@ void CFractionalScaleProtocol::onGetFractionalScale(CWpFractionalScaleManagerV1*
     PADDON->m_resource->setOnDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
     PADDON->m_resource->setDestroy([this, PADDON](CWpFractionalScaleV1* self) { this->removeAddon(PADDON); });
 
-    if (std::ranges::find_if(m_surfaceScales, [surface](const auto& e) { return e.first == surface; }) == m_surfaceScales.end())
-        m_surfaceScales.emplace(surface, 1.F);
-
-    if (surface->m_mapped)
+    // send known scale or default 1.0 if surface is already mapped without a known scale
+    if (hasKnownScale(surface))
         PADDON->setScale(m_surfaceScales.at(surface));
+    else if (surface->m_mapped)
+        PADDON->setScale(1.F);
 
     // clean old
     std::erase_if(m_surfaceScales, [](const auto& e) { return e.first.expired(); });
@@ -58,6 +59,10 @@ void CFractionalScaleProtocol::sendScale(SP<CWLSurfaceResource> surf, const floa
     m_surfaceScales[surf] = scale;
     if (m_addons.contains(surf))
         m_addons[surf]->setScale(scale);
+}
+
+bool CFractionalScaleProtocol::hasKnownScale(SP<CWLSurfaceResource> surf) {
+    return m_surfaceScales.contains(surf);
 }
 
 CFractionalScaleAddon::CFractionalScaleAddon(SP<CWpFractionalScaleV1> resource_, SP<CWLSurfaceResource> surf_) : m_resource(resource_), m_surface(surf_) {

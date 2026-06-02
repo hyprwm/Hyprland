@@ -19,6 +19,7 @@
 #include "./pass/SurfacePassElement.hpp"
 #include "./pass/TexPassElement.hpp"
 #include "./pass/TextureMatteElement.hpp"
+#include "./pass/TransformedWindowPassElement.hpp"
 #include "types.hpp"
 #include "../helpers/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -75,6 +76,7 @@ namespace Render {
         void                                damageMirrorsWith(PHLMONITOR, const CRegion&);
         bool                                shouldRenderWindow(PHLWINDOW, PHLMONITOR);
         bool                                shouldRenderWindow(PHLWINDOW);
+        bool                                shouldRenderMonitor(PHLMONITOR);
         void                                ensureCursorRenderingMode();
         bool                                shouldRenderCursor();
         void                                setCursorHidden(bool hide);
@@ -129,11 +131,15 @@ namespace Render {
             std::string                                  name;
         } m_lastCursorData;
 
-        CRenderPass  m_renderPass;
+        CRenderPass     m_renderPass;
 
-        SP<ITexture> renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth = 1024,
-                                  const int maxHeight = 1024);
-        CHyprColor   getConvertedColor(const CHyprColor& color);
+        void            addPassElement(UP<IPassElement>&& element);
+        CRenderPass&    currentPass();
+        UP<CScopeGuard> redirectPass(CRenderPass* pass);
+
+        SP<ITexture>    renderSplash(const std::function<SP<ITexture>(const int, const int, unsigned char* const)>& handleData, const int fontSize, const int maxWidth = 1024,
+                                     const int maxHeight = 1024);
+        CHyprColor      getConvertedColor(const CHyprColor& color);
 
         virtual SP<IRenderbuffer>    getOrCreateRenderbuffer(SP<Aquamarine::IBuffer> buffer,
                                                              uint32_t                fmt); // TODO? move to protected and fix CPointerManager::renderHWCursorBuffer
@@ -184,6 +190,8 @@ namespace Render {
         void                            pushMonitorTransformEnabled(bool enabled);
         void                            popMonitorTransformEnabled();
         bool                            monitorTransformEnabled();
+        void                            sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace,
+                                                                   const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
 
         void                            setProjectionType(const Vector2D& fbSize);
         void                            setProjectionType(eRenderProjectionType projectionType);
@@ -237,6 +245,7 @@ namespace Render {
         SP<ITexture>                       m_lockDeadTexture;
         SP<ITexture>                       m_lockDead2Texture;
         SP<ITexture>                       m_lockTtyTextTexture;
+        CRenderPass*                       m_currentPass             = nullptr;
         bool                               m_monitorTransformEnabled = false; // do not modify directly
         std::stack<bool>                   m_monitorTransformStack;
 
@@ -253,8 +262,6 @@ namespace Render {
         void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);
         void renderDragIcon(PHLMONITOR, const Time::steady_tp&);
         void renderIMEPopup(CInputPopup*, PHLMONITOR, const Time::steady_tp&);
-        void sendFrameEventsToWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace,
-                                        const Time::steady_tp& now); // sends frame displayed events but doesn't actually render anything
         void renderSessionLockPrimer(PHLMONITOR pMonitor);
         void renderSessionLockMissing(PHLMONITOR pMonitor);
         void renderBackground(PHLMONITOR pMonitor);

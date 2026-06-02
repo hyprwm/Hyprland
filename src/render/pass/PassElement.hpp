@@ -16,6 +16,7 @@ enum ePassElementType : uint8_t {
     EK_TEXTURE,
     EK_TEXTURE_MATTE,
     EK_INNER_GLOW,
+    EK_TRANSFORMED_WINDOW,
     EK_CUSTOM,
 };
 

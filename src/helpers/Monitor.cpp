@@ -58,6 +58,7 @@ using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
+using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
@@ -155,6 +156,17 @@ void CMonitor::onConnect(bool noRule) {
 
                 g_pHyprRenderer->damageMonitor(self.lock());
             });
+        }
+
+        // if the monitor has no pending frames, we wont hit the no damage send frame callback path in rendermonitor
+        // this becomes really noticeable in new render scheduling. causing firefox to simply wait for a new frame callback.
+        // when nothing is scheduling new frames.
+        auto mon = m_self.lock();
+        if (!isMirror() && !g_pHyprRenderer->shouldRenderMonitor(mon)) {
+            auto const NOW = Time::steadyNow();
+            g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeWorkspace, NOW);
+            if (m_activeSpecialWorkspace)
+                g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeSpecialWorkspace, NOW);
         }
 
         m_frameScheduler->onPresented();
@@ -1108,13 +1120,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule, bool force)
 
     updateVCGTRamps();
 
-    // Set scale for all surfaces on this monitor, needed for some clients
-    // but not on unsafe state to avoid crashes
-    if (!g_pCompositor->m_unsafeState) {
-        for (auto const& w : g_pCompositor->m_windows) {
-            w->updateSurfaceScaleTransformDetails();
-        }
-    }
+    updateSurfaceScaleTransformDetails();
+
     // updato us
     g_pHyprRenderer->arrangeLayersForMonitor(m_id);
 
@@ -1396,6 +1403,12 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 
     if (pWorkspace == m_activeWorkspace)
         return;
+
+    if (!internal) {
+        g_pInputManager->unconstrainMouse();
+        g_pInputManager->m_emptyFocusCursorSet = false;
+        g_pInputManager->releaseAllMouseButtons();
+    }
 
     const auto POLDWORKSPACE = m_activeWorkspace;
     m_activeWorkspace        = pWorkspace;
@@ -1868,6 +1881,22 @@ uint8_t CMonitor::isTearingBlocked(bool full) {
     return reasons;
 }
 
+void CMonitor::updateSurfaceScaleTransformDetails() {
+    if (g_pCompositor->m_unsafeState)
+        return;
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_monitor == m_self)
+            w->updateSurfaceScaleTransformDetails();
+    }
+
+    for (auto const& lsl : m_layerSurfaceLayers) {
+        for (auto const& ls : lsl) {
+            ls->updateSurfaceScaleTransformDetails();
+        }
+    }
+}
+
 bool CMonitor::updateTearing() {
     m_tearingState.activelyTearing = !isTearingBlocked();
     m_tearingState.nextRenderTorn  = false;
@@ -2016,8 +2045,7 @@ bool CMonitor::attemptDirectScanout() {
     if (m_lastScanout.expired())
         m_prevDrmFormat = m_drmFormat;
 
-    const auto PREV_FORMAT = m_drmFormat;
-    const bool NEEDS_TEST  = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
+    const bool NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
     if (m_drmFormat != params.format) {
         m_output->state->setFormat(params.format);
         m_drmFormat = params.format;
@@ -2030,10 +2058,6 @@ bool CMonitor::attemptDirectScanout() {
 
     if (NEEDS_TEST && !m_state.test()) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test");
-        if (m_drmFormat != PREV_FORMAT) {
-            m_output->state->setFormat(PREV_FORMAT);
-            m_drmFormat = PREV_FORMAT;
-        }
         return false;
     }
 
@@ -2059,10 +2083,6 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!ok) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
-        if (m_drmFormat != PREV_FORMAT) {
-            m_output->state->setFormat(PREV_FORMAT);
-            m_drmFormat = PREV_FORMAT;
-        }
         m_lastScanout.reset();
         return false;
     }
@@ -2573,7 +2593,7 @@ void CMonitorState::applyCustomModeWithSwapchain(const SP<Aquamarine::SOutputMod
 }
 
 bool CMonitor::needsACopyFB() {
-    return !m_mirrors.empty() || Screenshare::mgr()->isOutputBeingSSd(m_self.lock());
+    return !m_mirrors.empty() || Screenshare::mgr()->outputNeedsCopyFB(m_self.lock());
 }
 
 bool CMonitor::needsUnmodifiedCopy() {

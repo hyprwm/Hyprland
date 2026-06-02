@@ -17,7 +17,7 @@ add_executable(hyprtester ${SRCFILES})
 add_custom_command(
   TARGET hyprtester
   POST_BUILD
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/plugin/build.sh
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/plugin/build.sh "${LUA_INCLUDE_DIRS}"
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/plugin)
 
 target_link_libraries(hyprtester PUBLIC PkgConfig::hyprtester_deps)
@@ -102,3 +102,4 @@ clientNew("pointer-warp" PROTOS "pointer-warp-v1" "xdg-shell")
 clientNew("pointer-scroll" PROTOS "xdg-shell")
 clientNew("child-window" PROTOS "xdg-shell")
 clientNew("shortcut-inhibitor" PROTOS "xdg-shell" "keyboard-shortcuts-inhibit-unstable-v1")
+clientNew("keyboard-modifiers" PROTOS "xdg-shell")

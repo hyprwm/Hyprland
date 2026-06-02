@@ -66,6 +66,7 @@ class CPluginManager {
 
     void                   notify(const eNotifyIcons icon, uint32_t color, int durationMs, const std::string& message);
 
+    std::string            getPluginBuildEnv();
     const std::string&     getPkgConfigPath();
 
     bool                   hasDeps();

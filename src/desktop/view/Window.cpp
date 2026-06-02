@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <ranges>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <re2/re2.h>
@@ -33,6 +34,7 @@
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../../managers/ANRManager.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../../protocols/XDGShell.hpp"
 #include "../../protocols/core/Compositor.hpp"
 #include "../../protocols/core/Subcompositor.hpp"
@@ -44,6 +46,7 @@
 #include "../../helpers/math/Expression.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../render/transformer/MotionBlurTransformer.hpp"
 #include "../../managers/EventManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
@@ -567,6 +570,95 @@ PHLWINDOW CWindow::x11TransientFor() {
     return nullptr;
 }
 
+static Render::CMotionBlurTransformer* motionBlurTransformer(CWindow* window) {
+    if (!window)
+        return nullptr;
+
+    for (auto const& transformer : window->m_transformers) {
+        if (const auto MOTIONBLUR = dc<Render::CMotionBlurTransformer*>(transformer.get()))
+            return MOTIONBLUR;
+    }
+
+    return nullptr;
+}
+
+static const Render::CMotionBlurTransformer* motionBlurTransformer(const CWindow* window) {
+    if (!window)
+        return nullptr;
+
+    for (auto const& transformer : window->m_transformers) {
+        if (const auto MOTIONBLUR = dc<const Render::CMotionBlurTransformer*>(transformer.get()))
+            return MOTIONBLUR;
+    }
+
+    return nullptr;
+}
+
+std::optional<MotionBlur::SState> CWindow::motionBlurState(bool allowStale) const {
+    const auto MOTIONBLUR = motionBlurTransformer(this);
+    if (!MOTIONBLUR)
+        return std::nullopt;
+
+    return MOTIONBLUR->state(allowStale);
+}
+
+void CWindow::damageMotionBlur(bool allowStale) const {
+    const auto STATE = motionBlurState(allowStale);
+    if (!STATE)
+        return;
+
+    CBox damage = STATE->extents();
+    damage.expand(4.F);
+    g_pHyprRenderer->damageBox(damage);
+}
+
+void CWindow::recordMotionBlur(const CBox& previous, const CBox& current) {
+    if (previous == current || !Render::CMotionBlurTransformer::shouldEnable(m_self.lock())) {
+        resetMotionBlur();
+        return;
+    }
+
+    constexpr double MIN_EDGE_DELTA_PX = 2.0;
+
+    const auto       PMONITOR = m_monitor.lock();
+    const double     SCALE    = PMONITOR ? PMONITOR->m_scale : 1.0;
+    const double     DELTA    = std::max({std::abs(previous.x - current.x), std::abs(previous.y - current.y), std::abs(previous.x + previous.w - current.x - current.w),
+                                          std::abs(previous.y + previous.h - current.y - current.h)}) *
+        SCALE;
+
+    if (DELTA <= MIN_EDGE_DELTA_PX) {
+        resetMotionBlur();
+        return;
+    }
+
+    damageMotionBlur(true);
+
+    auto MOTIONBLUR = motionBlurTransformer(this);
+    if (!MOTIONBLUR) {
+        m_transformers.emplace_back(makeUnique<Render::CMotionBlurTransformer>(m_self));
+        MOTIONBLUR = motionBlurTransformer(this);
+    }
+
+    if (!MOTIONBLUR)
+        return;
+
+    MOTIONBLUR->record(previous, current);
+    damageMotionBlur();
+}
+
+void CWindow::resetMotionBlur() {
+    damageMotionBlur(true);
+
+    std::erase_if(m_transformers, [](auto const& transformer) {
+        const auto MOTIONBLUR = dc<Render::CMotionBlurTransformer*>(transformer.get());
+        if (!MOTIONBLUR)
+            return false;
+
+        MOTIONBLUR->reset();
+        return true;
+    });
+}
+
 void CWindow::onUnmap() {
     static auto PCLOSEONLASTSPECIAL = CConfigValue<Config::INTEGER>("misc:close_special_on_empty");
     static auto PINITIALWSTRACKING  = CConfigValue<Config::INTEGER>("misc:initial_workspace_tracking");
@@ -607,6 +699,8 @@ void CWindow::onUnmap() {
     if (PMONITOR && PMONITOR->m_solitaryClient == m_self)
         PMONITOR->m_solitaryClient.reset();
 
+    resetMotionBlur();
+
     if (m_workspace) {
         m_workspace->updateWindows();
         m_workspace->updateWindowData();
@@ -641,6 +735,8 @@ void CWindow::onMap() {
 
     alpha(WINDOW_ALPHA_MOVE_FROM_WORKSPACE)->setValueAndWarp(1.F);
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->setValueAndWarp(1.F);
+
+    resetMotionBlur();
 
     if (m_borderAngleAnimationProgress->enabled()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
@@ -687,8 +783,6 @@ void CWindow::onMap() {
 
     m_reportedSize = m_pendingReportedSize;
     m_animatingIn  = true;
-
-    updateSurfaceScaleTransformDetails(true);
 
     if (m_isX11)
         return;
@@ -1799,8 +1893,12 @@ static void setVector2DAnimToMove(WP<CBaseAnimatedVariable> pav) {
     CAnimatedVariable<Vector2D>* animvar = dc<CAnimatedVariable<Vector2D>*>(pav.get());
     animvar->setConfig(Config::animationTree()->getAnimationPropertyConfig("windowsMove"));
 
-    if (animvar->m_Context.pWindow)
+    if (animvar->m_Context.pWindow) {
         animvar->m_Context.pWindow->m_animatingIn = false;
+
+        if (!animvar->m_Context.pWindow->m_realPosition->isBeingAnimated() && !animvar->m_Context.pWindow->m_realSize->isBeingAnimated())
+            animvar->m_Context.pWindow->resetMotionBlur();
+    }
 }
 
 void CWindow::mapWindow() {
@@ -2106,6 +2204,8 @@ void CWindow::mapWindow() {
         Log::logger->log(Log::DEBUG, "Requested monitor, applying to {:mw}", m_self.lock());
     }
 
+    PMONITOR = m_monitor.lock();
+
     // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
     const auto SWALLOWER = getSwallower();
     m_swallowed          = SWALLOWER;
@@ -2187,7 +2287,8 @@ void CWindow::mapWindow() {
         !monitorSilent && (!PFORCEFOCUS || PFORCEFOCUS == m_self.lock()) && !g_pInputManager->isConstrained()) {
 
         // don't steal pointer focus with X11 when buttons are held (e.g., during drags)
-        if (!m_isX11 || !g_pInputManager->hasHeldButtons()) {
+        // if the incoming window is an OR
+        if (!m_isX11 || !g_pInputManager->hasHeldButtons() || !isX11OverrideRedirect()) {
             // this window should gain focus: if it's grouped, preserve fullscreen state.
             const bool SAME_GROUP = m_group && m_group->has(LAST_FOCUS_WINDOW);
 
@@ -2217,6 +2318,7 @@ void CWindow::mapWindow() {
 
         m_realPosition->warp();
         m_realSize->warp();
+        resetMotionBlur();
         if (requestedFSState.has_value()) {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
             g_pCompositor->setWindowFullscreenState(m_self.lock(), requestedFSState.value());
@@ -2232,7 +2334,7 @@ void CWindow::mapWindow() {
     // recheck idle inhibitors
     g_pInputManager->recheckIdleInhibitorStatus();
 
-    updateToplevel();
+    updateSurfaceScaleTransformDetails(true);
     m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_ALL);
 
     if (workspaceSilent) {
@@ -2272,9 +2374,6 @@ void CWindow::mapWindow() {
     // avoid this window being visible
     if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
-
-    g_pCompositor->setPreferredScaleForSurface(wlSurface()->resource(), PMONITOR->m_scale);
-    g_pCompositor->setPreferredTransformForSurface(wlSurface()->resource(), PMONITOR->m_transform);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())
         g_pInputManager->sendMotionEventsToFocused();

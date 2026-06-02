@@ -16,27 +16,35 @@
 void            local__configValuePopulate(void* const** p, void* const** hlangp, std::type_index* ti, const std::string& val);
 std::type_index local__configValueTypeIdx(const std::string& val);
 
+class CConfigValueBase {
+  protected:
+    std::string     m_valueName;
+    void* const*    m_p         = nullptr;
+    void* const*    m_hlangp    = nullptr;
+    std::type_index m_typeIndex = typeid(void);
+
+    CConfigValueBase();
+    ~CConfigValueBase();
+
+    void populateFromName();
+    void bindInternal(const std::string& val);
+
+  public:
+    static std::vector<CConfigValueBase*>& registry();
+    static void                            flushCaches();
+};
+
 template <typename T>
-class CConfigValue {
+class CConfigValue : private CConfigValueBase {
   public:
     // creates an empty value. Deref'ing this will be a crash
     CConfigValue() = default;
+    explicit CConfigValue(const std::string& val) {
+        bind(val);
+    }
 
-    CConfigValue(const std::string& val) {
-#ifdef HYPRLAND_DEBUG
-        // verify type
-        // TODO: fix this or leave it idk I'm tired.
-        // const auto TYPE = local__configValueTypeIdx(val);
-
-        // // exceptions
-        // const bool STRINGEX = (typeid(T) == typeid(std::string) && TYPE == typeid(Hyprlang::STRING));
-        // const bool CUSTOMEX = ((typeid(T) == typeid(Hyprlang::CUSTOMTYPE) || typeid(T) == typeid(Config::IComplexConfigValue)) &&
-        //                        (TYPE == typeid(Hyprlang::CUSTOMTYPE*) || TYPE == typeid(Config::IComplexConfigValue*) || TYPE == typeid(void*) /* dunno why it does this? */));
-
-        // RASSERT(typeid(T) == TYPE || STRINGEX || CUSTOMEX, "Mismatched type in CConfigValue<T>, got {} but has {}", typeid(T).name(), TYPE.name());
-#endif
-
-        local__configValuePopulate(&m_p, &m_hlangp, &m_typeIndex, val);
+    void bind(const std::string& val) {
+        bindInternal(val);
     }
 
     T* ptr() const {
@@ -50,11 +58,6 @@ class CConfigValue {
     bool good() const {
         return m_p || m_hlangp;
     }
-
-  private:
-    void* const*    m_p         = nullptr;
-    void* const*    m_hlangp    = nullptr;
-    std::type_index m_typeIndex = typeid(void);
 };
 
 template <>

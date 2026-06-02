@@ -156,7 +156,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::cursorShape         = makeUnique<CCursorShapeProtocol>(&wp_cursor_shape_manager_v1_interface, 2, "CursorShape");
     PROTO::idleInhibit         = makeUnique<CIdleInhibitProtocol>(&zwp_idle_inhibit_manager_v1_interface, 1, "IdleInhibit");
     PROTO::relativePointer     = makeUnique<CRelativePointerProtocol>(&zwp_relative_pointer_manager_v1_interface, 1, "RelativePointer");
-    PROTO::xdgDecoration       = makeUnique<CXDGDecorationProtocol>(&zxdg_decoration_manager_v1_interface, 1, "XDGDecoration");
+    PROTO::xdgDecoration       = makeUnique<CXDGDecorationProtocol>(&zxdg_decoration_manager_v1_interface, 2, "XDGDecoration");
     PROTO::alphaModifier       = makeUnique<CAlphaModifierProtocol>(&wp_alpha_modifier_v1_interface, 1, "AlphaModifier");
     PROTO::gamma               = makeUnique<CGammaControlProtocol>(&zwlr_gamma_control_manager_v1_interface, 1, "GammaControl");
     PROTO::foreignToplevel     = makeUnique<CForeignToplevelProtocol>(&ext_foreign_toplevel_list_v1_interface, 1, "ForeignToplevel");

@@ -2,12 +2,15 @@
 #include "LuaWorkspace.hpp"
 #include "LuaObjectHelpers.hpp"
 
+#include "../bindings/LuaBindingsInternal.hpp"
+
 #include "../../../helpers/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
 #include <string_view>
 
 using namespace Config::Lua;
+using namespace Config::Lua::Bindings;
 
 static constexpr const char* MT = "HL.Monitor";
 
@@ -30,6 +33,40 @@ static int monitorToString(lua_State* L) {
         lua_pushfstring(L, "HL.Monitor(%d:%s)", mon->m_id, mon->m_name.c_str());
 
     return 1;
+}
+
+static int monitorSetWorkspace(lua_State* L) {
+    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    const auto id  = Internal::requireTableFieldWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+
+    if (id.empty())
+        return 0;
+
+    auto ws = g_pCompositor->getWorkspaceByName(id);
+    if (!ws)
+        return 0;
+
+    (*ref)->changeWorkspace(ws->m_id);
+
+    return 0;
+}
+
+static int monitorSetSpecialWorkspace(lua_State* L) {
+    auto*      ref = sc<PHLMONITORREF*>(luaL_checkudata(L, 1, MT));
+    const auto id  = Internal::tableOptWorkspaceSelector(L, 2, "workspace", "HLMonitor.set_workspace");
+
+    if (!id) {
+        (*ref)->setSpecialWorkspace(WORKSPACE_INVALID);
+        return 0;
+    }
+
+    auto ws = g_pCompositor->getWorkspaceByName(*id);
+    if (!ws)
+        return 0;
+
+    (*ref)->setSpecialWorkspace(ws->m_id);
+
+    return 0;
 }
 
 static int monitorIndex(lua_State* L) {
@@ -121,7 +158,15 @@ static int monitorIndex(lua_State* L) {
         lua_setfield(L, -2, "bottom");
         lua_pushnumber(L, mon->m_reservedArea.left());
         lua_setfield(L, -2, "left");
-    } else
+    }
+
+    // Fns
+
+    else if (key == "set_workspace")
+        lua_pushcfunction(L, monitorSetWorkspace);
+    else if (key == "set_special_workspace")
+        lua_pushcfunction(L, monitorSetSpecialWorkspace);
+    else
         lua_pushnil(L);
 
     return 1;

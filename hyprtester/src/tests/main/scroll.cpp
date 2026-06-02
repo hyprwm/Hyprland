@@ -1153,9 +1153,10 @@ TEST_CASE(properFocusBehvaior) {
     // test that focus history does not fuck with proper workspace preference
 
     OK(getFromSocket("/output create headless HEADLESS-3"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
 
     auto test = [&] {
+        OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+
         Tests::spawnKitty("a");
         ASSERT(Tests::windowCount(), 1);
 

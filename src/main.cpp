@@ -236,6 +236,9 @@ int main(int argc, char** argv) {
 
 
 )#");
+
+        if (!Env::envEnabled("HYPRLAND_NO_RT"))
+            NInit::gainRealTime();
     }
 
     // let's init the compositor.
@@ -264,9 +267,6 @@ int main(int argc, char** argv) {
 
     if (verifyConfig)
         return !Config::mgr()->configVerifPassed();
-
-    if (!Env::envEnabled("HYPRLAND_NO_RT"))
-        NInit::gainRealTime();
 
     Log::logger->log(Log::DEBUG, "Hyprland init finished.");
 

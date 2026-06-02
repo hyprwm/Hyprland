@@ -5,6 +5,7 @@
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
 #include "desktop/Workspace.hpp"
+#include "layout/target/Target.hpp"
 
 #include <optional>
 #include <vector>
@@ -112,8 +113,12 @@ namespace Layout::Tiled {
         virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
+
+        /**
+        * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
+        */
         virtual SP<ITarget>              layoutFullscreenTarget() const;
-        virtual void                     setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set = true) const;
+        virtual void                     setNoMembersAboveFullscreen(uint8_t mode = 0b01);
 
         void                             moveTape(float delta);
         void                             moveTapeNormalized(double delta);
@@ -144,6 +149,9 @@ namespace Layout::Tiled {
         CHyprSignalListener m_configCallback;
         CHyprSignalListener m_focusCallback;
         CHyprSignalListener m_mouseButtonCallback;
+
+        // To save the floating windows ontop of a FSed tiled layout managed FS window so they can be stay ontop after a floating window is FSed and UnFSed over the tiled FS window
+        std::unordered_set<WP<ITarget>> savedFloatingWindowsOverTilingFullscreen;
 
         struct {
             std::vector<float> configuredWidths;

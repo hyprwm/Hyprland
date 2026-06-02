@@ -5,6 +5,7 @@
 #include "../../output/Monitor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "Compositor.hpp"
+#include "debug/log/Logger.hpp"
 #include "desktop/Workspace.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include "layout/LayoutManager.hpp"
@@ -72,7 +73,8 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
 
-    IModeAlgorithm::setNoMembersAboveFullscreen(TARGET, request.effectiveMode != FSMODE_NONE);
+    // if FS, force set. If not, unset.
+    IModeAlgorithm::setNoMembersAboveFullscreen(request.effectiveMode != FSMODE_NONE ? 0b11 : 0b00);
 
 
     return FULLSCREEN_REQUEST_DEFAULT;
@@ -84,38 +86,56 @@ SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
 
 
 
-void IModeAlgorithm::setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set) const {
+void IModeAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
 
-    const auto WORKSPACE = fullscreenTarget->workspace();
-    
+    if (mode == 0b10) {
+        Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
+        return;
+    }
+
+    const bool FORCE = mode & 2;
+    const bool SET   = FORCE || (mode & 1);
+
+
+    if (!m_parent || !m_parent->space())
+        return;
+
+    const auto WORKSPACE = m_parent->space()->workspace();
+
     if (!WORKSPACE)
         return;
 
-    const auto MONITOR = fullscreenTarget->workspace()->m_monitor;
+    const auto MONITOR = WORKSPACE->m_monitor;
 
     if (!MONITOR)
         return;
 
 
-    // Get the currently fullscreen window in the current workspace if not explicitly given
+    
+    
     const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
 
-    if (!FULLSCREEN_WINDOW)
+    // If we are setting no members above FS window, we need there to be a FS window
+    // if we are re-setting m_allowedOverFullscreen and m_aboveFullscreen to true, FULLSCREEN_WINDOW will act as a nullptr guard instead
+    if (SET && !FULLSCREEN_WINDOW)
         return;
 
 
-    if (set) {
-        // make all windows and layers on the same workspace under the fullscreen window
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
-                w->m_allowedOverFullscreen = false;
-            }
+
+    // ERSTARR TODO: test that the m_allowedOverFullscreen is correctly set to true when smt is unfullscreened
+
+
+
+    // make all windows and layers on the same workspace under the fullscreen window
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+            w->m_allowedOverFullscreen = !SET;
             w->updateFullscreenInputState();
         }
-        for (auto const& ls : g_pCompositor->m_layers) {
-            if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = false;
-        }
+    }
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == MONITOR)
+        ls->m_aboveFullscreen = !SET;
     }
 }
 

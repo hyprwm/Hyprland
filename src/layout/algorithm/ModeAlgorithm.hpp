@@ -55,7 +55,7 @@ namespace Layout {
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
         // optional: expose an algorithm-owned fullscreen target
-        
+
         /**
         * Get the current layout managed FS target
         * @return Covers the monitor(`FSMODE_FULLSCREEN`) / work area(`FSMODE_MAXIMIZE`)
@@ -63,7 +63,17 @@ namespace Layout {
         virtual SP<ITarget> layoutFullscreenTarget() const;
 
         // optional: allow layouts to own layer/window hiding logic for fullscreen targets
-        virtual void setNoMembersAboveFullscreen(SP<ITarget> fullscreenTarget, bool set = true) const;
+
+        /**
+        * @param mode Bitmap controlling the behaviour
+        *
+        *        - `0b00` — unset, members may appear above fullscreen
+        *        - `0b01` — set, block members above fullscreen; exclusions are left to layouts to handle
+        *        - `0b11` — force set, block members above fullscreen unconditionally
+        *
+        * @note Bit 0: set flag. Bit 1: force flag. `0b10` is invalid.
+        */
+        virtual void setNoMembersAboveFullscreen(uint8_t mode = 0b01);
 
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);

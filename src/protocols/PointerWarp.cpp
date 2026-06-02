@@ -31,10 +31,10 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
         if (!WINDOW)
             return;
 
-        const auto SURFBOX   = WINDOW->getWindowMainSurfaceBox().expand(1);
+        const auto SURFBOX   = WINDOW->getWindowMainSurfaceBox();
         const auto LOCALPOS  = Vector2D{wl_fixed_to_double(x), wl_fixed_to_double(y)};
         const auto GLOBALPOS = LOCALPOS + SURFBOX.pos();
-        if (!SURFBOX.containsPoint(GLOBALPOS))
+        if (!SURFBOX.copy().expand(1).containsPoint(GLOBALPOS))
             return;
 
         const auto PSEAT = CWLPointerResource::fromResource(pointer)->m_owner.lock();

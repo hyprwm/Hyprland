@@ -76,7 +76,7 @@ class CWLPointerResource {
     bool                good();
     int                 version();
     void                sendEnter(SP<CWLSurfaceResource> surface, const Vector2D& local);
-    void                sendLeave();
+    void                sendLeave(bool preserveButtons = false);
     void                sendMotion(uint32_t timeMs, const Vector2D& local);
     void                sendButton(uint32_t timeMs, uint32_t button, wl_pointer_button_state state);
     void                sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value);
@@ -99,6 +99,7 @@ class CWLPointerResource {
   private:
     SP<CWlPointer>         m_resource;
     WP<CWLSurfaceResource> m_currentSurface;
+    WP<CWLSurfaceResource> m_preservedButtonSurface;
     WP<CWLPointerResource> m_self;
 
     std::vector<uint32_t>  m_pressedButtons;
@@ -107,6 +108,7 @@ class CWLPointerResource {
 
     struct {
         CHyprSignalListener destroySurface;
+        CHyprSignalListener destroyPreservedButtonSurface;
     } m_listeners;
 
     friend class CWLSeatResource;

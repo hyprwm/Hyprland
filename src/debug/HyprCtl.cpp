@@ -432,7 +432,7 @@ std::string CHyprCtl::getWindowData(PHLWINDOW w, eHyprCtlOutputFormat format) {
             "{}\n\tclass: {}\n\ttitle: "
             "{}\n\tinitialClass: {}\n\tinitialTitle: {}\n\tpid: "
             "{}\n\txwayland: {}\n\tpinned: "
-            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\toverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: "
+            "{}\n\tfullscreen: {}\n\tfullscreenClient: {}\n\tallowedOverFullscreen: {}\n\tgrouped: {}\n\ttags: {}\n\tswallowing: {:x}\n\tfocusHistoryID: {}\n\tinhibitingIdle: "
             "{}\n\txdgTag: "
             "{}\n\txdgDescription: {}\n\tcontentType: {}\n\tstableID: {:x}\n\n",
             rc<uintptr_t>(w.get()), w->m_title, sc<int>(w->m_isMapped), sc<int>(w->isHidden()), sc<int>(w->visible()), sc<int>(w->acceptsInput()),

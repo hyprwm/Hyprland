@@ -560,13 +560,12 @@ void SScrollingData::recalculate(bool forceInstant) {
             break;
         }
     }
-
-    algorithm->updateFullscreenFade(anyFullscreenCovers);
-
-
+    
     // if FS, set. If not, unset.
     algorithm->setNoMembersAboveFullscreen(targetWorkspaceHasFullscreen ? 0b01 : 0b00);
 
+    // Must be below setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
+    algorithm->updateFullscreenFade(anyFullscreenCovers);
 
 
     // Every time m_hasFullscreenWindow is true, that means that an FS window is currently taking up the entire monitor/work area.
@@ -1229,7 +1228,7 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
 
     const auto UNDERLYING_FS_WINDOW = layoutFullscreenTarget();
 
-    // If there is no underlying FS window, we are re-setting the overFullscreen vars of all members, the fullscreen window is not layout managed, or we force all members to be below the FS window
+    // If there is no underlying FS window, we are re-setting the allowedOverFullscreen vars of all members, the fullscreen window is not layout managed, or we force all members to be below the FS window
     // e.g. We force while we are fullscreening a new tiled window so no members remain above it
     if (FORCE || !SET || !UNDERLYING_FS_WINDOW || !FULLSCREEN_WINDOW->m_target->layoutManagedFullscreen()) {
         if (!savedFloatingWindowsOverTilingFullscreen.empty())

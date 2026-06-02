@@ -24,7 +24,7 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
         needsPathRecheck = false;
 
         if (g_pCompositor->m_safeMode)
-            return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.conf").string(), .type = CONFIG_TYPE_SPECIAL};
+            return SConfigStateReply{.path = (std::filesystem::path{g_pCompositor->m_instancePath} / "recoverycfg.lua").string(), .type = CONFIG_TYPE_SPECIAL};
 
         if (!g_pCompositor->m_explicitConfigPath.empty())
             return SConfigStateReply{.path = g_pCompositor->m_explicitConfigPath, .type = CONFIG_TYPE_EXPLICIT};
@@ -40,7 +40,7 @@ std::expected<SConfigStateReply, std::string> Jeremy::getMainConfigPath() {
         else if (CONF_PATHS.first.has_value())
             return SConfigStateReply{.path = CONF_PATHS.first.value(), .type = CONFIG_TYPE_REGULAR};
         else if (LUA_PATHS.second.has_value()) {
-            auto CONFIGPATH = Hyprutils::Path::fullConfigPath(LUA_PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland");
+            auto CONFIGPATH = Hyprutils::Path::fullConfigPath(LUA_PATHS.second.value(), ISDEBUG ? "hyprlandd" : "hyprland", "lua");
             return SConfigStateReply{.path = CONFIGPATH, .type = CONFIG_TYPE_REGULAR};
         } else
             return std::unexpected("Neither HOME nor XDG_CONFIG_HOME are set in the environment. Could not find config in XDG_CONFIG_DIRS or /etc/xdg.");

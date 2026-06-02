@@ -62,7 +62,7 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
         return FULLSCREEN_REQUEST_FAILED;
 
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
-        const CBox MONBOX = TARGETWORKSPACE->m_monitor->logicalBox();
+        const CBox MONBOX = MONITOR->logicalBox();
         TARGET->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
     }
     else if (request.effectiveMode == FSMODE_MAXIMIZED) {

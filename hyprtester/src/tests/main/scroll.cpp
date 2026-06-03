@@ -1163,8 +1163,11 @@ TEST_CASE(properFocusBehvaior) {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
 
         Tests::spawnKitty("b");
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:b' })"));
         Tests::spawnKitty("c");
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:c' })"));
         Tests::spawnKitty("d");
+        OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:d' })"));
 
         Tests::waitUntilWindowsN(4);
 

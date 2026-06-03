@@ -1531,6 +1531,14 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                 if (w->m_isFloating != floatingPreference)
                     continue;
 
+                // prioritize windows on the same workspace.
+                // this is especially important for scrolling layouts - we want to first move to a window
+                // on the same workspace before moving onto another.
+                const auto LEADER_IS_ON_SAME_WORKSPACE = leaderWindow && leaderWindow->m_workspace == pWorkspace;
+
+                if (LEADER_IS_ON_SAME_WORKSPACE && w->m_workspace != pWorkspace)
+                    continue;
+
                 const auto BWINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
 
                 const auto POSB  = Vector2D(BWINDOWIDEALBB.x, BWINDOWIDEALBB.y);
@@ -1558,26 +1566,31 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                     default: break;
                 }
 
+                // if we have a leader on another workspace, and this window is on the same workspace,
+                // override minimum requirements and always select this as the new leader
+                const bool OVERRIDE_MIN_REQ = leaderWindow && !LEADER_IS_ON_SAME_WORKSPACE && w->m_workspace == pWorkspace;
+
+                // ...as long as there is any intersect.
+                if (intersectLength <= 1)
+                    continue;
+
                 if (*PMETHOD == 0 /* history */) {
-                    if (intersectLength > 0) {
-
-                        // get idx
-                        int         windowIDX = -1;
-                        const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
-                        for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
-                            if (HISTORY[i] == w) {
-                                windowIDX = i;
-                                break;
-                            }
-                        }
-
-                        if (windowIDX > leaderValue) {
-                            leaderValue  = windowIDX;
-                            leaderWindow = w;
+                    // get idx
+                    int         windowIDX = -1;
+                    const auto& HISTORY   = Desktop::History::windowTracker()->fullHistory();
+                    for (int64_t i = HISTORY.size() - 1; i >= 0; --i) {
+                        if (HISTORY[i] == w) {
+                            windowIDX = i;
+                            break;
                         }
                     }
+
+                    if (windowIDX > leaderValue || OVERRIDE_MIN_REQ) {
+                        leaderValue  = windowIDX;
+                        leaderWindow = w;
+                    }
                 } else /* length */ {
-                    if (intersectLength > leaderValue) {
+                    if (intersectLength > leaderValue || OVERRIDE_MIN_REQ) {
                         leaderValue  = intersectLength;
                         leaderWindow = w;
                     }

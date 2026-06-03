@@ -70,7 +70,9 @@ void CScrollMoveTrackpadGesture::update(const ITrackpadGesture::STrackpadGesture
     if (!SCROLLING)
         return;
 
-    const float  DELTA   = deltaForUpdate(e);
+    static auto  PNATURAL = CConfigValue<Config::BOOL>("gestures:scrolling:move_natural");
+
+    const float  DELTA   = deltaForUpdate(e) * (*PNATURAL ? -1.F : 1.F);
     const double PRIMARY = SCROLLING->primaryViewportSize();
 
     if (DELTA == 0.F || PRIMARY <= 0.0)

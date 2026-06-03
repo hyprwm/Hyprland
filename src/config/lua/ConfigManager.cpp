@@ -315,8 +315,10 @@ void CConfigManager::reinitLuaState() {
 
     lua_getglobal(m_lua, "require");
     if (lua_isfunction(m_lua, -1)) {
+        lua_pushvalue(m_lua, -1);
+        lua_setglobal(m_lua, "__require"); // original `require` as `__require`
         lua_pushcclosure(m_lua, safeLuaRequire, 1);
-        lua_setglobal(m_lua, "require");
+        lua_setglobal(m_lua, "require"); // safe require as `require`
     } else
         lua_pop(m_lua, 1);
 

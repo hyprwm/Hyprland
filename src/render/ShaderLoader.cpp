@@ -80,6 +80,8 @@ std::string CShaderLoader::getDefines(ShaderFeatureFlags features) {
         {"USE_MOTION_BLUR", features & SH_FEAT_MOTION_BLUR ? "1" : "0"},
         {"USE_BLUR_ALPHA_MASK", features & SH_FEAT_BLUR_ALPHA_MASK ? "1" : "0"},
         {"USE_BLUR_MATTE", features & SH_FEAT_BLUR_MATTE ? "1" : "0"},
+        {"USE_ALT_TONEMAP", features & SH_FEAT_ALT_TONEMAP ? "1" : "0"},
+
     };
     for (const auto& [name, value] : defines) {
         res += std::format("#define {} {}\n", name, value);
@@ -146,7 +148,7 @@ std::string CShaderLoader::process(const std::string& filename, const std::map<s
 std::string CShaderLoader::getVariantSource(ePreparedFragmentShader frag, ShaderFeatureFlags features) {
     static const auto PCM = CConfigValue<Config::INTEGER>("render:cm_enabled");
     if (!*PCM)
-        features &= ~(SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD);
+        features &= ~(SH_FEAT_CM | SH_FEAT_TONEMAP | SH_FEAT_ALT_TONEMAP | SH_FEAT_SDR_MOD);
 
     if (!m_fragVariants[frag].contains(features)) {
         ASSERT(m_fragFiles[frag].length());

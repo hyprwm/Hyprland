@@ -17,6 +17,7 @@
 #include "../../../../event/EventBus.hpp"
 #include "debug/log/Logger.hpp"
 #include "desktop/Workspace.hpp"
+#include "layout/algorithm/FloatingAlgorithm.hpp"
 #include "layout/target/Target.hpp"
 
 #include <algorithm>
@@ -562,7 +563,7 @@ void SScrollingData::recalculate(bool forceInstant) {
     }
     
     // if FS, set. If not, unset.
-    algorithm->setNoMembersAboveFullscreen(targetWorkspaceHasFullscreen ? 0b01 : 0b00);
+    algorithm->setNoMembersAboveFullscreen();
 
     // Must be below setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
     algorithm->updateFullscreenFade(anyFullscreenCovers);
@@ -1082,12 +1083,9 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
         // set internal fullscreen mode
         TARGET->setFullscreenMode(FSMODE_FULLSCREEN);
 
-        // We are newly FSing a tiled window, no floating windows can be above this
-        if (!savedFloatingWindowsOverTilingFullscreen.empty())
-            Log::logger->log(Log::ERR, "savedFloatingWindowsOverTilingFullscreen.empty() failed. This is an error but is not critical.");
 
         // Hide all members below the FS window
-        setNoMembersAboveFullscreen(0b11);
+        setNoMembersAboveFullscreen();
 
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
@@ -1121,12 +1119,9 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
         // set internal fullscreen mode
         TARGET->setFullscreenMode(FSMODE_MAXIMIZED);
 
-        // We are newly FSing a tiled window, no floating windows can be above this
-        if (!savedFloatingWindowsOverTilingFullscreen.empty())
-            Log::logger->log(Log::ERR, "savedFloatingWindowsOverTilingFullscreen.empty() failed. This is an error but is not critical.");
 
         // Hide all members below the FS window
-        setNoMembersAboveFullscreen(0b11);
+        setNoMembersAboveFullscreen();
 
         return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
     }
@@ -1135,10 +1130,7 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
     clearFullscreenTarget((TARGET->fullscreenMode() == FSMODE_MAXIMIZED ? m_maximizeTargets : m_fullscreenTargets), TARGET);
     TARGET->setFullscreenMode(FSMODE_NONE);
     
-    // We are unFSing a tiled window, re-set the allowedOverFullscreen attr of all window
-    if (!savedFloatingWindowsOverTilingFullscreen.empty())
-        Log::logger->log(Log::ERR, "savedFloatingWindowsOverTilingFullscreen.empty() failed. This is an error but is not critical.");
-    setNoMembersAboveFullscreen(0b00);
+    setNoMembersAboveFullscreen();
 
     return (request.effectiveMode == FSMODE_NONE && !isFullscreenTarget(TDATA)) ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_FAILED;
 }
@@ -1164,17 +1156,25 @@ SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
 }
 
 
-void CScrollingAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
-
-    if (mode == 0b10) {
-        Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
-        return;
-    }
+void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
 
 
+    // ERSTARR TODO - remove this if redundant
+    // if (mode == 0b10) {
+    //     Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
+    //     return;
+    // }
 
-    const bool FORCE = mode & 2;
-    const bool SET   = FORCE || (mode & 1);
+
+
+
+    // // ERTSTARR TODO  IMPORTANT - sync with IModeAlgorithm's impl
+    
+    // ERSTARR TODO - remove this if redundant
+    // const bool FORCE = mode & 2;
+    // const bool SET   = FORCE || (mode & 1);
+
+
 
 
     if (!m_parent || !m_parent->space())
@@ -1190,10 +1190,15 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
     if (!MONITOR)
         return;
 
+    
+
+
     const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
 
+
+    // TODO this should be in sync with default FS handling of setting all members below FS (IModeAlgorithm::setNoMembersAboveFullscreen())
     // for simply setting or unsetting no members above the FS window without scrolling specific logic
-    const auto setNoMembersAboveFS_layoutUnaware = [&](){
+    const auto setNoMembersAboveFS_layoutUnaware = [&](const bool SET) {
         // make all windows and layers on the same workspace under the fullscreen window
         for (auto const& w : g_pCompositor->m_windows) {
             if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
@@ -1203,20 +1208,18 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
         }
         for (auto const& ls : g_pCompositor->m_layers) {
             if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = !SET;
+                ls->m_aboveFullscreen = !SET;
         }
-
     };
 
-
-    // If we are setting no members above FS window, we need there to be a FS window
-    // if we are re-setting m_allowedOverFullscreen and m_aboveFullscreen to true, FULLSCREEN_WINDOW will act as a nullptr guard instead
-    if (SET && !FULLSCREEN_WINDOW)
-        return;
-
-        
-
-
+    const auto clear_hiddenFloatingWindowsUnderFSWindow = [&]() {
+        m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.clear();
+        if (!m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.empty())
+            Log::logger->log(
+                Log::ERR,
+                "hiddenFloatingWindowsUnderFSWindow.clear() failed. Will likely cause the mishandling of floating window hiding upon fullscreening on scrolling layout. This is an "
+                "error but is not critical.");
+    };
 
     /*
     In scrolling layout, a fully in view tiled FS window may exist underneath a fullscreen floating window. We must keep the floating windows that were opened ontop of the tiled FS window, as well as those
@@ -1225,86 +1228,119 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
     To this end, we maintain a list of floating windows that are allowed over the currently FSed window
     */
 
+    // ERSTARR TODO - if conditions are needlessly explicit to test for errors. before merge, refactor
 
-    const auto UNDERLYING_FS_WINDOW = layoutFullscreenTarget();
+    // In scrolling, there is no custom layout FS behaviour for floating FS windows (always uses default behaviour), and layoutFullscreenTarget() correctly gets the tiled currently FS window under a floating FS window
+    // therefore UNDERLYING_FS_WINDOW might be different than FULLSCREEN_WINDOW if there is a floating FS window "ontop" of the tiled currently FS window
+    const auto UNDERLYING_FS_WINDOW = [&]() -> PHLWINDOW {
+        if (auto const TARGET = layoutFullscreenTarget(); TARGET)
+            return TARGET->window();
+        return nullptr;
+    }();
 
-    // If there is no underlying FS window, we are re-setting the allowedOverFullscreen vars of all members, the fullscreen window is not layout managed, or we force all members to be below the FS window
-    // e.g. We force while we are fullscreening a new tiled window so no members remain above it
-    if (FORCE || !SET || !UNDERLYING_FS_WINDOW || !FULLSCREEN_WINDOW->m_target->layoutManagedFullscreen()) {
-        if (!savedFloatingWindowsOverTilingFullscreen.empty())
-            Log::logger->log(Log::ERR, "savedFloatingWindowsOverTilingFullscreen.empty() failed. This is an error but is not critical.");
-        setNoMembersAboveFS_layoutUnaware();
+    const auto LAST_TILED_FS_WINDOW = m_fullscreenWindowHidingState.fsWindow.lock();
+
+
+
+
+    // This should never happen
+    if (!FULLSCREEN_WINDOW && UNDERLYING_FS_WINDOW) {
+        // This means that workspace doesn't recognise tiled layout handled FS window as fullscreen.
+        Log::logger->log(Log::CRIT,
+                         "Workspace doesn't recognise a tiled layout handled fullscreen/maximised window as such! This is a critical error! We will attempt to recover by ignoring the request to "
+                         "setNoMembersAboveFullscreen");
         return;
     }
 
-    // There are no other FF windows that are layered ontop of the tiled FS window.
-    // All windows in the saved floating windows list, as well as floating windows that are currently allowed over FS are to be allowed over fullscreen.
-    if (UNDERLYING_FS_WINDOW == FULLSCREEN_WINDOW) {
-        // make all windows and layers on the same workspace under the fullscreen window
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
-                // Windows that are already allowed over FS can be left as is
-                if (w->isAllowedOverFullscreen()) {
-                    ;
-                }
-                // Windows in the allowed over FS list are to be allowed over FS
-                else if (savedFloatingWindowsOverTilingFullscreen.contains(w->m_target)) {
-                    w->m_allowedOverFullscreen = true;
-                }
-                else
-                    w->m_allowedOverFullscreen = false;
 
-                w->updateFullscreenInputState();
-            }
-        }
-        for (auto const& ls : g_pCompositor->m_layers) {
-            if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = false;
-        }
-        // Empty the list
-        if (!savedFloatingWindowsOverTilingFullscreen.empty())
-            Log::logger->log(Log::ERR, "savedFloatingWindowsOverTilingFullscreen.empty() failed. This is an error but is not critical.");
+    // There is no FS window; tiled or floating
+    if (!FULLSCREEN_WINDOW) {
+        // reset the struct
+        m_fullscreenWindowHidingState.fsWindow = nullptr;
+        clear_hiddenFloatingWindowsUnderFSWindow();        
+        // set all members as allowed over FS
+        setNoMembersAboveFS_layoutUnaware(false);
+    }
+
+    // If the tiled FS window is default handled
+    if (!FULLSCREEN_WINDOW->m_isFloating && !FULLSCREEN_WINDOW->m_target->layoutManagedFullscreen()) {
+        // same as default handling
+        setNoMembersAboveFS_layoutUnaware(true);
         return;
     }
 
-    // If a fullscreen window is layered ontop of a tiled FS window
 
-    if (UNDERLYING_FS_WINDOW != FULLSCREEN_WINDOW && FULLSCREEN_WINDOW->m_isFloating) {
-
-        // Save all the currently floating windows that are allowed over fullscreen, as well as the window itself, into the list.
-        // Then, set all those floating windows as below FS save for the floating FS window
-
-        savedFloatingWindowsOverTilingFullscreen.insert(FULLSCREEN_WINDOW->m_target);
-
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
-                if (w->isAllowedOverFullscreen())
-                    savedFloatingWindowsOverTilingFullscreen.insert(w->m_target);
-                w->m_allowedOverFullscreen = false;
-                w->updateFullscreenInputState();
-            }
-        }
-        for (auto const& ls : g_pCompositor->m_layers) {
-            if (ls->m_monitor == MONITOR)
-            ls->m_aboveFullscreen = false;
-        }
+    // There's only a floating FS window
+    if (FULLSCREEN_WINDOW && !UNDERLYING_FS_WINDOW) {
+        // same as default handling
+        clear_hiddenFloatingWindowsUnderFSWindow();
+        setNoMembersAboveFS_layoutUnaware(true);
+        return;
+    }
 
 
-
+    // there is a floating FS window ontop of the tiled layout handled FS window
+    if (FULLSCREEN_WINDOW != UNDERLYING_FS_WINDOW && FULLSCREEN_WINDOW->m_isFloating) {
+        // same as default handling
+        setNoMembersAboveFS_layoutUnaware(true);
+        return;
     }
 
 
 
-    // If the function didn't return till here, it's an error.
+    // There is no floating FS ontop of the tiled layout handled FS
+    if (FULLSCREEN_WINDOW == UNDERLYING_FS_WINDOW) {
+        if (!LAST_TILED_FS_WINDOW) {
+            // we are newly scrolling onto this tiled layout handled FS window
+            // redundancy - make sure the list is empty
+            clear_hiddenFloatingWindowsUnderFSWindow();
+            // save all floating window current on screen, then hide all
+            m_fullscreenWindowHidingState.saveAllHiddenFloatingWindows(FULLSCREEN_WINDOW);
+            setNoMembersAboveFS_layoutUnaware(true);
+            return;
+        }
+        else {
 
-    if (UNDERLYING_FS_WINDOW != FULLSCREEN_WINDOW && !FULLSCREEN_WINDOW->m_isFloating)
-        Log::logger->log(Log::CRIT, "A tiled Fullscreen window is layered ontop of another tiled fullscreen window. This should be impossible.");
-    
+                // we fullscreened a floating window ontop of a fullscreened tiling window. The windows that were open after that tiling window was fullscreened must remain ontop of it, while those that
+                // were hidden when it was being unfullscreened must remain hidden ('below' it)
+            
+                // make all windows and layers on the same workspace under the fullscreen window
+                for (auto const& w : g_pCompositor->m_windows) {
+                    if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+                        // If it the window was hidden when the UNDERLYING_FS_WINDOW was FSed, it remains hidden. else, it is allowed ontop of it
+                        w->m_allowedOverFullscreen = !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w);
+                        w->updateFullscreenInputState();
+                    }
+                }
+                for (auto const& ls : g_pCompositor->m_layers) {
+                    if (ls->m_monitor == MONITOR)
+                        ls->m_aboveFullscreen = false;
+                }
+
+                return;
+            }
+    }
 
 
-    // ERSTARR TODO: test that the m_allowedOverFullscreen is correctly set to true when smt is unfullscreened
+    // If the window was closed or otherwise not available anymore
+    if (!LAST_TILED_FS_WINDOW) {
+        if (UNDERLYING_FS_WINDOW)
+            m_fullscreenWindowHidingState.fsWindow = UNDERLYING_FS_WINDOW;
+        else
+         m_fullscreenWindowHidingState.fsWindow = nullptr;
+
+        clear_hiddenFloatingWindowsUnderFSWindow();
+        return;
+    }
 
 
+
+    // If the function doesn't return till here, it's an error
+
+    Log::logger->log(Log::CRIT,
+                     "setNoMembersAboveFullscreen() failed to correctly execute. Current FS window: {} Current Tiled layout handled FS window: {} Current last focused tiled "
+                     "layout handled FS window: {}",
+                     FULLSCREEN_WINDOW, UNDERLYING_FS_WINDOW, LAST_TILED_FS_WINDOW);
 
 
 }
@@ -2593,3 +2629,24 @@ float CScrollingAlgorithm::defaultColumnWidth() {
     static const auto PCOLWIDTH = CConfigValue<Config::FLOAT>("scrolling:column_width");
     return std::clamp(*PCOLWIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 }
+
+
+void CScrollingAlgorithm::SScrollingFullscreenWindowHidingState::saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow){
+
+    // we save all the floating windows that will be hidden under the fullscreen. We are using the same logic that is used to judge which window is to be hidden + a float check.
+    // This function must be updated whenever this logic is changed (IModeAlgorithm::setNoMembersAboveFullscreen(), CScrollingAlgorithm::setNoMembersAboveFullscreen())
+
+    // fullscreenWindow is assumed to be tiled, layout handled, covers the whole monitor or work area.
+
+    const auto WORKSPACE = fullscreenWindow->m_workspace;
+
+
+
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == WORKSPACE && w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)
+            hiddenFloatingWindowsUnderFSWindow.emplace(w);
+    }
+
+}
+
+

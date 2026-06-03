@@ -63,12 +63,32 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
 
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
         const CBox MONBOX = MONITOR->logicalBox();
-        TARGET->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
+        TARGET->setPositionGlobal(MONBOX);
     }
     else if (request.effectiveMode == FSMODE_MAXIMIZED) {
         const CBox WORKAREA = TARGETWORKSPACE->m_space->workArea(TARGET->floating());
         TARGET->setPositionGlobal(WORKAREA);
     }
+
+    // TODO - can't call IModeAlgorithm::layoutFullscreenTarget() because m_parent is not set in this interface class. refactor and fix this
+
+    const auto FULLSCREEN_WINDOW = request.effectiveMode != FSMODE_NONE ? TARGET->window() : nullptr;
+    const bool SET = request.effectiveMode != FSMODE_NONE;
+
+    // make all windows and layers on the same workspace under the fullscreen window
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace == TARGETWORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+            w->m_allowedOverFullscreen = !SET;
+            w->updateFullscreenInputState();
+        }
+    }
+    for (auto const& ls : g_pCompositor->m_layers) {
+        if (ls->m_monitor == MONITOR)
+        ls->m_aboveFullscreen = !SET;
+    }
+
+
+
 
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
@@ -81,15 +101,16 @@ SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
 
 
 
-void IModeAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
+void IModeAlgorithm::setNoMembersAboveFullscreen() {
 
-    if (mode == 0b10) {
-        Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
-        return;
-    }
+    // ERSTARR TODO - remove this if unneeded
+    // if (mode == 0b10) {
+    //     Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
+    //     return;
+    // }
 
-    const bool FORCE = mode & 2;
-    const bool SET   = FORCE || (mode & 1);
+    // const bool FORCE = mode & 2;
+    // const bool SET   = FORCE || (mode & 1);
 
 
     if (!m_parent || !m_parent->space())
@@ -110,15 +131,12 @@ void IModeAlgorithm::setNoMembersAboveFullscreen(uint8_t mode) {
     
     const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
 
-    // If we are setting no members above FS window, we need there to be a FS window
-    // if we are re-setting m_allowedOverFullscreen and m_aboveFullscreen to true, FULLSCREEN_WINDOW will act as a nullptr guard instead
-    if (SET && !FULLSCREEN_WINDOW)
-        return;
-
 
 
     // ERSTARR TODO: test that the m_allowedOverFullscreen is correctly set to true when smt is unfullscreened
 
+    // if there's a FS window, all members go below that window. If not, all members' overFullscreen attributes are re-set
+    const bool SET = FULLSCREEN_WINDOW;
 
 
     // make all windows and layers on the same workspace under the fullscreen window

@@ -1,4 +1,5 @@
 #include "Workspace.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
 #include "state/FocusState.hpp"
@@ -412,16 +413,25 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
 
     // Either Default or Layout Handled FS window that covers the monitor/work area
 
+
+    // If there are more than one monitor/work area covering fullscreen window in the workspace, the floating one is assumed to be 'ontop' of the tiled one, and is chosen as the FS window in the workspace
+    // TODO - instead of assuming that a floating FS window will be layered ontop of any tiled FS window in all cases, query which on is "ontop" and choose that.
+
     if (!m_hasFullscreenWindow)
         return nullptr;
 
+    PHLWINDOW fullscreenWindow = nullptr;
+
     for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_workspace == m_self && w->isFullscreen()) {
-            return w;
+            if (!fullscreenWindow)
+                fullscreenWindow = w;
+            else if (w->m_isFloating)
+                fullscreenWindow = w;
         }
     }
 
-    return nullptr;
+    return fullscreenWindow;
 }
 
 bool CWorkspace::isVisible() {

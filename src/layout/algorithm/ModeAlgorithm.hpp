@@ -73,7 +73,7 @@ namespace Layout {
         *
         * @note Bit 0: set flag. Bit 1: force flag. `0b10` is invalid.
         */
-        virtual void setNoMembersAboveFullscreen(uint8_t mode = 0b01);
+        virtual void setNoMembersAboveFullscreen();
 
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);

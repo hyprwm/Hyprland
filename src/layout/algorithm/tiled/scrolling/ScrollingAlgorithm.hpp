@@ -118,7 +118,7 @@ namespace Layout::Tiled {
         * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
         */
         virtual SP<ITarget>              layoutFullscreenTarget() const;
-        virtual void                     setNoMembersAboveFullscreen(uint8_t mode = 0b01);
+        virtual void                     setNoMembersAboveFullscreen();
 
         void                             moveTape(float delta);
         void                             moveTapeNormalized(double delta);
@@ -151,7 +151,17 @@ namespace Layout::Tiled {
         CHyprSignalListener m_mouseButtonCallback;
 
         // To save the floating windows ontop of a FSed tiled layout managed FS window so they can be stay ontop after a floating window is FSed and UnFSed over the tiled FS window
-        std::unordered_set<WP<ITarget>> savedFloatingWindowsOverTilingFullscreen;
+
+        struct SScrollingFullscreenWindowHidingState {
+
+        PHLWINDOWREF                    fsWindow;
+        std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+
+        void                            saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+
+        } m_fullscreenWindowHidingState;
+        
+
 
         struct {
             std::vector<float> configuredWidths;

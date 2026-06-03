@@ -1409,7 +1409,8 @@ PHLWINDOW CCompositor::getWindowInDirection(const CBox& box, PHLWORKSPACE pWorks
                 if (pWorkspace->m_monitor == w->m_monitor && pWorkspace != w->m_workspace)
                     continue;
 
-                if (pWorkspace->m_hasFullscreenWindow && !w->isAllowedOverFullscreen())
+                // if fullscreen is layout managed, move focus even if FSed.
+                if ((pWorkspace->m_hasFullscreenWindow && !pWorkspace->getFullscreenWindow()->m_target->layoutManagedFullscreen()) && !w->isAllowedOverFullscreen())
                     continue;
 
                 if (!*PMONITORFALLBACK && pWorkspace->m_monitor != w->m_monitor)

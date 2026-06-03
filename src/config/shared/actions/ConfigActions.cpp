@@ -62,7 +62,8 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
 
     g_pInputManager->unconstrainMouse();
 
-    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && PLASTWINDOW->isFullscreen())
+    // Only force scrolling offset move (FOCUS_REASON_SWITCH_TO_WINDOW_HARD) if the FS window is not layout managed
+    if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && (PLASTWINDOW->isFullscreen() && !PLASTWINDOW->m_target->layoutManagedFullscreen()))
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle); // ERSTARR TODO: scrolling FS - this should be soft too, in that case remove soft/hard distinction
     else {
         updateRelativeCursorCoords();

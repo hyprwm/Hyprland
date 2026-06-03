@@ -1632,6 +1632,26 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
             m_scrollingData->controller->setOffset(off);
             m_scrollingData->recalculate();
+        } else if (ARGS[1] == "expand") {
+            // fit active column to take up as much space as it can without pushing others offscreen
+            auto            w = 0.0;
+            SP<SColumnData> USED_COL;
+            for (const auto& COL : m_scrollingData->columns) {
+                if (COL != WDATA->column && m_scrollingData->visible(COL))
+                    w += COL->getColumnWidth();
+                else
+                    USED_COL = COL;
+            }
+
+            float rem = std::clamp(1.f - (float)w, 0.f, 1.f);
+            if (rem != WDATA->column->getColumnWidth()) {
+                WDATA->column->setColumnWidth(rem);
+
+                m_scrollingData->controller->setOffset(0);
+                centerOrFit(USED_COL);
+                m_scrollingData->recalculate();
+            }
+
         } else if (ARGS[1] == "all") {
             // fit all columns on screen
             const size_t LEN = m_scrollingData->columns.size();
@@ -1959,7 +1979,6 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         // Explicit Enable
         else
             inhibitScroll();
-
     } else
         return invalidArg("no such layoutmsg for scrolling");
 

@@ -1121,6 +1121,45 @@ TEST_CASE(testScrollInhibitor) {
     }
 }
 
+TEST_CASE(layoutRuleExpand) {
+    // set current layout to scrolling
+    OK(getFromSocket(
+        "r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, border_size = 0, gaps_out = 0 }, scrolling = {column_width = 0.5, fullscreen_on_one_column = true} })"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+    }
+
+    const std::string sizeSingle  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+    const int         sizeSingleX = std::stoi(sizeSingle.substr(0, sizeSingle.find(',')));
+
+    for (auto const& win : {"b", "c"}) {
+        if (!Tests::spawnKitty(win)) {
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        }
+    }
+
+    OK(getFromSocket("dispatch hl.dsp.window.resize({x = 100, y = 500, window = 'class:a'})"));
+    OK(getFromSocket("dispatch hl.dsp.window.resize({x = 100, y = 500, window = 'class:c'})"));
+
+    OK(getFromSocket("dispatch hl.dsp.focus({window = 'class:b'})"));
+
+    // const std::string sizeBefore  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+    // const int         sizeBeforeX = std::stoi(sizeBefore.substr(0, sizeBefore.find(',')));
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit expand')"));
+
+    const std::string sizeAfter  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
+    const int         sizeAfterX = std::stoi(sizeAfter.substr(0, sizeAfter.find(',')));
+
+    if (sizeAfterX >= sizeSingleX - 200) {
+        NLog::log("{}Passed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::GREEN, Colors::RESET, sizeSingleX - 200,
+                  sizeAfterX);
+    } else {
+        FAIL_TEST("{}Failed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::RED, Colors::RESET, sizeSingleX - 200, sizeAfterX);
+        return;
+    }
+}
 TEST_CASE(scrollTapeOnClickOutOfWindow) {
     /*
      * Do not move tape on click in the direction, but out of the window  

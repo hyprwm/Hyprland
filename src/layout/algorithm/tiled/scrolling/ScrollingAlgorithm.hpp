@@ -155,6 +155,7 @@ namespace Layout::Tiled {
         struct SScrollingFullscreenWindowHidingState {
 
         PHLWINDOWREF                    fsWindow;
+        eFullscreenMode                 fsWindowMode;
         std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
         void                            saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);

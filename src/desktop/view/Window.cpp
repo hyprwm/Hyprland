@@ -870,19 +870,21 @@ bool CWindow::acceptsInput() const {
     return !isHidden() && !isInputBlocked();
 }
 
-bool CWindow::isAllowedOverFullscreen() const { // ERSTARR TODO - This is going to be a pain
+bool CWindow::isAllowedOverFullscreen() const {
     
     if (!m_workspace)
         return false;
 
-    if (isFullscreen() || m_pinned || m_allowedOverFullscreen)
+    // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
+    const auto FULLSCREEN_WINDOW = m_workspace->getFullscreenWindow();
+    if (m_self == FULLSCREEN_WINDOW || m_pinned || m_allowedOverFullscreen)
         return true;
 
     const auto FSWINDOW = m_workspace->getFullscreenWindow();
     return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());
 }
 
-bool CWindow::isBlockedByFullscreen() const { // TODO ERSTARR - This is probably problematic
+bool CWindow::isBlockedByFullscreen() const {
     if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
         return false;
 

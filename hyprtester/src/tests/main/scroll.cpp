@@ -3,6 +3,10 @@
 #include "../../hyprctlCompat.hpp"
 #include "tests.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
+using namespace Hyprutils::Utils;
+
 TEST_CASE(scrollFocusCycling) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -1152,9 +1156,12 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
 TEST_CASE(properFocusBehvaior) {
     // test that focus history does not fuck with proper workspace preference
 
-    OK(getFromSocket("/output create headless HEADLESS-3"));
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    auto test = [&] {
+    OK(getFromSocket("/output create headless HEADLESS-3"));
+    CScopeGuard x([&] { OK(getFromSocket("/output remove HEADLESS-3")); });
+
+    auto        test = [&] {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
 
         Tests::spawnKitty("a");
@@ -1261,6 +1268,4 @@ TEST_CASE(properFocusBehvaior) {
 
     OK(getFromSocket("/eval hl.config({ binds = { focus_preferred_method = 1 } })")); // set length mode
     test();
-
-    OK(getFromSocket("/output remove HEADLESS-3"));
 }

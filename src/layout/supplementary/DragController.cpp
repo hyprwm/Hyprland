@@ -203,6 +203,9 @@ void CDragStateController::dragEnd() {
         }
     }
 
+    if (const auto W = draggingTarget->window(); W)
+        W->m_floatingOffset = {};
+
     if (m_draggingTiled) {
         // make sure to check if we are floating because drag into group could make us tiled already
         if (draggingTarget->floating())

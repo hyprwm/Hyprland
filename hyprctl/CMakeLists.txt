@@ -10,6 +10,7 @@ pkg_check_modules(hyprctl_deps REQUIRED IMPORTED_TARGET hyprutils>=0.2.4 hyprwir
 file(GLOB_RECURSE HYPRCTL_SRCFILES CONFIGURE_DEPENDS "src/*.cpp" "hw-protocols/*.cpp" "include/*.hpp")
 
 add_executable(hyprctl ${HYPRCTL_SRCFILES})
+set_target_properties(hyprctl PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 target_link_libraries(hyprctl PUBLIC PkgConfig::hyprctl_deps)
 target_include_directories(hyprctl PRIVATE "hw-protocols")

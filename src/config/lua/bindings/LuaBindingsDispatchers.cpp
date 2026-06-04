@@ -1039,11 +1039,11 @@ static int hlWindowResize(lua_State* L) {
 
     if (!lua_istable(L, 1))
         return Internal::configError(L, "hl.window.resize: expected no args, a table { x, y, relative?, window? }, or a table { keep_aspect_ratio }");
- 
-    auto x                = Internal::tableOptNum(L, 1, "x");
-    auto y                = Internal::tableOptNum(L, 1, "y");
+
+    auto x = Internal::tableOptNum(L, 1, "x");
+    auto y = Internal::tableOptNum(L, 1, "y");
     if (x && y) {
-        bool relative     = Internal::tableOptBool(L, 1, "relative").value_or(false);
+        bool relative = Internal::tableOptBool(L, 1, "relative").value_or(false);
         lua_pushnumber(L, *x);
         lua_pushnumber(L, *y);
         lua_pushboolean(L, relative);
@@ -1058,7 +1058,6 @@ static int hlWindowResize(lua_State* L) {
         lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }
-    
 
     return Internal::configError(L, "hl.focus: unrecognized arguments. Expected positions (x & y) or keep_aspect_ratio");
 }

@@ -84,6 +84,12 @@ void CFullscreenTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd
 
     *m_window->m_realPosition = m_posTo;
     *m_window->m_realSize     = m_sizeTo;
+
+    // the gesture warps m_realSize->goal() around during update(), which races the deferred
+    // sendWindowSize() queued when fullscreen began and can leave the client configured to an
+    // intermediate size. force a configure to the final size so the client matches its box.
+    m_window->sendWindowSize(true);
+
     g_pDesktopAnimationManager->overrideFullscreenFadeAmount(m_window->m_workspace, m_originalMode == FSMODE_NONE ? 0.F : 1.F);
 }
 

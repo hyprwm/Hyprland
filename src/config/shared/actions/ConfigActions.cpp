@@ -495,7 +495,7 @@ ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
     if (other == window)
         return actionError("Can't swap a window with itself", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (window->isFullscreen() || other->isFullscreen())  // TODO: If scrolling, maybe make it possible
+    if (window->isFullscreen() || other->isFullscreen()) // TODO: If scrolling, maybe make it possible
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -594,7 +594,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
     if (!window)
         return {};
 
-    if (window->isFullscreen())  // TODO: If scrolling, maybe make it possible
+    if (window->isFullscreen()) // TODO: If scrolling, maybe make it possible
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto delta = relative ? pos : pos - window->m_realPosition->goal();

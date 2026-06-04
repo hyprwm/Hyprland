@@ -159,7 +159,6 @@ eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> target, eFullscreenMo
 
     const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(target, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
 
-
     if (mode == FSMODE_NONE && m_algorithm && target->floating())
         m_algorithm->recenter(target);
 

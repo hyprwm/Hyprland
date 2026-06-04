@@ -80,7 +80,7 @@ void CFocusState::fullWindowFocus(PHLWINDOW pWindow, eFocusReason reason, SP<CWL
             if (CURRENT_FS_MODE != FSMODE_NONE) {
                 const auto RESULT = onFullscreenWorkspaceFocusWindow(pWindow, forceFSCycle);
                 if (RESULT.overrideFocusWindow)
-                pWindow = RESULT.overrideFocusWindow;
+                    pWindow = RESULT.overrideFocusWindow;
             }
         }
     }

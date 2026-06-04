@@ -1588,8 +1588,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
         }
 
         const auto PACTIVEWORKSPACE = PMONITOR->m_activeWorkspace;
-        g_pDesktopAnimationManager->setFullscreenFadeAnimation(
-            PACTIVEWORKSPACE, PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN : CDesktopAnimationManager::ANIMATION_TYPE_OUT);
+        g_pDesktopAnimationManager->setFullscreenFadeAnimation(PACTIVEWORKSPACE,
+                                                               PACTIVEWORKSPACE && PACTIVEWORKSPACE->m_hasFullscreenWindow ? CDesktopAnimationManager::ANIMATION_TYPE_IN :
+                                                                                                                             CDesktopAnimationManager::ANIMATION_TYPE_OUT);
 
         wasActive = true;
     }

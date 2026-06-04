@@ -467,7 +467,7 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
         return;
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
-    
+
     // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
     const auto FULLSCREEN_WINDOW = ws->getFullscreenWindow();
 

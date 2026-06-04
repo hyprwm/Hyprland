@@ -117,25 +117,25 @@ namespace Layout::Tiled {
         /**
         * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
         */
-        virtual SP<ITarget>              layoutFullscreenTarget() const;
-        virtual void                     setNoMembersAboveFullscreen();
+        virtual SP<ITarget>      layoutFullscreenTarget() const;
+        virtual void             setNoMembersAboveFullscreen();
 
-        void                             moveTape(float delta);
-        void                             moveTapeNormalized(double delta);
-        void                             snapToGrid();
-        SP<SColumnData>                  snapToProjectedOffset(double projectedNormalizedOffset);
-        void                             focusColumn(SP<SColumnData> column);
-        SP<SColumnData>                  getColumnAtViewportCenter();
-        SP<SColumnData>                  currentColumn();
+        void                     moveTape(float delta);
+        void                     moveTapeNormalized(double delta);
+        void                     snapToGrid();
+        SP<SColumnData>          snapToProjectedOffset(double projectedNormalizedOffset);
+        void                     focusColumn(SP<SColumnData> column);
+        SP<SColumnData>          getColumnAtViewportCenter();
+        SP<SColumnData>          currentColumn();
 
-        double                           primaryViewportSize();
-        double                           normalizedTapeOffset();
+        double                   primaryViewportSize();
+        double                   normalizedTapeOffset();
 
-        CBox                             usableArea() const;
-        SP<SScrollingTargetData>         dataFor(SP<ITarget> t) const;
+        CBox                     usableArea() const;
+        SP<SScrollingTargetData> dataFor(SP<ITarget> t) const;
 
-        void                             inhibitScroll();
-        void                             uninhibitScroll();
+        void                     inhibitScroll();
+        void                     uninhibitScroll();
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
@@ -154,15 +154,13 @@ namespace Layout::Tiled {
 
         struct SScrollingFullscreenWindowHidingState {
 
-        PHLWINDOWREF                    fsWindow;
-        eFullscreenMode                 fsWindowMode;
-        std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+            PHLWINDOWREF                     fsWindow;
+            eFullscreenMode                  fsWindowMode;
+            std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
-        void                            saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+            void                             saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
         } m_fullscreenWindowHidingState;
-        
-
 
         struct {
             std::vector<float> configuredWidths;
@@ -175,10 +173,9 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
-        SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
-
+        SFullscreenScrollState*  fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        SFullscreenScrollState*  fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
+        SP<SScrollingTargetData> fullscreenTargetDataForColumn(SP<SColumnData> col) const;
 
         /**
         * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`

@@ -45,8 +45,6 @@ void CWindowTarget::updatePos() {
     if (!m_space)
         return;
 
-
-
     // floating non-fs window
     if (floating() && !isFullscreen()) {
         m_window->m_position = m_box.logicalBox.pos();
@@ -61,15 +59,11 @@ void CWindowTarget::updatePos() {
 
         return;
     }
-    
-
-
 
     // Default handled fullscreen window - tiled or floating
     if (fullscreenMode() == FSMODE_FULLSCREEN && !layoutManagedFullscreen()) {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
-
 
         // TODO: these are redundant - During FS dispatch, both of them are repeated later down the codepath. Best remove redundant calls to these elsewhere instead of here
         m_window->sendWindowSize();
@@ -77,10 +71,8 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-
     if (!m_space->workspace())
         return;
-
 
     const auto PMONITOR         = m_space->workspace()->m_monitor;
     const auto PWORKSPACE       = m_space->workspace();
@@ -114,9 +106,7 @@ void CWindowTarget::updatePos() {
         return;
     }
 
-
     // Default handled maximised window (Tiled or floating), Tiled non-FS windows
-
 
     g_pHyprRenderer->damageWindow(window());
 
@@ -382,7 +372,6 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 PHLWINDOW CWindowTarget::window() const {
     return m_window.lock();
 }
-
 
 bool CWindowTarget::isFullscreen() {
     return m_window->isFullscreen();

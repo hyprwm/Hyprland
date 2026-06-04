@@ -23,7 +23,6 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
 
 eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
 
-
     // Default handled fullscreen behaviour
 
     const auto TARGET = request.target;
@@ -31,12 +30,10 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     if (!TARGET)
         return FULLSCREEN_REQUEST_FAILED;
 
-
     if (request.effectiveMode != FSMODE_NONE && TARGET->window())
         TARGET->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_DEFAULT;
     else
         TARGET->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
-
 
     // set internal fullscreen mode
     TARGET->setFullscreenMode(request.effectiveMode);
@@ -46,13 +43,10 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     // set workspace fullscreen attributes
     if (TARGETWORKSPACE) {
         TARGETWORKSPACE->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
-        TARGETWORKSPACE->m_fullscreenMode = request.effectiveMode;
-    }
-    else
+        TARGETWORKSPACE->m_fullscreenMode      = request.effectiveMode;
+    } else
         return FULLSCREEN_REQUEST_FAILED;
 
-
-        
     // Set window positions
     if (!TARGETWORKSPACE)
         return FULLSCREEN_REQUEST_FAILED;
@@ -64,8 +58,7 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     if (request.effectiveMode == FSMODE_FULLSCREEN) {
         const CBox MONBOX = MONITOR->logicalBox();
         TARGET->setPositionGlobal(MONBOX);
-    }
-    else if (request.effectiveMode == FSMODE_MAXIMIZED) {
+    } else if (request.effectiveMode == FSMODE_MAXIMIZED) {
         const CBox WORKAREA = TARGETWORKSPACE->m_space->workArea(TARGET->floating());
         TARGET->setPositionGlobal(WORKAREA);
     }
@@ -73,7 +66,7 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     // TODO - can't call IModeAlgorithm::layoutFullscreenTarget() because m_parent is not set in this interface class. refactor and fix this
 
     const auto FULLSCREEN_WINDOW = request.effectiveMode != FSMODE_NONE ? TARGET->window() : nullptr;
-    const bool SET = request.effectiveMode != FSMODE_NONE;
+    const bool SET               = request.effectiveMode != FSMODE_NONE;
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : g_pCompositor->m_windows) {
@@ -84,13 +77,11 @@ eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequ
     }
     for (auto const& ls : g_pCompositor->m_layers) {
         if (ls->m_monitor == MONITOR)
-        ls->m_aboveFullscreen = !SET;
+            ls->m_aboveFullscreen = !SET;
     }
 
-
-
-
-    g_pDesktopAnimationManager->setFullscreenFadeAnimation(TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
+    g_pDesktopAnimationManager->setFullscreenFadeAnimation(
+        TARGETWORKSPACE, request.effectiveMode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
     return FULLSCREEN_REQUEST_DEFAULT;
 }
@@ -99,10 +90,7 @@ SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
     return nullptr;
 }
 
-
-
 void IModeAlgorithm::setNoMembersAboveFullscreen() {
-
 
     if (!m_parent || !m_parent->space())
         return;
@@ -117,17 +105,10 @@ void IModeAlgorithm::setNoMembersAboveFullscreen() {
     if (!MONITOR)
         return;
 
-
-    
-    
-    const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
-
-
-
+    const auto FULLSCREEN_WINDOW = WORKSPACE->getFullscreenWindow();
 
     // if there's a FS window, all members go below that window. If not, all members' overFullscreen attributes are re-set
     const bool SET = FULLSCREEN_WINDOW;
-
 
     // make all windows and layers on the same workspace under the fullscreen window
     for (auto const& w : g_pCompositor->m_windows) {
@@ -138,13 +119,9 @@ void IModeAlgorithm::setNoMembersAboveFullscreen() {
     }
     for (auto const& ls : g_pCompositor->m_layers) {
         if (ls->m_monitor == MONITOR)
-        ls->m_aboveFullscreen = !SET;
+            ls->m_aboveFullscreen = !SET;
     }
 }
-
-
-
-
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
     Vector2D   focalPoint;

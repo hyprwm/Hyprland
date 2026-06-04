@@ -450,8 +450,6 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
     calculateWorkspace();
 
-
-
     // TODO: Patch - make changes inside calculateWorkspace to make this part redundant
     const auto WORKSPACE = m_parent->space()->workspace();
 
@@ -469,11 +467,10 @@ void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
         if (WORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
             const CBox MONBOX = MONITOR->logicalBox();
             FULLSCREEN_TARGET->setPositionGlobal(MONBOX);
-        }
-        else if (WORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
+        } else if (WORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
             const CBox WORKAREA = WORKSPACE->m_space->workArea(FULLSCREEN_TARGET->floating());
             FULLSCREEN_TARGET->setPositionGlobal(WORKAREA);
-        }   
+        }
     }
 }
 

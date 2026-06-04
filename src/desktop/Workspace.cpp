@@ -413,7 +413,6 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
 
     // Either Default or Layout Handled FS window that covers the monitor/work area
 
-
     // If there are more than one monitor/work area covering fullscreen window in the workspace, the floating one is assumed to be 'ontop' of the tiled one, and is chosen as the FS window in the workspace
     // TODO - instead of assuming that a floating FS window will be layered ontop of any tiled FS window in all cases, query which on is "ontop" and choose that.
 
@@ -570,7 +569,7 @@ void CWorkspace::rename(const std::string& name) {
 }
 
 void CWorkspace::updateWindows() {
-    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->isFullscreen();});
+    m_hasFullscreenWindow = std::ranges::any_of(m_space->targets(), [](const auto& t) { return t && t->isFullscreen(); });
 
     if (!m_hasFullscreenWindow)
         m_fullscreenMode = FSMODE_NONE;

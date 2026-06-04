@@ -1957,16 +1957,13 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
     const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
 
+    const auto            FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
+    const bool            LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
 
-    
-    const auto FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
-    const bool LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
-    
     if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_FAILED) {
         Log::logger->log(Log::ERR, "Fullscreen request failed for window: {}", PWINDOW);
         return;
     }
-    
 
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
     Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
@@ -1976,7 +1973,6 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
 
     PWINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
 
     // TODO redundancy since it should be called earlier
     PWINDOW->sendWindowSize(true);
@@ -1994,7 +1990,6 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     // further updates require a monitor
     if (!PMONITOR)
         return;
-
 
     // Layouts must handle this themselves
     // TODO: Maybe move this into default FS handler's requestFullscreen()

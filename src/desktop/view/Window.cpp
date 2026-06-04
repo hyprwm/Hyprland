@@ -871,7 +871,7 @@ bool CWindow::acceptsInput() const {
 }
 
 bool CWindow::isAllowedOverFullscreen() const {
-    
+
     if (!m_workspace)
         return false;
 
@@ -1212,9 +1212,8 @@ bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
             return mode.value() == m_fullscreenState.internal ? m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target : false;
         else
             return m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target;
-    }
-    else {
-        // TODO: see if the size and pos are properly set by this point. If they are, include that check as well 
+    } else {
+        // TODO: see if the size and pos are properly set by this point. If they are, include that check as well
         if (m_fullscreenState.internal != FSMODE_NONE) {
             if (mode.has_value())
                 return mode.value() == m_fullscreenState.internal;

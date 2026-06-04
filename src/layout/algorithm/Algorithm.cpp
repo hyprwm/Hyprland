@@ -105,7 +105,6 @@ size_t CAlgorithm::floatingTargets() const {
 void CAlgorithm::recalculate(eRecalculateReason reason) {
     m_tiled->recalculate(reason);
     m_floating->recalculate(reason);
-
 }
 
 void CAlgorithm::recenter(SP<ITarget> t) {
@@ -149,7 +148,6 @@ SP<ITarget> CAlgorithm::layoutFullscreenTarget() const {
 
     return m_floating->layoutFullscreenTarget();
 }
-
 
 void CAlgorithm::swapTargets(SP<ITarget> a, SP<ITarget> b) {
     auto swapFirst = [&a, &b](std::vector<WP<ITarget>>& targets) -> bool {

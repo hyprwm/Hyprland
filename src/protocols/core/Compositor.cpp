@@ -4,6 +4,7 @@
 #include "Seat.hpp"
 #include "../types/WLBuffer.hpp"
 #include <algorithm>
+#include <array>
 #include <ranges>
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
@@ -351,9 +352,8 @@ void CWLSurfaceResource::resetRole() {
     m_role = makeShared<CDefaultSurfaceRole>();
 }
 
-void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
+void CWLSurfaceResource::bfHelper(std::span<const SP<CWLSurfaceResource>> nodes, std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
     std::vector<SP<CWLSurfaceResource>> nodes2;
-    nodes2.reserve(nodes.size() * 2);
 
     // first, gather all nodes below
     for (auto const& n : nodes) {
@@ -371,6 +371,9 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
             const auto surface = subsurface->m_surface.lock();
             if (!surface)
                 continue;
+
+            if (nodes2.empty())
+                nodes2.reserve(nodes.size() * 2);
 
             nodes2.emplace_back(surface);
         }
@@ -407,6 +410,9 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
             if (!surface)
                 continue;
 
+            if (nodes2.empty())
+                nodes2.reserve(nodes.size() * 2);
+
             nodes2.emplace_back(surface);
         }
     }
@@ -416,8 +422,7 @@ void CWLSurfaceResource::bfHelper(std::vector<SP<CWLSurfaceResource>> const& nod
 }
 
 void CWLSurfaceResource::breadthfirst(std::function<void(SP<CWLSurfaceResource>, const Vector2D&, void*)> fn, void* data) {
-    std::vector<SP<CWLSurfaceResource>> surfs;
-    surfs.emplace_back(m_self.lock());
+    const std::array surfs = {m_self.lock()};
     bfHelper(surfs, fn, data);
 }
 
@@ -710,7 +715,10 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
 
     shmData.resize(bufLen);
 
-    if (const auto RECTS = damage.getRects(); RECTS.size() == 1 && RECTS.at(0).x2 == buf->size.x && RECTS.at(0).y2 == buf->size.y)
+    int         rectsNum = 0;
+    const auto* rects    = pixman_region32_rectangles(damage.pixman(), &rectsNum);
+
+    if (rectsNum == 1 && rects[0].x2 == buf->size.x && rects[0].y2 == buf->size.y)
         memcpy(shmData.data(), pixelData, bufLen);
     else {
         damage.forEachRect([&pixelData, &shmData](const auto& box) {

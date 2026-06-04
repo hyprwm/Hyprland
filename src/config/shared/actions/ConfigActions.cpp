@@ -976,7 +976,10 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         return nullptr;
 
     const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
-    const bool EXPLICITPREVIOUS  = args.contains("previous");
+    if (!PCURRENTWORKSPACE)
+        return nullptr;
+
+    const bool EXPLICITPREVIOUS = args.contains("previous");
 
     // handle "previous" workspace
     if (args.starts_with("previous")) {

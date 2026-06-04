@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <vector>
 #include "Subsurface.hpp"
 #include "View.hpp"
@@ -114,6 +115,6 @@ namespace Desktop::View {
         Vector2D    localToGlobal(const Vector2D& rel) const;
         Vector2D    t1ParentCoords() const;
         void        invalidateTreeExtentsCache();
-        static void bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data);
+        static void bfHelper(std::span<const SP<CPopup>> nodes, std::function<void(SP<CPopup>, void*)> fn, void* data);
     };
 }

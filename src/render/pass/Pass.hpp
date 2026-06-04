@@ -30,11 +30,11 @@ namespace Render {
             bool             discard = false;
         };
 
-        std::vector<UP<SPassElementData>> m_passElements;
+        std::vector<SPassElementData> m_passElements;
 
-        void                              simplify(bool willBlur, const CRegion& liveBlurRegion);
-        float                             oneBlurRadius();
-        void                              renderDebugData();
+        void                          simplify(bool willBlur, const CRegion& liveBlurRegion);
+        float                         oneBlurRadius();
+        void                          renderDebugData();
 
         struct {
             bool         present = false;

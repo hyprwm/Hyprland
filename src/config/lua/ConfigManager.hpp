@@ -52,6 +52,7 @@ namespace Config::Lua {
     class CConfigManager : public Config::IConfigManager {
       public:
         CConfigManager();
+        virtual ~CConfigManager() override;
 
         virtual eConfigManagerType               type() override;
 
@@ -157,7 +158,8 @@ namespace Config::Lua {
 
         static void                                  watchdogHook(lua_State* L, lua_Debug* ar);
 
-        lua_State*                                   m_lua = nullptr;
+        lua_State*                                   m_lua          = nullptr;
+        bool                                         m_ownsLuaState = false;
 
         bool                                         m_lastConfigVerificationWasSuccessful = true;
         bool                                         m_isFirstLaunch                       = true;

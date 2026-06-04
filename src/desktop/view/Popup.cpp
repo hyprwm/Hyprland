@@ -12,6 +12,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
+#include <array>
 #include <ranges>
 
 using namespace Desktop;
@@ -438,6 +439,7 @@ void CPopup::recheckChildrenRecursive() {
         return;
 
     std::vector<WP<CPopup>> cpy;
+    cpy.reserve(m_children.size());
     std::ranges::for_each(m_children, [&cpy](const auto& el) { cpy.emplace_back(el); });
     for (auto const& c : cpy) {
         if (!c || !c->visible())
@@ -464,19 +466,21 @@ void CPopup::sendScale() {
         UNREACHABLE();
 }
 
-void CPopup::bfHelper(std::vector<SP<CPopup>> const& nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {
+void CPopup::bfHelper(std::span<const SP<CPopup>> nodes, std::function<void(SP<CPopup>, void*)> fn, void* data) {
     for (auto const& n : nodes) {
         fn(n, data);
     }
 
     std::vector<SP<CPopup>> nodes2;
-    nodes2.reserve(nodes.size() * 2);
 
     for (auto const& n : nodes) {
         if (!n)
             continue;
 
         for (auto const& c : n->m_children) {
+            if (nodes2.empty())
+                nodes2.reserve(nodes.size() * 2);
+
             nodes2.emplace_back(c->m_self.lock());
         }
     }
@@ -489,8 +493,7 @@ void CPopup::breadthfirst(std::function<void(SP<CPopup>, void*)> fn, void* data)
     if (!m_self)
         return;
 
-    std::vector<SP<CPopup>> popups;
-    popups.emplace_back(m_self.lock());
+    const std::array popups = {m_self.lock()};
     bfHelper(popups, fn, data);
 }
 

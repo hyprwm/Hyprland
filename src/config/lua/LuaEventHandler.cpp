@@ -231,10 +231,10 @@ std::expected<void, std::string> CLuaEventHandler::addCustomEvent(SP<Event::CEve
                     case CEventBus::CCustomEvent::TYPE_INT: lua_pushinteger(L, std::get<int>(arg)); break;
                     case CEventBus::CCustomEvent::TYPE_DOUBLE: lua_pushnumber(L, std::get<double>(arg)); break;
                     case CEventBus::CCustomEvent::TYPE_STRING: lua_pushstring(L, std::get<std::string>(arg).c_str()); break;
-                    case CEventBus::CCustomEvent::TYPE_WINDOW: CLuaWindow::push(L, std::get<PHLWINDOW>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_WORKSPACE: CLuaWorkspace::push(L, std::get<PHLWORKSPACE>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_LAYER_SURFACE: CLuaLayerSurface::push(L, std::get<PHLLS>(arg)); break;
-                    case CEventBus::CCustomEvent::TYPE_MONITOR: CLuaMonitor::push(L, std::get<PHLMONITOR>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_WINDOW: CLuaWindow::push(L, std::get<PHLWINDOWREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_WORKSPACE: CLuaWorkspace::push(L, std::get<PHLWORKSPACEREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_LAYER_SURFACE: CLuaLayerSurface::push(L, std::get<PHLLSREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_MONITOR: CLuaMonitor::push(L, std::get<PHLMONITORREF>(arg)); break;
                 }
             }
         });

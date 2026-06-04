@@ -49,7 +49,7 @@ namespace Event {
                 TYPE_MONITOR       = 7,
             };
 
-            using ValidVariant = std::variant<bool, int, double, std::string, PHLWINDOW, PHLWORKSPACE, PHLLS, PHLMONITOR>;
+            using ValidVariant = std::variant<bool, int, double, std::string, PHLWINDOWREF, PHLWORKSPACEREF, PHLLSREF, PHLMONITORREF>;
 
             CCustomEvent(std::string name, std::vector<eType> argTypes);
             ~CCustomEvent();

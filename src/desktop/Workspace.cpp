@@ -17,8 +17,13 @@
 
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/string/String.hpp>
+#include <bit>
 using namespace Hyprutils::String;
 using namespace Desktop::View;
+
+static eFullscreenMode effectiveFullscreenMode(eFullscreenMode mode) {
+    return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(mode)));
+}
 
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
@@ -408,13 +413,34 @@ MONITORID CWorkspace::monitorID() {
 
 PHLWINDOW CWorkspace::getFullscreenWindow(bool includeLayoutHandledFullscreen) {
     const auto WINDOW = m_fullscreenWindow.lock();
-    if (!WINDOW || WINDOW->m_workspace != m_self || !WINDOW->isFullscreen())
-        return nullptr;
 
-    if (!includeLayoutHandledFullscreen && WINDOW->m_target->layoutManagedFullscreen())
-        return nullptr;
+    if (WINDOW && WINDOW->m_workspace == m_self && WINDOW->isFullscreen() && (includeLayoutHandledFullscreen || !WINDOW->m_target->layoutManagedFullscreen()))
+        return WINDOW;
 
-    return WINDOW;
+    PHLWINDOW layoutHandledFullscreen;
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (w->m_workspace != m_self || !w->isFullscreen())
+            continue;
+
+        if (!w->m_target->layoutManagedFullscreen()) {
+            setFullscreenWindow(w);
+            return w;
+        }
+
+        if (includeLayoutHandledFullscreen && !layoutHandledFullscreen)
+            layoutHandledFullscreen = w;
+    }
+
+    clearFullscreenWindow();
+
+    if (layoutHandledFullscreen) {
+        setFullscreenWindow(layoutHandledFullscreen);
+        return layoutHandledFullscreen;
+    }
+
+    m_hasFullscreenWindow = false;
+    m_fullscreenMode      = FSMODE_NONE;
+    return nullptr;
 }
 
 void CWorkspace::setFullscreenWindow(const PHLWINDOW& window) {
@@ -422,6 +448,11 @@ void CWorkspace::setFullscreenWindow(const PHLWINDOW& window) {
         return;
 
     m_fullscreenWindow = window;
+
+    if (!window->m_target->layoutManagedFullscreen()) {
+        m_hasFullscreenWindow = true;
+        m_fullscreenMode      = effectiveFullscreenMode(window->m_fullscreenState.internal);
+    }
 }
 
 void CWorkspace::clearFullscreenWindow(const PHLWINDOW& window) {

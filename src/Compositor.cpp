@@ -1974,7 +1974,6 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
     PWINDOW->updateDecorationValues();
     g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
 
-    // TODO redundancy since it should be called earlier
     PWINDOW->sendWindowSize(true);
 
     // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible

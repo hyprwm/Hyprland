@@ -53,7 +53,6 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
-        // TODO: these are redundant - During FS dispatch, both of them are repeated later down the codepathb
         m_window->sendWindowSize();
         m_window->updateWindowDecos();
 
@@ -65,7 +64,6 @@ void CWindowTarget::updatePos() {
         *m_window->m_realPosition = m_box.logicalBox.pos();
         *m_window->m_realSize     = m_box.logicalBox.size();
 
-        // TODO: these are redundant - During FS dispatch, both of them are repeated later down the codepath. Best remove redundant calls to these elsewhere instead of here
         m_window->sendWindowSize();
         m_window->updateWindowDecos();
         return;

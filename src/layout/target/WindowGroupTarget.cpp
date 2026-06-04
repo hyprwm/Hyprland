@@ -76,7 +76,7 @@ bool CWindowGroupTarget::layoutManagedFullscreen() const {
     return m_group->current()->m_target->layoutManagedFullscreen();
 }
 
-void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) { // ERSTARR TODO: This might be a problem for FSing a window in a group
+void CWindowGroupTarget::setLayoutManagedFullscreen(bool enabled) {
     ITarget::setLayoutManagedFullscreen(enabled);
 
     for (const auto& w : m_group->windows()) {

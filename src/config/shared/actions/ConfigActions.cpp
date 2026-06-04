@@ -64,7 +64,7 @@ static void switchToWindow(PHLWINDOW PWINDOWTOCHANGETO, bool forceFSCycle = fals
 
     // Only force scrolling offset move (FOCUS_REASON_SWITCH_TO_WINDOW_HARD) if the FS window is not layout managed
     if (PLASTWINDOW && PLASTWINDOW->m_workspace == PWINDOWTOCHANGETO->m_workspace && (PLASTWINDOW->isFullscreen() && !PLASTWINDOW->m_target->layoutManagedFullscreen()))
-        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle); // ERSTARR TODO: scrolling FS - this should be soft too, in that case remove soft/hard distinction
+        Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_HARD, nullptr, forceFSCycle);
     else {
         updateRelativeCursorCoords();
         Desktop::focusState()->fullWindowFocus(PWINDOWTOCHANGETO, Desktop::FOCUS_REASON_SWITCH_TO_WINDOW_SOFT, nullptr, forceFSCycle);
@@ -453,7 +453,7 @@ ActionResult Actions::moveInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (window->isFullscreen()) // ERSTARR TODO: make it movable in scrolling - or maybe just use swapcol
+    if (window->isFullscreen()) // TODO: If scrolling, maybe make it possible
         return actionError("Can't move fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -469,7 +469,7 @@ ActionResult Actions::swapInDirection(Math::eDirection dir, std::optional<PHLWIN
     if (!window)
         return {};
 
-    if (window->isFullscreen()) // ERSTARR TODO: make it possible in scrolling - or maybe just use swapcol
+    if (window->isFullscreen()) // TODO: If scrolling, maybe make it possible
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowInDirection(window, dir);
@@ -495,7 +495,7 @@ ActionResult Actions::swapWith(PHLWINDOW other, std::optional<PHLWINDOW> w) {
     if (other == window)
         return actionError("Can't swap a window with itself", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
-    if (window->isFullscreen() || other->isFullscreen())  // ERSTARR TODO: make it possible in scrolling - or maybe just use swapcol
+    if (window->isFullscreen() || other->isFullscreen())  // TODO: If scrolling, maybe make it possible
         return actionError("Can't swap fullscreen window", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     updateRelativeCursorCoords();
@@ -594,7 +594,7 @@ ActionResult Actions::move(const Vector2D& pos, bool relative, std::optional<PHL
     if (!window)
         return {};
 
-    if (window->isFullscreen())  // ERSTARR TODO: make it possible in scrolling - or maybe just use swapcol
+    if (window->isFullscreen())  // TODO: If scrolling, maybe make it possible
         return actionError("Window is fullscreen", eActionErrorLevel::WARNING, eActionErrorCode::INVALID_STATE);
 
     const auto delta = relative ? pos : pos - window->m_realPosition->goal();
@@ -1709,7 +1709,7 @@ ActionResult Actions::moveIntoOrCreateGroup(Math::eDirection dir, std::optional<
         return {};
 
     if (!PWINDOWINDIR->m_group) {
-        if (PWINDOWINDIR->isFullscreen()) // ERSTARR TODO: make it possible in scrolling - or maybe just use swapcol
+        if (PWINDOWINDIR->isFullscreen()) // TODO: If scrolling, maybe make it possible
             return {};
 
         PWINDOWINDIR->m_group = Desktop::View::CGroup::create({PWINDOWINDIR});

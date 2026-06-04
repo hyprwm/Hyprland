@@ -436,9 +436,6 @@ void SScrollingData::recalculate(bool forceInstant) {
 
     
 
-    // ERSTARR TODO: must handle the "Check that the size of the fs internal set windows and remove the internal state (shared recalculate can handle the removal of HANDLER, m_layouthandledFS, etc...) if it doesn't match"
-    // Probably not here. Test if "If i resize a FS window, does it unFS and lose the tag?" works. If it doesn't, this is why.
-
     algorithm->syncFullscreenTargets();
 
     static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
@@ -582,8 +579,6 @@ void SScrollingData::recalculate(bool forceInstant) {
     // Every time m_hasFullscreenWindow is true, that means that an FS window is currently taking up the entire monitor/work area.
     // We use that as the flag for determining if Direct Scanout should be enablad or not
 
-    // ERSTARR TODO: Should work with new scrolling FS. need this tested by others since I don't play games. 
-    // ERSTARR TODO: Layouts must handle this themselves
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
     static auto PDIRECTSCANOUT      = CConfigValue<Config::INTEGER>("render:direct_scanout");
@@ -1166,24 +1161,6 @@ SP<ITarget> CScrollingAlgorithm::layoutFullscreenTarget() const {
 void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
 
 
-    // ERSTARR TODO - remove this if redundant
-    // if (mode == 0b10) {
-    //     Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
-    //     return;
-    // }
-
-
-
-
-    // // ERTSTARR TODO  IMPORTANT - sync with IModeAlgorithm's impl
-    
-    // ERSTARR TODO - remove this if redundant
-    // const bool FORCE = mode & 2;
-    // const bool SET   = FORCE || (mode & 1);
-
-
-
-
     if (!m_parent || !m_parent->space())
         return;
 
@@ -1203,7 +1180,7 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
     const auto FULLSCREEN_WINDOW =  WORKSPACE->getFullscreenWindow();
 
 
-    // TODO this should be in sync with default FS handling of setting all members below FS (IModeAlgorithm::setNoMembersAboveFullscreen())
+    // This should be in sync with default FS handling of setting all members below FS (IModeAlgorithm::setNoMembersAboveFullscreen())
     // for simply setting or unsetting no members above the FS window without scrolling specific logic
     const auto setNoMembersAboveFS_layoutUnaware = [&](const bool SET) {
         // make all windows and layers on the same workspace under the fullscreen window
@@ -1234,8 +1211,6 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
     
     To this end, we maintain a list of floating windows that are allowed over the currently FSed window
     */
-
-    // ERSTARR TODO - if conditions are needlessly explicit to test for errors. before merge, refactor
 
     // In scrolling, there is no custom layout FS behaviour for floating FS windows (always uses default behaviour), and layoutFullscreenTarget() correctly gets the tiled currently FS window under a floating FS window
     // therefore UNDERLYING_FS_WINDOW might be different than FULLSCREEN_WINDOW if there is a floating FS window "ontop" of the tiled currently FS window

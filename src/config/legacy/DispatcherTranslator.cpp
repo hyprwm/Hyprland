@@ -275,7 +275,7 @@ static SDispatchResult swapwindow(const std::string& args) {
     const auto PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW)
         return {.success = false, .error = "Window to swap with not found"};
-    if (PLASTWINDOW->isFullscreen()) // ERSTARR TODO - If scrolling, make it possible. Or perhaps use swapcol for that?
+    if (PLASTWINDOW->isFullscreen()) // TODO: If scrolling, maybe make it possible
         return {.success = false, .error = "Can't swap fullscreen window"};
 
     const auto PWINDOWTOCHANGETO = g_pCompositor->getWindowByRegex(args);

@@ -1341,7 +1341,7 @@ PHLWINDOW CCompositor::getWindowInDirection(PHLWINDOW pWindow, Math::eDirection 
     if (!PMONITOR)
         return nullptr; // ??
 
-    const auto WINDOWIDEALBB = pWindow->isFullscreen(/*FSMODE_FULLSCREEN*/) ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved(); // ERSTARR TODO: This might be necessary, it might not be
+    const auto WINDOWIDEALBB = pWindow->isFullscreen() ? CBox{PMONITOR->m_position, PMONITOR->m_size} : pWindow->getWindowIdealBoundingBoxIgnoreReserved();
     const auto PWORKSPACE    = pWindow->m_workspace;
 
     if (!PWORKSPACE)
@@ -1667,7 +1667,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
 
-            if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
+            if (w->isFullscreen()) {
                 *w->m_realPosition = pMonitorB->m_position;
                 *w->m_realSize     = pMonitorB->m_size;
             }
@@ -1692,7 +1692,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
             if (w->m_isFloating)
                 w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
 
-            if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
+            if (w->isFullscreen()) {
                 *w->m_realPosition = pMonitorA->m_position;
                 *w->m_realSize     = pMonitorA->m_size;
             }
@@ -1808,7 +1808,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
                     if (w->m_isFloating)
                         w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
 
-                    if (w->isFullscreen(/*FSMODE_FULLSCREEN*/)) { // ERSTARR TODO: This might be necessary, it might not be
+                    if (w->isFullscreen()) {
                         *w->m_realPosition = pMonitor->m_position;
                         *w->m_realSize     = pMonitor->m_size;
                     }
@@ -1996,9 +1996,8 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         return;
 
 
-    // ERSTARR TODO: Should work with new scrolling FS. need this tested by others since I don't play games. 
-    // ERSTARR TODO -> remove the TODO if this actually works: Layouts must handle this themselves
-    // ERSTARR TODO -> remove name if this works: Maybe move this into default FS handler's requestFullscreen()
+    // Layouts must handle this themselves
+    // TODO: Maybe move this into default FS handler's requestFullscreen()
     // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
     // ignore if DS is disabled.
     if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {

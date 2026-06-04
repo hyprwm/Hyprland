@@ -468,7 +468,7 @@ void CMasterAlgorithm::recalculate(eRecalculateReason reason) {
 
         if (WORKSPACE->m_fullscreenMode == FSMODE_FULLSCREEN) {
             const CBox MONBOX = MONITOR->logicalBox();
-            FULLSCREEN_TARGET->setPositionGlobal(MONBOX); // TODO ERSTARR: This should work, unless logical box isn't what i'm looking for; then, just make a monitor box manually
+            FULLSCREEN_TARGET->setPositionGlobal(MONBOX);
         }
         else if (WORKSPACE->m_fullscreenMode == FSMODE_MAXIMIZED) {
             const CBox WORKAREA = WORKSPACE->m_space->workArea(FULLSCREEN_TARGET->floating());

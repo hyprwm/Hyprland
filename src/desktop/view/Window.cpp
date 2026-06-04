@@ -276,7 +276,7 @@ CBox CWindow::getWindowIdealBoundingBoxIgnoreReserved() {
     auto POS  = m_position;
     auto SIZE = m_size;
 
-    if (isFullscreen(/*FSMODE_FULLSCREEN*/) && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {  // ERSTARR TODO: This might be necessary, it might not be
+    if (isFullscreen() && (!layoutTarget() || !layoutTarget()->layoutManagedFullscreen())) {
         POS  = PMONITOR->m_position;
         SIZE = PMONITOR->m_size;
 
@@ -1188,7 +1188,7 @@ int CWindow::surfacesCount() {
 
 bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize) {
     const Vector2D REALSIZE = m_realSize->goal();
-    const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY}); // ERSTARR TODO - wut?
+    const Vector2D MAX      = isFullscreen() ? Vector2D{INFINITY, INFINITY} : maxSize.value_or(Vector2D{INFINITY, INFINITY});
     const Vector2D NEWSIZE  = REALSIZE.clamp(minSize.value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE}), MAX);
     const bool     changed  = !(NEWSIZE == REALSIZE);
 
@@ -2406,7 +2406,7 @@ void CWindow::mapWindow() {
     // recalc the values for this window
     updateDecorationValues();
     // avoid this window being visible
-    if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating) // ERSTARR TODO: This will be a pain I can feel it
+    if (PWORKSPACE->m_hasFullscreenWindow && !isFullscreen() && !m_isFloating)
         alpha(WINDOW_ALPHA_FULLSCREEN)->setValueAndWarp(0.f);
 
     if (g_pSeatManager->m_mouse.expired() || !g_pInputManager->isConstrained())

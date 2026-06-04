@@ -103,15 +103,6 @@ SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
 
 void IModeAlgorithm::setNoMembersAboveFullscreen() {
 
-    // ERSTARR TODO - remove this if unneeded
-    // if (mode == 0b10) {
-    //     Log::logger->log(Log::CRIT, "setNoMembersAboveFullscreen() called with invalid mode bitmap: 0x{:02X}", mode);
-    //     return;
-    // }
-
-    // const bool FORCE = mode & 2;
-    // const bool SET   = FORCE || (mode & 1);
-
 
     if (!m_parent || !m_parent->space())
         return;
@@ -133,7 +124,6 @@ void IModeAlgorithm::setNoMembersAboveFullscreen() {
 
 
 
-    // ERSTARR TODO: test that the m_allowedOverFullscreen is correctly set to true when smt is unfullscreened
 
     // if there's a FS window, all members go below that window. If not, all members' overFullscreen attributes are re-set
     const bool SET = FULLSCREEN_WINDOW;

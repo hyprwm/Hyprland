@@ -26,8 +26,11 @@ class CTestCase {
   public:
     CTestCase()                 = default;
     CTestCase(const CTestCase&) = delete; // Test cases probably should not be copied
-    bool failed                 = false;
-    virtual ~CTestCase()        = default;
+    /// Indicates that some check has failed
+    bool failed = false;
+    /// Indicates that the _last_ check has failed
+    bool just_failed     = false;
+    virtual ~CTestCase() = default;
 
     // TODO: `test` will be protected
     virtual void test() = 0;
@@ -54,7 +57,8 @@ class CTestCase {
     namespace {                                                                                                                                                                    \
         class Subtest_##name {                                                                                                                                                     \
           public:                                                                                                                                                                  \
-            bool failed = false;                                                                                                                                                   \
+            bool failed      = false;                                                                                                                                              \
+            bool just_failed = false;                                                                                                                                              \
                                                                                                                                                                                    \
             void main(__VA_ARGS__);                                                                                                                                                \
         };                                                                                                                                                                         \
@@ -78,7 +82,7 @@ class CTestCase {
 // =================================
 
 /// Marks the test as failed without terminating it
-#define MARK_TEST_FAILED_SILENT() this->failed = true
+#define MARK_TEST_FAILED_SILENT() this->just_failed = this->failed = true
 
 /// Prints a failure message and makrs the test as failed without terminating it
 #define MARK_TEST_FAILED(fmt, ...)                                                                                                                                                 \
@@ -103,6 +107,7 @@ class CTestCase {
 
 #define LOG_OK(fmt, ...)                                                                                                                                                           \
     do {                                                                                                                                                                           \
+        this->just_failed = false;                                                                                                                                                 \
         NLog::log("{}OK:{} " fmt ". Source: {}@{}", Colors::GREEN, Colors::RESET, __VA_ARGS__, __FILE__, __LINE__);                                                                \
     } while (0)
 
@@ -190,56 +195,56 @@ class CTestCase {
 #define ASSERT_MAX_DELTA(expr, desired, delta)                                                                                                                                     \
     do {                                                                                                                                                                           \
         EXPECT_MAX_DELTA(expr, desired, delta);                                                                                                                                    \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT(expr, val)                                                                                                                                                          \
     do {                                                                                                                                                                           \
         EXPECT(expr, val);                                                                                                                                                         \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_NOT(expr, val)                                                                                                                                                      \
     do {                                                                                                                                                                           \
         EXPECT_NOT(expr, val);                                                                                                                                                     \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_VECTOR2D(expr, val)                                                                                                                                                 \
     do {                                                                                                                                                                           \
         EXPECT_VECTOR2D(expr, val);                                                                                                                                                \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_CONTAINS(haystack, needle)                                                                                                                                          \
     do {                                                                                                                                                                           \
         EXPECT_CONTAINS(haystack, needle);                                                                                                                                         \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_NOT_CONTAINS(haystack, needle)                                                                                                                                      \
     do {                                                                                                                                                                           \
         EXPECT_NOT_CONTAINS(haystack, needle);                                                                                                                                     \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_STARTS_WITH(str, what)                                                                                                                                              \
     do {                                                                                                                                                                           \
         EXPECT_STARTS_WITH(str, what);                                                                                                                                             \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 
 #define ASSERT_COUNT_STRING(str, what, no)                                                                                                                                         \
     do {                                                                                                                                                                           \
         EXPECT_COUNT_STRING(str, what, no);                                                                                                                                        \
-        if (this->failed)                                                                                                                                                          \
+        if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
     } while (0)
 

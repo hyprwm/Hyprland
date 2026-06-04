@@ -1492,32 +1492,35 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     shader->setUniformMatrix3fv(SHADER_PROJ, 1, GL_TRUE, glMatrix.getMatrix());
     shader->setUniformInt(SHADER_TEX, 0);
     GLCALL(glBindVertexArray(shader->getUniformLocation(SHADER_SHADER_VAO)));
-    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO)));
 
-    // this tells GPU can keep reading the old block for previous draws while the CPU writes to a new one.
-    // to avoid stalls if renderTextureInternal is called multiple times on same renderpass
-    // at the cost of some temporar vram usage.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
+    const bool CUSTOMUV = data.allowCustomUV && data.primarySurfaceUVTopLeft != Vector2D(-1, -1);
+    if (CUSTOMUV || shader->usesCustomUV()) {
+        GLCALL(glBindBuffer(GL_ARRAY_BUFFER, shader->getUniformLocation(SHADER_SHADER_VBO)));
 
-    auto verts = fullVerts;
+        // Keep the old block available to previous draws while custom UVs update, or while restoring the defaults.
+        glBufferData(GL_ARRAY_BUFFER, sizeof(fullVerts), nullptr, GL_DYNAMIC_DRAW);
 
-    if (data.allowCustomUV && data.primarySurfaceUVTopLeft != Vector2D(-1, -1)) {
-        const float u0 = data.primarySurfaceUVTopLeft.x;
-        const float v0 = data.primarySurfaceUVTopLeft.y;
-        const float u1 = data.primarySurfaceUVBottomRight.x;
-        const float v1 = data.primarySurfaceUVBottomRight.y;
+        auto verts = fullVerts;
 
-        verts[0].u = u0;
-        verts[0].v = v0;
-        verts[1].u = u0;
-        verts[1].v = v1;
-        verts[2].u = u1;
-        verts[2].v = v0;
-        verts[3].u = u1;
-        verts[3].v = v1;
+        if (CUSTOMUV) {
+            const float u0 = data.primarySurfaceUVTopLeft.x;
+            const float v0 = data.primarySurfaceUVTopLeft.y;
+            const float u1 = data.primarySurfaceUVBottomRight.x;
+            const float v1 = data.primarySurfaceUVBottomRight.y;
+
+            verts[0].u = u0;
+            verts[0].v = v0;
+            verts[1].u = u0;
+            verts[1].v = v1;
+            verts[2].u = u1;
+            verts[2].v = v0;
+            verts[3].u = u1;
+            verts[3].v = v1;
+        }
+
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data());
+        shader->setUsesCustomUV(CUSTOMUV);
     }
-
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data());
 
     if (!g_pHyprRenderer->m_renderData.clipBox.empty() || !data.clipRegion.empty()) {
         CRegion damageClip = g_pHyprRenderer->m_renderData.clipBox;

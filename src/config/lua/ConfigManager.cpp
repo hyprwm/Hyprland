@@ -201,6 +201,17 @@ CConfigManager::CConfigManager() : m_mainConfigPath(Supplementary::Jeremy::getMa
     });
 }
 
+CConfigManager::~CConfigManager() {
+    m_eventHandler.reset();
+
+    cleanTimers();
+    clearLuaLayoutProviders();
+    clearHeldLuaRefs();
+
+    if (m_lua && m_ownsLuaState)
+        lua_close(m_lua);
+}
+
 CConfigManager* CConfigManager::fromLuaState(lua_State* L) {
     if (!L)
         return nullptr;
@@ -281,12 +292,13 @@ void CConfigManager::reinitLuaState() {
     cleanTimers();
     clearLuaLayoutProviders();
 
-    if (m_lua) {
+    if (m_lua && m_ownsLuaState) {
         lua_close(m_lua);
-        m_lua = nullptr;
     }
+    m_lua = nullptr;
 
-    m_lua = luaL_newstate();
+    m_lua          = luaL_newstate();
+    m_ownsLuaState = true;
     luaL_openlibs(m_lua);
 
     lua_getglobal(m_lua, "debug");

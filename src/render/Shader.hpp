@@ -107,10 +107,13 @@ class CShader {
     GLint  getUniformLocation(eShaderUniform location) const;
     int    getInitialTime() const;
     void   setInitialTime(int time);
+    bool   usesCustomUV() const;
+    void   setUsesCustomUV(bool usesCustomUV);
 
   private:
-    GLuint                         m_program     = 0;
-    float                          m_initialTime = 0;
+    GLuint                         m_program      = 0;
+    float                          m_initialTime  = 0;
+    bool                           m_usesCustomUV = false;
     std::array<GLint, SHADER_LAST> m_uniformLocations;
 
     struct SUniformMatrix3Data {

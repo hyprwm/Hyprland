@@ -8,7 +8,7 @@
 using namespace Render::GL;
 
 void CGLElementRenderer::draw(WP<CBorderPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
     if (m_data.hasGrad2)
         g_pHyprOpenGL->renderBorder(
             m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,
@@ -81,7 +81,7 @@ void CGLElementRenderer::draw(WP<CPreBlurElement> element, const CRegion& damage
 };
 
 void CGLElementRenderer::draw(WP<CRectPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
 
     if (m_data.color.a == 1.F || !m_data.blur)
         g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
@@ -91,17 +91,17 @@ void CGLElementRenderer::draw(WP<CRectPassElement> element, const CRegion& damag
 };
 
 void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
     m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CGLElementRenderer::draw(WP<CInnerGlowPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
     m_data.deco->render(g_pHyprRenderer->m_renderData.pMonitor.lock(), m_data.a);
 };
 
 void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
 
     g_pHyprOpenGL->renderTexture( //
         m_data.tex, m_data.box,
@@ -133,7 +133,7 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
 };
 
 void CGLElementRenderer::draw(WP<CTextureMatteElement> element, const CRegion& damage) {
-    const auto m_data = element->m_data;
+    const auto& m_data = element->m_data;
 
     g_pHyprOpenGL->renderTextureMatte(m_data.tex, m_data.box, m_data.fb);
 };

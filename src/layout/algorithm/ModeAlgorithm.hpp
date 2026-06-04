@@ -64,15 +64,6 @@ namespace Layout {
 
         // optional: allow layouts to own layer/window hiding logic for fullscreen targets
 
-        /**
-        * @param mode Bitmap controlling the behaviour
-        *
-        *        - `0b00` — unset, members may appear above fullscreen
-        *        - `0b01` — set, block members above fullscreen; exclusions are left to layouts to handle
-        *        - `0b11` — force set, block members above fullscreen unconditionally
-        *
-        * @note Bit 0: set flag. Bit 1: force flag. `0b10` is invalid.
-        */
         virtual void setNoMembersAboveFullscreen();
 
         // Impl'd here: focal point for dir

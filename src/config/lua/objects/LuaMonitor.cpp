@@ -86,6 +86,8 @@ static int monitorIndex(lua_State* L) {
         lua_pushstring(L, mon->m_name.c_str());
     else if (key == "description")
         lua_pushstring(L, mon->m_shortDescription.c_str());
+    else if (key == "serial")
+        lua_pushstring(L, mon->m_output->serial.c_str());
     else if (key == "width")
         lua_pushinteger(L, sc<int>(mon->m_pixelSize.x));
     else if (key == "height")
@@ -142,6 +144,25 @@ static int monitorIndex(lua_State* L) {
                 continue;
 
             Objects::CLuaMonitor::push(L, mirror);
+            lua_rawseti(L, -2, i++);
+        }
+    } else if (key == "available_modes") {
+        lua_newtable(L);
+
+        int i = 1;
+        for (const auto& mode : mon->m_output->modes) {
+            if (!mode)
+                continue;
+
+            lua_newtable(L);
+            lua_pushinteger(L, sc<int>(mode->pixelSize.x));
+            lua_setfield(L, -2, "width");
+            lua_pushinteger(L, sc<int>(mode->pixelSize.y));
+            lua_setfield(L, -2, "height");
+            lua_pushnumber(L, mode->refreshRate / 1000.0);
+            lua_setfield(L, -2, "refresh_rate");
+            lua_pushboolean(L, mode->preferred);
+            lua_setfield(L, -2, "preferred");
             lua_rawseti(L, -2, i++);
         }
     } else if (key == "focused")

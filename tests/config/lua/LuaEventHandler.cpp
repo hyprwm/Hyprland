@@ -177,3 +177,28 @@ TEST(ConfigLuaEventHandler, removeNonexistentCustomEventFails) {
 
     EXPECT_FALSE(handler.removeCustomEvent("plugin.nonexistent"));
 }
+
+TEST(ConfigLuaEventHandler, workspaceLayoutChangedEvent) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaEventHandler handler(L);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        lastLayout = ""
+        function onLayoutChanged(ws, layout)
+            lastLayout = layout
+        end
+    )"),
+              LUA_OK);
+
+    const int  ref    = refGlobalFunction(L, "onLayoutChanged");
+    const auto handle = handler.registerEvent("workspace.layout_changed", ref);
+    ASSERT_TRUE(handle.has_value());
+
+    Event::bus()->m_events.workspace.layoutChanged.emit(nullptr, "master");
+
+    lua_getglobal(L, "lastLayout");
+    ASSERT_TRUE(lua_isstring(L, -1));
+    EXPECT_STREQ(lua_tostring(L, -1), "master");
+    lua_pop(L, 1);
+}

@@ -1,3 +1,6 @@
+#include <filesystem>
+#include <fstream>
+#include <thread>
 #include "../shared.hpp"
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
@@ -140,4 +143,36 @@ TEST_CASE(focusPreservedLayoutChange) {
         auto str = getFromSocket("/activewindow");
         EXPECT(str.contains("class: kitty_C"), true);
     }
+}
+
+static const std::string LAYOUT_FLAG = "/tmp/hyprtester-layout-changed.txt";
+
+static std::string       readLayoutFlag() {
+    std::ifstream f(LAYOUT_FLAG);
+    if (!f.good())
+        return "";
+    std::string content;
+    std::getline(f, content);
+    return content;
+}
+
+TEST_CASE(layoutChangedEventFires) {
+    std::filesystem::remove(LAYOUT_FLAG);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'dwindle' } })"));
+
+    OK(getFromSocket("/eval hl.on('workspace.layout_changed', function(ws, layout) "
+                     "local f = io.open('/tmp/hyprtester-layout-changed.txt', 'w') "
+                     "f:write(layout) f:close() end)"));
+
+    ASSERT(!!Tests::spawnKitty(), true);
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'master' } })"));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    auto layout = readLayoutFlag();
+    EXPECT(layout, std::string("master"));
+
+    std::filesystem::remove(LAYOUT_FLAG);
 }

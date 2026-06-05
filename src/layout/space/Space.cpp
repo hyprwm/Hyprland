@@ -32,7 +32,7 @@ CSpace::CSpace(PHLWORKSPACE parent) : m_parent(parent) {
         recheckWorkArea();
 
         if (m_algorithm)
-            m_algorithm->recalculate(RECALCULATE_REASON_CREATE_SPACE);
+            m_algorithm->recalculate();
     });
 }
 
@@ -219,9 +219,9 @@ SP<ITarget> CSpace::getNextCandidate(SP<ITarget> old) {
 }
 
 bool Layout::isHardRecalculateReason(eRecalculateReason reason) {
-    return reason != RECALCULATE_REASON_CREATE_SPACE && reason != RECALCULATE_REASON_PROP_REFRESH && reason != RECALCULATE_REASON_WORKSPACE_CHANGE &&
-        reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE && reason != RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN &&
-        reason != RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN && reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR;
+    return reason != RECALCULATE_REASON_WORKSPACE_CHANGE && reason != RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE &&
+        reason != RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN && reason != RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN &&
+        reason != RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES && reason != RECALCULATE_REASON_RENDER_MOINTOR;
 }
 
 const std::vector<WP<ITarget>>& CSpace::targets() const {
@@ -234,7 +234,6 @@ eRecalculateReason Layout::recalcMonitorReasonToRecalcReason(CLayoutManager::eRe
         case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE: return RECALCULATE_REASON_SPECIAL_WORKSPACE_TOGGLE;
         case CLayoutManager::RECALCULATE_MONITOR_REASON_WORKSPACE_CHANGE: return RECALCULATE_REASON_WORKSPACE_CHANGE;
         case CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN: return RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN;
-        case CLayoutManager::RECALCULATE_MONITOR_REASON_PROP_REFRESH: return RECALCULATE_REASON_PROP_REFRESH;
         default: return RECALCULATE_REASON_UNKNOWN;
     }
 }

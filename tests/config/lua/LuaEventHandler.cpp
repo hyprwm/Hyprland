@@ -39,7 +39,14 @@ namespace {
 
     int getGlobalInt(lua_State* L, const char* name) {
         lua_getglobal(L, name);
-        const int val = sc<int>(lua_tointeger(L, -1));
+        const auto val = lua_tointeger(L, -1);
+        lua_pop(L, 1);
+        return val;
+    }
+
+    const char* getGlobalString(lua_State* L, const char* name) {
+        lua_getglobal(L, name);
+        const auto val = lua_tostring(L, -1);
         lua_pop(L, 1);
         return val;
     }
@@ -73,11 +80,7 @@ TEST(ConfigLuaEventHandler, registerDispatchAndUnregister) {
 
     Event::bus()->m_events.keybinds.submap.emit("main");
     EXPECT_EQ(getGlobalInt(L, "count"), 1);
-
-    lua_getglobal(L, "lastSubmap");
-    ASSERT_TRUE(lua_isstring(L, -1));
-    EXPECT_STREQ(lua_tostring(L, -1), "main");
-    lua_pop(L, 1);
+    EXPECT_STREQ(getGlobalString(L, "lastSubmap"), "main");
 
     EXPECT_TRUE(handler.unregisterEvent(*handle));
 
@@ -112,4 +115,65 @@ TEST(ConfigLuaEventHandler, callbackLuaErrorDoesNotCrashDispatch) {
 
     Event::bus()->m_events.config.reloaded.emit();
     SUCCEED();
+}
+
+TEST(ConfigLuaEventHandler, addCustomEventAndDispatchToLua) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaEventHandler handler(L);
+
+    ASSERT_EQ(luaL_dostring(L, R"(
+        count = 0
+        str = ""
+        function onMyEvent(a, b)
+            count = a - 25
+            str = b
+        end
+    )"),
+              LUA_OK);
+
+    const auto e =
+        makeShared<Event::CEventBus::CCustomEvent>("plugin.my_event", std::vector{Event::CEventBus::CCustomEvent::TYPE_INT, Event::CEventBus::CCustomEvent::TYPE_STRING});
+    EXPECT_TRUE(Event::bus()->addPluginEvent(e));
+    EXPECT_TRUE(CLuaEventHandler::knownEvents().contains("plugin.my_event"));
+
+    const int  ref    = refGlobalFunction(L, "onMyEvent");
+    const auto handle = handler.registerEvent("plugin.my_event", ref);
+    ASSERT_TRUE(handle.has_value());
+
+    EXPECT_TRUE(e->emit({67, std::string("hello from plugin")}));
+    EXPECT_EQ(getGlobalInt(L, "count"), 42);
+    EXPECT_STREQ(getGlobalString(L, "str"), "hello from plugin");
+}
+
+TEST(ConfigLuaEventHandler, removingPluginEventUnregistersLuaEvent) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaEventHandler handler(L);
+
+    const auto       e = makeShared<Event::CEventBus::CCustomEvent>("plugin.to_be_removed", std::vector<Event::CEventBus::CCustomEvent::eType>{});
+    EXPECT_TRUE(Event::bus()->addPluginEvent(e));
+    EXPECT_TRUE(CLuaEventHandler::knownEvents().contains("plugin.to_be_removed"));
+
+    EXPECT_TRUE(Event::bus()->removePluginEvent(e->m_name));
+    EXPECT_FALSE(CLuaEventHandler::knownEvents().contains("plugin.to_be_removed"));
+}
+
+TEST(ConfigLuaEventHandler, addCustomEventDuplicateFails) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaEventHandler handler(L);
+
+    const auto       ev = makeShared<Event::CEventBus::CCustomEvent>("plugin.dup", std::vector<Event::CEventBus::CCustomEvent::eType>{});
+
+    EXPECT_TRUE(handler.addCustomEvent(ev));
+    EXPECT_FALSE(handler.addCustomEvent(ev));
+}
+
+TEST(ConfigLuaEventHandler, removeNonexistentCustomEventFails) {
+    CLuaState        S;
+    const auto       L = S.get();
+    CLuaEventHandler handler(L);
+
+    EXPECT_FALSE(handler.removeCustomEvent("plugin.nonexistent"));
 }

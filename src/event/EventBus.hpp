@@ -175,6 +175,9 @@ namespace Event {
             std::unordered_map<std::string, SP<CCustomEvent>> plugin;
 
         } m_events;
+
+        std::expected<void, std::string> addPluginEvent(SP<CCustomEvent> event);
+        std::expected<void, std::string> removePluginEvent(const std::string& name);
     };
 
     UP<CEventBus>& bus();

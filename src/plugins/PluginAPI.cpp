@@ -504,12 +504,11 @@ APICALL bool HyprlandAPI::addEvent(HANDLE handle, SP<Event::CEventBus::CCustomEv
     if (!PLUGIN)
         return false;
 
-    if (!Event::bus()->m_events.plugin.try_emplace(event->m_name, event).second) {
-        Log::logger->log(Log::ERR, "failed to register event {}: event already registered.", event->m_name);
+    const auto ret = Event::bus()->addPluginEvent(event);
+    if (!ret) {
+        Log::logger->log(Log::ERR, ret.error());
         return false;
     }
-
-    Event::bus()->m_events.pluginEventAdded.emit(event);
 
     return true;
 }
@@ -520,12 +519,11 @@ APICALL bool HyprlandAPI::removeEvent(HANDLE handle, const std::string& name) {
     if (!PLUGIN)
         return false;
 
-    if (!Event::bus()->m_events.plugin.erase(name)) {
-        Log::logger->log(Log::ERR, "failed to unregister event {}: event not registered.", name);
+    const auto ret = Event::bus()->removePluginEvent(name);
+    if (!ret) {
+        Log::logger->log(Log::ERR, ret.error());
         return false;
     }
-
-    Event::bus()->m_events.pluginEventRemoved.emit(name);
 
     return true;
 }

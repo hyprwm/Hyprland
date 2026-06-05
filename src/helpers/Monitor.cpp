@@ -2111,7 +2111,22 @@ bool CMonitor::attemptDirectScanout() {
     if (m_lastScanout.expired())
         m_prevDrmFormat = m_drmFormat;
 
-    const bool NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
+    const auto  previousFormat           = m_drmFormat;
+    const auto  previousBuffer           = m_output->state->state().buffer;
+    const auto  previousPresentationMode = m_output->state->state().presentationMode;
+    bool        scanoutCommitted         = false;
+    CScopeGuard rollbackState            = {[this, previousFormat, previousBuffer, previousPresentationMode, &scanoutCommitted]() {
+        if (scanoutCommitted)
+            return;
+
+        m_drmFormat = previousFormat;
+        m_output->state->setFormat(previousFormat);
+        m_output->state->setBuffer(previousBuffer);
+        m_output->state->setPresentationMode(previousPresentationMode);
+        m_output->state->resetExplicitFences();
+    }};
+
+    const bool  NEEDS_TEST = !m_lastScanout || m_drmFormat != params.format; // do not retest while it's active
     if (m_drmFormat != params.format) {
         m_output->state->setFormat(params.format);
         m_drmFormat = params.format;
@@ -2152,6 +2167,8 @@ bool CMonitor::attemptDirectScanout() {
         m_lastScanout.reset();
         return false;
     }
+
+    scanoutCommitted = true;
 
     if (m_lastScanout.expired()) {
         m_lastScanout = PCANDIDATE;

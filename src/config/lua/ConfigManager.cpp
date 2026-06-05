@@ -122,6 +122,17 @@ static int safeLuaRequire(lua_State* L) {
         lua_pop(L, 1);
     }
 
+    // if we failed to resolve the require'd module, return that as an actual
+    // error (so the user can catch it via pcall)
+    {
+        std::string moduleErrPrefix = std::format("module '{}' not found", moduleName);
+        if (err.starts_with(moduleErrPrefix))
+            return luaL_error(L, err.c_str());
+    }
+
+    // otherwise, throw the error message into the config-errors list, and
+    // return an empty table to Lua (weird from a Lua perspective, but
+    // hopefully acceptable since the error is directly visible to the user)
     if (auto* mgr = CConfigManager::fromLuaState(L); mgr) {
         if (!moduleName.empty()) {
             trackRequiredLuaModulePath(L, mgr, moduleName);
@@ -132,7 +143,7 @@ static int safeLuaRequire(lua_State* L) {
 
     lua_pop(L, 1); // error object
 
-    lua_newtable(L); // fallback module
+    lua_newtable(L); // empty table as fallback return
     const int fallbackIdx = lua_gettop(L);
 
     if (!moduleName.empty()) {
@@ -316,8 +327,10 @@ void CConfigManager::reinitLuaState() {
 
     lua_getglobal(m_lua, "require");
     if (lua_isfunction(m_lua, -1)) {
+        lua_pushvalue(m_lua, -1);
+        lua_setglobal(m_lua, "__require"); // original `require` as `__require`
         lua_pushcclosure(m_lua, safeLuaRequire, 1);
-        lua_setglobal(m_lua, "require");
+        lua_setglobal(m_lua, "require"); // safe require as `require`
     } else
         lua_pop(m_lua, 1);
 

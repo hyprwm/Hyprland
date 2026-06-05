@@ -24,10 +24,12 @@ Vector2D CMonitorZoomController::getAnchor(const PHLMONITORREF& monitor) {
 }
 
 void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::SRenderData& m_renderData) {
-    const auto m      = m_renderData.pMonitor;
-    auto       monbox = CBox(0, 0, m->m_size.x, m->m_size.y);
-    const auto ZOOM   = g_pHyprRenderer->m_renderData.mouseZoomFactor;
-    const auto MOUSE  = getAnchor(m);
+    static auto PZOOMRIGID = CConfigValue<Config::INTEGER>("cursor:zoom_rigid");
+
+    const auto  m      = m_renderData.pMonitor;
+    auto        monbox = CBox(0, 0, m->m_size.x, m->m_size.y);
+    const auto  ZOOM   = g_pHyprRenderer->m_renderData.mouseZoomFactor;
+    const auto  MOUSE  = getAnchor(m);
 
     if (m_lastZoomLevel != ZOOM) {
         if (m_resetCameraState) {
@@ -67,7 +69,8 @@ void CMonitorZoomController::zoomWithDetachedCamera(CBox& result, const Render::
             m_padCamEdges = true;
     if (m_padCamEdges)
         smallerbox.scaleFromCenter(.9);
-    if (!smallerbox.containsPoint(MOUSE)) {
+    // when rigid, lock the camera at the zoom anchor instead of panning to follow the cursor to its edges
+    if (!*PZOOMRIGID && !smallerbox.containsPoint(MOUSE)) {
         if (MOUSE.x < smallerbox.x)
             m_camera.x -= smallerbox.x - MOUSE.x;
         if (MOUSE.y < smallerbox.y)

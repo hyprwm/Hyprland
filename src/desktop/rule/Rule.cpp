@@ -8,75 +8,79 @@
 #include "matchEngine/WorkspaceMatchEngine.hpp"
 #include "matchEngine/TagMatchEngine.hpp"
 
+#include <algorithm>
+#include <array>
+#include <utility>
+
 using namespace Desktop;
 using namespace Desktop::Rule;
 
-static const std::unordered_map<eRuleProperty, std::string> MATCH_PROP_STRINGS = {
-    {RULE_PROP_CLASS, "class"},                                        //
-    {RULE_PROP_TITLE, "title"},                                        //
-    {RULE_PROP_INITIAL_CLASS, "initial_class"},                        //
-    {RULE_PROP_INITIAL_TITLE, "initial_title"},                        //
-    {RULE_PROP_FLOATING, "float"},                                     //
-    {RULE_PROP_TAG, "tag"},                                            //
-    {RULE_PROP_XWAYLAND, "xwayland"},                                  //
-    {RULE_PROP_FULLSCREEN, "fullscreen"},                              //
-    {RULE_PROP_PINNED, "pin"},                                         //
-    {RULE_PROP_FOCUS, "focus"},                                        //
-    {RULE_PROP_GROUP, "group"},                                        //
-    {RULE_PROP_MODAL, "modal"},                                        //
-    {RULE_PROP_FULLSCREENSTATE_INTERNAL, "fullscreen_state_internal"}, //
-    {RULE_PROP_FULLSCREENSTATE_CLIENT, "fullscreen_state_client"},     //
-    {RULE_PROP_ON_WORKSPACE, "workspace"},                             //
-    {RULE_PROP_CONTENT, "content"},                                    //
-    {RULE_PROP_XDG_TAG, "xdg_tag"},                                    //
-    {RULE_PROP_NAMESPACE, "namespace"},                                //
-};
+constexpr auto MATCH_PROP_STRINGS =
+    [](auto matchPropStrings) {
+        std::ranges::sort(matchPropStrings, {}, [](auto pair) { return pair.second; });
+        std::array<eRuleProperty, matchPropStrings.size()>    props;
+        std::array<std::string_view, matchPropStrings.size()> propStrings;
+        for (std::size_t i = 0; i < matchPropStrings.size(); ++i)
+            std::tie(props[i], propStrings[i]) = matchPropStrings[i];
+        return std::pair{props, propStrings};
+    }(std::to_array<std::pair<eRuleProperty, std::string_view>>({
+        {RULE_PROP_CLASS, "class"},                                        //
+        {RULE_PROP_TITLE, "title"},                                        //
+        {RULE_PROP_INITIAL_CLASS, "initial_class"},                        //
+        {RULE_PROP_INITIAL_TITLE, "initial_title"},                        //
+        {RULE_PROP_FLOATING, "float"},                                     //
+        {RULE_PROP_TAG, "tag"},                                            //
+        {RULE_PROP_XWAYLAND, "xwayland"},                                  //
+        {RULE_PROP_FULLSCREEN, "fullscreen"},                              //
+        {RULE_PROP_PINNED, "pin"},                                         //
+        {RULE_PROP_FOCUS, "focus"},                                        //
+        {RULE_PROP_GROUP, "group"},                                        //
+        {RULE_PROP_MODAL, "modal"},                                        //
+        {RULE_PROP_FULLSCREENSTATE_INTERNAL, "fullscreen_state_internal"}, //
+        {RULE_PROP_FULLSCREENSTATE_CLIENT, "fullscreen_state_client"},     //
+        {RULE_PROP_ON_WORKSPACE, "workspace"},                             //
+        {RULE_PROP_CONTENT, "content"},                                    //
+        {RULE_PROP_XDG_TAG, "xdg_tag"},                                    //
+        {RULE_PROP_NAMESPACE, "namespace"},                                //
+    }));
 
-static const std::unordered_map<eRuleProperty, eRuleMatchEngine> RULE_ENGINES = {
-    {RULE_PROP_CLASS, RULE_MATCH_ENGINE_REGEX},                  //
-    {RULE_PROP_TITLE, RULE_MATCH_ENGINE_REGEX},                  //
-    {RULE_PROP_INITIAL_CLASS, RULE_MATCH_ENGINE_REGEX},          //
-    {RULE_PROP_INITIAL_TITLE, RULE_MATCH_ENGINE_REGEX},          //
-    {RULE_PROP_FLOATING, RULE_MATCH_ENGINE_BOOL},                //
-    {RULE_PROP_TAG, RULE_MATCH_ENGINE_TAG},                      //
-    {RULE_PROP_XWAYLAND, RULE_MATCH_ENGINE_BOOL},                //
-    {RULE_PROP_FULLSCREEN, RULE_MATCH_ENGINE_BOOL},              //
-    {RULE_PROP_PINNED, RULE_MATCH_ENGINE_BOOL},                  //
-    {RULE_PROP_FOCUS, RULE_MATCH_ENGINE_BOOL},                   //
-    {RULE_PROP_GROUP, RULE_MATCH_ENGINE_BOOL},                   //
-    {RULE_PROP_MODAL, RULE_MATCH_ENGINE_BOOL},                   //
-    {RULE_PROP_FULLSCREENSTATE_INTERNAL, RULE_MATCH_ENGINE_INT}, //
-    {RULE_PROP_FULLSCREENSTATE_CLIENT, RULE_MATCH_ENGINE_INT},   //
-    {RULE_PROP_ON_WORKSPACE, RULE_MATCH_ENGINE_WORKSPACE},       //
-    {RULE_PROP_CONTENT, RULE_MATCH_ENGINE_REGEX},                //
-    {RULE_PROP_XDG_TAG, RULE_MATCH_ENGINE_REGEX},                //
-    {RULE_PROP_NAMESPACE, RULE_MATCH_ENGINE_REGEX},              //
-    {RULE_PROP_EXEC_TOKEN, RULE_MATCH_ENGINE_REGEX},             //
-    {RULE_PROP_EXEC_PID, RULE_MATCH_ENGINE_INT},                 //
-};
+constexpr auto RULE_ENGINES =
+    [](auto ruleEngines) {
+        std::ranges::sort(ruleEngines, {}, [](auto pair) { return pair.first; });
+        return ruleEngines;
+    }(std::to_array<std::pair<eRuleProperty, eRuleMatchEngine>>({
+        {RULE_PROP_CLASS, RULE_MATCH_ENGINE_REGEX},                  //
+        {RULE_PROP_TITLE, RULE_MATCH_ENGINE_REGEX},                  //
+        {RULE_PROP_INITIAL_CLASS, RULE_MATCH_ENGINE_REGEX},          //
+        {RULE_PROP_INITIAL_TITLE, RULE_MATCH_ENGINE_REGEX},          //
+        {RULE_PROP_FLOATING, RULE_MATCH_ENGINE_BOOL},                //
+        {RULE_PROP_TAG, RULE_MATCH_ENGINE_TAG},                      //
+        {RULE_PROP_XWAYLAND, RULE_MATCH_ENGINE_BOOL},                //
+        {RULE_PROP_FULLSCREEN, RULE_MATCH_ENGINE_BOOL},              //
+        {RULE_PROP_PINNED, RULE_MATCH_ENGINE_BOOL},                  //
+        {RULE_PROP_FOCUS, RULE_MATCH_ENGINE_BOOL},                   //
+        {RULE_PROP_GROUP, RULE_MATCH_ENGINE_BOOL},                   //
+        {RULE_PROP_MODAL, RULE_MATCH_ENGINE_BOOL},                   //
+        {RULE_PROP_FULLSCREENSTATE_INTERNAL, RULE_MATCH_ENGINE_INT}, //
+        {RULE_PROP_FULLSCREENSTATE_CLIENT, RULE_MATCH_ENGINE_INT},   //
+        {RULE_PROP_ON_WORKSPACE, RULE_MATCH_ENGINE_WORKSPACE},       //
+        {RULE_PROP_CONTENT, RULE_MATCH_ENGINE_REGEX},                //
+        {RULE_PROP_XDG_TAG, RULE_MATCH_ENGINE_REGEX},                //
+        {RULE_PROP_NAMESPACE, RULE_MATCH_ENGINE_REGEX},              //
+        {RULE_PROP_EXEC_TOKEN, RULE_MATCH_ENGINE_REGEX},             //
+        {RULE_PROP_EXEC_PID, RULE_MATCH_ENGINE_INT},                 //
+    }));
 
-const std::vector<std::string>& Rule::allMatchPropStrings() {
-    static std::vector<std::string> strings;
-    static bool                     once = true;
-    if (once) {
-        for (const auto& [k, v] : MATCH_PROP_STRINGS) {
-            strings.emplace_back(v);
-        }
-        once = false;
-    }
-    return strings;
+std::span<const std::string_view> Rule::allMatchPropStrings() {
+    return MATCH_PROP_STRINGS.second;
 }
 
-std::optional<eRuleProperty> Rule::matchPropFromString(const std::string_view& s) {
-    const auto IT = std::ranges::find_if(MATCH_PROP_STRINGS, [&s](const auto& el) { return el.second == s; });
-    if (IT == MATCH_PROP_STRINGS.end())
+std::optional<eRuleProperty> Rule::matchPropFromString(std::string_view s) {
+    const auto IT = std::ranges::lower_bound(MATCH_PROP_STRINGS.second, s);
+    if (IT == MATCH_PROP_STRINGS.second.end() || *IT != s)
         return std::nullopt;
 
-    return IT->first;
-}
-
-std::optional<eRuleProperty> Rule::matchPropFromString(const std::string& s) {
-    return matchPropFromString(std::string_view{s});
+    return MATCH_PROP_STRINGS.first[std::distance(MATCH_PROP_STRINGS.second.begin(), IT)];
 }
 
 IRule::IRule(const std::string& name) : m_name(name) {
@@ -84,12 +88,13 @@ IRule::IRule(const std::string& name) : m_name(name) {
 }
 
 void IRule::registerMatch(eRuleProperty p, const std::string& s) {
-    if (!RULE_ENGINES.contains(p)) {
+    const auto IT = std::ranges::lower_bound(RULE_ENGINES, p, {}, [](auto pair) { return pair.first; });
+    if (IT == RULE_ENGINES.end() || IT->first != p) {
         Log::logger->log(Log::ERR, "BUG THIS: IRule: RULE_ENGINES does not contain rule idx {}", sc<std::underlying_type_t<eRuleProperty>>(p));
         return;
     }
 
-    switch (RULE_ENGINES.at(p)) {
+    switch (IT->second) {
         case RULE_MATCH_ENGINE_REGEX: m_matchEngines[p] = makeUnique<CRegexMatchEngine>(s); break;
         case RULE_MATCH_ENGINE_BOOL: m_matchEngines[p] = makeUnique<CBoolMatchEngine>(s); break;
         case RULE_MATCH_ENGINE_INT: m_matchEngines[p] = makeUnique<CIntMatchEngine>(s); break;

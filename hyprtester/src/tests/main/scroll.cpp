@@ -1121,6 +1121,38 @@ TEST_CASE(testScrollInhibitor) {
     }
 }
 
+TEST_CASE(layoutmsg_fit_into_view) {
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+        return;
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty with win class `b`");
+        return;
+    }
+
+    // class:a column is now off screen to the left
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
+
+    // fit class:a window into view
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit_into_view')"));
+
+    // If it worked, class:a window must now have at: ~= 0,0 -- 0,0 + gaps, border = 22,22.
+
+    ASSERT_CONTAINS(Tests::getAttribute(getFromSocket("/activewindow"), "at"), "22,22");
+}
+
 TEST_CASE(layoutRuleExpand) {
     // set current layout to scrolling
     OK(getFromSocket(

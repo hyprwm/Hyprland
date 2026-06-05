@@ -96,7 +96,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                     if (!m)
                         continue;
 
-                    g_layoutManager->recalculateMonitor(m, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_PROP_REFRESH);
+                    g_layoutManager->recalculateMonitor(m, );
                 }
 
                 State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
@@ -107,7 +107,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                 Layout::Supplementary::algoMatcher()->updateWorkspaceLayouts();
 
                 for (auto const& m : State::monitorState()->monitors()) {
-                    g_layoutManager->recalculateMonitor(m, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_PROP_REFRESH);
+                    g_layoutManager->recalculateMonitor(m);
                     g_pHyprRenderer->damageMonitor(m);
                 }
             }

@@ -127,6 +127,13 @@ void CMonitorFrameScheduler::onFrame() {
 
 void CMonitorFrameScheduler::onFinishRender() {
     m_sync = g_pHyprRenderer->createSyncFDManager(); // this destroys the old sync
+    if (!m_sync || !m_sync->isValid()) {
+        Log::logger->log(Log::ERR, "CMonitorFrameScheduler: explicit sync failed, falling back to frame events");
+        m_sync.reset();
+        m_renderAtFrame = true;
+        return;
+    }
+
     g_pEventLoopManager->doOnReadable(m_sync->fd().duplicate(), [this, self = m_self] {
         if (!self) // might've gotten destroyed
             return;

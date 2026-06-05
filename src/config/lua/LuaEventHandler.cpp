@@ -120,6 +120,12 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
     m_listeners.push_back(bus()->m_events.monitor.layoutChanged.listen([this] { dispatch("monitor.layout_changed", 0, [] {}); }));
 
     m_listeners.push_back(bus()->m_events.workspace.active.listen([this](PHLWORKSPACE ws) { dispatch("workspace.active", 1, [&] { CLuaWorkspace::push(m_lua, ws); }); }));
+    m_listeners.push_back(bus()->m_events.workspace.specialActive.listen([this](PHLWORKSPACE ws, PHLMONITOR mon) {
+        dispatch("workspace.special_active", 2, [&] {
+            CLuaWorkspace::push(m_lua, ws);
+            CLuaMonitor::push(m_lua, mon);
+        });
+    }));
     m_listeners.push_back(bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF wsRef) {
         const auto ws = wsRef.lock();
         if (!ws)

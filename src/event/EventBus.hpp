@@ -127,6 +127,7 @@ namespace Event {
             struct {
                 Event<PHLWORKSPACE, PHLMONITOR> moveToMonitor;
                 Event<PHLWORKSPACE>             active;
+                Event<PHLWORKSPACE, PHLMONITOR> specialActive;
                 Event<PHLWORKSPACEREF>          created;
                 Event<PHLWORKSPACEREF>          removed;
             } workspace;

@@ -1577,6 +1577,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
         g_pCompositor->updateSuspendedStates();
 
+        Event::bus()->m_events.workspace.specialActive.emit(nullptr, m_self.lock());
+
         return;
     }
 
@@ -1675,6 +1677,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     Config::monitorRuleMgr()->ensureVRR(m_self.lock());
 
     g_pCompositor->updateSuspendedStates();
+
+    Event::bus()->m_events.workspace.specialActive.emit(pWorkspace, m_self.lock());
 }
 
 void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {

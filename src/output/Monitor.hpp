@@ -153,6 +153,9 @@ namespace Monitor {
         bool m_directScanoutIsActive    = false; // for cleanup logic. m_lastScanout.expired() can become true before the DS cleanup if client crashes/exits while DS is active.
         bool m_scanoutNeedsCursorUpdate = false;
 
+        uint64_t m_estimatedNextVblankNs  = 0;
+        bool     m_hasEstimatedNextVblank = false;
+
         // for special fade/blur
         PHLANIMVAR<float> m_specialFade;
 

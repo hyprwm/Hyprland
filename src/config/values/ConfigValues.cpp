@@ -554,6 +554,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * render:
          */
 
+        MS<Bool>("render:main_buffer_deadline", "Set a GPU fence deadline hint for the main render buffer.", false),
         MS<Int>("render:direct_scanout", "Enables direct scanout.", 0, {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
         MS<Bool>("render:expand_undersized_textures", "Whether to expand textures that have not yet resized to be larger.", true),
         MS<Bool>("render:xp_mode", "Disable back buffer and bottom layer rendering.", false),

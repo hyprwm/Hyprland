@@ -8,11 +8,14 @@
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/string/VarList2.hpp>
+#include <hyprutils/utils/ScopeGuard.hpp>
 
 #include "../../shared.hpp"
 #include "../../hyprctlCompat.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
+
+using namespace Hyprutils::Utils;
 
 // TODO: seems redundant, can just use `Tests::spawnKitty`?
 static bool spawnKitty(const std::string& class_, const std::vector<std::string>& args = {}) {
@@ -1262,6 +1265,8 @@ TEST_CASE(pinnedRetainsPositionOnWorkspaceChange) {
 
 TEST_CASE(monitorrule) {
     OK(getFromSocket("/output create headless HEADLESS-3"));
+    CScopeGuard guard([&] { OK(getFromSocket("/output remove HEADLESS-3")); });
+
     OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
     OK(getFromSocket("/eval hl.window_rule({ name = 'monitorrule', match = { class = 'monitor_kitty' }, monitor = 'HEADLESS-3' })"));
 
@@ -1280,6 +1285,4 @@ TEST_CASE(monitorrule) {
     ASSERT(Tests::windowCount(), 1);
     EXPECT_CONTAINS(getFromSocket("/clients"), "monitor: 2");
     EXPECT_CONTAINS(getFromSocket("/activeworkspace"), "HEADLESS-2");
-
-    OK(getFromSocket("/output remove HEADLESS-3"));
 }

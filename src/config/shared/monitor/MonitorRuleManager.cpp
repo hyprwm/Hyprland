@@ -80,6 +80,16 @@ CMonitorRule CMonitorRuleManager::get(const PHLMONITOR PMONITOR) {
         return rule;
     };
 
+    if (PMONITOR->m_isUnsafeFallback) {
+        CMonitorRule fallbackRule;
+        fallbackRule.m_autoDir    = DIR_AUTO_RIGHT;
+        fallbackRule.m_name       = PMONITOR->m_name;
+        fallbackRule.m_resolution = Vector2D{1920, 1080};
+        fallbackRule.m_offset     = Vector2D{-INT32_MAX, -INT32_MAX};
+        fallbackRule.m_scale      = 1;
+        return fallbackRule;
+    }
+
     for (auto const& r : m_rules | std::views::reverse) {
         if (PMONITOR->matchesStaticSelector(r.m_name))
             return applyWlrOutputConfig(r);

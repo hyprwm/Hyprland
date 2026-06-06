@@ -274,6 +274,54 @@ def parse_config_values(root: Path) -> dict[str, str]:
     return out
 
 
+def pascal_case(s: str) -> str:
+    if s == 'opengl':
+        return 'OpenGL'
+    return ''.join(p.capitalize() for p in s.split('_'))
+
+# Config { animations = Config.Animations }
+# Config.Animations { enabled = bool }
+
+type ClassMember = str
+type IsTreeType = bool
+type MemberType = tuple[str, IsTreeType]
+type ConfigSubtable = dict[ClassMember, MemberType]
+
+type ConfigTree = dict[str, ConfigSubtable]
+
+def config_values_to_config_tree(config_values: dict[str, str]) -> ConfigTree:
+    ret: ConfigTree = {};
+
+    for route, tp in config_values.items():
+        route_parts = route.split('.');
+        curr_type = "";
+        # We iterate over the config route, e.g 
+        # ['input', 'touchpad', 'tap_and_drag']
+        #
+        # and create the corresponding entries with pascal names
+        # Input { touchpad: Input.Touchpad }
+        # Input.Touchpad { tap_and_drag: boolean }
+
+        for i, route_part in enumerate(route_parts):
+            is_tree_type = i + 1 < len(route_parts)
+            if is_tree_type:
+                next_type = curr_type + '.' + pascal_case(route_parts[i]);
+            else:
+                next_type = tp;
+
+            entry: ConfigSubtable = ret.setdefault(curr_type, {});
+            entry[route_part] = (next_type, is_tree_type);
+            curr_type = next_type
+    return ret;
+
+def emit_config_tree(config_tree: ConfigTree, class_prefix: str, optional: bool) -> list[str]:
+    lines: list[str] = [];
+    for tp, subtable in config_tree.items():
+        class_ = [(member, (class_prefix if tp[1] else "") + tp[0], optional) for member, tp in subtable.items()]
+        lines.append("");
+        lines.extend(emit_class_block(class_prefix + tp, class_, None, False));
+    return lines
+
 def extract_initializer_body(source: str, array_name: str) -> str:
     marker = f"{array_name}[]"
     idx = source.find(marker)
@@ -435,7 +483,7 @@ def format_union_alias(name: str, values: Iterable[str]) -> list[str]:
     return lines
 
 
-def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], operator_call: str | None = None) -> list[str]:
+def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], operator_call: str | None = None, emit_local_var: bool = True) -> list[str]:
     lines = [f"---@class {class_name}"]
     if operator_call:
         lines.append(f"---@operator call:{operator_call}")
@@ -455,8 +503,9 @@ def emit_class_block(class_name: str, fields: list[tuple[str, str, bool]], opera
         type_with_optional = f"{type_name}|nil" if optional else type_name
         lines.append(f"---@field ['{quoted}'] {type_with_optional}")
 
-    local_name = "__" + class_name.replace(".", "_")
-    lines.append(f"local {local_name} = {{}}")
+    if (emit_local_var):
+        local_name = "__" + class_name.replace(".", "_")
+        lines.append(f"local {local_name} = {{}}")
     return lines
 
 
@@ -464,6 +513,7 @@ def generate_stub(root: Path) -> str:
     api_tree, callable_namespaces = parse_binding_tree(root)
     object_classes = parse_object_classes(root)
     config_values = parse_config_values(root)
+    config_tree = config_values_to_config_tree(config_values);
     descriptor_classes = parse_descriptor_fields(root)
     events = parse_known_events(root)
     query_types, query_overrides = parse_query_filter_types(root)
@@ -474,7 +524,7 @@ def generate_stub(root: Path) -> str:
         "hl.dispatch": "fun(dispatcher: HL.Dispatcher|function): any",
         "hl.define_submap": "fun(name: string, reset_or_fn: string|function, fn?: function): nil",
         "hl.timer": "fun(callback: function, opts: HL.TimerOptions): HL.Timer",
-        "hl.config": "fun(config: table): nil",
+        "hl.config": "fun(config: HL.ConfigOpt): nil",
         "hl.get_config": "fun(key: HL.ConfigKey|string): any, string?",
         "hl.device": "fun(spec: HL.DeviceSpec): nil",
         "hl.monitor": "fun(spec: HL.MonitorSpec): nil",
@@ -744,6 +794,7 @@ def generate_stub(root: Path) -> str:
     lines.append("local __HL_ConfigValueTypes = {}")
     lines.append("")
 
+    lines.extend(emit_config_tree(config_tree, "HL.ConfigOpt", True));
     return "\n".join(lines)
 
 

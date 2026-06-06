@@ -30,3 +30,7 @@ TEST(Helpers, drmDevIDFromFDRejectsRegularFiles) {
     close(FD);
     unlink(path);
 }
+
+TEST(Helpers, drmSetDeadlineRejectsInvalidFence) {
+    EXPECT_FALSE(DRM::setDeadline(0, Hyprutils::OS::CFileDescriptor{}));
+}

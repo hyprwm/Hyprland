@@ -15,6 +15,7 @@
 #include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
+#include "config/shared/monitor/MonitorRuleManager.hpp"
 #include "debug/log/Logger.hpp"
 #include "desktop/Workspace.hpp"
 #include "layout/algorithm/FloatingAlgorithm.hpp"
@@ -438,11 +439,13 @@ void SScrollingData::recalculate(bool forceInstant) {
 
     static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
 
+    const auto        WORKSPACE = algorithm->m_parent->space()->workspace();
+    const auto        MONITOR   = WORKSPACE->m_monitor.lock();
+
     const CBox        USABLE   = algorithm->usableArea();
     const auto        WORKAREA = algorithm->m_parent->space()->workArea();
-    const CBox        MONBOX   = algorithm->m_parent->space()->workspace()->m_monitor->logicalBox();
+    const CBox        MONBOX   = MONITOR->logicalBox();
 
-    const auto        WORKSPACE     = algorithm->m_parent->space()->workspace();
     const auto        WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(WORKSPACE);
     static auto       PGAPSINDATA   = CConfigValue<Config::IComplexConfigValue>("general:gaps_in");
     auto* const       PGAPSIN       = sc<Config::CCssGapData*>((PGAPSINDATA.ptr()));
@@ -548,37 +551,50 @@ void SScrollingData::recalculate(bool forceInstant) {
     WORKSPACE->m_hasFullscreenWindow = targetWorkspaceHasFullscreen;
     WORKSPACE->m_fullscreenMode      = targetWorkspaceFullscreenMode;
 
-    bool anyFullscreenCovers = false;
-    for (const auto& COL : columns) {
-        if (algorithm->fullscreenTargetDataForColumn(COL) && (algorithm->fullscreenColumnCoversMonitor(COL) || algorithm->fullscreenColumnCoversWorkArea(COL))) {
-            anyFullscreenCovers = true;
-            break;
+    /* Setting DSO and VRR */
+
+    // If a window is being un-FSed, set its DSO and VRR in CScrollingAlgorithm::requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in SScrollingData::recalculate()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in SScrollingData::recalculate()
+
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+
+    // If we are scrolling away from a layout managed tiled FS window, send it a regular tranche
+    // we need only check its internal state as if the window was saved in lastTiledLayoutManagedFsWindow, it is guaranteed to be as its name suggests
+    if (const auto LAST_FS_LAYOUTMANAGED_TILED_WINDOW = algorithm->m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+        // check if LAST_FS_LAYOUTMANAGED_TILED_WINDOW exists, and that we are either we don't have a covering FS window, or if we do; it's not the same as LAST_FS_LAYOUTMANAGED_TILED_WINDOW
+        LAST_FS_LAYOUTMANAGED_TILED_WINDOW &&
+        (!CURRENT_FS_TDATA || (CURRENT_FS_TDATA && LAST_FS_LAYOUTMANAGED_TILED_WINDOW != CURRENT_FS_TDATA->target->window()))
+        // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened (CScrollingAlgorithm::requestFullscreen() would have handled that)
+        && LAST_FS_LAYOUTMANAGED_TILED_WINDOW->m_fullscreenState.internal != FSMODE_NONE) {
+
+        // send a regular tranche
+        // ignore if DS is disabled.
+        if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && LAST_FS_LAYOUTMANAGED_TILED_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
+            auto surf = LAST_FS_LAYOUTMANAGED_TILED_WINDOW->getSolitaryResource();
+            if (surf)
+                g_pHyprRenderer->setSurfaceScanoutMode(surf, nullptr);
         }
     }
 
-    // if FS, set. If not, unset.
+    // If we are scrolling onto, or have newly FSed a window
+    if (const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window(); CURRENTLY_FS_WINDOW) {
+        // send a scanout tranche
+        // ignore if DS is disabled.
+        auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
+        if (surf)
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, MONITOR->m_self.lock());
+    }
+
+    Config::monitorRuleMgr()->ensureVRR(MONITOR);
+
+    // DSO and VRR must be above setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
+
+    // if covering FS, set. If not, unset.
     algorithm->setNoMembersAboveFullscreen();
 
     // Must be below setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
-    algorithm->updateFullscreenFade(anyFullscreenCovers);
-
-    // Every time m_hasFullscreenWindow is true, that means that an FS window is currently taking up the entire monitor/work area.
-    // We use that as the flag for determining if Direct Scanout should be enablad or not
-
-    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
-    // ignore if DS is disabled.
-    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
-
-    if (!CURRENT_FS_TDATA || !CURRENT_FS_TDATA->target->window())
-        return;
-
-    if (const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window();
-        CURRENTLY_FS_WINDOW && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && CURRENTLY_FS_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
-        auto       surf     = CURRENTLY_FS_WINDOW->getSolitaryResource();
-        const auto PMONITOR = CURRENTLY_FS_WINDOW->m_monitor;
-        if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, targetWorkspaceHasFullscreen ? PMONITOR->m_self.lock() : nullptr);
-    }
+    algorithm->updateFullscreenFade(targetWorkspaceHasFullscreen);
 }
 
 double SScrollingData::maxWidth() {
@@ -1004,26 +1020,28 @@ void CScrollingAlgorithm::expelTarget(SP<SScrollingTargetData> tdata, SP<SColumn
 }
 
 eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
-    if (!request.target || !m_parent || request.target->space() != m_parent->space())
+    if (!request.target || !m_parent || request.target->space() != m_parent->space() || !dataFor(request.target) || !request.target->window())
         return FULLSCREEN_REQUEST_FAILED;
 
     const auto TARGET = request.target;
     const auto TDATA  = dataFor(request.target);
-    if (!TDATA)
-        return FULLSCREEN_REQUEST_FAILED;
+
+    const auto WINDOW    = TARGET->window();
+    const auto WORKSPACE = WINDOW->m_workspace;
+    const auto MONITOR   = WORKSPACE->m_monitor.lock();
 
     // set m_layoutManagedFullscreen
     TARGET->setLayoutManagedFullscreen(request.effectiveMode != FSMODE_NONE);
 
     // Set workspace fullscreen attributes
-    TARGET->workspace()->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
-    TARGET->workspace()->m_fullscreenMode      = request.effectiveMode;
+    WORKSPACE->m_hasFullscreenWindow = request.effectiveMode != FSMODE_NONE;
+    WORKSPACE->m_fullscreenMode      = request.effectiveMode;
 
     // set fullscreen handler
     if (request.effectiveMode != FSMODE_NONE && TARGET->window())
-        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_SCROLLING;
+        WINDOW->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_SCROLLING;
     else
-        TDATA->target->window()->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
+        WINDOW->m_fullscreenHandler = Desktop::View::FULLSCREEN_HANDLER_NONE;
 
     // lambda for expelling if there is more than one window in a column when FSing a target.
     const auto expelIfMoreThanOneWindowInColDuringFS = [&](eFullscreenMode mode) -> void {
@@ -1039,6 +1057,24 @@ eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscree
             expelTarget(lastTarget, CURRENTCOL, insertIdx);
         }
     };
+
+    // If a window is being un-FSed, set its DSO and VRR in CScrollingAlgorithm::requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in SScrollingData::recalculate()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in SScrollingData::recalculate()
+
+    if (request.effectiveMode == FSMODE_NONE) {
+
+        // send a regular tranche if we are exiting fullscreen.
+        // ignore if DS is disabled.
+        static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+
+        if (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME)) {
+            auto surf = WINDOW->getSolitaryResource();
+            if (surf)
+                g_pHyprRenderer->setSurfaceScanoutMode(surf, nullptr);
+        }
+        Config::monitorRuleMgr()->ensureVRR(MONITOR);
+    }
 
     // TODO much of the code below is repeated more then it has to; refactor
 
@@ -1194,8 +1230,8 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
         return nullptr;
     }();
 
-    const auto LAST_TILED_FS_WINDOW        = m_fullscreenWindowHidingState.fsWindow.lock();
-    const auto LAST_TILED_FS_WINDOW_FSMODE = m_fullscreenWindowHidingState.fsWindowMode;
+    const auto LAST_TILED_FS_WINDOW        = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+    const auto LAST_TILED_FS_WINDOW_FSMODE = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindowMode;
 
     // This should never happen
     if (!FULLSCREEN_WINDOW && UNDERLYING_FS_WINDOW) {
@@ -1210,7 +1246,7 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
     // There is no FS window; tiled or floating
     if (!FULLSCREEN_WINDOW) {
         // reset the struct
-        m_fullscreenWindowHidingState.fsWindow = nullptr;
+        m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow = nullptr;
         clear_hiddenFloatingWindowsUnderFSWindow();
         // set all members as allowed over FS
         setNoMembersAboveFS_layoutUnaware(false);
@@ -1246,7 +1282,7 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
             // redundancy - make sure the list is empty
             clear_hiddenFloatingWindowsUnderFSWindow();
             // save all floating window current on screen, then hide all
-            m_fullscreenWindowHidingState.saveAllHiddenFloatingWindows(UNDERLYING_FS_WINDOW);
+            m_fullscreenWindowHidingState.saveCurrentFsAndAllHiddenFloatingWindows(UNDERLYING_FS_WINDOW);
             setNoMembersAboveFS_layoutUnaware(true);
             return;
         } else {
@@ -1274,9 +1310,9 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
     // If the window was closed or otherwise not available anymore
     if (!LAST_TILED_FS_WINDOW) {
         if (UNDERLYING_FS_WINDOW)
-            m_fullscreenWindowHidingState.fsWindow = UNDERLYING_FS_WINDOW;
+            m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow = UNDERLYING_FS_WINDOW;
         else
-            m_fullscreenWindowHidingState.fsWindow = nullptr;
+            m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow = nullptr;
 
         clear_hiddenFloatingWindowsUnderFSWindow();
         return;
@@ -2560,15 +2596,15 @@ float CScrollingAlgorithm::defaultColumnWidth() {
     return std::clamp(*PCOLWIDTH, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH);
 }
 
-void CScrollingAlgorithm::SScrollingFullscreenWindowHidingState::saveAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {
+void CScrollingAlgorithm::SScrollingFullscreenWindowHidingState::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {
 
     // we save all the floating windows that will be hidden under the fullscreen. We are using the same logic that is used to judge which window is to be hidden + a float check.
     // This function must be updated whenever this logic is changed (IModeAlgorithm::setNoMembersAboveFullscreen(), CScrollingAlgorithm::setNoMembersAboveFullscreen())
 
     // fullscreenWindow is assumed to be tiled, layout handled, covers the whole monitor or work area.
 
-    fsWindow     = fullscreenWindow;
-    fsWindowMode = fullscreenWindow->m_fullscreenState.internal;
+    lastTiledLayoutManagedFsWindow     = fullscreenWindow;
+    lastTiledLayoutManagedFsWindowMode = fullscreenWindow->m_fullscreenState.internal;
 
     const auto WORKSPACE = fullscreenWindow->m_workspace;
 

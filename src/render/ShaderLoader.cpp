@@ -183,7 +183,9 @@ std::string CShaderLoader::loadShader(const std::string& filename) {
         if (src.has_value())
             return src.value();
     }
-    if (SHADERS.contains(filename))
-        return SHADERS.at(filename);
+
+    const auto shader = std::ranges::lower_bound(SHADERS, filename, {}, [](const auto& filenameSource) { return filenameSource.first; });
+    if (shader != SHADERS.end() && shader->first == filename)
+        return std::string{shader->second};
     throw std::runtime_error(std::format("Couldn't load shader {}", filename));
 }

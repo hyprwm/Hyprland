@@ -627,6 +627,7 @@ void CMonitor::applyCMType(NCMType::eCMType cmType, NTransferFunction::eTF cmSdr
 
 bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
     m_activeMonitorRule = std::move(pMonitorRule);
+    m_reservedArea.setStatic(m_activeMonitorRule.m_reservedArea);
     m_transform         = m_activeMonitorRule.m_transform;
     m_supportsWideColor = m_activeMonitorRule.m_supportsWideColor;
     m_supportsHDR       = m_activeMonitorRule.m_supportsHDR;

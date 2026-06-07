@@ -109,7 +109,15 @@ TEST_CASE(groups) {
 
     // disable the groupbar for ease of testing for now
     NLog::log("{}Disable groupbar", Colors::YELLOW);
-    OK(getFromSocket("r/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+    OK(getFromSocket("/eval hl.config({ group = { groupbar = { enabled = 0 } } })"));
+
+    // check the height of the window now
+    NLog::log("{}Recheck kitty dimensions", Colors::YELLOW);
+    {
+        auto str = getFromSocket("/clients");
+        EXPECT_CONTAINS(str, "at: 22,22");
+        EXPECT_CONTAINS(str, "size: 1876,1036");
+    }
 
     // kill all
     NLog::log("{}Kill windows", Colors::YELLOW);

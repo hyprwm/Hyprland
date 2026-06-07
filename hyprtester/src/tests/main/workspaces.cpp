@@ -538,7 +538,7 @@ TEST_CASE(workspacesCombined) {
 
     // add a new monitor
     NLog::log("{}Adding a new monitor", Colors::YELLOW);
-    ASSERT(getFromSocket("/output create headless"), "ok");
+    ASSERT(getFromSocket("/output create headless HEADLESS-3"), "ok");
 
     // should take workspace 2
     {

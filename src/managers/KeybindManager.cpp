@@ -5,6 +5,7 @@
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
+#include "../protocols/Hotkey.hpp"
 #include "../protocols/core/DataDevice.hpp"
 #include "../errorOverlay/Overlay.hpp"
 #include "KeybindManager.hpp"
@@ -257,6 +258,32 @@ uint32_t CKeybindManager::keycodeToModifier(xkb_keycode_t keycode) {
     }
 }
 
+SP<SKeybind> CKeybindManager::findConflictingKeybind(xkb_keysym_t keysym, uint32_t modmask) {
+    if (keysym == XKB_KEY_NoSymbol)
+        return nullptr;
+
+    for (const auto& k : m_keybinds) {
+        if (!k->enabled || k->shadowed || k->mouse)
+            continue;
+        if (!k->submap.name.empty())
+            continue;
+        if (k->modmask != modmask)
+            continue;
+
+        xkb_keysym_t bindSym = XKB_KEY_NoSymbol;
+        if (!k->key.empty())
+            bindSym = xkb_keysym_from_name(k->key.c_str(), XKB_KEYSYM_CASE_INSENSITIVE);
+        else if (k->keycode != 0 && m_xkbTranslationState)
+            // "code:NN" binds store the xkb keycode
+            bindSym = xkb_state_key_get_one_sym(m_xkbTranslationState, k->keycode);
+
+        if (bindSym != XKB_KEY_NoSymbol && bindSym == keysym)
+            return k;
+    }
+
+    return nullptr;
+}
+
 void CKeybindManager::updateXKBTranslationState() {
     if (m_xkbTranslationState) {
         xkb_state_unref(m_xkbTranslationState);
@@ -349,6 +376,9 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         return false;
 
     const auto MODS = g_pInputManager->getModsFromAllKBs();
+
+    if (PROTO::hotkey && PROTO::hotkey->onKey(keysym, MODS, KEYCODE, e.state == WL_KEYBOARD_KEY_STATE_PRESSED, e.timeMs))
+        return false;
 
     Config::Actions::state()->m_timeLastMs    = e.timeMs;
     Config::Actions::state()->m_lastCode      = KEYCODE;

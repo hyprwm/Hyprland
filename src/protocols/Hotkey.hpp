@@ -1,0 +1,62 @@
+#pragma once
+
+#include "../defines.hpp"
+#include "ext-hotkey-v1.hpp"
+#include "./WaylandProtocol.hpp"
+#include "../helpers/signal/Signal.hpp"
+
+#include <vector>
+#include <string>
+#include <xkbcommon/xkbcommon.h>
+
+struct SBoundHotkey {
+    SP<CExtHotkeyV1> resource;
+    xkb_keysym_t     keysym  = XKB_KEY_NoSymbol;
+    uint32_t         modmask = 0; // HL_MODIFIER_* bits
+    std::string      appid;
+    std::string      description;
+    bool             bound    = false;
+    bool             held     = false;
+    uint32_t         heldCode = 0;
+};
+
+// hotkeys are owned by the protocol, not this manager, so they outlive it
+class CExtHotkeyManager {
+  public:
+    CExtHotkeyManager(SP<CExtHotkeyManagerV1> resource);
+
+    bool good();
+
+  private:
+    SP<CExtHotkeyManagerV1> m_resource;
+
+    friend class CHotkeyProtocol;
+};
+
+class CHotkeyProtocol : public IWaylandProtocol {
+  public:
+    CHotkeyProtocol(const wl_interface* iface, const int& ver, const std::string& name);
+
+    void bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) override;
+
+    // returns true if a bound hotkey consumed the key
+    bool onKey(xkb_keysym_t keysym, uint32_t modmask, uint32_t keycode, bool pressed, uint32_t timeMs);
+
+    void revokeConflicting();
+
+  private:
+    void                               onBind(SP<CExtHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
+    void                               destroyManager(CExtHotkeyManager* mgr);
+    bool                               comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);
+
+    std::vector<SP<CExtHotkeyManager>> m_managers;
+    std::vector<SP<SBoundHotkey>>      m_hotkeys;
+
+    CHyprSignalListener                m_reloadListener;
+
+    friend class CExtHotkeyManager;
+};
+
+namespace PROTO {
+    inline UP<CHotkeyProtocol> hotkey;
+};

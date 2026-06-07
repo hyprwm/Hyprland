@@ -255,6 +255,9 @@ int request(std::string_view arg, int minArgs = 0, bool needRoll = false) {
 
     log(reply);
 
+    if (reply.starts_with("error:"))
+        return 7;
+
     return 0;
 }
 

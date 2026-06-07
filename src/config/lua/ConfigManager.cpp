@@ -361,6 +361,33 @@ void CConfigManager::reinitLuaState() {
         2);
     lua_rawseti(m_lua, -2, 2); // replace package.searchers[2]
     lua_pop(m_lua, 2);         // pop searchers, package
+
+    // hook print function to print to hyprctl eval/repl instead
+    lua_getglobal(m_lua, "print");
+    lua_pushcclosure(
+        m_lua,
+        [](lua_State* L) -> int {
+            auto* mgr    = CConfigManager::fromLuaState(L);
+            int   nstack = lua_gettop(L);
+            if (!mgr->isEvaluating()) {
+                // call original print function from upvalue if not eval
+                lua_pushvalue(L, lua_upvalueindex(1));
+                lua_insert(L, 1);
+                lua_call(L, nstack, LUA_MULTRET);
+            } else {
+                std::string out;
+                for (int i = 1; i <= nstack; ++i) {
+                    out += std::format("{}\t", luaL_tolstring(L, i, nullptr));
+                    lua_pop(L, 1);
+                }
+                lua_pop(L, nstack);
+                out.pop_back();
+                mgr->m_prints.emplace_back(out);
+            }
+            return 0;
+        },
+        1);
+    lua_setglobal(m_lua, "print");
 }
 
 void CConfigManager::init() {
@@ -620,6 +647,7 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
 
     m_errors.clear();
     m_evalIssues.clear();
+    m_prints.clear();
     m_isEvaluating = true;
 
     Hyprutils::Utils::CScopeGuard x([this] { m_isEvaluating = false; });
@@ -637,16 +665,24 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
         lua_pop(m_lua, 1);
         return std::format("error: {}", err);
     } else if (lua_gettop(m_lua) > 0) {
-        int nstack = lua_gettop(m_lua);
-        std::string ret;
+        // print returned values to repl
+        int         nstack = lua_gettop(m_lua);
+        std::string out;
         for (int i = 1; i <= nstack; ++i) {
-            if (i > 1)
-                ret += "\t";
-            ret += std::string(luaL_tolstring(m_lua, i, NULL));
+            out += std::format("{}\t", luaL_tolstring(m_lua, i, nullptr));
             lua_pop(m_lua, 1);
         }
         lua_pop(m_lua, nstack);
-        return ret;
+        out.pop_back();
+        m_prints.emplace_back(out);
+    }
+
+    if (!m_prints.empty()) {
+        std::string out;
+        for (auto& line : m_prints)
+            out += std::format("{}\n", line);
+        out.pop_back();
+        return out;
     }
 
     if (!m_errors.empty() || !m_evalIssues.empty()) {
@@ -671,6 +707,7 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
 
     m_errors.clear();
     m_evalIssues.clear();
+    m_prints.clear();
 
     return std::nullopt;
 }
@@ -1093,6 +1130,10 @@ void CConfigManager::clearHeldLuaRefs() {
 
 bool CConfigManager::isDynamicParse() const {
     return !m_isParsingConfig || m_isEvaluating;
+}
+
+bool CConfigManager::isEvaluating() const {
+    return m_isEvaluating;
 }
 
 void CConfigManager::reregisterLuaPluginFns() {

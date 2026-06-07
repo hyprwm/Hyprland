@@ -113,6 +113,7 @@ namespace Config::Lua {
 
         bool                       isFirstLaunch() const;
         bool                       isDynamicParse() const;
+        bool                       isEvaluating() const;
 
         std::string                m_currentSubmap;
         std::string                m_currentSubmapReset;
@@ -136,7 +137,7 @@ namespace Config::Lua {
         };
 
         std::unordered_map<std::string, SDeviceConfig> m_deviceConfigs;
-        std::vector<std::string>                       m_errors, m_configPaths;
+        std::vector<std::string>                       m_errors, m_configPaths, m_prints;
         std::vector<Config::SConfigError>              m_evalIssues;
 
         // named window/layer rules for merge-on-redeclaration

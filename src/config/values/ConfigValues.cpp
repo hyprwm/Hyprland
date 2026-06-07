@@ -434,6 +434,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          */
 
         MS<Bool>("group:groupbar:enabled", "enables groupbars", true),
+        MS<Bool>("group:groupbar:disable_when_only", "disable if contains single window. Considered only if enabled == true", false),
         MS<String>("group:groupbar:font_family", "font used to display groupbar titles", "[[EMPTY]]"),
         MS<FontWeight>("group:groupbar:font_weight_active", "weight of the font used to display active groupbar titles"),
         MS<FontWeight>("group:groupbar:font_weight_inactive", "weight of the font used to display inactive groupbar titles"),

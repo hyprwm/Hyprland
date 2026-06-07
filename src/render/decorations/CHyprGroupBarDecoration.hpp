@@ -65,6 +65,7 @@ class CHyprGroupBarDecoration : public IHyprWindowDecoration {
 
     CBox                      assignedBoxGlobal();
     bool                      visible();
+    bool                      enabled();
 
     bool                      onBeginWindowDragOnDeco(const Vector2D&);
     bool                      onEndWindowDragOnDeco(const Vector2D&, PHLWINDOW);

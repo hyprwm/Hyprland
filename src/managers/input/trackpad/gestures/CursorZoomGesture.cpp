@@ -30,7 +30,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
         if (!PMONITOR)
             return;
 
-        m_zoomBegin = std::clamp(PMONITOR->m_cursorZoom->value(), 1.0F, 100.0F);
+        m_zoomBegin = std::clamp(PMONITOR->m_cursorZoom->goal(), 1.0F, 100.0F);
         PMONITOR->m_cursorZoom->setValueAndWarp(m_zoomBegin);
         PMONITOR->m_zoomController.pinAnchor(g_pInputManager->getMouseCoordsInternal() - PMONITOR->m_position);
         return;

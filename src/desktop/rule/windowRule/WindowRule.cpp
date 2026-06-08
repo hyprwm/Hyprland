@@ -1,6 +1,6 @@
 #include "WindowRule.hpp"
 #include "../../view/Window.hpp"
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../helpers/MiscFunctions.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"

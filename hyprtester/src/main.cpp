@@ -275,7 +275,12 @@ int main(int argc, char** argv, char** envp) {
     WLDISPLAY = INSTANCES.back().wlSocket;
 
     NLog::info("trying to get create headless output");
-    getFromSocket("/output create headless");
+    const auto CREATE_HEADLESS_2 = getFromSocket("/output create headless HEADLESS-2");
+    if (CREATE_HEADLESS_2 != "ok" && CREATE_HEADLESS_2 != "Name already taken") {
+        NLog::error("Failed to create HEADLESS-2: {}", CREATE_HEADLESS_2);
+        getFromSocket("/dispatch hl.dsp.exit()");
+        return 1;
+    }
 
     NLog::info("trying to load plugin");
     if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {

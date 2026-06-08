@@ -4,7 +4,7 @@
 #include "LockNotify.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../render/Renderer.hpp"
 #include "../desktop/state/FocusState.hpp"
 

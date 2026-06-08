@@ -1,7 +1,7 @@
 #include "Output.hpp"
 #include "Compositor.hpp"
 #include "../../Compositor.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 
 CWLOutputResource::CWLOutputResource(SP<CWlOutput> resource_, PHLMONITOR pMonitor) : m_monitor(pMonitor), m_resource(resource_) {
     if UNLIKELY (!good())

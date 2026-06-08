@@ -8,7 +8,7 @@
 #include "../config/supplementary/executor/Executor.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"

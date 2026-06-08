@@ -6,7 +6,6 @@
 #include "ext-session-lock-v1.hpp"
 #include "../helpers/signal/Signal.hpp"
 
-class CMonitor;
 class CSessionLock;
 class CWLSurfaceResource;
 

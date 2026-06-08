@@ -7,7 +7,7 @@
 
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>

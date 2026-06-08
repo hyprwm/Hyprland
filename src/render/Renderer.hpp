@@ -21,7 +21,7 @@
 #include "./pass/TextureMatteElement.hpp"
 #include "./pass/TransformedWindowPassElement.hpp"
 #include "types.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "Renderbuffer.hpp"
 #include "../helpers/time/Timer.hpp"
@@ -304,7 +304,7 @@ namespace Render {
         friend class Screenshare::CScreenshareFrame;
         friend class CInputManager;
         friend class CPointerManager;
-        friend class CMonitor;
+        friend class Monitor::CMonitor;
         friend class CMonitorFrameScheduler;
 
       private:

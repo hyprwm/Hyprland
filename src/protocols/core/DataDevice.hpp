@@ -25,7 +25,6 @@ class CWLDataSourceResource;
 class CWLDataOfferResource;
 
 class CWLSurfaceResource;
-class CMonitor;
 
 class CWLDataOfferResource : public IDataOffer {
   public:

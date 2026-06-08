@@ -97,6 +97,11 @@ int Tests::countOccurrences(const std::string& in, const std::string& what) {
     return cnt;
 }
 
+void Tests::sync(int rounds) {
+    for (int i = 0; i < rounds; ++i)
+        getFromSocket("/version");
+}
+
 bool Tests::killAllWindows() {
     auto str = getFromSocket("/clients");
     auto pos = str.find("Window ");

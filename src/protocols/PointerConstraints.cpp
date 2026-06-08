@@ -7,7 +7,7 @@
 #include "core/Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
 #include "../render/Renderer.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 
 CPointerConstraint::CPointerConstraint(SP<CZwpLockedPointerV1> resource_, SP<CWLSurfaceResource> surf, wl_resource* region_, zwpPointerConstraintsV1Lifetime lifetime_) :
     m_resourceLocked(resource_), m_locked(true), m_lifetime(lifetime_) {

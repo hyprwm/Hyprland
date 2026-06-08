@@ -8,7 +8,7 @@
 #include "../../../../config/shared/actions/ConfigActions.hpp"
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
 

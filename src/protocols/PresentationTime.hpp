@@ -7,7 +7,6 @@
 #include "presentation-time.hpp"
 #include "../helpers/time/Time.hpp"
 
-class CMonitor;
 class CWLSurfaceResource;
 
 class CQueuedPresentationData {

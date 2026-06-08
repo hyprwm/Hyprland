@@ -22,6 +22,8 @@ namespace Desktop {
         CBox   apply(const CBox& other) const;
         void   applyip(CBox& other) const;
 
+        void   setStatic(const CReservedArea& area);
+
         void   resetType(eReservedDynamicType);
         void   addType(eReservedDynamicType, const Vector2D& topLeft, const Vector2D& bottomRight);
         void   addType(eReservedDynamicType, const CReservedArea& area);

@@ -708,7 +708,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
          * experimental:
          */
 
-        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", false),
+        MS<Bool>("experimental:wp_cm_1_2", "Allow wp-cm-v1 version 2", true),
 
         /*
          * quirks:

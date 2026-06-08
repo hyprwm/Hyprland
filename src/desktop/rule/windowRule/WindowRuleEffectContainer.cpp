@@ -58,6 +58,7 @@ static const std::vector<std::string> EFFECT_STRINGS = {
     "force_rgbx",             //
     "sync_fullscreen",        //
     "immediate",              //
+    "directscanout",          //
     "xray",                   //
     "render_unfocused",       //
     "no_screen_share",        //
@@ -72,7 +73,7 @@ static const std::vector<std::string> EFFECT_STRINGS = {
 
 // This is here so that if we change the rules, we get reminded to update
 // the strings.
-static_assert(WINDOW_RULE_EFFECT_LAST_STATIC == 57);
+static_assert(WINDOW_RULE_EFFECT_LAST_STATIC == 58);
 
 CWindowRuleEffectContainer::CWindowRuleEffectContainer() : IEffectContainer<eWindowRuleEffect>(std::vector<std::string>{EFFECT_STRINGS}) {
     ;

@@ -32,7 +32,12 @@ void CPointerWarpProtocol::bindManager(wl_client* client, void* data, uint32_t v
 
         CBox surfbox;
 
-        auto VIEW   = Desktop::View::CWLSurface::fromResource(PSURFACE)->view();
+        auto HLSURF = Desktop::View::CWLSurface::fromResource(PSURFACE);
+
+        if (!HLSURF)
+            return;
+
+        auto VIEW   = HLSURF->view();
         auto WINDOW = Desktop::View::CWindow::fromView(VIEW);
         if (WINDOW)
             surfbox = WINDOW->getWindowMainSurfaceBox();

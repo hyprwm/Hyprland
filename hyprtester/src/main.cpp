@@ -80,13 +80,14 @@ static bool hyprlandAlive() {
 }
 
 [[noreturn]] static void helpAndDie(int exit_code) {
-    NLog::log("usage: hyprtester [arg [...]].\n");
+    NLog::log("usage: hyprtester [--OPTION [VALUE]]... [TEST_NAMES].\n");
     NLog::log(R"(Arguments:
     --help              -h         - Show this message again
     --config FILE       -c FILE    - Specify config file to use (default: './test.lua')
     --binary FILE       -b FILE    - Specify Hyprland binary to use (default: '../build/Hyprland')
     --plugin FILE       -p FILE    - Specify the location of the test plugin (default: './')
-    --test [tests]      -t [tests] - Specify list of tests to run (separated by spaces))");
+    [TEST_NAMES]                   - Specify list of tests to run (separated by spaces).
+                                     If omitted, all tests will run.)");
 
     std::exit(exit_code);
 }
@@ -106,17 +107,9 @@ static Path validatePathOrDie(Path path) {
 static SSettings parseSettings(const std::span<const char*> args) {
     static const auto cwd = std::filesystem::current_path();
     SSettings         settings{};
-    bool              testSetOn = false;
 
     for (auto it = args.begin(); it < args.end(); it++) {
         std::string_view value = *it;
-
-        if (testSetOn && !value.starts_with("-")) {
-            settings.requestedTests.emplace_back(value);
-            continue;
-        } else
-            testSetOn = false;
-
         if (value == "--config" || value == "-c") {
             if (std::next(it) == args.end()) {
                 helpAndDie(EXIT_FAILURE);
@@ -138,13 +131,10 @@ static SSettings parseSettings(const std::span<const char*> args) {
 
             settings.pluginPath = validatePathOrDie(*std::next(it));
             it++;
-        } else if (value == "--test" || value == "-t") {
-            if (std::next(it) == args.end())
-                helpAndDie(EXIT_FAILURE);
-
-            testSetOn = true;
         } else if (value == "--help" || value == "-h") {
             helpAndDie(EXIT_SUCCESS);
+        } else if (!value.starts_with("-")) {
+            settings.requestedTests.emplace_back(value);
         } else {
             std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
             helpAndDie(EXIT_SUCCESS);

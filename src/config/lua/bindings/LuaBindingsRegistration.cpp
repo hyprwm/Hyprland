@@ -90,6 +90,7 @@ void Internal::registerBindingsImpl(lua_State* L, CConfigManager* mgr) {
     Internal::registerQueryBindings(L);
     Internal::registerDispatcherBindings(L);
     Internal::registerNotificationBindings(L);
+    Internal::registerKeysyms(L);
 
     lua_setglobal(L, "hl");
 

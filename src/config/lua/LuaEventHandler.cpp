@@ -8,8 +8,10 @@
 
 #include "../../event/EventBus.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include "../../managers/SeatManager.hpp"
 
 extern "C" {
+#include <lua.h>
 #include <lauxlib.h>
 }
 
@@ -157,6 +159,20 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
 
     m_listeners.push_back(bus()->m_events.start.listen([this]() { dispatch("hyprland.start", 0, [] {}); }));
     m_listeners.push_back(bus()->m_events.exit.listen([this]() { dispatch("hyprland.shutdown", 0, [] {}); }));
+
+    m_listeners.push_back(bus()->m_events.input.keyboard.key.listen([this](const IKeyboard::SKeyEvent& keyEvent, const SCallbackInfo& _) {
+        dispatch("input.keyboard.key", 1, [&] {
+            const auto kb = g_pSeatManager->m_keyboard;
+            if (!kb)
+                return;
+            const auto keysym = xkb_state_key_get_one_sym(kb->m_xkbState, keyEvent.keycode);
+
+            lua_pushinteger(m_lua, keyEvent.keycode);
+            lua_pushinteger(m_lua, keysym);
+            lua_pushinteger(m_lua, keyEvent.timeMs);
+            lua_pushinteger(m_lua, keyEvent.state);
+        });
+    }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -236,6 +252,7 @@ const std::unordered_set<std::string>& CLuaEventHandler::knownEvents() {
         "screenshare.state",
         "hyprland.start",
         "hyprland.shutdown",
+        "input.keyboard.key",
     };
     return EVENTS;
 }

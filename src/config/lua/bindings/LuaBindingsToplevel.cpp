@@ -10,10 +10,15 @@
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../../plugins/PluginSystem.hpp"
+#include "managers/KeybindManager.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList.hpp>
+
+#include <lua.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
+#include <xkbcommon/xkbcommon.h>
 
 using namespace Config;
 using namespace Config::Lua;
@@ -392,6 +397,23 @@ static int hlUnbind(lua_State* L) {
     return 0;
 }
 
+static int hlIsKeyDown(lua_State* L) {
+    if (!lua_isinteger(L, 1))
+        return Internal::configError(L, std::format("bind: bad argument 1, expected integer"));
+
+    const auto keysym = lua_tointeger(L, 1);
+
+    auto       isKeyDown = false;
+    for (auto& k : g_pKeybindManager->m_pressedKeys) {
+        if (k.keysym == keysym) {
+            isKeyDown = true;
+            break;
+        }
+    }
+    lua_pushboolean(L, isKeyDown);
+    return 1;
+}
+
 static int hlTimer(lua_State* L) {
     auto* mgr = sc<CConfigManager*>(lua_touserdata(L, lua_upvalueindex(1)));
 
@@ -462,6 +484,154 @@ static int hlTimer(lua_State* L) {
     return 1;
 }
 
+void Internal::registerKeysyms(lua_State* L) {
+    static const std::pair<const char*, xkb_keysym_t> KEYSYMS[] = {
+        {"a", XKB_KEY_a},
+        {"b", XKB_KEY_b},
+        {"c", XKB_KEY_c},
+        {"d", XKB_KEY_d},
+        {"e", XKB_KEY_e},
+        {"f", XKB_KEY_f},
+        {"g", XKB_KEY_g},
+        {"h", XKB_KEY_h},
+        {"i", XKB_KEY_i},
+        {"j", XKB_KEY_j},
+        {"k", XKB_KEY_k},
+        {"l", XKB_KEY_l},
+        {"m", XKB_KEY_m},
+        {"n", XKB_KEY_n},
+        {"o", XKB_KEY_o},
+        {"p", XKB_KEY_p},
+        {"q", XKB_KEY_q},
+        {"r", XKB_KEY_r},
+        {"s", XKB_KEY_s},
+        {"t", XKB_KEY_t},
+        {"u", XKB_KEY_u},
+        {"v", XKB_KEY_v},
+        {"w", XKB_KEY_w},
+        {"x", XKB_KEY_x},
+        {"y", XKB_KEY_y},
+        {"z", XKB_KEY_z},
+
+        {"0", XKB_KEY_0},
+        {"1", XKB_KEY_1},
+        {"2", XKB_KEY_2},
+        {"3", XKB_KEY_3},
+        {"4", XKB_KEY_4},
+        {"5", XKB_KEY_5},
+        {"6", XKB_KEY_6},
+        {"7", XKB_KEY_7},
+        {"8", XKB_KEY_8},
+        {"9", XKB_KEY_9},
+
+        {"f1", XKB_KEY_F1},
+        {"f2", XKB_KEY_F2},
+        {"f3", XKB_KEY_F3},
+        {"f4", XKB_KEY_F4},
+        {"f5", XKB_KEY_F5},
+        {"f6", XKB_KEY_F6},
+        {"f7", XKB_KEY_F7},
+        {"f8", XKB_KEY_F8},
+        {"f9", XKB_KEY_F9},
+        {"f10", XKB_KEY_F10},
+        {"f11", XKB_KEY_F11},
+        {"f12", XKB_KEY_F12},
+
+        {"left", XKB_KEY_Left},
+        {"right", XKB_KEY_Right},
+        {"up", XKB_KEY_Up},
+        {"down", XKB_KEY_Down},
+        {"home", XKB_KEY_Home},
+        {"end", XKB_KEY_End},
+        {"page_up", XKB_KEY_Page_Up},
+        {"page_down", XKB_KEY_Page_Down},
+        {"prior", XKB_KEY_Prior},
+        {"next", XKB_KEY_Next},
+        {"begin", XKB_KEY_Begin},
+
+        {"backspace", XKB_KEY_BackSpace},
+        {"delete", XKB_KEY_Delete},
+        {"insert", XKB_KEY_Insert},
+        {"return", XKB_KEY_Return},
+        {"tab", XKB_KEY_Tab},
+        {"space", XKB_KEY_space},
+        {"clear", XKB_KEY_Clear},
+        {"linefeed", XKB_KEY_Linefeed},
+
+        {"shift_l", XKB_KEY_Shift_L},
+        {"shift_r", XKB_KEY_Shift_R},
+        {"control_l", XKB_KEY_Control_L},
+        {"control_r", XKB_KEY_Control_R},
+        {"alt_l", XKB_KEY_Alt_L},
+        {"alt_r", XKB_KEY_Alt_R},
+        {"meta_l", XKB_KEY_Meta_L},
+        {"meta_r", XKB_KEY_Meta_R},
+        {"super_l", XKB_KEY_Super_L},
+        {"super_r", XKB_KEY_Super_R},
+        {"hyper_l", XKB_KEY_Hyper_L},
+        {"hyper_r", XKB_KEY_Hyper_R},
+
+        {"caps_lock", XKB_KEY_Caps_Lock},
+        {"num_lock", XKB_KEY_Num_Lock},
+        {"scroll_lock", XKB_KEY_Scroll_Lock},
+
+        {"escape", XKB_KEY_Escape},
+        {"print", XKB_KEY_Print},
+        {"pause", XKB_KEY_Pause},
+        {"menu", XKB_KEY_Menu},
+        {"help", XKB_KEY_Help},
+        {"sys_req", XKB_KEY_Sys_Req},
+        {"break", XKB_KEY_Break},
+        {"undo", XKB_KEY_Undo},
+        {"redo", XKB_KEY_Redo},
+        {"find", XKB_KEY_Find},
+        {"cancel", XKB_KEY_Cancel},
+        {"select", XKB_KEY_Select},
+        {"execute", XKB_KEY_Execute},
+
+        {"grave", XKB_KEY_grave},
+        {"minus", XKB_KEY_minus},
+        {"equal", XKB_KEY_equal},
+        {"bracketleft", XKB_KEY_bracketleft},
+        {"bracketright", XKB_KEY_bracketright},
+        {"backslash", XKB_KEY_backslash},
+        {"semicolon", XKB_KEY_semicolon},
+        {"apostrophe", XKB_KEY_apostrophe},
+        {"comma", XKB_KEY_comma},
+        {"period", XKB_KEY_period},
+        {"slash", XKB_KEY_slash},
+
+        {"kp_0", XKB_KEY_KP_0},
+        {"kp_1", XKB_KEY_KP_1},
+        {"kp_2", XKB_KEY_KP_2},
+        {"kp_3", XKB_KEY_KP_3},
+        {"kp_4", XKB_KEY_KP_4},
+        {"kp_5", XKB_KEY_KP_5},
+        {"kp_6", XKB_KEY_KP_6},
+        {"kp_7", XKB_KEY_KP_7},
+        {"kp_8", XKB_KEY_KP_8},
+        {"kp_9", XKB_KEY_KP_9},
+        {"kp_add", XKB_KEY_KP_Add},
+        {"kp_subtract", XKB_KEY_KP_Subtract},
+        {"kp_multiply", XKB_KEY_KP_Multiply},
+        {"kp_divide", XKB_KEY_KP_Divide},
+        {"kp_enter", XKB_KEY_KP_Enter},
+        {"kp_decimal", XKB_KEY_KP_Decimal},
+        {"kp_separator", XKB_KEY_KP_Separator},
+        {"kp_equal", XKB_KEY_KP_Equal},
+
+        {"iso_level3_shift", XKB_KEY_ISO_Level3_Shift},
+        {"iso_level5_shift", XKB_KEY_ISO_Level5_Shift},
+    };
+
+    lua_newtable(L);
+    for (const auto& k : KEYSYMS) {
+        lua_pushinteger(L, k.second);
+        lua_setfield(L, -2, k.first);
+    }
+    lua_setfield(L, -2, "key");
+}
+
 void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "on", hlOn);
     Internal::setMgrFn(L, mgr, "bind", hlBind);
@@ -474,4 +644,6 @@ void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setFn(L, "exec_cmd", hlExecCmd);
 
     Internal::setFn(L, "unbind", hlUnbind);
+
+    Internal::setFn(L, "is_key_down", hlIsKeyDown);
 }

@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <map>
+#include <memory>
 #include <string>
 
 // TODO: localize these global variables
@@ -30,23 +31,58 @@ class CTestCase {
 
     // TODO: provide an adequate API. For instance, make all the members above private/protected,
     // and expose a method that will return a bool indicating test success.
+
+    /// Test name, as defined in the source file
+    virtual std::string name() const = 0;
+
+    /// Name of the source file where the test is defined
+    virtual std::string filename() const = 0;
+
+    /// Test group name (defined in tests/*/tests.hpp files)
+    virtual std::string groupName() const = 0;
 };
 
+// Methods in the generated definition are marked with `[[maybe_unused]]` to suppress warnings.
+// That's because:
+// 1. As of this writing, some are indeed unused. They are there for future convenience.
+// 2. The rest are only used behind a `std::shared_ptr` but my compiler does not detect it.
 #define TEST_CASE(NAME)                                                                                                                                                            \
     namespace {                                                                                                                                                                    \
         class TestCase_##NAME : public CTestCase {                                                                                                                                 \
           public:                                                                                                                                                                  \
-            void test() override;                                                                                                                                                  \
+            void        test() override;                                                                                                                                           \
+            std::string name() const override;                                                                                                                                     \
+            std::string filename() const override;                                                                                                                                 \
+            std::string groupName() const override;                                                                                                                                \
         };                                                                                                                                                                         \
     }                                                                                                                                                                              \
                                                                                                                                                                                    \
-    static TestCase_##NAME test_case_##NAME{};                                                                                                                                     \
-    static auto            register_test_case_##NAME = [] {                                                                                                                        \
-        /* `TEST_CASES_STORAGE` must be defined by the caller */                                                                                                                   \
-        TEST_CASES_STORAGE.emplace(#NAME, test_case_##NAME);                                                                                                                       \
+    static auto test_case_##NAME          = std::make_shared<TestCase_##NAME>();                                                                                                   \
+    static auto register_test_case_##NAME = [] {                                                                                                                                   \
+        /* Common test storage used when running selected tests (declared below) */                                                                                                \
+        testCases.emplace(#NAME, test_case_##NAME);                                                                                                                                \
+        /* Group-specific test storage used when running all tests (declared by our includer) */                                                                                   \
+        GROUP_TEST_CASE_STORAGE.push_back(test_case_##NAME);                                                                                                                       \
         return 1;                                                                                                                                                                  \
     }();                                                                                                                                                                           \
                                                                                                                                                                                    \
+    [[maybe_unused]]                                                                                                                                                               \
+    std::string TestCase_##NAME::name() const {                                                                                                                                    \
+        return #NAME;                                                                                                                                                              \
+    }                                                                                                                                                                              \
+                                                                                                                                                                                   \
+    [[maybe_unused]]                                                                                                                                                               \
+    std::string TestCase_##NAME::filename() const {                                                                                                                                \
+        return __FILE__;                                                                                                                                                           \
+    }                                                                                                                                                                              \
+                                                                                                                                                                                   \
+    [[maybe_unused]]                                                                                                                                                               \
+    std::string TestCase_##NAME::groupName() const {                                                                                                                               \
+        /* Defined by our includer */                                                                                                                                              \
+        return TEST_GROUP_NAME;                                                                                                                                                    \
+    }                                                                                                                                                                              \
+                                                                                                                                                                                   \
+    [[maybe_unused]]                                                                                                                                                               \
     void TestCase_##NAME::test()
 
 #define SUBTEST(NAME, ...)                                                                                                                                                         \
@@ -72,6 +108,13 @@ class CTestCase {
             LOG_OK("Subtest {}({})", #NAME, #__VA_ARGS__);                                                                                                                         \
         }                                                                                                                                                                          \
     } while (0)
+
+// =================================
+//    DECLARAITIONS USED BY TESTS
+// =================================
+
+/// Stores all test cases regardless of their place of definition.
+inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 
 // =================================
 //           IN-TEST MACROS

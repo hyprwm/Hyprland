@@ -14,6 +14,8 @@
 #include "../../../desktop/view/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
 
+#include <hyprutils/utils/ScopeGuard.hpp>
+
 using namespace Config;
 using namespace Config::Lua;
 using namespace Config::Lua::Bindings;
@@ -200,12 +202,32 @@ static int hlGetActiveSpecialWorkspace(lua_State* L) {
 }
 
 static int hlGetMonitors(lua_State* L) {
+
+    bool allMonitors = false;
+
+    if (!lua_isnoneornil(L, lua_upvalueindex(1))) {
+        if (!lua_istable(L, lua_upvalueindex(1)))
+            return Internal::configError(L, "get_monitors: expected nothing or a table { all }");
+
+        {
+            lua_getfield(L, lua_upvalueindex(1), "all");
+            Hyprutils::Utils::CScopeGuard x([L] { lua_pop(L, 1); });
+
+            if (lua_isboolean(L, -1))
+                allMonitors = lua_toboolean(L, -1);
+            else
+                return Internal::configError(L, "get_monitors: table field \"all\" must be a bool");
+        }
+    }
+
     lua_newtable(L);
     int i = 1;
-    for (const auto& mon : g_pCompositor->m_monitors) {
+
+    for (const auto& mon : allMonitors ? g_pCompositor->m_realMonitors : g_pCompositor->m_monitors) {
         Objects::CLuaMonitor::push(L, mon);
         lua_rawseti(L, -2, i++);
     }
+
     return 1;
 }
 

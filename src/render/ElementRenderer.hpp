@@ -43,6 +43,7 @@ namespace Render {
         void drawClear(WP<CClearPassElement> element, const CRegion& damage);
         void drawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
         void preDrawSurface(WP<CSurfacePassElement> element, const CRegion& damage);
+        void drawGlow(WP<CInnerGlowPassElement> element, const CRegion& damage);
         void drawTex(WP<CTexPassElement> element, const CRegion& damage);
         void drawTexMatte(WP<CTextureMatteElement> element, const CRegion& damage);
         void drawTransformedWindow(WP<CTransformedWindowPassElement> element, const CRegion& damage);

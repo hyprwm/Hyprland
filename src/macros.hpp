@@ -45,7 +45,7 @@
 #define HYPRATOM(name) {name, 0}
 
 template <typename... Args>
-[[gnu::noinline]] void assertImpl(int line, std::string_view filename, std::format_string<Args...> reason, Args&&... args) {
+[[gnu::noinline]] [[gnu::cold]] void assertImpl(int line, std::string_view filename, std::format_string<Args...> reason, Args&&... args) {
     Log::logger->log(Log::CRIT, "\n==========================================================================================\nASSERTION FAILED! \n\n{}\n\nat: line {} in {}",
                      std::format(reason, std::forward<Args>(args)...), line, filename);
     std::print("Assertion failed! See the log in /tmp/hypr/hyprland.log for more info.");
@@ -53,7 +53,7 @@ template <typename... Args>
 }
 
 #define RASSERT(expr, reason, ...)                                                                                                                                                 \
-    if (!(expr)) {                                                                                                                                                                 \
+    if (!(expr)) [[unlikely]] {                                                                                                                                                    \
         constexpr auto FILENAME = std::string_view(__FILE__).substr(std::string_view(__FILE__).find_last_of('/') + 1);                                                             \
         assertImpl(__LINE__, FILENAME, reason, ##__VA_ARGS__);                                                                                                                     \
     }

@@ -62,6 +62,24 @@ using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
+static uint64_t monotonicNs(const timespec& ts) {
+    return sc<uint64_t>(ts.tv_sec) * 1000000000ULL + sc<uint64_t>(ts.tv_nsec);
+}
+
+static std::optional<uint64_t> refreshIntervalNsFromPresentEvent(const Aquamarine::IOutput::SPresentEvent& event, float refreshRate) {
+    if (event.refresh > 0)
+        return event.refresh;
+
+    if (refreshRate <= 0)
+        return std::nullopt;
+
+    const auto REFRESHNS = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(1.0 / refreshRate)).count();
+    if (REFRESHNS <= 0)
+        return std::nullopt;
+
+    return sc<uint64_t>(REFRESHNS);
+}
+
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -130,12 +148,24 @@ void CMonitor::onConnect(bool noRule) {
             ts = nullptr;
         }
 
+        timespec mono{};
         if (!ts) {
-            timespec mono{};
             clock_gettime(CLOCK_MONOTONIC, &mono);
             PROTO::presentation->onPresented(m_self.lock(), mono, event.refresh, event.seq, event.flags & ~Aquamarine::IOutput::AQ_OUTPUT_PRESENT_HW_CLOCK);
         } else
             PROTO::presentation->onPresented(m_self.lock(), *ts, event.refresh, event.seq, event.flags);
+
+        static const auto PMAINBUFFERDEADLINE = CConfigValue<Config::BOOL>("render:main_buffer_deadline");
+
+        if (m_pendingFrame && *PMAINBUFFERDEADLINE) {
+            const auto REFRESHINTERVAL = refreshIntervalNsFromPresentEvent(event, m_refreshRate);
+            if (REFRESHINTERVAL) {
+                m_estimatedNextVblankNs  = monotonicNs(ts ? *ts : mono) + *REFRESHINTERVAL;
+                m_hasEstimatedNextVblank = true;
+            } else
+                m_hasEstimatedNextVblank = false;
+        } else
+            m_hasEstimatedNextVblank = false;
 
         if (m_zoomAnimFrameCounter < 5) {
             m_zoomAnimFrameCounter++;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
+#include <cstdint>
 #include <stack>
 #include <vector>
 #include "../SharedDefs.hpp"
@@ -164,6 +165,8 @@ class CMonitor {
 
     bool                        m_ratsScheduled = false;
     CTimer                      m_lastPresentationTimer;
+    uint64_t                    m_estimatedNextVblankNs  = 0;
+    bool                        m_hasEstimatedNextVblank = false;
 
     bool                        m_isBeingLeased = false;
 

@@ -32,6 +32,7 @@
 #include "../desktop/DesktopTypes.hpp"
 #include "../event/EventBus.hpp"
 #include "../helpers/CursorShapes.hpp"
+#include "../helpers/Drm.hpp"
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../helpers/Monitor.hpp"
 #include "macros.hpp"
@@ -77,6 +78,50 @@ static int cursorTicker(void* data) {
     g_pHyprRenderer->ensureCursorRenderingMode();
     wl_event_source_timer_update(g_pHyprRenderer->m_cursorTicker, 500);
     return 0;
+}
+
+static uint64_t steadyNowNs() {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(Time::steadyNow().time_since_epoch()).count();
+}
+
+static uint64_t mainBufferDeadlineNs(PHLMONITOR pMonitor) {
+    constexpr uint64_t FALLBACK_DEADLINE_NS = 100000ULL;
+
+    const auto         NOWNS      = steadyNowNs();
+    auto               deadlineNs = pMonitor->isMultiGPU() || pMonitor->m_vrrActive || pMonitor->m_tearingState.activelyTearing || !pMonitor->m_hasEstimatedNextVblank ?
+        NOWNS + FALLBACK_DEADLINE_NS :
+        pMonitor->m_estimatedNextVblankNs;
+
+    if (deadlineNs <= NOWNS)
+        deadlineNs = NOWNS + FALLBACK_DEADLINE_NS;
+
+    return deadlineNs;
+}
+
+static void setMainBufferDeadline(PHLMONITOR pMonitor) {
+    static const auto PMAINBUFFERDEADLINE = CConfigValue<Config::BOOL>("render:main_buffer_deadline");
+
+    if (!*PMAINBUFFERDEADLINE || !pMonitor || !pMonitor->m_output)
+        return;
+
+    const auto& STATE = pMonitor->m_output->state->state();
+    if (!(STATE.committed & Aquamarine::COutputState::AQ_OUTPUT_STATE_BUFFER) || !STATE.buffer)
+        return;
+
+    if ((STATE.committed & Aquamarine::COutputState::AQ_OUTPUT_STATE_EXPLICIT_IN_FENCE) && STATE.explicitInFence >= 0 && pMonitor->m_inFence.isValid()) {
+        DRM::setDeadline(mainBufferDeadlineNs(pMonitor), pMonitor->m_inFence);
+        return;
+    }
+
+    const auto DMABUF = STATE.buffer->dmabuf();
+    if (!DMABUF.success || DMABUF.fds[0] < 0)
+        return;
+
+    auto fence = DRM::exportFence(DMABUF.fds[0]);
+    if (!fence.isValid())
+        return;
+
+    DRM::setDeadline(mainBufferDeadlineNs(pMonitor), fence);
 }
 
 IHyprRenderer::IHyprRenderer() {
@@ -2457,6 +2502,10 @@ void IHyprRenderer::handleFullscreenSettings(PHLMONITOR pMonitor) {
 
 bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     handleFullscreenSettings(pMonitor);
+
+    CScopeGuard clearEstimatedVblank([pMonitor] { pMonitor->m_hasEstimatedNextVblank = false; });
+
+    setMainBufferDeadline(pMonitor);
 
     bool ok = pMonitor->m_state.commit();
     if (!ok) {

@@ -141,3 +141,19 @@ CFileDescriptor DRM::mergeFence(const CFileDescriptor& fd1, const CFileDescripto
 #endif
     return mergedFence;
 }
+
+bool DRM::setDeadline(uint64_t deadlineNs, const CFileDescriptor& fence) {
+    if (!fence.isValid())
+        return false;
+
+#if defined(__linux__) && defined(SYNC_IOC_SET_DEADLINE)
+    sync_set_deadline deadlineData{
+        .deadline_ns = deadlineNs,
+        .pad         = 0,
+    };
+
+    return doIoctl(fence.get(), SYNC_IOC_SET_DEADLINE, &deadlineData) == 0;
+#else
+    return false;
+#endif
+}

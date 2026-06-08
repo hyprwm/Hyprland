@@ -164,7 +164,8 @@ void CMonitor::onConnect(bool noRule) {
         auto mon = m_self.lock();
         if (!isMirror() && !g_pHyprRenderer->shouldRenderMonitor(mon)) {
             auto const NOW = Time::steadyNow();
-            g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeWorkspace, NOW);
+            if (m_activeWorkspace)
+                g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeWorkspace, NOW);
             if (m_activeSpecialWorkspace)
                 g_pHyprRenderer->sendFrameEventsToWorkspace(mon, m_activeSpecialWorkspace, NOW);
         }

@@ -62,6 +62,17 @@ namespace Render {
             RT_VK = 2,
         };
 
+        enum eRenderLayers : uint8_t {
+            RL_NONE   = 0,
+            RL_BOTTOM = 1 << 0, // everything below regular windows + pre blur
+            RL_NORMAL = 1 << 1, // regular windows
+            RL_TOP    = 1 << 2, // everything above regular windows
+
+            RL_ALL     = RL_BOTTOM | RL_NORMAL | RL_TOP,
+            RL_PRIMARY = RL_BOTTOM | RL_NORMAL,
+            RL_OVERLAY = RL_TOP,
+        };
+
         virtual eType                       type() = 0;
         WP<Render::GL::CHyprOpenGLImpl>     glBackend();
 
@@ -251,12 +262,18 @@ namespace Render {
 
         void                               handleFullscreenSettings(PHLMONITOR pMonitor);
 
+        virtual bool                       shouldUseOverlay(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace);
+
         // old private:
         void arrangeLayerArray(PHLMONITOR, const std::vector<PHLLSREF>&, bool, CBox*);
-        void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry);
+        void renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry, eRenderLayers layers = RL_ALL);
         void renderWorkspaceWindowsFullscreen(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (fullscreen) (tiled, floating, pinned, but no special)
         void renderWorkspaceWindows(PHLMONITOR, PHLWORKSPACE, const Time::steady_tp&); // renders workspace windows (no fullscreen) (tiled, floating, pinned, but no special)
-        void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+        void renderBottomClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
+        void renderNormalClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now);
+        void renderTopClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f);
+        void renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const Vector2D& translate = {0, 0}, const float& scale = 1.f,
+                                          eRenderLayers layers = RL_ALL);
         void renderWindow(PHLWINDOW, PHLMONITOR, const Time::steady_tp&, bool, eRenderPassMode, bool ignorePosition = false, bool standalone = false);
         void renderLayer(PHLLS, PHLMONITOR, const Time::steady_tp&, bool popups = false, bool lockscreen = false);
         void renderSessionLockSurface(WP<SSessionLockSurface>, PHLMONITOR, const Time::steady_tp&);

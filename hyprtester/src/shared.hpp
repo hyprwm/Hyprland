@@ -18,36 +18,40 @@ class CTestCase {
   public:
     CTestCase()                 = default;
     CTestCase(const CTestCase&) = delete; // Test cases probably should not be copied
+    virtual ~CTestCase()        = default;
+
     /// Indicates that some check has failed
     bool failed = false;
     /// Indicates that the _last_ check has failed
-    bool just_failed     = false;
-    virtual ~CTestCase() = default;
+    bool just_failed = false;
 
-    // TODO: `test` will be protected
+    /// Run the test. The test result will be stored in `.failed`.
     virtual void test() = 0;
+
+    // TODO: provide an adequate API. For instance, make all the members above private/protected,
+    // and expose a method that will return a bool indicating test success.
 };
 
-#define TEST_CASE(name)                                                                                                                                                            \
+#define TEST_CASE(NAME)                                                                                                                                                            \
     namespace {                                                                                                                                                                    \
-        class TestCase_##name : public CTestCase {                                                                                                                                 \
+        class TestCase_##NAME : public CTestCase {                                                                                                                                 \
           public:                                                                                                                                                                  \
             void test() override;                                                                                                                                                  \
         };                                                                                                                                                                         \
     }                                                                                                                                                                              \
                                                                                                                                                                                    \
-    static TestCase_##name test_case_##name{};                                                                                                                                     \
-    static auto            register_test_case_##name = [] {                                                                                                                        \
+    static TestCase_##NAME test_case_##NAME{};                                                                                                                                     \
+    static auto            register_test_case_##NAME = [] {                                                                                                                        \
         /* `TEST_CASES_STORAGE` must be defined by the caller */                                                                                                                   \
-        TEST_CASES_STORAGE.emplace(#name, test_case_##name);                                                                                                                       \
+        TEST_CASES_STORAGE.emplace(#NAME, test_case_##NAME);                                                                                                                       \
         return 1;                                                                                                                                                                  \
     }();                                                                                                                                                                           \
                                                                                                                                                                                    \
-    void TestCase_##name::test()
+    void TestCase_##NAME::test()
 
-#define SUBTEST(name, ...)                                                                                                                                                         \
+#define SUBTEST(NAME, ...)                                                                                                                                                         \
     namespace {                                                                                                                                                                    \
-        class Subtest_##name {                                                                                                                                                     \
+        class Subtest_##NAME {                                                                                                                                                     \
           public:                                                                                                                                                                  \
             bool failed      = false;                                                                                                                                              \
             bool just_failed = false;                                                                                                                                              \
@@ -56,16 +60,16 @@ class CTestCase {
         };                                                                                                                                                                         \
     }                                                                                                                                                                              \
                                                                                                                                                                                    \
-    void Subtest_##name::main(__VA_ARGS__)
+    void Subtest_##NAME::main(__VA_ARGS__)
 
-#define CALL_SUBTEST(name, ...)                                                                                                                                                    \
+#define CALL_SUBTEST(NAME, ...)                                                                                                                                                    \
     do {                                                                                                                                                                           \
-        auto subtest_##name = Subtest_##name{};                                                                                                                                    \
-        subtest_##name.main(__VA_ARGS__);                                                                                                                                          \
-        if (subtest_##name.failed) {                                                                                                                                               \
-            NLog::log("{}Subtest {}({}) failed", Colors::RED, #name, #__VA_ARGS__);                                                                                                \
-            this->failed = true;                                                                                                                                                   \
-            return;                                                                                                                                                                \
+        auto subtest_##NAME = Subtest_##NAME{};                                                                                                                                    \
+        subtest_##NAME.main(__VA_ARGS__);                                                                                                                                          \
+        if (subtest_##NAME.failed) {                                                                                                                                               \
+            FAIL_TEST("Subtest {}({}) failed", #NAME, #__VA_ARGS__);                                                                                                               \
+        } else {                                                                                                                                                                   \
+            LOG_OK("Subtest {}({})", #NAME, #__VA_ARGS__);                                                                                                                         \
         }                                                                                                                                                                          \
     } while (0)
 

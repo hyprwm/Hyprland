@@ -19,6 +19,7 @@ commands:
     dismissnotify [amount] → Dismisses all or up to AMOUNT notifications
     dispatch <dispatcher> [args] → Issue a dispatch to call a keybind
                           dispatcher with arguments
+    eval <code>         → Issue a Lua string to execute and return the result
     getoption <option>  → Gets the config option status (values)
     globalshortcuts     → Lists all global shortcuts
     hyprpaper ...       → Issue a hyprpaper request
@@ -41,6 +42,7 @@ commands:
     plugin ...          → Issue a plugin request
     reload [config-only] → Issue a reload to force reload the config. Pass
                           'config-only' to disable monitor reload
+    repl                → Enter interactive Lua REPL mode (^D to exit)
     rollinglog          → Prints tail of the log. Also supports -f/--follow
                           option
     setcursor <theme> <size> → Sets the cursor theme and reloads the cursor

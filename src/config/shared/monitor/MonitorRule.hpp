@@ -33,7 +33,7 @@ namespace Config {
         std::string            m_name          = "";
         Vector2D               m_resolution    = Vector2D(1280, 720);
         Vector2D               m_offset        = Vector2D(0, 0);
-        float                  m_scale         = 1;
+        float                  m_scale         = -1; // auto
         float                  m_refreshRate   = 60; // Hz
         bool                   m_disabled      = false;
         wl_output_transform    m_transform     = WL_OUTPUT_TRANSFORM_NORMAL;

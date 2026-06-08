@@ -8,8 +8,11 @@
 
 #include "../../event/EventBus.hpp"
 #include "../../desktop/state/FocusState.hpp"
+#include <expected>
+#include <vector>
 
 extern "C" {
+#include <lua.h>
 #include <lauxlib.h>
 }
 
@@ -18,7 +21,7 @@ extern "C" {
 using namespace Config::Lua;
 using namespace Config::Lua::Objects;
 
-void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::function<void()>& pushArgs) {
+void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::function<void(lua_State*)>& pushArgs) {
     auto it = m_callbacks.find(name);
     if (it == m_callbacks.end() || it->second.empty())
         return;
@@ -59,7 +62,7 @@ void CLuaEventHandler::dispatch(const std::string& name, int nargs, const std::f
         ++m_dispatchDepth;
 
         lua_rawgeti(m_lua, LUA_REGISTRYINDEX, sub->second.luaRef);
-        pushArgs();
+        pushArgs(m_lua);
 
         auto* mgr = CConfigManager::fromLuaState(m_lua);
 
@@ -87,76 +90,87 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
 
     using namespace Event;
 
-    m_listeners.push_back(bus()->m_events.window.open.listen([this](PHLWINDOW w) { dispatch("window.open", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.openEarly.listen([this](PHLWINDOW w) { dispatch("window.open_early", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.close.listen([this](PHLWINDOW w) { dispatch("window.close", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.destroy.listen([this](PHLWINDOW w) { dispatch("window.destroy", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.kill.listen([this](PHLWINDOW w) { dispatch("window.kill", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.open.listen([this](PHLWINDOW w) { dispatch("window.open", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.openEarly.listen([this](PHLWINDOW w) { dispatch("window.open_early", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.close.listen([this](PHLWINDOW w) { dispatch("window.close", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.destroy.listen([this](PHLWINDOW w) { dispatch("window.destroy", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.kill.listen([this](PHLWINDOW w) { dispatch("window.kill", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
     m_listeners.push_back(bus()->m_events.window.active.listen([this](PHLWINDOW w, Desktop::eFocusReason r) {
-        dispatch("window.active", 2, [&] {
-            CLuaWindow::push(m_lua, w);
-            lua_pushinteger(m_lua, sc<lua_Integer>(r));
+        dispatch("window.active", 2, [&](lua_State* L) {
+            CLuaWindow::push(L, w);
+            lua_pushinteger(L, sc<lua_Integer>(r));
         });
     }));
-    m_listeners.push_back(bus()->m_events.window.urgent.listen([this](PHLWINDOW w) { dispatch("window.urgent", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.title.listen([this](PHLWINDOW w) { dispatch("window.title", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.class_.listen([this](PHLWINDOW w) { dispatch("window.class", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.pin.listen([this](PHLWINDOW w) { dispatch("window.pin", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.fullscreen.listen([this](PHLWINDOW w) { dispatch("window.fullscreen", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
-    m_listeners.push_back(bus()->m_events.window.updateRules.listen([this](PHLWINDOW w) { dispatch("window.update_rules", 1, [&] { CLuaWindow::push(m_lua, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.urgent.listen([this](PHLWINDOW w) { dispatch("window.urgent", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.title.listen([this](PHLWINDOW w) { dispatch("window.title", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.class_.listen([this](PHLWINDOW w) { dispatch("window.class", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.pin.listen([this](PHLWINDOW w) { dispatch("window.pin", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.fullscreen.listen([this](PHLWINDOW w) { dispatch("window.fullscreen", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
+    m_listeners.push_back(bus()->m_events.window.updateRules.listen([this](PHLWINDOW w) { dispatch("window.update_rules", 1, [&](lua_State* L) { CLuaWindow::push(L, w); }); }));
     m_listeners.push_back(bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW w, PHLWORKSPACE ws) {
-        dispatch("window.move_to_workspace", 2, [&] {
-            CLuaWindow::push(m_lua, w);
-            CLuaWorkspace::push(m_lua, ws);
+        dispatch("window.move_to_workspace", 2, [&](lua_State* L) {
+            CLuaWindow::push(L, w);
+            CLuaWorkspace::push(L, ws);
         });
     }));
 
-    m_listeners.push_back(bus()->m_events.layer.opened.listen([this](PHLLS ls) { dispatch("layer.opened", 1, [&] { CLuaLayerSurface::push(m_lua, ls); }); }));
-    m_listeners.push_back(bus()->m_events.layer.closed.listen([this](PHLLS ls) { dispatch("layer.closed", 1, [&] { CLuaLayerSurface::push(m_lua, ls); }); }));
+    m_listeners.push_back(bus()->m_events.layer.opened.listen([this](PHLLS ls) { dispatch("layer.opened", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
+    m_listeners.push_back(bus()->m_events.layer.closed.listen([this](PHLLS ls) { dispatch("layer.closed", 1, [&](lua_State* L) { CLuaLayerSurface::push(L, ls); }); }));
 
-    m_listeners.push_back(bus()->m_events.monitor.added.listen([this](PHLMONITOR mon) { dispatch("monitor.added", 1, [&] { CLuaMonitor::push(m_lua, mon); }); }));
-    m_listeners.push_back(bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) { dispatch("monitor.removed", 1, [&] { CLuaMonitor::push(m_lua, mon); }); }));
-    m_listeners.push_back(bus()->m_events.monitor.focused.listen([this](PHLMONITOR mon) { dispatch("monitor.focused", 1, [&] { CLuaMonitor::push(m_lua, mon); }); }));
-    m_listeners.push_back(bus()->m_events.monitor.layoutChanged.listen([this] { dispatch("monitor.layout_changed", 0, [] {}); }));
+    m_listeners.push_back(bus()->m_events.monitor.added.listen([this](PHLMONITOR mon) { dispatch("monitor.added", 1, [&](lua_State* L) { CLuaMonitor::push(L, mon); }); }));
+    m_listeners.push_back(bus()->m_events.monitor.removed.listen([this](PHLMONITOR mon) { dispatch("monitor.removed", 1, [&](lua_State* L) { CLuaMonitor::push(L, mon); }); }));
+    m_listeners.push_back(bus()->m_events.monitor.focused.listen([this](PHLMONITOR mon) { dispatch("monitor.focused", 1, [&](lua_State* L) { CLuaMonitor::push(L, mon); }); }));
+    m_listeners.push_back(bus()->m_events.monitor.layoutChanged.listen([this] { dispatch("monitor.layout_changed", 0, [](lua_State* L) {}); }));
 
-    m_listeners.push_back(bus()->m_events.workspace.active.listen([this](PHLWORKSPACE ws) { dispatch("workspace.active", 1, [&] { CLuaWorkspace::push(m_lua, ws); }); }));
+    m_listeners.push_back(bus()->m_events.workspace.active.listen([this](PHLWORKSPACE ws) { dispatch("workspace.active", 1, [&](lua_State* L) { CLuaWorkspace::push(L, ws); }); }));
     m_listeners.push_back(bus()->m_events.workspace.specialActive.listen([this](PHLWORKSPACE ws, PHLMONITOR mon) {
-        dispatch("workspace.special_active", 2, [&] {
-            CLuaWorkspace::push(m_lua, ws);
-            CLuaMonitor::push(m_lua, mon);
+        dispatch("workspace.special_active", 2, [&](lua_State* L) {
+            CLuaWorkspace::push(L, ws);
+            CLuaMonitor::push(L, mon);
         });
     }));
     m_listeners.push_back(bus()->m_events.workspace.created.listen([this](PHLWORKSPACEREF wsRef) {
         const auto ws = wsRef.lock();
         if (!ws)
             return;
-        dispatch("workspace.created", 1, [&] { CLuaWorkspace::push(m_lua, ws); });
+        dispatch("workspace.created", 1, [&](lua_State* L) { CLuaWorkspace::push(L, ws); });
     }));
     m_listeners.push_back(bus()->m_events.workspace.removed.listen([this](PHLWORKSPACEREF wsRef) {
         if (!wsRef)
             return;
-        dispatch("workspace.removed", 1, [&] { CLuaWorkspace::push(m_lua, wsRef); });
+        dispatch("workspace.removed", 1, [&](lua_State* L) { CLuaWorkspace::push(L, wsRef); });
     }));
     m_listeners.push_back(bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE ws, PHLMONITOR mon) {
-        dispatch("workspace.move_to_monitor", 2, [&] {
-            CLuaWorkspace::push(m_lua, ws);
-            CLuaMonitor::push(m_lua, mon);
+        dispatch("workspace.move_to_monitor", 2, [&](lua_State* L) {
+            CLuaWorkspace::push(L, ws);
+            CLuaMonitor::push(L, mon);
         });
     }));
 
-    m_listeners.push_back(bus()->m_events.config.reloaded.listen([this] { dispatch("config.reloaded", 0, [] {}); }));
+    m_listeners.push_back(bus()->m_events.config.reloaded.listen([this] { dispatch("config.reloaded", 0, [](lua_State* L) {}); }));
     m_listeners.push_back(
-        bus()->m_events.keybinds.submap.listen([this](const std::string& submap) { dispatch("keybinds.submap", 1, [&] { lua_pushstring(m_lua, submap.c_str()); }); }));
+        bus()->m_events.keybinds.submap.listen([this](const std::string& submap) { dispatch("keybinds.submap", 1, [&](lua_State* L) { lua_pushstring(L, submap.c_str()); }); }));
     m_listeners.push_back(bus()->m_events.screenshare.state.listen([this](bool state, uint8_t type, const std::string& name) {
-        dispatch("screenshare.state", 3, [&] {
-            lua_pushboolean(m_lua, state);
-            lua_pushinteger(m_lua, sc<lua_Integer>(type));
-            lua_pushstring(m_lua, name.c_str());
+        dispatch("screenshare.state", 3, [&](lua_State* L) {
+            lua_pushboolean(L, state);
+            lua_pushinteger(L, sc<lua_Integer>(type));
+            lua_pushstring(L, name.c_str());
         });
     }));
 
-    m_listeners.push_back(bus()->m_events.start.listen([this]() { dispatch("hyprland.start", 0, [] {}); }));
-    m_listeners.push_back(bus()->m_events.exit.listen([this]() { dispatch("hyprland.shutdown", 0, [] {}); }));
+    m_listeners.push_back(bus()->m_events.start.listen([this]() { dispatch("hyprland.start", 0, [](lua_State* L) {}); }));
+    m_listeners.push_back(bus()->m_events.exit.listen([this]() { dispatch("hyprland.shutdown", 0, [](lua_State* L) {}); }));
+
+    m_listeners.push_back(bus()->m_events.pluginEventAdded.listen([this](SP<Event::CEventBus::CCustomEvent> event) {
+        auto ret = addCustomEvent(event);
+        if (!ret)
+            Log::logger->log(Log::ERR, "failed to register plugin event for lua {}: {}", event->m_name, ret.error());
+    }));
+    m_listeners.push_back(bus()->m_events.pluginEventRemoved.listen([this](const std::string& name) {
+        auto ret = removeCustomEvent(name);
+        if (!ret)
+            Log::logger->log(Log::ERR, "failed to unregister plugin event for lua {}: {}", name, ret.error());
+    }));
 }
 
 CLuaEventHandler::~CLuaEventHandler() {
@@ -206,8 +220,39 @@ void CLuaEventHandler::clearEvents() {
     m_callbacks.clear();
 }
 
-const std::unordered_set<std::string>& CLuaEventHandler::knownEvents() {
-    static const std::unordered_set<std::string> EVENTS = {
+std::expected<void, std::string> CLuaEventHandler::addCustomEvent(SP<Event::CEventBus::CCustomEvent> event) {
+    using namespace Event;
+
+    auto listener = event->m_event.listen([this, event](const std::vector<CEventBus::CCustomEvent::ValidVariant>& args) {
+        dispatch(event->m_name, event->m_argTypes.size(), [args](lua_State* L) {
+            for (const auto& arg : args) {
+                switch (arg.index()) {
+                    case CEventBus::CCustomEvent::TYPE_BOOL: lua_pushboolean(L, std::get<bool>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_INT: lua_pushinteger(L, std::get<int>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_DOUBLE: lua_pushnumber(L, std::get<double>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_STRING: lua_pushstring(L, std::get<std::string>(arg).c_str()); break;
+                    case CEventBus::CCustomEvent::TYPE_WINDOW: CLuaWindow::push(L, std::get<PHLWINDOWREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_WORKSPACE: CLuaWorkspace::push(L, std::get<PHLWORKSPACEREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_LAYER_SURFACE: CLuaLayerSurface::push(L, std::get<PHLLSREF>(arg)); break;
+                    case CEventBus::CCustomEvent::TYPE_MONITOR: CLuaMonitor::push(L, std::get<PHLMONITORREF>(arg)); break;
+                }
+            }
+        });
+    });
+    if (!m_pluginListeners.try_emplace(event->m_name, listener).second)
+        return std::unexpected("event already exists.");
+
+    return {};
+}
+
+std::expected<void, std::string> CLuaEventHandler::removeCustomEvent(const std::string& name) {
+    if (!m_pluginListeners.erase(name))
+        return std::unexpected("event not found.");
+    return {};
+}
+
+std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
+    std::unordered_set<std::string> EVENTS = {
         "window.open",
         "window.open_early",
         "window.close",
@@ -237,5 +282,7 @@ const std::unordered_set<std::string>& CLuaEventHandler::knownEvents() {
         "hyprland.start",
         "hyprland.shutdown",
     };
+    for (auto& kv : Event::bus()->m_events.plugin)
+        EVENTS.emplace(kv.first);
     return EVENTS;
 }

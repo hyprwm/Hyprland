@@ -244,7 +244,7 @@ void Objects::CLuaWindow::setup(lua_State* L) {
     registerMetatable(L, MT, windowIndex, gcRef<PHLWINDOWREF>, windowEq, windowToString);
 }
 
-void Objects::CLuaWindow::push(lua_State* L, PHLWINDOW w) {
+void Objects::CLuaWindow::push(lua_State* L, PHLWINDOWREF w) {
     new (lua_newuserdata(L, sizeof(PHLWINDOWREF))) PHLWINDOWREF(w ? w->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

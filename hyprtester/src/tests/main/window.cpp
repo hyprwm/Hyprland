@@ -1,8 +1,6 @@
 #include <unistd.h>
 #include <cmath>
 #include <chrono>
-#include <cstdlib>
-#include <cstring>
 #include <filesystem>
 #include <thread>
 #include <hyprutils/os/Process.hpp>

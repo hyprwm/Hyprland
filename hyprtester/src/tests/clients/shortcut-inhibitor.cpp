@@ -1,4 +1,5 @@
 #include "../../hyprctlCompat.hpp"
+#include "../../Log.hpp"
 #include "../shared.hpp"
 #include "tests.hpp"
 #include "build.hpp"
@@ -106,7 +107,7 @@ CClient::CClient() {
         throw std::exception();
 
     ret = std::string{this->readBuf.data()};
-    if (ret.find("inhibiting") == std::string::npos) {
+    if (!ret.contains("inhibiting")) {
         NLog::log("{}shortcut-inhibitor client didn't return inhibiting", Colors::RED);
         throw std::exception();
     }

@@ -14,28 +14,28 @@
 // - kitty
 // - xeyes
 
+#define INCLUDED_FROM_MAIN 1 // Prevent macro redefinition warnings from includes of "tests/*/tests.hpp"
+
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/main/tests.hpp"
-#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/clients/tests.hpp"
-#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/misc/tests.hpp"
 #include "tests/shared.hpp"
 
-#include <filesystem>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/memory/Casts.hpp>
 
-#include <csignal>
 #include <cerrno>
 #include <chrono>
-#include <thread>
+#include <csignal>
+#include <filesystem>
 #include <print>
 #include <string>
 #include <string_view>
 #include <span>
+#include <thread>
 #include <vector>
 
 #include "Log.hpp"

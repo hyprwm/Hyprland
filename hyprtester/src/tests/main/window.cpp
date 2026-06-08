@@ -631,6 +631,34 @@ TEST_CASE(specialFloatRecenters) {
     ASSERT(Tests::windowCount(), 0);
 }
 
+TEST_CASE(exactWindowSelectors) {
+    if (!spawnKitty("kitty_A"))
+        FAIL_TEST("Could not spawn kitty");
+    if (!spawnKitty("kitty_B"))
+        FAIL_TEST("Could not spawn kitty");
+
+    getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
+    auto target    = getFromSocket("/activewindow");
+    auto addr      = getWindowAddress(target);
+    auto pid       = Tests::getAttribute(target, "pid");
+    auto stable_id = Tests::getAttribute(target, "stableID");
+
+    getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
+    // Focus window by address
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'address:0x{}' }})", addr)));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_B");
+
+    getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
+    // Focus window by PID
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'pid:{}' }})", pid)));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_B");
+
+    getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_A' })");
+    // Focus window by stable ID
+    OK(getFromSocket(std::format("/dispatch hl.dsp.focus({{ window = 'stableid:{}' }})", stable_id)));
+    EXPECT_CONTAINS(getFromSocket("/activewindow"), "class: kitty_B");
+}
+
 // TODO: decompose this into multiple test cases
 TEST_CASE(windows) {
     // test on workspace "window"

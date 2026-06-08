@@ -11,6 +11,8 @@ TEST_CASE(state) {
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-3', disabled = true })"));
     OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-4', disabled = true })"));
 
+    Tests::sync();
+
     {
         auto str = getFromSocket("/monitors");
         ASSERT_CONTAINS(str, "FALLBACK");

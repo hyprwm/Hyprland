@@ -2026,6 +2026,12 @@ uint16_t CMonitor::isDSBlocked(bool full) {
         return reasons;
     }
 
+    if (PCANDIDATE->m_transformers.blocksDirectScanout()) {
+        reasons |= DS_BLOCK_TRANSFORM;
+        if (!full)
+            return reasons;
+    }
+
     const auto PSURFACE = PCANDIDATE->getSolitaryResource();
     if (!PSURFACE || !PSURFACE->m_current.texture || !PSURFACE->m_current.buffer) {
         reasons |= DS_BLOCK_SURFACE;

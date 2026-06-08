@@ -255,6 +255,14 @@ std::vector<SP<IValue>> Values::getConfigValues() {
 
         MS<Bool>("decoration:motion_blur:enabled", "enable motion blur for moving and resizing windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Int>("decoration:motion_blur:samples", "amount of samples used for motion blur", 7, {.min = 1, .max = 64, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Bool>("decoration:wobble:enabled", "enable wobble deformation for moving and resizing windows", false, {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Int>("decoration:wobble:mesh", "amount of wobble mesh vertices per edge", 12, {.min = 2, .max = 32, .refresh = Supplementary::REFRESH_WINDOW_STATES}),
+        MS<Float>("decoration:wobble:stiffness", "spring stiffness for wobble deformation", 200, {.min = 0.0001, .max = 1000}),
+        MS<Float>("decoration:wobble:damping", "spring damping for wobble deformation", 12, {.min = 0, .max = 1000}),
+        MS<Float>("decoration:wobble:mass", "spring mass for wobble deformation", 1, {.min = 0.0001, .max = 1000}),
+        MS<Float>("decoration:wobble:intensity", "wobble deformation impulse multiplier", 0.2, {.min = 0, .max = 2}),
+        MS<Float>("decoration:wobble:value_epsilon", "position epsilon below which wobble is considered stable", 0.25, {.min = 0, .max = 100}),
+        MS<Float>("decoration:wobble:velocity_epsilon", "velocity epsilon below which wobble is considered stable", 2, {.min = 0, .max = 1000}),
 
         /*
          * animations:

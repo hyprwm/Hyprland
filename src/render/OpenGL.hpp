@@ -6,6 +6,7 @@
 #include "../helpers/time/Timer.hpp"
 #include "../helpers/math/Math.hpp"
 #include "../helpers/Format.hpp"
+#include "../helpers/DeformableMesh.hpp"
 #include "../helpers/sync/SyncTimeline.hpp"
 #include <GLES3/gl32.h>
 #include <cstdint>
@@ -105,13 +106,14 @@ namespace Render::GL {
         CRegion                  finalDamage; // damage used for funal off -> main
 
         Render::SRenderModifData renderModif;
-        float                    mouseZoomFactor    = 1.f;
-        bool                     mouseZoomUseMouse  = true; // true by default
-        bool                     useNearestNeighbor = false;
-        bool                     blockScreenShader  = false;
-        bool                     simplePass         = false;
-        bool                     transformDamage    = true;
-        bool                     noSimplify         = false;
+        float                    mouseZoomFactor            = 1.f;
+        bool                     mouseZoomUseMouse          = true; // true by default
+        bool                     useNearestNeighbor         = false;
+        bool                     blockScreenShader          = false;
+        bool                     simplePass                 = false;
+        bool                     transformDamage            = true;
+        bool                     noSimplify                 = false;
+        bool                     renderingTransformedSource = false;
 
         Vector2D                 primarySurfaceUVTopLeft     = Vector2D(-1, -1);
         Vector2D                 primarySurfaceUVBottomRight = Vector2D(-1, -1);
@@ -204,6 +206,7 @@ namespace Render::GL {
 
         void                           renderRect(const CBox&, const CHyprColor&, SRectRenderData data);
         void                           renderTexture(SP<ITexture>, const CBox&, STextureRenderData data);
+        void                           renderTextureMesh(SP<ITexture>, const CBox&, const std::vector<SMeshRenderVertex>& vertices, STextureRenderData data);
         void                           renderRoundedShadow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, float a = 1.0);
         void                           renderInnerGlow(const CBox&, int round, float roundingPower, int range, const CHyprColor& color, int glowPower, float a = 1.0);
         void                           renderBorder(const CBox&, const Config::CGradientValueData&, SBorderRenderData data);

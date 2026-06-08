@@ -295,7 +295,7 @@ void CHyprAnimationManager::tick() {
         if (!owner.window || !owner.trackWindowMotion)
             continue;
 
-        owner.window->recordMotionBlur(owner.previousFull, owner.window->getFullWindowBoundingBox());
+        owner.window->onPositionUpdate(owner.previousFull, owner.window->getFullWindowBoundingBox(), Desktop::View::WINDOW_UPDATE_ANIMATION);
     }
 
     // post-damage each owner once (new state) + schedule frames
@@ -332,7 +332,10 @@ void CHyprAnimationManager::tick() {
 void CHyprAnimationManager::frameTick() {
     onTicked();
 
-    if (!shouldTickForNext())
+    const bool MANUALTICK = m_manualTickRequested;
+    m_manualTickRequested = false;
+
+    if (!MANUALTICK && !shouldTickForNext())
         return;
 
     if UNLIKELY (!g_pCompositor->m_sessionActive || g_pCompositor->m_unsafeState ||
@@ -345,10 +348,16 @@ void CHyprAnimationManager::frameTick() {
 
         tick();
         Event::bus()->m_events.tick.emit();
-    }
+    } else if (MANUALTICK)
+        m_manualTickRequested = true;
 
-    if (shouldTickForNext())
+    if (m_manualTickRequested || shouldTickForNext())
         scheduleTick();
+}
+
+void CHyprAnimationManager::requestTick() {
+    m_manualTickRequested = true;
+    scheduleTick();
 }
 
 void CHyprAnimationManager::scheduleTick() {

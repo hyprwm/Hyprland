@@ -29,8 +29,31 @@ bool CMotionBlurTransformer::shouldEnable(PHLWINDOW window) {
     return *PMBENABLED && *PMBSAMPLES > 1 && !window->isFullscreen() && !window->m_fadingOut;
 }
 
-SP<Render::IFramebuffer> CMotionBlurTransformer::transform(SP<Render::IFramebuffer> in) {
+SP<Render::IFramebuffer> CMotionBlurTransformer::transform(SP<Render::IFramebuffer> in, const SWindowTransformContext&) {
     return in;
+}
+
+int CMotionBlurTransformer::priority() const {
+    return 100;
+}
+
+bool CMotionBlurTransformer::active() const {
+    return state(true).has_value();
+}
+
+CBox CMotionBlurTransformer::transformBoxForDamage(const CBox& currentBox) const {
+    const auto STATE = state(true);
+    if (!STATE)
+        return currentBox;
+
+    const Vector2D relPos = currentBox.pos() - STATE->current.pos();
+    const Vector2D scale  = STATE->previous.size() / STATE->current.size();
+
+    CBox           previous = {STATE->previous.pos() + relPos * scale, currentBox.size() * scale};
+    CBox           damaged  = MotionBlur::extents(previous, currentBox);
+    damaged.expand(4.F);
+
+    return damaged;
 }
 
 void CMotionBlurTransformer::amendTransformedRenderData(const CBox& currentBox, SMotionBlurData* pMotionBlurData) {

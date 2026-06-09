@@ -391,8 +391,10 @@ void IElementRenderer::preDrawSurface(WP<CSurfacePassElement> element, const CRe
 
     drawSurface(element, damage);
 
-    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback)
+    if (!g_pHyprRenderer->m_bBlockSurfaceFeedback) {
+        element->m_data.surface->frame(element->m_data.when);
         element->m_data.surface->presentFeedback(element->m_data.when, element->m_data.pMonitor->m_self.lock());
+    }
 
     // add async (dmabuf) buffers to usedBuffers so we can handle release later
     // sync (shm) buffers will be released in commitState, so no need to track them here

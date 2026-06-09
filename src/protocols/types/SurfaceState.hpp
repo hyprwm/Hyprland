@@ -5,12 +5,14 @@
 #include "../../managers/eventLoop/EventLoopTimer.hpp"
 #include "../WaylandProtocol.hpp"
 #include "./Buffer.hpp"
+#include <cstdint>
 
 namespace Render {
     class ITexture;
 }
 class CDRMSyncPointState;
 class CWLCallbackResource;
+class CPresentationFeedback;
 
 enum eLockReason : uint8_t {
     LOCK_REASON_NONE  = 0,
@@ -52,6 +54,7 @@ struct SSurfaceState {
             bool acquire : 1;
             bool acked : 1;
             bool frame : 1;
+            bool presentation : 1;
             bool fifo : 1;
         } bits;
     } updated;
@@ -75,6 +78,10 @@ struct SSurfaceState {
 
     // for wl_surface::frame callbacks.
     std::vector<SP<CWLCallbackResource>> callbacks;
+
+    // for wp_presentation feedback, bound to this committed state.
+    std::vector<WP<CPresentationFeedback>> presentationFeedbacks;
+    uint64_t                               commitSeq = 0;
 
     // viewporter protocol surface state
     struct {
@@ -106,4 +113,6 @@ struct SSurfaceState {
     CRegion accumulateBufferDamage();       // transforms state.damage and merges it into state.bufferDamage
     void    updateFrom(SSurfaceState& ref); // updates this state based on a reference state.
     void    reset();                        // resets pending state after commit
+    void    discardPresentationFeedbacks();
+    bool    updatesPresentationContent() const;
 };

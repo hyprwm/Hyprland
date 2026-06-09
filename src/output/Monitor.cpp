@@ -1975,16 +1975,20 @@ bool CMonitor::attemptDirectScanout() {
 
     // #TODO this entire bit needs figuring out, vrr goes down the drain without it
     if (PBUFFER == m_output->state->state().buffer && *PSAME) {
-        PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
+        const auto NOW = Time::steadyNow();
+        PSURFACE->frame(NOW);
+        PSURFACE->presentFeedback(NOW, m_self.lock());
 
         if (m_scanoutNeedsCursorUpdate) {
             if (!m_state.test()) {
                 Log::logger->log(Log::TRACE, "attemptDirectScanout: failed basic test on cursor update");
+                PROTO::presentation->discardPresentedForMonitor(m_self.lock());
                 return false;
             }
 
             if (!m_output->commit()) {
                 Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to commit cursor update");
+                PROTO::presentation->discardPresentedForMonitor(m_self.lock());
                 m_lastScanout.reset();
                 return false;
             }
@@ -2042,7 +2046,9 @@ bool CMonitor::attemptDirectScanout() {
         return false;
     }
 
-    PSURFACE->presentFeedback(Time::steadyNow(), m_self.lock());
+    const auto NOW = Time::steadyNow();
+    PSURFACE->frame(NOW);
+    PSURFACE->presentFeedback(NOW, m_self.lock());
 
     m_output->state->addDamage(PSURFACE->m_current.accumulateBufferDamage());
 
@@ -2064,6 +2070,7 @@ bool CMonitor::attemptDirectScanout() {
 
     if (!ok) {
         Log::logger->log(Log::TRACE, "attemptDirectScanout: failed to scanout surface");
+        PROTO::presentation->discardPresentedForMonitor(m_self.lock());
         m_lastScanout.reset();
         return false;
     }

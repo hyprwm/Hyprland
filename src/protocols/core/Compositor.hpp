@@ -34,6 +34,7 @@ class CFifoResource;
 class CCommitTimerResource;
 class CColorManagementSurface;
 class CContentType;
+class CPresentationFeedback;
 
 class CWLCallbackResource {
   public:
@@ -123,6 +124,7 @@ class CWLSurfaceResource {
     SP<CWLSurfaceResource>                 findFirstPreorder(std::function<bool(SP<CWLSurfaceResource>)> fn);
     SP<CWLSurfaceResource>                 findWithCM();
     void                                   presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded = false);
+    void                                   queuePresentationFeedback(WP<CPresentationFeedback> feedback);
     void                                   scheduleState(WP<SSurfaceState> state);
     void                                   commitState(SSurfaceState& state);
     NColorManagement::PImageDescription    getPreferredImageDescription();
@@ -136,7 +138,8 @@ class CWLSurfaceResource {
 
   private:
     SP<CWlSurface>         m_resource;
-    wl_client*             m_client = nullptr;
+    wl_client*             m_client    = nullptr;
+    uint64_t               m_commitSeq = 0;
 
     void                   destroy();
     void                   releaseBuffers(bool onlyCurrent = true);

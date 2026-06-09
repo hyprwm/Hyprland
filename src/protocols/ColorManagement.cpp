@@ -21,11 +21,8 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_SET_MASTERING_DISPLAY_PRIMARIES);
     m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_EXTENDED_TARGET_VOLUME);
 
-    #if WP_COLOR_MANAGER_V1_INTERFACE_VERSION >= 3
-    if (m_resource->version() >= 3) {
+    if (m_resource->version() >= 3)
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_WINDOWS_BT2100);
-    }
-    #endif
 
     if (PROTO::colorManagement->m_debug) {
         m_resource->sendSupportedFeature(WP_COLOR_MANAGER_V1_FEATURE_ICC_V2_V4);
@@ -187,7 +184,6 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
         RESOURCE->sendMaybeReady();
     });
 
-    #if WP_COLOR_MANAGER_V1_INTERFACE_VERSION >= 3
     m_resource->setCreateWindowsBt2100([](CWpColorManagerV1* r, uint32_t id) {
         LOGM(Log::WARN, "New Windows BT2100 description id={}", id);
 
@@ -205,7 +201,6 @@ CColorManager::CColorManager(SP<CWpColorManagerV1> resource) : m_resource(resour
 
         RESOURCE->sendMaybeReady();
     });
-    #endif
 
     m_resource->setGetImageDescription([](CWpColorManagerV1* r, uint32_t id, wl_resource* ref) {
         LOGM(Log::TRACE, "Get image description for reference={}, id={}", (uintptr_t)ref, id);

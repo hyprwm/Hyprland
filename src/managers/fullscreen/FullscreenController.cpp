@@ -66,6 +66,19 @@ SFullscreenMode CFullscreenController::getCoveringFullscreenMode(const PHLWORKSP
 
 
 
+void CFullscreenController::setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force) {
+
+    if (window->m_ruleApplicator->syncFullscreen().valueOrDefault())
+        setWindowFullscreenState(window, SFullscreenState{.internal = MODE, .client = MODE}, force);
+    else
+        setWindowFullscreenState(window, SFullscreenState{.internal = PWINDOW->m_fullscreenState.internal, .client = MODE}, force);
+
+
+
+}
+
+
+
 
 
 

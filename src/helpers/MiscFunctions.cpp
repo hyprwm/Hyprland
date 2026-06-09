@@ -169,7 +169,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
             const auto PWORKSPACE = State::workspaceState()->query().id(id).run();
-            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
+            if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindowCount() == 0)) {
                 result.id = id;
                 return result;
             }

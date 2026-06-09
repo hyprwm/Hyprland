@@ -1649,7 +1649,7 @@ ActionResult Actions::cycleNext(const bool next, std::optional<bool> onlyTiled, 
 
     if (!window) {
         const auto PWS = Desktop::focusState()->monitor()->m_activeWorkspace;
-        if (PWS && PWS->getWindows() > 0) {
+        if (PWS && PWS->getWindowCount() > 0) {
             const auto PFIRST = PWS->getFirstWindow();
             switchToWindow(PFIRST);
         }

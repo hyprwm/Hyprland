@@ -305,7 +305,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                                           wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                           wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                     else
-                        count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                        count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                            wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                            wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
@@ -341,7 +341,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
                         getGroups(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                   wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt, wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
                 else
-                    count = getWindows(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
+                    count = getWindowCount(wantsOnlyTiled == -1 ? std::nullopt : std::optional<bool>(sc<bool>(wantsOnlyTiled)),
                                        wantsOnlyPinned ? std::optional<bool>(wantsOnlyPinned) : std::nullopt,
                                        wantsCountVisible ? std::optional<bool>(wantsCountVisible) : std::nullopt);
 
@@ -448,7 +448,7 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
-int CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
+int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
 
     if (!m_space)

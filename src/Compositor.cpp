@@ -2337,7 +2337,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
         setWindowFullscreenInternal(pWindow, FSMODE_NONE);
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
-    const int       visibleWindowsOnWorkspace = pWorkspace->getWindows(true, std::nullopt, true);
+    const int       visibleWindowsOnWorkspace = pWorkspace->getWindowCount(true, std::nullopt, true);
     const auto      POSTOMON                  = pWindow->m_realPosition->goal() - (pWindow->m_monitor ? pWindow->m_monitor->m_position : Vector2D{});
     const auto      PWORKSPACEMONITOR         = pWorkspace->m_monitor.lock();
 

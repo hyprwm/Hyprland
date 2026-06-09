@@ -549,7 +549,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindowCount() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -695,13 +695,13 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0) {
+    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindowCount() == 0) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR)
             m_lastWorkspace = PMONITOR->activeWorkspaceID();
     }
 
-    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindowCount() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -2179,7 +2179,7 @@ void CWindow::mapWindow() {
             workspaceSilent = true;
 
         auto joined = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
-        if (joined.starts_with("empty") && PWORKSPACE->getWindows() == 0) {
+        if (joined.starts_with("empty") && PWORKSPACE->getWindowCount() == 0) {
             requestedWorkspaceID   = PWORKSPACE->m_id;
             requestedWorkspaceName = PWORKSPACE->m_name;
         } else {
@@ -2552,7 +2552,7 @@ void CWindow::unmapWindow() {
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
+        if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

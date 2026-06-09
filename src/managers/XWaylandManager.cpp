@@ -7,6 +7,7 @@
 #include "../protocols/core/Compositor.hpp"
 #include "../xwayland/XWayland.hpp"
 #include "../state/MonitorState.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include <hyprutils/math/Vector2D.hpp>
 
 #define OUTPUT_MANAGER_VERSION                   3

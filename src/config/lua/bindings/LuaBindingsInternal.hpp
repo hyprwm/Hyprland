@@ -13,7 +13,6 @@
 #include "../types/LuaConfigExpressionVec2.hpp"
 
 #include "../../../Compositor.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
 #include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../desktop/rule/windowRule/WindowRuleEffectContainer.hpp"

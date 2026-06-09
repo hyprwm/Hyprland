@@ -5,6 +5,7 @@
 #include "init/initHelpers.hpp"
 #include "debug/HyprCtl.hpp"
 #include "helpers/env/Env.hpp"
+#include "helpers/MiscFunctions.hpp"
 
 #include <csignal>
 #include <cstdio>

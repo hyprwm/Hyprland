@@ -10,6 +10,7 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../helpers/Config.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>

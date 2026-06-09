@@ -9,6 +9,7 @@
 #include "../../../managers/SeatManager.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "../../../helpers/Config.hpp"
 
 using namespace Config;
 using namespace Config::Lua;

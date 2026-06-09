@@ -1,5 +1,5 @@
 #include "BoolMatchEngine.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
+#include "../../../helpers/Config.hpp"
 
 using namespace Desktop::Rule;
 

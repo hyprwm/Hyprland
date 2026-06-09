@@ -1,7 +1,5 @@
 #include "LuaNotification.hpp"
 
-#include "../../../helpers/MiscFunctions.hpp"
-
 #include <array>
 #include <algorithm>
 #include <cctype>

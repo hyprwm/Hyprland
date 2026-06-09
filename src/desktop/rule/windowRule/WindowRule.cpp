@@ -1,7 +1,6 @@
 #include "WindowRule.hpp"
 #include "../../view/Window.hpp"
 #include "../../../output/Monitor.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
 #include "../../../Compositor.hpp"
 #include "../../../managers/TokenManager.hpp"
 #include "../../../desktop/state/FocusState.hpp"

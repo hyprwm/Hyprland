@@ -1,11 +1,12 @@
 #include "WindowRuleApplicator.hpp"
 #include "WindowRule.hpp"
+#include "WindowRuleEffectContainer.hpp"
 #include "../Engine.hpp"
 #include "../utils/SetUtils.hpp"
 #include "../../view/Window.hpp"
 #include "../../types/OverridableVar.hpp"
 #include "../../../event/EventBus.hpp"
-#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
+#include "../../../helpers/Config.hpp"
 
 #include <string>
 #include <tuple>

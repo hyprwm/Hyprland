@@ -41,6 +41,7 @@
 #include "../../../managers/input/trackpad/gestures/WorkspaceSwipeGesture.hpp"
 #include "../../../managers/input/trackpad/gestures/ScrollMoveGesture.hpp"
 #include "../../../managers/permissions/DynamicPermissionManager.hpp"
+#include "../../../helpers/Config.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 

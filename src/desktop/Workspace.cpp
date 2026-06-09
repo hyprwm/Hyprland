@@ -6,6 +6,7 @@
 #include "../config/shared/animation/AnimationTree.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../config/supplementary/executor/Executor.hpp"
+#include "../helpers/Config.hpp"
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"

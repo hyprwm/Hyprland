@@ -8,31 +8,17 @@
 #include <hyprutils/os/FileDescriptor.hpp>
 #include "../SharedDefs.hpp"
 #include "../macros.hpp"
-#include "../desktop/DesktopTypes.hpp"
 
 struct SCallstackFrameInfo {
     void*       adr = nullptr;
     std::string desc;
 };
 
-struct SWorkspaceIDName {
-    WORKSPACEID id = WORKSPACE_INVALID;
-    std::string name;
-    bool        isAutoIDd = false;
-};
-
 std::string                             absolutePath(const std::string&, const std::string&);
 std::string                             escapeJSONStrings(const std::string& str);
-bool                                    isDirection(const std::string&);
-bool                                    isDirection(const char&);
-SWorkspaceIDName                        getWorkspaceIDNameFromString(const std::string&);
-PHLWORKSPACE                            resolveWorkspace(const std::string&);
-PHLWORKSPACE                            resolveWorkspaceForChange(const std::string&);
-std::optional<std::string>              cleanCmdForWorkspace(const std::string&, std::string);
 float                                   vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);
 std::string                             execAndGet(const char*);
 int64_t                                 getPPIDof(int64_t pid);
-std::optional<float>                    getPlusMinusKeywordResult(std::string in, float relative);
 double                                  normalizeAngleRad(double ang);
 std::vector<SCallstackFrameInfo>        getBacktrace();
 [[noreturn]] void                       throwError(const std::string& err);
@@ -45,7 +31,6 @@ std::expected<std::string, std::string> binaryNameForPid(pid_t pid);
 std::string                             deviceNameToInternalString(const std::string& in);
 std::string                             getSystemLibraryVersion(const std::string& name);
 std::string                             getBuiltSystemLibraryNames();
-bool                                    truthy(const std::string& str);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {

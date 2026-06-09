@@ -9,6 +9,7 @@
 #include "../layout/target/Target.hpp"
 #include "../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "event/EventBus.hpp"
+#include "../helpers/MiscFunctions.hpp"
 #include <dlfcn.h>
 #include <filesystem>
 

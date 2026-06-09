@@ -11,6 +11,7 @@
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>

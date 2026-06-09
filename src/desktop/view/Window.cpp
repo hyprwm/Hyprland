@@ -46,6 +46,8 @@
 #include "../../xwayland/XWayland.hpp"
 #include "../../helpers/Color.hpp"
 #include "../../helpers/math/Expression.hpp"
+#include "../../helpers/Config.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 #include "../../managers/XWaylandManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/transformer/MotionBlurTransformer.hpp"

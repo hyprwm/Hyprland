@@ -6,6 +6,8 @@
 #include "../shared/inotify/ConfigWatcher.hpp"
 #include "../../managers/KeybindManager.hpp"
 #include "../../Compositor.hpp"
+#include "../../helpers/Config.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
 #include "../shared/complex/ComplexDataTypes.hpp"
 #include "../shared/monitor/MonitorRuleManager.hpp"

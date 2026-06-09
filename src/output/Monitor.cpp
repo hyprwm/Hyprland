@@ -1,5 +1,5 @@
 #include "Monitor.hpp"
-#include "../helpers/MiscFunctions.hpp"
+
 #include "../macros.hpp"
 #include "SharedDefs.hpp"
 #include "../helpers/TransferFunction.hpp"
@@ -40,11 +40,11 @@
 #include "../desktop/state/FocusState.hpp"
 #include "../event/EventBus.hpp"
 #include "../helpers/Drm.hpp"
+#include "../helpers/Config.hpp"
 #include "MonitorFrameScheduler.hpp"
 #include <aquamarine/output/Output.hpp>
 #include "debug/log/Logger.hpp"
 #include "notification/NotificationOverlay.hpp"
-#include "MonitorFrameScheduler.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>

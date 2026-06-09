@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <cstring>
+#include <cmath>
 #include <fstream>
 #include <sys/stat.h>
 #include <sys/types.h>

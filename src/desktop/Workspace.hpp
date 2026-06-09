@@ -2,6 +2,7 @@
 
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
+#include <unordered_set>
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -61,6 +62,7 @@ class CWorkspace {
     void        markInert();
     void        updateWindowDecos();
     void        updateWindowData();
+    std::unordered_set<PHLWINDOW> getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int         getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     bool        hasUrgentWindow();

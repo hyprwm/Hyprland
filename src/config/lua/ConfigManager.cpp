@@ -362,15 +362,15 @@ void CConfigManager::reinitLuaState() {
     lua_rawseti(m_lua, -2, 2); // replace package.searchers[2]
     lua_pop(m_lua, 2);         // pop searchers, package
 
-    // hook print function to print to hyprctl eval/repl instead
+    // hook print function to print to hyprctl repl instead
     lua_getglobal(m_lua, "print");
     lua_pushcclosure(
         m_lua,
         [](lua_State* L) -> int {
             auto* mgr    = CConfigManager::fromLuaState(L);
             int   nstack = lua_gettop(L);
-            if (!mgr->isEvaluating()) {
-                // call original print function from upvalue if not eval
+            if (!mgr->isREPL()) {
+                // call original print function from upvalue if not repl
                 lua_pushvalue(L, lua_upvalueindex(1));
                 lua_insert(L, 1);
                 lua_call(L, nstack, LUA_MULTRET);
@@ -641,7 +641,7 @@ void CConfigManager::addEvalIssue(const Config::SConfigError& err) {
         m_evalIssues.emplace_back(err);
 }
 
-std::optional<std::string> CConfigManager::eval(const std::string& code) {
+std::optional<std::string> CConfigManager::eval(const std::string& code, bool repl) {
     if (!m_lua)
         return "error: lua state not initialized";
 
@@ -649,8 +649,12 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
     m_evalIssues.clear();
     m_prints.clear();
     m_isEvaluating = true;
+    m_isREPL       = repl;
 
-    Hyprutils::Utils::CScopeGuard x([this] { m_isEvaluating = false; });
+    Hyprutils::Utils::CScopeGuard x([this] {
+        m_isEvaluating = false;
+        m_isREPL       = false;
+    });
     if (luaL_loadstring(m_lua, code.starts_with("return") ? code.c_str() : std::format("return {};", code).c_str()) != LUA_OK) {
         lua_pop(m_lua, 1);
         if (luaL_loadstring(m_lua, code.c_str()) != LUA_OK) {
@@ -677,7 +681,7 @@ std::optional<std::string> CConfigManager::eval(const std::string& code) {
         m_prints.emplace_back(out);
     }
 
-    if (!m_prints.empty()) {
+    if (!m_prints.empty() && repl) {
         std::string out;
         for (auto& line : m_prints)
             out += std::format("{}\n", line);
@@ -1132,8 +1136,8 @@ bool CConfigManager::isDynamicParse() const {
     return !m_isParsingConfig || m_isEvaluating;
 }
 
-bool CConfigManager::isEvaluating() const {
-    return m_isEvaluating;
+bool CConfigManager::isREPL() const {
+    return m_isREPL;
 }
 
 void CConfigManager::reregisterLuaPluginFns() {

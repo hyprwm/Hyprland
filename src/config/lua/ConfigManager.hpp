@@ -96,7 +96,7 @@ namespace Config::Lua {
         std::expected<void, std::string>         registerLuaLayoutProvider(std::string name, lua_State* L, int providerTableIdx);
 
         // execute an arbitrary lua string on the current state.
-        std::optional<std::string> eval(const std::string& code);
+        std::optional<std::string> eval(const std::string& code, bool repl = false);
 
         int                        guardedPCall(int nargs, int nresults, int errfunc, int timeoutMs, std::string_view context);
 
@@ -113,7 +113,7 @@ namespace Config::Lua {
 
         bool                       isFirstLaunch() const;
         bool                       isDynamicParse() const;
-        bool                       isEvaluating() const;
+        bool                       isREPL() const;
 
         std::string                m_currentSubmap;
         std::string                m_currentSubmapReset;
@@ -168,6 +168,7 @@ namespace Config::Lua {
         bool                                         m_watchdogActive                      = false;
         bool                                         m_isParsingConfig                     = false;
         bool                                         m_isEvaluating                        = false;
+        bool                                         m_isREPL                              = false;
 
         std::chrono::steady_clock::time_point        m_watchdogDeadline;
         std::string                                  m_watchdogContext;

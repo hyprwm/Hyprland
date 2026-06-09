@@ -1097,7 +1097,7 @@ static std::string evalRequest(eHyprCtlOutputFormat format, std::string request)
     // strip the command name ("eval ") from the request
     auto code = request.substr(request.find_first_of(' ') + 1);
 
-    auto err = luaMgr->eval(code);
+    auto err = luaMgr->eval(code, request.starts_with("repl "));
     if (err)
         return *err;
 
@@ -2020,7 +2020,7 @@ CHyprCtl::CHyprCtl() {
     registerCommand(SHyprCtlCommand{"decorations", false, decorationRequest});
     registerCommand(SHyprCtlCommand{"[[BATCH]]", false, dispatchBatch});
     registerCommand(SHyprCtlCommand{"eval", false, evalRequest});
-
+    registerCommand(SHyprCtlCommand{"repl", false, evalRequest});
     startHyprCtlSocket();
 }
 

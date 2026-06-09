@@ -539,14 +539,20 @@ int main(int argc, char** argv) {
     else if (fullRequest.contains("/rollinglog") && needRoll)
         exitStatus = request(fullRequest, 0, true);
     else if (fullRequest.contains("/repl")) {
-        char* input = nullptr;
-        while ((input = readline("> ")) != nullptr) {
-            std::string line(input);
-            if (!line.empty()) {
-                exitStatus = request("/eval " + line);
-                add_history(input);
+        if (ARGS.size() > 1) {
+            // single command with output
+            exitStatus = request(fullRequest, 1);
+        } else {
+            // interactive REPL mode
+            char* input = nullptr;
+            while ((input = readline("> ")) != nullptr) {
+                std::string line(input);
+                if (!line.empty()) {
+                    exitStatus = request("/repl " + line);
+                    add_history(input);
+                }
+                free(input);
             }
-            free(input);
         }
     } else {
         exitStatus = request(fullRequest);

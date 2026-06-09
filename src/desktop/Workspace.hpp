@@ -10,12 +10,6 @@ namespace Layout {
     class CSpace;
 };
 
-enum eFullscreenMode : int8_t {
-    FSMODE_NONE       = 0,
-    FSMODE_MAXIMIZED  = 1 << 0,
-    FSMODE_FULLSCREEN = 1 << 1,
-    FSMODE_MAX        = (1 << 2) - 1
-};
 
 class CWorkspace {
   public:

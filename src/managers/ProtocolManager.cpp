@@ -210,11 +210,8 @@ CProtocolManager::CProtocolManager() {
     PROTO::imageCaptureSource = makeUnique<CImageCaptureSourceProtocol>(); // ctor inits actual protos, output and toplevel
     PROTO::imageCopyCapture   = makeUnique<CImageCopyCaptureProtocol>(&ext_image_copy_capture_manager_v1_interface, 1, "ImageCopyCapture");
 
-    #ifndef WP_COLOR_MANAGER_V1_INTERFACE_VERSION
-    #define WP_COLOR_MANAGER_V1_INTERFACE_VERSION 2
-    #endif
     if (*PENABLECM)
-        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? (WP_COLOR_MANAGER_V1_INTERFACE_VERSION >= 3 ? 3 : 2) : 1, "ColorManagement", *PDEBUGCM);
+        PROTO::colorManagement = makeUnique<CColorManagementProtocol>(&wp_color_manager_v1_interface, *PCMV1_2 ? 3 : 1, "ColorManagement", *PDEBUGCM);
 
     // ! please read the top of this file before adding another protocol
 

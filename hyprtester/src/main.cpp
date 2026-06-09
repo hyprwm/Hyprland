@@ -55,7 +55,7 @@ namespace {
     };
 
     struct STestsInfo {
-        unsigned long long       failed, total;
+        unsigned long long       total;
         std::vector<std::string> failedNames;
     };
 }
@@ -63,17 +63,17 @@ namespace {
 static SP<CProcess> hyprlandProc;
 
 static bool         launchHyprland(Path configPath, Path binaryPath) {
-    NLog::info("Launching Hyprland");
+    NLog::alert("Launching Hyprland");
     hyprlandProc = makeShared<CProcess>(binaryPath, std::vector<std::string>{"--config", configPath});
     hyprlandProc->addEnv("HYPRLAND_HEADLESS_ONLY", "1");
 
-    NLog::info("Launched async process");
+    NLog::alert("Launched async process");
 
     return hyprlandProc->runAsync();
 }
 
 static bool hyprlandAlive() {
-    NLog::info("hyprlandAlive");
+    NLog::alert("hyprlandAlive");
     return kill(hyprlandProc->pid(), 0) == 0 || errno != ESRCH;
 }
 
@@ -192,7 +192,7 @@ static bool preTestCleanup() {
 static void runTests(std::map<std::string, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
     for (auto& [name, tc] : testCases) {
         // Clean up before every test
-        NLog::info("Cleaning up");
+        NLog::alert("Cleaning up");
 
         if (!preTestCleanup()) // damn it, something really went wrong
             std::exit(1);
@@ -203,7 +203,6 @@ static void runTests(std::map<std::string, CTestCase&>& testCases, std::string s
         if (tc.failed) {
             NLog::error("Test failed!: {}", name);
             testsInfo.failedNames.emplace_back(suiteName + "/" + name);
-            testsInfo.failed += 1;
         } else
             NLog::log("{}Test passed: {}", Colors::GREEN, name);
     }
@@ -212,22 +211,24 @@ static void runTests(std::map<std::string, CTestCase&>& testCases, std::string s
 }
 
 static bool quitTests(STestsInfo tInfo) {
-    NLog::info("dispatching exit");
+    NLog::alert("dispatching exit");
     getFromSocket("/dispatch hl.dsp.exit()");
 
-    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failed, Colors::RESET, tInfo.total);
-    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failed, Colors::RESET, tInfo.total);
-    if (!tInfo.failedNames.empty()) {
-        NLog::log("{}Failed tests:", Colors::RED);
+    auto failed = tInfo.failedNames.size();
+
+    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - failed, Colors::RESET, tInfo.total);
+    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, failed, Colors::RESET, tInfo.total);
+    if (failed > 0) {
+        NLog::error("Failed tests:");
         for (const auto& name : tInfo.failedNames) {
-            NLog::log("{}\t- {}", Colors::RED, name);
+            NLog::error("\t- {}", name);
         }
     }
 
     kill(hyprlandProc->pid(), SIGKILL);
     hyprlandProc.reset();
 
-    return tInfo.failed > 0;
+    return failed > 0;
 }
 
 int main(int argc, char** argv, char** envp) {
@@ -249,7 +250,7 @@ int main(int argc, char** argv, char** envp) {
             NLog::log("{}ERROR: '{}' Invalid test name", Colors::RED, test);
     }
 
-    NLog::info("launching hl");
+    NLog::alert("launching hl");
     if (!launchHyprland(settings.configPath, settings.binaryPath)) {
         NLog::error("well it failed");
         return 1;
@@ -257,14 +258,14 @@ int main(int argc, char** argv, char** envp) {
 
     // hyprland has launched, let's check if it's alive after 10s
     std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    NLog::info("slept for 10s");
+    NLog::alert("slept for 10s");
     if (!hyprlandAlive()) {
         NLog::error("Hyprland failed to launch!");
         return 1;
     }
 
     // wonderful, we are in. Let's get the instance signature.
-    NLog::info("trying to get INSTANCES");
+    NLog::alert("trying to get INSTANCES");
     const auto INSTANCES = instances();
     if (INSTANCES.empty()) {
         NLog::error("Hyprland failed to launch (2)");
@@ -274,7 +275,7 @@ int main(int argc, char** argv, char** envp) {
     HIS       = INSTANCES.back().id;
     WLDISPLAY = INSTANCES.back().wlSocket;
 
-    NLog::info("trying to get create headless output");
+    NLog::alert("trying to get create headless output");
     const auto CREATE_HEADLESS_2 = getFromSocket("/output create headless HEADLESS-2");
     if (CREATE_HEADLESS_2 != "ok" && CREATE_HEADLESS_2 != "Name already taken") {
         NLog::error("Failed to create HEADLESS-2: {}", CREATE_HEADLESS_2);
@@ -282,14 +283,14 @@ int main(int argc, char** argv, char** envp) {
         return 1;
     }
 
-    NLog::info("trying to load plugin");
+    NLog::alert("trying to load plugin");
     if (const auto R = getFromSocket(std::format("/plugin load {}", settings.pluginPath.string())); R != "ok") {
         NLog::error("Failed to load the test plugin: {}", R);
         getFromSocket("/dispatch hl.dsp.exit()");
         return 1;
     }
 
-    NLog::info("Loaded plugin");
+    NLog::alert("Loaded plugin");
 
     struct STestsInfo tInfo = {0};
 
@@ -299,13 +300,13 @@ int main(int argc, char** argv, char** envp) {
         std::exit(quitTests(tInfo));
     }
 
-    NLog::info("Running misc tests");
+    NLog::alert("Running misc tests");
     runTests(miscTestCases, "misc", tInfo);
 
-    NLog::info("Running main tests");
+    NLog::alert("Running main tests");
     runTests(mainTestCases, "main", tInfo);
 
-    NLog::info("Running protocol client tests");
+    NLog::alert("Running protocol client tests");
     runTests(clientTestCases, "clients", tInfo);
 
     return quitTests(tInfo);

@@ -275,37 +275,44 @@ SUBTEST(multimonBAF) {
         EXPECT_CONTAINS(str, "workspace ID 3 ");
     }
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1', on_current_monitor = true })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2', on_current_monitor = true })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '3', on_current_monitor = true })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '4', on_current_monitor = true })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2', on_current_monitor = true })"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2', on_current_monitor = true })"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT_CONTAINS(str, "workspace ID 4 ");
+        EXPECT_CONTAINS(str, "workspace ID 2 ");
         EXPECT_CONTAINS(str, "on monitor HEADLESS-3");
     }
 
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '2', on_current_monitor = true })"));
 
     {
         auto str = getFromSocket("/activeworkspace");
-        EXPECT_CONTAINS(str, "workspace ID 4 ");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
         EXPECT_CONTAINS(str, "on monitor HEADLESS-3");
     }
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '3', on_current_monitor = true })"));
-    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '3', on_current_monitor = true })"));
 
     {
         auto str = getFromSocket("/activeworkspace");
         EXPECT_CONTAINS(str, "workspace ID 1 ");
+        EXPECT_CONTAINS(str, "on monitor HEADLESS-2");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
+        EXPECT_CONTAINS(str, "on monitor HEADLESS-3");
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = '1', on_current_monitor = true })"));
+
+    {
+        auto str = getFromSocket("/activeworkspace");
+        EXPECT_CONTAINS(str, "workspace ID 3 ");
         EXPECT_CONTAINS(str, "on monitor HEADLESS-2");
     }
 

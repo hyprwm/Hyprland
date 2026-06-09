@@ -449,6 +449,38 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
+
+std::unordered_set<PHLWINDOW> CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
+    
+    
+    std::unordered_set<PHLWINDOW> listOfWindowsInWorkspace;
+
+    if (!m_space) {
+        listOfWindowsInWorkspace.clear();
+        return listOfWindowsInWorkspace;
+    }
+
+    for (auto const& t : m_space->targets()) {
+        if (!t)
+            continue;
+
+        const auto visibilityFulfilled =
+            t->window() && !t->window()->isHidden() && !t->window()->isInputBlocked(INPUT_BLOCK_GROUP_INACTIVE | INPUT_BLOCK_MONOCLE_INACTIVE | INPUT_BLOCK_BELOW_FULLSCREEN);
+
+        if (onlyTiled.has_value() && t->floating() == onlyTiled.value())
+            continue;
+        if (onlyPinned.has_value() && (!t->window() || t->window()->m_pinned != onlyPinned.value()))
+            continue;
+        if (onlyVisible.has_value() && (!t->window() || visibilityFulfilled != onlyVisible.value()))
+            continue;
+        if (const auto WINDOW = t->window(); WINDOW)
+            listOfWindowsInWorkspace.emplace(WINDOW);
+    }
+
+    return listOfWindowsInWorkspace;
+}
+
+
 int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
 

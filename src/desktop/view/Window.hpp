@@ -118,10 +118,6 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-    struct SFullscreenState {
-        eFullscreenMode internal = FSMODE_NONE;
-        eFullscreenMode client   = FSMODE_NONE;
-    };
 
     class CWindow : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
       public:

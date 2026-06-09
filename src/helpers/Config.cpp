@@ -450,7 +450,6 @@ std::optional<std::string> cleanCmdForWorkspace(const std::string& inWorkspaceNa
     return std::nullopt;
 }
 
-
 bool truthy(const std::string& str) {
     if (str == "1")
         return true;

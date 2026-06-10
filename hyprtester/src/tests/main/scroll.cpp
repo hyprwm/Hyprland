@@ -1088,11 +1088,11 @@ TEST_CASE(testScrollInhibitor) {
 
     NLog::log("{}Testing inhibit_scroll", Colors::GREEN);
 
-    KITTY("a");
+    SPAWN_KITTY("a");
 
     OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
 
-    KITTY("b");
+    SPAWN_KITTY("b");
     // Currently, we are focused on window class:b
 
     // enable scroll inhibitor
@@ -1127,9 +1127,7 @@ TEST_CASE(layoutRuleExpand) {
     const int         sizeSingleX = std::stoi(sizeSingle.substr(0, sizeSingle.find(',')));
 
     for (auto const& win : {"b", "c"}) {
-        if (!Tests::spawnKitty(win)) {
-            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
-        }
+        SPAWN_KITTY(win);
     }
 
     OK(getFromSocket("dispatch hl.dsp.window.resize({x = 100, y = 500, window = 'class:a'})"));
@@ -1146,11 +1144,9 @@ TEST_CASE(layoutRuleExpand) {
     const int         sizeAfterX = std::stoi(sizeAfter.substr(0, sizeAfter.find(',')));
 
     if (sizeAfterX >= sizeSingleX - 200) {
-        NLog::log("{}Passed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::GREEN, Colors::RESET, sizeSingleX - 200,
-                  sizeAfterX);
+        PASS_TEST("Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", sizeSingleX - 200, sizeAfterX);
     } else {
-        FAIL_TEST("{}Failed: {}Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", Colors::RED, Colors::RESET, sizeSingleX - 200, sizeAfterX);
-        return;
+        FAIL_TEST("Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", sizeSingleX - 200, sizeAfterX);
     }
 }
 TEST_CASE(scrollTapeOnClickOutOfWindow) {
@@ -1163,8 +1159,8 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     OK(getFromSocket("r/eval hl.config({ scrolling = { follow_min_visible = 1.0, column_width = 0.6 } })"));
     OK(getFromSocket("r/eval hl.config({ input = { follow_mouse = 1 } })"));
 
-    KITTY("A"); // A should be at x negative
-    KITTY("B");
+    SPAWN_KITTY("A"); // A should be at x negative
+    SPAWN_KITTY("B");
 
     OK(getFromSocket("/eval hl.plugin.test.window_soft_focus('A')"));     // soft focus A
     OK(getFromSocket("/dispatch hl.dsp.cursor.move({ x = 0, y = 20 })")); // move cursor to the gap zone
@@ -1196,16 +1192,16 @@ TEST_CASE(properFocusBehvaior) {
     auto        test = [&] {
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
 
-        Tests::spawnKitty("a");
+        SPAWN_KITTY("a");
         Tests::waitUntilWindowsN(1);
 
         OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-3' })"));
 
-        Tests::spawnKitty("b");
+        SPAWN_KITTY("b");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:b' })"));
-        Tests::spawnKitty("c");
+        SPAWN_KITTY("c");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:c' })"));
-        Tests::spawnKitty("d");
+        SPAWN_KITTY("d");
         OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:d' })"));
 
         Tests::waitUntilWindowsN(4);

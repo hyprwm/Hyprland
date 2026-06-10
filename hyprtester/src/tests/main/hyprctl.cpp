@@ -171,3 +171,8 @@ TEST_CASE(hyprctlJsonErrors) {
     jqProc.runSync();
     EXPECT(jqProc.exitCode(), 0);
 }
+
+TEST_CASE(hyprctlREPL) {
+    EXPECT(getCommandStdOut("hyprctl repl 'print(type(hl))'"), "table");
+    EXPECT(getCommandStdOut("hyprctl eval 'print(type(hl))'"), "ok");
+}

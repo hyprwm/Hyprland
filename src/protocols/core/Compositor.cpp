@@ -124,7 +124,10 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
             m_pending.size = tfs / m_pending.scale;
         }
 
-        m_pending.damage.intersect(CBox{{}, m_pending.size});
+        if (m_pending.size.x <= 0 || m_pending.size.y <= 0)
+            m_pending.damage.clear();
+        else
+            m_pending.damage.intersect(CBox{{}, m_pending.size});
 
         m_events.precommit.emit();
         if (m_pending.rejected) {

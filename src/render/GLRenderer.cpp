@@ -10,7 +10,7 @@
 #include "../protocols/core/DataDevice.hpp"
 #include "../protocols/core/Compositor.hpp"
 #include "../debug/Overlay.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/SurfacePassElement.hpp"
 #include "../debug/log/Logger.hpp"

@@ -5,7 +5,7 @@
 #include "../managers/SeatManager.hpp"
 #include "../managers/ANRManager.hpp"
 #include "../managers/eventLoop/EventLoopManager.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "core/Seat.hpp"
 #include "core/Compositor.hpp"
 #include "../desktop/DesktopTypes.hpp"

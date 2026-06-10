@@ -1,7 +1,7 @@
 #include "ColorManagement.hpp"
 #include "Compositor.hpp"
 #include "color-management-v1.hpp"
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "core/Output.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include <cstdint>
@@ -871,7 +871,7 @@ void CColorManagementProtocol::onImagePreferredChanged(uint32_t preferredId) {
     }
 }
 
-void CColorManagementProtocol::onMonitorImageDescriptionChanged(WP<CMonitor> monitor) {
+void CColorManagementProtocol::onMonitorImageDescriptionChanged(PHLMONITORREF monitor) {
     for (auto const& output : m_outputs) {
         if (output->m_output && output->m_output->m_monitor == monitor)
             output->m_resource->sendImageDescriptionChanged();

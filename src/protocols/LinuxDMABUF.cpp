@@ -14,6 +14,7 @@
 #include "../render/OpenGL.hpp"
 #include "../Compositor.hpp"
 #include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 using namespace Hyprutils::OS;
 
@@ -461,7 +462,7 @@ CLinuxDMABufV1Protocol::CLinuxDMABufV1Protocol(const wl_interface* iface, const 
             // this assumes there's only 1 device used for both scanout and rendering
             // also that each monitor never changes its primary plane
 
-            for (auto const& mon : g_pCompositor->m_monitors) {
+            for (auto const& mon : State::monitorState()->monitors()) {
                 auto tranche = SDMABUFTranche{
                     .device  = m_mainDevice,
                     .flags   = ZWP_LINUX_DMABUF_FEEDBACK_V1_TRANCHE_FLAGS_SCANOUT,

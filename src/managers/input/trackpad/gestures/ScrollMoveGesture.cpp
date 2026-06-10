@@ -2,7 +2,7 @@
 
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../desktop/Workspace.hpp"
-#include "../../../../helpers/Monitor.hpp"
+#include "../../../../output/Monitor.hpp"
 #include "../../../../layout/LayoutManager.hpp"
 #include "../../../../layout/algorithm/Algorithm.hpp"
 #include "../../../../layout/algorithm/tiled/scrolling/ScrollingAlgorithm.hpp"

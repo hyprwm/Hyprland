@@ -8,13 +8,14 @@
 #include <ranges>
 #include "Subcompositor.hpp"
 #include "../Viewporter.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../PresentationTime.hpp"
 #include "../DRMSyncobj.hpp"
 #include "../types/DMABuffer.hpp"
 #include "../../render/Renderer.hpp"
 #include "config/ConfigValue.hpp"
 #include "../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../state/MonitorState.hpp"
 #include "protocols/types/SurfaceRole.hpp"
 #include "render/Texture.hpp"
 #include <cstring>
@@ -620,7 +621,7 @@ PImageDescription CWLSurfaceResource::getPreferredImageDescription() {
         auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
         parent          = subsurface->t1Parent();
     }
-    WP<CMonitor> monitor;
+    PHLMONITORREF monitor;
     if (parent->m_enteredOutputs.size() == 1)
         monitor = parent->m_enteredOutputs[0];
     else if (m_hlSurface.valid() && WINDOW)
@@ -669,7 +670,7 @@ bool CWLSurfaceResource::hasVisibleSubsurface() {
 
 bool CWLSurfaceResource::isTearing() {
     if (m_enteredOutputs.empty() && m_hlSurface) {
-        for (auto& m : g_pCompositor->m_monitors) {
+        for (auto& m : State::monitorState()->monitors()) {
             if (!m || !m->m_enabled)
                 continue;
 

@@ -26,6 +26,7 @@ Feel like the API is missing something you'd like to use in your plugin? Open an
 #include "../defines.hpp"
 #include "../version.h"
 #include "../config/values/types/IValue.hpp"
+#include "../event/EventBus.hpp"
 
 #include <any>
 #include <functional>
@@ -361,6 +362,20 @@ namespace HyprlandAPI {
         returns: true on success. False otherwise.
     */
     APICALL bool removeLuaFunction(HANDLE handle, const std::string& namespace_, const std::string& name);
+
+    /*
+        Add a plugin-owned event that can be used with hl.on("<name>", ...)
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool addEvent(HANDLE handle, SP<Event::CEventBus::CCustomEvent> event);
+
+    /*
+        Remove a plugin-owned event from hl.on("<name>", ...)
+
+        returns: true on success. False otherwise.
+    */
+    APICALL bool removeEvent(HANDLE handle, const std::string& name);
 
 };
 

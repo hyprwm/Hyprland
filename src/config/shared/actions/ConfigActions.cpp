@@ -23,6 +23,7 @@
 #include "../../../layout/algorithm/Algorithm.hpp"
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../../../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include <utility>
 #include <type_traits>
@@ -363,7 +364,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         g_pCompositor->getWindowInDirection(PLASTWINDOW, dir);
 
     if (*PGROUPCYCLE && PLASTWINDOW->m_group) {
-        auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && g_pCompositor->m_monitors.size() == 1;
+        auto isTheOnlyGroupOnWs = !PWINDOWTOCHANGETO && State::monitorState()->monitors().size() == 1;
         if (dir == Math::DIRECTION_LEFT && (PLASTWINDOW != PLASTWINDOW->m_group->head() || isTheOnlyGroupOnWs)) {
             PLASTWINDOW->m_group->moveCurrent(false);
             return {};
@@ -846,7 +847,7 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
     if (PROP == "no_vrr")
         Config::monitorRuleMgr()->ensureVRR();
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (m->m_activeWorkspace)
             m->m_activeWorkspace->m_space->recalculate();
     }
@@ -1080,7 +1081,7 @@ ActionResult Actions::toggleSpecial(PHLWORKSPACE special) {
     bool requestedWorkspaceIsAlreadyOpen = false;
     auto specialOpenOnMonitor            = PMONITOR->activeSpecialWorkspaceID();
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (m->activeSpecialWorkspaceID() == special->m_id) {
             requestedWorkspaceIsAlreadyOpen = true;
             break;
@@ -1159,12 +1160,12 @@ ActionResult Actions::exit() {
 ActionResult Actions::forceRendererReload() {
     bool overAgain = false;
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (!m->m_output)
             continue;
 
         auto rule = Config::monitorRuleMgr()->get(m);
-        if (!m->applyMonitorRule(std::move(rule), true)) {
+        if (!m->applyMonitorRule(std::move(rule))) {
             overAgain = true;
             break;
         }
@@ -1179,24 +1180,24 @@ ActionResult Actions::forceRendererReload() {
 ActionResult Actions::toggleSwallow() {
     PHLWINDOWREF pWindow = Desktop::focusState()->window();
 
-    if (!valid(pWindow) || !valid(pWindow->m_swallowed))
+    if (!valid(pWindow) || !valid(pWindow->m_swallowee))
         return {};
 
-    if (pWindow->m_swallowed->m_currentlySwallowed) {
-        pWindow->m_swallowed->m_currentlySwallowed = false;
-        pWindow->m_swallowed->setHidden(false);
-        g_layoutManager->newTarget(pWindow->m_swallowed->layoutTarget(), pWindow->m_workspace->m_space);
+    if (pWindow->m_swallowee->m_currentlySwallowed) {
+        pWindow->m_swallowee->m_currentlySwallowed = false;
+        pWindow->m_swallowee->setHidden(false);
+        g_layoutManager->newTarget(pWindow->m_swallowee->layoutTarget(), pWindow->m_workspace->m_space);
     } else {
-        pWindow->m_swallowed->m_currentlySwallowed = true;
-        pWindow->m_swallowed->setHidden(true);
-        g_layoutManager->removeTarget(pWindow->m_swallowed->layoutTarget());
+        pWindow->m_swallowee->m_currentlySwallowed = true;
+        pWindow->m_swallowee->setHidden(true);
+        g_layoutManager->removeTarget(pWindow->m_swallowee->layoutTarget());
     }
 
     return {};
 }
 
 ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mon) {
-    for (auto const& m : g_pCompositor->m_realMonitors) {
+    for (auto const& m : State::monitorState()->allMonitors()) {
         if (!m->m_enabled)
             continue;
 

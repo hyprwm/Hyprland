@@ -6,6 +6,7 @@
 #include "../Renderer.hpp"
 #include "../pass/RectPassElement.hpp"
 #include "../pass/TextureMatteElement.hpp"
+#include "../../state/MonitorState.hpp"
 
 CHyprDropShadowDecoration::CHyprDropShadowDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;
@@ -60,7 +61,7 @@ void CHyprDropShadowDecoration::damageEntire() {
 
     CRegion shadowRegion(shadowBox);
 
-    for (auto const& m : g_pCompositor->m_monitors) {
+    for (auto const& m : State::monitorState()->monitors()) {
         if (!g_pHyprRenderer->shouldRenderWindow(PWINDOW, m)) {
             const CRegion monitorRegion({m->m_position, m->m_size});
             shadowRegion.subtract(monitorRegion);

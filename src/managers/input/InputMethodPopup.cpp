@@ -4,7 +4,7 @@
 #include "../../protocols/FractionalScale.hpp"
 #include "../../protocols/InputMethodV2.hpp"
 #include "../../protocols/core/Compositor.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 
 CInputPopup::CInputPopup(SP<CInputMethodPopupV2> popup_) : m_popup(popup_) {

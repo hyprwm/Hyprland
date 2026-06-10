@@ -3,8 +3,7 @@
 #include "LuaObjectHelpers.hpp"
 
 #include "../bindings/LuaBindingsInternal.hpp"
-
-#include "../../../helpers/Monitor.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../desktop/state/FocusState.hpp"
 
 #include <string_view>
@@ -197,7 +196,7 @@ void Objects::CLuaMonitor::setup(lua_State* L) {
     registerMetatable(L, MT, monitorIndex, gcRef<PHLMONITORREF>, monitorEq, monitorToString);
 }
 
-void Objects::CLuaMonitor::push(lua_State* L, PHLMONITOR mon) {
+void Objects::CLuaMonitor::push(lua_State* L, PHLMONITORREF mon) {
     new (lua_newuserdata(L, sizeof(PHLMONITORREF))) PHLMONITORREF(mon ? mon->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

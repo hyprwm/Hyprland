@@ -137,9 +137,9 @@ static int windowIndex(lua_State* L) {
             lua_rawseti(L, -2, i++);
         }
     } else if (key == "swallowing") {
-        const auto swallowed = w->m_swallowed.lock();
-        if (swallowed)
-            Objects::CLuaWindow::push(L, swallowed);
+        const auto swallowee = w->m_swallowee.lock();
+        if (swallowee)
+            Objects::CLuaWindow::push(L, swallowee);
         else
             lua_pushnil(L);
     } else if (key == "focus_history_id")
@@ -244,7 +244,7 @@ void Objects::CLuaWindow::setup(lua_State* L) {
     registerMetatable(L, MT, windowIndex, gcRef<PHLWINDOWREF>, windowEq, windowToString);
 }
 
-void Objects::CLuaWindow::push(lua_State* L, PHLWINDOW w) {
+void Objects::CLuaWindow::push(lua_State* L, PHLWINDOWREF w) {
     new (lua_newuserdata(L, sizeof(PHLWINDOWREF))) PHLWINDOWREF(w ? w->m_self : nullptr);
     luaL_getmetatable(L, MT);
     lua_setmetatable(L, -2);

@@ -1,6 +1,6 @@
 #include "PresentationTime.hpp"
 #include <algorithm>
-#include "../helpers/Monitor.hpp"
+#include "../output/Monitor.hpp"
 #include "../event/EventBus.hpp"
 #include "core/Compositor.hpp"
 #include "core/Output.hpp"

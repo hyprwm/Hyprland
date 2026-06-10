@@ -11,7 +11,7 @@
 #include "../../xwayland/Server.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/cursor/CursorShapeOverrideController.hpp"
-#include "../../helpers/Monitor.hpp"
+#include "../../output/Monitor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../xwayland/Dnd.hpp"
 #include "../../event/EventBus.hpp"

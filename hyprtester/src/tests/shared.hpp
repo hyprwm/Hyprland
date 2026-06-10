@@ -13,6 +13,7 @@ namespace Tests {
     bool                                                       processAlive(pid_t pid);
     int                                                        windowCount();
     int                                                        countOccurrences(const std::string& in, const std::string& what);
+    void                                                       sync(int rounds = 3);
     bool                                                       killAllWindows();
     void                                                       waitUntilWindowsN(int n);
     int                                                        layerCount();

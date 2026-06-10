@@ -53,6 +53,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../managers/PointerManager.hpp"
 #include "../../managers/animation/DesktopAnimationManager.hpp"
+#include "../../managers/KeybindManager.hpp"
 #include "../../layout/algorithm/Algorithm.hpp"
 #include "../../layout/space/Space.hpp"
 #include "../../layout/LayoutManager.hpp"
@@ -455,7 +456,7 @@ void CWindow::updateToplevel() {
 }
 
 void CWindow::updateSurfaceScaleTransformDetails(bool force) {
-    if (!m_isMapped || m_hidden || g_pCompositor->m_unsafeState)
+    if (!m_isMapped || m_hidden)
         return;
 
     const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastSurfaceMonitorID);
@@ -539,10 +540,10 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         Event::bus()->m_events.window.moveToWorkspace.emit(m_self.lock(), pWorkspace);
     }
 
-    if (const auto SWALLOWED = m_swallowed.lock()) {
-        if (SWALLOWED->m_currentlySwallowed) {
-            SWALLOWED->moveToWorkspace(pWorkspace);
-            SWALLOWED->m_monitor = m_monitor;
+    if (const auto SWALLOWEE = m_swallowee.lock()) {
+        if (SWALLOWEE->m_currentlySwallowed) {
+            SWALLOWEE->moveToWorkspace(pWorkspace);
+            SWALLOWEE->m_monitor = m_monitor;
         }
     }
 
@@ -1518,7 +1519,7 @@ void CWindow::warpCursor(bool force) {
         g_pCompositor->warpCursorTo(middle(), force);
 }
 
-PHLWINDOW CWindow::getSwallower() {
+PHLWINDOW CWindow::getSwallowee() {
     static auto PSWALLOWREGEX   = CConfigValue<std::string>("misc:swallow_regex");
     static auto PSWALLOWEXREGEX = CConfigValue<std::string>("misc:swallow_exception_regex");
     static auto PSWALLOW        = CConfigValue<Config::INTEGER>("misc:enable_swallow");
@@ -1809,7 +1810,7 @@ void CWindow::updateDecorationValues() {
 
     const bool IS_SHADOWED_BY_MODAL = m_xdgSurface && m_xdgSurface->m_toplevel && m_xdgSurface->m_toplevel->anyChildModal();
 
-    const bool GROUPLOCKED = m_group ? m_group->locked() : false;
+    const bool GROUPLOCKED = m_group ? m_group->locked() || g_pKeybindManager->m_groupsLocked : g_pKeybindManager->m_groupsLocked;
     if (m_self == Desktop::focusState()->window()) {
         const auto* const ACTIVECOLOR = !m_group ? (!(m_groupRules & GROUP_DENY) ? ACTIVECOL : NOGROUPACTIVECOL) : (GROUPLOCKED ? GROUPACTIVELOCKEDCOL : GROUPACTIVECOL);
         setBorderColor(m_ruleApplicator->activeBorderColor().valueOr(*ACTIVECOLOR));
@@ -2216,11 +2217,14 @@ void CWindow::mapWindow() {
 
     PMONITOR = m_monitor.lock();
 
-    // Verify window swallowing. Get the swallower before calling onWindowCreated(m_self.lock()) because getSwallower() wouldn't get it after if m_self.lock() gets auto grouped.
-    const auto SWALLOWER = getSwallower();
-    m_swallowed          = SWALLOWER;
-    if (m_swallowed)
-        m_swallowed->m_currentlySwallowed = true;
+    // Verify window swallowing. Get the swallowee before calling onWindowCreated(m_self.lock()) because getSwallowee() wouldn't get it after if m_self.lock() gets auto grouped.
+    const auto SWALLOWEE = getSwallowee();
+    // m_hasSwallower prevents secondary windows to swallow the parent when it's been unswallowed with `toggleswallow`.
+    if (SWALLOWEE && !SWALLOWEE->m_hasSwallower) {
+        SWALLOWEE->m_currentlySwallowed = true;
+        SWALLOWEE->m_hasSwallower       = true;
+        m_swallowee                     = SWALLOWEE;
+    }
 
     // emit the IPC event before the layout might focus the window to avoid a focus event first
     g_pEventManager->postEvent(SHyprIPCEvent{"openwindow", std::format("{:x},{},{},{}", m_self.lock(), PWORKSPACE->m_name, m_class, m_title)});
@@ -2356,9 +2360,9 @@ void CWindow::mapWindow() {
     }
 
     // swallow
-    if (SWALLOWER) {
-        g_layoutManager->removeTarget(SWALLOWER->layoutTarget());
-        SWALLOWER->setHidden(true);
+    if (m_swallowee) {
+        g_layoutManager->removeTarget(SWALLOWEE->layoutTarget());
+        SWALLOWEE->setHidden(true);
     }
 
     m_firstMap = false;
@@ -2439,19 +2443,20 @@ void CWindow::unmapWindow() {
         g_pHyprRenderer->makeSnapshot(m_self.lock());
 
     // swallowing
-    if (valid(m_swallowed)) {
-        if (m_swallowed->m_currentlySwallowed) {
-            m_swallowed->m_currentlySwallowed = false;
-            m_swallowed->setHidden(false);
+    if (const auto SWALLOWEE = m_swallowee.lock()) {
+        if (SWALLOWEE->m_isMapped && SWALLOWEE->m_currentlySwallowed) {
+            SWALLOWEE->m_currentlySwallowed = false;
+            SWALLOWEE->setHidden(false);
 
             if (m_group)
-                m_swallowed->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
+                SWALLOWEE->m_groupSwallowed = true; // flag for the swallowed window to be created into the group where it belongs when auto_group = false.
 
-            g_layoutManager->newTarget(m_swallowed->layoutTarget(), m_workspace->m_space);
+            g_layoutManager->newTarget(SWALLOWEE->layoutTarget(), m_workspace->m_space);
         }
 
-        m_swallowed->m_groupSwallowed = false;
-        m_swallowed.reset();
+        SWALLOWEE->m_groupSwallowed = false;
+        SWALLOWEE->m_hasSwallower   = false;
+        m_swallowee.reset();
     }
 
     bool      wasLastWindow = false;

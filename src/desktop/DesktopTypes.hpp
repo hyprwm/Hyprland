@@ -2,11 +2,14 @@
 #include "../helpers/memory/Memory.hpp"
 
 class CWorkspace;
-class CMonitor;
 
 namespace Desktop::View {
     class CWindow;
     class CLayerSurface;
+}
+
+namespace Monitor {
+    class CMonitor;
 }
 
 /* Shared pointer to a workspace */
@@ -25,6 +28,6 @@ using PHLLS = SP<Desktop::View::CLayerSurface>;
 using PHLLSREF = WP<Desktop::View::CLayerSurface>;
 
 /* Shared pointer to a monitor */
-using PHLMONITOR = SP<CMonitor>;
+using PHLMONITOR = SP<Monitor::CMonitor>;
 /* Weak pointer to a monitor */
-using PHLMONITORREF = WP<CMonitor>;
+using PHLMONITORREF = WP<Monitor::CMonitor>;

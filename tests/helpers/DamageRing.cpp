@@ -1,6 +1,8 @@
-#include <helpers/DamageRing.hpp>
+#include <output/DamageRing.hpp>
 
 #include <gtest/gtest.h>
+
+using namespace Monitor;
 
 // --- setSize ---
 

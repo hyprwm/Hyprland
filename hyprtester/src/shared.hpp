@@ -248,4 +248,10 @@ class CTestCase {
             return;                                                                                                                                                                \
     } while (0)
 
+#define KITTY(class_)                                                                                                                                                              \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnKitty(class_))                                                                                                                                            \
+            FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
+    } while (0)
+
 #define OK(x) ASSERT(x, "ok")

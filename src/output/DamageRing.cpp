@@ -11,7 +11,17 @@ void CDamageRing::setSize(const Vector2D& size_) {
     damageEntire();
 }
 
+bool CDamageRing::damage(const CBox& box) {
+    if (m_size.x <= 0 || m_size.y <= 0 || box.w <= 0 || box.h <= 0)
+        return false;
+
+    return damage(CRegion{box});
+}
+
 bool CDamageRing::damage(const CRegion& rg) {
+    if (m_size.x <= 0 || m_size.y <= 0)
+        return false;
+
     CRegion clipped = rg.copy().intersect(CBox{{}, m_size});
     if (clipped.empty())
         return false;
@@ -32,6 +42,9 @@ void CDamageRing::rotate() {
 }
 
 CRegion CDamageRing::getBufferDamage(int age) {
+    if (m_size.x <= 0 || m_size.y <= 0)
+        return {};
+
     if (age <= 0 || age > DAMAGE_RING_PREVIOUS_LEN + 1)
         return CBox{{}, m_size};
 

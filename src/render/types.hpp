@@ -121,6 +121,7 @@ namespace Render {
         std::array<std::array<double, 3>, 3> convertMatrix;
 
         bool                                 needsTonemap    = false;
+        int                                  tonemapMode     = 1; // 1 - default, 2 - clamp, 3 - limited
         float                                maxLuminance    = 80;
         float                                dstMaxLuminance = 80;
         std::array<std::array<double, 3>, 3> dstPrimaries2XYZ;

@@ -7,6 +7,7 @@
 #include "../../../desktop/state/FocusState.hpp"
 #include "../../../protocols/types/ContentType.hpp"
 #include "../../../config/shared/parserUtils/ParserUtils.hpp"
+#include "desktop/rule/windowRule/WindowRuleEffectContainer.hpp"
 
 #include <hyprutils/string/Numeric.hpp>
 #include <hyprutils/string/String.hpp>
@@ -279,6 +280,17 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_SUPPRESSEVENT: return parseStringList(raw);
 
         case WINDOW_RULE_EFFECT_CONTENT: return sc<int64_t>(NContentType::fromString(raw));
+        case WINDOW_RULE_EFFECT_TONEMAP: {
+            if (raw == "1" || raw == "on")
+                return 1;
+            if (raw == "0" || raw == "off")
+                return 0;
+            if (raw == "clamp")
+                return 2;
+            if (raw == "limited")
+                return 3;
+            return 1;
+        };
 
         case WINDOW_RULE_EFFECT_NOCLOSEFOR:
         case WINDOW_RULE_EFFECT_BORDER_SIZE: {

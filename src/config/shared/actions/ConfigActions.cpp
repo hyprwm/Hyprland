@@ -1197,6 +1197,9 @@ ActionResult Actions::toggleSwallow() {
 }
 
 ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mon) {
+    if (action > TOGGLE_ACTION_DISABLE)
+        return actionError("Invalid DPMS action");
+
     for (auto const& m : State::monitorState()->allMonitors()) {
         if (!m->m_enabled)
             continue;
@@ -1204,7 +1207,7 @@ ActionResult Actions::dpms(eTogglableAction action, std::optional<PHLMONITOR> mo
         if (mon.has_value() && m != mon.value())
             continue;
 
-        bool enable;
+        bool enable = false;
         switch (action) {
             case TOGGLE_ACTION_TOGGLE: enable = !m->m_dpmsStatus; break;
             case TOGGLE_ACTION_ENABLE: enable = true; break;

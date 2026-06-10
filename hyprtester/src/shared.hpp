@@ -107,9 +107,9 @@ class CTestCase {
 
 #define PASS_TEST(fmt, ...)                                                                                                                                                        \
     do {                                                                                                                                                                           \
-        NLog::info("Passed:{} " fmt, Colors::RESET __VA_OPT__(,) __VA_ARGS__);                                                                                                    \
+        NLog::info("Passed:{} " fmt, Colors::RESET __VA_OPT__(, ) __VA_ARGS__);                                                                                                    \
         return;                                                                                                                                                                    \
-    } while(0);
+    } while (0);
 
 #define LOG_OK(fmt, ...)                                                                                                                                                           \
     do {                                                                                                                                                                           \

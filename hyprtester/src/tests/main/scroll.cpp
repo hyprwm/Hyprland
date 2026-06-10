@@ -510,7 +510,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     // If the scrolling view did not move, the x value for `at:` of the currently focused windows, class:c, must be <0 (must be left of the viewport)
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {
@@ -644,7 +644,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'b' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {
@@ -769,7 +769,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be < 0.
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {
@@ -801,7 +801,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
     } else {
@@ -848,7 +848,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {
@@ -894,7 +894,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
     } else {
@@ -935,7 +935,7 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
     // The viewport must not have moved: left corner cords of window should be < 0
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    
+
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {
@@ -973,7 +973,7 @@ TEST_CASE(testScrollInhibitor) {
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    
+
     if (posAx < 0) {
         PASS_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
     } else {

@@ -126,11 +126,11 @@ static int ctxRow(lua_State* L) {
 static int ctxSplit(lua_State* L) {
     CBox area;
     if (!boxFromTable(L, 2, area))
-        return Config::Lua::Bindings::Internal::configError(L, "ctx:split expects a box table as first argument");
+        return Bindings::Internal::configError(L, "ctx:split expects a box table as first argument");
 
-    const auto side = Config::Lua::Bindings::Check::string(L, 1);
+    const auto side = Bindings::Check::string(L, 3);
     if (!side)
-        return Config::Lua::Bindings::Internal::configError(L, std::format("split: bad argument 1: {}", side.error()));
+        return Bindings::Internal::configError(L, std::format("split: bad argument 1: {}", side.error()));
     const auto ratio = Bindings::Check::number(L, 4);
     if (!ratio)
         return Bindings::Internal::configError(L, std::format("split: bad argument 4: {}", ratio.error()));
@@ -146,7 +146,7 @@ static int ctxSplit(lua_State* L) {
     else if (*side == "bottom" || *side == "down")
         pushBox(L, CBox{area.x, area.y + area.h * (1.0 - clampedRatio), area.w, area.h * clampedRatio}.noNegativeSize());
     else
-        return Config::Lua::Bindings::Internal::configError(L, "ctx:split side must be left, right, top, or bottom");
+        return Bindings::Internal::configError(L, "ctx:split side must be left, right, top, or bottom");
 
     return 1;
 }

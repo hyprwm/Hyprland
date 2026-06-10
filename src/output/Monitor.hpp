@@ -160,6 +160,9 @@ namespace Monitor {
         PHLANIMVAR<float> m_specialDim;
         PHLANIMVAR<float> m_specialBlur;
 
+        // for workspace rule background blur
+        PHLANIMVAR<float> m_workspaceRuleBlurAlpha;
+
         // for dpms off anim
         PHLANIMVAR<float> m_dpmsBlackOpacity;
         bool              m_pendingDpmsAnimation        = false;
@@ -273,6 +276,7 @@ namespace Monitor {
         float        getDefaultScale();
         void         changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void         setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus = false);
+        void         updateWorkspaceRuleBlur();
         PHLWORKSPACE getCurrentWorkspace();
         void         scheduleDone();
         uint32_t     isSolitaryBlocked(bool full = false);
@@ -415,6 +419,11 @@ namespace Monitor {
             CHyprSignalListener presented;
             CHyprSignalListener commit;
             CHyprSignalListener commitResult;
+            CHyprSignalListener windowOpen;
+            CHyprSignalListener windowDestroy;
+            CHyprSignalListener windowMoveWorkspace;
+            CHyprSignalListener workspaceMoveMonitor;
+            CHyprSignalListener configReloaded;
         } m_listeners;
 
         int   m_supportsWideColor = 0;

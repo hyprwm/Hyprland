@@ -107,7 +107,7 @@ class CTestCase {
 
 #define PASS_TEST(fmt, ...)                                                                                                                                                        \
     do {                                                                                                                                                                           \
-        NLog::info("Passed:{} " fmt, Colors::RESET, __VA_ARGS__);                                                                                                                               \
+        NLog::info("Passed:{} " fmt, Colors::RESET __VA_OPT__(,) __VA_ARGS__);                                                                                                    \
         return;                                                                                                                                                                    \
     } while(0);
 
@@ -254,10 +254,16 @@ class CTestCase {
             return;                                                                                                                                                                \
     } while (0)
 
-#define SPAWN_KITTY(class_)                                                                                                                                                              \
+#define SPAWN_KITTY(class_)                                                                                                                                                        \
     do {                                                                                                                                                                           \
         if (!Tests::spawnKitty(class_))                                                                                                                                            \
             FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
+    } while (0)
+
+#define SPAWN_LAYER_KITTY(class_)                                                                                                                                                  \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnLayerKitty(class_))                                                                                                                                       \
+            FAIL_TEST("Could not spawn layer kitty with class: {}", class_);                                                                                                       \
     } while (0)
 
 #define OK(x) ASSERT(x, "ok")

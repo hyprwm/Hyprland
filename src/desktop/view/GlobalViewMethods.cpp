@@ -17,6 +17,9 @@ using namespace Desktop::View;
 std::vector<SP<IView>> View::getViewsForWorkspace(PHLWORKSPACE ws) {
     std::vector<SP<IView>> views;
 
+    if (!ws)
+        return views;
+
     for (const auto& w : g_pCompositor->m_windows) {
         if (!w->aliveAndVisible() || w->m_workspace != ws)
             continue;

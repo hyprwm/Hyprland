@@ -155,6 +155,9 @@ namespace Monitor {
         // for special fade/blur
         PHLANIMVAR<float> m_specialFade;
 
+        // for workspace rule background blur
+        PHLANIMVAR<float> m_workspaceRuleBlurAlpha;
+
         // for dpms off anim
         PHLANIMVAR<float> m_dpmsBlackOpacity;
         bool              m_pendingDpmsAnimation        = false;
@@ -268,6 +271,9 @@ namespace Monitor {
         void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
         void        setSpecialWorkspace(const WORKSPACEID& id);
+        void        updateWorkspaceRuleBlur();
+        void        moveTo(const Vector2D& pos);
+        Vector2D    middle();
         WORKSPACEID activeWorkspaceID();
         WORKSPACEID activeSpecialWorkspaceID();
         void        scheduleDone();
@@ -414,6 +420,11 @@ namespace Monitor {
             CHyprSignalListener needsFrame;
             CHyprSignalListener presented;
             CHyprSignalListener commit;
+            CHyprSignalListener windowOpen;
+            CHyprSignalListener windowDestroy;
+            CHyprSignalListener windowMoveWorkspace;
+            CHyprSignalListener workspaceMoveMonitor;
+            CHyprSignalListener configReloaded;
         } m_listeners;
 
         int   m_supportsWideColor = 0;

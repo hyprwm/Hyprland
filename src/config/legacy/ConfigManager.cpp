@@ -1743,6 +1743,9 @@ std::optional<std::string> CConfigManager::handleWorkspaceRules(const std::strin
         } else if ((delim = rule.find("persistent:")) != std::string::npos) {
             CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 11)))
             wsRule.m_isPersistent = *X;
+        } else if ((delim = rule.find("blur:")) != std::string::npos) {
+            CHECK_OR_THROW(ParserUtils::parseInt(rule.substr(delim + 5)))
+            wsRule.m_blur = *X;
         } else if ((delim = rule.find("defaultName:")) != std::string::npos)
             wsRule.m_defaultName = trim(rule.substr(delim + 12));
         else if ((delim = rule.find(ruleOnCreatedEmpty)) != std::string::npos) {

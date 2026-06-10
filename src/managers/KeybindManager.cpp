@@ -263,7 +263,7 @@ SP<SKeybind> CKeybindManager::findConflictingKeybind(xkb_keysym_t keysym, uint32
         return nullptr;
 
     for (const auto& k : m_keybinds) {
-        if (!k->enabled || k->shadowed || k->mouse)
+        if (!k->enabled || k->mouse)
             continue;
         if (!k->submap.name.empty())
             continue;

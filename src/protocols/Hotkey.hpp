@@ -9,17 +9,6 @@
 #include <string>
 #include <xkbcommon/xkbcommon.h>
 
-struct SBoundHotkey {
-    SP<CVicinaeHotkeyV1> resource;
-    xkb_keysym_t         keysym  = XKB_KEY_NoSymbol;
-    uint32_t             modmask = 0; // HL_MODIFIER_* bits
-    std::string          appid;
-    std::string          description;
-    bool                 bound    = false;
-    bool                 held     = false;
-    uint32_t             heldCode = 0;
-};
-
 // hotkeys are owned by the protocol, not this manager, so they outlive it
 class CVicinaeHotkeyManager {
   public:
@@ -45,6 +34,17 @@ class CHotkeyProtocol : public IWaylandProtocol {
     void revokeConflicting();
 
   private:
+    struct SBoundHotkey {
+        SP<CVicinaeHotkeyV1> resource;
+        xkb_keysym_t         keysym  = XKB_KEY_NoSymbol;
+        uint32_t             modmask = 0; // HL_MODIFIER_* bits
+        std::string          appid;
+        std::string          description;
+        bool                 bound    = false;
+        bool                 held     = false;
+        uint32_t             heldCode = 0;
+    };
+
     void onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
     void destroyManager(CVicinaeHotkeyManager* mgr);
     bool comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);

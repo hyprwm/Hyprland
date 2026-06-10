@@ -53,6 +53,7 @@
 #include "../../../helpers/Color.hpp"
 #include "../../../helpers/math/Expression.hpp"
 #include "../../../render/Renderer.hpp"
+#include "../../../output/Monitor.hpp"
 #include "../../../ipc/s2/S2.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../pointer/PointerController.hpp"
@@ -592,6 +593,9 @@ void CWindow::onMap() {
 
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
+
+    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
+        PMONITOR->updateWorkspaceRuleBlur();
 
     if (hidden)
         m_events.hide.emit();

@@ -11,13 +11,13 @@ static constexpr uint32_t RELEVANT_MODS = HL_MODIFIER_SHIFT | HL_MODIFIER_CTRL |
 
 static uint32_t           protoModsToHL(uint32_t mods) {
     uint32_t out = 0;
-    if (mods & EXT_HOTKEY_MANAGER_V1_MODIFIERS_SHIFT)
+    if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_SHIFT)
         out |= HL_MODIFIER_SHIFT;
-    if (mods & EXT_HOTKEY_MANAGER_V1_MODIFIERS_CTRL)
+    if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_CTRL)
         out |= HL_MODIFIER_CTRL;
-    if (mods & EXT_HOTKEY_MANAGER_V1_MODIFIERS_ALT)
+    if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_ALT)
         out |= HL_MODIFIER_ALT;
-    if (mods & EXT_HOTKEY_MANAGER_V1_MODIFIERS_SUPER)
+    if (mods & VICINAE_HOTKEY_MANAGER_V1_MODIFIERS_SUPER)
         out |= HL_MODIFIER_META;
     return out;
 }
@@ -40,18 +40,18 @@ static std::string keybindLabel(const SP<SKeybind>& k) {
     return k->handler;
 }
 
-CExtHotkeyManager::CExtHotkeyManager(SP<CExtHotkeyManagerV1> resource_) : m_resource(resource_) {
+CVicinaeHotkeyManager::CVicinaeHotkeyManager(SP<CVicinaeHotkeyManagerV1> resource_) : m_resource(resource_) {
     if UNLIKELY (!good())
         return;
 
-    m_resource->setOnDestroy([this](CExtHotkeyManagerV1*) { PROTO::hotkey->destroyManager(this); });
-    m_resource->setDestroy([this](CExtHotkeyManagerV1*) { PROTO::hotkey->destroyManager(this); });
+    m_resource->setOnDestroy([this](CVicinaeHotkeyManagerV1*) { PROTO::hotkey->destroyManager(this); });
+    m_resource->setDestroy([this](CVicinaeHotkeyManagerV1*) { PROTO::hotkey->destroyManager(this); });
 
-    m_resource->setBind([this](CExtHotkeyManagerV1* mgr, uint32_t id, uint32_t keysym, extHotkeyManagerV1Modifiers mods, wl_resource* seat, const char* appid,
+    m_resource->setBind([this](CVicinaeHotkeyManagerV1* mgr, uint32_t id, uint32_t keysym, vicinaeHotkeyManagerV1Modifiers mods, wl_resource* seat, const char* appid,
                                const char* description) { PROTO::hotkey->onBind(m_resource, id, (xkb_keysym_t)keysym, (uint32_t)mods, appid, description); });
 }
 
-bool CExtHotkeyManager::good() {
+bool CVicinaeHotkeyManager::good() {
     return m_resource->resource();
 }
 
@@ -60,7 +60,7 @@ CHotkeyProtocol::CHotkeyProtocol(const wl_interface* iface, const int& ver, cons
 }
 
 void CHotkeyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, uint32_t id) {
-    const auto RESOURCE = m_managers.emplace_back(makeShared<CExtHotkeyManager>(makeShared<CExtHotkeyManagerV1>(client, ver, id)));
+    const auto RESOURCE = m_managers.emplace_back(makeShared<CVicinaeHotkeyManager>(makeShared<CVicinaeHotkeyManagerV1>(client, ver, id)));
 
     if UNLIKELY (!RESOURCE->good()) {
         wl_client_post_no_memory(client);
@@ -69,7 +69,7 @@ void CHotkeyProtocol::bindManager(wl_client* client, void* data, uint32_t ver, u
     }
 }
 
-void CHotkeyProtocol::destroyManager(CExtHotkeyManager* mgr) {
+void CHotkeyProtocol::destroyManager(CVicinaeHotkeyManager* mgr) {
     // hotkeys outlive their manager
     std::erase_if(m_managers, [&](const auto& other) { return other.get() == mgr; });
 }
@@ -82,9 +82,9 @@ bool CHotkeyProtocol::comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask) 
     return false;
 }
 
-void CHotkeyProtocol::onBind(SP<CExtHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description) {
+void CHotkeyProtocol::onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description) {
     auto hk      = makeShared<SBoundHotkey>();
-    hk->resource = makeShared<CExtHotkeyV1>(mgr->client(), mgr->version(), id);
+    hk->resource = makeShared<CVicinaeHotkeyV1>(mgr->client(), mgr->version(), id);
 
     if UNLIKELY (!hk->resource->resource()) {
         mgr->noMemory();
@@ -97,28 +97,29 @@ void CHotkeyProtocol::onBind(SP<CExtHotkeyManagerV1> mgr, uint32_t id, xkb_keysy
     hk->description = description ? description : "";
 
     SBoundHotkey* raw = hk.get();
-    hk->resource->setDestroy([raw](CExtHotkeyV1*) { std::erase_if(PROTO::hotkey->m_hotkeys, [&](const auto& other) { return other.get() == raw; }); });
-    hk->resource->setOnDestroy([raw](CExtHotkeyV1*) { std::erase_if(PROTO::hotkey->m_hotkeys, [&](const auto& other) { return other.get() == raw; }); });
+    hk->resource->setDestroy([raw](CVicinaeHotkeyV1*) { std::erase_if(PROTO::hotkey->m_hotkeys, [&](const auto& other) { return other.get() == raw; }); });
+    hk->resource->setOnDestroy([raw](CVicinaeHotkeyV1*) { std::erase_if(PROTO::hotkey->m_hotkeys, [&](const auto& other) { return other.get() == raw; }); });
 
     m_hotkeys.emplace_back(hk);
 
     if (keysym == XKB_KEY_NoSymbol) {
-        hk->resource->sendDenied(EXT_HOTKEY_V1_DENY_REASON_INVALID, "the keysym is not a valid trigger");
+        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_INVALID, "the keysym is not a valid trigger");
         return;
     }
 
     if (!isValidTrigger(keysym, hk->modmask)) {
-        hk->resource->sendDenied(EXT_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, "a non-latching modifier (Ctrl, Alt or Super) is required unless the trigger is a function key");
+        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_NOT_PERMITTED, "a non-latching modifier (Ctrl, Alt or Super) is required unless the trigger is a function key");
         return;
     }
 
     if (comboTakenByHotkey(keysym, hk->modmask)) {
-        hk->resource->sendDenied(EXT_HOTKEY_V1_DENY_REASON_ALREADY_BOUND, "the combination is already bound by another hotkey");
+        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_ALREADY_BOUND, "the combination is already bound by another hotkey");
         return;
     }
 
     if (const auto CONFLICT = g_pKeybindManager->findConflictingKeybind(keysym, hk->modmask)) {
-        hk->resource->sendDenied(EXT_HOTKEY_V1_DENY_REASON_ALREADY_BOUND, std::format("the combination is reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
+        hk->resource->sendDenied(VICINAE_HOTKEY_V1_DENY_REASON_ALREADY_BOUND,
+                                 std::format("the combination is reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
         return;
     }
 
@@ -170,7 +171,7 @@ void CHotkeyProtocol::revokeConflicting() {
         hk->bound    = false;
         hk->held     = false;
         hk->heldCode = 0;
-        hk->resource->sendRevoked(EXT_HOTKEY_V1_REVOKE_REASON_SUPERSEDED,
+        hk->resource->sendRevoked(VICINAE_HOTKEY_V1_REVOKE_REASON_SUPERSEDED,
                                   std::format("the combination is now reserved by a compositor keybind ({})", keybindLabel(CONFLICT)).c_str());
     }
 }

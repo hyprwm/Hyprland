@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<protocol name="ext_hotkey_v1">
+<protocol name="vicinae_hotkey_v1">
   <copyright>
     Copyright © 2026 Aurelien Brabant
 
@@ -45,7 +45,7 @@
     It is intentionally a thin mechanism. It does NOT define which combinations
     are acceptable: that is policy and belongs to the compositor, expressed
     through the accept/deny channel. It does NOT persist hotkeys: a binding lives
-    only as long as its ext_hotkey_v1 object and the client connection; there is
+    only as long as its vicinae_hotkey_v1 object and the client connection; there is
     no configure or storage step, a binding never outlives the client that created
     it, and reconfiguring is simply destroying a hotkey and binding the new
     combination.
@@ -80,7 +80,7 @@
     regardless of each compositor's policy.
   </description>
 
-  <interface name="ext_hotkey_manager_v1" version="1">
+  <interface name="vicinae_hotkey_manager_v1" version="1">
     <description summary="global hotkey factory">
       This interface is the entry point of the protocol. It is used to request
       global hotkeys.
@@ -129,7 +129,7 @@
         and no rule serves a layout that never produces the keysym; the single
         documented rule is chosen for predictability across compositors.
 
-        The request creates an ext_hotkey_v1 object immediately, but the binding
+        The request creates an vicinae_hotkey_v1 object immediately, but the binding
         is not active yet. The compositor replies asynchronously with either the
         "bound" event (the hotkey is now active) or the "denied" event (the
         request was rejected, with a reason).
@@ -151,7 +151,7 @@
         description is a human-readable, localized description of what the hotkey
 		  does (e.g. "Toggle the launcher"), for display in compositor UI or even in this protocol error messages.
       </description>
-      <arg name="id" type="new_id" interface="ext_hotkey_v1"
+      <arg name="id" type="new_id" interface="vicinae_hotkey_v1"
            summary="the new hotkey object"/>
       <arg name="keysym" type="uint" summary="keysym of the trigger key (see description)"/>
       <arg name="modifiers" type="uint" enum="modifiers"
@@ -165,7 +165,7 @@
     </request>
   </interface>
 
-  <interface name="ext_hotkey_v1" version="1">
+  <interface name="vicinae_hotkey_v1" version="1">
     <description summary="a single global hotkey">
       Represents one requested global hotkey. Its binding is ephemeral: it is
       released when this object is destroyed or when the client disconnects, and

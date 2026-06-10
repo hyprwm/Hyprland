@@ -194,7 +194,7 @@ CProtocolManager::CProtocolManager() {
     PROTO::contentType         = makeUnique<CContentTypeProtocol>(&wp_content_type_manager_v1_interface, 1, "ContentType");
     PROTO::xdgTag              = makeUnique<CXDGToplevelTagProtocol>(&xdg_toplevel_tag_manager_v1_interface, 1, "XDGTag");
     PROTO::xdgBell             = makeUnique<CXDGSystemBellProtocol>(&xdg_system_bell_v1_interface, 1, "XDGBell");
-    PROTO::hotkey              = makeUnique<CHotkeyProtocol>(&ext_hotkey_manager_v1_interface, 1, "Hotkey");
+    PROTO::hotkey              = makeUnique<CHotkeyProtocol>(&vicinae_hotkey_manager_v1_interface, 1, "Hotkey");
     PROTO::extWorkspace        = makeUnique<CExtWorkspaceProtocol>(&ext_workspace_manager_v1_interface, 1, "ExtWorkspace");
     PROTO::extDataDevice       = makeUnique<CExtDataDeviceProtocol>(&ext_data_control_manager_v1_interface, 1, "ExtDataDevice");
     PROTO::pointerWarp         = makeUnique<CPointerWarpProtocol>(&wp_pointer_warp_v1_interface, 1, "PointerWarp");

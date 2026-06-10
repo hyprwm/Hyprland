@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../defines.hpp"
-#include "ext-hotkey-v1.hpp"
+#include "vicinae-hotkey-v1.hpp"
 #include "./WaylandProtocol.hpp"
 #include "../helpers/signal/Signal.hpp"
 
@@ -10,25 +10,25 @@
 #include <xkbcommon/xkbcommon.h>
 
 struct SBoundHotkey {
-    SP<CExtHotkeyV1> resource;
-    xkb_keysym_t     keysym  = XKB_KEY_NoSymbol;
-    uint32_t         modmask = 0; // HL_MODIFIER_* bits
-    std::string      appid;
-    std::string      description;
-    bool             bound    = false;
-    bool             held     = false;
-    uint32_t         heldCode = 0;
+    SP<CVicinaeHotkeyV1> resource;
+    xkb_keysym_t         keysym  = XKB_KEY_NoSymbol;
+    uint32_t             modmask = 0; // HL_MODIFIER_* bits
+    std::string          appid;
+    std::string          description;
+    bool                 bound    = false;
+    bool                 held     = false;
+    uint32_t             heldCode = 0;
 };
 
 // hotkeys are owned by the protocol, not this manager, so they outlive it
-class CExtHotkeyManager {
+class CVicinaeHotkeyManager {
   public:
-    CExtHotkeyManager(SP<CExtHotkeyManagerV1> resource);
+    CVicinaeHotkeyManager(SP<CVicinaeHotkeyManagerV1> resource);
 
     bool good();
 
   private:
-    SP<CExtHotkeyManagerV1> m_resource;
+    SP<CVicinaeHotkeyManagerV1> m_resource;
 
     friend class CHotkeyProtocol;
 };
@@ -45,16 +45,16 @@ class CHotkeyProtocol : public IWaylandProtocol {
     void revokeConflicting();
 
   private:
-    void                               onBind(SP<CExtHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
-    void                               destroyManager(CExtHotkeyManager* mgr);
-    bool                               comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);
+    void onBind(SP<CVicinaeHotkeyManagerV1> mgr, uint32_t id, xkb_keysym_t keysym, uint32_t protoMods, const char* appid, const char* description);
+    void destroyManager(CVicinaeHotkeyManager* mgr);
+    bool comboTakenByHotkey(xkb_keysym_t keysym, uint32_t modmask);
 
-    std::vector<SP<CExtHotkeyManager>> m_managers;
-    std::vector<SP<SBoundHotkey>>      m_hotkeys;
+    std::vector<SP<CVicinaeHotkeyManager>> m_managers;
+    std::vector<SP<SBoundHotkey>>          m_hotkeys;
 
-    CHyprSignalListener                m_reloadListener;
+    CHyprSignalListener                    m_reloadListener;
 
-    friend class CExtHotkeyManager;
+    friend class CVicinaeHotkeyManager;
 };
 
 namespace PROTO {

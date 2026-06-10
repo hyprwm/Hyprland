@@ -1979,7 +1979,24 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         // Explicit Enable
         else
             inhibitScroll();
-    } else
+    } else if (ARGS[0] == "fit_into_view") {
+        // makes the currently active column complately visible
+
+        const auto PWINDOW = Desktop::focusState()->window();
+
+        if (!PWINDOW)
+            return noTarget("no focused window");
+
+        const auto WDATA = dataFor(PWINDOW->layoutTarget());
+
+        if (!WDATA || m_scrollingData->columns.size() == 0)
+            return stateErr("can't fit: no window or columns");
+
+        m_scrollingData->SScrollingData::centerOrFitCol(WDATA->column.lock());
+        m_scrollingData->recalculate();
+    }
+
+    else
         return invalidArg("no such layoutmsg for scrolling");
 
     return {};

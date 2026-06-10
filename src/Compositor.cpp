@@ -578,6 +578,8 @@ void CCompositor::cleanup() {
     wl_display_destroy_clients(g_pCompositor->m_wlDisplay);
 
     State::monitorState()->finish();
+    State::fallbackState().reset();
+    State::monitorState().reset();
 
     removeAllSignals();
 

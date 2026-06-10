@@ -1,7 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <chrono>
+#include <ctime>
+#include <format>
 #include <string>
+#include <vector>
 
 namespace NSplashes {
     inline const std::vector<std::string> SPLASHES = {
@@ -73,7 +76,26 @@ namespace NSplashes {
         "He was an X11 boy, she was a Wayland girl...",
         "How do I exit vim????",
         "Now with lua, it might as well be awesome.",
-        "Have you ran your daily fastfetch yet?"
+        "Have you ran your daily fastfetch yet?",
+        "Wayland was a mistake. A beautiful, animated mistake.",
+        "Your config has been deprecated preemptively.",
+        "Works on my compositor.",
+        "0 errors, 47 warnings, looks good to me.",
+        "Your terminal opacity is too high.",
+        "Certified keyboard-driven.",
+        "Clicking is optional.",
+        "Rust rewrite scheduled for never.",
+        "Rewrite it in C—what could go wrong?",
+        "Memory safe enough.",
+        "The real desktop was the dotfiles we made along the way.",
+        "Why use defaults when you can spend six hours configuring them?",
+        "Undefined behavior, defined aesthetics.",
+        "Minimalism requires 73 packages.",
+        "Stable is a state of mind.",
+        "Damage tracking is tracking emotional damage.",
+        "\"I don't need a desktop environment\" - person recreating a desktop environment",
+        "\"I can stop ricing whenever I want\" - Hyprland user",
+        "Your config works. Please report this bug.",
         // clang-format on
     };
 
@@ -85,6 +107,11 @@ namespace NSplashes {
         "Santa was here",
         "Make sure to spend some jolly time with those near and dear to you!",
         "Have you checked for christmas presents yet?",
+        "All I want for Christmas is a valid config.",
+        "Walking in a Wayland wonderland.",
+        "Santa uses Arch, by the way.",
+        "Ho ho hold on, recompiling shaders.",
+        "Have yourself a merry little segfault.",
         // clang-format on
     };
 
@@ -106,6 +133,17 @@ namespace NSplashes {
         std::format("{} will be the year of the Linux desktop!", newYear),
         std::format("{} will be the year of the Hyprland desktop!", newYear),
         std::format("Let's make {} even better than {}!", newYear, newYear - 1),
+        "New year, new config errors.",
+        "New year, same dotfiles.",
+        "Resolution: 3840x2160.",
+        "My New Year's resolution is fractional scaling.",
+        "Starting the year with a clean build directory.",
+        "This year I will finally document my config.",
+        "Another year of the Linux desktop begins.",
+        "New year, new rice.",
+        "May your frames be high and your latency low.",
+        "Cheers to twelve more months of breaking changes.",
+
         // clang-format on
     };
 };

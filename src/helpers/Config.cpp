@@ -392,7 +392,7 @@ PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
 
     const auto PCURRENTWS = PMONITOR->m_activeWorkspace;
 
-    auto ws = resolveWorkspace(args);
+    auto       ws = resolveWorkspace(args);
     if (!ws)
         return nullptr;
 

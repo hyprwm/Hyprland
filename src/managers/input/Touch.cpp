@@ -6,6 +6,7 @@
 #include "../../desktop/state/FocusState.hpp"
 #include "../../config/ConfigValue.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../devices/ITouch.hpp"
 #include "../../event/EventBus.hpp"
 #include "../SeatManager.hpp"
@@ -28,7 +29,7 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
     if (info.cancelled)
         return;
 
-    auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
+    auto PMONITOR = State::monitorState()->query().name(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "").run();
 
     PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
@@ -169,7 +170,7 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         return;
     }
     if (m_touchData.touchFocusLockSurface) {
-        const auto PMONITOR     = g_pCompositor->getMonitorFromID(m_touchData.touchFocusLockSurface->iMonitorID);
+        const auto PMONITOR     = State::monitorState()->query().id(m_touchData.touchFocusLockSurface->iMonitorID).run();
         const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
         const auto LOCAL        = TOUCH_COORDS - PMONITOR->m_position;
         g_pSeatManager->sendTouchMotion(e.timeMs, e.touchID, LOCAL);

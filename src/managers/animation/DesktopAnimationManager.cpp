@@ -12,6 +12,7 @@
 
 #include "../../output/Monitor.hpp"
 #include "../../Compositor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "wlr-layer-shell-unstable-v1.hpp"
 
@@ -123,7 +124,7 @@ void CDesktopAnimationManager::startAnimation(PHLLS ls, eAnimationType type, boo
         // get closest edge
         const auto MIDDLE = ls->m_geometry.middle();
 
-        const auto PMONITOR = g_pCompositor->getMonitorFromVector(MIDDLE);
+        const auto PMONITOR = State::monitorState()->query().vec(MIDDLE).run();
 
         if (!PMONITOR) { // can rarely happen on exit
             ls->m_alpha->setValueAndWarp(IN ? 1.F : 0.F);

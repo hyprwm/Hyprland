@@ -11,6 +11,7 @@
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../state/MonitorState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -401,7 +402,7 @@ void CMasterAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection dir
 
     if (!PWINDOW2 && t->space() && t->space()->workspace()) {
         // try to find a monitor in dir
-        const auto PMONINDIR = g_pCompositor->getMonitorInDirection(t->space()->workspace()->m_monitor.lock(), dir);
+        const auto PMONINDIR = State::monitorState()->query().relativeTo(t->space()->workspace()->m_monitor.lock()).inDirection(dir).run();
         if (PMONINDIR)
             targetWs = PMONINDIR->m_activeWorkspace;
     } else

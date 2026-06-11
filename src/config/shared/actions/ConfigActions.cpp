@@ -355,7 +355,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
     const auto  PLASTWINDOW = Desktop::focusState()->window();
     if (!PLASTWINDOW || !PLASTWINDOW->aliveAndVisible()) {
         if (*PMONITORFALLBACK)
-            tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir));
+            tryMoveFocusToMonitor(State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).inDirection(dir).run());
         return {};
     }
 
@@ -379,7 +379,7 @@ ActionResult Actions::moveFocus(Math::eDirection dir) {
         return {};
     }
 
-    if (*PMONITORFALLBACK && tryMoveFocusToMonitor(g_pCompositor->getMonitorInDirection(dir)))
+    if (*PMONITORFALLBACK && tryMoveFocusToMonitor(State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).inDirection(dir).run()))
         return {};
 
     static auto PNOFALLBACK = CConfigValue<Config::INTEGER>("general:no_focus_fallback");

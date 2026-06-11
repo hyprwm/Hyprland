@@ -10,6 +10,7 @@
 #include "../../../../desktop/history/WindowHistoryTracker.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
+#include "../../../../state/MonitorState.hpp"
 #include "../../../../event/EventBus.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
@@ -217,7 +218,7 @@ void CMonocleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
         return;
 
     const auto PMONITOR  = t->space()->workspace()->m_monitor.lock();
-    const auto PMONINDIR = g_pCompositor->getMonitorInDirection(PMONITOR, dir);
+    const auto PMONINDIR = State::monitorState()->query().relativeTo(PMONITOR).inDirection(dir).run();
 
     // if we found a monitor, move the window there
     if (PMONINDIR && PMONINDIR != PMONITOR) {

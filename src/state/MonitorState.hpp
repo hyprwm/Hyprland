@@ -4,24 +4,26 @@
 #include <unordered_map>
 #include <aquamarine/output/Output.hpp>
 
+#include "MonitorStateTracker.hpp"
+
 #include "../desktop/DesktopTypes.hpp"
 #include "../helpers/signal/Signal.hpp"
 #include "../SharedDefs.hpp"
 
 namespace State {
-    class CMonitorStateTracker {
+    class CMonitorStateTracker : public IMonitorStateTracker {
       public:
         CMonitorStateTracker();
-        ~CMonitorStateTracker() = default;
+        virtual ~CMonitorStateTracker() override = default;
 
-        const std::vector<PHLMONITOR>& allMonitors() const;
-        const std::vector<PHLMONITOR>& monitors() const;
+        virtual const std::vector<PHLMONITOR>& allMonitors() const override;
+        virtual const std::vector<PHLMONITOR>& monitors() const override;
 
-        void                           add(PHLMONITOR mon);
-        void                           add(SP<Aquamarine::IOutput> output);
-        void                           remove(PHLMONITOR mon);
+        void                                   add(PHLMONITOR mon);
+        void                                   add(SP<Aquamarine::IOutput> output);
+        void                                   remove(PHLMONITOR mon);
 
-        void                           finish();
+        void                                   finish();
 
       private:
         MONITORID                                  getNextAvailableMonitorID(const std::string& name);

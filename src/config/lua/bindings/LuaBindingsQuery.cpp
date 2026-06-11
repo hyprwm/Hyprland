@@ -257,7 +257,7 @@ static int hlGetMonitorAt(lua_State* L) {
         y = *ty;
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D{x, y});
+    const auto PMONITOR = State::monitorState()->query().vec(Vector2D{x, y}).run();
     if (!PMONITOR) {
         lua_pushnil(L);
         return 1;
@@ -268,7 +268,7 @@ static int hlGetMonitorAt(lua_State* L) {
 }
 
 static int hlGetMonitorAtCursor(lua_State* L) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
     if (!PMONITOR) {
         lua_pushnil(L);
         return 1;

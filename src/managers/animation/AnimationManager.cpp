@@ -135,7 +135,7 @@ static void handleUpdate(CAnimatedVariable<VarType>& av, bool warp) {
         if (!ws->m_monitor.lock())
             return;
     } else if (auto ls = av.m_Context.pLayer.lock()) {
-        if (!g_pCompositor->getMonitorFromVector(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F))
+        if (!State::monitorState()->query().vec(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F).run())
             return;
         animationsDisabled = animationsDisabled || ls->m_ruleApplicator->noanim().valueOrDefault();
     }
@@ -226,7 +226,7 @@ void CHyprAnimationManager::tick() {
                 }
             }
             if (!owner) {
-                auto monitor = g_pCompositor->getMonitorFromVector(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F);
+                auto monitor = State::monitorState()->query().vec(ls->m_realPosition->goal() + ls->m_realSize->goal() / 2.F).run();
                 if (!monitor)
                     continue;
                 owners.emplace_back(SDamageOwner{.layer = ls, .monitor = monitor});

@@ -1755,7 +1755,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     }
 
     if (MODE == "create" || MODE == "add") {
-        if (g_pCompositor->getMonitorFromName(vars[3]))
+        if (State::monitorState()->query().name(vars[3]).run())
             return "A real monitor already uses that name.";
 
         for (auto const& impl : g_pCompositor->m_aqBackend->getImplementations() | std::views::reverse) {
@@ -1778,7 +1778,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
-        const auto PMONITOR = g_pCompositor->getMonitorFromName(vars[2]);
+        const auto PMONITOR = State::monitorState()->query().name(vars[2]).run();
 
         if (!PMONITOR)
             return "output not found";

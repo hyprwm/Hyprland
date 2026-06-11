@@ -32,6 +32,7 @@
 #include "../../config/ConfigManager.hpp"
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../managers/TokenManager.hpp"
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../../managers/ANRManager.hpp"
@@ -459,7 +460,7 @@ void CWindow::updateSurfaceScaleTransformDetails(bool force) {
     if (!m_isMapped || m_hidden)
         return;
 
-    const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastSurfaceMonitorID);
+    const auto PLASTMONITOR = State::monitorState()->query().id(m_lastSurfaceMonitorID).run();
 
     m_lastSurfaceMonitorID = monitorID();
 
@@ -1315,7 +1316,7 @@ void CWindow::onUpdateState() {
     if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
-                const auto monitor = g_pCompositor->getMonitorFromID(requestsID.value());
+                const auto monitor = State::monitorState()->query().id(requestsID.value()).run();
                 g_pCompositor->moveWindowToWorkspaceSafe(m_self.lock(), monitor->m_activeWorkspace);
                 Desktop::focusState()->rawMonitorFocus(monitor);
             }
@@ -1484,7 +1485,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
     if (!m_workspace || !m_workspace->isVisible())
         return; // further things are only for visible windows
 
-    const auto monitorByRequestedPosition = g_pCompositor->getMonitorFromVector(m_realPosition->goal() + m_realSize->goal() / 2.f);
+    const auto monitorByRequestedPosition = State::monitorState()->query().vec(m_realPosition->goal() + m_realSize->goal() / 2.f).run();
     const auto currentMonitor             = m_workspace->m_monitor.lock();
 
     Log::logger->log(
@@ -1926,7 +1927,7 @@ void CWindow::mapWindow() {
 
     auto        PMONITOR = Desktop::focusState()->monitor();
     if (!Desktop::focusState()->monitor()) {
-        Desktop::focusState()->rawMonitorFocus(g_pCompositor->getMonitorFromVector({}));
+        Desktop::focusState()->rawMonitorFocus(State::monitorState()->query().vec({}).run());
         PMONITOR = Desktop::focusState()->monitor();
     }
     if (!PMONITOR || (!PMONITOR->m_activeSpecialWorkspace && !PMONITOR->m_activeWorkspace)) {
@@ -2010,9 +2011,10 @@ void CWindow::mapWindow() {
             if (MONITORSTR == "unset")
                 m_monitor = PMONITOR;
             else {
-                const auto ARGPOS  = MONITORSTR.find_last_of(' ');
-                monitorSilent      = ARGPOS != std::string::npos && MONITORSTR.substr(ARGPOS).contains("silent");
-                const auto MONITOR = g_pCompositor->getMonitorFromString(monitorSilent ? MONITORSTR.substr(0, ARGPOS) : MONITORSTR);
+                const auto ARGPOS = MONITORSTR.find_last_of(' ');
+                monitorSilent     = ARGPOS != std::string::npos && MONITORSTR.substr(ARGPOS).contains("silent");
+                const auto MONITOR =
+                    State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(monitorSilent ? MONITORSTR.substr(0, ARGPOS) : MONITORSTR).run();
 
                 if (MONITOR) {
                     m_monitor = MONITOR;
@@ -2200,7 +2202,7 @@ void CWindow::mapWindow() {
     if (m_suppressedEvents & Desktop::View::SUPPRESS_FULLSCREEN_OUTPUT)
         requestedFSMonitor = MONITOR_INVALID;
     else if (requestedFSMonitor != MONITOR_INVALID) {
-        if (const auto PM = g_pCompositor->getMonitorFromID(requestedFSMonitor); PM)
+        if (const auto PM = State::monitorState()->query().id(requestedFSMonitor).run(); PM)
             m_monitor = PM;
 
         const auto PMONITORFROMID = m_monitor.lock();
@@ -2720,7 +2722,7 @@ void CWindow::unmanagedSetGeometry() {
         m_position = m_realPosition->goal();
         m_size     = m_realSize->goal();
 
-        m_workspace = g_pCompositor->getMonitorFromVector(m_realPosition->value() + m_realSize->value() / 2.f)->m_activeWorkspace;
+        m_workspace = State::monitorState()->query().vec(m_realPosition->value() + m_realSize->value() / 2.f).run()->m_activeWorkspace;
 
         g_pCompositor->changeWindowZOrder(m_self.lock(), true);
         updateWindowDecos();

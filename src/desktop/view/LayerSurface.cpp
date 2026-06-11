@@ -20,7 +20,7 @@ using namespace Desktop::View;
 PHLLS CLayerSurface::create(SP<CLayerShellResource> resource) {
     PHLLS pLS = SP<CLayerSurface>(new CLayerSurface(resource));
 
-    auto  pMonitor = resource->m_monitor.empty() ? Desktop::focusState()->monitor() : g_pCompositor->getMonitorFromName(resource->m_monitor);
+    auto  pMonitor = resource->m_monitor.empty() ? Desktop::focusState()->monitor() : State::monitorState()->query().name(resource->m_monitor).run();
 
     pLS->m_wlSurface->assign(resource->m_surface.lock(), pLS);
 

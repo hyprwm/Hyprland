@@ -6,6 +6,7 @@
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/history/WorkspaceHistoryTracker.hpp"
 #include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
 #include "../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "fs/FsUtils.hpp"
 #include <optional>
@@ -158,7 +159,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         std::set<WORKSPACEID> invalidWSes;
         if (same_mon) {
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule.m_monitor).run();
                 if (PMONITOR && (PMONITOR->m_id != Desktop::focusState()->monitor()->m_id))
                     invalidWSes.insert(rule.m_workspaceId);
             }
@@ -238,7 +239,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 }
             }
             for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(rule.m_monitor);
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule.m_monitor).run();
                 if (!PMONITOR || PMONITOR->m_id == Desktop::focusState()->monitor()->m_id) {
                     // Can't be invalid
                     continue;

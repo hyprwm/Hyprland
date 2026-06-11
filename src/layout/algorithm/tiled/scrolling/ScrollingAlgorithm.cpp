@@ -14,6 +14,8 @@
 #include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
+#include "../../../../helpers/Config.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>

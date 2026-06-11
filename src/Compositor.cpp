@@ -9,6 +9,8 @@
 #include "desktop/history/WindowHistoryTracker.hpp"
 #include "desktop/history/WorkspaceHistoryTracker.hpp"
 #include "desktop/view/Group.hpp"
+#include "helpers/Config.hpp"
+#include "helpers/MiscFunctions.hpp"
 #include "helpers/Splashes.hpp"
 #include "helpers/SystemInfo.hpp"
 #include "config/ConfigValue.hpp"

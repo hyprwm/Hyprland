@@ -1,6 +1,6 @@
 #include "LayerRule.hpp"
 #include "../../../debug/log/Logger.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
+#include "../../../helpers/Config.hpp"
 #include "../../view/LayerSurface.hpp"
 
 #include <algorithm>

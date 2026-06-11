@@ -14,6 +14,7 @@
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
+#include <hyprutils/os/FileDescriptor.hpp>
 
 class CWLSurfaceResource;
 struct SWorkspaceRule;

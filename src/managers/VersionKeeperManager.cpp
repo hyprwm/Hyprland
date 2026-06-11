@@ -2,7 +2,6 @@
 #include "../debug/log/Logger.hpp"
 #include "../macros.hpp"
 #include "../version.h"
-#include "../helpers/MiscFunctions.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "eventLoop/EventLoopManager.hpp"
 #include "../config/ConfigValue.hpp"

@@ -9,6 +9,8 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
+#include "../../../../helpers/MiscFunctions.hpp"
+#include "../../../../helpers/Config.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>

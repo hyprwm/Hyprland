@@ -3,7 +3,7 @@
 #include "../DesktopTypes.hpp"
 #include "../../SharedDefs.hpp"
 #include "../../macros.hpp"
-#include "../../helpers/MiscFunctions.hpp"
+#include "../../helpers/Config.hpp"
 
 #include <deque>
 

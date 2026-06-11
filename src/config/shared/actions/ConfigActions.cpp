@@ -969,63 +969,6 @@ ActionResult Actions::changeWorkspace(PHLWORKSPACE ws) {
     return {};
 }
 
-static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
-    static auto PBACKANDFORTH = CConfigValue<Config::INTEGER>("binds:workspace_back_and_forth");
-
-    const auto  PMONITOR = Desktop::focusState()->monitor();
-    if (!PMONITOR)
-        return nullptr;
-
-    const auto PCURRENTWORKSPACE = PMONITOR->m_activeWorkspace;
-    if (!PCURRENTWORKSPACE)
-        return nullptr;
-
-    const bool EXPLICITPREVIOUS = args.contains("previous");
-
-    // handle "previous" workspace
-    if (args.starts_with("previous")) {
-        const bool             PER_MON = args.contains("_per_monitor");
-        const SWorkspaceIDName PPREVWS = PER_MON ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR) :
-                                                   Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
-        if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_id)
-            return nullptr;
-
-        auto ws = g_pCompositor->getWorkspaceByID(PPREVWS.id);
-        if (!ws)
-            ws = g_pCompositor->createNewWorkspace(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
-        return ws;
-    }
-
-    const auto& [workspaceToChangeTo, workspaceName, isAutoID] = getWorkspaceIDNameFromString(args);
-    if (workspaceToChangeTo == WORKSPACE_INVALID || workspaceToChangeTo == WORKSPACE_NOT_CHANGED)
-        return nullptr;
-
-    // back_and_forth: if switching to current workspace, go to previous
-    if (workspaceToChangeTo == PCURRENTWORKSPACE->m_id && (*PBACKANDFORTH || EXPLICITPREVIOUS)) {
-        const SWorkspaceIDName PPREVWS = args.contains("_per_monitor") ? Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE, PMONITOR) :
-                                                                         Desktop::History::workspaceTracker()->previousWorkspaceIDName(PCURRENTWORKSPACE);
-        if (PPREVWS.id == -1)
-            return nullptr;
-
-        auto ws = g_pCompositor->getWorkspaceByID(PPREVWS.id);
-        if (!ws)
-            ws = g_pCompositor->createNewWorkspace(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
-        return ws;
-    }
-
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
-    if (!ws)
-        ws = g_pCompositor->createNewWorkspace(workspaceToChangeTo, PMONITOR->m_id, workspaceName);
-    return ws;
-}
-
-ActionResult Actions::changeWorkspace(const std::string& ws) {
-    auto p = resolveWorkspaceForChange(ws);
-    if (!p)
-        return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);
-    return Actions::changeWorkspace(p);
-}
-
 ActionResult Actions::renameWorkspace(PHLWORKSPACE ws, const std::string& s) {
     if (!ws)
         return actionError("Bad workspace", eActionErrorLevel::WARNING, eActionErrorCode::NO_TARGET);

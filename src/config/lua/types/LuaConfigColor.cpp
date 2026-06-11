@@ -4,9 +4,7 @@
 #include <format>
 
 #include "../../shared/parserUtils/ParserUtils.hpp"
-
 #include "../../../helpers/Color.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
 
 using namespace Config;
 using namespace Config::Lua;

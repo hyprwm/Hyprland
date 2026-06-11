@@ -3,7 +3,6 @@
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
 #include "DesktopTypes.hpp"
-#include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
 
 namespace Layout {

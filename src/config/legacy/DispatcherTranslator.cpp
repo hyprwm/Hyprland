@@ -10,6 +10,7 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../helpers/Config.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -43,20 +44,6 @@ static std::optional<PHLWINDOW> windowFromArg(const std::string& arg) {
     if (arg.empty() || arg == "active")
         return std::nullopt; // will use xtract(nullopt) -> focused window
     return g_pCompositor->getWindowByRegex(arg);
-}
-
-// helper: resolve workspace from string and optionally create it
-static PHLWORKSPACE resolveWorkspace(const std::string& args) {
-    const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(args);
-    if (id == WORKSPACE_INVALID)
-        return nullptr;
-    auto ws = g_pCompositor->getWorkspaceByID(id);
-    if (!ws) {
-        const auto PMONITOR = Desktop::focusState()->monitor();
-        if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(id, PMONITOR->m_id, name, false);
-    }
-    return ws;
 }
 
 static SDispatchResult exec(const std::string& args) {
@@ -132,7 +119,10 @@ static SDispatchResult pseudo(const std::string& args) {
 }
 
 static SDispatchResult workspace(const std::string& args) {
-    return wrap(Actions::changeWorkspace(args));
+    auto ws = resolveWorkspaceForChange(args);
+    if (!ws)
+        return {.success = false, .error = "Invalid workspace"};
+    return wrap(Actions::changeWorkspace(ws));
 }
 
 static SDispatchResult renameworkspace(const std::string& args) {
@@ -392,7 +382,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
 }
 
 static SDispatchResult focusworkspaceoncurrentmonitor(const std::string& args) {
-    auto ws = resolveWorkspace(args);
+    auto ws = resolveWorkspaceForChange(args);
     if (!ws)
         return {.success = false, .error = "Invalid workspace"};
     return wrap(Actions::changeWorkspaceOnCurrentMonitor(ws));

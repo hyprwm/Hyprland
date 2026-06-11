@@ -3,6 +3,7 @@
 #include "../../Compositor.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/Renderer.hpp"
+#include "../../helpers/Config.hpp"
 #include "InputManager.hpp"
 
 bool CUnifiedWorkspaceSwipeGesture::isGestureInProgress() {

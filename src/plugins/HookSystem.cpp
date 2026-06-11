@@ -2,7 +2,6 @@
 #include "../debug/log/Logger.hpp"
 #include "../helpers/varlist/VarList.hpp"
 #include "../managers/TokenManager.hpp"
-#include "../helpers/MiscFunctions.hpp"
 
 #define register
 #include <udis86.h>
@@ -10,6 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <cstring>
+#include <cmath>
 #include <fstream>
 #include <sys/stat.h>
 #include <sys/types.h>

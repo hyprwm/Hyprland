@@ -4,7 +4,6 @@
 #include <stack>
 #include <vector>
 #include "../SharedDefs.hpp"
-#include "../helpers/MiscFunctions.hpp"
 #include "../helpers/WLClasses.hpp"
 #include <array>
 #include "../helpers/AnimatedVariable.hpp"

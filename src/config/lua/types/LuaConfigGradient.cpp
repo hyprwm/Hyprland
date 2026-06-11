@@ -1,6 +1,5 @@
 #include "LuaConfigGradient.hpp"
 #include "../../shared/parserUtils/ParserUtils.hpp"
-#include "../../../helpers/MiscFunctions.hpp"
 
 #include <numbers>
 

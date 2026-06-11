@@ -3,7 +3,6 @@
 #include "../objects/LuaNotification.hpp"
 #include "../../shared/parserUtils/ParserUtils.hpp"
 
-#include "../../../helpers/MiscFunctions.hpp"
 #include "../../../notification/NotificationOverlay.hpp"
 
 #include <algorithm>

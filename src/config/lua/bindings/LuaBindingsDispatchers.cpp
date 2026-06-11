@@ -9,6 +9,7 @@
 #include "../../../managers/SeatManager.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "../../../helpers/Config.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -460,7 +461,7 @@ static int hlSendKeyState(lua_State* L) {
 }
 
 static int dsp_moveToWorkspace(lua_State* L) {
-    auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
+    auto ws = resolveWorkspace(lua_tostring(L, lua_upvalueindex(1)));
     if (!ws)
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
 
@@ -1089,11 +1090,14 @@ static int dsp_focusCurrentOrLast(lua_State* L) {
 }
 
 static int dsp_changeWorkspace(lua_State* L) {
-    return Internal::checkResult(L, CA::changeWorkspace(std::string(lua_tostring(L, lua_upvalueindex(1)))));
+    auto ws = resolveWorkspaceForChange(lua_tostring(L, lua_upvalueindex(1)));
+    if (!ws)
+        return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
+    return Internal::checkResult(L, CA::changeWorkspace(ws));
 }
 
 static int dsp_focusWorkspaceOnCurrentMonitor(lua_State* L) {
-    auto ws = Internal::resolveWorkspaceStr(lua_tostring(L, lua_upvalueindex(1)));
+    auto ws = resolveWorkspaceForChange(lua_tostring(L, lua_upvalueindex(1)));
     if (!ws)
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
     return Internal::checkResult(L, CA::changeWorkspaceOnCurrentMonitor(ws));

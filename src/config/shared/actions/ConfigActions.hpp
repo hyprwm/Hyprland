@@ -66,7 +66,6 @@ namespace Config::Actions {
     ActionResult setGroupActive(int index, std::optional<PHLWINDOW> window = std::nullopt /* Active */);
 
     ActionResult changeWorkspace(PHLWORKSPACE ws);
-    ActionResult changeWorkspace(const std::string& ws);
     ActionResult renameWorkspace(PHLWORKSPACE ws, const std::string& s);
     ActionResult moveToMonitor(PHLWORKSPACE ws, PHLMONITOR mon);
     ActionResult changeWorkspaceOnCurrentMonitor(PHLWORKSPACE ws);

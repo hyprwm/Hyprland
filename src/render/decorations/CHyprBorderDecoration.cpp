@@ -5,6 +5,7 @@
 #include "../pass/BorderPassElement.hpp"
 #include "../Renderer.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../helpers/MiscFunctions.hpp"
 
 CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
     ;

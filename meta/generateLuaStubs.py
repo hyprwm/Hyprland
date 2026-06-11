@@ -385,7 +385,7 @@ def parse_descriptor_fields(root: Path) -> dict[str, dict[str, str]]:
 def parse_known_events(root: Path) -> list[str]:
     source = read_text(root / "src/config/lua/LuaEventHandler.cpp")
     block_match = re.search(
-        r"static const std::unordered_set<std::string> EVENTS = \{(.*?)\};",
+        r"std::unordered_set<std::string> EVENTS = \{(.*?)\};",
         source,
         flags=re.DOTALL,
     )

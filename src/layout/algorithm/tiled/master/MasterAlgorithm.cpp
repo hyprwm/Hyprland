@@ -20,6 +20,15 @@ using namespace Layout;
 using namespace Layout::Tiled;
 using namespace Hyprutils::String;
 
+// Center-master slaves alternate left/right columns starting on the fallback side, so an odd
+// count puts the extra slave there: left by default, right when extraToRight. calculateWorkspace
+// and resizeTarget must both split via this or they disagree for odd counts. Returns {left, right}.
+static std::pair<int, int> centerSlaveColumns(int slaveCount, bool extraToRight) {
+    const int LARGER  = 1 + (slaveCount - 1) / 2; // ceil, holds the odd one
+    const int SMALLER = slaveCount - LARGER;
+    return extraToRight ? std::pair{SMALLER, LARGER} : std::pair{LARGER, SMALLER};
+}
+
 void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
 }
@@ -309,8 +318,18 @@ void CMasterAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRec
     const auto RESIZEDELTA = isStackVertical ? Δ.y : Δ.x;
 
     auto       nodesInSameColumn = PNODE->isMaster ? MASTERS : STACKWINDOWS;
-    if (orientation == ORIENTATION_CENTER && !PNODE->isMaster)
-        nodesInSameColumn = DISPLAYRIGHT ? (nodesInSameColumn + 1) / 2 : nodesInSameColumn / 2;
+    if (orientation == ORIENTATION_CENTER && !PNODE->isMaster) {
+        static auto CMFALLBACK   = CConfigValue<std::string>("master:center_master_fallback");
+        const bool  EXTRATORIGHT = *CMFALLBACK == "right";
+
+        // slaves alternate columns from the fallback side, so even slave index == fallback side
+        const auto NODEIT     = std::ranges::find(m_masterNodesData, PNODE);
+        const int  SLAVEINDEX = std::count_if(m_masterNodesData.begin(), NODEIT, [](const auto& n) { return !n->isMaster; });
+        const bool ONLEFT     = (SLAVEINDEX % 2 == 0) != EXTRATORIGHT;
+
+        const auto [SLAVESLEFT, SLAVESRIGHT] = centerSlaveColumns(STACKWINDOWS, EXTRATORIGHT);
+        nodesInSameColumn                    = ONLEFT ? SLAVESLEFT : SLAVESRIGHT;
+    }
 
     const auto SIZE = isStackVertical ? WORKAREA.h / nodesInSameColumn : WORKAREA.w / nodesInSameColumn;
 
@@ -1163,22 +1182,16 @@ void CMasterAlgorithm::calculateWorkspace() {
             nextY += HEIGHT;
         }
     } else { // slaves for centered master window(s)
-        const float WIDTH       = ((*PIGNORERESERVED ? UNRESERVED_WIDTH : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
-        float       heightLeft  = 0;
-        float       heightLeftL = WORKAREA.h;
-        float       heightLeftR = WORKAREA.h;
-        float       nextX       = 0;
-        float       nextY       = 0;
-        float       nextYL      = 0;
-        float       nextYR      = 0;
-        bool        onRight     = *CMFALLBACK == "right";
-        int         slavesLeftL = 1 + (slavesLeft - 1) / 2;
-        int         slavesLeftR = slavesLeft - slavesLeftL;
-
-        if (onRight) {
-            slavesLeftR = 1 + (slavesLeft - 1) / 2;
-            slavesLeftL = slavesLeft - slavesLeftR;
-        }
+        const float WIDTH               = ((*PIGNORERESERVED ? UNRESERVED_WIDTH : WORKAREA.w) - PMASTERNODE->size.x) / 2.0;
+        float       heightLeft          = 0;
+        float       heightLeftL         = WORKAREA.h;
+        float       heightLeftR         = WORKAREA.h;
+        float       nextX               = 0;
+        float       nextY               = 0;
+        float       nextYL              = 0;
+        float       nextYR              = 0;
+        bool        onRight             = *CMFALLBACK == "right";
+        auto [slavesLeftL, slavesLeftR] = centerSlaveColumns(slavesLeft, onRight);
 
         const float slaveAverageHeightL     = WORKAREA.h / slavesLeftL;
         const float slaveAverageHeightR     = WORKAREA.h / slavesLeftR;

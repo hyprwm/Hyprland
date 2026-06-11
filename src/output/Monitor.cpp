@@ -1258,7 +1258,7 @@ WORKSPACEID CMonitor::findAvailableDefaultWS() {
         if (g_pCompositor->getWorkspaceByID(i))
             continue;
 
-        if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != m_name)
+        if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && !matchesStaticSelector(BOUND))
             continue;
 
         return i;
@@ -1271,10 +1271,11 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
     int64_t     wsID                    = WORKSPACE_INVALID;
-    if (Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name).empty())
+    const auto  DEFAULTWORKSPACE        = Config::workspaceRuleMgr()->getDefaultWorkspaceFor(*this);
+    if (DEFAULTWORKSPACE.empty())
         wsID = findAvailableDefaultWS();
     else {
-        const auto ws           = getWorkspaceIDNameFromString(Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
+        const auto ws           = getWorkspaceIDNameFromString(DEFAULTWORKSPACE);
         wsID                    = ws.id;
         newDefaultWorkspaceName = ws.name;
     }
@@ -1283,8 +1284,7 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
         wsID                    = std::ranges::distance(g_pCompositor->getWorkspaces()) + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
-        Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.",
-                         Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
+        Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", DEFAULTWORKSPACE);
     }
 
     auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);

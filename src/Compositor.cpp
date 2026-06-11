@@ -26,6 +26,7 @@
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
+#include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -2541,112 +2542,18 @@ void CCompositor::checkMonitorOverlaps() {
 }
 
 void CCompositor::arrangeMonitors() {
-    static auto             PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
+    static auto                                   PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
 
-    std::vector<PHLMONITOR> toArrange(State::monitorState()->monitors().begin(), State::monitorState()->monitors().end());
-    std::vector<PHLMONITOR> arranged;
-    arranged.reserve(toArrange.size());
-
-    Log::logger->log(Log::DEBUG, "arrangeMonitors: {} to arrange", toArrange.size());
-
-    for (auto it = toArrange.begin(); it != toArrange.end();) {
-        auto m = *it;
-
-        if (m->m_activeMonitorRule.m_offset != Vector2D{-INT32_MAX, -INT32_MAX}) {
-            // explicit.
-            Log::logger->log(Log::DEBUG, "arrangeMonitors: {} explicit {:j}", m->m_name, m->m_activeMonitorRule.m_offset);
-
-            m->moveTo(m->m_activeMonitorRule.m_offset);
-            arranged.push_back(m);
-            it = toArrange.erase(it);
-
-            if (it == toArrange.end())
-                break;
-
-            continue;
-        }
-
-        ++it;
+    std::vector<SP<Monitor::IMonitorArrangeable>> arrangeableMonitors;
+    arrangeableMonitors.reserve(State::monitorState()->monitors().size());
+    for (const auto& m : State::monitorState()->monitors()) {
+        auto arrangeable = dynamicPointerCast<Monitor::IMonitorArrangeable>(m);
+        RASSERT(arrangeable, "CMonitor does not implement IMonitorArrangeable");
+        arrangeableMonitors.push_back(arrangeable);
     }
 
-    // Variables to store the max and min values of monitors on each axis.
-    int  maxXOffsetRight = 0;
-    int  maxXOffsetLeft  = 0;
-    int  maxYOffsetUp    = 0;
-    int  maxYOffsetDown  = 0;
-
-    auto recalcMaxOffsets = [&]() {
-        maxXOffsetRight = 0;
-        maxXOffsetLeft  = 0;
-        maxYOffsetUp    = 0;
-        maxYOffsetDown  = 0;
-
-        // Finds the max and min values of explicitly placed monitors.
-        for (auto const& m : arranged) {
-            maxXOffsetRight = std::max<double>(m->m_position.x + m->m_size.x, maxXOffsetRight);
-            maxXOffsetLeft  = std::min<double>(m->m_position.x, maxXOffsetLeft);
-            maxYOffsetDown  = std::max<double>(m->m_position.y + m->m_size.y, maxYOffsetDown);
-            maxYOffsetUp    = std::min<double>(m->m_position.y, maxYOffsetUp);
-        }
-    };
-
-    // Iterates through all non-explicitly placed monitors.
-    for (auto const& m : toArrange) {
-        recalcMaxOffsets();
-
-        // Moves the monitor to their appropriate position on the x/y axis and
-        // increments/decrements the corresponding max offset.
-        Vector2D newPosition = {0, 0};
-        switch (m->m_activeMonitorRule.m_autoDir) {
-            case Config::eAutoDirs::DIR_AUTO_UP: newPosition.y = maxYOffsetUp - m->m_size.y; break;
-            case Config::eAutoDirs::DIR_AUTO_DOWN: newPosition.y = maxYOffsetDown; break;
-            case Config::eAutoDirs::DIR_AUTO_LEFT: newPosition.x = maxXOffsetLeft - m->m_size.x; break;
-            case Config::eAutoDirs::DIR_AUTO_RIGHT:
-            case Config::eAutoDirs::DIR_AUTO_NONE: newPosition.x = maxXOffsetRight; break;
-            case Config::eAutoDirs::DIR_AUTO_CENTER_UP: {
-                int width     = maxXOffsetRight - maxXOffsetLeft;
-                newPosition.y = maxYOffsetUp - m->m_size.y;
-                newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
-                break;
-            }
-            case Config::eAutoDirs::DIR_AUTO_CENTER_DOWN: {
-                int width     = maxXOffsetRight - maxXOffsetLeft;
-                newPosition.y = maxYOffsetDown;
-                newPosition.x = maxXOffsetLeft + (width - m->m_size.x) / 2;
-                break;
-            }
-            case Config::eAutoDirs::DIR_AUTO_CENTER_LEFT: {
-                int height    = maxYOffsetDown - maxYOffsetUp;
-                newPosition.x = maxXOffsetLeft - m->m_size.x;
-                newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
-                break;
-            }
-            case Config::eAutoDirs::DIR_AUTO_CENTER_RIGHT: {
-                int height    = maxYOffsetDown - maxYOffsetUp;
-                newPosition.x = maxXOffsetRight;
-                newPosition.y = maxYOffsetUp + (height - m->m_size.y) / 2;
-                break;
-            }
-            default: UNREACHABLE();
-        }
-        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} auto {:j}", m->m_name, m->m_position);
-        m->moveTo(newPosition);
-        arranged.emplace_back(m);
-    }
-
-    // reset maxXOffsetRight (reuse)
-    // and set xwayland positions aka auto for all
-    maxXOffsetRight = 0;
-    for (auto const& m : State::monitorState()->monitors()) {
-        Log::logger->log(Log::DEBUG, "arrangeMonitors: {} xwayland [{}, {}]", m->m_name, maxXOffsetRight, 0);
-        m->m_xwaylandPosition = {maxXOffsetRight, 0};
-        maxXOffsetRight += (*PXWLFORCESCALEZERO ? m->m_transformedSize.x : m->m_size.x);
-
-        if (*PXWLFORCESCALEZERO)
-            m->m_xwaylandScale = m->m_scale;
-        else
-            m->m_xwaylandScale = 1.f;
-    }
+    Log::logger->log(Log::DEBUG, "arrangeMonitors: {} to arrange", arrangeableMonitors.size());
+    State::monitorPositionController()->arrange(arrangeableMonitors, *PXWLFORCESCALEZERO);
 
     PROTO::xdgOutput->updateAllOutputs();
     Event::bus()->m_events.monitor.layoutChanged.emit();

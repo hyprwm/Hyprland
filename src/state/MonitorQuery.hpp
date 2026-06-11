@@ -36,10 +36,6 @@ namespace State {
         PHLMONITOR      run() &&;
 
       private:
-        PHLMONITOR                             closestTo(const Vector2D& vec) const;
-        PHLMONITOR                             directionLookup(PHLMONITOR ref, Math::eDirection dir) const;
-        PHLMONITOR                             fromConfigString(std::string_view sv) const;
-
         const std::vector<PHLMONITOR>&         mons() const;
 
         std::optional<MONITORID>               m_id;

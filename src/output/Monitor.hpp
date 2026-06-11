@@ -9,6 +9,8 @@
 #include <array>
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/CMType.hpp"
+#include "IMonitorArrangeable.hpp"
+#include "IMonitorQueryable.hpp"
 #include "MonitorTypes.hpp"
 
 #include <xf86drmMode.h>
@@ -56,10 +58,10 @@ namespace Monitor {
         CMonitor* m_owner = nullptr;
     };
 
-    class CMonitor {
+    class CMonitor : public IMonitorQueryable, public IMonitorArrangeable {
       public:
         CMonitor(SP<Aquamarine::IOutput> output);
-        ~CMonitor();
+        virtual ~CMonitor() override;
 
         Vector2D                    m_position         = Vector2D(-1, -1); // means unset
         Vector2D                    m_xwaylandPosition = Vector2D(-1, -1); // means unset
@@ -261,18 +263,13 @@ namespace Monitor {
         bool        shouldSkipScheduleFrameOnMouseEvent();
         void        setMirror(const std::string&);
         bool        isMirror();
-        bool        matchesStaticSelector(std::string_view selector) const;
         float       getDefaultScale();
         void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void        setSpecialWorkspace(const PHLWORKSPACE& pWorkspace);
         void        setSpecialWorkspace(const WORKSPACEID& id);
-        void        moveTo(const Vector2D& pos);
-        Vector2D    middle();
         WORKSPACEID activeWorkspaceID();
         WORKSPACEID activeSpecialWorkspaceID();
-        CBox        logicalBox();
-        CBox        logicalBoxMinusReserved();
         void        scheduleDone();
         uint32_t    isSolitaryBlocked(bool full = false);
         void        recheckSolitary();
@@ -288,6 +285,32 @@ namespace Monitor {
         void        onCursorMovedOnMonitor();
         void        setDPMS(bool on);
         bool        shouldUseSoftwareCursors();
+
+        // IMonitorQueryable / IMonitorArrangeable
+        virtual MONITORID                   id() const override;
+        virtual std::string_view            name() const override;
+        virtual std::string_view            description() const override;
+        virtual std::string_view            shortDescription() const override;
+        virtual bool                        matchesStaticSelector(std::string_view selector) const override;
+        virtual Vector2D                    position() const override;
+        virtual Vector2D                    size() const override;
+        virtual Vector2D                    pixelSize() const override;
+        virtual Vector2D                    transformedSize() const override;
+        virtual float                       scale() const override;
+        virtual Hyprutils::Math::eTransform transform() const override;
+        virtual CBox                        logicalBox() const override;
+        virtual CBox                        logicalBoxMinusReserved() const override;
+        virtual Vector2D                    middle() const override;
+        virtual void                        moveTo(const Vector2D& pos) override;
+        virtual bool                        enabled() const override;
+        virtual bool                        hasOutput() const override;
+        virtual SP<Aquamarine::IOutput>     output() const override;
+        virtual std::optional<Vector2D>     explicitPosition() const override;
+        virtual Config::eAutoDirs           autoDirection() const override;
+        virtual Vector2D                    xwaylandPosition() const override;
+        virtual float                       xwaylandScale() const override;
+        virtual void                        setXWaylandPosition(const Vector2D& pos) override;
+        virtual void                        setXWaylandScale(float scale) override;
 
         //
         bool applyMonitorRule(Config::CMonitorRule&& pMonitorRule);

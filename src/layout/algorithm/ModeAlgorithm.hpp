@@ -14,11 +14,6 @@ namespace Layout {
     class ITarget;
     class CAlgorithm;
 
-    struct SFullscreenRequest {
-        SP<ITarget>     target;
-        eFullscreenMode currentEffectiveMode = static_cast<eFullscreenMode>(0);
-        eFullscreenMode effectiveMode        = static_cast<eFullscreenMode>(0);
-    };
 
     class IModeAlgorithm {
       public:

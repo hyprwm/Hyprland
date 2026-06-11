@@ -26,9 +26,6 @@ namespace State {
         void                       clear();
 
         [[nodiscard]] PHLWORKSPACE create(const WORKSPACEID& id, const MONITORID& monid, const std::string& name = "", bool isEmpty = true);
-        PHLWORKSPACE               workspaceByID(const WORKSPACEID& id) const;
-        PHLWORKSPACE               workspaceByName(const std::string& name) const;
-        PHLWORKSPACE               workspaceByString(const std::string& str) const;
         WORKSPACEID                nextAvailableNamedWorkspace() const;
         WORKSPACEID                newSpecialID() const;
         bool                       isSpecial(const WORKSPACEID& id) const;

@@ -78,18 +78,6 @@ PHLWORKSPACE CWorkspaceStateTracker::create(const WORKSPACEID& id, const MONITOR
     return PWORKSPACE;
 }
 
-PHLWORKSPACE CWorkspaceStateTracker::workspaceByID(const WORKSPACEID& id) const {
-    return query().id(id).run();
-}
-
-PHLWORKSPACE CWorkspaceStateTracker::workspaceByName(const std::string& name) const {
-    return query().name(name).run();
-}
-
-PHLWORKSPACE CWorkspaceStateTracker::workspaceByString(const std::string& str) const {
-    return query().string(str).run();
-}
-
 WORKSPACEID CWorkspaceStateTracker::nextAvailableNamedWorkspace() const {
     std::vector<WORKSPACEID> persistentWorkspaceIDs;
 

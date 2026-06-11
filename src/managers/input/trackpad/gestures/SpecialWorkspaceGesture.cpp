@@ -33,7 +33,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     m_lastDelta = 0.F;
     m_monitor.reset();
 
-    m_specialWorkspace = State::workspaceState()->workspaceByName("special:" + m_specialWorkspaceName);
+    m_specialWorkspace = State::workspaceState()->query().name("special:" + m_specialWorkspaceName).run();
 
     if (m_specialWorkspace) {
         m_animatingOut = m_specialWorkspace->isVisible();

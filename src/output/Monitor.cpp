@@ -344,7 +344,7 @@ void CMonitor::onConnect(bool noRule) {
     if (const auto WORKSPACEID = State::workspaceState()->rememberedWorkspaceForMonitor(m_name); WORKSPACEID.has_value()) {
         auto workspaceID = *WORKSPACEID;
         Log::logger->log(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
-        auto ws = State::workspaceState()->workspaceByID(workspaceID);
+        auto ws = State::workspaceState()->query().id(workspaceID).run();
         if (ws) {
             g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
             changeWorkspace(ws, true, false, false);
@@ -1256,7 +1256,7 @@ void CMonitor::setXWaylandScale(float scale_) {
 
 WORKSPACEID CMonitor::findAvailableDefaultWS() {
     for (WORKSPACEID i = 1; i < LONG_MAX; ++i) {
-        if (State::workspaceState()->workspaceByID(i))
+        if (State::workspaceState()->query().id(i).run())
             continue;
 
         if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != m_name)
@@ -1288,7 +1288,7 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
                          Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
     }
 
-    auto PNEWWORKSPACE = State::workspaceState()->workspaceByID(wsID);
+    auto PNEWWORKSPACE = State::workspaceState()->query().id(wsID).run();
 
     Log::logger->log(Log::DEBUG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
 
@@ -1511,7 +1511,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
-    changeWorkspace(State::workspaceState()->workspaceByID(id), internal, noMouseMove, noFocus);
+    changeWorkspace(State::workspaceState()->query().id(id).run(), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
@@ -1665,7 +1665,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 }
 
 void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(State::workspaceState()->workspaceByID(id));
+    setSpecialWorkspace(State::workspaceState()->query().id(id).run());
 }
 
 void CMonitor::moveTo(const Vector2D& pos) {

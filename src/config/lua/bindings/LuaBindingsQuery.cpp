@@ -329,7 +329,7 @@ static int hlGetLastWorkspace(lua_State* L) {
 
     auto ws = previous.workspace.lock();
     if ((!ws || ws->inert()) && previous.id != WORKSPACE_INVALID)
-        ws = State::workspaceState()->workspaceByID(previous.id);
+        ws = State::workspaceState()->query().id(previous.id).run();
 
     if (!ws || ws->inert()) {
         lua_pushnil(L);

@@ -52,7 +52,7 @@ static PHLWORKSPACE resolveWorkspace(const std::string& args) {
     const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(args);
     if (id == WORKSPACE_INVALID)
         return nullptr;
-    auto ws = State::workspaceState()->workspaceByID(id);
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
@@ -143,12 +143,12 @@ static SDispatchResult renameworkspace(const std::string& args) {
         if (FIRSTSPACEPOS != std::string::npos) {
             int         wsid = std::stoi(args.substr(0, FIRSTSPACEPOS));
             std::string name = args.substr(FIRSTSPACEPOS + 1);
-            const auto  PWS  = State::workspaceState()->workspaceByID(wsid);
+            const auto  PWS  = State::workspaceState()->query().id(wsid).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, name));
         } else {
-            const auto PWS = State::workspaceState()->workspaceByID(std::stoi(args));
+            const auto PWS = State::workspaceState()->query().id(std::stoi(args)).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, ""));
@@ -386,7 +386,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     if (WORKSPACEID == WORKSPACE_INVALID)
         return {.success = false, .error = "Invalid workspace"};
 
-    const auto PWORKSPACE = State::workspaceState()->workspaceByID(WORKSPACEID);
+    const auto PWORKSPACE = State::workspaceState()->query().id(WORKSPACEID).run();
     if (!PWORKSPACE)
         return {.success = false, .error = "Workspace not found"};
 
@@ -405,7 +405,7 @@ static SDispatchResult togglespecialworkspace(const std::string& args) {
     if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return {.success = false, .error = "Invalid special workspace"};
 
-    auto ws = State::workspaceState()->workspaceByID(workspaceID);
+    auto ws = State::workspaceState()->query().id(workspaceID).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)

@@ -918,7 +918,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
             return floating(false);
 
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
-        const auto        PWORKSPACE = State::workspaceState()->workspaceByID(WSPID);
+        const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
 
         if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
             const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
@@ -1770,7 +1770,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         if (nextWorkspaceOnMonitorID == WORKSPACE_INVALID) {
             nextWorkspaceOnMonitorID = 1;
 
-            while (State::workspaceState()->workspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool {
+            while (State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run() || [&]() -> bool {
                 const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
                 return B && B != POLDMON;
             }())
@@ -1795,7 +1795,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     for (auto const& w : m_windows) {
         if (w->m_workspace == pWorkspace) {
             if (w->m_pinned) {
-                w->m_workspace = State::workspaceState()->workspaceByID(nextWorkspaceOnMonitorID);
+                w->m_workspace = State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run();
                 continue;
             }
 
@@ -2574,7 +2574,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
                 Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
                 continue;
             }
-            PWORKSPACE = State::workspaceState()->workspaceByID(id);
+            PWORKSPACE = State::workspaceState()->query().id(id).run();
             if (!PMONITOR)
                 PMONITOR = Desktop::focusState()->monitor();
 

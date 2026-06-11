@@ -83,7 +83,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
     }
 
     if (m_delta < 0) {
-        const auto PWORKSPACE = State::workspaceState()->workspaceByID(workspaceIDLeft);
+        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDLeft).run();
 
         if (workspaceIDLeft > m_workspaceBegin->m_id || !PWORKSPACE) {
             if (*PSWIPENEW) {
@@ -105,7 +105,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight && workspaceIDRight != m_workspaceBegin->m_id) {
-            const auto PWORKSPACER = State::workspaceState()->workspaceByID(workspaceIDRight);
+            const auto PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
 
             if (PWORKSPACER) {
                 PWORKSPACER->m_forceRendering = false;
@@ -123,7 +123,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
 
         PWORKSPACE->updateWindowDecos();
     } else {
-        const auto PWORKSPACE = State::workspaceState()->workspaceByID(workspaceIDRight);
+        const auto PWORKSPACE = State::workspaceState()->query().id(workspaceIDRight).run();
 
         if (workspaceIDRight < m_workspaceBegin->m_id || !PWORKSPACE) {
             if (*PSWIPENEW) {
@@ -145,7 +145,7 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
         PWORKSPACE->m_alpha->setValueAndWarp(1.f);
 
         if (workspaceIDLeft != workspaceIDRight && workspaceIDLeft != m_workspaceBegin->m_id) {
-            const auto PWORKSPACEL = State::workspaceState()->workspaceByID(workspaceIDLeft);
+            const auto PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
 
             if (PWORKSPACEL) {
                 PWORKSPACEL->m_forceRendering = false;
@@ -199,8 +199,8 @@ void CUnifiedWorkspaceSwipeGesture::end() {
     if (workspaceIDRight <= m_workspaceBegin->m_id && *PSWIPENEW)
         workspaceIDRight = getWorkspaceIDNameFromString("r+1").id;
 
-    auto         PWORKSPACER = State::workspaceState()->workspaceByID(workspaceIDRight); // not guaranteed if PSWIPENEW || PSWIPENUMBER
-    auto         PWORKSPACEL = State::workspaceState()->workspaceByID(workspaceIDLeft);  // not guaranteed if PSWIPENUMBER
+    auto         PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run(); // not guaranteed if PSWIPENEW || PSWIPENUMBER
+    auto         PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();  // not guaranteed if PSWIPENUMBER
 
     const auto   RENDEROFFSETMIDDLE = m_workspaceBegin->m_renderOffset->value();
     const auto   XDISTANCE          = m_monitor->m_size.x + *PWORKSPACEGAP;
@@ -246,7 +246,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
             m_monitor->changeWorkspace(workspaceIDLeft);
         else {
             m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDLeft, m_monitor->m_id));
-            PWORKSPACEL = State::workspaceState()->workspaceByID(workspaceIDLeft);
+            PWORKSPACEL = State::workspaceState()->query().id(workspaceIDLeft).run();
         }
 
         PWORKSPACEL->m_renderOffset->setValue(RENDEROFFSET);
@@ -272,7 +272,7 @@ void CUnifiedWorkspaceSwipeGesture::end() {
             m_monitor->changeWorkspace(workspaceIDRight);
         else {
             m_monitor->changeWorkspace(State::workspaceState()->create(workspaceIDRight, m_monitor->m_id));
-            PWORKSPACER = State::workspaceState()->workspaceByID(workspaceIDRight);
+            PWORKSPACER = State::workspaceState()->query().id(workspaceIDRight).run();
         }
 
         PWORKSPACER->m_renderOffset->setValue(RENDEROFFSET);

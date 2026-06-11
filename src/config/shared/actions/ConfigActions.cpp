@@ -991,7 +991,7 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_id)
             return nullptr;
 
-        auto ws = State::workspaceState()->workspaceByID(PPREVWS.id);
+        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
         if (!ws)
             ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
         return ws;
@@ -1008,13 +1008,13 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         if (PPREVWS.id == -1)
             return nullptr;
 
-        auto ws = State::workspaceState()->workspaceByID(PPREVWS.id);
+        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
         if (!ws)
             ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
         return ws;
     }
 
-    auto ws = State::workspaceState()->workspaceByID(workspaceToChangeTo);
+    auto ws = State::workspaceState()->query().id(workspaceToChangeTo).run();
     if (!ws)
         ws = State::workspaceState()->create(workspaceToChangeTo, PMONITOR->m_id, workspaceName);
     return ws;

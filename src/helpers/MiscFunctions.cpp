@@ -133,7 +133,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         if (in.length() > 8) {
             const auto NAME = in.substr(8);
-            const auto WS   = State::workspaceState()->workspaceByName("special:" + NAME);
+            const auto WS   = State::workspaceState()->query().name("special:" + NAME).run();
 
             return {WS ? WS->m_id : State::workspaceState()->newSpecialID(), "special:" + NAME};
         }
@@ -142,7 +142,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         return result;
     } else if (in.starts_with("name:")) {
         const auto WORKSPACENAME = in.substr(in.find_first_of(':') + 1);
-        const auto WORKSPACE     = State::workspaceState()->workspaceByName(WORKSPACENAME);
+        const auto WORKSPACE     = State::workspaceState()->query().name(WORKSPACENAME).run();
         if (!WORKSPACE) {
             result.id = State::workspaceState()->nextAvailableNamedWorkspace();
         } else {
@@ -168,7 +168,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
 
         WORKSPACEID id = next ? Desktop::focusState()->monitor()->activeWorkspaceID() : 0;
         while (++id < LONG_MAX) {
-            const auto PWORKSPACE = State::workspaceState()->workspaceByID(id);
+            const auto PWORKSPACE = State::workspaceState()->query().id(id).run();
             if (!invalidWSes.contains(id) && (!PWORKSPACE || PWORKSPACE->getWindows() == 0)) {
                 result.id = id;
                 return result;
@@ -189,7 +189,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
         if (PREVWORKSPACEIDNAME.id == -1)
             return {WORKSPACE_INVALID};
 
-        const auto PLASTWORKSPACE = State::workspaceState()->workspaceByID(PREVWORKSPACEIDNAME.id);
+        const auto PLASTWORKSPACE = State::workspaceState()->query().id(PREVWORKSPACEIDNAME.id).run();
 
         if (!PLASTWORKSPACE) {
             Log::logger->log(Log::DEBUG, "previous workspace {} doesn't exist yet", PREVWORKSPACEIDNAME.id);
@@ -368,9 +368,9 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 result.id = finalWSID;
             }
 
-            const auto PWORKSPACE = State::workspaceState()->workspaceByID(result.id);
+            const auto PWORKSPACE = State::workspaceState()->query().id(result.id).run();
             if (PWORKSPACE)
-                result.name = State::workspaceState()->workspaceByID(result.id)->m_name;
+                result.name = PWORKSPACE->m_name;
             else
                 result.name = std::to_string(result.id);
 
@@ -441,7 +441,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
             }
 
             result.id   = validWSes[currentItem];
-            result.name = State::workspaceState()->workspaceByID(validWSes[currentItem])->m_name;
+            result.name = State::workspaceState()->query().id(validWSes[currentItem]).run()->m_name;
         } else {
             if (in[0] == '+' || in[0] == '-') {
                 if (Desktop::focusState()->monitor()) {
@@ -458,7 +458,7 @@ SWorkspaceIDName getWorkspaceIDNameFromString(const std::string& in) {
                 result.id = std::max(std::stoi(in), 1);
             else {
                 // maybe name
-                const auto PWORKSPACE = State::workspaceState()->workspaceByName(in);
+                const auto PWORKSPACE = State::workspaceState()->query().name(in).run();
                 if (PWORKSPACE)
                     result.id = PWORKSPACE->m_id;
             }

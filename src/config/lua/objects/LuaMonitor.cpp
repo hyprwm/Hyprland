@@ -42,7 +42,7 @@ static int monitorSetWorkspace(lua_State* L) {
     if (id.empty())
         return 0;
 
-    auto ws = State::workspaceState()->workspaceByName(id);
+    auto ws = State::workspaceState()->query().name(id).run();
     if (!ws)
         return 0;
 
@@ -60,7 +60,7 @@ static int monitorSetSpecialWorkspace(lua_State* L) {
         return 0;
     }
 
-    auto ws = State::workspaceState()->workspaceByName(*id);
+    auto ws = State::workspaceState()->query().name(*id).run();
     if (!ws)
         return 0;
 

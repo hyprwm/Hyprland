@@ -1964,7 +1964,7 @@ void CWindow::mapWindow() {
 
                 Log::logger->log(Log::DEBUG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
-                if (State::workspaceState()->workspaceByString(WS.workspace) != m_workspace) {
+                if (State::workspaceState()->query().string(WS.workspace).run() != m_workspace) {
                     requestedWorkspace = WS.workspace;
                     workspaceSilent    = true;
                 }
@@ -2173,7 +2173,7 @@ void CWindow::mapWindow() {
         }
 
         if (requestedWorkspaceID != WORKSPACE_INVALID) {
-            auto pWorkspace = State::workspaceState()->workspaceByID(requestedWorkspaceID);
+            auto pWorkspace = State::workspaceState()->query().id(requestedWorkspaceID).run();
 
             if (!pWorkspace)
                 pWorkspace = State::workspaceState()->create(requestedWorkspaceID, monitorID(), requestedWorkspaceName, false);

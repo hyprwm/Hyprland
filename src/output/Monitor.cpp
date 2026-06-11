@@ -35,6 +35,7 @@
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -297,7 +298,7 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto const& ws : g_pCompositor->getWorkspacesCopy()) {
+    for (auto const& ws : State::workspaceState()->workspacesCopy()) {
         if (!valid(ws))
             continue;
 
@@ -340,10 +341,10 @@ void CMonitor::onConnect(bool noRule) {
 
     Log::logger->log(Log::DEBUG, "checking if we have seen this monitor before: {}", m_name);
     // if we saw this monitor before, set it to the workspace it was on
-    if (g_pCompositor->m_seenMonitorWorkspaceMap.contains(m_name)) {
-        auto workspaceID = g_pCompositor->m_seenMonitorWorkspaceMap[m_name];
+    if (const auto WORKSPACEID = State::workspaceState()->rememberedWorkspaceForMonitor(m_name); WORKSPACEID.has_value()) {
+        auto workspaceID = *WORKSPACEID;
         Log::logger->log(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
-        auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+        auto ws = State::workspaceState()->workspaceByID(workspaceID);
         if (ws) {
             g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
             changeWorkspace(ws, true, false, false);
@@ -391,7 +392,7 @@ void CMonitor::onDisconnect(bool destroy) {
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
         Log::logger->log(Log::DEBUG, "Disconnecting Monitor {} was on workspace {}", m_name, m_activeWorkspace->m_id);
-        g_pCompositor->m_seenMonitorWorkspaceMap[m_name] = m_activeWorkspace->m_id;
+        State::workspaceState()->rememberWorkspaceForMonitor(m_name, m_activeWorkspace->m_id);
     }
 
     // Cleanup everything. Move windows back, snap cursor, shit.
@@ -439,7 +440,7 @@ void CMonitor::onDisconnect(bool destroy) {
     m_renderingInitPassed = false;
 
     std::vector<PHLWORKSPACE> wspToMove;
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->m_monitor == m_self || !w->m_monitor)
             wspToMove.emplace_back(w.lock());
     }
@@ -1255,7 +1256,7 @@ void CMonitor::setXWaylandScale(float scale_) {
 
 WORKSPACEID CMonitor::findAvailableDefaultWS() {
     for (WORKSPACEID i = 1; i < LONG_MAX; ++i) {
-        if (g_pCompositor->getWorkspaceByID(i))
+        if (State::workspaceState()->workspaceByID(i))
             continue;
 
         if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != m_name)
@@ -1280,14 +1281,14 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
     }
 
     if (wsID == WORKSPACE_INVALID || (wsID >= SPECIAL_WORKSPACE_START && wsID <= -2)) {
-        wsID                    = std::ranges::distance(g_pCompositor->getWorkspaces()) + 1;
+        wsID                    = std::ranges::distance(State::workspaceState()->workspaces()) + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
         Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.",
                          Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
     }
 
-    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
+    auto PNEWWORKSPACE = State::workspaceState()->workspaceByID(wsID);
 
     Log::logger->log(Log::DEBUG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
 
@@ -1351,7 +1352,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // move all the WS
         std::vector<PHLWORKSPACE> wspToMove;
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             if (w->m_monitor == m_self || !w->m_monitor)
                 wspToMove.emplace_back(w.lock());
         }
@@ -1406,7 +1407,7 @@ static bool shouldWraparound(const WORKSPACEID id1, const WORKSPACEID id2) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
 
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->m_id < 0 || w->m_isSpecialWorkspace)
             continue;
         lowestID  = std::min(w->m_id, lowestID);
@@ -1510,7 +1511,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
-    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
+    changeWorkspace(State::workspaceState()->workspaceByID(id), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
@@ -1664,7 +1665,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 }
 
 void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
+    setSpecialWorkspace(State::workspaceState()->workspaceByID(id));
 }
 
 void CMonitor::moveTo(const Vector2D& pos) {
@@ -1850,7 +1851,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         }
     }
 
-    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+    for (auto const& ws : State::workspaceState()->workspaces()) {
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
             continue;
 

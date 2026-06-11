@@ -1,6 +1,7 @@
 #include "SpecialWorkspaceGesture.hpp"
 
 #include "../../../../Compositor.hpp"
+#include "../../../../state/WorkspaceState.hpp"
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../render/Renderer.hpp"
 
@@ -32,7 +33,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
     m_lastDelta = 0.F;
     m_monitor.reset();
 
-    m_specialWorkspace = g_pCompositor->getWorkspaceByName("special:" + m_specialWorkspaceName);
+    m_specialWorkspace = State::workspaceState()->workspaceByName("special:" + m_specialWorkspaceName);
 
     if (m_specialWorkspace) {
         m_animatingOut = m_specialWorkspace->isVisible();
@@ -52,7 +53,7 @@ void CSpecialWorkspaceGesture::begin(const ITrackpadGesture::STrackpadGestureBeg
         m_animatingOut = false;
 
         const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + m_specialWorkspaceName);
-        const auto WS                                      = g_pCompositor->createNewWorkspace(workspaceID, m_monitor->m_id, workspaceName);
+        const auto WS                                      = State::workspaceState()->create(workspaceID, m_monitor->m_id, workspaceName);
         m_monitor->setSpecialWorkspace(WS);
         m_specialWorkspace = WS;
     }

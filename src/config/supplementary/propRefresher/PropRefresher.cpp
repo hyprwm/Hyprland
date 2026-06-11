@@ -10,6 +10,7 @@
 #include "../../../layout/space/Space.hpp"
 #include "../../../desktop/rule/Engine.hpp"
 #include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspaceState.hpp"
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
 #include "../../shared/inotify/ConfigWatcher.hpp"
@@ -65,7 +66,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
             if (m_propsTripped & REFRESH_WINDOW_STATES) {
                 Desktop::Rule::ruleEngine()->updateAllRules();
 
-                for (const auto& ws : g_pCompositor->getWorkspaces()) {
+                for (const auto& ws : State::workspaceState()->workspaces()) {
                     if (!ws)
                         continue;
 

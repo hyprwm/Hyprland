@@ -11,6 +11,7 @@
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -51,11 +52,11 @@ static PHLWORKSPACE resolveWorkspace(const std::string& args) {
     const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(args);
     if (id == WORKSPACE_INVALID)
         return nullptr;
-    auto ws = g_pCompositor->getWorkspaceByID(id);
+    auto ws = State::workspaceState()->workspaceByID(id);
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(id, PMONITOR->m_id, name, false);
+            ws = State::workspaceState()->create(id, PMONITOR->m_id, name, false);
     }
     return ws;
 }
@@ -142,12 +143,12 @@ static SDispatchResult renameworkspace(const std::string& args) {
         if (FIRSTSPACEPOS != std::string::npos) {
             int         wsid = std::stoi(args.substr(0, FIRSTSPACEPOS));
             std::string name = args.substr(FIRSTSPACEPOS + 1);
-            const auto  PWS  = g_pCompositor->getWorkspaceByID(wsid);
+            const auto  PWS  = State::workspaceState()->workspaceByID(wsid);
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, name));
         } else {
-            const auto PWS = g_pCompositor->getWorkspaceByID(std::stoi(args));
+            const auto PWS = State::workspaceState()->workspaceByID(std::stoi(args));
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, ""));
@@ -385,7 +386,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     if (WORKSPACEID == WORKSPACE_INVALID)
         return {.success = false, .error = "Invalid workspace"};
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    const auto PWORKSPACE = State::workspaceState()->workspaceByID(WORKSPACEID);
     if (!PWORKSPACE)
         return {.success = false, .error = "Workspace not found"};
 
@@ -401,14 +402,14 @@ static SDispatchResult focusworkspaceoncurrentmonitor(const std::string& args) {
 
 static SDispatchResult togglespecialworkspace(const std::string& args) {
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + args);
-    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID))
+    if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return {.success = false, .error = "Invalid special workspace"};
 
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+    auto ws = State::workspaceState()->workspaceByID(workspaceID);
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->m_id, workspaceName);
+            ws = State::workspaceState()->create(workspaceID, PMONITOR->m_id, workspaceName);
     }
 
     if (!ws)

@@ -96,12 +96,6 @@ namespace Desktop::View {
         INPUT_BLOCK_ALL = std::numeric_limits<std::underlying_type_t<eWindowInputBlockReason>>::max(),
     };
 
-    enum eFullscreenHandler : int8_t {
-        FULLSCREEN_HANDLER_NONE = 0,
-        FULLSCREEN_HANDLER_DEFAULT,
-        FULLSCREEN_HANDLER_SCROLLING,
-    };
-
     struct SWindowActiveEvent {
         PHLWINDOW    window = nullptr;
         eFocusReason reason = sc<eFocusReason>(0) /* unknown */;

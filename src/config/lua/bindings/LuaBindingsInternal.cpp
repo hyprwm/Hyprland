@@ -1,6 +1,7 @@
 #include "LuaBindingsInternal.hpp"
 
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
+#include "../../../state/MonitorState.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -69,7 +70,7 @@ PHLMONITOR Internal::monitorFromLuaSelectorOrObject(lua_State* L, int idx, const
         return ref->lock();
 
     if (lua_isstring(L, idx) || lua_isnumber(L, idx))
-        return g_pCompositor->getMonitorFromString(argStr(L, idx));
+        return State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(argStr(L, idx)).run();
 
     Internal::configError(L, "{}: expected a monitor object or selector", fnName);
     return nullptr;
@@ -400,7 +401,7 @@ PHLWORKSPACE Internal::resolveWorkspaceStr(const std::string& args) {
 }
 
 PHLMONITOR Internal::resolveMonitorStr(const std::string& args) {
-    auto mon = g_pCompositor->getMonitorFromString(args);
+    auto mon = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     return mon;
 }
 

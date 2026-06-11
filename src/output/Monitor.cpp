@@ -1116,7 +1116,7 @@ void CMonitor::clearModeRetry() {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
@@ -1128,7 +1128,7 @@ void CMonitor::addDamage(const CRegion& rg) {
 }
 
 void CMonitor::addDamage(const CBox& box) {
-    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
         return;
@@ -1162,7 +1162,7 @@ bool CMonitor::isMirror() {
     return m_mirrorOf != nullptr;
 }
 
-bool CMonitor::matchesStaticSelector(const std::string& selector) const {
+bool CMonitor::matchesStaticSelector(std::string_view selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
         const auto DESCRIPTIONSELECTOR = trim(selector.substr(5));
@@ -1233,7 +1233,7 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
 }
 
 void CMonitor::setMirror(const std::string& mirrorOf) {
-    const auto PMIRRORMON = g_pCompositor->getMonitorFromString(mirrorOf);
+    const auto PMIRRORMON = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(mirrorOf).run();
 
     if (PMIRRORMON == m_mirrorOf)
         return;
@@ -1546,7 +1546,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             const auto MIDDLE = w->middle();
             if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
-                const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
+                const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
                 Vector2D   pos            = w->m_realPosition->goal();
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
                                  PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {

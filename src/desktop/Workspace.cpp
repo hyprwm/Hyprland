@@ -1,6 +1,7 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
+#include "state/FocusState.hpp"
 #include "../Compositor.hpp"
 #include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
@@ -9,6 +10,7 @@
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
@@ -216,7 +218,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(prop);
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(prop).run();
 
                 if (!(PMONITOR ? PMONITOR == m_monitor : false))
                     return false;

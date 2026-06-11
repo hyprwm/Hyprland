@@ -23,7 +23,7 @@ void CCursorZoomTrackpadGesture::begin(const ITrackpadGesture::STrackpadGestureB
         if (!e.pinch)
             return;
 
-        m_monitor = g_pCompositor->getMonitorFromCursor();
+        m_monitor = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
         if (!m_monitor)
             return;
 

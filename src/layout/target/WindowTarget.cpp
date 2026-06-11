@@ -10,6 +10,7 @@
 #include "../../Compositor.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../desktop/state/FloatState.hpp"
+#include "../../state/MonitorState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 
@@ -349,7 +350,7 @@ std::expected<SGeometryRequested, eGeometryFailure> CWindowTarget::desiredGeomet
 
         Vector2D pos;
 
-        if (const auto POPENMON = g_pCompositor->getMonitorFromVector(DESIRED_GEOM.middle()); POPENMON->m_id != PMONITOR->m_id)
+        if (const auto POPENMON = State::monitorState()->query().vec(DESIRED_GEOM.middle()).run(); POPENMON->m_id != PMONITOR->m_id)
             pos = Vector2D(DESIRED_GEOM.x, DESIRED_GEOM.y) - POPENMON->m_position + PMONITOR->m_position;
         else
             pos = Vector2D(DESIRED_GEOM.x, DESIRED_GEOM.y);

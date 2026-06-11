@@ -836,7 +836,7 @@ void CPointerManager::warpAbsolute(Vector2D abs, SP<IHID> dev) {
         if (output == "current") {
             if (const auto PLASTMONITOR = Desktop::focusState()->monitor(); PLASTMONITOR)
                 return PLASTMONITOR->logicalBox();
-        } else if (const auto PMONITOR = g_pCompositor->getMonitorFromString(output); PMONITOR)
+        } else if (const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(output).run(); PMONITOR)
             return PMONITOR->logicalBox();
         return mappedArea;
     };

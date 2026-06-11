@@ -3,6 +3,7 @@
 #include "../../Compositor.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../protocols/core/Seat.hpp"
+#include "../../state/MonitorState.hpp"
 
 using namespace Screenshare;
 
@@ -44,7 +45,7 @@ void CScreenshareManager::onOutputCommit(PHLMONITOR monitor) {
 }
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor) {
-    if UNLIKELY (!monitor || !g_pCompositor->monitorExists(monitor)) {
+    if UNLIKELY (!monitor || !State::monitorState()->contains(monitor)) {
         LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
         return nullptr;
     }
@@ -58,7 +59,7 @@ UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMO
 }
 
 UP<CScreenshareSession> CScreenshareManager::newSession(wl_client* client, PHLMONITOR monitor, CBox captureRegion) {
-    if UNLIKELY (!monitor || !g_pCompositor->monitorExists(monitor)) {
+    if UNLIKELY (!monitor || !State::monitorState()->contains(monitor)) {
         LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
         return nullptr;
     }

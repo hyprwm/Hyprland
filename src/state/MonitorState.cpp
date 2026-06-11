@@ -9,6 +9,7 @@
 #include "../output/MonitorFrameScheduler.hpp"
 #include "../Compositor.hpp"
 #include "../managers/input/InputManager.hpp"
+#include "../managers/PointerManager.hpp"
 
 #include <unordered_set>
 
@@ -97,7 +98,7 @@ static void checkDefaultCursorWarp(PHLMONITOR monitor) {
     }
 
     // modechange happened check if cursor is on that monitor and warp it to middle to not place it out of bounds if resolution changed.
-    if (g_pCompositor->getMonitorFromCursor() == monitor) {
+    if (State::monitorState()->query().vec(g_pPointerManager->position()).run() == monitor) {
         g_pCompositor->warpCursorTo(POS, true);
         g_pInputManager->refocus();
     }

@@ -21,7 +21,7 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
 
         g_pInputManager->simulateMouseMovement();
 
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
+        const auto PMONITOR = State::monitorState()->query().id(iMonitorID).run();
 
         if (PMONITOR)
             g_pHyprRenderer->damageMonitor(PMONITOR);
@@ -35,7 +35,7 @@ SSessionLockSurface::SSessionLockSurface(SP<CSessionLockSurface> surface_) : sur
     });
 
     listeners.commit = surface_->m_events.commit.listen([this] {
-        const auto PMONITOR = g_pCompositor->getMonitorFromID(iMonitorID);
+        const auto PMONITOR = State::monitorState()->query().id(iMonitorID).run();
 
         if (mapped && !Desktop::focusState()->surface())
             g_pInputManager->simulateMouseMovement();

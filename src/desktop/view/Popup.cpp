@@ -12,6 +12,7 @@
 #include "../../managers/eventLoop/EventLoopManager.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
+#include "../../state/MonitorState.hpp"
 #include <array>
 #include <ranges>
 
@@ -193,7 +194,7 @@ void CPopup::onMap() {
     m_lastSize = m_resource->m_surface->m_surface->m_current.size;
 
     const auto COORDS   = coordsGlobal();
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
+    const auto PMONITOR = State::monitorState()->query().vec(COORDS).run();
 
     CBox       box = m_wlSurface->resource()->extends();
     box.translate(COORDS).expand(4);
@@ -359,7 +360,7 @@ void CPopup::onReposition() {
 
 void CPopup::reposition() {
     const auto COORDS   = t1ParentCoords();
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(COORDS);
+    const auto PMONITOR = State::monitorState()->query().vec(COORDS).run();
 
     if (!PMONITOR)
         return;

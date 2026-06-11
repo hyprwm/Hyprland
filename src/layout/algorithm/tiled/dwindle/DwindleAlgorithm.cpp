@@ -9,6 +9,7 @@
 #include "../../../../desktop/state/FocusState.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../Compositor.hpp"
+#include "../../../../state/MonitorState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -545,7 +546,7 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
 
     const auto FOCAL_POINT = focalPointForDir(t, dir);
 
-    const auto PMONITORFOCAL = g_pCompositor->getMonitorFromVector(FOCAL_POINT.value_or(t->position().middle()));
+    const auto PMONITORFOCAL = State::monitorState()->query().vec(FOCAL_POINT.value_or(t->position().middle())).run();
 
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor && !*PMONITORFALLBACK)
         return; // noop

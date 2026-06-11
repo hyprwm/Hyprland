@@ -261,7 +261,7 @@ namespace Monitor {
         bool        shouldSkipScheduleFrameOnMouseEvent();
         void        setMirror(const std::string&);
         bool        isMirror();
-        bool        matchesStaticSelector(const std::string& selector) const;
+        bool        matchesStaticSelector(std::string_view selector) const;
         float       getDefaultScale();
         void        changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal = false, bool noMouseMove = false, bool noFocus = false);
         void        changeWorkspace(const WORKSPACEID& id, bool internal = false, bool noMouseMove = false, bool noFocus = false);

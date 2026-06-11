@@ -11,6 +11,7 @@
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
@@ -25,7 +26,7 @@ using namespace Desktop::View;
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
     workspace->init(workspace);
-    g_pCompositor->registerWorkspace(workspace);
+    State::workspaceState()->add(workspace);
     return workspace;
 }
 
@@ -545,7 +546,7 @@ void CWorkspace::forceReportSizesToWindows() {
 }
 
 void CWorkspace::rename(const std::string& name) {
-    if (g_pCompositor->isWorkspaceSpecial(m_id))
+    if (State::workspaceState()->isSpecial(m_id))
         return;
 
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);

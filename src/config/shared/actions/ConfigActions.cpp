@@ -24,6 +24,7 @@
 #include "../../../layout/algorithm/tiled/master/MasterAlgorithm.hpp"
 #include "../../../layout/algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 #include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspaceState.hpp"
 
 #include <utility>
 #include <type_traits>
@@ -990,9 +991,9 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         if (PPREVWS.id == -1 || PPREVWS.id == PCURRENTWORKSPACE->m_id)
             return nullptr;
 
-        auto ws = g_pCompositor->getWorkspaceByID(PPREVWS.id);
+        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
         if (!ws)
-            ws = g_pCompositor->createNewWorkspace(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
+            ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
         return ws;
     }
 
@@ -1007,15 +1008,15 @@ static PHLWORKSPACE resolveWorkspaceForChange(const std::string& args) {
         if (PPREVWS.id == -1)
             return nullptr;
 
-        auto ws = g_pCompositor->getWorkspaceByID(PPREVWS.id);
+        auto ws = State::workspaceState()->query().id(PPREVWS.id).run();
         if (!ws)
-            ws = g_pCompositor->createNewWorkspace(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
+            ws = State::workspaceState()->create(PPREVWS.id, PMONITOR->m_id, PPREVWS.name.empty() ? std::to_string(PPREVWS.id) : PPREVWS.name);
         return ws;
     }
 
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceToChangeTo);
+    auto ws = State::workspaceState()->query().id(workspaceToChangeTo).run();
     if (!ws)
-        ws = g_pCompositor->createNewWorkspace(workspaceToChangeTo, PMONITOR->m_id, workspaceName);
+        ws = State::workspaceState()->create(workspaceToChangeTo, PMONITOR->m_id, workspaceName);
     return ws;
 }
 

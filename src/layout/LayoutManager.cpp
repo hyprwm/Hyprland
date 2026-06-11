@@ -6,6 +6,7 @@
 
 #include "../output/Monitor.hpp"
 #include "../Compositor.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../desktop/view/Group.hpp"
 #include "../event/EventBus.hpp"
@@ -350,7 +351,7 @@ void CLayoutManager::recalculateMonitor(PHLMONITOR m, eRecalculateMonitorReason 
 }
 
 void CLayoutManager::invalidateMonitorGeometries(PHLMONITOR m) {
-    for (const auto& ws : g_pCompositor->getWorkspaces()) {
+    for (const auto& ws : State::workspaceState()->workspaces()) {
         if (ws && ws->m_monitor == m) {
             ws->m_space->recheckWorkArea();
             ws->m_space->recalculate(RECALCULATE_REASON_INVALIDATE_MONITOR_GEOMETRIES);

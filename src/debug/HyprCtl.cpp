@@ -61,6 +61,7 @@ using namespace Hyprutils::OS;
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -580,7 +581,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
             result += ",";
         }
@@ -588,7 +589,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
         }
     }
@@ -2126,7 +2127,7 @@ std::string CHyprCtl::getReply(std::string request) {
             Desktop::Rule::ruleEngine()->updateAllRules();
         }
 
-        for (const auto& ws : g_pCompositor->getWorkspaces()) {
+        for (const auto& ws : State::workspaceState()->workspaces()) {
             if (!ws)
                 continue;
 

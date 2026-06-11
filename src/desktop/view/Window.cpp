@@ -33,6 +33,7 @@
 #include "../../config/shared/animation/AnimationTree.hpp"
 #include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 #include "../../managers/TokenManager.hpp"
 #include "../../managers/animation/AnimationManager.hpp"
 #include "../../managers/ANRManager.hpp"
@@ -548,7 +549,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && g_pCompositor->isWorkspaceSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -1220,7 +1221,7 @@ MONITORID CWindow::monitorID() {
 }
 
 bool CWindow::onSpecialWorkspace() {
-    return m_workspace ? m_workspace->m_isSpecialWorkspace : g_pCompositor->isWorkspaceSpecial(m_lastWorkspace);
+    return m_workspace ? m_workspace->m_isSpecialWorkspace : State::workspaceState()->isSpecial(m_lastWorkspace);
 }
 
 std::unordered_map<std::string, std::string> CWindow::getEnv() {
@@ -1963,7 +1964,7 @@ void CWindow::mapWindow() {
 
                 Log::logger->log(Log::DEBUG, "HL_INITIAL_WORKSPACE_TOKEN {} -> {}", SZTOKEN, WS.workspace);
 
-                if (g_pCompositor->getWorkspaceByString(WS.workspace) != m_workspace) {
+                if (State::workspaceState()->query().string(WS.workspace).run() != m_workspace) {
                     requestedWorkspace = WS.workspace;
                     workspaceSilent    = true;
                 }
@@ -2172,10 +2173,10 @@ void CWindow::mapWindow() {
         }
 
         if (requestedWorkspaceID != WORKSPACE_INVALID) {
-            auto pWorkspace = g_pCompositor->getWorkspaceByID(requestedWorkspaceID);
+            auto pWorkspace = State::workspaceState()->query().id(requestedWorkspaceID).run();
 
             if (!pWorkspace)
-                pWorkspace = g_pCompositor->createNewWorkspace(requestedWorkspaceID, monitorID(), requestedWorkspaceName, false);
+                pWorkspace = State::workspaceState()->create(requestedWorkspaceID, monitorID(), requestedWorkspaceName, false);
 
             PWORKSPACE = pWorkspace;
 

@@ -28,6 +28,7 @@
 #include "state/FallbackState.hpp"
 #include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
+#include "state/WorkspaceState.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
 #include <bit>
@@ -567,7 +568,7 @@ void CCompositor::cleanup() {
     // still in a normal working state.
     g_pPluginSystem->unloadAllPlugins();
 
-    m_workspaces.clear();
+    State::workspaceState()->clear();
     m_windows.clear();
 
     for (auto const& m : State::monitorState()->monitors()) {
@@ -638,6 +639,9 @@ void CCompositor::initManagers(eManagersInitStage stage) {
 
             Log::logger->log(Log::DEBUG, "Creating the MonitorState!");
             State::monitorState();
+
+            Log::logger->log(Log::DEBUG, "Creating the WorkspaceState!");
+            State::workspaceState();
 
             Log::logger->log(Log::DEBUG, "Creating the ConfigManager!");
             if (!Config::initConfigManager())
@@ -914,7 +918,7 @@ PHLWINDOW CCompositor::vectorToWindowUnified(const Vector2D& pos, uint16_t prope
             return floating(false);
 
         const WORKSPACEID WSPID      = special ? PMONITOR->activeSpecialWorkspaceID() : PMONITOR->activeWorkspaceID();
-        const auto        PWORKSPACE = getWorkspaceByID(WSPID);
+        const auto        PWORKSPACE = State::workspaceState()->query().id(WSPID).run();
 
         if (PWORKSPACE->m_hasFullscreenWindow && !(properties & Desktop::View::SKIP_FULLSCREEN_PRIORITY) && !ONLY_PRIORITY) {
             const auto FS_WINDOW = PWORKSPACE->getFullscreenWindow();
@@ -1148,15 +1152,6 @@ PHLWINDOW CCompositor::getWindowFromHandle(uint32_t handle) {
         if (sc<uint32_t>(rc<uint64_t>(w.get()) & 0xFFFFFFFF) == handle) {
             return w;
         }
-    }
-
-    return nullptr;
-}
-
-PHLWORKSPACE CCompositor::getWorkspaceByID(const WORKSPACEID& id) {
-    for (auto const& w : getWorkspaces()) {
-        if (w->m_id == id && !w->inert())
-            return w.lock();
     }
 
     return nullptr;
@@ -1607,45 +1602,6 @@ PHLWINDOW CCompositor::getWindowCycle(PHLWINDOW cur, bool focusableOnly, std::op
                   getWindowPred(std::ranges::find(m_windows, cur), m_windows.end(), m_windows.begin(), FINDER);
 }
 
-WORKSPACEID CCompositor::getNextAvailableNamedWorkspace() {
-    WORKSPACEID lowest = -1337 + 1;
-    for (auto const& w : getWorkspaces()) {
-        if (w->m_id < -1 && w->m_id < lowest)
-            lowest = w->m_id;
-    }
-
-    // Give priority to persistent workspaces to avoid any conflicts between them.
-    for (auto const& rule : Config::workspaceRuleMgr()->getAllWorkspaceRules()) {
-        if (!rule.m_isPersistent.value_or(false))
-            continue;
-        if (rule.m_workspaceId < -1 && rule.m_workspaceId < lowest)
-            lowest = rule.m_workspaceId;
-    }
-
-    return lowest - 1;
-}
-
-PHLWORKSPACE CCompositor::getWorkspaceByName(const std::string& name) {
-    for (auto const& w : getWorkspaces()) {
-        if (w->m_name == name && !w->inert())
-            return w.lock();
-    }
-
-    return nullptr;
-}
-
-PHLWORKSPACE CCompositor::getWorkspaceByString(const std::string& str) {
-    if (str.starts_with("name:")) {
-        return getWorkspaceByName(str.substr(str.find_first_of(':') + 1));
-    }
-
-    try {
-        return getWorkspaceByID(getWorkspaceIDNameFromString(str).id);
-    } catch (std::exception& e) { Log::logger->log(Log::ERR, "Error in getWorkspaceByString, invalid id"); }
-
-    return nullptr;
-}
-
 bool CCompositor::isPointOnAnyMonitor(const Vector2D& point) {
     return std::ranges::any_of(State::monitorState()->monitors(), [&](const PHLMONITOR& m) {
         return VECINRECT(point, m->m_position.x, m->m_position.y, m->m_size.x + m->m_position.x, m->m_size.y + m->m_position.y);
@@ -1804,7 +1760,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     else {
         PHLWORKSPACE newWorkspace; // for holding a ref to the new workspace that might be created
 
-        for (auto const& w : getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             if (w->m_monitor == POLDMON && w->m_id != pWorkspace->m_id && !w->m_isSpecialWorkspace) {
                 nextWorkspaceOnMonitorID = w->m_id;
                 break;
@@ -1814,7 +1770,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
         if (nextWorkspaceOnMonitorID == WORKSPACE_INVALID) {
             nextWorkspaceOnMonitorID = 1;
 
-            while (getWorkspaceByID(nextWorkspaceOnMonitorID) || [&]() -> bool {
+            while (State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run() || [&]() -> bool {
                 const auto B = Config::workspaceRuleMgr()->getBoundMonitorForWS(std::to_string(nextWorkspaceOnMonitorID));
                 return B && B != POLDMON;
             }())
@@ -1823,7 +1779,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
             Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with new {}", nextWorkspaceOnMonitorID);
 
             if (POLDMON)
-                newWorkspace = g_pCompositor->createNewWorkspace(nextWorkspaceOnMonitorID, POLDMON->m_id);
+                newWorkspace = State::workspaceState()->create(nextWorkspaceOnMonitorID, POLDMON->m_id);
         }
 
         Log::logger->log(Log::DEBUG, "moveWorkspaceToMonitor: Plugging gap with existing {}", nextWorkspaceOnMonitorID);
@@ -1839,7 +1795,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     for (auto const& w : m_windows) {
         if (w->m_workspace == pWorkspace) {
             if (w->m_pinned) {
-                w->m_workspace = g_pCompositor->getWorkspaceByID(nextWorkspaceOnMonitorID);
+                w->m_workspace = State::workspaceState()->query().id(nextWorkspaceOnMonitorID).run();
                 continue;
             }
 
@@ -1919,20 +1875,6 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
     g_pEventManager->postEvent(SHyprIPCEvent{.event = "moveworkspacev2", .data = std::format("{},{},{}", pWorkspace->m_id, pWorkspace->m_name, pMonitor->m_name)});
 
     Event::bus()->m_events.workspace.moveToMonitor.emit(pWorkspace, pMonitor);
-}
-
-bool CCompositor::workspaceIDOutOfBounds(const WORKSPACEID& id) {
-    WORKSPACEID lowestID  = INT64_MAX;
-    WORKSPACEID highestID = INT64_MIN;
-
-    for (auto const& w : getWorkspaces()) {
-        if (w->m_isSpecialWorkspace)
-            continue;
-        lowestID  = std::min(w->m_id, lowestID);
-        highestID = std::max(w->m_id, highestID);
-    }
-
-    return std::clamp(id, lowestID, highestID) != id;
 }
 
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
@@ -2314,58 +2256,6 @@ Vector2D CCompositor::parseWindowVectorArgsRelative(const std::string& args, con
     return Vector2D(X, Y);
 }
 
-PHLWORKSPACE CCompositor::createNewWorkspace(const WORKSPACEID& id, const MONITORID& monid, const std::string& name, bool isEmpty) {
-    const auto NAME  = name.empty() ? std::to_string(id) : name;
-    auto       monID = monid;
-
-    // check if bound
-    if (const auto PMONITOR = Config::workspaceRuleMgr()->getBoundMonitorForWS(NAME); PMONITOR)
-        monID = PMONITOR->m_id;
-
-    const bool SPECIAL = id >= SPECIAL_WORKSPACE_START && id <= -2;
-
-    const auto PMONITOR = State::monitorState()->query().id(monID).run();
-    if (!PMONITOR) {
-        Log::logger->log(Log::ERR, "BUG THIS: No pMonitor for new workspace in createNewWorkspace");
-        return nullptr;
-    }
-
-    const auto PWORKSPACE = CWorkspace::create(id, PMONITOR, NAME, SPECIAL, isEmpty);
-
-    PWORKSPACE->m_alpha->setValueAndWarp(0);
-
-    return PWORKSPACE;
-}
-
-bool CCompositor::isWorkspaceSpecial(const WORKSPACEID& id) {
-    return id >= SPECIAL_WORKSPACE_START && id <= -2;
-}
-
-WORKSPACEID CCompositor::getNewSpecialID() {
-    WORKSPACEID highest = SPECIAL_WORKSPACE_START;
-    for (auto const& ws : getWorkspaces()) {
-        if (ws->m_isSpecialWorkspace && ws->m_id > highest)
-            highest = ws->m_id;
-    }
-
-    return highest + 1;
-}
-
-void CCompositor::registerWorkspace(PHLWORKSPACE w) {
-    m_workspaces.emplace_back(w);
-    w->m_events.destroy.listenStatic([this, weak = PHLWORKSPACEREF{w}] { std::erase(m_workspaces, weak); });
-}
-
-std::vector<PHLWORKSPACE> CCompositor::getWorkspacesCopy() {
-    std::vector<PHLWORKSPACE> wsp;
-    auto                      range = getWorkspaces();
-    wsp.reserve(std::ranges::distance(range));
-    for (auto& r : range) {
-        wsp.emplace_back(r.lock());
-    }
-    return wsp;
-}
-
 void CCompositor::performUserChecks() {
     static auto PNOCHECKXDG      = CConfigValue<Config::INTEGER>("misc:disable_xdg_env_checks");
     static auto PNOCHECKGUIUTILS = CConfigValue<Config::INTEGER>("misc:disable_hyprland_guiutils_check");
@@ -2684,12 +2574,12 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
                 Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
                 continue;
             }
-            PWORKSPACE = getWorkspaceByID(id);
+            PWORKSPACE = State::workspaceState()->query().id(id).run();
             if (!PMONITOR)
                 PMONITOR = Desktop::focusState()->monitor();
 
             if (!PWORKSPACE)
-                PWORKSPACE = createNewWorkspace(id, PMONITOR->m_id, wsname, false);
+                PWORKSPACE = State::workspaceState()->create(id, PMONITOR->m_id, wsname, false);
         }
 
         if (!PMONITOR) {
@@ -2719,7 +2609,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
     if (!pWorkspace) {
         // check non-persistent and downgrade if workspace is no longer persistent
         std::vector<PHLWORKSPACEREF> toDowngrade;
-        for (auto& w : getWorkspaces()) {
+        for (auto& w : State::workspaceState()->workspaces()) {
             if (!w->isPersistent())
                 continue;
 
@@ -2736,7 +2626,7 @@ void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CW
 }
 
 void CCompositor::ensureWorkspacesOnAssignedMonitors() {
-    for (auto const& ws : getWorkspacesCopy()) {
+    for (auto const& ws : State::workspaceState()->workspacesCopy()) {
         if (!valid(ws) || ws->m_isSpecialWorkspace)
             continue;
 

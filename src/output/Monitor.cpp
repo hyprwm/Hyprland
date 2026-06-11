@@ -1162,6 +1162,22 @@ bool CMonitor::isMirror() {
     return m_mirrorOf != nullptr;
 }
 
+MONITORID CMonitor::id() const {
+    return m_id;
+}
+
+std::string_view CMonitor::name() const {
+    return m_name;
+}
+
+std::string_view CMonitor::description() const {
+    return m_description;
+}
+
+std::string_view CMonitor::shortDescription() const {
+    return m_shortDescription;
+}
+
 bool CMonitor::matchesStaticSelector(std::string_view selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
@@ -1172,6 +1188,69 @@ bool CMonitor::matchesStaticSelector(std::string_view selector) const {
         // match by selector
         return m_name == selector;
     }
+}
+
+Vector2D CMonitor::position() const {
+    return m_position;
+}
+
+Vector2D CMonitor::size() const {
+    return m_size;
+}
+
+Vector2D CMonitor::pixelSize() const {
+    return m_pixelSize;
+}
+
+Vector2D CMonitor::transformedSize() const {
+    return m_transformedSize;
+}
+
+float CMonitor::scale() const {
+    return m_scale;
+}
+
+Hyprutils::Math::eTransform CMonitor::transform() const {
+    return Math::wlTransformToHyprutils(m_transform);
+}
+
+bool CMonitor::enabled() const {
+    return m_enabled;
+}
+
+bool CMonitor::hasOutput() const {
+    return m_output;
+}
+
+SP<Aquamarine::IOutput> CMonitor::output() const {
+    return m_output;
+}
+
+std::optional<Vector2D> CMonitor::explicitPosition() const {
+    if (m_activeMonitorRule.m_offset == Vector2D{-INT32_MAX, -INT32_MAX})
+        return {};
+
+    return m_activeMonitorRule.m_offset;
+}
+
+Config::eAutoDirs CMonitor::autoDirection() const {
+    return m_activeMonitorRule.m_autoDir;
+}
+
+Vector2D CMonitor::xwaylandPosition() const {
+    return m_xwaylandPosition;
+}
+
+float CMonitor::xwaylandScale() const {
+    return m_xwaylandScale;
+}
+
+void CMonitor::setXWaylandPosition(const Vector2D& pos) {
+    m_xwaylandPosition = pos;
+}
+
+void CMonitor::setXWaylandScale(float scale_) {
+    m_xwaylandScale = scale_;
 }
 
 WORKSPACEID CMonitor::findAvailableDefaultWS() {
@@ -1609,7 +1688,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
     }
 }
 
-Vector2D CMonitor::middle() {
+Vector2D CMonitor::middle() const {
     return m_position + m_size / 2.f;
 }
 
@@ -1637,11 +1716,11 @@ WORKSPACEID CMonitor::activeSpecialWorkspaceID() {
     return m_activeSpecialWorkspace ? m_activeSpecialWorkspace->m_id : 0;
 }
 
-CBox CMonitor::logicalBox() {
+CBox CMonitor::logicalBox() const {
     return {m_position, m_size};
 }
 
-CBox CMonitor::logicalBoxMinusReserved() {
+CBox CMonitor::logicalBoxMinusReserved() const {
     return m_reservedArea.apply(logicalBox());
 }
 

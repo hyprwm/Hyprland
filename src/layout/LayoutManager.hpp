@@ -40,11 +40,6 @@ namespace Layout {
         SNAP_RIGHT   = (1 << 3),
     };
 
-    enum eFullscreenRequestResult : uint8_t {
-        FULLSCREEN_REQUEST_FAILED = 0,
-        FULLSCREEN_REQUEST_DEFAULT,
-        FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT,
-    };
 
     class CLayoutManager {
       public:

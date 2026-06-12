@@ -255,9 +255,9 @@ class CTestCase {
             return;                                                                                                                                                                \
     } while (0)
 
-#define SPAWN_KITTY(class_)                                                                                                                                                        \
+#define SPAWN_KITTY(class_, ...)                                                                                                                                                   \
     do {                                                                                                                                                                           \
-        if (!Tests::spawnKitty(class_))                                                                                                                                            \
+        if (!Tests::spawnKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                                 \
             FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
     } while (0)
 

@@ -23,10 +23,9 @@ static SP<ITexture> m_tGradientLockedInactive;
 constexpr int       BAR_TEXT_PAD = 2;
 
 CHyprGroupBarDecoration::CHyprGroupBarDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
-    static auto PGRADIENTS = CConfigValue<Config::INTEGER>("group:groupbar:enabled");
-    static auto PENABLED   = CConfigValue<Config::INTEGER>("group:groupbar:gradients");
+    static auto PGRADIENTS = CConfigValue<Config::BOOL>("group:groupbar:gradients");
 
-    if (*PENABLED && *PGRADIENTS)
+    if (enabled() && *PGRADIENTS)
         refreshGroupBarGradients();
 }
 
@@ -351,8 +350,8 @@ static SP<ITexture> renderGradient(Config::CGradientValueData* grad) {
 }
 
 void refreshGroupBarGradients() {
-    static auto PGRADIENTS = CConfigValue<Config::INTEGER>("group:groupbar:enabled");
-    static auto PENABLED   = CConfigValue<Config::INTEGER>("group:groupbar:gradients");
+    static auto PENABLED   = CConfigValue<Config::BOOL>("group:groupbar:enabled");
+    static auto PGRADIENTS = CConfigValue<Config::BOOL>("group:groupbar:gradients");
 
     static auto PGROUPCOLACTIVE         = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.active");
     static auto PGROUPCOLINACTIVE       = CConfigValue<Config::IComplexConfigValue>("group:groupbar:col.inactive");
@@ -533,6 +532,11 @@ CBox CHyprGroupBarDecoration::assignedBoxGlobal() {
 }
 
 bool CHyprGroupBarDecoration::visible() {
-    static auto PENABLED = CConfigValue<Config::INTEGER>("group:groupbar:enabled");
-    return *PENABLED && m_window->m_ruleApplicator->decorate().valueOrDefault();
+    return enabled() && m_window->m_ruleApplicator->decorate().valueOrDefault();
+}
+
+bool CHyprGroupBarDecoration::enabled() {
+    static auto PENABLED = CConfigValue<Config::BOOL>("group:groupbar:enabled");
+    static auto PDISABLE = CConfigValue<Config::BOOL>("group:groupbar:disable_when_only");
+    return *PENABLED && (!*PDISABLE || m_dwGroupMembers.size() > 1);
 }

@@ -261,9 +261,9 @@ class CTestCase {
             FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
     } while (0)
 
-#define SPAWN_LAYER_KITTY(class_)                                                                                                                                                  \
+#define SPAWN_LAYER_KITTY(class_, ...)                                                                                                                                             \
     do {                                                                                                                                                                           \
-        if (!Tests::spawnLayerKitty(class_))                                                                                                                                       \
+        if (!Tests::spawnLayerKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                            \
             FAIL_TEST("Could not spawn layer kitty with class: {}", class_);                                                                                                       \
     } while (0)
 

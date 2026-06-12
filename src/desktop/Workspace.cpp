@@ -1,6 +1,7 @@
 #include "Workspace.hpp"
 #include "view/Group.hpp"
 #include "view/LayerSurface.hpp"
+#include "state/FocusState.hpp"
 #include "../Compositor.hpp"
 #include "../config/shared/parserUtils/ParserUtils.hpp"
 #include "../config/shared/animation/AnimationTree.hpp"
@@ -9,6 +10,8 @@
 #include "managers/animation/AnimationManager.hpp"
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"
+#include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
 #include "../layout/target/Target.hpp"
@@ -23,7 +26,7 @@ using namespace Desktop::View;
 PHLWORKSPACE CWorkspace::create(WORKSPACEID id, PHLMONITOR monitor, std::string name, bool special, bool isEmpty) {
     PHLWORKSPACE workspace = makeShared<CWorkspace>(id, monitor, name, special, isEmpty);
     workspace->init(workspace);
-    g_pCompositor->registerWorkspace(workspace);
+    State::workspaceState()->add(workspace);
     return workspace;
 }
 
@@ -216,7 +219,7 @@ bool CWorkspace::matchesStaticSelector(const std::string& selector_) {
 
                 prop = prop.substr(2, prop.length() - 3);
 
-                const auto PMONITOR = g_pCompositor->getMonitorFromString(prop);
+                const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(prop).run();
 
                 if (!(PMONITOR ? PMONITOR == m_monitor : false))
                     return false;
@@ -543,7 +546,7 @@ void CWorkspace::forceReportSizesToWindows() {
 }
 
 void CWorkspace::rename(const std::string& name) {
-    if (g_pCompositor->isWorkspaceSpecial(m_id))
+    if (State::workspaceState()->isSpecial(m_id))
         return;
 
     Log::logger->log(Log::DEBUG, "CWorkspace::rename: Renaming workspace {} to '{}'", m_id, name);

@@ -10,6 +10,7 @@
 #include "../../../../config/ConfigValue.hpp"
 #include "../../../../config/shared/workspace/WorkspaceRuleManager.hpp"
 #include "../../../../render/Renderer.hpp"
+#include "../../../../state/MonitorState.hpp"
 #include "../../../../managers/input/InputManager.hpp"
 #include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
@@ -1431,7 +1432,7 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
         if (!*PMONITORFALLBACK)
             return; // noop
 
-        const auto MONINDIR = g_pCompositor->getMonitorInDirection(m_parent->space()->workspace()->m_monitor.lock(), dir);
+        const auto MONINDIR = State::monitorState()->query().relativeTo(m_parent->space()->workspace()->m_monitor.lock()).inDirection(dir).run();
         if (MONINDIR && MONINDIR != m_parent->space()->workspace()->m_monitor && MONINDIR->m_activeWorkspace) {
             t->assignToSpace(MONINDIR->m_activeWorkspace->m_space, focalPointForDir(t, dir));
 
@@ -1979,7 +1980,24 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
         // Explicit Enable
         else
             inhibitScroll();
-    } else
+    } else if (ARGS[0] == "fit_into_view") {
+        // makes the currently active column complately visible
+
+        const auto PWINDOW = Desktop::focusState()->window();
+
+        if (!PWINDOW)
+            return noTarget("no focused window");
+
+        const auto WDATA = dataFor(PWINDOW->layoutTarget());
+
+        if (!WDATA || m_scrollingData->columns.size() == 0)
+            return stateErr("can't fit: no window or columns");
+
+        m_scrollingData->SScrollingData::centerOrFitCol(WDATA->column.lock());
+        m_scrollingData->recalculate();
+    }
+
+    else
         return invalidArg("no such layoutmsg for scrolling");
 
     return {};

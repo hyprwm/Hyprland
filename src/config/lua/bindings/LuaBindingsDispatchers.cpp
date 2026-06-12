@@ -7,6 +7,8 @@
 #include "../../supplementary/executor/Executor.hpp"
 
 #include "../../../managers/SeatManager.hpp"
+#include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspaceState.hpp"
 #include "../../../devices/IKeyboard.hpp"
 #include "../../../desktop/rule/windowRule/WindowRule.hpp"
 
@@ -194,7 +196,7 @@ static int dsp_dpms(lua_State* L) {
     std::optional<PHLMONITOR> mon    = std::nullopt;
 
     if (!lua_isnil(L, lua_upvalueindex(2))) {
-        auto m = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(2)));
+        auto m = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(2))).run();
         if (m)
             mon = m;
     }
@@ -668,7 +670,11 @@ static int dsp_mouseResize(lua_State* L) {
     if (g_pKeybindManager->m_currentKeybind)
         g_pKeybindManager->m_currentKeybind->releasePending = true;
 
-    return Internal::checkResult(L, CA::mouse("resizewindow"));
+    auto keepAspectRatio = Check::string(L, lua_upvalueindex(1));
+    if (!keepAspectRatio)
+        return Internal::configError(L, std::format("resize: bad argument 1: {}", keepAspectRatio.error()));
+
+    return Internal::checkResult(L, CA::mouse("resizewindow " + *keepAspectRatio));
 }
 
 static int hlWindowClose(lua_State* L) {
@@ -975,23 +981,6 @@ static int hlWindowToggleSwallow(lua_State* L) {
     lua_pushcclosure(L, dsp_toggleSwallow, 0);
     return 1;
 }
-
-static int hlWindowResizeExact(lua_State* L) {
-    if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.window.resize: expected a table { x, y, relative?, window? }");
-    auto x        = Internal::tableOptNum(L, 1, "x");
-    auto y        = Internal::tableOptNum(L, 1, "y");
-    bool relative = Internal::tableOptBool(L, 1, "relative").value_or(false);
-    if (!x || !y)
-        return Internal::configError(L, "hl.window.resize: 'x' and 'y' are required");
-    lua_pushnumber(L, *x);
-    lua_pushnumber(L, *y);
-    lua_pushboolean(L, relative);
-    Internal::pushWindowUpval(L, 1);
-    lua_pushcclosure(L, dsp_resize, 4);
-    return 1;
-}
-
 static int hlWindowPin(lua_State* L) {
     const auto action = Internal::tableToggleAction(L, 1);
 
@@ -1045,14 +1034,34 @@ static int hlWindowDrag(lua_State* L) {
 
 static int hlWindowResize(lua_State* L) {
     if (lua_gettop(L) == 0 || lua_isnil(L, 1)) {
-        lua_pushcclosure(L, dsp_mouseResize, 0);
+        lua_pushnumber(L, 0);
+        lua_pushcclosure(L, dsp_mouseResize, 1);
         return 1;
     }
 
     if (!lua_istable(L, 1))
-        return Internal::configError(L, "hl.window.resize: expected no args, or a table { x, y, relative?, window? }");
+        return Internal::configError(L, "hl.window.resize: expected no args, a table { x, y, relative?, window? }, or a table { keep_aspect_ratio }");
 
-    return hlWindowResizeExact(L);
+    auto x = Internal::tableOptNum(L, 1, "x");
+    auto y = Internal::tableOptNum(L, 1, "y");
+    if (x && y) {
+        bool relative = Internal::tableOptBool(L, 1, "relative").value_or(false);
+        lua_pushnumber(L, *x);
+        lua_pushnumber(L, *y);
+        lua_pushboolean(L, relative);
+        Internal::pushWindowUpval(L, 1);
+        lua_pushcclosure(L, dsp_resize, 4);
+        return 1;
+    }
+
+    auto keepAspectRatio = Internal::tableOptBool(L, 1, "keep_aspect_ratio");
+    if (keepAspectRatio) {
+        lua_pushnumber(L, *keepAspectRatio ? 1 : 2);
+        lua_pushcclosure(L, dsp_mouseResize, 1);
+        return 1;
+    }
+
+    return Internal::configError(L, "hl.focus: unrecognized arguments. Expected positions (x & y) or keep_aspect_ratio");
 }
 
 static int dsp_moveFocus(lua_State* L) {
@@ -1060,7 +1069,7 @@ static int dsp_moveFocus(lua_State* L) {
 }
 
 static int dsp_focusMonitor(lua_State* L) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(1))).run();
     if (!PMONITOR)
         return Internal::dispatcherError(L, "hl.focus.monitor: monitor not found", WARN, C_NOTFOUND);
     return Internal::checkResult(L, CA::focusMonitor(PMONITOR));
@@ -1161,14 +1170,14 @@ static int hlNoop(lua_State* L) {
 static int dsp_toggleSpecial(lua_State* L) {
     std::string name                                   = lua_isnil(L, lua_upvalueindex(1)) ? "" : lua_tostring(L, lua_upvalueindex(1));
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + name);
-    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID))
+    if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return Internal::dispatcherError(L, "Invalid special workspace", ERR, C_INVARG);
 
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+    auto ws = State::workspaceState()->query().id(workspaceID).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->m_id, workspaceName);
+            ws = State::workspaceState()->create(workspaceID, PMONITOR->m_id, workspaceName);
     }
     if (!ws)
         return Internal::dispatcherError(L, "Could not resolve special workspace", ERR, C_UNAVAIL);
@@ -1177,7 +1186,7 @@ static int dsp_toggleSpecial(lua_State* L) {
 }
 
 static int dsp_renameWorkspace(lua_State* L) {
-    const auto PWS = g_pCompositor->getWorkspaceByString(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PWS = State::workspaceState()->query().string(lua_tostring(L, lua_upvalueindex(1))).run();
     if (!PWS)
         return Internal::dispatcherError(L, "hl.workspace.rename: no such workspace", WARN, C_NOTFOUND);
     std::string name = lua_isnil(L, lua_upvalueindex(2)) ? "" : lua_tostring(L, lua_upvalueindex(2));
@@ -1188,17 +1197,17 @@ static int dsp_moveWorkspaceToMonitor(lua_State* L) {
     const auto WORKSPACEID = getWorkspaceIDNameFromString(lua_tostring(L, lua_upvalueindex(1))).id;
     if (WORKSPACEID == WORKSPACE_INVALID)
         return Internal::dispatcherError(L, "Invalid workspace", ERR, C_INVARG);
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    const auto PWORKSPACE = State::workspaceState()->query().id(WORKSPACEID).run();
     if (!PWORKSPACE)
         return Internal::dispatcherError(L, "Workspace not found", WARN, C_NOTFOUND);
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(2)));
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(2))).run();
     if (!PMONITOR)
         return Internal::dispatcherError(L, "Monitor not found", WARN, C_NOTFOUND);
     return Internal::checkResult(L, CA::moveToMonitor(PWORKSPACE, PMONITOR));
 }
 
 static int dsp_moveCurrentWorkspaceToMonitor(lua_State* L) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(1)));
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(1))).run();
     if (!PMONITOR)
         return Internal::dispatcherError(L, "Monitor not found", WARN, C_NOTFOUND);
     const auto PCURRENTWORKSPACE = Desktop::focusState()->monitor()->m_activeWorkspace;
@@ -1208,8 +1217,8 @@ static int dsp_moveCurrentWorkspaceToMonitor(lua_State* L) {
 }
 
 static int dsp_swapActiveWorkspaces(lua_State* L) {
-    const auto PMON1 = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(1)));
-    const auto PMON2 = g_pCompositor->getMonitorFromString(lua_tostring(L, lua_upvalueindex(2)));
+    const auto PMON1 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(1))).run();
+    const auto PMON2 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(lua_tostring(L, lua_upvalueindex(2))).run();
     if (!PMON1 || !PMON2)
         return Internal::dispatcherError(L, "Monitor not found", WARN, C_NOTFOUND);
     return Internal::checkResult(L, CA::swapActiveWorkspaces(PMON1, PMON2));

@@ -8,6 +8,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../render/OpenGL.hpp"
 #include "../../output/Monitor.hpp"
+#include "../../state/MonitorState.hpp"
 #include "../../desktop/view/Window.hpp"
 #include "../../desktop/state/FocusState.hpp"
 #include "../../render/pass/ClearPassElement.hpp"
@@ -71,7 +72,7 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion& 
     if UNLIKELY (done())
         return ERROR_STOPPED;
 
-    if UNLIKELY (!m_session->monitor() || !g_pCompositor->monitorExists(m_session->monitor())) {
+    if UNLIKELY (!m_session->monitor() || !State::monitorState()->contains(m_session->monitor())) {
         LOGM(Log::ERR, "Client requested sharing of a monitor that is gone");
         m_failed = true;
         return ERROR_STOPPED;

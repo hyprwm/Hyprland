@@ -28,6 +28,7 @@
 #include "../../layout/space/Space.hpp"
 #include "../../layout/supplementary/WorkspaceAlgoMatcher.hpp"
 #include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 #include "../../render/Renderer.hpp"
 #include "../../errorOverlay/Overlay.hpp"
 #include "../../managers/input/InputManager.hpp"
@@ -1020,7 +1021,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
 #endif
 
     // Updates dynamic window and workspace rules
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->inert())
             continue;
         w->updateWindows();

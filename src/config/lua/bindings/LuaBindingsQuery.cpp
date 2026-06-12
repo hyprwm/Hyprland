@@ -14,6 +14,7 @@
 #include "../../../desktop/view/Window.hpp"
 #include "../../../managers/input/InputManager.hpp"
 #include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspaceState.hpp"
 
 using namespace Config;
 using namespace Config::Lua;
@@ -157,7 +158,7 @@ static int hlGetUrgentWindow(lua_State* L) {
 static int hlGetWorkspaces(lua_State* L) {
     lua_newtable(L);
     int i = 1;
-    for (const auto& wsRef : g_pCompositor->getWorkspaces()) {
+    for (const auto& wsRef : State::workspaceState()->workspaces()) {
         const auto ws = wsRef.lock();
         if (!ws || ws->inert())
             continue;
@@ -257,7 +258,7 @@ static int hlGetMonitorAt(lua_State* L) {
         y = *ty;
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(Vector2D{x, y});
+    const auto PMONITOR = State::monitorState()->query().vec(Vector2D{x, y}).run();
     if (!PMONITOR) {
         lua_pushnil(L);
         return 1;
@@ -268,7 +269,7 @@ static int hlGetMonitorAt(lua_State* L) {
 }
 
 static int hlGetMonitorAtCursor(lua_State* L) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromCursor();
+    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
     if (!PMONITOR) {
         lua_pushnil(L);
         return 1;
@@ -328,7 +329,7 @@ static int hlGetLastWorkspace(lua_State* L) {
 
     auto ws = previous.workspace.lock();
     if ((!ws || ws->inert()) && previous.id != WORKSPACE_INVALID)
-        ws = g_pCompositor->getWorkspaceByID(previous.id);
+        ws = State::workspaceState()->query().id(previous.id).run();
 
     if (!ws || ws->inert()) {
         lua_pushnil(L);

@@ -7,6 +7,10 @@
 #include "../../../desktop/DesktopTypes.hpp"
 #include "../../../helpers/memory/Memory.hpp"
 
+namespace Monitor {
+    class IMonitorIdentifiable;
+}
+
 namespace Config {
     class CWorkspaceRuleManager {
       public:
@@ -18,7 +22,7 @@ namespace Config {
         void                               replaceOrAdd(CWorkspaceRule&&);
 
         std::optional<CWorkspaceRule>      getWorkspaceRuleFor(PHLWORKSPACE workspace);
-        std::string                        getDefaultWorkspaceFor(const std::string&);
+        std::string                        getDefaultWorkspaceFor(const Monitor::IMonitorIdentifiable&);
         PHLMONITOR                         getBoundMonitorForWS(const std::string&);
         std::string                        getBoundMonitorStringForWS(const std::string&);
         const std::vector<CWorkspaceRule>& getAllWorkspaceRules();

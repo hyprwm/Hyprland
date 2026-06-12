@@ -1,8 +1,7 @@
-#include "tests.hpp"
-
+#include "../../hyprctlCompat.hpp"
 #include "../../Log.hpp"
 #include "../../shared.hpp"
-#include "../../hyprctlCompat.hpp"
+#include "tests.hpp"
 
 using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;

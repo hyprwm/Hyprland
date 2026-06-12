@@ -10,6 +10,8 @@
 #include "../../managers/SeatManager.hpp"
 #include "../../managers/input/InputManager.hpp"
 #include "../../layout/LayoutManager.hpp"
+#include "../../state/MonitorState.hpp"
+#include "../../state/WorkspaceState.hpp"
 
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/string/VarList2.hpp>
@@ -50,11 +52,11 @@ static PHLWORKSPACE resolveWorkspace(const std::string& args) {
     const auto& [id, name, isAutoID] = getWorkspaceIDNameFromString(args);
     if (id == WORKSPACE_INVALID)
         return nullptr;
-    auto ws = g_pCompositor->getWorkspaceByID(id);
+    auto ws = State::workspaceState()->query().id(id).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(id, PMONITOR->m_id, name, false);
+            ws = State::workspaceState()->create(id, PMONITOR->m_id, name, false);
     }
     return ws;
 }
@@ -141,12 +143,12 @@ static SDispatchResult renameworkspace(const std::string& args) {
         if (FIRSTSPACEPOS != std::string::npos) {
             int         wsid = std::stoi(args.substr(0, FIRSTSPACEPOS));
             std::string name = args.substr(FIRSTSPACEPOS + 1);
-            const auto  PWS  = g_pCompositor->getWorkspaceByID(wsid);
+            const auto  PWS  = State::workspaceState()->query().id(wsid).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, name));
         } else {
-            const auto PWS = g_pCompositor->getWorkspaceByID(std::stoi(args));
+            const auto PWS = State::workspaceState()->query().id(std::stoi(args)).run();
             if (!PWS)
                 return {.success = false, .error = "No such workspace"};
             return wrap(Actions::renameWorkspace(PWS, ""));
@@ -248,7 +250,7 @@ static SDispatchResult movewindow(const std::string& args) {
     auto cleanArgs = silent ? args.substr(0, args.length() - 7) : args;
 
     if (cleanArgs.starts_with("mon:")) {
-        const auto PNEWMONITOR = g_pCompositor->getMonitorFromString(cleanArgs.substr(4));
+        const auto PNEWMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(cleanArgs.substr(4)).run();
         if (!PNEWMONITOR)
             return {.success = false, .error = std::format("Monitor {} not found", cleanArgs.substr(4))};
 
@@ -323,7 +325,7 @@ static SDispatchResult movegroupwindow(const std::string& args) {
 }
 
 static SDispatchResult focusmonitor(const std::string& args) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(args);
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
     return wrap(Actions::focusMonitor(PMONITOR));
@@ -358,7 +360,7 @@ static SDispatchResult exitHyprland(const std::string&) {
 }
 
 static SDispatchResult movecurrentworkspacetomonitor(const std::string& args) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromString(args);
+    const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(args).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
 
@@ -376,7 +378,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     std::string wsStr  = args.substr(0, args.find_first_of(' '));
     std::string monStr = args.substr(args.find_first_of(' ') + 1);
 
-    const auto  PMONITOR = g_pCompositor->getMonitorFromString(monStr);
+    const auto  PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(monStr).run();
     if (!PMONITOR)
         return {.success = false, .error = "Monitor not found"};
 
@@ -384,7 +386,7 @@ static SDispatchResult moveworkspacetomonitor(const std::string& args) {
     if (WORKSPACEID == WORKSPACE_INVALID)
         return {.success = false, .error = "Invalid workspace"};
 
-    const auto PWORKSPACE = g_pCompositor->getWorkspaceByID(WORKSPACEID);
+    const auto PWORKSPACE = State::workspaceState()->query().id(WORKSPACEID).run();
     if (!PWORKSPACE)
         return {.success = false, .error = "Workspace not found"};
 
@@ -400,14 +402,14 @@ static SDispatchResult focusworkspaceoncurrentmonitor(const std::string& args) {
 
 static SDispatchResult togglespecialworkspace(const std::string& args) {
     const auto& [workspaceID, workspaceName, isAutoID] = getWorkspaceIDNameFromString("special:" + args);
-    if (workspaceID == WORKSPACE_INVALID || !g_pCompositor->isWorkspaceSpecial(workspaceID))
+    if (workspaceID == WORKSPACE_INVALID || !State::workspaceState()->isSpecial(workspaceID))
         return {.success = false, .error = "Invalid special workspace"};
 
-    auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+    auto ws = State::workspaceState()->query().id(workspaceID).run();
     if (!ws) {
         const auto PMONITOR = Desktop::focusState()->monitor();
         if (PMONITOR)
-            ws = g_pCompositor->createNewWorkspace(workspaceID, PMONITOR->m_id, workspaceName);
+            ws = State::workspaceState()->create(workspaceID, PMONITOR->m_id, workspaceName);
     }
 
     if (!ws)
@@ -638,7 +640,7 @@ static SDispatchResult dpmsDispatcher(const std::string& arg) {
     std::optional<PHLMONITOR> mon = std::nullopt;
     if (arg.find_first_of(' ') != std::string::npos) {
         auto port = arg.substr(arg.find_first_of(' ') + 1);
-        auto pMon = g_pCompositor->getMonitorFromString(port);
+        auto pMon = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(port).run();
         if (pMon)
             mon = pMon;
     }
@@ -654,8 +656,8 @@ static SDispatchResult swapactiveworkspaces(const std::string& args) {
     const auto MON1 = args.substr(0, args.find_first_of(' '));
     const auto MON2 = args.substr(args.find_first_of(' ') + 1);
 
-    const auto PMON1 = g_pCompositor->getMonitorFromString(MON1);
-    const auto PMON2 = g_pCompositor->getMonitorFromString(MON2);
+    const auto PMON1 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(MON1).run();
+    const auto PMON2 = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(MON2).run();
 
     if (!PMON1 || !PMON2)
         return {.success = false, .error = "Monitor not found"};

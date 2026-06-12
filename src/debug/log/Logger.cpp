@@ -7,19 +7,15 @@
 
 using namespace Log;
 
-CLogger::CLogger() {
-    const auto IS_TRACE = Env::isTrace();
-    m_logger.setLogLevel(IS_TRACE ? Hyprutils::CLI::LOG_TRACE : Hyprutils::CLI::LOG_DEBUG);
+CLogger::CLogger() : m_isTrace(Env::isTrace()) {
+    m_logger.setLogLevel(m_isTrace ? Hyprutils::CLI::LOG_TRACE : Hyprutils::CLI::LOG_DEBUG);
 }
 
 void CLogger::log(Hyprutils::CLI::eLogLevel level, const std::string_view& str) {
-
-    static bool TRACE = Env::isTrace();
-
     if (!m_logsEnabled)
         return;
 
-    if (level == Hyprutils::CLI::LOG_TRACE && !TRACE)
+    if (level == Hyprutils::CLI::LOG_TRACE && !m_isTrace)
         return;
 
     if (SRollingLogFollow::get().isRunning())

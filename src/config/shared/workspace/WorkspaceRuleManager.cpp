@@ -2,6 +2,7 @@
 
 #include "../../../Compositor.hpp"
 #include "../../../output/Monitor.hpp"
+#include "../../../state/MonitorState.hpp"
 
 #include <hyprutils/string/String.hpp>
 
@@ -50,19 +51,14 @@ std::optional<CWorkspaceRule> CWorkspaceRuleManager::getWorkspaceRuleFor(PHLWORK
     return mergedRule;
 }
 
-std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const std::string& name) {
+std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const Monitor::IMonitorIdentifiable& monitor) {
     for (auto other = m_rules.begin(); other != m_rules.end(); ++other) {
         if (!other->m_enabled)
             continue;
 
         if (other->m_isDefault.value_or(false)) {
-            if (other->m_monitor == name)
+            if (monitor.matchesStaticSelector(other->m_monitor))
                 return other->m_workspaceString;
-            if (other->m_monitor.starts_with("desc:")) {
-                auto const monitor = g_pCompositor->getMonitorFromDesc(trim(other->m_monitor.substr(5)));
-                if (monitor && monitor->m_name == name)
-                    return other->m_workspaceString;
-            }
         }
     }
     return "";
@@ -71,9 +67,9 @@ std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const std::string& nam
 PHLMONITOR CWorkspaceRuleManager::getBoundMonitorForWS(const std::string& wsname) {
     auto monitor = getBoundMonitorStringForWS(wsname);
     if (monitor.starts_with("desc:"))
-        return g_pCompositor->getMonitorFromDesc(trim(monitor.substr(5)));
+        return State::monitorState()->query().description(trim(monitor.substr(5))).run();
     else
-        return g_pCompositor->getMonitorFromName(monitor);
+        return State::monitorState()->query().name(monitor).run();
 }
 
 std::string CWorkspaceRuleManager::getBoundMonitorStringForWS(const std::string& wsname) {

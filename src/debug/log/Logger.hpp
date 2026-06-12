@@ -19,12 +19,10 @@ namespace Log {
         template <typename... Args>
         //NOLINTNEXTLINE
         void log(Hyprutils::CLI::eLogLevel level, std::format_string<Args...> fmt, Args&&... args) {
-            static bool TRACE = Env::isTrace();
-
             if (!m_logsEnabled)
                 return;
 
-            if (level == Hyprutils::CLI::LOG_TRACE && !TRACE)
+            if (level == Hyprutils::CLI::LOG_TRACE && !m_isTrace)
                 return;
 
             std::string logMsg = "";
@@ -47,6 +45,7 @@ namespace Log {
 
         Hyprutils::CLI::CLogger m_logger;
         bool                    m_logsEnabled = true;
+        bool                    m_isTrace     = false;
     };
 
     inline UP<CLogger> logger = makeUnique<CLogger>();

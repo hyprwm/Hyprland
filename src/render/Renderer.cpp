@@ -35,6 +35,7 @@
 #include "../helpers/MainLoopExecutor.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "macros.hpp"
 #include "pass/TexPassElement.hpp"
 #include "pass/ClearPassElement.hpp"
@@ -1221,7 +1222,7 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
     }
 
     // special
-    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+    for (auto const& ws : State::workspaceState()->workspaces()) {
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace)
             continue;
 
@@ -1917,6 +1918,8 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
     const auto                          sdrEOTF = NTransferFunction::fromConfig();
     NColorManagement::eTransferFunction srcTF;
 
+    const int                           tonemapMode = shouldUseSurface && m_renderData.currentWindow ? m_renderData.currentWindow->m_ruleApplicator->tonemap().valueOr(1) : 1;
+
     if (shouldUseSurface && m_renderData.surface.valid() &&
         (imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_GAMMA22 || imageDescription->value().transferFunction == CM_TRANSFER_FUNCTION_SRGB)) {
         if (m_renderData.surface->m_colorManagement.valid()) {
@@ -1947,7 +1950,9 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         ((m_renderData.pMonitor->m_sdrSaturation > 0 && m_renderData.pMonitor->m_sdrSaturation != 1.0f) ||
          (m_renderData.pMonitor->m_sdrBrightness > 0 && m_renderData.pMonitor->m_sdrBrightness != 1.0f));
 
-    auto result = SCMSettings{
+    const bool needsTonemap = maxLuminance >= dstMaxLuminance * 1.01;
+
+    auto       result = SCMSettings{
         .sourceTF        = srcTF,
         .targetTF        = targetImageDescription->value().transferFunction,
         .srcTFRange      = {.min = imageDescription->value().getTFMinLuminance(needsSDRmod ? sdrMinLuminance : -1),
@@ -1958,8 +1963,10 @@ SCMSettings IHyprRenderer::getCMSettings(const NColorManagement::PImageDescripti
         .dstRefLuminance = targetImageDescription->value().luminances.reference,
         .convertMatrix   = matrix.mat(),
 
-        .needsTonemap            = maxLuminance >= dstMaxLuminance * 1.01,
-        .maxLuminance            = maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
+        .needsTonemap            = tonemapMode != 0 && needsTonemap,
+        .tonemapMode             = tonemapMode,
+        .maxLuminance            = needsTonemap && tonemapMode == 2 ? dstMaxLuminance :
+                                                                      maxLuminance * targetImageDescription->value().luminances.reference / imageDescription->value().luminances.reference,
         .dstMaxLuminance         = dstMaxLuminance,
         .dstPrimaries2XYZ        = toXYZ.mat(),
         .needsSDRmod             = needsMod,
@@ -2118,7 +2125,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
     }
 
     m_renderData.mouseZoomFactor = 1.f;
-    if (ZOOMFACTOR != 1.f && pMonitor == g_pCompositor->getMonitorFromCursor())
+    if (ZOOMFACTOR != 1.f && pMonitor == State::monitorState()->query().vec(g_pPointerManager->position()).run())
         m_renderData.mouseZoomFactor = std::clamp(ZOOMFACTOR, 1.f, INFINITY);
 
     if (pMonitor->m_zoomAnimProgress->value() != 1) {
@@ -2192,7 +2199,8 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
             }
         }
     } else if (!pMonitor->isMirror()) {
-        sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
+        if (pMonitor->m_activeWorkspace)
+            sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW);
         if (pMonitor->m_activeSpecialWorkspace)
             sendFrameEventsToWorkspace(pMonitor, pMonitor->m_activeSpecialWorkspace, NOW);
     }
@@ -2658,7 +2666,7 @@ void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHL
 }
 
 void IHyprRenderer::arrangeLayersForMonitor(const MONITORID& monitor) {
-    const auto PMONITOR = g_pCompositor->getMonitorFromID(monitor);
+    const auto PMONITOR = State::monitorState()->query().id(monitor).run();
 
     if (!PMONITOR || PMONITOR->m_size.x <= 0 || PMONITOR->m_size.y <= 0)
         return;

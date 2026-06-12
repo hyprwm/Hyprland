@@ -7,6 +7,7 @@
 #include "../render/Renderer.hpp"
 #include "../managers/EventManager.hpp"
 #include "../event/EventBus.hpp"
+#include "../state/MonitorState.hpp"
 
 CForeignToplevelHandleWlr::CForeignToplevelHandleWlr(SP<CZwlrForeignToplevelHandleV1> resource_, PHLWINDOW pWindow_) : m_resource(resource_), m_window(pWindow_) {
     if UNLIKELY (!resource_->resource())
@@ -153,7 +154,7 @@ void CForeignToplevelHandleWlr::sendMonitor(PHLMONITOR pMonitor) {
 
     const auto CLIENT = m_resource->client();
 
-    if (const auto PLASTMONITOR = g_pCompositor->getMonitorFromID(m_lastMonitorID); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
+    if (const auto PLASTMONITOR = State::monitorState()->query().id(m_lastMonitorID).run(); PLASTMONITOR && PROTO::outputs.contains(PLASTMONITOR->m_name)) {
         const auto OLDRESOURCES = PROTO::outputs.at(PLASTMONITOR->m_name)->outputResourcesFrom(CLIENT);
 
         if LIKELY (!OLDRESOURCES.empty()) {

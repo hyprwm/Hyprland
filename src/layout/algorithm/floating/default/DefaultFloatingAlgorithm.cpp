@@ -7,6 +7,7 @@
 
 #include "../../../../Compositor.hpp"
 #include "../../../../output/Monitor.hpp"
+#include "../../../../state/MonitorState.hpp"
 
 using namespace Layout;
 using namespace Layout::Floating;
@@ -162,7 +163,7 @@ void CDefaultFloatingAlgorithm::movedTarget(SP<ITarget> target, std::optional<Ve
         // calculate new position
         const auto THIS_MON_POS = m_parent->space()->workspace()->m_monitor->m_position;
         const auto OLD_POS      = target->position().pos();
-        const auto MON_FROM_OLD = g_pCompositor->getMonitorFromVector(OLD_POS);
+        const auto MON_FROM_OLD = State::monitorState()->query().vec(OLD_POS).run();
         const auto NEW_POS      = MON_FROM_OLD ? OLD_POS - MON_FROM_OLD->m_position + THIS_MON_POS : OLD_POS;
 
         // put around the current center, fit in workArea

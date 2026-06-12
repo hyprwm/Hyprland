@@ -35,6 +35,7 @@
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
 #include "../desktop/state/FocusState.hpp"
@@ -297,7 +298,7 @@ void CMonitor::onConnect(bool noRule) {
 
     setupDefaultWS(monitorRule);
 
-    for (auto const& ws : g_pCompositor->getWorkspacesCopy()) {
+    for (auto const& ws : State::workspaceState()->workspacesCopy()) {
         if (!valid(ws))
             continue;
 
@@ -340,10 +341,10 @@ void CMonitor::onConnect(bool noRule) {
 
     Log::logger->log(Log::DEBUG, "checking if we have seen this monitor before: {}", m_name);
     // if we saw this monitor before, set it to the workspace it was on
-    if (g_pCompositor->m_seenMonitorWorkspaceMap.contains(m_name)) {
-        auto workspaceID = g_pCompositor->m_seenMonitorWorkspaceMap[m_name];
+    if (const auto WORKSPACEID = State::workspaceState()->rememberedWorkspaceForMonitor(m_name); WORKSPACEID.has_value()) {
+        auto workspaceID = *WORKSPACEID;
         Log::logger->log(Log::DEBUG, "Monitor {} was on workspace {}, setting it to that", m_name, workspaceID);
-        auto ws = g_pCompositor->getWorkspaceByID(workspaceID);
+        auto ws = State::workspaceState()->query().id(workspaceID).run();
         if (ws) {
             g_pCompositor->moveWorkspaceToMonitor(ws, m_self.lock());
             changeWorkspace(ws, true, false, false);
@@ -391,7 +392,7 @@ void CMonitor::onDisconnect(bool destroy) {
     // record what workspace this monitor was on
     if (m_activeWorkspace) {
         Log::logger->log(Log::DEBUG, "Disconnecting Monitor {} was on workspace {}", m_name, m_activeWorkspace->m_id);
-        g_pCompositor->m_seenMonitorWorkspaceMap[m_name] = m_activeWorkspace->m_id;
+        State::workspaceState()->rememberWorkspaceForMonitor(m_name, m_activeWorkspace->m_id);
     }
 
     // Cleanup everything. Move windows back, snap cursor, shit.
@@ -439,7 +440,7 @@ void CMonitor::onDisconnect(bool destroy) {
     m_renderingInitPassed = false;
 
     std::vector<PHLWORKSPACE> wspToMove;
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->m_monitor == m_self || !w->m_monitor)
             wspToMove.emplace_back(w.lock());
     }
@@ -1116,7 +1117,7 @@ void CMonitor::clearModeRetry() {
 }
 
 void CMonitor::addDamage(const pixman_region32_t* rg) {
-    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
@@ -1128,7 +1129,7 @@ void CMonitor::addDamage(const CRegion& rg) {
 }
 
 void CMonitor::addDamage(const CBox& box) {
-    if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+    if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
         return;
@@ -1162,7 +1163,23 @@ bool CMonitor::isMirror() {
     return m_mirrorOf != nullptr;
 }
 
-bool CMonitor::matchesStaticSelector(const std::string& selector) const {
+MONITORID CMonitor::id() const {
+    return m_id;
+}
+
+std::string_view CMonitor::name() const {
+    return m_name;
+}
+
+std::string_view CMonitor::description() const {
+    return m_description;
+}
+
+std::string_view CMonitor::shortDescription() const {
+    return m_shortDescription;
+}
+
+bool CMonitor::matchesStaticSelector(std::string_view selector) const {
     if (selector.starts_with("desc:")) {
         // match by description
         const auto DESCRIPTIONSELECTOR = trim(selector.substr(5));
@@ -1174,12 +1191,75 @@ bool CMonitor::matchesStaticSelector(const std::string& selector) const {
     }
 }
 
+Vector2D CMonitor::position() const {
+    return m_position;
+}
+
+Vector2D CMonitor::size() const {
+    return m_size;
+}
+
+Vector2D CMonitor::pixelSize() const {
+    return m_pixelSize;
+}
+
+Vector2D CMonitor::transformedSize() const {
+    return m_transformedSize;
+}
+
+float CMonitor::scale() const {
+    return m_scale;
+}
+
+Hyprutils::Math::eTransform CMonitor::transform() const {
+    return Math::wlTransformToHyprutils(m_transform);
+}
+
+bool CMonitor::enabled() const {
+    return m_enabled;
+}
+
+bool CMonitor::hasOutput() const {
+    return m_output;
+}
+
+SP<Aquamarine::IOutput> CMonitor::output() const {
+    return m_output;
+}
+
+std::optional<Vector2D> CMonitor::explicitPosition() const {
+    if (m_activeMonitorRule.m_offset == Vector2D{-INT32_MAX, -INT32_MAX})
+        return {};
+
+    return m_activeMonitorRule.m_offset;
+}
+
+Config::eAutoDirs CMonitor::autoDirection() const {
+    return m_activeMonitorRule.m_autoDir;
+}
+
+Vector2D CMonitor::xwaylandPosition() const {
+    return m_xwaylandPosition;
+}
+
+float CMonitor::xwaylandScale() const {
+    return m_xwaylandScale;
+}
+
+void CMonitor::setXWaylandPosition(const Vector2D& pos) {
+    m_xwaylandPosition = pos;
+}
+
+void CMonitor::setXWaylandScale(float scale_) {
+    m_xwaylandScale = scale_;
+}
+
 WORKSPACEID CMonitor::findAvailableDefaultWS() {
     for (WORKSPACEID i = 1; i < LONG_MAX; ++i) {
-        if (g_pCompositor->getWorkspaceByID(i))
+        if (State::workspaceState()->query().id(i).run())
             continue;
 
-        if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && BOUND != m_name)
+        if (const auto BOUND = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(i)); !BOUND.empty() && !matchesStaticSelector(BOUND))
             continue;
 
         return i;
@@ -1192,23 +1272,23 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
     // Workspace
     std::string newDefaultWorkspaceName = "";
     int64_t     wsID                    = WORKSPACE_INVALID;
-    if (Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name).empty())
+    const auto  DEFAULTWORKSPACE        = Config::workspaceRuleMgr()->getDefaultWorkspaceFor(*this);
+    if (DEFAULTWORKSPACE.empty())
         wsID = findAvailableDefaultWS();
     else {
-        const auto ws           = getWorkspaceIDNameFromString(Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
+        const auto ws           = getWorkspaceIDNameFromString(DEFAULTWORKSPACE);
         wsID                    = ws.id;
         newDefaultWorkspaceName = ws.name;
     }
 
     if (wsID == WORKSPACE_INVALID || (wsID >= SPECIAL_WORKSPACE_START && wsID <= -2)) {
-        wsID                    = std::ranges::distance(g_pCompositor->getWorkspaces()) + 1;
+        wsID                    = std::ranges::distance(State::workspaceState()->workspaces()) + 1;
         newDefaultWorkspaceName = std::to_string(wsID);
 
-        Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.",
-                         Config::workspaceRuleMgr()->getDefaultWorkspaceFor(m_name));
+        Log::logger->log(Log::DEBUG, "Invalid workspace= directive name in monitor parsing, workspace name \"{}\" is invalid.", DEFAULTWORKSPACE);
     }
 
-    auto PNEWWORKSPACE = g_pCompositor->getWorkspaceByID(wsID);
+    auto PNEWWORKSPACE = State::workspaceState()->query().id(wsID).run();
 
     Log::logger->log(Log::DEBUG, "New monitor: WORKSPACEID {}, exists: {}", wsID, sc<int>(PNEWWORKSPACE != nullptr));
 
@@ -1233,7 +1313,7 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
 }
 
 void CMonitor::setMirror(const std::string& mirrorOf) {
-    const auto PMIRRORMON = g_pCompositor->getMonitorFromString(mirrorOf);
+    const auto PMIRRORMON = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(mirrorOf).run();
 
     if (PMIRRORMON == m_mirrorOf)
         return;
@@ -1272,7 +1352,7 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         // move all the WS
         std::vector<PHLWORKSPACE> wspToMove;
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             if (w->m_monitor == m_self || !w->m_monitor)
                 wspToMove.emplace_back(w.lock());
         }
@@ -1327,7 +1407,7 @@ static bool shouldWraparound(const WORKSPACEID id1, const WORKSPACEID id2) {
     WORKSPACEID lowestID  = INT64_MAX;
     WORKSPACEID highestID = INT64_MIN;
 
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         if (w->m_id < 0 || w->m_isSpecialWorkspace)
             continue;
         lowestID  = std::min(w->m_id, lowestID);
@@ -1431,7 +1511,7 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
 }
 
 void CMonitor::changeWorkspace(const WORKSPACEID& id, bool internal, bool noMouseMove, bool noFocus) {
-    changeWorkspace(g_pCompositor->getWorkspaceByID(id), internal, noMouseMove, noFocus);
+    changeWorkspace(State::workspaceState()->query().id(id).run(), internal, noMouseMove, noFocus);
 }
 
 void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
@@ -1546,7 +1626,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
             const auto MIDDLE = w->middle();
             if (w->m_isFloating && VECNOTINRECT(MIDDLE, m_position.x, m_position.y, m_position.x + m_size.x, m_position.y + m_size.y) && !w->isX11OverrideRedirect()) {
                 // if it's floating and the middle isn't on the current mon, move it to the center
-                const auto PMONFROMMIDDLE = g_pCompositor->getMonitorFromVector(MIDDLE);
+                const auto PMONFROMMIDDLE = State::monitorState()->query().vec(MIDDLE).run();
                 Vector2D   pos            = w->m_realPosition->goal();
                 if (VECNOTINRECT(MIDDLE, PMONFROMMIDDLE->m_position.x, PMONFROMMIDDLE->m_position.y, PMONFROMMIDDLE->m_position.x + PMONFROMMIDDLE->m_size.x,
                                  PMONFROMMIDDLE->m_position.y + PMONFROMMIDDLE->m_size.y)) {
@@ -1585,7 +1665,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 }
 
 void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
-    setSpecialWorkspace(g_pCompositor->getWorkspaceByID(id));
+    setSpecialWorkspace(State::workspaceState()->query().id(id).run());
 }
 
 void CMonitor::moveTo(const Vector2D& pos) {
@@ -1609,7 +1689,7 @@ void CMonitor::moveTo(const Vector2D& pos) {
     }
 }
 
-Vector2D CMonitor::middle() {
+Vector2D CMonitor::middle() const {
     return m_position + m_size / 2.f;
 }
 
@@ -1637,11 +1717,11 @@ WORKSPACEID CMonitor::activeSpecialWorkspaceID() {
     return m_activeSpecialWorkspace ? m_activeSpecialWorkspace->m_id : 0;
 }
 
-CBox CMonitor::logicalBox() {
+CBox CMonitor::logicalBox() const {
     return {m_position, m_size};
 }
 
-CBox CMonitor::logicalBoxMinusReserved() {
+CBox CMonitor::logicalBoxMinusReserved() const {
     return m_reservedArea.apply(logicalBox());
 }
 
@@ -1771,7 +1851,7 @@ uint32_t CMonitor::isSolitaryBlocked(bool full) {
         }
     }
 
-    for (auto const& ws : g_pCompositor->getWorkspaces()) {
+    for (auto const& ws : State::workspaceState()->workspaces()) {
         if (ws->m_alpha->value() <= 0.F || !ws->m_isSpecialWorkspace || ws->m_monitor != m_self)
             continue;
 

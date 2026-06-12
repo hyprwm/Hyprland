@@ -6,6 +6,7 @@
 #include <utility>
 #include "core/Output.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 
 CExtWorkspaceGroupResource::CExtWorkspaceGroupResource(WP<CExtWorkspaceManagerResource> manager, UP<CExtWorkspaceGroupHandleV1> resource, PHLMONITORREF monitor) :
     m_monitor(std::move(monitor)), m_manager(std::move(manager)), m_resource(std::move(resource)) {
@@ -241,7 +242,7 @@ void CExtWorkspaceManagerResource::init(WP<CExtWorkspaceManagerResource> self) {
         onMonitorCreated(m);
     }
 
-    for (auto const& w : g_pCompositor->getWorkspaces()) {
+    for (auto const& w : State::workspaceState()->workspaces()) {
         onWorkspaceCreated(w.lock());
     }
 }

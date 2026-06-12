@@ -14,6 +14,7 @@
 #include "../algorithm/tiled/monocle/MonocleAlgorithm.hpp"
 
 #include "../../Compositor.hpp"
+#include "../../state/WorkspaceState.hpp"
 
 using namespace Layout;
 using namespace Layout::Supplementary;
@@ -114,7 +115,7 @@ SP<CAlgorithm> CWorkspaceAlgoMatcher::createAlgorithmForWorkspace(PHLWORKSPACE w
 
 void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
     // TODO: make this ID-based, string comparison is slow
-    for (const auto& ws : g_pCompositor->getWorkspaces()) {
+    for (const auto& ws : State::workspaceState()->workspaces()) {
         if (!ws)
             continue;
 

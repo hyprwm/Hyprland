@@ -61,6 +61,7 @@ using namespace Hyprutils::OS;
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspaceState.hpp"
 #include "../version.h"
 
 #include "../Compositor.hpp"
@@ -580,7 +581,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
 
     if (format == eHyprCtlOutputFormat::FORMAT_JSON) {
         result += "[";
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
             result += ",";
         }
@@ -588,7 +589,7 @@ static std::string workspacesRequest(eHyprCtlOutputFormat format, std::string re
         trimTrailingComma(result);
         result += "]";
     } else {
-        for (auto const& w : g_pCompositor->getWorkspaces()) {
+        for (auto const& w : State::workspaceState()->workspaces()) {
             result += CHyprCtl::getWorkspaceData(w.lock(), format);
         }
     }
@@ -1755,7 +1756,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
     }
 
     if (MODE == "create" || MODE == "add") {
-        if (g_pCompositor->getMonitorFromName(vars[3]))
+        if (State::monitorState()->query().name(vars[3]).run())
             return "A real monitor already uses that name.";
 
         for (auto const& impl : g_pCompositor->m_aqBackend->getImplementations() | std::views::reverse) {
@@ -1778,7 +1779,7 @@ static std::string dispatchOutput(eHyprCtlOutputFormat format, std::string reque
             return "no backend replied to the request";
 
     } else if (MODE == "destroy" || MODE == "remove") {
-        const auto PMONITOR = g_pCompositor->getMonitorFromName(vars[2]);
+        const auto PMONITOR = State::monitorState()->query().name(vars[2]).run();
 
         if (!PMONITOR)
             return "output not found";
@@ -2126,7 +2127,7 @@ std::string CHyprCtl::getReply(std::string request) {
             Desktop::Rule::ruleEngine()->updateAllRules();
         }
 
-        for (const auto& ws : g_pCompositor->getWorkspaces()) {
+        for (const auto& ws : State::workspaceState()->workspaces()) {
             if (!ws)
                 continue;
 

@@ -438,7 +438,7 @@ CHyprOpenGLImpl::CHyprOpenGLImpl() : m_drmFD(g_pCompositor->m_drmRenderNode.fd >
     });
 
     static auto P3 = Event::bus()->m_events.input.touch.down.listen([](ITouch::SDownEvent e, Event::SCallbackInfo&) {
-        auto PMONITOR = g_pCompositor->getMonitorFromName(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "");
+        auto PMONITOR = State::monitorState()->query().name(!e.device->m_boundOutput.empty() ? e.device->m_boundOutput : "").run();
 
         PMONITOR = PMONITOR ? PMONITOR : Desktop::focusState()->monitor();
 
@@ -1161,6 +1161,7 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     shader->setUniformFloat(SHADER_DST_REF_LUMINANCE, settings.dstRefLuminance);
     shader->setUniformFloat(SHADER_MAX_LUMINANCE, settings.maxLuminance);
     shader->setUniformFloat(SHADER_DST_MAX_LUMINANCE, settings.dstMaxLuminance);
+    shader->setUniformInt(SHADER_TONEMAP_MODE, settings.tonemapMode);
     shader->setUniformFloat(SHADER_SDR_SATURATION, settings.sdrSaturation);
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, settings.sdrBrightnessMultiplier);
 
@@ -1391,8 +1392,11 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
         if (TARGET_IMAGE_DESCRIPTION->value().icc.present)
             shaderFeatures |= SH_FEAT_ICC;
         else {
-            if (settings.needsTonemap)
+            if (settings.needsTonemap) {
                 shaderFeatures |= SH_FEAT_TONEMAP;
+                if (settings.tonemapMode == 3)
+                    shaderFeatures |= SH_FEAT_ALT_TONEMAP;
+            }
 
             if (!data.finalMonitorCM && settings.needsSDRmod)
                 shaderFeatures |= SH_FEAT_SDR_MOD;
@@ -2126,6 +2130,26 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
     scissor(nullptr);
 }
 
+static ShaderFeatureFlags getDecoFeatures() {
+    const bool IS_ICC   = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
+    const auto settings = g_pHyprRenderer->getCMSettings(g_pHyprRenderer->workBufferImageDescription(), getDefaultImageDescription(), nullptr, true,
+                                                         g_pHyprRenderer->m_renderData.pMonitor->m_sdrMinLuminance, g_pHyprRenderer->m_renderData.pMonitor->m_sdrMaxLuminance);
+
+    ShaderFeatureFlags features = SH_FEAT_ROUNDING | SH_FEAT_CM | globalFeatures();
+    if (IS_ICC)
+        features |= SH_FEAT_ICC;
+    else {
+        if (settings.needsTonemap) {
+            features |= SH_FEAT_TONEMAP;
+            if (settings.tonemapMode == 3)
+                features |= SH_FEAT_ALT_TONEMAP;
+        }
+        if (settings.needsSDRmod)
+            features |= SH_FEAT_SDR_MOD;
+    }
+    return features;
+}
+
 void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValueData& grad, SBorderRenderData data) {
     auto& m_renderData = g_pHyprRenderer->m_renderData;
     RASSERT((box.width > 0 && box.height > 0), "Tried to render rect with width/height < 0!");
@@ -2160,10 +2184,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
 
     WP<CShader> shader;
 
-    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));
@@ -2245,10 +2268,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
     blend(true);
 
     WP<CShader> shader;
-    const bool  IS_ICC = g_pHyprRenderer->workBufferImageDescription()->value().icc.present;
     const bool  skipCM = !m_cmSupported || !g_pHyprRenderer->workBufferImageDescription()->needsCM(getDefaultImageDescription());
     if (!skipCM) {
-        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | SH_FEAT_CM | (IS_ICC ? SH_FEAT_ICC : SH_FEAT_TONEMAP | SH_FEAT_SDR_MOD) | globalFeatures()));
+        shader = useShader(getShaderVariant(SH_FRAG_BORDER1, getDecoFeatures()));
         passCMUniforms(shader, getDefaultImageDescription());
     } else
         shader = useShader(getShaderVariant(SH_FRAG_BORDER1, SH_FEAT_ROUNDING | globalFeatures()));

@@ -85,4 +85,9 @@ void CFloatTrackpadGesture::end(const ITrackpadGesture::STrackpadGestureEnd& e) 
 
     *m_window->m_realPosition = m_posTo;
     *m_window->m_realSize     = m_sizeTo;
+
+    // the gesture warps m_realSize->goal() around during update(), which races the deferred
+    // sendWindowSize() queued when the size animation began and can leave the client configured to
+    // an intermediate size. force a configure to the final size so the client matches its box.
+    m_window->sendWindowSize(true);
 }

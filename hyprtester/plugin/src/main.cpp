@@ -16,6 +16,7 @@
 #include <src/desktop/view/LayerSurface.hpp>
 #include <src/Compositor.hpp>
 #include <src/desktop/state/FocusState.hpp>
+#include <src/state/MonitorState.hpp>
 #include <src/layout/LayoutManager.hpp>
 #undef private
 
@@ -251,7 +252,7 @@ static SDispatchResult expectCursorZoom(std::string in) {
             return {.success = false, .error = "invalid input"};
     }
 
-    const auto PMONITOR = g_pCompositor->getMonitorFromVector(g_pInputManager->getMouseCoordsInternal());
+    const auto PMONITOR = State::monitorState()->query().vec(g_pInputManager->getMouseCoordsInternal()).run();
 
     if (!PMONITOR)
         return {.success = false, .error = "No monitor under cursor"};

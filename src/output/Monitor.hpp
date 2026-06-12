@@ -424,11 +424,6 @@ namespace Monitor {
             CHyprSignalListener needsFrame;
             CHyprSignalListener presented;
             CHyprSignalListener commit;
-            CHyprSignalListener windowOpen;
-            CHyprSignalListener windowDestroy;
-            CHyprSignalListener windowMoveWorkspace;
-            CHyprSignalListener workspaceMoveMonitor;
-            CHyprSignalListener configReloaded;
         } m_listeners;
 
         int   m_supportsWideColor = 0;

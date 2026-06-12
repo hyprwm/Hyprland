@@ -102,12 +102,6 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_s
     m_backgroundOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     Animation::mgr()->createAnimation(0.F, m_dpmsBlackOpacity, Config::animationTree()->getAnimationPropertyConfig("fadeDpms"), AVARDAMAGE_NONE);
     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
-
-    m_listeners.windowOpen           = Event::bus()->m_events.window.open.listen([this](PHLWINDOW) { updateWorkspaceRuleBlur(); });
-    m_listeners.windowDestroy        = Event::bus()->m_events.window.destroy.listen([this](PHLWINDOW) { updateWorkspaceRuleBlur(); });
-    m_listeners.windowMoveWorkspace  = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW, PHLWORKSPACE) { updateWorkspaceRuleBlur(); });
-    m_listeners.workspaceMoveMonitor = Event::bus()->m_events.workspace.moveToMonitor.listen([this](PHLWORKSPACE, PHLMONITOR) { updateWorkspaceRuleBlur(); });
-    m_listeners.configReloaded       = Event::bus()->m_events.config.reloaded.listen([this] { updateWorkspaceRuleBlur(); });
 }
 
 CMonitor::~CMonitor() {
@@ -1348,8 +1342,6 @@ void CMonitor::setupDefaultWS(const Config::CMonitorRule& monitorRule) {
     PNEWWORKSPACE->m_events.activeChanged.emit();
     PNEWWORKSPACE->m_visible     = true;
     PNEWWORKSPACE->m_lastMonitor = "";
-
-    updateWorkspaceRuleBlur();
 }
 
 void CMonitor::setMirror(const std::string& mirrorOf) {
@@ -1483,8 +1475,6 @@ void CMonitor::changeWorkspace(const PHLWORKSPACE& pWorkspace, bool internal, bo
     const auto POLDWORKSPACE = m_activeWorkspace;
     m_activeWorkspace        = pWorkspace;
 
-    updateWorkspaceRuleBlur();
-
     if (POLDWORKSPACE) {
         POLDWORKSPACE->m_visible = false;
         POLDWORKSPACE->m_events.activeChanged.emit();
@@ -1602,8 +1592,6 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
         }
         m_activeSpecialWorkspace.reset();
 
-        updateWorkspaceRuleBlur();
-
         if (POLDSPECIAL)
             POLDSPECIAL->m_events.activeChanged.emit();
 
@@ -1675,7 +1663,8 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace, bool noFocus)
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
 
-    updateWorkspaceRuleBlur();
+    if (wasActive)
+        updateWorkspaceRuleBlur();
 
     // Reset layer surface state when opening special workspace
     for (auto const& ls : Desktop::layerState()->layers()) {
@@ -1765,11 +1754,10 @@ void CMonitor::updateWorkspaceRuleBlur() {
     if (!m_workspaceRuleBlurAlpha)
         return;
 
-    const auto PWORKSPACE    = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
-    const auto WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
-    const bool SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) &&
-        std::ranges::any_of(Desktop::windowState()->windows(), [&](const auto& w) { return w->m_workspace == PWORKSPACE && w->visible(); });
-    const float BLUR_ALPHA = SHOULD_BLUR ? 1.F : 0.F;
+    const auto  PWORKSPACE    = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
+    const auto  WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
+    const bool  SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) && PWORKSPACE->getWindows(std::nullopt, std::nullopt, true) > 0;
+    const float BLUR_ALPHA    = SHOULD_BLUR ? 1.F : 0.F;
 
     m_workspaceRuleBlurAlpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(SHOULD_BLUR ? "fadeIn" : "fadeOut"));
 

@@ -594,8 +594,8 @@ void CWindow::onMap() {
 void CWindow::setHidden(bool hidden) {
     m_hidden = hidden;
 
-    if (const auto PMONITOR = m_monitor.lock(); PMONITOR)
-        PMONITOR->updateWorkspaceRuleBlur();
+    if (m_workspace)
+        m_workspace->updateWindows();
 
     if (hidden)
         m_events.hide.emit();

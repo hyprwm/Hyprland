@@ -462,6 +462,14 @@ static int hlTimer(lua_State* L) {
     return 1;
 }
 
+static int hlExecuteScheduledRefreshImmediately(lua_State* L){
+
+    // ERSTARR TODO - make executeScheduledRefreshImmediately return 1 if there's nothing to refresh. There should be no other errors as other errors would be quite fatal
+    Supplementary::refresher()->executeScheduledRefreshImmediately();
+
+    return 0;
+}
+
 void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "on", hlOn);
     Internal::setMgrFn(L, mgr, "bind", hlBind);
@@ -472,6 +480,8 @@ void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setFn(L, "version", hlVersion);
     Internal::setFn(L, "get_loaded_plugins", hlGetPlugins);
     Internal::setFn(L, "exec_cmd", hlExecCmd);
+
+    Internal::setFn(L, "exec_scheduled_prop_refresh_immediately", hlExecuteScheduledRefreshImmediately);
 
     Internal::setFn(L, "unbind", hlUnbind);
 }

@@ -51,19 +51,14 @@ std::optional<CWorkspaceRule> CWorkspaceRuleManager::getWorkspaceRuleFor(PHLWORK
     return mergedRule;
 }
 
-std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const std::string& name) {
+std::string CWorkspaceRuleManager::getDefaultWorkspaceFor(const Monitor::IMonitorIdentifiable& monitor) {
     for (auto other = m_rules.begin(); other != m_rules.end(); ++other) {
         if (!other->m_enabled)
             continue;
 
         if (other->m_isDefault.value_or(false)) {
-            if (other->m_monitor == name)
+            if (monitor.matchesStaticSelector(other->m_monitor))
                 return other->m_workspaceString;
-            if (other->m_monitor.starts_with("desc:")) {
-                auto const monitor = State::monitorState()->query().description(trim(other->m_monitor.substr(5))).run();
-                if (monitor && monitor->m_name == name)
-                    return other->m_workspaceString;
-            }
         }
     }
     return "";

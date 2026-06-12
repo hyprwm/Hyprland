@@ -266,8 +266,10 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
 
     auto cancelRender = false;
     auto clipRegion   = element->visibleRegion(cancelRender);
-    if (cancelRender)
+    if (cancelRender) {
+        element->discard();
         return;
+    }
 
     // check for fractional scale surfaces misaligning the buffer size
     // in those cases it's better to just force nearest neighbor

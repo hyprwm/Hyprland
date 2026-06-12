@@ -17,7 +17,7 @@ namespace NLog {
         std::fflush(stdout);
     }
 
-    // Logs message with yellow
+    /// Logs message with yellow
     template <typename... Args>
     // NOLINTNEXTLINE
     void alert(std::format_string<Args...> fmt, Args&&... args) {
@@ -25,7 +25,7 @@ namespace NLog {
         log("{}{}", Colors::YELLOW, msg);
     }
 
-    // Logs message with green
+    /// Logs message with green
     template <typename... Args>
     // NOLINTNEXTLINE
     void info(std::format_string<Args...> fmt, Args&&... args) {
@@ -33,7 +33,7 @@ namespace NLog {
         log("{}{}", Colors::GREEN, msg);
     }
 
-    // Logs message with red
+    /// Logs message with red
     template <typename... Args>
     // NOLINTNEXTLINE
     void error(std::format_string<Args...> fmt, Args&&... args) {

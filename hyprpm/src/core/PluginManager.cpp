@@ -276,7 +276,12 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
 
             progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+            if (plugin.contains("'")) {
+                std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                return false;
+            }
+
+            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
 
             ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
             if (m_bVerbose)
@@ -753,7 +758,12 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
 
                 progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+                if (plugin.contains("'")) {
+                    std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                    return false;
+                }
+
+                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
             }
         }
 

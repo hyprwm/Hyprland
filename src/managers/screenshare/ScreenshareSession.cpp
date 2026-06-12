@@ -5,7 +5,9 @@
 #include "../EventManager.hpp"
 #include "../eventLoop/EventLoopManager.hpp"
 #include "../../event/EventBus.hpp"
+#include <hyprgraphics/egl/Egl.hpp>
 
+using namespace Hyprgraphics::Egl;
 using namespace Screenshare;
 
 CScreenshareSession::CScreenshareSession(PHLMONITOR monitor, wl_client* client) : m_type(SHARE_MONITOR), m_monitor(monitor), m_client(client) {
@@ -89,6 +91,14 @@ void CScreenshareSession::init() {
         calculateConstraints();
         m_events.constraintsChanged.emit();
     });
+    m_listeners.configReloaded     = Event::bus()->m_events.config.reloaded.listen([this] {
+        static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
+        static auto       prev       = *PFORCE8BIT;
+        if (prev != *PFORCE8BIT) {
+            prev = *PFORCE8BIT;
+            calculateConstraints();
+        }
+    });
 
     calculateConstraints();
 }
@@ -102,14 +112,37 @@ void CScreenshareSession::calculateConstraints() {
 
     // TODO: maybe support more that just monitor format in the future?
     m_formats.clear();
-    m_formats.push_back(NFormatUtils::alphaFormat(PMONITOR->getPreferredReadFormat()));
-    m_formats.push_back(PMONITOR->getPreferredReadFormat()); // some clients don't like alpha formats
+    const auto preferredReadFormat = PMONITOR->getPreferredReadFormat();
+    auto       format              = getPixelFormatFromDRM(preferredReadFormat);
 
-    // TODO: hack, we can't bit flip so we'll format flip heh, GL_BGRA_EXT won't work here
-    for (auto& format : m_formats) {
-        if (format == DRM_FORMAT_XRGB2101010 || format == DRM_FORMAT_ARGB2101010)
-            format = DRM_FORMAT_XBGR2101010;
+    if (!format) {
+        LOGM(Log::ERR, "Missing support for format, BUG REPORT this");
+        return;
     }
+
+    // GL_BGRA_EXT only works with GL_UNSIGNED_BYTE 8bit formats, gles limitation
+    // so force another format
+    const auto readbackFormat = getReadbackFormat(*format);
+    if (readbackFormat == GL_BGRA_EXT && format->glType != GL_UNSIGNED_BYTE) {
+        const auto colorDepth = getColorDepth(*format);
+        if (colorDepth <= 8)
+            format = getPixelFormatFromDRM(DRM_FORMAT_XBGR8888);
+        else if (colorDepth == 10)
+            format = getPixelFormatFromDRM(DRM_FORMAT_XBGR2101010);
+        else // 16bit
+            format = getPixelFormatFromDRM(DRM_FORMAT_XBGR16161616);
+
+        if (!format) {
+            LOGM(Log::ERR, "Missing support for fallback format, BUG REPORT this");
+            return;
+        }
+    }
+
+    const auto altFormat = format->withAlpha ? format->alphaStripped : format->alphaAdded;
+    if (altFormat != DRM_FORMAT_INVALID && altFormat != format->drmFormat)
+        m_formats.push_back(altFormat);
+
+    m_formats.push_back(format->drmFormat);
 
     switch (m_type) {
         case SHARE_MONITOR:

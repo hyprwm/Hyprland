@@ -49,6 +49,7 @@
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <hyprutils/string/String.hpp>
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <hyprgraphics/egl/Egl.hpp>
 #include <cstring>
 #include <climits>
 #include <optional>
@@ -59,6 +60,7 @@
 using namespace Hyprutils::String;
 using namespace Hyprutils::Utils;
 using namespace Hyprutils::OS;
+using namespace Hyprgraphics::Egl;
 using enum NContentType::eContentType;
 using namespace NColorManagement;
 using namespace Desktop::View;
@@ -2456,11 +2458,16 @@ uint32_t CMonitor::getPreferredReadFormat() {
     static const auto PFORCE8BIT = CConfigValue<Config::INTEGER>("misc:screencopy_force_8b");
 
     auto              monFmt = m_output->state->state().drmFormat;
-
-    if (*PFORCE8BIT)
-        if (monFmt == DRM_FORMAT_BGRA1010102 || monFmt == DRM_FORMAT_ARGB2101010 || monFmt == DRM_FORMAT_XRGB2101010 || monFmt == DRM_FORMAT_BGRX1010102 ||
-            monFmt == DRM_FORMAT_XBGR2101010)
+    if (*PFORCE8BIT) {
+        const auto format = getPixelFormatFromDRM(monFmt);
+        if (format) {
+            if (getColorDepth(*format) >= 10)
+                monFmt = DRM_FORMAT_XRGB8888;
+        } else {
+            Log::logger->log(Log::DEBUG, "CMonitor::getPreferredReadFormat format not found falling back to DRM_FORMAT_XRGB8888");
             monFmt = DRM_FORMAT_XRGB8888;
+        }
+    }
 
     return monFmt;
 }

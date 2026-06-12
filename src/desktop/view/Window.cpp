@@ -2574,6 +2574,9 @@ void CWindow::unmapWindow() {
 }
 
 void CWindow::commitWindow() {
+    if (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel))
+        return;
+
     if (!m_isX11 && m_xdgSurface->m_initialCommit) {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);

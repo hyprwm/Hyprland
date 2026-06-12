@@ -12,7 +12,8 @@ using namespace Hyprutils::OS;
 using namespace Hyprutils::Memory;
 
 // Almost everywhere `Tests::spawnKitty` is used, the return value is immediately tested against `nullptr`
-// and the test fails if it is.
+// and the test fails if it is. TODO: Add a macro to call `Tests::spawnKitty` from tests that will check it
+// and, on failure, fail the test with a meaningful message.
 
 CUniquePointer<CProcess> Tests::spawnKitty(const std::string& class_, const std::vector<std::string> args) {
     const auto               COUNT_BEFORE = windowCount();

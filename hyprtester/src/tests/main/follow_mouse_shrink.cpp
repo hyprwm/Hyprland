@@ -1,5 +1,4 @@
 #include <chrono>
-#include <cstring>
 #include <thread>
 
 #include "../../shared.hpp"

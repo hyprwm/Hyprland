@@ -14,28 +14,30 @@
 // - kitty
 // - xeyes
 
+#define INCLUDED_FROM_MAIN 1 // Prevent macro redefinition warnings from includes of "tests/*/tests.hpp"
+
 #include "shared.hpp"
 #include "hyprctlCompat.hpp"
 #include "tests/main/tests.hpp"
-#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/clients/tests.hpp"
-#undef TEST_CASES_STORAGE // Prevent redefinition warning
 #include "tests/misc/tests.hpp"
 #include "tests/shared.hpp"
 
-#include <filesystem>
 #include <hyprutils/os/Process.hpp>
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <hyprutils/memory/Casts.hpp>
 
-#include <csignal>
+#include <algorithm>
 #include <cerrno>
 #include <chrono>
-#include <thread>
+#include <csignal>
+#include <filesystem>
+#include <memory>
 #include <print>
 #include <string>
 #include <string_view>
 #include <span>
+#include <thread>
 #include <vector>
 
 #include "Log.hpp"
@@ -54,8 +56,8 @@ namespace {
         std::vector<std::string> requestedTests;
     };
 
-    struct STestsInfo {
-        unsigned long long       failed, total;
+    struct STestsRunResult {
+        unsigned long long       total;
         std::vector<std::string> failedNames;
     };
 }
@@ -78,13 +80,14 @@ static bool hyprlandAlive() {
 }
 
 [[noreturn]] static void helpAndDie(int exit_code) {
-    NLog::log("usage: hyprtester [arg [...]].\n");
+    NLog::log("usage: hyprtester [--OPTION [VALUE]]... [TEST_NAMES].\n");
     NLog::log(R"(Arguments:
     --help              -h         - Show this message again
     --config FILE       -c FILE    - Specify config file to use (default: './test.lua')
     --binary FILE       -b FILE    - Specify Hyprland binary to use (default: '../build/Hyprland')
     --plugin FILE       -p FILE    - Specify the location of the test plugin (default: './')
-    --test [tests]      -t [tests] - Specify list of tests to run (separated by spaces))");
+    [TEST_NAMES]                   - Specify list of tests to run (separated by spaces).
+                                     If omitted, all tests will run.)");
 
     std::exit(exit_code);
 }
@@ -104,17 +107,9 @@ static Path validatePathOrDie(Path path) {
 static SSettings parseSettings(const std::span<const char*> args) {
     static const auto cwd = std::filesystem::current_path();
     SSettings         settings{};
-    bool              testSetOn = false;
 
     for (auto it = args.begin(); it < args.end(); it++) {
         std::string_view value = *it;
-
-        if (testSetOn && !value.starts_with("-")) {
-            settings.requestedTests.emplace_back(value);
-            continue;
-        } else
-            testSetOn = false;
-
         if (value == "--config" || value == "-c") {
             if (std::next(it) == args.end()) {
                 helpAndDie(EXIT_FAILURE);
@@ -136,13 +131,10 @@ static SSettings parseSettings(const std::span<const char*> args) {
 
             settings.pluginPath = validatePathOrDie(*std::next(it));
             it++;
-        } else if (value == "--test" || value == "-t") {
-            if (std::next(it) == args.end())
-                helpAndDie(EXIT_FAILURE);
-
-            testSetOn = true;
         } else if (value == "--help" || value == "-h") {
             helpAndDie(EXIT_SUCCESS);
+        } else if (!value.starts_with("-")) {
+            settings.requestedTests.emplace_back(value);
         } else {
             std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
             helpAndDie(EXIT_SUCCESS);
@@ -189,34 +181,34 @@ static bool preTestCleanup() {
     return !failed;
 }
 
-static void runTests(std::map<std::string, CTestCase&>& testCases, std::string suiteName, struct STestsInfo& testsInfo) {
-    for (auto& [name, tc] : testCases) {
+static STestsRunResult runTests(std::vector<std::shared_ptr<CTestCase>>& testCases) {
+    struct STestsRunResult res{.total = testCases.size(), .failedNames = {}};
+
+    for (auto& tc : testCases) {
         // Clean up before every test
         NLog::info("Cleaning up");
-
         if (!preTestCleanup()) // damn it, something really went wrong
             std::exit(1);
 
-        NLog::log("{}Running test {}", Colors::BLUE, name);
-        tc.test();
+        NLog::log("{}Running test {}", Colors::BLUE, tc->name());
+        tc->test();
 
-        if (tc.failed) {
-            NLog::error("Test failed!: {}", name);
-            testsInfo.failedNames.emplace_back(suiteName + "/" + name);
-            testsInfo.failed += 1;
+        if (tc->failed) {
+            NLog::error("Test failed!: {}", tc->name());
+            res.failedNames.emplace_back(std::format("{}:{}", tc->groupName(), tc->name()));
         } else
-            NLog::log("{}Test passed: {}", Colors::GREEN, name);
+            NLog::log("{}Test passed: {}", Colors::GREEN, tc->name());
     }
 
-    testsInfo.total += testCases.size();
+    return res;
 }
 
-static bool quitTests(STestsInfo tInfo) {
+static void cleanupAndReport(const STestsRunResult& tInfo) {
     NLog::info("dispatching exit");
     getFromSocket("/dispatch hl.dsp.exit()");
 
-    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failed, Colors::RESET, tInfo.total);
-    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failed, Colors::RESET, tInfo.total);
+    NLog::log("\nSummary:\n\tPASSED: {}{}{}/{}", Colors::GREEN, tInfo.total - tInfo.failedNames.size(), Colors::RESET, tInfo.total);
+    NLog::log("\tFAILED: {}{}{}/{}", Colors::RED, tInfo.failedNames.size(), Colors::RESET, tInfo.total);
     if (!tInfo.failedNames.empty()) {
         NLog::log("{}Failed tests:", Colors::RED);
         for (const auto& name : tInfo.failedNames) {
@@ -226,27 +218,28 @@ static bool quitTests(STestsInfo tInfo) {
 
     kill(hyprlandProc->pid(), SIGKILL);
     hyprlandProc.reset();
-
-    return tInfo.failed > 0;
 }
 
 int main(int argc, char** argv, char** envp) {
 
-    std::span<const char*>            args{const_cast<const char**>(argv + 1), sc<std::size_t>(argc - 1)};
-    const SSettings                   settings = parseSettings(args);
+    std::span<const char*>                  args{const_cast<const char**>(argv + 1), sc<std::size_t>(argc - 1)};
+    const SSettings                         settings = parseSettings(args);
 
-    std::map<std::string, CTestCase&> tempTestList;
+    std::vector<std::shared_ptr<CTestCase>> requestedTestCases;
     for (auto& test : settings.requestedTests) {
-        if (mainTestCases.contains(test)) {
-            tempTestList.emplace(test, mainTestCases.at(test));
-            continue;
-        } else if (clientTestCases.contains(test)) {
-            tempTestList.emplace(test, clientTestCases.at(test));
-            continue;
-        } else if (miscTestCases.contains(test)) {
-            tempTestList.emplace(test, miscTestCases.at(test));
-        } else
-            NLog::log("{}ERROR: '{}' Invalid test name", Colors::RED, test);
+        if (testCases.contains(test)) {
+            requestedTestCases.push_back(testCases.at(test));
+        } else {
+            NLog::log("{}ERROR: Unknown test name '{}'", Colors::RED, test);
+            return EXIT_FAILURE;
+        }
+    }
+    if (requestedTestCases.empty()) {
+        // When no tests are explicitly requested, run all tests.
+        // For convenience of log inspection, run tests group by group.
+        requestedTestCases = miscTestCases;
+        std::ranges::copy(clientTestCases, std::back_inserter(requestedTestCases));
+        std::ranges::copy(mainTestCases, std::back_inserter(requestedTestCases));
     }
 
     NLog::info("launching hl");
@@ -291,22 +284,9 @@ int main(int argc, char** argv, char** envp) {
 
     NLog::info("Loaded plugin");
 
-    struct STestsInfo tInfo = {0};
+    STestsRunResult result = runTests(requestedTestCases);
 
-    if (!tempTestList.empty()) {
-        runTests(tempTestList, "custom", tInfo);
+    cleanupAndReport(result);
 
-        std::exit(quitTests(tInfo));
-    }
-
-    NLog::info("Running misc tests");
-    runTests(miscTestCases, "misc", tInfo);
-
-    NLog::info("Running main tests");
-    runTests(mainTestCases, "main", tInfo);
-
-    NLog::info("Running protocol client tests");
-    runTests(clientTestCases, "clients", tInfo);
-
-    return quitTests(tInfo);
+    return result.failedNames.size() > 0;
 }

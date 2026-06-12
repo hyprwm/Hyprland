@@ -4,8 +4,6 @@
 #include <hyprutils/memory/WeakPtr.hpp>
 #include <sys/types.h>
 
-#include "../Log.hpp"
-
 //NOLINTNEXTLINE
 namespace Tests {
     Hyprutils::Memory::CUniquePointer<Hyprutils::OS::CProcess> spawnKitty(const std::string& class_ = "", const std::vector<std::string> args = {});

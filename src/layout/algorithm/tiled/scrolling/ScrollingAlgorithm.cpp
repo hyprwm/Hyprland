@@ -15,6 +15,8 @@
 #include "../../../../managers/PointerManager.hpp"
 #include "../../../../managers/animation/DesktopAnimationManager.hpp"
 #include "../../../../event/EventBus.hpp"
+#include "../../../../managers/eventLoop/EventLoopTimer.hpp"
+#include "../../../../managers/eventLoop/EventLoopManager.hpp"
 
 #include <hyprutils/string/VarList2.hpp>
 #include <hyprutils/string/VarList.hpp>
@@ -639,10 +641,18 @@ CScrollingAlgorithm::~CScrollingAlgorithm() {
 
     m_configCallback.reset();
     m_focusCallback.reset();
+
+    if (m_hoverTimer) {
+        m_hoverTimer->cancel();
+        if (g_pEventLoopManager)
+            g_pEventLoopManager->removeTimer(m_hoverTimer);
+        m_hoverTimer.reset();
+    }
 }
 
 void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
     static const auto PFOLLOW_FOCUS_MIN_PERC = CConfigValue<Config::FLOAT>("scrolling:follow_min_visible");
+    static const auto PHOVERDELAY            = CConfigValue<Config::INTEGER>("scrolling:focus_edge_ms");
 
     if (!target || target->space() != m_parent->space())
         return;
@@ -664,8 +674,40 @@ void CScrollingAlgorithm::focusOnInput(SP<ITarget> target, eInputMode input) {
             std::abs(std::min(MON_BOX.y + MON_BOX.h, TARGET_POS.y + TARGET_POS.h) - (std::max(MON_BOX.y, TARGET_POS.y)));
 
         // if the amount of visible X is below minimum, reject
-        if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F))
-            return;
+        if (VISIBLE_LEN < (IS_HORIZ ? MON_BOX.w : MON_BOX.h) * std::clamp(*PFOLLOW_FOCUS_MIN_PERC, 0.F, 1.F)) {
+            if (*PHOVERDELAY > 0) {
+                if (m_hoveredTarget.lock() != target) {
+                    m_hoveredTarget = target;
+                    if (m_hoverTimer)
+                        m_hoverTimer->cancel();
+
+                    m_hoverTimer = makeShared<CEventLoopTimer>(
+                        std::chrono::milliseconds(*PHOVERDELAY),
+                        [this, weakTarget = WP<ITarget>(target), input](SP<CEventLoopTimer> self, void* data) {
+                            auto target = weakTarget.lock();
+                            if (!target) return;
+                            if (m_hoveredTarget.lock() == target) {
+                                m_hoverTimer.reset();
+                                focusOnInput(target, input);
+                            }
+                        },
+                        nullptr);
+                    g_pEventLoopManager->addTimer(m_hoverTimer);
+                    return;
+                } else if (m_hoverTimer && !m_hoverTimer->passed() && !m_hoverTimer->cancelled()) {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+    }
+
+    m_hoveredTarget.reset();
+    if (m_hoverTimer) {
+        m_hoverTimer->cancel();
+        g_pEventLoopManager->removeTimer(m_hoverTimer);
+        m_hoverTimer.reset();
     }
 
     // if click, but target is not under cursor, ignore

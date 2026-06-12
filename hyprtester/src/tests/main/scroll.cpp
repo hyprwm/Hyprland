@@ -723,19 +723,6 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    // TEST_CASE's own cleanup functions fail to kill all layers with this test. Manually do it
-    // TODO Why it fails?
-
-    // kill all layers
-    NLog::alert("Killing all layers");
-    Tests::killAllLayers();
-    ASSERT(Tests::layerCount(), 0);
-
-    // kill all windows
-    NLog::alert("Killing all windows");
-    Tests::killAllWindows();
-    ASSERT(Tests::windowCount(), 0);
-
     if (std::stoi(currentWindowPosX) < 0) {
         PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
     } else {

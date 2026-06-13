@@ -15,6 +15,7 @@
 #include <hyprutils/string/VarList2.hpp>
 #include <algorithm>
 #include <format>
+#include <numbers>
 
 using namespace Desktop;
 using namespace Desktop::Rule;
@@ -162,14 +163,14 @@ static std::expected<SBorderColorRule, std::string> parseBorderColorRule(const s
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                activeBorderGradient.m_angle = *angle * (PI / 180.0);
+                activeBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
                 active                       = false;
             } else if (token.contains("deg")) {
                 auto angle = strToNumber<int>(token.substr(0, token.size() - 3));
                 if (!angle)
                     return std::unexpected(std::format("border_color rule \"{}\" has invalid angle \"{}\": {}", raw, token, numericParseError(angle.error())));
 
-                inactiveBorderGradient.m_angle = *angle * (PI / 180.0);
+                inactiveBorderGradient.m_angle = *angle * (std::numbers::pi / 180.0);
             } else {
                 auto color = parseBorderColorToken(raw, token);
                 if (!color)

@@ -66,8 +66,6 @@ void CMonitorFrameScheduler::onPresented() {
 
     Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", PMONITOR->m_name);
 
-    m_pendingThird = false;
-
     g_pEventLoopManager->doLater([m = PHLMONITORREF{PMONITOR}] {
         if (!m || !m->m_output)
             return;

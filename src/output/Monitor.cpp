@@ -1116,12 +1116,25 @@ void CMonitor::clearModeRetry() {
     m_modeRetryTimer.reset();
 }
 
+void CMonitor::scheduleFrame(Aquamarine::IOutput::scheduleFrameReason reason) {
+    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive)
+        return;
+
+    if (!m_enabled)
+        return;
+
+    if (m_renderingActive)
+        m_pendingFrame = true;
+
+    m_output->scheduleFrame(reason);
+}
+
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 void CMonitor::addDamage(const CRegion& rg) {
@@ -1131,12 +1144,12 @@ void CMonitor::addDamage(const CRegion& rg) {
 void CMonitor::addDamage(const CBox& box) {
     if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
         return;
     }
 
     if (m_damage.damage(box))
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {

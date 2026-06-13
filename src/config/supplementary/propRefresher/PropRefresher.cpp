@@ -15,6 +15,7 @@
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
 #include "../../shared/inotify/ConfigWatcher.hpp"
+#include "../../../event/EventBus.hpp"
 
 using namespace Config;
 using namespace Config::Supplementary;
@@ -32,24 +33,25 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
         m_scheduledRefreshSeq = g_pEventLoopManager->doLater([this, weak = WP<CPropRefresher>{refresher()}] {
             if (!weak)
                 return;
-            refreshProp();
+            refreshProp(true);
         });
 
         m_scheduled = true;
     }
 }
 
-void CPropRefresher::executeScheduledRefreshImmediately() {
+int CPropRefresher::executeScheduledRefreshImmediately() {
 
     if (!m_scheduled || m_scheduledRefreshSeq == 0)
-        return;
+        return 1;
 
     g_pEventLoopManager->removeDoLater(m_scheduledRefreshSeq);
     // m_scheduledRefreshSeq must be reset back to 0 during refreshProp() call
-    refreshProp();
+    refreshProp(false);
+    return 0;
 }
 
-void CPropRefresher::refreshProp() {
+void CPropRefresher::refreshProp(const bool execdAsScheduled) {
 
     static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
 
@@ -148,4 +150,6 @@ void CPropRefresher::refreshProp() {
     m_scheduled           = false;
     m_scheduledRefreshSeq = 0;
     m_propsTripped        = 0;
+
+    Event::bus()->m_events.config.props_refreshed.emit(execdAsScheduled);
 }

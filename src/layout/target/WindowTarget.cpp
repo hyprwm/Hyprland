@@ -13,6 +13,7 @@
 #include "../../state/MonitorState.hpp"
 
 #include <hyprutils/utils/ScopeGuard.hpp>
+#include <cmath>
 
 using namespace Hyprutils::Utils;
 using namespace Layout;
@@ -163,6 +164,14 @@ void CWindowTarget::updatePos() {
 
         calcPos  = calcPos + GAPOFFSETTOPLEFT + ratioPadding / 2;
         calcSize = calcSize - GAPOFFSETTOPLEFT - GAPOFFSETBOTTOMRIGHT - ratioPadding;
+
+        // Validate calcSize to avoid propagating NaN/Inf or non-positive sizes into later code.
+        if (!std::isfinite(calcSize.x) || !std::isfinite(calcSize.y) || calcSize.x <= 0.0 || calcSize.y <= 0.0) {
+            Log::logger->log(Log::ERR, "Invalid calcSize in CWindowTarget::updatePos for {:m}: calcSize={},{}; falling back to nodeBox.size()", m_window.lock(), calcSize.x,
+                             calcSize.y);
+            calcPos  = nodeBox.pos();
+            calcSize = nodeBox.size();
+        }
     }
 
     if (isPseudo() && fullscreenMode() == FSMODE_NONE) {

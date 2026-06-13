@@ -115,7 +115,13 @@ void CMonitorStateTracker::add(PHLMONITOR mon) {
 
     Event::bus()->m_events.monitor.newMon.emit(mon);
 
-    mon->onConnect(false);
+    const bool ANY_EXISTING_ENABLED_MON = std::ranges::any_of(m_realMonitors, [&](const auto& m) { return m != mon && m->m_enabled; });
+    const bool ALL_EXISTING_DPMS_OFF =
+        ANY_EXISTING_ENABLED_MON && std::ranges::all_of(m_realMonitors, [&](const auto& m) { return m == mon || !m->m_enabled || !m->m_dpmsStatus; });
+
+    const bool INITIAL_DPMS_OFF = !g_pCompositor->m_dpmsStateOn || ALL_EXISTING_DPMS_OFF;
+
+    mon->onConnect(false, INITIAL_DPMS_OFF);
 
     if (!mon->m_enabled)
         return;

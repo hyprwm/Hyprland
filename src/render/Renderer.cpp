@@ -197,7 +197,9 @@ IHyprRenderer::IHyprRenderer() {
                 w->wlSurface()->resource()->breadthfirst(
                     [](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) {
                         surf->m_stateQueue.unlockFirst(LOCK_REASON_FENCE | LOCK_REASON_FIFO | LOCK_REASON_TIMER);
-                        surf->presentFeedback(Time::steadyNow(), Desktop::focusState()->monitor(), true);
+                        auto now = Time::steadyNow();
+                        surf->frame(now);
+                        surf->presentFeedback(now, Desktop::focusState()->monitor(), true);
                     },
                     nullptr);
             }
@@ -2477,6 +2479,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
 
         if (!ok) {
             Log::logger->log(Log::TRACE, "Monitor state commit failed");
+            PROTO::presentation->discardPresentedForMonitor(pMonitor);
             // rollback the buffer to avoid writing to the front buffer that is being
             // displayed
             pMonitor->m_output->swapchain->rollback();

@@ -1,6 +1,7 @@
 #include "SurfaceState.hpp"
 #include "helpers/Format.hpp"
 #include "protocols/types/Buffer.hpp"
+#include "protocols/PresentationTime.hpp"
 #include "render/Renderer.hpp"
 #include "render/Texture.hpp"
 
@@ -63,7 +64,9 @@ void SSurfaceState::reset() {
     bufferDamage.clear();
 
     callbacks.clear();
-    lockMask = LOCK_REASON_NONE;
+    presentationFeedbacks.clear();
+    commitSeq = 0;
+    lockMask  = LOCK_REASON_NONE;
 
     barrierSet    = false;
     surfaceLocked = false;
@@ -121,6 +124,23 @@ void SSurfaceState::updateFrom(SSurfaceState& ref) {
         ref.callbacks.clear();
     }
 
+    if (ref.updated.bits.presentation) {
+        presentationFeedbacks.insert(presentationFeedbacks.end(), std::make_move_iterator(ref.presentationFeedbacks.begin()),
+                                     std::make_move_iterator(ref.presentationFeedbacks.end()));
+        ref.presentationFeedbacks.clear();
+    }
+
     if (ref.barrierSet)
         barrierSet = ref.barrierSet;
+}
+
+void SSurfaceState::discardPresentationFeedbacks() {
+    if (presentationFeedbacks.empty())
+        return;
+
+    PROTO::presentation->discardFeedbacks(presentationFeedbacks);
+}
+
+bool SSurfaceState::updatesPresentationContent() const {
+    return updated.bits.buffer || updated.bits.damage || updated.bits.opaque || updated.bits.transform || updated.bits.scale || updated.bits.offset || updated.bits.viewport;
 }

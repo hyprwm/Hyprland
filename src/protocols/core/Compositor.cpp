@@ -129,6 +129,7 @@ CWLSurfaceResource::CWLSurfaceResource(SP<CWlSurface> resource_) : m_resource(re
         m_events.precommit.emit();
         if (m_pending.rejected) {
             m_pending.rejected = false;
+            m_pending.discardPresentationFeedbacks();
             dropPendingBuffer();
             return;
         }
@@ -248,6 +249,7 @@ void CWLSurfaceResource::destroy() {
         unmap();
     }
     m_events.destroy.emit();
+    PROTO::presentation->discardSurface(m_self);
     releaseBuffers(false);
     PROTO::compositor->destroyResource(this);
 }
@@ -505,8 +507,12 @@ void CWLSurfaceResource::unmap() {
 }
 
 void CWLSurfaceResource::releaseBuffers(bool onlyCurrent) {
-    if (!onlyCurrent)
+    if (!onlyCurrent) {
+        m_pending.discardPresentationFeedbacks();
+        m_stateQueue.clear();
         dropPendingBuffer();
+    }
+    m_current.discardPresentationFeedbacks();
     dropCurrentBuffer();
 }
 
@@ -567,8 +573,14 @@ void CWLSurfaceResource::commitState(SSurfaceState& state) {
     if (!state.updated.all && m_mapped && state.fifoScheduled)
         return;
 
+    if (state.updatesPresentationContent())
+        m_current.discardPresentationFeedbacks();
+
+    state.commitSeq = ++m_commitSeq;
+
     auto lastTexture = m_current.texture;
     m_current.updateFrom(state);
+    m_current.commitSeq = state.commitSeq;
 
     if (m_current.buffer) {
         if (m_current.buffer->isSynchronous())
@@ -733,22 +745,33 @@ void CWLSurfaceResource::updateCursorShm(CRegion damage) {
     }
 }
 
-void CWLSurfaceResource::presentFeedback(const Time::steady_tp& when, PHLMONITOR pMonitor, bool discarded) {
-    frame(when);
-
-    auto FEEDBACK = makeUnique<CQueuedPresentationData>(m_self.lock());
-    FEEDBACK->attachMonitor(pMonitor);
-    if (discarded)
-        FEEDBACK->discarded();
-    else {
-        FEEDBACK->presented();
-        if (!pMonitor->m_lastScanout.expired()) {
-            const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
-            if (WINDOW == pMonitor->m_lastScanout)
-                FEEDBACK->setPresentationType(true);
-        }
+void CWLSurfaceResource::presentFeedback(const Time::steady_tp& /* when */, PHLMONITOR pMonitor, bool discarded) {
+    if (!pMonitor) {
+        if (discarded)
+            m_current.discardPresentationFeedbacks();
+        return;
     }
-    PROTO::presentation->queueData(std::move(FEEDBACK));
+
+    bool zeroCopy = false;
+    if (!discarded && !pMonitor->m_lastScanout.expired()) {
+        const auto WINDOW = m_hlSurface ? Desktop::View::CWindow::fromView(m_hlSurface->view()) : nullptr;
+        zeroCopy          = WINDOW == pMonitor->m_lastScanout;
+    }
+
+    if (discarded) {
+        m_current.discardPresentationFeedbacks();
+        return;
+    }
+
+    PROTO::presentation->queueData(m_self, m_current.commitSeq, std::move(m_current.presentationFeedbacks), pMonitor, zeroCopy);
+}
+
+void CWLSurfaceResource::queuePresentationFeedback(WP<CPresentationFeedback> feedback) {
+    if (!feedback)
+        return;
+
+    m_pending.updated.bits.presentation = true;
+    m_pending.presentationFeedbacks.emplace_back(std::move(feedback));
 }
 
 CWLCompositorResource::CWLCompositorResource(SP<CWlCompositor> resource_) : m_resource(resource_) {

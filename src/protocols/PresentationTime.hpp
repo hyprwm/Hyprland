@@ -8,24 +8,31 @@
 #include "../helpers/time/Time.hpp"
 
 class CWLSurfaceResource;
+class CPresentationFeedback;
 
 class CQueuedPresentationData {
   public:
-    CQueuedPresentationData(SP<CWLSurfaceResource> surf);
+    CQueuedPresentationData(SP<CWLSurfaceResource> surf, uint64_t commitSeq);
 
     void setPresentationType(bool zeroCopy);
     void attachMonitor(PHLMONITOR pMonitor);
+    void addFeedbacks(std::vector<WP<CPresentationFeedback>>&& feedbacks);
 
     void presented();
     void discarded();
+    bool hasMonitor(PHLMONITOR pMonitor) const;
+    void detachMonitor(PHLMONITOR pMonitor);
+    bool hasMonitors() const;
 
     bool m_done = false;
 
   private:
-    bool                   m_wasPresented = false;
-    bool                   m_zeroCopy     = false;
-    PHLMONITORREF          m_monitor;
-    WP<CWLSurfaceResource> m_surface;
+    bool                                   m_wasPresented = false;
+    bool                                   m_zeroCopy     = false;
+    uint64_t                               m_commitSeq    = 0;
+    std::vector<PHLMONITORREF>             m_monitors;
+    WP<CWLSurfaceResource>                 m_surface;
+    std::vector<WP<CPresentationFeedback>> m_feedbacks;
 
     friend class CPresentationFeedback;
     friend class CPresentationProtocol;
@@ -37,7 +44,8 @@ class CPresentationFeedback {
 
     bool good();
 
-    void sendQueued(WP<CQueuedPresentationData> data, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void sendQueued(const CQueuedPresentationData& data, PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
+    void sendDiscarded();
 
   private:
     UP<CWpPresentationFeedback> m_resource;
@@ -55,6 +63,11 @@ class CPresentationProtocol : public IWaylandProtocol {
 
     void         onPresented(PHLMONITOR pMonitor, const timespec& when, uint32_t untilRefreshNs, uint64_t seq, uint32_t reportedFlags);
     void         queueData(UP<CQueuedPresentationData>&& data);
+    bool         queueData(WP<CWLSurfaceResource> surf, uint64_t commitSeq, std::vector<WP<CPresentationFeedback>>&& feedbacks, PHLMONITOR pMonitor, bool zeroCopy);
+    bool         addPresentedMonitor(WP<CWLSurfaceResource> surf, uint64_t commitSeq, PHLMONITOR pMonitor, bool zeroCopy);
+    void         discardFeedbacks(std::vector<WP<CPresentationFeedback>>& feedbacks);
+    void         discardSurface(WP<CWLSurfaceResource> surf);
+    void         discardPresentedForMonitor(PHLMONITOR pMonitor);
     bool         hasPendingFeedbacks() const;
 
   private:

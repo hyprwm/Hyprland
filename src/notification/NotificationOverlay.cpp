@@ -153,8 +153,7 @@ CBox CNotificationOverlay::notificationDamageForMonitor(PHLMONITOR pMonitor) {
 }
 
 SP<CNotification> CNotificationOverlay::addNotification(const std::string& text, const CHyprColor& color, const float timeMs, const eIcons icon, const float fontSize) {
-    auto PNOTIF = makeShared<CNotification>(std::string{text}, timeMs, color, icon, fontSize);
-
+    auto PNOTIF = makeShared<CNotification>(std::string{text}, timeMs, resolvedColor(icon, color), icon, fontSize);
     m_notifications.emplace_back(PNOTIF);
 
     const auto focusedMonitor = Desktop::focusState()->monitor();

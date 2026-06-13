@@ -2091,6 +2091,9 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     } else if (regexp.starts_with("tag:")) {
         mode       = MODE_TAG_REGEX;
         regexCheck = regexp.substr(4);
+    } else if (regexp.starts_with("stableid:")) {
+        mode       = MODE_STABLE_ID;
+        matchCheck = regexp.substr(9);
     } else if (regexp.starts_with("address:")) {
         mode       = MODE_ADDRESS;
         matchCheck = regexp.substr(8);
@@ -2137,6 +2140,12 @@ PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
                     }
                 }
                 if (!tagMatched)
+                    continue;
+                break;
+            }
+            case MODE_STABLE_ID: {
+                std::string stable_id = std::format("{:x}", w->m_stableID);
+                if (matchCheck != stable_id)
                     continue;
                 break;
             }

@@ -70,6 +70,7 @@ enum eFocusWindowMode : uint8_t {
     MODE_TITLE_REGEX,
     MODE_INITIAL_TITLE_REGEX,
     MODE_TAG_REGEX,
+    MODE_STABLE_ID,
     MODE_ADDRESS,
     MODE_PID,
     MODE_ACTIVE_WINDOW

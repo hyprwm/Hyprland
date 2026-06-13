@@ -3477,9 +3477,15 @@ using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
 
 struct SColorConversionKeyHash {
     size_t operator()(const ColorConversionKey& key) const {
-        size_t     hash = 0;
+        size_t hash = 0;
 
-        const auto hashCombine = [&hash](const auto& value) { hash ^= std::hash<std::decay_t<decltype(value)>>{}(value) + 0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2); };
+        // fold each tuple element to a order sensitive hash the constant is
+        // the 64-bit golden-ratio value used to
+        // distribute bits and reduce collisions between adjacent fields.
+        const auto hashCombine = [&hash](const auto& value) {
+            hash ^= std::hash<std::decay_t<decltype(value)>>{}(value) +
+                0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2);
+        };
 
         hashCombine(std::get<0>(key));
         hashCombine(std::get<1>(key));

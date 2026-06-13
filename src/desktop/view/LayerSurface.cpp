@@ -274,6 +274,16 @@ void CLayerSurface::onUnmap() {
         (Desktop::focusState()->surface() && Desktop::focusState()->surface()->m_hlSurface && !Desktop::focusState()->surface()->m_hlSurface->keyboardFocusable())) {
         if (!g_pInputManager->refocusLastWindow(PMONITOR))
             g_pInputManager->refocus();
+
+        if (auto window = Desktop::focusState()->window()) {
+            if (auto surf = window->wlSurface()->resource()) {
+                if (g_pSeatManager->m_state.keyboardFocus != surf)
+                    g_pSeatManager->setKeyboardFocus(surf);
+            }
+        } else if (auto surf = Desktop::focusState()->surface()) {
+            if (g_pSeatManager->m_state.keyboardFocus != surf && surf->m_hlSurface && surf->m_hlSurface->keyboardFocusable())
+                g_pSeatManager->setKeyboardFocus(surf);
+        }
     } else if (Desktop::focusState()->surface() && Desktop::focusState()->surface() != m_wlSurface->resource())
         g_pSeatManager->setKeyboardFocus(Desktop::focusState()->surface());
 

@@ -416,6 +416,11 @@ static SDispatchResult nullfocus(std::string in) {
     return {};
 }
 
+static SDispatchResult clearSurfaceFocus(std::string in) {
+    Desktop::focusState()->rawSurfaceFocus(nullptr);
+    return {};
+}
+
 static Desktop::Rule::CWindowRuleEffectContainer::storageType windowRuleIDX = 0;
 
 //
@@ -497,6 +502,23 @@ static SDispatchResult checkPointerFocusLayer(std::string in) {
 
     if (LAYER->m_namespace != in)
         return {.success = false, .error = std::format("Pointer focus layer namespace is '{}', expected '{}'", LAYER->m_namespace, in)};
+
+    return {};
+}
+
+static SDispatchResult checkKeyboardFocusWindow(std::string in) {
+    const auto KEYBOARDSURF = g_pSeatManager->m_state.keyboardFocus.lock();
+
+    if (!KEYBOARDSURF)
+        return {.success = false, .error = "No keyboard focus"};
+
+    const auto WINDOW = g_pCompositor->getWindowFromSurface(KEYBOARDSURF);
+
+    if (!WINDOW)
+        return {.success = false, .error = "Keyboard focus is not a window surface"};
+
+    if (WINDOW->m_class != in)
+        return {.success = false, .error = std::format("Keyboard focus window class is '{}', expected '{}'", WINDOW->m_class, in)};
 
     return {};
 }
@@ -643,6 +665,10 @@ static int luaNullfocus(lua_State* L) {
     return luaResult(L, ::nullfocus(""));
 }
 
+static int luaClearSurfaceFocus(lua_State* L) {
+    return luaResult(L, ::clearSurfaceFocus(""));
+}
+
 static int luaAddWindowRule(lua_State* L) {
     return luaResult(L, ::addWindowRule(""));
 }
@@ -661,6 +687,10 @@ static int luaCheckLayerRule(lua_State* L) {
 
 static int luaCheckPointerFocusLayer(lua_State* L) {
     return luaResult(L, ::checkPointerFocusLayer(luaL_checkstring(L, 1)));
+}
+
+static int luaCheckKeyboardFocusWindow(lua_State* L) {
+    return luaResult(L, ::checkKeyboardFocusWindow(luaL_checkstring(L, 1)));
 }
 
 static int luaSetPointerFocusLayer(lua_State* L) {
@@ -697,11 +727,13 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     addLuaFn("keybind2", ::luaKeybind2);
     addLuaFn("set_mods", ::luaSetMods);
     addLuaFn("nullfocus", ::luaNullfocus);
+    addLuaFn("clear_surface_focus", ::luaClearSurfaceFocus);
     addLuaFn("add_window_rule", ::luaAddWindowRule);
     addLuaFn("check_window_rule", ::luaCheckWindowRule);
     addLuaFn("add_layer_rule", ::luaAddLayerRule);
     addLuaFn("check_layer_rule", ::luaCheckLayerRule);
     addLuaFn("check_pointer_focus_layer", ::luaCheckPointerFocusLayer);
+    addLuaFn("check_keyboard_focus_window", ::luaCheckKeyboardFocusWindow);
     addLuaFn("set_pointer_focus_layer", ::luaSetPointerFocusLayer);
     addLuaFn("window_soft_focus", ::luaSoftFocusWindowByClass);
     addLuaFn("floating_focus_on_fullscreen", ::luaFloatingFocusOnFullscreen);

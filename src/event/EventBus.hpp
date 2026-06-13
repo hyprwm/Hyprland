@@ -165,8 +165,9 @@ namespace Event {
             } workspace;
 
             struct {
-                Event<> preReload;
-                Event<> reloaded;
+                Event<>           preReload;
+                Event<>           reloaded;
+                Event<const bool> props_refreshed;
             } config;
 
             struct {

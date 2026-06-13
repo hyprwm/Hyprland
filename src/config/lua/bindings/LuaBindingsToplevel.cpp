@@ -462,12 +462,9 @@ static int hlTimer(lua_State* L) {
     return 1;
 }
 
-static int hlExecuteScheduledRefreshImmediately(lua_State* L){
+static int hlExecuteScheduledRefreshImmediately(lua_State* L) {
 
-    // ERSTARR TODO - make executeScheduledRefreshImmediately return 1 if there's nothing to refresh. There should be no other errors as other errors would be quite fatal
-    Supplementary::refresher()->executeScheduledRefreshImmediately();
-
-    return 0;
+    return Supplementary::refresher()->executeScheduledRefreshImmediately();
 }
 
 void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {

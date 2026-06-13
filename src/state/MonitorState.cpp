@@ -127,7 +127,7 @@ void CMonitorStateTracker::add(PHLMONITOR mon) {
 
     Config::monitorRuleMgr()->scheduleReload();
 
-    g_pCompositor->scheduleFrameForMonitor(mon, Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
+    mon->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     checkDefaultCursorWarp(mon);
 

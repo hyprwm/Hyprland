@@ -35,6 +35,8 @@
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/MonitorLayoutController.hpp"
+#include "../state/WorkspacePlacementController.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -87,14 +89,16 @@ CMonitor::~CMonitor() {
 
 void CMonitor::onConnect(bool noRule) {
     Event::bus()->m_events.monitor.preAdded.emit(m_self.lock());
-    CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
+    CScopeGuard x = {[]() { State::monitorLayoutController()->arrange(); }};
 
     m_zoomAnimProgress->setValueAndWarp(0.F);
     m_zoomAnimFrameCounter = 0;
 
     g_pEventLoopManager->doLater([] {
-        g_pCompositor->ensurePersistentWorkspacesPresent();
-        g_pCompositor->ensureWorkspacesOnAssignedMonitors();
+        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+        State::workspacePlacementController()->ensureWorkspacesOnAssignedMonitors(
+            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
     });
 
     m_listeners.frame      = m_output->events.frame.listen([this] {
@@ -108,7 +112,7 @@ void CMonitor::onConnect(bool noRule) {
         if (true && Screenshare::mgr())
             Screenshare::mgr()->onOutputCommit(m_self.lock());
     });
-    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
         if (m_pendingDpmsAnimation) {
@@ -355,7 +359,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!found)
         Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
-    g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
+    scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     PROTO::gamma->applyGammaToState(m_self.lock());
 
@@ -374,7 +378,7 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         Event::bus()->m_events.monitor.removed.emit(m_self.lock());
-        g_pCompositor->scheduleMonitorStateRecheck();
+        State::monitorLayoutController()->scheduleRecheck();
     }};
 
     m_frameScheduler.reset();
@@ -1759,7 +1763,7 @@ void CMonitor::scheduleDone() {
 void CMonitor::setCTM(const Mat3x3& ctm_) {
     m_ctm        = ctm_;
     m_ctmUpdated = true;
-    g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
+    scheduleFrame(Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
 uint32_t CMonitor::isSolitaryBlocked(bool full) {

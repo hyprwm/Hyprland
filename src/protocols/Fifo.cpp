@@ -88,7 +88,7 @@ bool CFifoResource::checkMonitors(bool needsSchedule) {
                     return false; // dont fifo lock on tearing.
 
                 if (needsSchedule)
-                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                    m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
             }
         }
     } else {
@@ -100,7 +100,7 @@ bool CFifoResource::checkMonitors(bool needsSchedule) {
                 return false; // dont fifo lock on tearing.
 
             if (needsSchedule)
-                g_pCompositor->scheduleFrameForMonitor(m.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
         }
     }
 

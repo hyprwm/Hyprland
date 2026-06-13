@@ -77,7 +77,7 @@ void CMonitorFrameScheduler::onPresented() {
         // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
         // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
         if (ml->m_damage.hasChanged())
-            g_pCompositor->scheduleFrameForMonitor(ml);
+            ml->scheduleFrame();
     });
 }
 

@@ -10,6 +10,7 @@
 #include "../../../layout/space/Space.hpp"
 #include "../../../desktop/rule/Engine.hpp"
 #include "../../../state/MonitorState.hpp"
+#include "../../../state/WorkspacePlacementController.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
 #include "../../shared/monitor/MonitorRuleManager.hpp"
@@ -48,7 +49,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                         continue;
 
                     m->m_forceFullFrames = 2;
-                    g_pCompositor->scheduleFrameForMonitor(m);
+                    m->scheduleFrame();
                 }
             }
 
@@ -59,7 +60,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
 
                     m->m_blurFBDirty     = true;
                     m->m_forceFullFrames = 2;
-                    g_pCompositor->scheduleFrameForMonitor(m);
+                    m->scheduleFrame();
                 }
             }
 
@@ -83,7 +84,7 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
 
                     m->m_forceFullFrames = 2;
                     g_pHyprRenderer->damageMonitor(m);
-                    g_pCompositor->scheduleFrameForMonitor(m);
+                    m->scheduleFrame();
                 }
             }
 
@@ -98,7 +99,8 @@ void CPropRefresher::scheduleRefresh(PropRefreshBits prop) {
                     g_layoutManager->recalculateMonitor(m, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_PROP_REFRESH);
                 }
 
-                g_pCompositor->ensurePersistentWorkspacesPresent();
+                State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+                    nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
             }
 
             if (m_propsTripped & REFRESH_LAYOUTS) {

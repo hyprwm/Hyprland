@@ -408,7 +408,7 @@ bool CPointerManager::setHWCursorBuffer(SP<SMonitorPointerState> state, SP<Aquam
     state->cursorFrontBuffer = buf;
 
     if (!state->monitor->shouldSkipScheduleFrameOnMouseEvent())
-        g_pCompositor->scheduleFrameForMonitor(state->monitor.lock(), Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
+        state->monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_CURSOR_SHAPE);
 
     state->monitor->m_scanoutNeedsCursorUpdate = true;
 

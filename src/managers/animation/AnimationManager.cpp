@@ -324,7 +324,7 @@ void CHyprAnimationManager::tick() {
         }
 
         if (!owner.monitor->inFullscreenMode())
-            g_pCompositor->scheduleFrameForMonitor(owner.monitor, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
+            owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 
     tickDone();

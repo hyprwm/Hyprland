@@ -7,6 +7,7 @@
 #include "../../../render/Renderer.hpp"
 #include "../../../event/EventBus.hpp"
 #include "../../../managers/eventLoop/EventLoopManager.hpp"
+#include "../../../state/MonitorLayoutController.hpp"
 #include "../../../state/MonitorState.hpp"
 
 #include <ranges>
@@ -174,8 +175,8 @@ void CMonitorRuleManager::ensureMonitorStatus() {
         w->updateSurfaceScaleTransformDetails();
     }
 
-    g_pCompositor->arrangeMonitors();
-    g_pCompositor->checkMonitorOverlaps();
+    State::monitorLayoutController()->arrange();
+    State::monitorLayoutController()->checkOverlapsAndNotify();
 
     for (const auto& m : monsForRefresh) {
         if (!m->m_output)

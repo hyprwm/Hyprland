@@ -26,10 +26,8 @@
 #include "managers/permissions/DynamicPermissionManager.hpp"
 #include "managers/screenshare/ScreenshareManager.hpp"
 #include "state/FallbackState.hpp"
-#include "state/MonitorLayoutController.hpp"
 #include "state/MonitorPositionController.hpp"
 #include "state/MonitorState.hpp"
-#include "state/WorkspacePlacementController.hpp"
 #include "state/WorkspaceState.hpp"
 #include <algorithm>
 #include <aquamarine/output/Output.hpp>
@@ -2043,13 +2041,6 @@ PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
     return nullptr;
 }
 
-void CCompositor::scheduleFrameForMonitor(PHLMONITOR pMonitor, IOutput::scheduleFrameReason reason) {
-    if (!pMonitor)
-        return;
-
-    pMonitor->scheduleFrame(reason);
-}
-
 PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     auto regexp = trim(regexp_);
 
@@ -2400,18 +2391,6 @@ PHLWINDOW CCompositor::getForceFocus() {
     return nullptr;
 }
 
-void CCompositor::scheduleMonitorStateRecheck() {
-    State::monitorLayoutController()->scheduleRecheck();
-}
-
-void CCompositor::checkMonitorOverlaps() {
-    State::monitorLayoutController()->checkOverlapsAndNotify();
-}
-
-void CCompositor::arrangeMonitors() {
-    State::monitorLayoutController()->arrange();
-}
-
 void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));
@@ -2483,20 +2462,6 @@ PImageDescription CCompositor::getHDRImageDescription() {
 bool CCompositor::shouldChangePreferredImageDescription() {
     Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
     return false;
-}
-
-void CCompositor::ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace) {
-    State::workspacePlacementController()->ensurePersistentWorkspacesPresent(pWorkspace,
-                                                                             [this](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { moveWorkspaceToMonitor(ws, mon, noWarp); });
-}
-
-void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
-    State::workspacePlacementController()->ensurePersistentWorkspacesPresent(rules, pWorkspace,
-                                                                             [this](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { moveWorkspaceToMonitor(ws, mon, noWarp); });
-}
-
-void CCompositor::ensureWorkspacesOnAssignedMonitors() {
-    State::workspacePlacementController()->ensureWorkspacesOnAssignedMonitors([this](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { moveWorkspaceToMonitor(ws, mon, noWarp); });
 }
 
 std::optional<unsigned int> CCompositor::getVTNr() {

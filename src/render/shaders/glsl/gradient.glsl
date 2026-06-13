@@ -40,8 +40,12 @@ vec4 getOkColorForCoordArray1(vec2 normalizedCoord, int gradientLength, vec4 gra
 
     float sine     = sin(finalAng);
     float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradientLength - 1);
-    int   bottom   = int(floor(progress));
-    int   top      = bottom + 1;
+
+    if (progress >= float(gradientLength - 1))
+        return gradient[gradientLength - 1];
+
+    int   bottom = int(floor(progress));
+    int   top    = bottom + 1;
 
     return gradient[top] * (progress - float(bottom)) + gradient[bottom] * (float(top) - progress);
 }
@@ -68,8 +72,12 @@ vec4 getOkColorForCoordArray2(vec2 normalizedCoord, int gradient2Length, vec4 gr
 
     float sine     = sin(finalAng);
     float progress = (normalizedCoord[1] * sine + normalizedCoord[0] * (1.0 - sine)) * float(gradient2Length - 1);
-    int   bottom   = int(floor(progress));
-    int   top      = bottom + 1;
+
+    if (progress >= float(gradient2Length - 1))
+        return gradient2[gradient2Length - 1];
+
+    int   bottom = int(floor(progress));
+    int   top    = bottom + 1;
 
     return gradient2[top] * (progress - float(bottom)) + gradient2[bottom] * (float(top) - progress);
 }

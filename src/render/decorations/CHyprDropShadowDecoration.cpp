@@ -255,7 +255,10 @@ void CHyprDropShadowDecoration::drawShadowInternal(const CBox& box, int round, f
     g_pHyprRenderer->blend(true);
 
     if (*PSHADOWSHARP) {
-        CHyprColor flatColor = grad1.m_colors.empty() ? CHyprColor(0, 0, 0, 0) : grad1.m_colors[0];
+        CHyprColor col1 = grad1.m_colors.empty() ? CHyprColor(0, 0, 0, 0) : grad1.m_colors[0];
+        CHyprColor col2 = grad2.m_colors.empty() ? col1 : grad2.m_colors[0];
+        CHyprColor flatColor =
+            CHyprColor(col1.r + (col2.r - col1.r) * lerp, col1.g + (col2.g - col1.g) * lerp, col1.b + (col2.b - col1.b) * lerp, col1.a + (col2.a - col1.a) * lerp);
         flatColor.a *= a;
         g_pHyprRenderer->draw(
             CRectPassElement::SRectData{

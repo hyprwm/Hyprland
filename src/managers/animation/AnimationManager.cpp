@@ -12,11 +12,10 @@
 #include "../../render/Renderer.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
-
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
-#include <charconv>
 
 static int wlTick(SP<CEventLoopTimer> self, void* data) {
     if (g_pAnimationManager)
@@ -396,11 +395,9 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
                 if (percstr.empty() || percstr.back() != '%')
                     return "invalid minperc";
                 const std::string numstr = percstr.substr(0, percstr.length() - 1);
-                int               val    = 0;
-                const auto        res    = std::from_chars(numstr.data(), numstr.data() + numstr.size(), val);
-                if (res.ec != std::errc() || res.ptr != numstr.data() + numstr.size())
-                    return "invalid minperc";
-                if (val < 0 || val > 100)
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
+
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
                     return "invalid minperc";
                 return "";
             }
@@ -422,12 +419,11 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
                 if (percstr.empty() || percstr.back() != '%')
                     return "invalid movePerc";
                 const std::string numstr = percstr.substr(0, percstr.length() - 1);
-                int               val    = 0;
-                const auto        res    = std::from_chars(numstr.data(), numstr.data() + numstr.size(), val);
-                if (res.ec != std::errc() || res.ptr != numstr.data() + numstr.size())
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
+
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
                     return "invalid movePerc";
-                if (val < 0 || val > 100)
-                    return "invalid movePerc";
+
                 return "";
             }
 
@@ -451,11 +447,9 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
                 if (percstr.empty() || percstr.back() != '%')
                     return "invalid minperc";
                 const std::string numstr = percstr.substr(0, percstr.length() - 1);
-                int               val    = 0;
-                const auto        res    = std::from_chars(numstr.data(), numstr.data() + numstr.size(), val);
-                if (res.ec != std::errc() || res.ptr != numstr.data() + numstr.size())
-                    return "invalid minperc";
-                if (val < 0 || val > 100)
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
+
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
                     return "invalid minperc";
                 return "";
             }
@@ -467,6 +461,4 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
     } else {
         return "animation has no styles";
     }
-
-    return "";
 }

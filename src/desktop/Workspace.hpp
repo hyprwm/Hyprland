@@ -73,6 +73,8 @@ class CWorkspace {
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
     PHLWINDOW   getFullscreenWindow(bool includeLayoutHandledFullscreen = true);
+    void        setFullscreenWindow(const PHLWINDOW& window);
+    void        clearFullscreenWindow(const PHLWINDOW& window = nullptr);
     bool        hasFullscreen();
     bool        isVisible();
     bool        isVisibleNotCovered();
@@ -96,6 +98,7 @@ class CWorkspace {
     CHyprSignalListener m_focusedWindowHook;
     bool                m_inert = true;
 
+    PHLWINDOWREF        m_fullscreenWindow;
     SP<CWorkspace>      m_selfPersistent; // for persistent workspaces.
     bool                m_persistent = false;
 };

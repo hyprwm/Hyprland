@@ -222,7 +222,10 @@ WP<Render::GL::CHyprOpenGLImpl> IHyprRenderer::glBackend() {
     return Render::GL::g_pHyprOpenGL;
 }
 
-bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
+bool IHyprRenderer::shouldRenderWindow(const PHLWINDOW& pWindow, const PHLMONITOR& pMonitor) {
+    const auto ACTIVEWORKSPACEID        = pMonitor->activeWorkspaceID();
+    const auto ACTIVESPECIALWORKSPACEID = pMonitor->activeSpecialWorkspaceID();
+
     if (!pWindow->visibleOnMonitor(pMonitor))
         return false;
 
@@ -230,7 +233,7 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         return false;
 
     if (!pWindow->m_workspace && pWindow->m_fadingOut)
-        return pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->workspaceID() == pMonitor->activeSpecialWorkspaceID();
+        return pWindow->workspaceID() == ACTIVEWORKSPACEID || pWindow->workspaceID() == ACTIVESPECIALWORKSPACEID;
 
     if (pWindow->m_pinned)
         return true;
@@ -282,14 +285,14 @@ bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor) {
         windowBox.translate(pWindow->m_floatingOffset);
 
         const CBox monitorBox = {pMonitor->m_position, pMonitor->m_size};
-        if (!windowBox.intersection(monitorBox).empty() && (pWindow->workspaceID() == pMonitor->activeWorkspaceID() || pWindow->m_monitorMovedFrom != -1))
+        if (!windowBox.intersection(monitorBox).empty() && (pWindow->workspaceID() == ACTIVEWORKSPACEID || pWindow->m_monitorMovedFrom != -1))
             return true;
     }
 
     return false;
 }
 
-bool IHyprRenderer::shouldRenderWindow(PHLWINDOW pWindow) {
+bool IHyprRenderer::shouldRenderWindow(const PHLWINDOW& pWindow) {
 
     if (!validMapped(pWindow))
         return false;
@@ -326,30 +329,28 @@ bool IHyprRenderer::shouldRenderMonitor(PHLMONITOR monitor) {
     return true;
 }
 
-void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
-    PHLWINDOW pWorkspaceWindow = nullptr;
-
+void IHyprRenderer::renderWorkspaceWindowsFullscreen(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& time) {
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
 
-    // pre-filter renderable windows once for the tiled + floating passes
-    std::vector<PHLWINDOW> windows;
-    windows.reserve(g_pCompositor->m_windows.size());
-    for (auto const& w : g_pCompositor->m_windows) {
+    const auto shouldRenderBackgroundWindow = [&](const PHLWINDOW& w) {
         if (!shouldRenderWindow(w, pMonitor))
-            continue;
+            return false;
 
         if (w->alphaValue(WINDOW_ALPHA_FADE) * w->alphaValue(WINDOW_ALPHA_FULLSCREEN) == 0.f)
-            continue;
+            return false;
 
         if (w->isFullscreen())
-            continue;
+            return false;
 
-        windows.emplace_back(w);
-    }
+        return true;
+    };
 
     // tiled windows that are fading out
-    for (auto const& w : windows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (w->m_isFloating)
+            continue;
+
+        if (!shouldRenderBackgroundWindow(w))
             continue;
 
         if (pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
@@ -359,8 +360,11 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 
     // and floating ones too
-    for (auto const& w : windows) {
+    for (auto const& w : g_pCompositor->m_windows) {
         if (!w->m_isFloating)
+            continue;
+
+        if (!shouldRenderBackgroundWindow(w))
             continue;
 
         if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
@@ -375,37 +379,40 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
         renderWindow(w, pMonitor, time, true, RENDER_PASS_ALL);
     }
 
-    // TODO: this pass sucks
-    for (auto const& w : g_pCompositor->m_windows) {
-        const auto PWORKSPACE = w->m_workspace;
+    const auto renderFullscreenWindow = [&](const PHLWINDOW& w) {
+        if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
+            return;
 
-        if (w->m_workspace != pWorkspace || !w->isFullscreen()) {
-            if (!(PWORKSPACE && (PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering)))
+        if (shouldRenderWindow(w, pMonitor))
+            renderWindow(w, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
+    };
+
+    const auto pWorkspaceWindow = pWorkspace->getFullscreenWindow(false);
+    if (!pWorkspaceWindow) {
+        // ?? happens sometimes...
+        pWorkspace->m_hasFullscreenWindow = false;
+        pWorkspace->clearFullscreenWindow();
+        return; // this will produce one blank frame. Oh well.
+    }
+
+    renderFullscreenWindow(pWorkspaceWindow);
+
+    // Fullscreen windows on animated workspaces may still be visible on this monitor.
+    const auto hasAnimatedWorkspaces = std::ranges::any_of(g_pCompositor->getWorkspaces(), [&](const auto& ws) {
+        return ws.lock() != pWorkspace && (ws->m_renderOffset->isBeingAnimated() || ws->m_alpha->isBeingAnimated() || ws->m_forceRendering);
+    });
+    if (hasAnimatedWorkspaces) {
+        for (auto const& w : g_pCompositor->m_windows) {
+            const auto PWORKSPACE = w->m_workspace;
+            if (!w->isFullscreen() || !PWORKSPACE || PWORKSPACE == pWorkspace ||
+                !(PWORKSPACE->m_renderOffset->isBeingAnimated() || PWORKSPACE->m_alpha->isBeingAnimated() || PWORKSPACE->m_forceRendering))
                 continue;
 
             if (w->m_monitor != pMonitor)
                 continue;
+
+            renderFullscreenWindow(w);
         }
-
-        if (!w->isFullscreen())
-            continue;
-
-        if (w->m_monitor == pWorkspace->m_monitor && pWorkspace->m_isSpecialWorkspace != w->onSpecialWorkspace())
-            continue;
-
-        if (shouldRenderWindow(w, pMonitor))
-            renderWindow(w, pMonitor, time, pWorkspace->m_fullscreenMode != FSMODE_FULLSCREEN, RENDER_PASS_ALL);
-
-        if (w->m_workspace != pWorkspace)
-            continue;
-
-        pWorkspaceWindow = w;
-    }
-
-    if (!pWorkspaceWindow) {
-        // ?? happens sometimes...
-        pWorkspace->m_hasFullscreenWindow = false;
-        return; // this will produce one blank frame. Oh well.
     }
 
     // then render windows over fullscreen.
@@ -430,7 +437,7 @@ void IHyprRenderer::renderWorkspaceWindowsFullscreen(PHLMONITOR pMonitor, PHLWOR
     }
 }
 
-void IHyprRenderer::renderWorkspaceWindows(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time) {
+void IHyprRenderer::renderWorkspaceWindows(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& time) {
     PHLWINDOW lastWindow;
 
     Event::bus()->m_events.render.stage.emit(RENDER_PRE_WINDOWS);
@@ -553,7 +560,8 @@ UP<CScopeGuard> IHyprRenderer::redirectPass(CRenderPass* pass) {
     return makeUnique<CScopeGuard>([this, oldPass] { m_currentPass = oldPass; });
 }
 
-void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+void IHyprRenderer::renderWindow(const PHLWINDOW& pWindow, const PHLMONITOR& pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition,
+                                 bool standalone) {
     if (pWindow->isHidden() && !standalone)
         return;
 
@@ -949,7 +957,7 @@ SP<ITexture> IHyprRenderer::createTexture(const SP<Aquamarine::IBuffer> buffer, 
     return tex;
 }
 
-void IHyprRenderer::renderLayer(PHLLS pLayer, PHLMONITOR pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
+void IHyprRenderer::renderLayer(const PHLLS& pLayer, const PHLMONITOR& pMonitor, const Time::steady_tp& time, bool popups, bool lockscreen) {
     if (!pLayer)
         return;
 
@@ -1116,7 +1124,8 @@ void IHyprRenderer::renderSessionLockSurface(WP<SSessionLockSurface> pSurface, P
         &renderdata);
 }
 
-void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& time, const Vector2D& translate, const float& scale) {
+void IHyprRenderer::renderAllClientsForWorkspace(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& time, const Vector2D& translate,
+                                                 const float& scale) {
     static auto PDIMSPECIAL      = CConfigValue<Config::FLOAT>("decoration:dim_special");
     static auto PBLURSPECIAL     = CConfigValue<Config::INTEGER>("decoration:blur:special");
     static auto PBLUR            = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
@@ -1351,7 +1360,7 @@ SP<ITexture> IHyprRenderer::getBackground(PHLMONITOR pMonitor) {
     return backgroundTexture;
 }
 
-void IHyprRenderer::renderBackground(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderBackground(const PHLMONITOR& pMonitor) {
     static auto PRENDERTEX       = CConfigValue<Config::INTEGER>("misc:disable_hyprland_logo");
     static auto PBACKGROUNDCOLOR = CConfigValue<Config::INTEGER>("misc:background_color");
     static auto PNOSPLASH        = CConfigValue<Config::INTEGER>("misc:disable_splash_rendering");
@@ -1705,7 +1714,7 @@ void IHyprRenderer::renderLockscreen(PHLMONITOR pMonitor, const Time::steady_tp&
     }
 }
 
-void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderSessionLockPrimer(const PHLMONITOR& pMonitor) {
     static auto PSESSIONLOCKXRAY = CConfigValue<Config::INTEGER>("misc:session_lock_xray");
     if (*PSESSIONLOCKXRAY)
         return;
@@ -1717,7 +1726,7 @@ void IHyprRenderer::renderSessionLockPrimer(PHLMONITOR pMonitor) {
     m_renderPass.add(makeUnique<CRectPassElement>(data));
 }
 
-void IHyprRenderer::renderSessionLockMissing(PHLMONITOR pMonitor) {
+void IHyprRenderer::renderSessionLockMissing(const PHLMONITOR& pMonitor) {
     const bool ANY_PRESENT = g_pSessionLockManager->anySessionLockSurfacesPresent();
 
     // ANY_PRESENT: render image2, without instructions. Lock still "alive", unless texture dead
@@ -2487,7 +2496,7 @@ bool IHyprRenderer::commitPendingAndDoExplicitSync(PHLMONITOR pMonitor) {
     return ok;
 }
 
-void IHyprRenderer::renderWorkspace(PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
+void IHyprRenderer::renderWorkspace(const PHLMONITOR& pMonitor, const PHLWORKSPACE& pWorkspace, const Time::steady_tp& now, const CBox& geometry) {
     Vector2D translate = {geometry.x, geometry.y};
     float    scale     = sc<float>(geometry.width) / pMonitor->m_pixelSize.x;
 
@@ -2578,7 +2587,7 @@ static void applyExclusive(CBox& usableArea, uint32_t anchor, int32_t exclusive,
     }
 }
 
-void IHyprRenderer::arrangeLayerArray(PHLMONITOR pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
+void IHyprRenderer::arrangeLayerArray(const PHLMONITOR& pMonitor, const std::vector<PHLLSREF>& layerSurfaces, bool exclusiveZone, CBox* usableArea) {
     CBox full_area = {pMonitor->m_position.x, pMonitor->m_position.y, pMonitor->m_size.x, pMonitor->m_size.y};
 
     for (auto const& ls : layerSurfaces) {
@@ -2836,7 +2845,7 @@ void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
     }
 }
 
-void IHyprRenderer::renderDragIcon(PHLMONITOR pMonitor, const Time::steady_tp& time) {
+void IHyprRenderer::renderDragIcon(const PHLMONITOR& pMonitor, const Time::steady_tp& time) {
     PROTO::data->renderDND(pMonitor, time);
 }
 
@@ -3377,7 +3386,7 @@ NColorManagement::PImageDescription IHyprRenderer::workBufferImageDescription() 
     return m_renderData.pMonitor->workBufferImageDescription();
 }
 
-bool IHyprRenderer::shouldBlur(PHLLS ls) {
+bool IHyprRenderer::shouldBlur(const PHLLS& ls) {
     if (m_bRenderingSnapshot)
         return false;
 
@@ -3392,7 +3401,7 @@ bool IHyprRenderer::shouldBlur(PHLLS ls) {
     return ls->m_ruleApplicator->blur().valueOrDefault();
 }
 
-bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
+bool IHyprRenderer::shouldBlur(const PHLWINDOW& w) {
     if (m_bRenderingSnapshot)
         return false;
 
@@ -3411,7 +3420,7 @@ bool IHyprRenderer::shouldBlur(PHLWINDOW w) {
     return true;
 }
 
-bool IHyprRenderer::shouldBlur(WP<Desktop::View::CPopup> p) {
+bool IHyprRenderer::shouldBlur(const WP<Desktop::View::CPopup>& p) {
     static CConfigValue PBLURPOPUPS = CConfigValue<Config::INTEGER>("decoration:blur:popups");
     static CConfigValue PBLUR       = CConfigValue<Config::INTEGER>("decoration:blur:enabled");
 

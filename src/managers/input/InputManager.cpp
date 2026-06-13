@@ -482,6 +482,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
             if (!pFoundWindow) {
                 // what the fuck, somehow happens occasionally??
                 PWORKSPACE->m_hasFullscreenWindow = false;
+                PWORKSPACE->clearFullscreenWindow();
                 return;
             }
 

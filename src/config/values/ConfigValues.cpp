@@ -410,6 +410,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
         MS<Int>("gestures:close_max_timeout", "Timeout for closing windows with the close gesture, in ms.", 1000, {.min = 10, .max = 2000}),
         MS<Bool>("gestures:scrolling:move_snap_to_grid", "When releasing the scroll move gesture, whether it shoud try to snap to the grid.", true),
         MS<Bool>("gestures:scrolling:move_snap_cursor", "When releasing the scroll move gesture, whether it shoud snap the cursor to the newly focused window.", true),
+        MS<Bool>("gestures:scrolling:move_natural", "When enabled, inverts the scroll move gesture direction so the content tracks the fingers (natural scrolling).", false),
         /*
          * group:
          */

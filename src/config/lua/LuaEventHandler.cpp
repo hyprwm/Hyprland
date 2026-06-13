@@ -146,6 +146,12 @@ CLuaEventHandler::CLuaEventHandler(lua_State* L) : m_lua(L) {
             CLuaMonitor::push(L, mon);
         });
     }));
+    m_listeners.push_back(bus()->m_events.workspace.layoutChanged.listen([this](PHLWORKSPACE ws, const std::string& layout) {
+        dispatch("workspace.layout_changed", 2, [&](lua_State* L) {
+            CLuaWorkspace::push(L, ws);
+            lua_pushstring(L, layout.c_str());
+        });
+    }));
 
     m_listeners.push_back(bus()->m_events.config.reloaded.listen([this] { dispatch("config.reloaded", 0, [](lua_State* L) {}); }));
     m_listeners.push_back(
@@ -276,6 +282,7 @@ std::unordered_set<std::string> CLuaEventHandler::knownEvents() {
         "workspace.created",
         "workspace.removed",
         "workspace.move_to_monitor",
+        "workspace.layout_changed",
         "config.reloaded",
         "keybinds.submap",
         "screenshare.state",

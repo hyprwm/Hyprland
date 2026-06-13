@@ -15,6 +15,7 @@
 
 #include "../../Compositor.hpp"
 #include "../../state/WorkspaceState.hpp"
+#include "../../event/EventBus.hpp"
 
 using namespace Layout;
 using namespace Layout::Supplementary;
@@ -133,6 +134,9 @@ void CWorkspaceAlgoMatcher::updateWorkspaceLayouts() {
 
         // needs a switchup
         ws->m_space->algorithm()->updateTiledAlgo(algoForNameTiled(LAYOUT_TO_USE));
+
+        const auto WSLOCK = ws.lock();
+        Event::bus()->m_events.workspace.layoutChanged.emit(WSLOCK, LAYOUT_TO_USE);
     }
 }
 

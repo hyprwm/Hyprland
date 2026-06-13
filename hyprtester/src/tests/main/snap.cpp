@@ -70,7 +70,6 @@ SUBTEST(testMonitorSnap, const bool RESPECTGAPS, const bool OVERLAP) {
     const int END        = GAP + WINDOWSIZE;
 
     int       x;
-    Vector2D  predict;
 
     x = MONITORGAP + GAP;
     CALL_SUBTEST(expectNoSnapMove, x, x);

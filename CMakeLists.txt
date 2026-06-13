@@ -97,15 +97,12 @@ if(CMAKE_CONFIGURATION_TYPES)
   add_compile_definitions(
     $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:HYPRLAND_DEBUG>
   )
-  set(BUILD_TESTING ON)
   message(STATUS "Configuring Hyprland with a multi-config generator")
 elseif(HYPRLAND_IS_DEBUG_BUILD)
   message(STATUS "Configuring Hyprland in Debug/RelWithDebInfo with CMake")
   add_compile_definitions(HYPRLAND_DEBUG)
-  set(BUILD_TESTING ON)
 else()
   message(STATUS "Configuring Hyprland in Release/MinSizeRel with CMake")
-  set(BUILD_TESTING OFF)
 endif()
 
 add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
@@ -228,7 +225,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
   # Newer experimental safety diagnostics are enabled in normal builds when
   # the active Clang version supports them.
-  
+
   hyprland_add_supported_cxx_flag("-Wlifetime-safety-all")
 endif()
 
@@ -278,7 +275,6 @@ set(HYPRLANG_VERSION "${hyprlang_dep_VERSION}")
 set(HYPRUTILS_VERSION "${hyprutils_dep_VERSION}")
 set(HYPRCURSOR_VERSION "${hyprcursor_dep_VERSION}")
 set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
-
 
 find_package(Git QUIET)
 
@@ -646,6 +642,7 @@ function(protocolnew protoPath protoName external)
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp")
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
+
 function(protocolWayland)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
@@ -776,12 +773,14 @@ install(
         ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
         \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
         )")
+
 # session file
 configure_file(
     ${CMAKE_SOURCE_DIR}/example/hyprland.desktop.in
     ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
     @ONLY
 )
+
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
@@ -807,7 +806,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
 
 # man pages
 file(GLOB_RECURSE MANPAGES "docs/*.1")
-install(FILES ${MANPAGES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+install(FILES ${MANPAGES}
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 # pkgconfig entry
 install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
@@ -840,16 +840,23 @@ if(BUILD_TESTING OR WITH_TESTS)
   # GTest
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
+
   file(GLOB_RECURSE TESTFILES "tests/*.cpp")
+
   add_executable(hyprland_gtests ${TESTFILES})
+
   target_compile_options(hyprland_gtests PRIVATE --coverage)
   target_link_options(hyprland_gtests PRIVATE --coverage)
+
   target_include_directories(
     hyprland_gtests
     PUBLIC "./include"
     PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
 
-  target_link_libraries(hyprland_gtests hyprland_lib GTest::gtest_main)
+  target_link_libraries(
+    hyprland_gtests
+    hyprland_lib
+    GTest::gtest_main)
 
   gtest_discover_tests(hyprland_gtests)
 
@@ -868,10 +875,9 @@ if(BUILD_TESTING)
   message(STATUS "Testing is enabled")
 
   enable_testing()
+
   add_custom_target(tests)
-
   add_dependencies(tests hyprland_gtests)
-
 else()
   message(STATUS "Testing is disabled")
 endif()

@@ -97,8 +97,8 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
         g_pHyprRenderer->damageMonitor(pMonitor);
 
     // TODO: just make this into a damn callback already vax...
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!w->m_isMapped || w->isHidden() || w->m_workspace != pWorkspace)
+    for (auto const& w : pWorkspace->getWindows()) {
+        if (!w->m_isMapped || w->isHidden())
             continue;
 
         if (w->m_isFloating && !w->m_pinned) {
@@ -115,8 +115,8 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
     }
 
     // damage any workspace window that is on any monitor
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (!validMapped(w) || w->m_workspace != pWorkspace || w->m_pinned)
+    for (auto const& w : pWorkspace->getWindows()) {
+        if (!validMapped(w)|| w->m_pinned)
             continue;
 
         g_pHyprRenderer->damageWindow(w);
@@ -305,8 +305,8 @@ void CHyprAnimationManager::tick() {
             damageWindowForPolicies(owner.window, owner.entire, owner.border, owner.shadow);
         else if (owner.workspace) {
             if (owner.entire) {
-                for (auto const& w : g_pCompositor->m_windows) {
-                    if (!validMapped(w) || w->m_workspace != owner.workspace || w->m_pinned)
+                for (auto const& w : owner.workspace->getWindows()) {
+                    if (!validMapped(w) || w->m_pinned)
                         continue;
 
                     g_pHyprRenderer->damageWindow(w);

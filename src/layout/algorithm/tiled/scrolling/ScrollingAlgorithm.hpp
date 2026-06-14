@@ -4,6 +4,9 @@
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
+#include "desktop/Workspace.hpp"
+#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
+#include "layout/target/Target.hpp"
 
 #include <optional>
 #include <vector>
@@ -111,25 +114,29 @@ namespace Layout::Tiled {
         virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
-        virtual SP<ITarget>              layoutFullscreenTarget() const;
-        virtual bool                     layoutFullscreenCoversMonitor() const;
 
-        void                             moveTape(float delta);
-        void                             moveTapeNormalized(double delta);
-        void                             snapToGrid();
-        SP<SColumnData>                  snapToProjectedOffset(double projectedNormalizedOffset);
-        void                             focusColumn(SP<SColumnData> column);
-        SP<SColumnData>                  getColumnAtViewportCenter();
-        SP<SColumnData>                  currentColumn();
+        /**
+        * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
+        */
+        virtual SP<ITarget>      layoutFullscreenTarget() const;
+        virtual void             setNoMembersAboveFullscreen();
 
-        double                           primaryViewportSize();
-        double                           normalizedTapeOffset();
+        void                     moveTape(float delta);
+        void                     moveTapeNormalized(double delta);
+        void                     snapToGrid();
+        SP<SColumnData>          snapToProjectedOffset(double projectedNormalizedOffset);
+        void                     focusColumn(SP<SColumnData> column);
+        SP<SColumnData>          getColumnAtViewportCenter();
+        SP<SColumnData>          currentColumn();
 
-        CBox                             usableArea() const;
-        SP<SScrollingTargetData>         dataFor(SP<ITarget> t) const;
+        double                   primaryViewportSize();
+        double                   normalizedTapeOffset();
 
-        void                             inhibitScroll();
-        void                             uninhibitScroll();
+        CBox                     usableArea() const;
+        SP<SScrollingTargetData> dataFor(SP<ITarget> t) const;
+
+        void                     inhibitScroll();
+        void                     uninhibitScroll();
 
         enum eInputMode : uint8_t {
             INPUT_MODE_SOFT = 0,
@@ -144,6 +151,18 @@ namespace Layout::Tiled {
         CHyprSignalListener m_focusCallback;
         CHyprSignalListener m_mouseButtonCallback;
 
+        // To save the floating windows ontop of a FSed tiled layout managed FS window so they can be stay ontop after a floating window is FSed and UnFSed over the tiled FS window
+
+        struct SScrollingFullscreenWindowHidingState {
+
+            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
+            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
+            std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+
+            void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+
+        } m_fullscreenWindowHidingState;
+
         struct {
             std::vector<float> configuredWidths;
         } m_config;
@@ -155,14 +174,21 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
-        SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
-        bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
+        SFullscreenScrollState*  fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        SFullscreenScrollState*  fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
+        SP<SScrollingTargetData> fullscreenTargetDataForColumn(SP<SColumnData> col) const;
+
+        /**
+        * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`
+        * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
+        */
+        bool                                isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const;
         float                               fullscreenColumnWidth() const;
         bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
+        bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;
         void                                updateFullscreenFade(bool coversMonitor);
+        float                               getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target);
+        void                                syncFullscreenTargets();
         void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
@@ -179,6 +205,8 @@ namespace Layout::Tiled {
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
         std::vector<SFullscreenScrollState> m_maximizeTargets;
         bool                                m_lastFullscreenCover = false;
+
+        UP<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler> m_fullscreenHandler;
 
         friend struct SScrollingData;
     };

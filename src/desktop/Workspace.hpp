@@ -2,6 +2,7 @@
 
 #include "../helpers/AnimatedVariable.hpp"
 #include <string>
+#include <unordered_set>
 #include "DesktopTypes.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/signal/Signal.hpp"
@@ -10,12 +11,6 @@ namespace Layout {
     class CSpace;
 };
 
-enum eFullscreenMode : int8_t {
-    FSMODE_NONE       = 0,
-    FSMODE_MAXIMIZED  = 1 << 0,
-    FSMODE_FULLSCREEN = 1 << 1,
-    FSMODE_MAX        = (1 << 2) - 1
-};
 
 class CWorkspace {
   public:
@@ -34,8 +29,6 @@ class CWorkspace {
     std::string     m_name = "";
     PHLMONITORREF   m_monitor;
 
-    bool            m_hasFullscreenWindow = false;
-    eFullscreenMode m_fullscreenMode      = FSMODE_NONE;
 
     // for animations
     PHLANIMVAR<Vector2D>       m_renderOffset;
@@ -67,13 +60,13 @@ class CWorkspace {
     void        markInert();
     void        updateWindowDecos();
     void        updateWindowData();
-    int         getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    std::unordered_set<PHLWINDOW> getWindows(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
+    int         getWindowCount(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     int         getGroups(std::optional<bool> onlyTiled = {}, std::optional<bool> onlyPinned = {}, std::optional<bool> onlyVisible = {});
     bool        hasUrgentWindow();
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
-    PHLWINDOW   getFullscreenWindow(bool includeLayoutHandledFullscreen = true);
-    bool        hasFullscreen();
+    PHLWINDOW   getFullscreenWindow();
     bool        isVisible();
     bool        isVisibleNotCovered();
     void        rename(const std::string& name = "");
@@ -81,7 +74,6 @@ class CWorkspace {
     void        updateWindows();
     void        setPersistent(bool persistent);
     bool        isPersistent();
-    void        setNoMembersAboveFullscreen();
 
     struct {
         CSignalT<> destroy;

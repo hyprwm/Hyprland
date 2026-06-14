@@ -549,7 +549,7 @@ void CWindow::moveToWorkspace(PHLWORKSPACE pWorkspace) {
         }
     }
 
-    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindows() == 0 && *PCLOSEONLASTSPECIAL) {
+    if (OLDWORKSPACE && State::workspaceState()->isSpecial(OLDWORKSPACE->m_id) && OLDWORKSPACE->getWindowCount() == 0 && *PCLOSEONLASTSPECIAL) {
         if (const auto PMONITOR = OLDWORKSPACE->m_monitor.lock(); PMONITOR)
             PMONITOR->setSpecialWorkspace(nullptr);
     }
@@ -695,13 +695,13 @@ void CWindow::onUnmap() {
     // if the special workspace now has 0 windows, it will be closed, and this
     // window will no longer pass render checks, cuz the workspace will be nuked.
     // throw it into the main one for the fadeout.
-    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindows() == 0) {
+    if (m_workspace->m_isSpecialWorkspace && m_workspace->getWindowCount() == 0) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR)
             m_lastWorkspace = PMONITOR->activeWorkspaceID();
     }
 
-    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindows() == 0 && onSpecialWorkspace()) {
+    if (*PCLOSEONLASTSPECIAL && m_workspace && m_workspace->getWindowCount() == 0 && onSpecialWorkspace()) {
         const auto PMONITOR = m_monitor.lock();
         if (PMONITOR && PMONITOR->m_activeSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == m_workspace)
             PMONITOR->setSpecialWorkspace(nullptr);
@@ -871,24 +871,21 @@ bool CWindow::acceptsInput() const {
 }
 
 bool CWindow::isAllowedOverFullscreen() const {
-    if (isFullscreen() || m_pinned || m_createdOverFullscreen)
-        return true;
 
     if (!m_workspace)
         return false;
+
+    // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
+    const auto FULLSCREEN_WINDOW = m_workspace->getFullscreenWindow();
+    if (m_self == FULLSCREEN_WINDOW || m_pinned || m_allowedOverFullscreen)
+        return true;
 
     const auto FSWINDOW = m_workspace->getFullscreenWindow();
     return FSWINDOW && FSWINDOW->m_group && FSWINDOW->m_group->has(m_self.lock());
 }
 
 bool CWindow::isBlockedByFullscreen() const {
-    if (!m_workspace)
-        return false;
-
-    const auto ALGORITHM             = m_workspace->m_space ? m_workspace->m_space->algorithm() : nullptr;
-    const bool HAS_LAYOUT_FULLSCREEN = ALGORITHM && ALGORITHM->layoutFullscreenCoversMonitor();
-
-    if (!m_workspace->m_hasFullscreenWindow && !HAS_LAYOUT_FULLSCREEN)
+    if (!m_workspace || !m_workspace->m_hasFullscreenWindow)
         return false;
 
     return !isAllowedOverFullscreen();
@@ -1204,8 +1201,27 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
     return changed;
 }
 
-bool CWindow::isFullscreen() const {
-    return m_fullscreenState.internal != FSMODE_NONE;
+bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
+
+    if (!m_workspace)
+        return false;
+
+    // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
+    if (m_target->layoutManagedFullscreen()) {
+        if (mode.has_value())
+            return mode.value() == m_fullscreenState.internal ? m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target : false;
+        else
+            return m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target;
+    } else {
+        // TODO: see if the size and pos are properly set by this point. If they are, include that check as well
+        if (m_fullscreenState.internal != FSMODE_NONE) {
+            if (mode.has_value())
+                return mode.value() == m_fullscreenState.internal;
+            else
+                return true;
+        }
+    }
+    return false;
 }
 
 bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
@@ -1505,7 +1521,7 @@ void CWindow::onX11ConfigureRequest(CBox box) {
 
     g_pCompositor->changeWindowZOrder(m_self.lock(), true);
 
-    m_createdOverFullscreen = true;
+    m_allowedOverFullscreen = true;
 
     g_pHyprRenderer->damageWindow(m_self.lock());
 }
@@ -1923,7 +1939,7 @@ void CWindow::mapWindow() {
     static auto PAUTOGROUP         = CConfigValue<Config::INTEGER>("group:auto_group");
 
     const auto  LAST_FOCUS_WINDOW = Desktop::focusState()->window();
-    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal != FSMODE_NONE : false;
+    const bool  IS_LAST_IN_FS     = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->isFullscreen() : false;
     const auto  LAST_FS_MODE      = LAST_FOCUS_WINDOW ? LAST_FOCUS_WINDOW->m_fullscreenState.internal : FSMODE_NONE;
 
     auto        PMONITOR = Desktop::focusState()->monitor();
@@ -2163,7 +2179,7 @@ void CWindow::mapWindow() {
             workspaceSilent = true;
 
         auto joined = WORKSPACEARGS.join(" ", 0, workspaceSilent ? WORKSPACEARGS.size() - 1 : 0);
-        if (joined.starts_with("empty") && PWORKSPACE->getWindows() == 0) {
+        if (joined.starts_with("empty") && PWORKSPACE->getWindowCount() == 0) {
             requestedWorkspaceID   = PWORKSPACE->m_id;
             requestedWorkspaceName = PWORKSPACE->m_name;
         } else {
@@ -2252,7 +2268,7 @@ void CWindow::mapWindow() {
     updateWindowData();
 
     if (m_isFloating) {
-        m_createdOverFullscreen = true;
+        m_allowedOverFullscreen = true;
 
         // set the pseudo size to the GOAL of our current size
         // because the windows are animated on RealSize
@@ -2536,7 +2552,7 @@ void CWindow::unmapWindow() {
                 g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
         }
 
-        if (!candidate && m_workspace && m_workspace->getWindows() == 0)
+        if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)
             g_pInputManager->refocus();
 
         g_pInputManager->sendMotionEventsToFocused();

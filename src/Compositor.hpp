@@ -101,9 +101,11 @@ class CCompositor {
     void                   updateAllWindowsAnimatedDecorationValues();
     void                   moveWorkspaceToMonitor(PHLWORKSPACE, PHLMONITOR, bool noWarpCursor = false);
     void                   swapActiveWorkspaces(PHLMONITOR, PHLMONITOR);
-    void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE);
-    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
+    PHLMONITOR             getMonitorFromString(const std::string&);
+    bool                   workspaceIDOutOfBounds(const WORKSPACEID&);
+    void                   setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force = false);
+    void                   setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force = false);
+    void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state, bool force = false);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
     void                   scheduleFrameForMonitor(PHLMONITOR, Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);

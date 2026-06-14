@@ -468,18 +468,24 @@ void CDesktopAnimationManager::setFullscreenFadeAnimation(PHLWORKSPACE ws, eAnim
 
     const auto FULLSCREEN = type == ANIMATION_TYPE_IN;
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == ws) {
-            w->updateFullscreenInputState();
+    // Because in at least one layout managed fullscreen (scrolling), an FS window can be layered ontop of another. We need to get the topmost one
+    const auto FULLSCREEN_WINDOW = ws->getFullscreenWindow();
 
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
-                continue;
+    for (auto const& w : ws->getWindows()) {
+        w->updateFullscreenInputState();
 
-            if (!FULLSCREEN)
-                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
-            else if (!w->isFullscreen()) {
-                *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.f : 0.f;
-            }
+        if (w == FULLSCREEN_WINDOW) {
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+            continue;
+        }
+
+        if (w->m_fadingOut || w->m_pinned)
+            continue;
+
+        if (!FULLSCREEN)
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = 1.F;
+        else if (w != FULLSCREEN_WINDOW) {
+            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = w->isAllowedOverFullscreen() ? 1.f : 0.f;
         }
     }
 
@@ -502,17 +508,15 @@ void CDesktopAnimationManager::setFullscreenFloatingFade(PHLWINDOW pWindow, floa
 }
 
 void CDesktopAnimationManager::overrideFullscreenFadeAmount(PHLWORKSPACE ws, float fade, PHLWINDOW exclude) {
-    for (auto const& w : g_pCompositor->m_windows) {
+    for (auto const& w : ws->getWindows()) {
         if (w == exclude)
             continue;
 
-        if (w->m_workspace == ws) {
-            if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
-                continue;
+        if (w->m_fadingOut || w->m_pinned || w->isFullscreen())
+            continue;
 
-            *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
-            w->updateFullscreenInputState();
-        }
+        *w->alpha(WINDOW_ALPHA_FULLSCREEN) = fade;
+        w->updateFullscreenInputState();
     }
 
     const auto PMONITOR = ws->m_monitor.lock();

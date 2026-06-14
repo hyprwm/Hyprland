@@ -60,6 +60,10 @@ PHLWINDOW CWindowGroupTarget::window() const {
     return m_group->current();
 }
 
+bool CWindowGroupTarget::isFullscreen() {
+    return m_group->current()->isFullscreen();
+}
+
 eFullscreenMode CWindowGroupTarget::fullscreenMode() {
     return m_group->current()->m_fullscreenState.internal;
 }

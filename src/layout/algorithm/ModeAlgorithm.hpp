@@ -6,6 +6,7 @@
 
 #include "../LayoutManager.hpp"
 #include "../space/Space.hpp"
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
 #include <expected>
 
@@ -14,11 +15,6 @@ namespace Layout {
     class ITarget;
     class CAlgorithm;
 
-    struct SFullscreenRequest {
-        SP<ITarget>     target;
-        eFullscreenMode currentEffectiveMode = static_cast<eFullscreenMode>(0);
-        eFullscreenMode effectiveMode        = static_cast<eFullscreenMode>(0);
-    };
 
     class IModeAlgorithm {
       public:
@@ -54,9 +50,17 @@ namespace Layout {
         // optional: allow algorithms to own fullscreen semantics for a target.
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
-        // optional: expose an algorithm-owned fullscreen target and whether it is monitor-exclusive.
+        // optional: expose an algorithm-owned fullscreen target
+
+        /**
+        * Get the current layout managed FS target
+        * @return Covers the monitor(`FSMODE_FULLSCREEN`) / work area(`FSMODE_MAXIMIZE`)
+        */
         virtual SP<ITarget> layoutFullscreenTarget() const;
-        virtual bool        layoutFullscreenCoversMonitor() const;
+
+        // optional: allow layouts to own layer/window hiding logic for fullscreen targets
+
+        virtual void setNoMembersAboveFullscreen();
 
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);
@@ -65,7 +69,10 @@ namespace Layout {
         IModeAlgorithm() = default;
 
         WP<CAlgorithm> m_parent;
+        // Must be assigned by each layout algorithm class constructor
+        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
 
         friend class Layout::CAlgorithm;
+        friend class Fullscreen::IFullscreenHandler;
     };
 }

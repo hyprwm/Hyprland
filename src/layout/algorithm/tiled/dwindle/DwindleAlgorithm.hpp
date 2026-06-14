@@ -27,7 +27,7 @@ namespace Layout::Tiled {
 
     class CDwindleAlgorithm : public ITiledAlgorithm {
       public:
-        CDwindleAlgorithm();
+        CDwindleAlgorithm() = default;
         virtual ~CDwindleAlgorithm() = default;
 
         virtual void                    newTarget(SP<ITarget> target);
@@ -74,6 +74,5 @@ namespace Layout::Tiled {
 
         Math::eDirection        m_overrideDirection = Math::DIRECTION_DEFAULT;
 
-        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
     };
 };

@@ -45,7 +45,7 @@ namespace Layout::Tiled {
 
     class CMasterAlgorithm : public ITiledAlgorithm {
       public:
-        CMasterAlgorithm();
+        CMasterAlgorithm() = default;
         virtual ~CMasterAlgorithm() = default;
 
         virtual void                    newTarget(SP<ITarget> target);
@@ -87,6 +87,5 @@ namespace Layout::Tiled {
         bool                             isWindowTiled(PHLWINDOW);
         eOrientation                     defaultOrientation();
 
-        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
     };
 };

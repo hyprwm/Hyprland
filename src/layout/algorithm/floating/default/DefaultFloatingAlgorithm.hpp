@@ -1,7 +1,5 @@
 #include "../../FloatingAlgorithm.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
-#include <hyprutils/memory/UniquePtr.hpp>
 #include <map>
 
 namespace Layout {
@@ -11,7 +9,7 @@ namespace Layout {
 namespace Layout::Floating {
     class CDefaultFloatingAlgorithm : public IFloatingAlgorithm {
       public:
-        CDefaultFloatingAlgorithm();
+        CDefaultFloatingAlgorithm() = default;
         virtual ~CDefaultFloatingAlgorithm() = default;
 
         virtual void newTarget(SP<ITarget> target);
@@ -39,6 +37,5 @@ namespace Layout::Floating {
 
         std::map<WP<ITarget>, SWindowData> m_datas;
 
-        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
     };
 };

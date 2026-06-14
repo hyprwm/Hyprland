@@ -421,8 +421,8 @@ PHLWINDOW CWorkspace::getFullscreenWindow() {
 
     PHLWINDOW fullscreenWindow = nullptr;
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->isFullscreen()) {
+    for (auto const& w : getWindows()) {
+        if (w->isFullscreen()) {
             if (!fullscreenWindow)
                 fullscreenWindow = w;
             else if (w->m_isFloating)
@@ -527,8 +527,8 @@ int CWorkspace::getGroups(std::optional<bool> onlyTiled, std::optional<bool> onl
 }
 
 PHLWINDOW CWorkspace::getFirstWindow() {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == m_self && w->m_isMapped && w->acceptsInput())
+    for (auto const& w : getWindows()) {
+        if (w->m_isMapped && w->acceptsInput())
             return w;
     }
 
@@ -538,8 +538,8 @@ PHLWINDOW CWorkspace::getFirstWindow() {
 PHLWINDOW CWorkspace::getTopLeftWindow() {
     const auto PMONITOR = m_monitor.lock();
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self || !w->m_isMapped || !w->acceptsInput())
+    for (auto const& w : getWindows()) {
+        if (!w->m_isMapped || !w->acceptsInput())
             continue;
 
         const auto WINDOWIDEALBB = w->getWindowIdealBoundingBoxIgnoreReserved();
@@ -551,14 +551,11 @@ PHLWINDOW CWorkspace::getTopLeftWindow() {
 }
 
 bool CWorkspace::hasUrgentWindow() {
-    return std::ranges::any_of(g_pCompositor->m_windows, [this](const auto& w) { return w->m_workspace == m_self && w->m_isMapped && w->m_isUrgent; });
+    return std::ranges::any_of(getWindows(), [this](const auto& w) { return w->m_isMapped && w->m_isUrgent; });
 }
 
 void CWorkspace::updateWindowDecos() {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self)
-            continue;
-
+    for (auto const& w : getWindows()) {
         w->updateWindowDecos();
     }
 }
@@ -566,17 +563,14 @@ void CWorkspace::updateWindowDecos() {
 void CWorkspace::updateWindowData() {
     const auto WORKSPACERULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(m_self.lock());
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self)
-            continue;
-
+    for (auto const& w : getWindows())
         w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
-    }
+
 }
 
 void CWorkspace::forceReportSizesToWindows() {
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace != m_self || !w->m_isMapped || w->isHidden())
+    for (auto const& w : getWindows()) {
+        if (!w->m_isMapped || w->isHidden())
             continue;
 
         w->sendWindowSize(true);

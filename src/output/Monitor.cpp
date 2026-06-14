@@ -70,6 +70,8 @@ using namespace Monitor;
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+    g_pAnimationManager->createAnimation(0.f, m_workspaceRuleBlurAlpha, Config::animationTree()->getAnimationPropertyConfig("fadeIn"), AVARDAMAGE_NONE);
+    m_workspaceRuleBlurAlpha->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
     static auto PZOOMFACTOR = CConfigValue<Config::FLOAT>("cursor:zoom_factor");
     g_pAnimationManager->createAnimation(*PZOOMFACTOR, m_cursorZoom, Config::animationTree()->getAnimationPropertyConfig("zoomFactor"), AVARDAMAGE_NONE);
     m_cursorZoom->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -1389,6 +1391,8 @@ void CMonitor::setMirror(const std::string& mirrorOf) {
 
         Desktop::focusState()->rawMonitorFocus(State::monitorState()->monitors().front());
 
+        updateWorkspaceRuleBlur();
+
         // Software lock mirrored monitor
         g_pPointerManager->lockSoftwareForMonitor(PMIRRORMON);
     }
@@ -1593,6 +1597,7 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
     if (PMONITOR && PMONITOR->m_activeSpecialWorkspace == pWorkspace) {
         PMONITOR->m_activeSpecialWorkspace.reset();
+        PMONITOR->updateWorkspaceRuleBlur();
         g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_SPECIAL_WORKSPACE);
         g_pHyprRenderer->damageMonitor(PMONITOR);
         g_pEventManager->postEvent(SHyprIPCEvent{"activespecial", "," + PMONITOR->m_name});
@@ -1615,6 +1620,9 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
     pWorkspace->m_monitor               = m_self;
     m_activeSpecialWorkspace            = pWorkspace;
     m_activeSpecialWorkspace->m_visible = true;
+
+    if (wasActive)
+        updateWorkspaceRuleBlur();
 
     // Reset layer surface state when opening special workspace
     for (auto const& ls : g_pCompositor->m_layers) {
@@ -1683,6 +1691,23 @@ void CMonitor::setSpecialWorkspace(const PHLWORKSPACE& pWorkspace) {
 
 void CMonitor::setSpecialWorkspace(const WORKSPACEID& id) {
     setSpecialWorkspace(State::workspaceState()->query().id(id).run());
+}
+
+void CMonitor::updateWorkspaceRuleBlur() {
+    if (!m_workspaceRuleBlurAlpha)
+        return;
+
+    const auto  PWORKSPACE    = m_activeSpecialWorkspace ? m_activeSpecialWorkspace : m_activeWorkspace;
+    const auto  WORKSPACERULE = PWORKSPACE ? Config::workspaceRuleMgr()->getWorkspaceRuleFor(PWORKSPACE) : std::nullopt;
+    const bool  SHOULD_BLUR   = WORKSPACERULE && WORKSPACERULE->m_blur.value_or(false) && PWORKSPACE->getWindows(std::nullopt, std::nullopt, true) > 0;
+    const float BLUR_ALPHA    = SHOULD_BLUR ? 1.F : 0.F;
+
+    m_workspaceRuleBlurAlpha->setConfig(Config::animationTree()->getAnimationPropertyConfig(SHOULD_BLUR ? "fadeIn" : "fadeOut"));
+
+    if (m_workspaceRuleBlurAlpha->goal() == BLUR_ALPHA)
+        return;
+
+    *m_workspaceRuleBlurAlpha = BLUR_ALPHA;
 }
 
 void CMonitor::moveTo(const Vector2D& pos) {

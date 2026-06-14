@@ -1590,8 +1590,8 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
 
     PangoRectangle rectInk = {}, rectLog = {};
     pango_layout_get_pixel_extents(layoutText, &rectInk, &rectLog);
-    int textW = std::max(rectLog.width, rectInk.x + rectInk.width);
-    int textH = std::max(rectLog.height, rectInk.y + rectInk.height);
+    int  textW = std::max(rectLog.width, rectInk.x + rectInk.width);
+    int  textH = std::max(rectLog.height, rectInk.y + rectInk.height);
 
     auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
     auto CAIRO        = cairo_create(CAIROSURFACE);

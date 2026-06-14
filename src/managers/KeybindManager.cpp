@@ -4,6 +4,7 @@
 #include "../config/shared/actions/ConfigActions.hpp"
 #include "../devices/IKeyboard.hpp"
 #include "../managers/SeatManager.hpp"
+#include "../protocols/InputCapture.hpp"
 #include "../protocols/ShortcutsInhibit.hpp"
 #include "../protocols/Hotkey.hpp"
 #include "../protocols/core/DataDevice.hpp"
@@ -107,7 +108,8 @@ CKeybindManager::CKeybindManager() {
                              "event",
                              "global",
                              "setprop",
-                             "forceidle"}) {
+                             "forceidle",
+							 "releaseinputcapture"}) {
         m_dispatchers[name] = [n = std::string(name)](std::string args) -> SDispatchResult { return Config::Legacy::translator()->run(n, args); };
     }
 
@@ -372,7 +374,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
 
     // handleInternalKeybinds returns true when the key should be suppressed,
     // while this function returns true when the key event should be sent
-    if (handleInternalKeybinds(internalKeysym))
+    if (!PROTO::inputCapture->isCaptured() && handleInternalKeybinds(internalKeysym))
         return false;
 
     const auto MODS = g_pInputManager->getModsFromAllKBs();
@@ -629,6 +631,9 @@ SDispatchResult CKeybindManager::handleKeybinds(const uint32_t modmask, const SP
     std::vector<SP<SKeybind>> bindsHit;
 
     for (auto& k : m_keybinds) {
+        if (PROTO::inputCapture->isCaptured() && !k->allowInputCapture)
+            continue;
+
         const bool SPECIALDISPATCHER = k->handler == "global" || k->handler == "pass" || k->handler == "sendshortcut" || k->handler == "mouse" || k->releasePending;
         const bool SPECIALTRIGGERED  = std::ranges::find_if(m_pressedSpecialBinds, [&](const auto& other) { return other == k; }) != m_pressedSpecialBinds.end();
         const bool IGNORECONDITIONS =

@@ -25,6 +25,7 @@
   lcms2,
   libGL,
   libdrm,
+  libei,
   libexecinfo,
   libinput,
   libxcb,
@@ -191,6 +192,7 @@ customStdenv.mkDerivation (finalAttrs: {
       libdrm
       libgbm
       libGL
+      libei
       libinput
       libuuid
       libxcursor

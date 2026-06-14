@@ -1518,13 +1518,14 @@ void CHyprOpenGLImpl::renderTextureInternal(SP<ITexture> tex, const CBox& box, c
     g_pHyprRenderer->m_renderData.renderModif.applyToBox(newBox);
 
     // get the needed transform for this texture
-    const auto                  MONITOR_INVERTED = Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprRenderer->m_renderData.pMonitor->m_transform));
-    Hyprutils::Math::eTransform TRANSFORM        = tex->m_transform;
+    const auto MONITOR_INVERTED = Math::wlTransformToHyprutils(Math::invertTransform(g_pHyprRenderer->m_renderData.pMonitor->m_transform));
+    // wl_surface::set_buffer_transform: "The compositor applies the inverse of this transformation whenever it uses the buffer contents."
+    auto TRANSFORM_INVERTED = Math::invertTransform(tex->m_transform);
 
     if (g_pHyprRenderer->monitorTransformEnabled())
-        TRANSFORM = Math::composeTransform(MONITOR_INVERTED, TRANSFORM);
+        TRANSFORM_INVERTED = Math::composeTransform(MONITOR_INVERTED, TRANSFORM_INVERTED);
 
-    const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM);
+    const auto& glMatrix = g_pHyprRenderer->projectBoxToTarget(newBox, TRANSFORM_INVERTED);
 
     const bool  renderToOutput = m_applyFinalShader && tex->m_imageDescription->id() == g_pHyprRenderer->m_renderData.pMonitor->m_imageDescription->id();
 

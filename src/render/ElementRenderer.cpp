@@ -63,7 +63,12 @@ void IElementRenderer::calculateUVForSurface(PHLWINDOW pWindow, SP<CWLSurfaceRes
         if (pSurface->m_current.viewport.hasSource) {
             // we stretch it to dest. if no dest, to 1,1
             Vector2D const& bufferSize   = pSurface->m_current.bufferSize;
-            auto const&     bufferSource = pSurface->m_current.viewport.source;
+            auto            bufferSource = pSurface->m_current.viewport.source;
+
+            // Viewporter spec order: 1. transform, 2. scale, 3. viewport
+            Vector2D const trc = pSurface->m_current.transform % 2 == 1 ? Vector2D{bufferSize.y, bufferSize.x} : bufferSize;
+            bufferSource.scale(pSurface->m_current.scale);
+            bufferSource.transform(Math::wlTransformToHyprutils(Math::invertTransform(pSurface->m_current.transform)), trc.x, trc.y);
 
             // calculate UV for the basic src_box. Assume dest == size. Scale to dest later
             uvTL = Vector2D(bufferSource.x / bufferSize.x, bufferSource.y / bufferSize.y);

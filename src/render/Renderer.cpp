@@ -1592,7 +1592,6 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     int textW = std::max(rectLog.width, rectInk.x + rectInk.width);
     int textH = std::max(rectLog.height, rectInk.y + rectInk.height);
 
-    g_object_unref(layoutText);
     g_object_unref(context);
 
     if (maxWidth > 0) {

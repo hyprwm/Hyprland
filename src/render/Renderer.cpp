@@ -61,6 +61,8 @@
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <optional>
 #include <pango/pangocairo.h>
+#include <type_traits>
+#include <unordered_map>
 
 #include <hyprutils/utils/ScopeGuard.hpp>
 #include <random>
@@ -3481,8 +3483,36 @@ SP<ITexture> IHyprRenderer::renderSplash(const std::function<SP<ITexture>(const 
 }
 
 using ColorConversionKey = std::tuple<float, float, float, float, uint64_t>;
-static std::map<ColorConversionKey, CHyprColor> colorConversionCache;
-constexpr const size_t                          MAX_COLOR_CONVERSION_CACHE_SIZE = 4096;
+
+struct SColorConversionKeyHash {
+    size_t operator()(const ColorConversionKey& key) const {
+        size_t hash = 0;
+
+        // fold each tuple element to a order sensitive hash the constant is
+        // the 64-bit golden-ratio value used to
+        // distribute bits and reduce collisions between adjacent fields.
+        const auto hashCombine = [&hash](const auto& value) {
+            hash ^= std::hash<std::decay_t<decltype(value)>>{}(value) +
+                0x9e3779b97f4a7c15ULL + (hash << 6) + (hash >> 2);
+        };
+
+        hashCombine(std::get<0>(key));
+        hashCombine(std::get<1>(key));
+        hashCombine(std::get<2>(key));
+        hashCombine(std::get<3>(key));
+        hashCombine(std::get<4>(key));
+
+        return hash;
+    }
+};
+
+constexpr const size_t MAX_COLOR_CONVERSION_CACHE_SIZE = 4096;
+
+static auto            colorConversionCache = []() {
+    std::unordered_map<ColorConversionKey, CHyprColor, SColorConversionKeyHash> cache;
+    cache.reserve(MAX_COLOR_CONVERSION_CACHE_SIZE);
+    return cache;
+}();
 
 //
 CHyprColor IHyprRenderer::getConvertedColor(const CHyprColor& color) {
@@ -3498,11 +3528,11 @@ CHyprColor IHyprRenderer::getConvertedColor(const CHyprColor& color) {
 
     const ColorConversionKey key = {color.r, color.g, color.b, color.a, DESCR->id()};
 
-    if (colorConversionCache.contains(key))
-        return colorConversionCache[key];
+    if (const auto IT = colorConversionCache.find(key); IT != colorConversionCache.end())
+        return IT->second;
 
-    const auto converted      = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR);
-    colorConversionCache[key] = converted;
+    const auto converted = convertColor(color, DEFAULT_SRGB_IMAGE_DESCRIPTION, DESCR);
+    colorConversionCache.emplace(key, converted);
 
     return converted;
 }

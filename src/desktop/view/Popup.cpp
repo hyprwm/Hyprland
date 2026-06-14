@@ -646,7 +646,7 @@ SP<CPopup> CPopup::at(const Vector2D& globalCoords, bool allowsInput) {
                 return p;
             }
         } else {
-            const auto REGION = CRegion{p->wlSurface()->resource()->m_current.input}.intersect(CBox{{}, p->wlSurface()->resource()->m_current.size}).translate(p->coordsGlobal());
+            const auto REGION = p->wlSurface()->resource()->m_current.effectiveInputRegion().translate(p->coordsGlobal());
             if (REGION.containsPoint(globalCoords)) {
                 popups.clear();
                 return p;

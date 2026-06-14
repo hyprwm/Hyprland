@@ -120,6 +120,9 @@ void CHyprBorderDecoration::damageEntire() {
         return;
 
     const auto GLOBAL_BOX = assignedBoxGlobal();
+    if (GLOBAL_BOX.w <= 0 || GLOBAL_BOX.h <= 0)
+        return;
+
     const auto ROUNDING   = m_window->rounding();
     const auto BORDERSIZE = m_window->getRealBorderSize() + 1;
 

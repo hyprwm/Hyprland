@@ -147,9 +147,11 @@ void CSeatManager::setKeyboardFocus(SP<CWLSurfaceResource> surf) {
     static_assert(std::is_same_v<std::decay_t<decltype(PRESSED)>::value_type, uint32_t>, "Element type different from keycode type uint32_t");
 
     const auto PRESSEDARRSIZE = PRESSED.size() * sizeof(uint32_t);
-    const auto PKEYS          = wl_array_add(&keys, PRESSEDARRSIZE);
-    if (PKEYS)
-        memcpy(PKEYS, PRESSED.data(), PRESSEDARRSIZE);
+    if (PRESSEDARRSIZE > 0) {
+        const auto PKEYS = wl_array_add(&keys, PRESSEDARRSIZE);
+        if (PKEYS)
+            memcpy(PKEYS, PRESSED.data(), PRESSEDARRSIZE);
+    }
 
     auto client = surf->client();
     for (auto const& r : m_seatResources | std::views::reverse) {

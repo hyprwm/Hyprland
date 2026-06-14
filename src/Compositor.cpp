@@ -580,6 +580,8 @@ void CCompositor::cleanup() {
     wl_display_destroy_clients(g_pCompositor->m_wlDisplay);
 
     State::monitorState()->finish();
+    State::fallbackState().reset();
+    State::monitorState().reset();
 
     removeAllSignals();
 
@@ -1121,7 +1123,7 @@ SP<CWLSurfaceResource> CCompositor::vectorToLayerSurface(const Vector2D& pos, st
         auto [surf, local] = ls->m_layerSurface->m_surface->at(pos - ls->m_geometry.pos(), true);
 
         if (surf) {
-            if (surf->m_current.input.empty())
+            if (!surf->m_current.inputIsInfinite && surf->m_current.input.empty())
                 continue;
 
             *ppLayerSurfaceFound = ls.lock();

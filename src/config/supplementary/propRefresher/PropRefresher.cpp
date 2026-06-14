@@ -69,21 +69,21 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             if (!m)
                 continue;
 
-                    m->m_forceFullFrames = 2;
-                    m->scheduleFrame();
-                }
-            }
+            m->m_forceFullFrames = 2;
+            m->scheduleFrame();
+        }
+    }
 
     if (m_propsTripped & REFRESH_BLUR_FB) {
         for (auto const& m : State::monitorState()->monitors()) {
             if (!m)
                 continue;
 
-                    m->m_blurFBDirty     = true;
-                    m->m_forceFullFrames = 2;
-                    m->scheduleFrame();
-                }
-            }
+            m->m_blurFBDirty     = true;
+            m->m_forceFullFrames = 2;
+            m->scheduleFrame();
+        }
+    }
 
     if (m_propsTripped & REFRESH_WINDOW_STATES) {
         Desktop::Rule::ruleEngine()->updateAllRules();
@@ -103,11 +103,11 @@ void CPropRefresher::refreshProp(const bool execdAsScheduled) {
             if (!m)
                 continue;
 
-                    m->m_forceFullFrames = 2;
-                    g_pHyprRenderer->damageMonitor(m);
-                    m->scheduleFrame();
-                }
-            }
+            m->m_forceFullFrames = 2;
+            g_pHyprRenderer->damageMonitor(m);
+            m->scheduleFrame();
+        }
+    }
 
     if (m_propsTripped & REFRESH_MONITOR_STATES) {
         Config::monitorRuleMgr()->scheduleReload();

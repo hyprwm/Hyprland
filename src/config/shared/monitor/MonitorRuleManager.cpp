@@ -136,14 +136,14 @@ void CMonitorRuleManager::ensureMonitorStatus() {
         if (!m || !m->m_output || m->m_isUnsafeFallback)
             continue;
 
-        m->m_splash = nullptr;
-
         auto rule = get(m);
 
         auto cmp = rule.compare(m->m_activeMonitorRule);
 
         if (cmp == COMPARISON_FULL_MATCH)
             continue;
+
+        m->m_splash = nullptr;
 
         monsForRefresh.emplace_back(m);
 

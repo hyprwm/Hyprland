@@ -49,6 +49,5 @@ namespace Layout::Tiled {
         void                                updateVisible();
         SP<ITarget>                         getVisibleTarget();
 
-        UP<Fullscreen::IFullscreenHandler>  m_fullscreenHandler;
     };
 };

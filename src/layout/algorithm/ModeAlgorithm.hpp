@@ -8,8 +8,6 @@
 #include "../space/Space.hpp"
 #include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
-#include <expected>
-
 namespace Layout {
 
     class ITarget;
@@ -66,10 +64,10 @@ namespace Layout {
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);
 
       protected:
-        IModeAlgorithm() = default;
+        IModeAlgorithm();
 
         WP<CAlgorithm> m_parent;
-        // Must be assigned by each layout algorithm class constructor
+        // Layouts that wish to implement custom FS handlers must overwrite this in their constructors
         UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
 
         friend class Layout::CAlgorithm;

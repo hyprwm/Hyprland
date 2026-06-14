@@ -11,6 +11,7 @@ project(
 
 include(CTest)
 include(CheckIncludeFile)
+include(CheckCXXCompilerFlag)
 include(GNUInstallDirs)
 
 set(HYPRLAND_VERSION ${VER})
@@ -59,23 +60,31 @@ else()
   set(LIBRT rt)
 endif()
 
-if(CMAKE_BUILD_TYPE)
-  string(TOLOWER ${CMAKE_BUILD_TYPE} BUILDTYPE_LOWER)
-  if(BUILDTYPE_LOWER STREQUAL "release")
-    # Pass.
-  elseif(BUILDTYPE_LOWER STREQUAL "debug")
-    # Pass.
-  elseif(BUILDTYPE_LOWER STREQUAL "relwithdebinfo")
-    set(BUILDTYPE_LOWER "debugoptimized")
-  elseif(BUILDTYPE_LOWER STREQUAL "minsizerel")
-    set(BUILDTYPE_LOWER "minsize")
-  elseif(BUILDTYPE_LOWER STREQUAL "none")
-    set(BUILDTYPE_LOWER "plain")
-  else()
-    set(BUILDTYPE_LOWER "release")
-  endif()
+if(CMAKE_CONFIGURATION_TYPES)
+  # Multi-config generators choose the configuration at build time.
+  set(HYPRLAND_DEBUG_CONFIG
+      "$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>")
 else()
-  set(BUILDTYPE_LOWER "release")
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+  endif()
+
+  string(TOLOWER "${CMAKE_BUILD_TYPE}" BUILDTYPE_LOWER)
+
+  if(BUILDTYPE_LOWER STREQUAL "debug")
+    set(HYPRLAND_IS_DEBUG_BUILD ON)
+  elseif(BUILDTYPE_LOWER STREQUAL "relwithdebinfo")
+    set(HYPRLAND_IS_DEBUG_BUILD ON)
+  elseif(BUILDTYPE_LOWER STREQUAL "release"
+         OR BUILDTYPE_LOWER STREQUAL "minsizerel")
+    set(HYPRLAND_IS_DEBUG_BUILD OFF)
+  else()
+    message(WARNING
+      "Unknown CMAKE_BUILD_TYPE='${CMAKE_BUILD_TYPE}', defaulting to Release")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set(BUILDTYPE_LOWER "release")
+    set(HYPRLAND_IS_DEBUG_BUILD OFF)
+  endif()
 endif()
 
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
@@ -84,14 +93,16 @@ pkg_get_variable(WAYLAND_SCANNER_PKGDATA_DIR wayland-scanner pkgdatadir)
 message(
   STATUS "Found wayland-scanner pkgdatadir at ${WAYLAND_SCANNER_PKGDATA_DIR}")
 
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
-  message(STATUS "Configuring Hyprland in Debug with CMake")
+if(CMAKE_CONFIGURATION_TYPES)
+  add_compile_definitions(
+    $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:HYPRLAND_DEBUG>
+  )
+  message(STATUS "Configuring Hyprland with a multi-config generator")
+elseif(HYPRLAND_IS_DEBUG_BUILD)
+  message(STATUS "Configuring Hyprland in Debug/RelWithDebInfo with CMake")
   add_compile_definitions(HYPRLAND_DEBUG)
-  set(BUILD_TESTING ON)
 else()
-  add_compile_options(-O3)
-  message(STATUS "Configuring Hyprland in Release with CMake")
-  set(BUILD_TESTING OFF)
+  message(STATUS "Configuring Hyprland in Release/MinSizeRel with CMake")
 endif()
 
 add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
@@ -99,32 +110,141 @@ add_compile_definitions(HYPRLAND_VERSION="${HYPRLAND_VERSION}")
 include_directories(. "src/" "protocols/")
 
 set(CMAKE_CXX_STANDARD 26)
-set(CXX_STANDARD_REQUIRED ON)
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wpedantic
-  -Wno-keyword-macro
-  -Wno-unused-result
-  -Wno-unused-parameter
-  -Wno-unused-value
-  -Wno-missing-field-initializers
-  -Wno-gnu-zero-variadic-macro-arguments
-  -Wno-narrowing
-  -Wno-pointer-arith
-  -Wno-clobbered
-  -frtti
-  -fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=)
-
-# disable lto as it may break plugins
-add_compile_options(-fno-lto)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CMAKE_EXECUTABLE_ENABLE_EXPORTS TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+# Safely add a C++ compiler option only when the active compiler accepts it.
+# Clang normally treats an unknown -W option as a warning, so make that warning
+# fatal during feature detection to avoid false-positive checks.
+function(hyprland_add_supported_cxx_flag flag)
+  string(MAKE_C_IDENTIFIER "${flag}" flag_id)
+  set(test_name "HYPRLAND_SUPPORTS_${flag_id}")
+
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    check_cxx_compiler_flag(
+      "${flag} -Werror=unknown-warning-option"
+      ${test_name}
+    )
+  else()
+    check_cxx_compiler_flag("${flag}" ${test_name})
+  endif()
+
+  if(${test_name})
+    add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${flag}>")
+  endif()
+endfunction()
+
+# High-value, generally low-noise warnings.
+foreach(flag
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wformat=2
+    -Wformat-security
+    -Wundef
+    -Wimplicit-fallthrough
+    -Wnon-virtual-dtor
+    -Woverloaded-virtual
+    -Wzero-as-null-pointer-constant
+    # too mutch noise  -Wfloat-conversion
+    # too mutch noise -Wdouble-promotion
+    -Wvla
+    -Werror=return-type)
+  hyprland_add_supported_cxx_flag("${flag}")
+endforeach()
+
+# Existing project suppressions.
+foreach(flag
+    -Wno-unused-result
+    -Wno-unused-parameter
+    -Wno-unused-value
+    -Wno-missing-field-initializers
+    -Wno-narrowing
+    -Wno-pointer-arith)
+  hyprland_add_supported_cxx_flag("${flag}")
+endforeach()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  foreach(flag
+      -Wno-clobbered
+      -Wduplicated-cond
+      -Wduplicated-branches
+      -Wlogical-op
+      -Wnull-dereference
+      -Walloca
+      -Warray-bounds=2
+      -Wstringop-overflow=4
+      -Wformat-overflow=2
+      -Wformat-truncation=2
+      -Wuse-after-free=3
+      -Wdangling-reference
+      -fdiagnostics-color=always)
+    hyprland_add_supported_cxx_flag("${flag}")
+  endforeach()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  foreach(flag
+      -Wno-keyword-macro
+      -Wno-gnu-zero-variadic-macro-arguments
+      # too mutch noise -Wimplicit-int-float-conversion
+      -Wrange-loop-analysis
+      -Wthread-safety
+      -Walloca
+      -fcolor-diagnostics)
+    hyprland_add_supported_cxx_flag("${flag}")
+  endforeach()
+else()
+  message(WARNING
+    "Compiler '${CMAKE_CXX_COMPILER_ID}' is not explicitly supported")
+endif()
+
+# Newer safety analyses. Lifetime warning names differ between Clang releases.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  check_cxx_compiler_flag(
+    "-Wlifetime-safety -Werror=unknown-warning-option"
+    HYPRLAND_HAS_LIFETIME_SAFETY
+  )
+  check_cxx_compiler_flag(
+    "-Wexperimental-lifetime-safety -Werror=unknown-warning-option"
+    HYPRLAND_HAS_EXPERIMENTAL_LIFETIME_SAFETY
+  )
+
+  if(HYPRLAND_HAS_LIFETIME_SAFETY)
+    add_compile_options(
+      "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>>:-Wlifetime-safety>"
+    )
+  elseif(HYPRLAND_HAS_EXPERIMENTAL_LIFETIME_SAFETY)
+    add_compile_options(
+      "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>>:-Wexperimental-lifetime-safety>"
+    )
+  else()
+    message(STATUS "Clang lifetime-safety diagnostics are unavailable")
+  endif()
+
+  # Newer experimental safety diagnostics are enabled in normal builds when
+  # the active Clang version supports them.
+
+  hyprland_add_supported_cxx_flag("-Wlifetime-safety-all")
+endif()
+
+# Keep RTTI because Hyprland uses it. Disable LTO because it may break plugins.
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-frtti>")
+add_compile_options(-fno-lto)
+add_compile_options("-fmacro-prefix-map=${CMAKE_SOURCE_DIR}/=")
+
 message(STATUS "Checking deps...")
 
 find_package(Threads REQUIRED)
+
+find_program(MOLD_LINKER mold)
+if(MOLD_LINKER AND
+   (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+  message(STATUS "Using mold linker: ${MOLD_LINKER}")
+  add_link_options(-fuse-ld=mold)
+endif()
 
 set(GLES_VERSION "GLES3")
 find_package(OpenGL REQUIRED COMPONENTS ${GLES_VERSION})
@@ -155,7 +275,6 @@ set(HYPRLANG_VERSION "${hyprlang_dep_VERSION}")
 set(HYPRUTILS_VERSION "${hyprutils_dep_VERSION}")
 set(HYPRCURSOR_VERSION "${hyprcursor_dep_VERSION}")
 set(HYPRGRAPHICS_VERSION "${hyprgraphics_dep_VERSION}")
-
 
 find_package(Git QUIET)
 
@@ -297,22 +416,54 @@ target_include_directories(Hyprland PUBLIC ${deps_INCLUDE_DIRS} ${LUA_INCLUDE_DI
 
 set(USE_GPROF OFF)
 
-if(CMAKE_BUILD_TYPE MATCHES Debug OR CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_CONFIGURATION_TYPES)
+  set(HYPRLAND_DEBUG_GENEX
+      "$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>")
+
+  add_compile_options(
+    "$<${HYPRLAND_DEBUG_GENEX}:-fno-pie>"
+    "$<${HYPRLAND_DEBUG_GENEX}:-fno-builtin>"
+    "$<${HYPRLAND_DEBUG_GENEX}:-fno-omit-frame-pointer>"
+    "$<${HYPRLAND_DEBUG_GENEX}:-ftrivial-auto-var-init=pattern>"
+    "$<${HYPRLAND_DEBUG_GENEX}:-g3>"
+    "$<${HYPRLAND_DEBUG_GENEX}:-ftrapv>"
+  )
+  add_link_options("$<${HYPRLAND_DEBUG_GENEX}:-no-pie>")
+elseif(HYPRLAND_IS_DEBUG_BUILD)
   message(STATUS "Setting debug flags")
 
-  if(WITH_ASAN)
-    message(STATUS "Enabling ASan")
+  add_compile_options(
+    -fno-pie
+    -fno-builtin
+    -fno-omit-frame-pointer
+    -ftrivial-auto-var-init=pattern
+    -g3
+    -ftrapv
+  )
+  add_link_options(-no-pie)
+endif()
 
-    target_link_libraries(hyprland_lib PUBLIC asan)
-    target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
-  endif()
+if(WITH_ASAN)
+  message(STATUS "Enabling ASan")
+  target_compile_options(hyprland_lib PUBLIC -fsanitize=address)
+  target_compile_options(Hyprland PRIVATE -fsanitize=address)
+  target_link_options(hyprland_lib PUBLIC -fsanitize=address)
+  target_link_options(Hyprland PRIVATE -fsanitize=address)
+endif()
 
-  add_compile_options(-fno-pie -fno-builtin -fno-omit-frame-pointer)
-  add_link_options(-no-pie -fno-builtin)
-  if(USE_GPROF)
-    add_compile_options(-pg)
-    add_link_options(-pg)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CONFIGURATION_TYPES)
+    add_compile_options(
+      "$<${HYPRLAND_DEBUG_GENEX}:-fno-eliminate-unused-debug-types>"
+    )
+  elseif(HYPRLAND_IS_DEBUG_BUILD)
+    add_compile_options(-fno-eliminate-unused-debug-types)
   endif()
+endif()
+
+if(USE_GPROF)
+  add_compile_options(-pg)
+  add_link_options(-pg)
 endif()
 
 if(USE_TRACY)
@@ -322,13 +473,14 @@ if(USE_TRACY)
   option(TRACY_ON_DEMAND "" ON)
   add_subdirectory(subprojects/tracy)
 
-  add_compile_options(-fno-omit-frame-pointer)
+  target_compile_options(hyprland_lib PRIVATE -fno-omit-frame-pointer)
+  target_compile_options(Hyprland PRIVATE -fno-omit-frame-pointer)
 
   target_link_libraries(hyprland_lib PUBLIC Tracy::TracyClient)
 
   if(USE_TRACY_GPU)
     message(STATUS "Tracy GPU Profiling is turned on")
-    add_compile_definitions(USE_TRACY_GPU)
+    target_compile_definitions(hyprland_lib PRIVATE USE_TRACY_GPU)
   endif()
 endif()
 
@@ -490,6 +642,7 @@ function(protocolnew protoPath protoName external)
   list(APPEND PROTOCOL_SOURCES "${CMAKE_SOURCE_DIR}/protocols/${protoName}.hpp")
   set(PROTOCOL_SOURCES "${PROTOCOL_SOURCES}" PARENT_SCOPE)
 endfunction()
+
 function(protocolWayland)
   add_custom_command(
     OUTPUT ${CMAKE_SOURCE_DIR}/protocols/wayland.cpp
@@ -620,12 +773,14 @@ install(
         ${CMAKE_INSTALL_FULL_BINDIR}/Hyprland \
         \"\$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/hyprland\" \
         )")
+
 # session file
 configure_file(
     ${CMAKE_SOURCE_DIR}/example/hyprland.desktop.in
     ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
     @ONLY
 )
+
 install(FILES ${CMAKE_SOURCE_DIR}/example/hyprland.desktop
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/wayland-sessions)
 
@@ -651,7 +806,8 @@ install(FILES ${CMAKE_SOURCE_DIR}/assets/hyprland-portals.conf
 
 # man pages
 file(GLOB_RECURSE MANPAGES "docs/*.1")
-install(FILES ${MANPAGES} DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+install(FILES ${MANPAGES}
+        DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
 # pkgconfig entry
 install(FILES ${CMAKE_BINARY_DIR}/hyprland.pc
@@ -684,38 +840,44 @@ if(BUILD_TESTING OR WITH_TESTS)
   # GTest
   find_package(GTest CONFIG REQUIRED)
   include(GoogleTest)
+
   file(GLOB_RECURSE TESTFILES "tests/*.cpp")
+
   add_executable(hyprland_gtests ${TESTFILES})
+
   target_compile_options(hyprland_gtests PRIVATE --coverage)
   target_link_options(hyprland_gtests PRIVATE --coverage)
+
   target_include_directories(
     hyprland_gtests
     PUBLIC "./include"
     PRIVATE "./src" "./src/include" "./protocols" "${CMAKE_BINARY_DIR}")
 
-  target_link_libraries(hyprland_gtests hyprland_lib GTest::gtest_main)
+  target_link_libraries(
+    hyprland_gtests
+    hyprland_lib
+    GTest::gtest_main)
 
   gtest_discover_tests(hyprland_gtests)
 
-  # Enable coverage in main hyprland lib
+  # Enable coverage in the main Hyprland library.
   target_compile_options(hyprland_lib PRIVATE --coverage)
   target_link_options(hyprland_lib PRIVATE --coverage)
-  target_link_libraries(hyprland_lib PUBLIC gcov)
 
-  # Enable coverage in hyprland exe
+  # Enable coverage in the main Hyprland executable.
+  # Do not explicitly link gcov: the compiler driver selects the correct
+  # coverage runtime for GCC or Clang when --coverage is used.
   target_compile_options(Hyprland PRIVATE --coverage)
   target_link_options(Hyprland PRIVATE --coverage)
-  target_link_libraries(Hyprland gcov)
 endif()
 
 if(BUILD_TESTING)
   message(STATUS "Testing is enabled")
 
   enable_testing()
+
   add_custom_target(tests)
-
   add_dependencies(tests hyprland_gtests)
-
 else()
   message(STATUS "Testing is disabled")
 endif()

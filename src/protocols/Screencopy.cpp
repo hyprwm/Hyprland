@@ -54,14 +54,16 @@ bool CScreencopyClient::good() {
     return m_resource && m_resource->resource();
 }
 
-CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScreenshareSession> session, bool overlayCursor) :
-    m_resource(resource_), m_session(session), m_overlayCursor(overlayCursor) {
+CScreencopyFrame::CScreencopyFrame(SP<CZwlrScreencopyFrameV1> resource_, WP<CScreenshareSession> session, bool overlayCursor) : m_resource(resource_), m_session(session) {
     if UNLIKELY (!good())
         return;
 
     m_resource->setOnDestroy([this](CZwlrScreencopyFrameV1* pMgr) { PROTO::screencopy->destroyResource(this); });
+
     m_resource->setDestroy([this](CZwlrScreencopyFrameV1* pFrame) { PROTO::screencopy->destroyResource(this); });
+
     m_resource->setCopy([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, false); });
+
     m_resource->setCopyWithDamage([this](CZwlrScreencopyFrameV1* pFrame, wl_resource* res) { shareFrame(pFrame, res, true); });
 
     m_frame = m_session->nextFrame(overlayCursor);

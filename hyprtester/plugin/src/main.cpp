@@ -58,6 +58,40 @@ static SDispatchResult snapMove(std::string in) {
     return {};
 }
 
+// Perform a full move-drag of the window with the given class and drop it at (x, y).
+static SDispatchResult dragWindow(std::string in) {
+    CVarList2 data(std::move(in));
+
+    if (data.size() < 3)
+        return {.success = false, .error = "invalid input"};
+
+    const std::string cls = std::string{data[0]};
+
+    double            x;
+    double            y;
+    try {
+        x = std::stod(std::string{data[1]});
+        y = std::stod(std::string{data[2]});
+    } catch (...) { return {.success = false, .error = "invalid input"}; }
+
+    for (const auto& window : g_pCompositor->m_windows) {
+        if (window->m_class != cls)
+            continue;
+
+        const auto target = window->layoutTarget();
+        if (!target)
+            return {.success = false, .error = "Window has no layout target"};
+
+        g_pCompositor->warpCursorTo({x, y}, true);
+        g_layoutManager->beginDragTarget(target, MBIND_MOVE);
+        g_layoutManager->endDragTarget();
+
+        return {};
+    }
+
+    return {.success = false, .error = std::format("No window with class '{}'", cls)};
+}
+
 class CTestKeyboard : public IKeyboard {
   public:
     static SP<CTestKeyboard> create(bool isVirtual) {
@@ -566,6 +600,13 @@ static int luaSnapMove(lua_State* L) {
     return luaResult(L, ::snapMove(""));
 }
 
+static int luaDragWindow(lua_State* L) {
+    const auto cls = std::string{luaL_checkstring(L, 1)};
+    const auto x   = (double)luaL_checknumber(L, 2);
+    const auto y   = (double)luaL_checknumber(L, 3);
+    return luaResult(L, ::dragWindow(std::format("{},{},{}", cls, x, y)));
+}
+
 static int luaVkb(lua_State* L) {
     return luaResult(L, ::vkb(""));
 }
@@ -685,6 +726,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
     addLuaFn("test", ::luaTest);
     addLuaFn("snapmove", ::luaSnapMove);
+    addLuaFn("drag_window", ::luaDragWindow);
     addLuaFn("vkb", ::luaVkb);
     addLuaFn("alt", ::luaAlt);
     addLuaFn("gesture", ::luaGesture);

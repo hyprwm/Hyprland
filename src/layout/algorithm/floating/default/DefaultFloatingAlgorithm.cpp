@@ -8,11 +8,14 @@
 #include "../../../../Compositor.hpp"
 #include "../../../../output/Monitor.hpp"
 #include "../../../../state/MonitorState.hpp"
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
 using namespace Layout;
 using namespace Layout::Floating;
 
 constexpr const Vector2D DEFAULT_SIZE = {640, 400};
+
+CDefaultFloatingAlgorithm::CDefaultFloatingAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {};
 
 //
 void CDefaultFloatingAlgorithm::newTarget(SP<ITarget> target) {

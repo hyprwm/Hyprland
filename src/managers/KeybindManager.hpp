@@ -124,6 +124,7 @@ class CKeybindManager {
     void                                                                         removeKeybind(const std::string& displayKeys);
     uint32_t                                                                     stringToModMask(std::string);
     uint32_t                                                                     keycodeToModifier(xkb_keycode_t);
+    SP<SKeybind>                                                                 findConflictingKeybind(xkb_keysym_t keysym, uint32_t modmask);
     void                                                                         clearKeybinds();
     void                                                                         shadowKeybinds(const xkb_keysym_t& doesntHave = 0, const uint32_t doesntHaveCode = 0);
     SSubmap                                                                      getCurrentSubmap();

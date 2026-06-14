@@ -391,7 +391,7 @@ bool CKeybindManager::onKeyEvent(std::any event, SP<IKeyboard> pKeyboard) {
         .keycode            = KEYCODE,
         .modmaskAtPressTime = MODS,
         .sent               = true,
-        .submapAtPress      = SSubmap{.name = Config::Actions::state()->m_currentSubmap},
+        .submapAtPress      = getCurrentSubmap(),
         .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
@@ -456,14 +456,14 @@ bool CKeybindManager::onAxisEvent(const IPointer::SAxisEvent& e, SP<IPointer> po
     bool found = false;
     if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_VERTICAL_SCROLL) {
         if (e.delta > 0)
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down"}, true, nullptr, pointer).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_down", .submapAtPress = getCurrentSubmap()}, true, nullptr, pointer).passEvent;
         else
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up"}, true, nullptr, pointer).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_up", .submapAtPress = getCurrentSubmap()}, true, nullptr, pointer).passEvent;
     } else if (e.source == WL_POINTER_AXIS_SOURCE_WHEEL && e.axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
         if (e.delta < 0)
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left"}, true, nullptr, pointer).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_left", .submapAtPress = getCurrentSubmap()}, true, nullptr, pointer).passEvent;
         else
-            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right"}, true, nullptr, pointer).passEvent;
+            found = !handleKeybinds(MODS, SPressedKeyWithMods{.keyName = "mouse_right", .submapAtPress = getCurrentSubmap()}, true, nullptr, pointer).passEvent;
     }
 
     if (found)
@@ -488,6 +488,7 @@ bool CKeybindManager::onMouseEvent(const IPointer::SButtonEvent& e, SP<IPointer>
     const auto KEY = SPressedKeyWithMods{
         .keyName            = KEY_NAME,
         .modmaskAtPressTime = MODS,
+        .submapAtPress      = getCurrentSubmap(),
         .mousePosAtPress    = g_pInputManager->getMouseCoordsInternal(),
     };
 
@@ -531,15 +532,15 @@ void CKeybindManager::resizeWithBorder(const IPointer::SButtonEvent& e) {
 }
 
 void CKeybindManager::onSwitchEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 void CKeybindManager::onSwitchOnEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:on:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 void CKeybindManager::onSwitchOffEvent(const std::string& switchName) {
-    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName}, true, nullptr, nullptr);
+    handleKeybinds(0, SPressedKeyWithMods{.keyName = "switch:off:" + switchName, .submapAtPress = getCurrentSubmap()}, true, nullptr, nullptr);
 }
 
 eMultiKeyCase CKeybindManager::mkKeysymSetMatches(const std::vector<KeybindKey>& keybindKeysyms, const std::set<KeybindKey>& pressedKeysyms) {

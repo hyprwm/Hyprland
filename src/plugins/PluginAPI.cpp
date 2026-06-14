@@ -40,7 +40,7 @@ APICALL SP<HOOK_CALLBACK_FN> HyprlandAPI::registerCallbackDynamic(HANDLE handle,
         return nullptr;
 
     //auto PFN = g_pHookSystem->hookDynamic(event, fn, handle);
-    //PLUGIN->m_registeredCallbacks.emplace_back(std::make_pair<>(event, WP<HOOK_CALLBACK_FN>(PFN)));
+    //PLUGIN->m_registeredCallbacks.emplace_back(event, WP<HOOK_CALLBACK_FN>(PFN));
     return nullptr;
 }
 

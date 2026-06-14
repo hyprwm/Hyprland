@@ -159,7 +159,7 @@ CWindowRuleApplicator::SRuleResult CWindowRuleApplicator::applyDynamicRule(const
                 break;
             }
             case WINDOW_RULE_EFFECT_TAG: {
-                m_dynamicTags.emplace_back(std::make_pair<>(effect, rule->getPropertiesMask()));
+                m_dynamicTags.emplace_back(effect, rule->getPropertiesMask());
                 m_tagKeeper.applyTag(effect, true);
                 result.tagsChanged = true;
                 break;

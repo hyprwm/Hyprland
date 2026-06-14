@@ -459,7 +459,7 @@ SP<CWLSurfaceResource> CWLSurfaceResource::findWithCM() {
 
 std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2D& localCoords, bool allowsInput) {
     std::vector<std::pair<SP<CWLSurfaceResource>, Vector2D>> surfs;
-    breadthfirst([&surfs](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { surfs.emplace_back(std::make_pair<>(surf, offset)); }, &surfs);
+    breadthfirst([&surfs](SP<CWLSurfaceResource> surf, const Vector2D& offset, void* data) { surfs.emplace_back(surf, offset); }, &surfs);
 
     for (auto const& [surf, pos] : surfs | std::views::reverse) {
         if (!allowsInput) {

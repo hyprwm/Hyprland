@@ -583,7 +583,7 @@ void CHyprOpenGLImpl::initDRMFormats() {
         Log::logger->log(Log::DEBUG, "EGL: GPU Supports Format {} (0x{:x})", fmtName ? fmtName : "?unknown?", fmt);
         for (auto const& mod : mods) {
             auto modName = drmGetFormatModifierName(mod);
-            modifierData.emplace_back(std::make_pair<>(mod, modName ? modName : "?unknown?"));
+            modifierData.emplace_back(mod, modName ? modName : "?unknown?");
             free(modName); // NOLINT(cppcoreguidelines-no-malloc)
         }
         free(fmtName); // NOLINT(cppcoreguidelines-no-malloc)
@@ -1166,7 +1166,7 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
     shader->setUniformFloat(SHADER_SDR_BRIGHTNESS, settings.sdrBrightnessMultiplier);
 
     if (!targetImageDescription->value().icc.present) {
-        const auto cacheKey = std::make_pair(imageDescription->id(), targetImageDescription->id());
+        const auto cacheKey = std::pair{imageDescription->id(), targetImageDescription->id()};
         if (!primariesConversionCache.contains(cacheKey)) {
             const auto&                  mat             = settings.convertMatrix;
             const std::array<GLfloat, 9> glConvertMatrix = {
@@ -1174,7 +1174,7 @@ void CHyprOpenGLImpl::passCMUniforms(WP<CShader> shader, const NColorManagement:
                 mat[0][1], mat[1][1], mat[2][1], //
                 mat[0][2], mat[1][2], mat[2][2], //
             };
-            primariesConversionCache.insert(std::make_pair(cacheKey, glConvertMatrix));
+            primariesConversionCache.emplace(cacheKey, glConvertMatrix);
         }
         shader->setUniformMatrix3fv(SHADER_CONVERT_MATRIX, 1, false, primariesConversionCache[cacheKey]);
 

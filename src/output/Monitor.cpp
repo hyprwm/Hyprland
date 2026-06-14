@@ -689,8 +689,6 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
 
     updateMatrix();
 
-    m_background.reset();
-
     m_damage.setSize(m_transformedSize);
 
     setMirror(m_activeMonitorRule.m_mirrorOf);
@@ -952,6 +950,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     clearModeRetry();
 
+    const auto OLD_PIXEL_SIZE = m_pixelSize;
+
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync
 
@@ -1068,6 +1068,9 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
     }
 
     applyMonitorRuleSoft(std::move(pMonitorRule));
+
+    if (OLD_PIXEL_SIZE != m_pixelSize)
+        m_background.reset();
 
     updateVCGTRamps();
 

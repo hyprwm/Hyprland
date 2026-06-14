@@ -22,7 +22,7 @@ using namespace Hyprutils::Utils;
 using namespace Layout;
 using namespace Layout::Tiled;
 
-CMonocleAlgorithm::CMonocleAlgorithm() {
+CMonocleAlgorithm::CMonocleAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {
     // hook into focus changes to bring focused window to front
     m_focusCallback = Event::bus()->m_events.window.active.listen([this](PHLWINDOW pWindow, Desktop::eFocusReason reason) {
         if (!pWindow)

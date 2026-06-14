@@ -20,6 +20,7 @@
 #include "debug/log/Logger.hpp"
 #include "desktop/Workspace.hpp"
 #include "layout/algorithm/FloatingAlgorithm.hpp"
+#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "layout/target/Target.hpp"
 
 #include <algorithm>
@@ -616,7 +617,7 @@ bool SScrollingData::visible(SP<SColumnData> c, bool full) {
     return false;
 }
 
-CScrollingAlgorithm::CScrollingAlgorithm() {
+CScrollingAlgorithm::CScrollingAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler>(this)) {
     static const auto PCONFWIDTHS    = CConfigValue<Config::STRING>("scrolling:explicit_column_widths");
     static const auto PCONFDIRECTION = CConfigValue<Config::STRING>("scrolling:direction");
 

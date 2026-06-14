@@ -20,6 +20,9 @@ using namespace Layout::Tiled;
 
 using namespace Hyprutils::String;
 
+CDwindleAlgorithm::CDwindleAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {};
+
+
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
         static auto PSMARTSPLIT       = CConfigValue<Config::INTEGER>("dwindle:smart_split");

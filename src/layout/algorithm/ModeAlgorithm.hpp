@@ -73,5 +73,6 @@ namespace Layout {
         UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
 
         friend class Layout::CAlgorithm;
+        friend class Fullscreen::IFullscreenHandler;
     };
 }

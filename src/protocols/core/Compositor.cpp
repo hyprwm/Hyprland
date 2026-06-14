@@ -560,8 +560,7 @@ void CWLSurfaceResource::scheduleState(WP<SSurfaceState> state) {
 void CWLSurfaceResource::drainSyncFds(WP<SSurfaceState> state, eLockReason reason) {
     auto& fds = state->buffer->m_syncFds;
 
-    while (!fds.empty() && fds.front().isReadable())
-        fds.erase(fds.begin());
+    std::erase_if(fds, [](const auto& fd) { return fd.isReadable(); });
 
     if (!fds.empty()) {
         auto fd = std::move(fds.front());

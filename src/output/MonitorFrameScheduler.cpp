@@ -66,8 +66,6 @@ void CMonitorFrameScheduler::onPresented() {
 
     Log::logger->log(Log::TRACE, "CMonitorFrameScheduler: {} -> onPresented, missed, committing pending at the earliest convenience.", PMONITOR->m_name);
 
-    m_pendingThird = false;
-
     g_pEventLoopManager->doLater([m = PHLMONITORREF{PMONITOR}] {
         if (!m || !m->m_output)
             return;
@@ -79,7 +77,7 @@ void CMonitorFrameScheduler::onPresented() {
         // schedule a frame: we might have some missed damage, which got cleared due to the above commit.
         // TODO: this is not always necessary, but doesn't hurt in general. We likely won't hit this if nothing's happening anyways.
         if (ml->m_damage.hasChanged())
-            g_pCompositor->scheduleFrameForMonitor(ml);
+            ml->scheduleFrame();
     });
 }
 

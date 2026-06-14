@@ -1246,6 +1246,9 @@ void CCompositor::cleanupFadingOut(const MONITORID& monid) {
 
         auto w = ww.lock();
 
+        if (!w)
+            continue;
+
         if (w->monitorID() != monid && w->m_monitor)
             continue;
 
@@ -2038,19 +2041,6 @@ PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
     return nullptr;
 }
 
-void CCompositor::scheduleFrameForMonitor(PHLMONITOR pMonitor, IOutput::scheduleFrameReason reason) {
-    if ((m_aqBackend->hasSession() && !m_aqBackend->session->active) || !m_sessionActive)
-        return;
-
-    if (!pMonitor->m_enabled)
-        return;
-
-    if (pMonitor->m_renderingActive)
-        pMonitor->m_pendingFrame = true;
-
-    pMonitor->m_output->scheduleFrame(reason);
-}
-
 PHLWINDOW CCompositor::getWindowByRegex(const std::string& regexp_) {
     auto regexp = trim(regexp_);
 
@@ -2410,65 +2400,6 @@ PHLWINDOW CCompositor::getForceFocus() {
     return nullptr;
 }
 
-void CCompositor::scheduleMonitorStateRecheck() {
-    static bool scheduled = false;
-
-    if (!scheduled) {
-        scheduled = true;
-        g_pEventLoopManager->doLater([this] {
-            arrangeMonitors();
-            checkMonitorOverlaps();
-
-            scheduled = false;
-        });
-    }
-}
-
-void CCompositor::checkMonitorOverlaps() {
-    CRegion monitorRegion;
-
-    for (const auto& m : State::monitorState()->monitors()) {
-        if (!monitorRegion.copy().intersect(m->logicalBox()).empty()) {
-            Log::logger->log(Log::ERR, "Monitor {}: detected overlap with layout", m->m_name);
-            Notification::overlay()->addNotification(I18n::i18nEngine()->localize(I18n::TXT_KEY_NOTIF_INVALID_MONITOR_LAYOUT, {{"name", m->m_name}}), CHyprColor{}, 15000,
-                                                     ICON_WARNING);
-
-            break;
-        }
-
-        monitorRegion.add(m->logicalBox());
-    }
-}
-
-void CCompositor::arrangeMonitors() {
-    static auto                                   PXWLFORCESCALEZERO = CConfigValue<Config::INTEGER>("xwayland:force_zero_scaling");
-
-    std::vector<SP<Monitor::IMonitorArrangeable>> arrangeableMonitors;
-    arrangeableMonitors.reserve(State::monitorState()->monitors().size());
-    for (const auto& m : State::monitorState()->monitors()) {
-        auto arrangeable = dynamicPointerCast<Monitor::IMonitorArrangeable>(m);
-        RASSERT(arrangeable, "CMonitor does not implement IMonitorArrangeable");
-        arrangeableMonitors.push_back(arrangeable);
-    }
-
-    Log::logger->log(Log::DEBUG, "arrangeMonitors: {} to arrange", arrangeableMonitors.size());
-    State::monitorPositionController()->arrange(arrangeableMonitors, *PXWLFORCESCALEZERO);
-
-    PROTO::xdgOutput->updateAllOutputs();
-    Event::bus()->m_events.monitor.layoutChanged.emit();
-
-#ifndef NO_XWAYLAND
-    const auto box = g_pCompositor->calculateX11WorkArea();
-    if (g_pXWayland && g_pXWayland->m_wm) {
-        if (box)
-            g_pXWayland->m_wm->updateWorkArea(box->x, box->y, box->w, box->h);
-        else
-            g_pXWayland->m_wm->updateWorkArea(0, 0, 0, 0);
-    }
-
-#endif
-}
-
 void CCompositor::setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale) {
     PROTO::fractional->sendScale(pSurface, scale);
     pSurface->sendPreferredScale(std::ceil(scale));
@@ -2540,119 +2471,6 @@ PImageDescription CCompositor::getHDRImageDescription() {
 bool CCompositor::shouldChangePreferredImageDescription() {
     Log::logger->log(Log::WARN, "FIXME: color management protocol is enabled and outputs changed, check preferred image description changes");
     return false;
-}
-
-void CCompositor::ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace) {
-    ensurePersistentWorkspacesPresent(Config::workspaceRuleMgr()->getAllWorkspaceRules());
-}
-
-void CCompositor::ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace) {
-    if (!Desktop::focusState()->monitor())
-        return;
-
-    std::vector<PHLWORKSPACE> persistentFound;
-
-    for (const auto& rule : rules) {
-        if (!rule.m_isPersistent.value_or(false))
-            continue;
-
-        PHLWORKSPACE PWORKSPACE = nullptr;
-        if (pWorkspace) {
-            if (pWorkspace->matchesStaticSelector(rule.m_workspaceString))
-                PWORKSPACE = pWorkspace;
-            else
-                continue;
-        }
-
-        auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(rule.m_monitor).run();
-
-        if (!rule.m_monitor.empty() && !PMONITOR)
-            continue; // don't do anything yet, as the monitor is not yet present.
-
-        if (!PWORKSPACE) {
-            WORKSPACEID id     = rule.m_workspaceId;
-            std::string wsname = rule.m_workspaceName;
-
-            if (id == WORKSPACE_INVALID) {
-                const auto R = getWorkspaceIDNameFromString(rule.m_workspaceString);
-                id           = R.id;
-                wsname       = R.name;
-            }
-
-            if (id == WORKSPACE_INVALID) {
-                Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve id for workspace {}", rule.m_workspaceString);
-                continue;
-            }
-            PWORKSPACE = State::workspaceState()->query().id(id).run();
-            if (!PMONITOR)
-                PMONITOR = Desktop::focusState()->monitor();
-
-            if (!PWORKSPACE)
-                PWORKSPACE = State::workspaceState()->create(id, PMONITOR->m_id, wsname, false);
-        }
-
-        if (!PMONITOR) {
-            Log::logger->log(Log::ERR, "ensurePersistentWorkspacesPresent: couldn't resolve monitor for {}, skipping", rule.m_monitor);
-            continue;
-        }
-
-        if (PWORKSPACE)
-            PWORKSPACE->setPersistent(true);
-
-        if (!pWorkspace)
-            persistentFound.emplace_back(PWORKSPACE);
-
-        if (PWORKSPACE) {
-            if (PWORKSPACE->m_monitor == PMONITOR) {
-                Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} already on {}", rule.m_workspaceString, PMONITOR->m_name);
-
-                continue;
-            }
-
-            Log::logger->log(Log::DEBUG, "ensurePersistentWorkspacesPresent: workspace persistent {} not on {}, moving", rule.m_workspaceString, PMONITOR->m_name);
-            moveWorkspaceToMonitor(PWORKSPACE, PMONITOR);
-            continue;
-        }
-    }
-
-    if (!pWorkspace) {
-        // check non-persistent and downgrade if workspace is no longer persistent
-        std::vector<PHLWORKSPACEREF> toDowngrade;
-        for (auto& w : State::workspaceState()->workspaces()) {
-            if (!w->isPersistent())
-                continue;
-
-            if (std::ranges::contains(persistentFound, w.lock()))
-                continue;
-
-            toDowngrade.emplace_back(w);
-        }
-
-        for (auto& ws : toDowngrade) {
-            ws->setPersistent(false);
-        }
-    }
-}
-
-void CCompositor::ensureWorkspacesOnAssignedMonitors() {
-    for (auto const& ws : State::workspaceState()->workspacesCopy()) {
-        if (!valid(ws) || ws->m_isSpecialWorkspace)
-            continue;
-
-        const auto RULE = Config::workspaceRuleMgr()->getWorkspaceRuleFor(ws);
-        if (!RULE || RULE->m_monitor.empty())
-            continue;
-
-        const auto PMONITOR = State::monitorState()->query().relativeTo(Desktop::focusState()->monitor()).configString(RULE->m_monitor).run();
-        if (!PMONITOR)
-            continue;
-
-        if (ws->m_monitor == PMONITOR)
-            continue;
-
-        Log::logger->log(Log::DEBUG, "ensureWorkspacesOnAssignedMonitors: moving workspace {} to {}", ws->m_name, PMONITOR->m_name);
-        moveWorkspaceToMonitor(ws, PMONITOR, true);
-    }
 }
 
 std::optional<unsigned int> CCompositor::getVTNr() {

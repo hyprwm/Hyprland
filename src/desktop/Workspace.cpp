@@ -11,6 +11,7 @@
 #include "../managers/EventManager.hpp"
 #include "../output/Monitor.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspacePlacementController.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "../layout/algorithm/Algorithm.hpp"
 #include "../layout/space/Space.hpp"
@@ -556,7 +557,9 @@ void CWorkspace::rename(const std::string& name) {
     setPersistent(WORKSPACERULE.m_isPersistent.value_or(false));
 
     if (WORKSPACERULE.m_isPersistent.value_or(false))
-        g_pCompositor->ensurePersistentWorkspacesPresent(std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock());
+        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+            std::vector<Config::CWorkspaceRule>{WORKSPACERULE}, m_self.lock(),
+            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     g_pEventManager->postEvent({.event = "renameworkspace", .data = std::to_string(m_id) + "," + m_name});
     m_events.renamed.emit();

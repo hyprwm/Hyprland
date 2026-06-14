@@ -1052,7 +1052,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         // mark blur dirty
         m->m_blurFBDirty = true;
 
-        g_pCompositor->scheduleFrameForMonitor(m);
+        m->scheduleFrame();
 
         // Force the compositor to fully re-render all monitors
         m->m_forceFullFrames = 2;

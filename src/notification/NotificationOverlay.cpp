@@ -116,7 +116,7 @@ void CNotificationOverlay::ensureNotificationCache(CNotification& notif, PHLMONI
 
 void CNotificationOverlay::scheduleFrames() const {
     for (auto const& m : State::monitorState()->monitors()) {
-        g_pCompositor->scheduleFrameForMonitor(m);
+        m->scheduleFrame();
     }
 }
 
@@ -308,7 +308,7 @@ void CNotificationOverlay::draw(PHLMONITOR pMonitor) {
     g_pHyprRenderer->damageBox(damage);
     g_pHyprRenderer->damageBox(m_lastDamage);
 
-    g_pCompositor->scheduleFrameForMonitor(pMonitor);
+    pMonitor->scheduleFrame();
 
     m_lastDamage = damage;
 }

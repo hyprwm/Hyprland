@@ -498,7 +498,7 @@ void COverlay::draw() {
     }
 
     if (m_frameTimer.getMillis() >= OVERLAY_REFRESH_INTERVAL_MS) {
-        g_pCompositor->scheduleFrameForMonitor(PMONITOR);
+        PMONITOR->scheduleFrame();
         m_frameTimer.reset();
     }
 }

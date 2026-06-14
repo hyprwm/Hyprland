@@ -61,6 +61,7 @@ using namespace Hyprutils::OS;
 #include "../desktop/history/WindowHistoryTracker.hpp"
 #include "../desktop/state/FocusState.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/WorkspacePlacementController.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "../version.h"
 
@@ -1228,7 +1229,8 @@ static std::string dispatchKeyword(eHyprCtlOutputFormat format, std::string in) 
     }
 
     if (COMMAND.contains("workspace"))
-        g_pCompositor->ensurePersistentWorkspacesPresent();
+        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
 
     Log::logger->log(Log::DEBUG, "Hyprctl: keyword {} : {}", COMMAND, VALUE);
 

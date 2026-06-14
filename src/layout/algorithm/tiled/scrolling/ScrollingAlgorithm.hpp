@@ -5,7 +5,6 @@
 #include "ScrollTapeController.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
 #include "desktop/Workspace.hpp"
-#include "layout/algorithm/tiled/scrolling/ScrollingFullscreenHandler.hpp"
 #include "layout/target/Target.hpp"
 
 #include <optional>
@@ -205,8 +204,6 @@ namespace Layout::Tiled {
         std::vector<SFullscreenScrollState> m_fullscreenTargets;
         std::vector<SFullscreenScrollState> m_maximizeTargets;
         bool                                m_lastFullscreenCover = false;
-
-        UP<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler> m_fullscreenHandler;
 
         friend struct SScrollingData;
     };

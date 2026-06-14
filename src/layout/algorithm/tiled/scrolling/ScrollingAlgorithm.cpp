@@ -616,9 +616,11 @@ bool SScrollingData::visible(SP<SColumnData> c, bool full) {
     return false;
 }
 
-CScrollingAlgorithm::CScrollingAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler>(this)) {
+CScrollingAlgorithm::CScrollingAlgorithm() {
     static const auto PCONFWIDTHS    = CConfigValue<Config::STRING>("scrolling:explicit_column_widths");
     static const auto PCONFDIRECTION = CConfigValue<Config::STRING>("scrolling:direction");
+
+    m_fullscreenHandler = makeUnique<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler>(this);
 
     m_scrollingData       = makeShared<SScrollingData>(this);
     m_scrollingData->self = m_scrollingData;
@@ -1224,8 +1226,8 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
     // for simply setting or unsetting no members above the FS window without scrolling specific logic
     const auto setNoMembersAboveFS_layoutUnaware = [&](const bool SET) {
         // make all windows and layers on the same workspace under the fullscreen window
-        for (auto const& w : g_pCompositor->m_windows) {
-            if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+        for (auto const& w : WORKSPACE->getWindows()) {
+            if (w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
                 w->m_allowedOverFullscreen = !SET;
                 w->updateFullscreenInputState();
             }
@@ -1321,8 +1323,8 @@ void CScrollingAlgorithm::setNoMembersAboveFullscreen() {
             // were hidden when it was being unfullscreened must remain hidden ('below' it)
 
             // make all windows and layers on the same workspace under the fullscreen window
-            for (auto const& w : g_pCompositor->m_windows) {
-                if (w->m_workspace == WORKSPACE && w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
+            for (auto const& w : WORKSPACE->getWindows()) {
+                if (w != FULLSCREEN_WINDOW && !w->m_fadingOut && !w->m_pinned) {
                     // If it the window was hidden when the UNDERLYING_FS_WINDOW was FSed, or it is a tiled window; it remains hidden. else, it is allowed ontop of it
                     w->m_allowedOverFullscreen = w->m_isFloating && !m_fullscreenWindowHidingState.hiddenFloatingWindowsUnderFSWindow.contains(w);
                     w->updateFullscreenInputState();
@@ -2638,8 +2640,8 @@ void CScrollingAlgorithm::SScrollingFullscreenWindowHidingState::saveCurrentFsAn
 
     const auto WORKSPACE = fullscreenWindow->m_workspace;
 
-    for (auto const& w : g_pCompositor->m_windows) {
-        if (w->m_workspace == WORKSPACE && w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)
+    for (auto const& w : WORKSPACE->getWindows()) {
+        if (w != fullscreenWindow && !w->m_fadingOut && !w->m_pinned && w->m_isFloating)
             hiddenFloatingWindowsUnderFSWindow.emplace(w);
     }
 }

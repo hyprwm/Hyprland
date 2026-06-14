@@ -5,6 +5,7 @@
 #include <vector>
 #include <format>
 #include <expected>
+#include <utility>
 #include <hyprutils/os/FileDescriptor.hpp>
 #include "../SharedDefs.hpp"
 #include "../macros.hpp"
@@ -46,8 +47,5 @@ bool                                    truthy(const std::string& str);
 
 template <typename... Args>
 [[deprecated("use std::format instead")]] std::string getFormat(std::format_string<Args...> fmt, Args&&... args) {
-    // no need for try {} catch {} because std::format_string<Args...> ensures that vformat never throw std::format_error
-    // because any suck format specifier will cause a compilation error
-    // this is actually what std::format in stdlib does
-    return std::vformat(fmt.get(), std::make_format_args(args...));
+    return std::format(fmt, std::forward<Args>(args)...);
 }

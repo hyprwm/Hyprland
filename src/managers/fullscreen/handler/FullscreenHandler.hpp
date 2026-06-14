@@ -2,9 +2,15 @@
 
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "helpers/memory/Memory.hpp"
 #include "layout/target/Target.hpp"
+#include <hyprutils/memory/UniquePtr.hpp>
 
-// abstract class - default with optionally overridable methods
+
+namespace Layout {
+    class IModeAlgorithm;
+}
+
 
 namespace Fullscreen {
 
@@ -15,9 +21,19 @@ namespace Fullscreen {
     };
 
     class IFullscreenHandler {
+  
+      // Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
+
       public:
-        IFullscreenHandler()          = default;
+        IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm){};
         virtual ~IFullscreenHandler() = default;
+
+
+        IFullscreenHandler()                              = delete;
+        IFullscreenHandler(const IFullscreenHandler&)     = delete;
+        IFullscreenHandler(IFullscreenHandler&&)           = delete;
+        IFullscreenHandler& operator=(const IFullscreenHandler&) = delete;
+        IFullscreenHandler& operator=(IFullscreenHandler&&)      = delete;
 
         // FS State Queries
 
@@ -53,7 +69,7 @@ namespace Fullscreen {
         virtual void setNoMembersAboveFullscreen();
         
         // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
-        virtual bool syncFullscreenTargets();
+        virtual void syncFullscreenTargets();
 
 
 
@@ -70,7 +86,10 @@ namespace Fullscreen {
 
         // Tracks FSed window (internal OR client)
         // There can only be one default handled fullscreen in a workspace.
-        PHLWINDOWREF fullscreenWindow = nullptr;
+        PHLWINDOWREF m_fullscreenWindow = nullptr;
+
+        // Handler will never outlive its algo because algo owns its handler with UP<>
+        const Layout::IModeAlgorithm* m_algorithm;
 
         // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
     };

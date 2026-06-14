@@ -6,6 +6,7 @@
 
 #include "../LayoutManager.hpp"
 #include "../space/Space.hpp"
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 
 #include <expected>
 
@@ -68,6 +69,8 @@ namespace Layout {
         IModeAlgorithm() = default;
 
         WP<CAlgorithm> m_parent;
+        // Must be assigned by each layout algorithm class constructor
+        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
 
         friend class Layout::CAlgorithm;
     };

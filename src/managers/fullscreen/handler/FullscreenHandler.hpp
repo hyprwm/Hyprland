@@ -77,6 +77,7 @@ namespace Fullscreen {
 
         virtual eFullscreenHandler getFullscreenHandlerName() const; // simply return FULLSCREEN_HANDLER_TYPE
 
+        SP<Layout::CSpace> getSpace() const;
 
 
       private:
@@ -89,7 +90,7 @@ namespace Fullscreen {
         PHLWINDOWREF m_fullscreenWindow = nullptr;
 
         // Handler will never outlive its algo because algo owns its handler with UP<>
-        const Layout::IModeAlgorithm* m_algorithm;
+        Layout::IModeAlgorithm* m_algorithm = nullptr;
 
         // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
     };

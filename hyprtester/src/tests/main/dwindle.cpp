@@ -214,3 +214,52 @@ TEST_CASE(dwindleForceSplitOnMoveToWorkspace) {
     std::string activeWindow = getFromSocket("/activewindow");
     EXPECT(activeWindow.contains(posBefore), false);
 }
+
+TEST_CASE(dwindleMoveAcrossToggledSplit) {
+    // If we have a split whose orientation has been manually toggled (e.g.
+    // vertically stacked, when the split's aspect ratio is such that it would
+    // prefer to be horizontally stacked by default), moving a window across
+    // the split should NOT revert back to the preferred split orientation
+
+    OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 2 } })"));
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        }
+    }
+    OK(getFromSocket("/dispatch hl.dsp.layout('togglesplit')"));
+    // Window A, now on top, is to be moved
+
+    auto origWinB   = getFromSocket("/activewindow");
+    auto expectPos  = "at: " + Tests::getAttribute(origWinB, "at");
+    auto expectSize = "size: " + Tests::getAttribute(origWinB, "size");
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'down' })"));
+
+    // Window A should be moved down, so position and size should swap with window B
+    auto newWinA = getFromSocket("/activewindow");
+    EXPECT_CONTAINS(newWinA, std::move(expectPos));
+    EXPECT_CONTAINS(newWinA, std::move(expectSize));
+}
+
+TEST_CASE(dwindleMoveSmallWindowAcrossSplit) {
+    // Small windows (<50% of their parent split's area) should be possible to
+    // move across a split. Focal point weirdness has broken this in the past.
+
+    OK(getFromSocket("/eval hl.config({ dwindle = { force_split = 1 } })"));
+    OK(getFromSocket("/eval hl.config({ dwindle = { default_split_ratio = 1.2 } })"));
+    for (auto const& win : {"a", "b"}) {
+        if (!Tests::spawnKitty(win)) {
+            FAIL_TEST("Could not spawn kitty with win class `{}`", win);
+        }
+    }
+    // Window B, on the left, is the smaller one
+
+    auto posBefore = "at: " + Tests::getAttribute(getFromSocket("/activewindow"), "at");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'right' })"));
+
+    // Window B should be moved right, so position should change
+    EXPECT_NOT_CONTAINS(getFromSocket("/activewindow"), posBefore);
+}

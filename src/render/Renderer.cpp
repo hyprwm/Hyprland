@@ -1570,21 +1570,16 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     const auto            FONTSIZE   = pt;
     const auto            COLOR      = col;
 
-    auto                  CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1920, 1080 /* arbitrary, just for size */);
-    auto                  CAIRO        = cairo_create(CAIROSURFACE);
-
-    PangoLayout*          layoutText = pango_cairo_create_layout(CAIRO);
-    PangoFontDescription* pangoFD    = pango_font_description_new();
+    PangoFontMap* fontMap         = pango_cairo_font_map_get_default();
+    PangoContext* context         = pango_font_map_create_context(fontMap);
+    PangoLayout* layoutText       = pango_layout_new(context);
+    PangoFontDescription* pangoFD = pango_font_description_new();
 
     pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
     pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
     pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
     pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
     pango_layout_set_font_description(layoutText, pangoFD);
-
-    cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
-    int textW = 0, textH = 0;
     pango_layout_set_text(layoutText, text.c_str(), -1);
 
     if (maxWidth > 0) {
@@ -1594,29 +1589,21 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
 
     PangoRectangle rectInk = {}, rectLog = {};
     pango_layout_get_pixel_extents(layoutText, &rectInk, &rectLog);
-    textW = std::max(rectLog.width, rectInk.x + rectInk.width);
-    textH = std::max(rectLog.height, rectInk.y + rectInk.height);
+    int textW = std::max(rectLog.width, rectInk.x + rectInk.width);
+    int textH = std::max(rectLog.height, rectInk.y + rectInk.height);
 
-    pango_font_description_free(pangoFD);
     g_object_unref(layoutText);
-    cairo_destroy(CAIRO);
-    cairo_surface_destroy(CAIROSURFACE);
+    g_object_unref(context);
 
-    CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
-    CAIRO        = cairo_create(CAIROSURFACE);
+    if (maxWidth > 0) {
+        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
+        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
+    }
 
-    layoutText = pango_cairo_create_layout(CAIRO);
-    pangoFD    = pango_font_description_new();
-
-    pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
-    pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
-    pango_font_description_set_style(pangoFD, italic ? PANGO_STYLE_ITALIC : PANGO_STYLE_NORMAL);
-    pango_font_description_set_weight(pangoFD, sc<PangoWeight>(weight));
-    pango_layout_set_font_description(layoutText, pangoFD);
-    pango_layout_set_text(layoutText, text.c_str(), -1);
-
+    auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
+    auto CAIRO        = cairo_create(CAIROSURFACE);
+    
     cairo_set_source_rgba(CAIRO, COLOR.r, COLOR.g, COLOR.b, COLOR.a);
-
     cairo_move_to(CAIRO, 0, 0);
     pango_cairo_show_layout(CAIRO, layoutText);
 
@@ -1624,7 +1611,6 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     g_object_unref(layoutText);
 
     cairo_surface_flush(CAIROSURFACE);
-
     auto tex = createTexture(CAIROSURFACE);
 
     cairo_destroy(CAIRO);
@@ -2259,7 +2245,7 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
         pMonitor->m_tearingState.busy = true;
 
     if (*PDAMAGEBLINK || *PVFR == 0 || pMonitor->m_pendingFrame)
-        pMonitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
+        g_pCompositor->scheduleFrameForMonitor(pMonitor, Aquamarine::IOutput::AQ_SCHEDULE_RENDER_MONITOR);
 
     pMonitor->m_pendingFrame = false;
 
@@ -2715,7 +2701,7 @@ void IHyprRenderer::damageSurface(SP<CWLSurfaceResource> pSurface, double x, dou
                     continue;
 
                 if (BOX->overlaps(m->logicalBox()))
-                    m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
+                    g_pCompositor->scheduleFrameForMonitor(m, Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME);
             }
         }
     }
@@ -2832,8 +2818,7 @@ void IHyprRenderer::damageMirrorsWith(PHLMONITOR pMonitor, const CRegion& pRegio
 
         mirror->addDamage(transformed);
 
-        if (auto m = mirror.lock())
-            m->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        g_pCompositor->scheduleFrameForMonitor(mirror.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     }
 }
 

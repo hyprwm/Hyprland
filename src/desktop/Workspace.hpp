@@ -29,8 +29,6 @@ class CWorkspace {
     std::string     m_name = "";
     PHLMONITORREF   m_monitor;
 
-    bool            m_hasFullscreenWindow = false;
-    eFullscreenMode m_fullscreenMode      = FSMODE_NONE;
 
     // for animations
     PHLANIMVAR<Vector2D>       m_renderOffset;

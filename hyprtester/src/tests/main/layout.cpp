@@ -22,6 +22,17 @@ static bool waitForMonitor(const char* name) {
     return false;
 }
 
+static bool waitForMonitorRemoved(const char* name) {
+    for (int i = 0; i < 50; ++i) {
+        if (!getFromSocket("/monitors").contains(name))
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return false;
+}
+
 TEST_CASE(single_window_aspect_ratio) {
     OK(getFromSocket("/eval hl.config({ layout = { single_window_aspect_ratio = '1 1' } })"));
 
@@ -81,7 +92,10 @@ TEST_CASE(layoutRefreshDuringMonitorTeardown) {
 
     CScopeGuard guard = {[&]() {
         Tests::killAllWindows();
-        getFromSocket(std::format("/output remove {}", TEST_OUTPUT));
+        OK(getFromSocket(std::format("/eval hl.monitor({{ output = '{}', disabled = false, mode = '1920x1080@60', position = '1920x0', scale = '1' }})", TEST_OUTPUT)));
+        ASSERT(waitForMonitor(TEST_OUTPUT), true);
+        OK(getFromSocket(std::format("/output remove {}", TEST_OUTPUT)));
+        ASSERT(waitForMonitorRemoved(TEST_OUTPUT), true);
         OK(getFromSocket("/reload"));
     }};
 

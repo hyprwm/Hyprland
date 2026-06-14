@@ -2717,7 +2717,7 @@ PImageDescription CMonitor::workBufferImageDescription() {
     const auto& cached = m_cachedInternalDescription->value();
 
     // HDR
-    if (isHDRLikeTF || value.windowsScRGB || *PFP16TF != 0) {
+    if (isHDRLikeTF || *PFP16TF != 0) {
         if (cached.transferFunction != LINEAR_IMAGE_DESCRIPTION->value().transferFunction || cached.luminances != value.luminances)
             m_cachedInternalDescription = LINEAR_IMAGE_DESCRIPTION->with(value.luminances);
         return m_cachedInternalDescription;

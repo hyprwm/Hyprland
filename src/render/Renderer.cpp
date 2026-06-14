@@ -1574,6 +1574,7 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     PangoContext*         context    = pango_font_map_create_context(fontMap);
     PangoLayout*          layoutText = pango_layout_new(context);
     PangoFontDescription* pangoFD    = pango_font_description_new();
+    g_object_unref(context);
 
     pango_font_description_set_family_static(pangoFD, FONTFAMILY.c_str());
     pango_font_description_set_absolute_size(pangoFD, FONTSIZE * PANGO_SCALE);
@@ -1591,13 +1592,6 @@ SP<ITexture> IHyprRenderer::renderText(const std::string& text, CHyprColor col, 
     pango_layout_get_pixel_extents(layoutText, &rectInk, &rectLog);
     int textW = std::max(rectLog.width, rectInk.x + rectInk.width);
     int textH = std::max(rectLog.height, rectInk.y + rectInk.height);
-
-    g_object_unref(context);
-
-    if (maxWidth > 0) {
-        pango_layout_set_width(layoutText, maxWidth * PANGO_SCALE);
-        pango_layout_set_ellipsize(layoutText, PANGO_ELLIPSIZE_END);
-    }
 
     auto CAIROSURFACE = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, textW, textH);
     auto CAIRO        = cairo_create(CAIROSURFACE);

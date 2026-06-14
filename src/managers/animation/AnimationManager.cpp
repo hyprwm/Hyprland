@@ -421,6 +421,10 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
         if (style == "loop" || style == "once")
             return "";
         return "unknown style";
+    } else if (config == "shadowangle") {
+        if (style == "loop" || style == "once")
+            return "";
+        return "unknown style";
     } else if (config.starts_with("layers")) {
         if (style.empty() || style == "fade" || style == "slide")
             return "";

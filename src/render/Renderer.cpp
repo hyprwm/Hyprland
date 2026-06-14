@@ -1135,9 +1135,9 @@ void IHyprRenderer::renderAllClientsForWorkspace(PHLMONITOR pMonitor, PHLWORKSPA
 
     SRenderModifData RENDERMODIFDATA;
     if (translate != Vector2D{0, 0})
-        RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate));
+        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_TRANSLATE, translate);
     if UNLIKELY (scale != 1.f)
-        RENDERMODIFDATA.modifs.emplace_back(std::make_pair<>(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale));
+        RENDERMODIFDATA.modifs.emplace_back(SRenderModifData::eRenderModifType::RMOD_TYPE_SCALE, scale);
 
     if UNLIKELY (!RENDERMODIFDATA.modifs.empty())
         m_renderPass.add(makeUnique<CRendererHintsPassElement>(CRendererHintsPassElement::SData{RENDERMODIFDATA}));

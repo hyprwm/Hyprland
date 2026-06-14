@@ -126,7 +126,7 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 /// Prints a failure message and makrs the test as failed without terminating it
 #define MARK_TEST_FAILED(fmt, ...)                                                                                                                                                 \
     do {                                                                                                                                                                           \
-        NLog::log("{}Failed:{} " fmt ". Source: {}@{}.", Colors::RED, Colors::RESET __VA_OPT__(, ) __VA_ARGS__, __FILE__, __LINE__);                                               \
+        NLog::error("Failed:{} " fmt ". Source: {}@{}.", Colors::RESET __VA_OPT__(, ) __VA_ARGS__, __FILE__, __LINE__);                                                            \
         MARK_TEST_FAILED_SILENT();                                                                                                                                                 \
     } while (0)
 
@@ -141,6 +141,13 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
 #define FAIL_TEST(fmt, ...)                                                                                                                                                        \
     do {                                                                                                                                                                           \
         MARK_TEST_FAILED(fmt, __VA_ARGS__);                                                                                                                                        \
+        return;                                                                                                                                                                    \
+    } while (0)
+
+#define PASS_TEST(fmt, ...)                                                                                                                                                        \
+    do {                                                                                                                                                                           \
+        NLog::info("Passed:{} " fmt, Colors::RESET __VA_OPT__(, ) __VA_ARGS__);                                                                                                    \
+        this->just_failed = this->failed = false;                                                                                                                                  \
         return;                                                                                                                                                                    \
     } while (0)
 
@@ -285,6 +292,18 @@ inline std::map<std::string, std::shared_ptr<CTestCase>> testCases;
         EXPECT_COUNT_STRING(str, what, no);                                                                                                                                        \
         if (this->just_failed)                                                                                                                                                     \
             return;                                                                                                                                                                \
+    } while (0)
+
+#define SPAWN_KITTY(class_, ...)                                                                                                                                                   \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                                 \
+            FAIL_TEST("Could not spawn kitty with class: {}", class_);                                                                                                             \
+    } while (0)
+
+#define SPAWN_LAYER_KITTY(class_, ...)                                                                                                                                             \
+    do {                                                                                                                                                                           \
+        if (!Tests::spawnLayerKitty(class_ __VA_OPT__(, ) __VA_ARGS__))                                                                                                            \
+            FAIL_TEST("Could not spawn layer kitty with class: {}", class_);                                                                                                       \
     } while (0)
 
 #define OK(x) ASSERT(x, "ok")

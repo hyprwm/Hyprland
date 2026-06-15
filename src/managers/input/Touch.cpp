@@ -10,6 +10,7 @@
 #include "../../devices/ITouch.hpp"
 #include "../../event/EventBus.hpp"
 #include "../SeatManager.hpp"
+#include "../../protocols/core/DataDevice.hpp"
 #include "debug/log/Logger.hpp"
 #include "UnifiedWorkspaceSwipeGesture.hpp"
 
@@ -37,6 +38,8 @@ void CInputManager::onTouchDown(ITouch::SDownEvent e) {
         Desktop::focusState()->rawMonitorFocus(PMONITOR);
 
     const auto TOUCH_COORDS = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
+
+    m_touchData.lastTouchPos = TOUCH_COORDS;
 
     refocus(TOUCH_COORDS);
 
@@ -138,6 +141,12 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
 
     m_lastCursorMovement.reset();
 
+    // Cache the global touch position so listeners (in particular the dnd
+    // touchMove listener emitted just below) and renderers can resolve where
+    // the finger currently is in layout coordinates.
+    if (const auto PMONITOR = Desktop::focusState()->monitor(); PMONITOR)
+        m_touchData.lastTouchPos = PMONITOR->m_position + (e.pos * PMONITOR->m_size);
+
     Event::SCallbackInfo info;
     Event::bus()->m_events.input.touch.motion.emit(e, info);
     if (info.cancelled)
@@ -167,6 +176,14 @@ void CInputManager::onTouchMove(ITouch::SMotionEvent e) {
         else
             // go from 0 to SWIPEDISTANCE
             g_pUnifiedWorkspaceSwipe->update(SWIPEDISTANCE * (1 - (VERTANIMS ? e.pos.y : e.pos.x)));
+        return;
+    }
+    // During a drag-and-drop session, repick the surface under the finger so
+    // wl_data_device enter/leave/offer follow the touch point, the same way
+    // cursor motion drives pointer focus during mouse drags. Touch events are
+    // not delivered to surfaces during the drag (mouse drags work likewise).
+    if (PROTO::data->dndActive()) {
+        refocus(m_touchData.lastTouchPos);
         return;
     }
     if (m_touchData.touchFocusLockSurface) {

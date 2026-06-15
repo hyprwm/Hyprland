@@ -215,7 +215,7 @@ void CEventLoopManager::nudgeTimers() {
 uint64_t CEventLoopManager::doLater(const std::function<void()>& fn) {
     const uint64_t NEW_SEQ = ++LAST_DO_LATER_SEQ;
 
-    m_idle.fns.emplace_back(std::make_pair<>(NEW_SEQ, fn));
+    m_idle.fns.emplace_back(NEW_SEQ, fn);
 
     if (m_idle.eventSource)
         return NEW_SEQ;

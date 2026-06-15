@@ -61,9 +61,7 @@ namespace Log {
         }
 
         static SRollingLogFollow& get() {
-            static SRollingLogFollow    instance;
-            static std::mutex           gm;
-            std::lock_guard<std::mutex> lock(gm);
+            static SRollingLogFollow instance;
             return instance;
         };
     };

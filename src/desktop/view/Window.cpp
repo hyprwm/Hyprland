@@ -97,7 +97,10 @@ PHLWINDOW CWindow::create(SP<CXWaylandSurface> surface) {
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
+                                         AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
+                                         AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
@@ -131,7 +134,10 @@ PHLWINDOW CWindow::create(SP<CXDGSurfaceResource> resource) {
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_ACTIVE), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_FULLSCREEN), Config::animationTree()->getAnimationPropertyConfig("fadeIn"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_LAYOUT), Config::animationTree()->getAnimationPropertyConfig("fadeSwitch"), pWindow, AVARDAMAGE_ENTIRE);
-    g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realShadowColor, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow, AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowFadeAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("fadeShadow"), pWindow,
+                                         AVARDAMAGE_SHADOW);
+    g_pAnimationManager->createAnimation(0.f, pWindow->m_shadowAngleAnimationProgress, Config::animationTree()->getAnimationPropertyConfig("shadowangle"), pWindow,
+                                         AVARDAMAGE_SHADOW);
     g_pAnimationManager->createAnimation(CHyprColor(), pWindow->m_realGlowColor, Config::animationTree()->getAnimationPropertyConfig("fadeGlow"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(0.f, pWindow->m_dimPercent, Config::animationTree()->getAnimationPropertyConfig("fadeDim"), pWindow, AVARDAMAGE_ENTIRE);
     g_pAnimationManager->createAnimation(1.f, pWindow->alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE), Config::animationTree()->getAnimationPropertyConfig("fadeOut"), pWindow,
@@ -740,7 +746,8 @@ void CWindow::onMap() {
     alpha(WINDOW_ALPHA_FADE)->resetAllCallbacks();
     alpha(WINDOW_ALPHA_FULLSCREEN)->resetAllCallbacks();
     alpha(WINDOW_ALPHA_LAYOUT)->resetAllCallbacks();
-    m_realShadowColor->resetAllCallbacks();
+    m_shadowFadeAnimationProgress->resetAllCallbacks();
+    m_shadowAngleAnimationProgress->resetAllCallbacks();
     m_realGlowColor->resetAllCallbacks();
     m_dimPercent->resetAllCallbacks();
     alpha(WINDOW_ALPHA_MOVE_TO_WORKSPACE)->resetAllCallbacks();
@@ -755,6 +762,12 @@ void CWindow::onMap() {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
         m_borderAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onBorderAngleAnimEnd(p); }, false);
         *m_borderAngleAnimationProgress = 1.f;
+    }
+
+    if (m_shadowAngleAnimationProgress->enabled()) {
+        m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
+        m_shadowAngleAnimationProgress->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> p) { onShadowAngleAnimEnd(p); }, false);
+        *m_shadowAngleAnimationProgress = 1.f;
     }
 
     m_realSize->setCallbackOnBegin(
@@ -819,6 +832,23 @@ void CWindow::onBorderAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
     *PANIMVAR = 1.f;
 
     PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onBorderAngleAnimEnd(pav); }, false);
+}
+
+void CWindow::onShadowAngleAnimEnd(WP<CBaseAnimatedVariable> pav) {
+    if (!pav)
+        return;
+
+    if (pav->getStyle() != "loop" || !pav->enabled())
+        return;
+
+    const auto PANIMVAR = dc<CAnimatedVariable<float>*>(pav.get());
+
+    PANIMVAR->setCallbackOnEnd(nullptr);
+
+    PANIMVAR->setValueAndWarp(0);
+    *PANIMVAR = 1.f;
+
+    PANIMVAR->setCallbackOnEnd([&](WP<CBaseAnimatedVariable> pav) { onShadowAngleAnimEnd(pav); }, false);
 }
 
 void CWindow::setHidden(bool hidden) {
@@ -1170,6 +1200,12 @@ void CWindow::onFocusAnimUpdate() {
     if (m_borderAngleAnimationProgress->enabled() && !m_borderAngleAnimationProgress->isBeingAnimated()) {
         m_borderAngleAnimationProgress->setValueAndWarp(0.f);
         *m_borderAngleAnimationProgress = 1.f;
+    }
+
+    // shadowangle once
+    if (m_shadowAngleAnimationProgress->enabled() && !m_shadowAngleAnimationProgress->isBeingAnimated()) {
+        m_shadowAngleAnimationProgress->setValueAndWarp(0.f);
+        *m_shadowAngleAnimationProgress = 1.f;
     }
 }
 
@@ -1782,8 +1818,8 @@ void CWindow::updateDecorationValues() {
     static auto PINACTIVEALPHA          = CConfigValue<Config::FLOAT>("decoration:inactive_opacity");
     static auto PACTIVEALPHA            = CConfigValue<Config::FLOAT>("decoration:active_opacity");
     static auto PFULLSCREENALPHA        = CConfigValue<Config::FLOAT>("decoration:fullscreen_opacity");
-    static auto PSHADOWCOL              = CConfigValue<Config::INTEGER>("decoration:shadow:color");
-    static auto PSHADOWCOLINACTIVE      = CConfigValue<Config::INTEGER>("decoration:shadow:color_inactive");
+    static auto PSHADOWCOL              = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color");
+    static auto PSHADOWCOLINACTIVE      = CConfigValue<Config::IComplexConfigValue>("decoration:shadow:color_inactive");
     static auto PGLOW                   = CConfigValue<Config::INTEGER>("decoration:glow:enabled");
     static auto PGLOWCOL                = CConfigValue<Config::INTEGER>("decoration:glow:color");
     static auto PGLOWCOLINACTIVE        = CConfigValue<Config::INTEGER>("decoration:glow:color_inactive");
@@ -1852,12 +1888,29 @@ void CWindow::updateDecorationValues() {
 
     // shadow
     if (!isX11OverrideRedirect() && !m_X11DoesntWantBorders) {
+        auto* const SHADOWCOL         = sc<Config::CGradientValueData*>((PSHADOWCOL.ptr()));
+        auto* const SHADOWCOLINACTIVE = sc<Config::CGradientValueData*>((PSHADOWCOLINACTIVE.ptr()));
+
+        auto        setShadowColor = [&](Config::CGradientValueData grad) -> void {
+            if (grad == m_realShadowColor)
+                return;
+
+            m_realShadowColorPrevious = m_realShadowColor;
+            m_realShadowColor         = grad;
+            m_shadowFadeAnimationProgress->setValueAndWarp(0.f);
+            *m_shadowFadeAnimationProgress = 1.f;
+        };
+
         if (m_self == Desktop::focusState()->window())
-            *m_realShadowColor = CHyprColor(*PSHADOWCOL);
-        else
-            *m_realShadowColor = CHyprColor(*PSHADOWCOLINACTIVE != -1 ? *PSHADOWCOLINACTIVE : *PSHADOWCOL);
-    } else
-        m_realShadowColor->setValueAndWarp(CHyprColor(0, 0, 0, 0)); // no shadow
+            setShadowColor(*SHADOWCOL);
+        else {
+            const auto COLORINACTIVE = Config::mgr()->getConfigValue("decoration:shadow:color_inactive");
+            setShadowColor(COLORINACTIVE.setByUser ? *SHADOWCOLINACTIVE : *SHADOWCOL);
+        }
+    } else {
+        Config::CGradientValueData transparent(CHyprColor(0, 0, 0, 0));
+        m_realShadowColor = transparent;
+    }
 
     updateWindowDecos();
 }
@@ -2574,6 +2627,9 @@ void CWindow::unmapWindow() {
 }
 
 void CWindow::commitWindow() {
+    if (!m_isX11 && (!m_xdgSurface || !m_xdgSurface->m_toplevel))
+        return;
+
     if (!m_isX11 && m_xdgSurface->m_initialCommit) {
         // try to calculate static rules already for any floats
         m_ruleApplicator->readStaticRules(true);

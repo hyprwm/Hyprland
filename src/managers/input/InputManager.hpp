@@ -60,6 +60,7 @@ struct STouchData {
     PHLLSREF                touchFocusLS;
     WP<CWLSurfaceResource>  touchFocusSurface;
     Vector2D                touchSurfaceOrigin;
+    Vector2D                lastTouchPos;
 };
 
 // The third row is always 0 0 1 and is not expected by `libinput_device_config_calibration_set_matrix`

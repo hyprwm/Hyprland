@@ -21,8 +21,6 @@
 
 #define SPECIAL_WORKSPACE_START (-99)
 
-#define PI 3.14159265358979
-
 #define STRVAL_EMPTY "[[EMPTY]]"
 
 #define WORKSPACE_INVALID     -1L

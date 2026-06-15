@@ -245,7 +245,10 @@ namespace Desktop::View {
         std::vector<UP<Render::IWindowTransformer>> m_transformers;
 
         // animated shadow color
-        PHLANIMVAR<CHyprColor> m_realShadowColor;
+        Config::CGradientValueData m_realShadowColor;
+        Config::CGradientValueData m_realShadowColorPrevious;
+        PHLANIMVAR<float>          m_shadowFadeAnimationProgress;
+        PHLANIMVAR<float>          m_shadowAngleAnimationProgress;
 
         // animated glow color
         PHLANIMVAR<CHyprColor> m_realGlowColor;
@@ -364,6 +367,7 @@ namespace Desktop::View {
         void                              updateWindowData();
         void                              updateWindowData(const Config::CWorkspaceRule&);
         void                              onBorderAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
+        void                              onShadowAngleAnimEnd(WP<Hyprutils::Animation::CBaseAnimatedVariable> pav);
         bool                              isInCurvedCorner(double x, double y);
         bool                              hasPopupAt(const Vector2D& pos);
         int                               popupsCount();

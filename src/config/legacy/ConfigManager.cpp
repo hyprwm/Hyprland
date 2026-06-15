@@ -76,6 +76,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <numbers>
 #include <ranges>
 #include <unordered_set>
 #include <hyprutils/string/String.hpp>
@@ -115,7 +116,7 @@ static Hyprlang::CParseResult configHandleGradientSet(const char* VALUE, void** 
         if (var.find("deg") != std::string::npos) {
             // last arg
             try {
-                DATA->m_angle = std::stoi(std::string(var.substr(0, var.find("deg")))) * (PI / 180.0); // radians
+                DATA->m_angle = std::stoi(std::string(var.substr(0, var.find("deg")))) * (std::numbers::pi / 180.0); // radians
             } catch (...) {
                 Log::logger->log(Log::WARN, "Error parsing gradient {}", V);
                 parseError = "Error parsing gradient " + V;
@@ -1052,7 +1053,7 @@ void CConfigManager::postConfigReload(const Hyprlang::CParseResult& result) {
         // mark blur dirty
         m->m_blurFBDirty = true;
 
-        g_pCompositor->scheduleFrameForMonitor(m);
+        m->scheduleFrame();
 
         // Force the compositor to fully re-render all monitors
         m->m_forceFullFrames = 2;

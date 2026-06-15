@@ -26,6 +26,7 @@
 #include "../../../state/MonitorState.hpp"
 #include "../../../state/WorkspaceState.hpp"
 
+#include <numbers>
 #include <utility>
 #include <type_traits>
 
@@ -734,18 +735,12 @@ ActionResult Actions::setProp(const std::string& PROP, const std::string& VAL, s
                 for (int i = 1; i < sc<int>(vars.size()); ++i) {
                     const auto TOKEN = vars[i];
                     if (TOKEN.ends_with("deg"))
-                        colorData.m_angle = std::stoi(std::string(TOKEN.substr(0, TOKEN.size() - 3))) * (PI / 180.0);
+                        colorData.m_angle = std::stoi(std::string(TOKEN.substr(0, TOKEN.size() - 3))) * (std::numbers::pi / 180.0);
                     else
-                        ParserUtils::parseColor(std::string(TOKEN)).and_then([&colorData](const auto& e) {
-                            colorData.m_colors.push_back(e);
-                            return std::invoke_result_t<decltype(ParserUtils::parseColor), const std::string&>(1);
-                        });
+                        ParserUtils::parseColor(std::string(TOKEN)).transform([&colorData](const auto& e) { colorData.m_colors.push_back(e); });
                 }
             } else if (VAL != "-1")
-                ParserUtils::parseColor(VAL).and_then([&colorData](const auto& e) {
-                    colorData.m_colors.push_back(e);
-                    return std::invoke_result_t<decltype(ParserUtils::parseColor), const std::string&>(1);
-                });
+                ParserUtils::parseColor(VAL).transform([&colorData](const auto& e) { colorData.m_colors.push_back(e); });
 
             colorData.updateColorsOk();
 

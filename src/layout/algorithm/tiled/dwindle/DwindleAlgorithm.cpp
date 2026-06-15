@@ -551,6 +551,22 @@ void CDwindleAlgorithm::moveTargetInDirection(SP<ITarget> t, Math::eDirection di
     if (PMONITORFOCAL != m_parent->space()->workspace()->m_monitor && !*PMONITORFALLBACK)
         return; // noop
 
+    // if we're moving directly toward the most immediate split divider, and
+    // our partner in the split is a single window, override the direction to
+    // guarantee we spawn on the opposite side of that partner
+    const auto PARENT = PNODE->pParent;
+    if (PARENT) {
+        // clang-format off
+        if (((dir == Math::DIRECTION_UP)    &&  PARENT->splitTop && (PARENT->children[1] == PNODE) && !PARENT->children[0]->isNode)  // moving up and we're on the bottom
+         || ((dir == Math::DIRECTION_DOWN)  &&  PARENT->splitTop && (PARENT->children[0] == PNODE) && !PARENT->children[1]->isNode)  // moving down and we're on the top
+         || ((dir == Math::DIRECTION_LEFT)  && !PARENT->splitTop && (PARENT->children[1] == PNODE) && !PARENT->children[0]->isNode)  // moving left and we're on the right
+         || ((dir == Math::DIRECTION_RIGHT) && !PARENT->splitTop && (PARENT->children[0] == PNODE) && !PARENT->children[1]->isNode)  // moving right and we're on the left
+        ) {
+            // clang-format on
+            m_overrideDirection = dir;
+        }
+    }
+
     t->window()->setAnimationsToMove();
 
     removeTarget(t);

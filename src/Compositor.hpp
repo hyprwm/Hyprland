@@ -10,13 +10,11 @@
 #include "managers/SessionLockManager.hpp"
 #include "desktop/view/Window.hpp"
 #include "helpers/cm/ColorManagement.hpp"
-#include "config/shared/workspace/WorkspaceRule.hpp"
 
 #include <aquamarine/backend/Backend.hpp>
 #include <aquamarine/output/Output.hpp>
 
 class CWLSurfaceResource;
-struct SWorkspaceRule;
 
 enum eManagersInitStage : uint8_t {
     STAGE_PRIORITY = 0,
@@ -106,7 +104,6 @@ class CCompositor {
     void                   setWindowFullscreenState(const PHLWINDOW PWINDOW, const Desktop::View::SFullscreenState state);
     void                   changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON);
     PHLWINDOW              getX11Parent(PHLWINDOW);
-    void                   scheduleFrameForMonitor(PHLMONITOR, Aquamarine::IOutput::scheduleFrameReason reason = Aquamarine::IOutput::AQ_SCHEDULE_CLIENT_UNKNOWN);
     void                   addToFadingOutSafe(PHLLS);
     void                   removeFromFadingOutSafe(PHLLS);
     void                   addToFadingOutSafe(PHLWINDOW);
@@ -117,15 +114,9 @@ class CCompositor {
     void                   performUserChecks();
     void                   moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWorkspace);
     PHLWINDOW              getForceFocus();
-    void                   scheduleMonitorStateRecheck();
-    void                   arrangeMonitors();
-    void                   checkMonitorOverlaps();
     void                   setPreferredScaleForSurface(SP<CWLSurfaceResource> pSurface, double scale);
     void                   setPreferredTransformForSurface(SP<CWLSurfaceResource> pSurface, wl_output_transform transform);
     void                   updateSuspendedStates();
-    void                   ensurePersistentWorkspacesPresent(const std::vector<Config::CWorkspaceRule>& rules, PHLWORKSPACE pWorkspace = nullptr);
-    void                   ensurePersistentWorkspacesPresent(PHLWORKSPACE pWorkspace = nullptr);
-    void                   ensureWorkspacesOnAssignedMonitors();
     std::optional<unsigned int>         getVTNr();
     bool                                isVRRActiveOnAnyMonitor() const;
 

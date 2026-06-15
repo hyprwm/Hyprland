@@ -58,6 +58,7 @@
   commit,
   revCount,
   date,
+  readline,
   # deprecated flags
   enableNvidiaPatches ? false,
   nvidiaPatches ? false,
@@ -204,6 +205,7 @@ customStdenv.mkDerivation (finalAttrs: {
       wayland
       wayland-protocols
       wayland-scanner
+      readline
     ]
     (optionals customStdenv.hostPlatform.isBSD [ epoll-shim ])
     (optionals customStdenv.hostPlatform.isMusl [ libexecinfo ])

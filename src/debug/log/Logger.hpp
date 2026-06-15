@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hyprutils/cli/Logger.hpp>
+#include <utility>
 
 #include "../../helpers/memory/Memory.hpp"
 #include "../../helpers/env/Env.hpp"
@@ -26,13 +27,7 @@ namespace Log {
                 return;
 
             std::string logMsg = "";
-
-            // no need for try {} catch {} because std::format_string<Args...> ensures that vformat never throw std::format_error
-            // because
-            // 1. any faulty format specifier that sucks will cause a compilation error.
-            // 2. and `std::bad_alloc` is catastrophic, (Almost any operation in stdlib could throw this.)
-            // 3. this is actually what std::format in stdlib does
-            logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
+            logMsg += std::format(fmt, std::forward<Args>(args)...);
 
             log(level, logMsg);
         }

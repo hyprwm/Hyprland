@@ -72,9 +72,9 @@ const Hyprgraphics::CMatrix3& CPrimaries::toXYZ() const {
 }
 
 const Hyprgraphics::CMatrix3& CPrimaries::convertMatrix(const WP<const CPrimaries> dst) const {
-    const auto cacheKey = std::make_pair(m_id, dst->m_id);
+    const auto cacheKey = std::pair{m_id, dst->m_id};
     if (!primariesConversion.contains(cacheKey))
-        primariesConversion.insert(std::make_pair(cacheKey, m_primaries.convertMatrix(dst->m_primaries)));
+        primariesConversion.emplace(cacheKey, m_primaries.convertMatrix(dst->m_primaries));
 
     return primariesConversion[cacheKey];
 }

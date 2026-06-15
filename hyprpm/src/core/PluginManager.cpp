@@ -55,6 +55,10 @@ static std::string getTempRoot() {
     return STR;
 }
 
+static bool isValidHash(std::string_view sv) {
+    return std::ranges::all_of(sv, [](const char& c) { return std::isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'); });
+}
+
 CPluginManager::CPluginManager() {
     if (NSys::isSuperuser())
         Debug::die("Don't run hyprpm as a superuser.");
@@ -274,9 +278,14 @@ bool CPluginManager::addNewPluginRepo(const std::string& url, const std::string&
             if (hl != HLVER.hash)
                 continue;
 
+            if (plugin.contains("'") || !isValidHash(plugin)) {
+                std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                return false;
+            }
+
             progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+            execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
 
             ret = execAndGet("git -C " + m_szWorkingPluginDirectory + " submodule update --init");
             if (m_bVerbose)
@@ -751,9 +760,14 @@ bool CPluginManager::updatePlugins(bool forceUpdateAll) {
                 if (hl != HLVER.hash)
                     continue;
 
+                if (plugin.contains("'") || !isValidHash(plugin)) {
+                    std::println(stderr, "\n{}", failureString("Plugin has a malformed manifest: bad commit pin"));
+                    return false;
+                }
+
                 progress.printMessageAbove(successString("commit pin {} matched hl, resetting", plugin));
 
-                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules " + plugin);
+                execAndGet("cd " + m_szWorkingPluginDirectory + " && git reset --hard --recurse-submodules '" + plugin + "'");
             }
         }
 

@@ -2,6 +2,7 @@
 #include <string>
 #include <format>
 #include <print>
+#include <utility>
 
 // Stolen from hyprutils
 namespace Colors {
@@ -20,7 +21,7 @@ namespace NLog {
     void log(std::format_string<Args...> fmt, Args&&... args) {
         std::string logMsg = "";
 
-        logMsg += std::vformat(fmt.get(), std::make_format_args(args...));
+        logMsg += std::format(fmt, std::forward<Args>(args)...);
 
         std::println("{}{}", logMsg, Colors::RESET);
         std::fflush(stdout);

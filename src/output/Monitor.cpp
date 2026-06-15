@@ -35,6 +35,8 @@
 #include "../i18n/Engine.hpp"
 #include "../helpers/cm/ColorManagement.hpp"
 #include "../state/MonitorState.hpp"
+#include "../state/MonitorLayoutController.hpp"
+#include "../state/WorkspacePlacementController.hpp"
 #include "../state/WorkspaceState.hpp"
 #include "../helpers/time/Time.hpp"
 #include "../desktop/view/LayerSurface.hpp"
@@ -87,14 +89,16 @@ CMonitor::~CMonitor() {
 
 void CMonitor::onConnect(bool noRule) {
     Event::bus()->m_events.monitor.preAdded.emit(m_self.lock());
-    CScopeGuard x = {[]() { g_pCompositor->arrangeMonitors(); }};
+    CScopeGuard x = {[]() { State::monitorLayoutController()->arrange(); }};
 
     m_zoomAnimProgress->setValueAndWarp(0.F);
     m_zoomAnimFrameCounter = 0;
 
     g_pEventLoopManager->doLater([] {
-        g_pCompositor->ensurePersistentWorkspacesPresent();
-        g_pCompositor->ensureWorkspacesOnAssignedMonitors();
+        State::workspacePlacementController()->ensurePersistentWorkspacesPresent(
+            nullptr, [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
+        State::workspacePlacementController()->ensureWorkspacesOnAssignedMonitors(
+            [](PHLWORKSPACE ws, PHLMONITOR mon, bool noWarp) { g_pCompositor->moveWorkspaceToMonitor(ws, mon, noWarp); });
     });
 
     m_listeners.frame      = m_output->events.frame.listen([this] {
@@ -108,7 +112,7 @@ void CMonitor::onConnect(bool noRule) {
         if (true && Screenshare::mgr())
             Screenshare::mgr()->onOutputCommit(m_self.lock());
     });
-    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
+    m_listeners.needsFrame = m_output->events.needsFrame.listen([this] { scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEEDS_FRAME); });
 
     m_listeners.presented = m_output->events.present.listen([this](const Aquamarine::IOutput::SPresentEvent& event) {
         if (m_pendingDpmsAnimation) {
@@ -355,7 +359,7 @@ void CMonitor::onConnect(bool noRule) {
     if (!found)
         Desktop::focusState()->rawMonitorFocus(m_self.lock());
 
-    g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
+    scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_NEW_MONITOR);
 
     PROTO::gamma->applyGammaToState(m_self.lock());
 
@@ -374,7 +378,7 @@ void CMonitor::onDisconnect(bool destroy) {
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremoved", m_name});
         g_pEventManager->postEvent(SHyprIPCEvent{"monitorremovedv2", std::format("{},{},{}", m_id, m_name, m_shortDescription)});
         Event::bus()->m_events.monitor.removed.emit(m_self.lock());
-        g_pCompositor->scheduleMonitorStateRecheck();
+        State::monitorLayoutController()->scheduleRecheck();
     }};
 
     m_frameScheduler.reset();
@@ -685,8 +689,6 @@ bool CMonitor::applyMonitorRuleSoft(Config::CMonitorRule&& pMonitorRule) {
 
     updateMatrix();
 
-    m_background.reset();
-
     m_damage.setSize(m_transformedSize);
 
     setMirror(m_activeMonitorRule.m_mirrorOf);
@@ -948,6 +950,8 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     clearModeRetry();
 
+    const auto OLD_PIXEL_SIZE = m_pixelSize;
+
     m_vrrActive = m_output->state->state().adaptiveSync // disabled here, will be tested in CConfigManager::ensureVRR()
         || m_createdByUser;                             // wayland backend doesn't allow for disabling adaptive_sync
 
@@ -1065,6 +1069,9 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     applyMonitorRuleSoft(std::move(pMonitorRule));
 
+    if (OLD_PIXEL_SIZE != m_pixelSize)
+        m_background.reset();
+
     updateVCGTRamps();
 
     Log::logger->log(Log::DEBUG, "Monitor {} data dump: res {:X}@{:.2f}Hz, scale {:.2f}, transform {}, pos {:X}, 10b {}", m_name, m_pixelSize, m_refreshRate, m_scale,
@@ -1116,12 +1123,25 @@ void CMonitor::clearModeRetry() {
     m_modeRetryTimer.reset();
 }
 
+void CMonitor::scheduleFrame(Aquamarine::IOutput::scheduleFrameReason reason) {
+    if ((g_pCompositor->m_aqBackend->hasSession() && !g_pCompositor->m_aqBackend->session->active) || !g_pCompositor->m_sessionActive)
+        return;
+
+    if (!m_enabled)
+        return;
+
+    if (m_renderingActive)
+        m_pendingFrame = true;
+
+    m_output->scheduleFrame(reason);
+}
+
 void CMonitor::addDamage(const pixman_region32_t* rg) {
     if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
     } else if (m_damage.damage(rg))
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 void CMonitor::addDamage(const CRegion& rg) {
@@ -1131,12 +1151,12 @@ void CMonitor::addDamage(const CRegion& rg) {
 void CMonitor::addDamage(const CBox& box) {
     if (m_cursorZoom->value() != 1.f && State::monitorState()->query().vec(g_pPointerManager->position()).run() == m_self) {
         m_damage.damageEntire();
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
         return;
     }
 
     if (m_damage.damage(box))
-        g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+        scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
 }
 
 bool CMonitor::shouldSkipScheduleFrameOnMouseEvent() {
@@ -1746,7 +1766,7 @@ void CMonitor::scheduleDone() {
 void CMonitor::setCTM(const Mat3x3& ctm_) {
     m_ctm        = ctm_;
     m_ctmUpdated = true;
-    g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
+    scheduleFrame(Aquamarine::IOutput::scheduleFrameReason::AQ_SCHEDULE_NEEDS_FRAME);
 }
 
 uint32_t CMonitor::isSolitaryBlocked(bool full) {

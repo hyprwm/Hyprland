@@ -131,7 +131,7 @@ SP<CPromise<std::string>> CAsyncDialogBox::open() {
     }
 
     m_dialogPid = proc.pid();
-    asyncDialogBoxes.emplace_back(std::make_pair<>(m_dialogPid, m_selfWeakReference));
+    asyncDialogBoxes.emplace_back(m_dialogPid, m_selfWeakReference);
 
     // close the write fd, only the dialog owns it now
     close(outPipe[1]);

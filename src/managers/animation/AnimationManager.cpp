@@ -324,7 +324,7 @@ void CHyprAnimationManager::tick() {
         }
 
         if (!owner.monitor->inFullscreenMode())
-            g_pCompositor->scheduleFrameForMonitor(owner.monitor, Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
+            owner.monitor->scheduleFrame(Aquamarine::IOutput::AQ_SCHEDULE_ANIMATION);
     }
 
     tickDone();
@@ -418,6 +418,10 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
 
         return "unknown style";
     } else if (config == "borderangle") {
+        if (style == "loop" || style == "once")
+            return "";
+        return "unknown style";
+    } else if (config == "shadowangle") {
         if (style == "loop" || style == "once")
             return "";
         return "unknown style";

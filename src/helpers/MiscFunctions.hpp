@@ -23,8 +23,7 @@ struct SWorkspaceIDName {
 
 std::string                             absolutePath(const std::string&, const std::string&);
 std::string                             escapeJSONStrings(const std::string& str);
-bool                                    isDirection(const std::string&);
-bool                                    isDirection(const char&);
+bool                                    isDirection(std::string_view);
 SWorkspaceIDName                        getWorkspaceIDNameFromString(const std::string&);
 std::optional<std::string>              cleanCmdForWorkspace(const std::string&, std::string);
 float                                   vecToRectDistanceSquared(const Vector2D& vec, const Vector2D& p1, const Vector2D& p2);

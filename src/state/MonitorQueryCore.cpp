@@ -199,7 +199,7 @@ SP<Monitor::IMonitorQueryable> CMonitorQueryCore::fromConfigString(std::string_v
 
     if (sv == "current")
         return m_relativeTo;
-    else if (!sv.starts_with("desc:") && isDirection(sv[0])) // make sure sv doesn't start with "desc:" because isDirection() checks if it starts with 'd'
+    else if (isDirection(sv))
         return directionLookup(m_relativeTo, Math::fromChar(sv[0]));
     else if (sv[0] == '+' || sv[0] == '-') {
         if (m_monitors.size() == 1)

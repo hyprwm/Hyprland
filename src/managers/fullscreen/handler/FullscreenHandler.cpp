@@ -1,17 +1,10 @@
 
 #include "FullscreenHandler.hpp"
 #include "Compositor.hpp"
-#include "debug/log/Logger.hpp"
 #include "desktop/view/LayerSurface.hpp"
-#include "desktop/view/Window.hpp"
-#include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/algorithm/Algorithm.hpp"
-#include "layout/space/Space.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
-#include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
-#include <cstddef>
-#include <cstdlib>
 
 
 using namespace Fullscreen;

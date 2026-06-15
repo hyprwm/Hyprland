@@ -113,12 +113,11 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
     }
 }
 
-bool isDirection(const std::string& arg) {
-    return arg == "l" || arg == "r" || arg == "u" || arg == "d" || arg == "t" || arg == "b";
-}
+bool isDirection(std::string_view sv) {
+    if (sv[0] == 'l' || sv[0] == 'r' || sv[0] == 'u' || sv[0] == 'd' || sv[0] == 't' || sv[0] == 'b')
+        return sv.length() == 1 || sv == "left" || sv == "right" || sv == "up" || sv == "down" || sv == "top" || sv == "bottom";
 
-bool isDirection(const char& arg) {
-    return arg == 'l' || arg == 'r' || arg == 'u' || arg == 'd' || arg == 't' || arg == 'b';
+    return false;
 }
 
 static bool isAutoIDdWorkspace(WORKSPACEID id) {

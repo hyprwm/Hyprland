@@ -3,6 +3,7 @@
 #include "../../../managers/fullscreen/FullscreenController.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "helpers/memory/Memory.hpp"
+#include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/target/Target.hpp"
 #include <hyprutils/memory/UniquePtr.hpp>
 
@@ -32,7 +33,7 @@ namespace Fullscreen {
 
 
       public:
-        IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm){};
+        IFullscreenHandler(Layout::IModeAlgorithm* algorithm);
         virtual ~IFullscreenHandler() = default;
 
 
@@ -79,34 +80,33 @@ namespace Fullscreen {
         // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
         virtual void syncFullscreenTargets();
 
-
-
         // Misc.
 
-        virtual eFullscreenHandler getFullscreenHandlerName() const; // simply return FULLSCREEN_HANDLER_TYPE
+        virtual eFullscreenHandler getFullscreenHandlerName() const;
+
+
+        const Layout::IModeAlgorithm* getAlgorithm() const;
+
+
+        
+      protected:
+        // Handler will never outlive its algo because algo owns its handler with UP<>
+        const Layout::IModeAlgorithm* m_algorithm;
+
         SP<Layout::CSpace> getSpace() const;
 
 
       private:
+        // Tracks FSed window (internal OR client)
+        // There can only be one default handled fullscreen in a workspace.
+        SWindowFullscreenState m_fullscreenWindow = {.window = nullptr, .mode = {.internal = FSMODE_NONE, .client = FSMODE_NONE}};
 
         // Must be defined by each layout's handler
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_DEFAULT;
 
-        // Tracks FSed window (internal OR client)
-        // There can only be one default handled fullscreen in a workspace.
-        SWindowFullscreenState m_fullscreenWindow = {.window=nullptr, .mode={.internal=FSMODE_NONE, .client=FSMODE_NONE}};
-
-        // Handler will never outlive its algo because algo owns its handler with UP<>
-        Layout::IModeAlgorithm* m_algorithm = nullptr;
-
-
-
         // Helpers for default FS behaviour
 
         void removeCurrentFullscreenWindow();
-
-
-
     };
 
 }

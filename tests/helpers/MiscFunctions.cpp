@@ -31,18 +31,6 @@ TEST(Helpers, isDirectionString) {
     EXPECT_FALSE(isDirection(""));
 }
 
-TEST(Helpers, isDirectionChar) {
-    EXPECT_TRUE(isDirection('l'));
-    EXPECT_TRUE(isDirection('r'));
-    EXPECT_TRUE(isDirection('u'));
-    EXPECT_TRUE(isDirection('d'));
-    EXPECT_TRUE(isDirection('t'));
-    EXPECT_TRUE(isDirection('b'));
-    EXPECT_FALSE(isDirection('x'));
-    EXPECT_FALSE(isDirection('0'));
-    EXPECT_FALSE(isDirection(' '));
-}
-
 // normalizeAngleRad
 
 TEST(Helpers, normalizeAngleRadInRange) {

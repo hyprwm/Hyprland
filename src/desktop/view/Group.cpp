@@ -66,7 +66,7 @@ void CGroup::init() {
 }
 
 void CGroup::destroy() {
-    while (true) {
+    while (!m_windows.empty()) {
         if (m_windows.size() == 1) {
             remove(m_windows.at(0).lock());
             break;

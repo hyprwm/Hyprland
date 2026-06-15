@@ -918,12 +918,16 @@ bool CWindow::isInputBlocked() const {
     return m_inputBlockReasons != INPUT_BLOCK_NONE;
 }
 
-bool CWindow::isInputBlocked(std::underlying_type_t<eWindowInputBlockReason> reasons) const {
+bool CWindow::isInputBlockedReasonAnyOf(std::underlying_type_t<eWindowInputBlockReason> reasons) const {
     return (m_inputBlockReasons & reasons) != 0;
 }
 
-bool CWindow::isInputBlockedOnly(eWindowInputBlockReason reason) const {
-    return m_inputBlockReasons == reason;
+bool CWindow::noInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const {
+    return (m_inputBlockReasons & ~reason) == 0;
+}
+
+bool CWindow::hasInputBlockedReasonsBesides(std::underlying_type_t<eWindowInputBlockReason> reason) const {
+    return (m_inputBlockReasons & ~reason) != 0;
 }
 
 bool CWindow::acceptsInput() const {

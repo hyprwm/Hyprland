@@ -101,8 +101,7 @@ PHLWINDOW CWindowQuery::inDirection(const SWindowDirectionQuery& query) const {
                 if (w->isHidden())
                     continue;
 
-                // check if the input is blocked by anything except BELOW_FULLSCREEN
-                if (w->isInputBlocked(INPUT_BLOCK_ALL & (~INPUT_BLOCK_BELOW_FULLSCREEN)))
+                if (w->hasInputBlockedReasonsBesides(INPUT_BLOCK_BELOW_FULLSCREEN))
                     continue;
 
                 if (query.workspace->m_monitor == w->m_monitor && query.workspace != w->m_workspace)
@@ -257,7 +256,7 @@ static bool acceptsInputForCycle(WINDOWPTR w, bool allowFullscreenBlocked) {
     if (w->acceptsInput())
         return true;
 
-    return allowFullscreenBlocked && !w->isHidden() && w->isInputBlockedOnly(INPUT_BLOCK_BELOW_FULLSCREEN);
+    return allowFullscreenBlocked && !w->isHidden() && w->noInputBlockedReasonsBesides(INPUT_BLOCK_BELOW_FULLSCREEN);
 }
 
 template <typename WINDOWPTR>

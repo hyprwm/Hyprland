@@ -43,7 +43,7 @@ namespace Fullscreen {
         virtual bool      isFullscreen(const PHLWINDOW window, const std::optional<bool> covering = true);
         virtual bool      hasFullscreen(const std::optional<bool> covering = true);
         virtual PHLWINDOW getFullscreen(const std::optional<bool> covering = true);
-
+        virtual SFullscreenMode getFullscreenMode(const PHLWINDOW window);
 
 
         // FS Request
@@ -73,14 +73,11 @@ namespace Fullscreen {
         virtual void setNoMembersAboveFullscreen();
         
         // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
-        virtual void syncFullscreenTargets();
+        virtual void syncFullscreenWindows();
 
         // Misc.
 
         virtual eFullscreenHandler getFullscreenHandlerName() const;
-
-
-        const Layout::IModeAlgorithm* getAlgorithm() const;
 
 
         

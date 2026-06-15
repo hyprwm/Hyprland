@@ -16,13 +16,20 @@ namespace Fullscreen {
 
     struct SFullscreenRequest {
         SP<Layout::ITarget> target;
-        eFullscreenMode     currentEffectiveMode = FSMODE_NONE;
-        eFullscreenMode     effectiveMode        = FSMODE_NONE;
+        eFullscreenMode     currentMode = FSMODE_NONE;
+        eFullscreenMode     mode        = FSMODE_NONE;
     };
 
     class IFullscreenHandler {
   
+      // TODO : edit below comments into a coherent manual
+
       // Default FS handler with overridable methods for layouts wishing to implement their own FS handlers
+
+      // std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
+
+      // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
+
 
       public:
         IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm){};
@@ -37,9 +44,9 @@ namespace Fullscreen {
 
         // FS State Queries
 
-        virtual bool      isFullscreen(const PHLWINDOW window, const std::optional<bool> covering = std::nullopt);
-        virtual bool      hasCoveringFullscreen();
-        virtual PHLWINDOW getCoveringFullscreen();
+        virtual bool      isFullscreen(const PHLWINDOW window, const std::optional<bool> covering = true);
+        virtual bool      hasFullscreen(const std::optional<bool> covering = true);
+        virtual PHLWINDOW getFullscreen(const std::optional<bool> covering = true);
 
 
 
@@ -47,16 +54,17 @@ namespace Fullscreen {
 
         virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
+        // FS State Handlers
+
+        virtual void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode);
+        virtual void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode);
 
         // Window Movement Between FS Handlers
 
-        // the window passed is guaranteed to be a FS window - NECESSARILY NOT COVERING
+        // the window passed is guaranteed to be a FS window
         // Must rerender by the end
-        virtual void moveFullscreenWindowToHandler(const PHLWINDOW window);
+        virtual void moveFullscreenWindowToHandler(const PHLWINDOW window, const std::optional<bool> covering = true);
 
-        // the window passed is guaranteed to be a FS window - NECESSARILY COVERING
-        // Must rerender by the end
-        virtual void moveCoveringFullscreenWindowToHandler(const PHLWINDOW window);
 
         // Must properly remove FS properties and state of the window in preparation for move to a new workspace with potentially a new handler.
         // Simply removing the window from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
@@ -76,23 +84,29 @@ namespace Fullscreen {
         // Misc.
 
         virtual eFullscreenHandler getFullscreenHandlerName() const; // simply return FULLSCREEN_HANDLER_TYPE
-
         SP<Layout::CSpace> getSpace() const;
 
 
       private:
 
-        // Must be defined for each handler
+        // Must be defined by each layout's handler
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_DEFAULT;
 
         // Tracks FSed window (internal OR client)
         // There can only be one default handled fullscreen in a workspace.
-        PHLWINDOWREF m_fullscreenWindow = nullptr;
+        SWindowFullscreenState m_fullscreenWindow = {.window=nullptr, .mode={.internal=FSMODE_NONE, .client=FSMODE_NONE}};
 
         // Handler will never outlive its algo because algo owns its handler with UP<>
         Layout::IModeAlgorithm* m_algorithm = nullptr;
 
-        // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
+
+
+        // Helpers for default FS behaviour
+
+        void removeCurrentFullscreenWindow();
+
+
+
     };
 
 }

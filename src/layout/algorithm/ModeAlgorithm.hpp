@@ -6,7 +6,11 @@
 
 #include "../LayoutManager.hpp"
 #include "../space/Space.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
+
+
+namespace Fullscreen {
+  class IFullscreenHandler;
+}
 
 namespace Layout {
 

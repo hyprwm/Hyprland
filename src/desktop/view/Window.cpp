@@ -2130,7 +2130,7 @@ void CWindow::mapWindow() {
                 else if (var == "activatefocus")
                     m_suppressedEvents |= Desktop::View::SUPPRESS_ACTIVATE_FOCUSONLY;
                 else if (var == "fullscreenoutput")
-                    m_suppressedEvents |= Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST;
+                    m_suppressedEvents |= Desktop::View::SUPPRESS_FULLSCREEN_OUTPUT;
                 else if (var == "x11configurerequest")
                     m_suppressedEvents |= Desktop::View::SUPPRESS_X11_CONFIGURE_REQUEST;
                 else

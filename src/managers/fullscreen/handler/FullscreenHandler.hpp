@@ -5,6 +5,8 @@
 #include "helpers/memory/Memory.hpp"
 #include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/target/Target.hpp"
+#include <unordered_map>
+#include <utility>
 
 
 
@@ -15,6 +17,12 @@ namespace Fullscreen {
         eFullscreenMode     currentMode = FSMODE_NONE;
         eFullscreenMode     mode        = FSMODE_NONE;
     };
+
+    struct SFsWindowState {
+        PHLWINDOWREF window;
+        SFullscreenMode mode;
+    };
+
 
     class IFullscreenHandler {
   
@@ -75,6 +83,12 @@ namespace Fullscreen {
         // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
         virtual void syncFullscreenWindows();
 
+
+        // Helpers
+
+        virtual void removeFSWindowFromList(PHLWINDOW window) = 0;
+
+
         // Misc.
 
         virtual eFullscreenHandler getFullscreenHandlerName() const;
@@ -89,16 +103,15 @@ namespace Fullscreen {
 
 
       private:
-        // Tracks FSed window (internal OR client)
-        // There can only be one default handled fullscreen in a workspace.
-        SWindowFullscreenState m_fullscreenWindow = {.window = nullptr, .mode = {.internal = FSMODE_NONE, .client = FSMODE_NONE}};
+
+        /// Windows with ONLY client FS mode set.
+        std::unordered_map<PHLWINDOWREF, SFullscreenMode> m_fsWindows;
 
         // Must be defined by each layout's handler
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_DEFAULT;
 
         // Helpers for default FS behaviour
 
-        void removeCurrentFullscreenWindow();
     };
 
 }

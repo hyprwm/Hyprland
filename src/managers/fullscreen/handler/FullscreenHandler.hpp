@@ -5,12 +5,7 @@
 #include "helpers/memory/Memory.hpp"
 #include "layout/algorithm/ModeAlgorithm.hpp"
 #include "layout/target/Target.hpp"
-#include <hyprutils/memory/UniquePtr.hpp>
 
-
-namespace Layout {
-    class IModeAlgorithm;
-}
 
 
 namespace Fullscreen {

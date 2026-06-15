@@ -3,6 +3,7 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "layout/target/WindowGroupTarget.hpp"
+#include <functional>
 #include <optional>
 
 namespace Fullscreen {
@@ -33,6 +34,10 @@ namespace Fullscreen {
     struct SWindowFullscreenState {
       PHLWINDOWREF window;
       SFullscreenMode mode;
+
+      bool operator==(const SWindowFullscreenState& b) const {
+        return this->window == b.window;  
+      }
     };
 
 
@@ -119,4 +124,14 @@ namespace Fullscreen {
 
     inline UP<CFullscreenController> fullscreenController = makeUnique<CFullscreenController>();
 
+}
+
+
+namespace std {
+template <>
+struct hash<Fullscreen::SWindowFullscreenState> {
+  size_t operator()(const Fullscreen::SWindowFullscreenState& s) const {
+    return std::hash<PHLWINDOWREF>{}(s.window);
+  }
+};
 }

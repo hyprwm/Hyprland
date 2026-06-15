@@ -472,3 +472,15 @@ TEST_CASE(groups) {
     Tests::killAllWindows();
     ASSERT(Tests::windowCount(), 0);
 }
+
+TEST_CASE(groupsNoCrash) {
+    auto kittyA = Tests::spawnKitty("kittyA");
+
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_group()"));
+    OK(getFromSocket("/dispatch hl.dsp.window.toggle_group()"));
+
+    {
+        auto curr = getFromSocket("/activewindow");
+        EXPECT_CONTAINS(curr, "kittyA");
+    }
+}

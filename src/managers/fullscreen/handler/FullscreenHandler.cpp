@@ -1,6 +1,7 @@
 
 #include "FullscreenHandler.hpp"
 #include "Compositor.hpp"
+#include "debug/log/Logger.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include "desktop/view/Window.hpp"
 #include "layout/algorithm/ModeAlgorithm.hpp"
@@ -10,9 +11,19 @@
 #include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
 #include <cstddef>
+#include <cstdlib>
 
 
 using namespace Fullscreen;
+
+
+IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm) {
+    if (!m_algorithm) {
+        Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");      
+        abort();
+    }
+};
+
 
 
 bool IFullscreenHandler::isFullscreen(const PHLWINDOW window, const std::optional<bool> covering) {
@@ -153,6 +164,10 @@ eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
     return FULLSCREEN_HANDLER_TYPE;
 }
 
+
+const Layout::IModeAlgorithm* IFullscreenHandler::getAlgorithm() const {
+    return m_algorithm;
+}
 
 SP<Layout::CSpace> IFullscreenHandler::getSpace() const {
     return m_algorithm->m_parent.lock()->space();

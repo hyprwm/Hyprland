@@ -137,7 +137,7 @@ static SSettings parseSettings(const std::span<const char*> args) {
             settings.requestedTests.emplace_back(value);
         } else {
             std::println(stderr, "[ ERROR ] Unknown option '{}' !", *it);
-            helpAndDie(EXIT_SUCCESS);
+            helpAndDie(EXIT_FAILURE);
         }
     }
 

@@ -66,16 +66,13 @@ void CGroup::init() {
 }
 
 void CGroup::destroy() {
-    while (true) {
-        if (m_windows.size() == 1) {
-            remove(m_windows.at(0).lock());
-            break;
-        }
-
+    const size_t s = m_windows.size();
+    for (size_t i = 0; i < s; i++) {
         remove(m_windows.at(0).lock());
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(m_windows.at(0).get()))}));
+    if (!m_windows.empty())
+        g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(m_windows.at(0).get()))}));
 }
 
 CGroup::~CGroup() {

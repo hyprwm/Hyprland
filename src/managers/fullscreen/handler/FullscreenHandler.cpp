@@ -4,6 +4,7 @@
 #include "desktop/view/LayerSurface.hpp"
 #include "layout/algorithm/Algorithm.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
+#include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
 
 
@@ -32,7 +33,12 @@ PHLWINDOW IFullscreenHandler::getFullscreen(const std::optional<bool> covering) 
     return hasFullscreen() ? m_fullscreenWindow.window.lock() : nullptr;
 }
 
+SFullscreenMode IFullscreenHandler::getFullscreenMode(const PHLWINDOW window) {
+    if (m_fullscreenWindow.window != window)
+        return {.internal = FSMODE_NONE, .client = FSMODE_NONE};
 
+    return m_fullscreenWindow.mode;
+}
 
 
 eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
@@ -148,7 +154,7 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
     }
 }
 
-void IFullscreenHandler::syncFullscreenTargets() {
+void IFullscreenHandler::syncFullscreenWindows() {
     ;
 }
 
@@ -158,11 +164,7 @@ eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
 }
 
 
-const Layout::IModeAlgorithm* IFullscreenHandler::getAlgorithm() const {
-    return m_algorithm;
-}
-
-SP<Layout::CSpace> IFullscreenHandler::getSpace() const {
+SP<Layout::CSpace> IFullscreenHandler::getSpace()const {
     return m_algorithm->m_parent.lock()->space();
 }
 

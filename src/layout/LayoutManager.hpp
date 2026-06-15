@@ -10,7 +10,6 @@
 #include <optional>
 #include <expected>
 
-enum eFullscreenMode : int8_t;
 
 namespace Layout {
     class ITarget;

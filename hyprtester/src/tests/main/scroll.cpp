@@ -121,7 +121,7 @@ TEST_CASE(scrollSwapcolWrapping) {
     }
 
     // clean up
-    NLog::alert("Killing all windows");
+    NLog::yellow("Killing all windows");
     Tests::killAllWindows();
 
     for (auto const& win : {"a", "b", "c", "d"}) {
@@ -138,7 +138,7 @@ TEST_CASE(scrollSwapcolWrapping) {
     }
 
     // clean up
-    NLog::alert("Killing all windows");
+    NLog::yellow("Killing all windows");
     Tests::killAllWindows();
 
     for (auto const& win : {"a", "b", "c", "d"}) {
@@ -172,7 +172,7 @@ TEST_CASE(scrollSwapcolWrapping) {
 TEST_CASE(scrollWindowRule) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::info("Testing Scrolling Width");
+    NLog::green("Testing Scrolling Width");
 
     // inject a new rule.
     OK(getFromSocket("/eval hl.window_rule({ name = 'scrolling-width', match = { class = 'kitty_scroll' } })"));
@@ -191,7 +191,7 @@ TEST_CASE(scrollWindowRule) {
 TEST_CASE(scrollFullscreen) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::info("Testing Scrolling FS");
+    NLog::green("Testing Scrolling FS");
 
     SPAWN_KITTY("kitty_scroll_A");
     SPAWN_KITTY("kitty_scroll_B");
@@ -233,7 +233,7 @@ TEST_CASE(scrollFullscreen) {
 TEST_CASE(scrollMaximize) {
     OK(getFromSocket("/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::info("Testing Scrolling Maximize");
+    NLog::green("Testing Scrolling Maximize");
 
     SPAWN_KITTY("kitty_scroll_A");
     SPAWN_KITTY("kitty_scroll_B");
@@ -281,7 +281,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
      ---------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: focuswindow dispatch SHOULD NOT move scrolling view when follow_focus = false");
+    NLog::green("Testing scrolling view behaviour: focuswindow dispatch SHOULD NOT move scrolling view when follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -313,7 +313,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
      --------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true");
+    NLog::green("Testing scrolling view behaviour: focuswindow dispatch SHOULD move scrolling view when follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -343,7 +343,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
      --------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: focus fallback from floating window to a tiled window should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -387,7 +387,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
 
     // same idea as testScrollingViewBehaviourFocusFallback, but with window of class "a" being grouped.
 
-    NLog::info("Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: focus fallback from floating window to a grouped tiled should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -440,7 +440,7 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
      ---------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: changing to a scrolling workspace should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: changing to a scrolling workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -481,7 +481,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
      -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: changing to a special scrolling workspace from a normal workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -525,7 +525,7 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     This follows the same idea and dependencies as the test testScrollingViewBehaviourSpecialWorkspaceChange()
     */
 
-    NLog::info("Testing scrolling view behaviour: changing to a special scrolling workspace from another special workspace should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: changing to a special scrolling workspace from another special workspace should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -570,7 +570,7 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
      -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: closing a window in a group (> 1 window in group) should not move scrolling view");
+    NLog::green("Testing scrolling view behaviour: closing a window in a group (> 1 window in group) should not move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -618,7 +618,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
      -----------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: moving a window into a group SHOULD NOT move scrolling view if follow_focus = 0");
+    NLog::green("Testing scrolling view behaviour: moving a window into a group SHOULD NOT move scrolling view if follow_focus = 0");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -659,7 +659,7 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     ------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true");
+    NLog::green("Testing scrolling view behaviour: moving a window in a group SHOULD move scrolling view if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -699,7 +699,7 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
      ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: new program occupying another layer shouldn't move scrolling view");
+    NLog::green("Testing scrolling view behaviour: new program occupying another layer shouldn't move scrolling view");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -715,7 +715,7 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
     // focus class:a - this does not move scrolling view when follow_focus = 0
     OK(getFromSocket("/dispatch hl.dsp.focus({window = 'class:a'})"));
 
-    NLog::alert("Spawning kitty layer");
+    NLog::yellow("Spawning kitty layer");
     SPAWN_LAYER_KITTY("myLayer");
 
     // If the scrolling view did not move, class:a window's x coordinate for its `at:` value should be <0
@@ -737,7 +737,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
      ---------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: movefocus does not cause scrolling view to move if follow_focus = false");
+    NLog::green("Testing scrolling view behaviour: movefocus does not cause scrolling view to move if follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -771,7 +771,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
      ----------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: movefocus does cause scrolling view to move if follow_focus = true");
+    NLog::green("Testing scrolling view behaviour: movefocus does cause scrolling view to move if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -803,7 +803,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
      -----------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false");
+    NLog::green("Testing scrolling view behaviour: movefocus within groups does not cause scrolling view to move if follow_focus = false");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -850,7 +850,7 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
      ------------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    NLog::info("Testing scrolling view behaviour: movefocus within groups does causes scrolling view to move if follow_focus = true");
+    NLog::green("Testing scrolling view behaviour: movefocus within groups does causes scrolling view to move if follow_focus = true");
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -940,7 +940,7 @@ TEST_CASE(testScrollInhibitor) {
     // set current layout to scrolling
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
-    NLog::info("Testing inhibit_scroll");
+    NLog::green("Testing inhibit_scroll");
 
     SPAWN_KITTY("a");
 

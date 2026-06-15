@@ -25,7 +25,7 @@ static std::string spawnKittyActivating(const std::string& class_ = "kitty_activ
     int         fd          = mkstemp(tmpFilename.data());
 
     if (fd < 0) {
-        NLog::error("Error: could not create tmp file: errno {}", errno);
+        NLog::red("Error: could not create tmp file: errno {}", errno);
         return "";
     }
 
@@ -35,7 +35,7 @@ static std::string spawnKittyActivating(const std::string& class_ = "kitty_activ
         "-o", "allow_remote_control=yes", "--", "/bin/sh", "-c", "while [ -f \"" + tmpFilename + "\" ]; do :; done; kitten @ focus-window; sleep infinity"};
 
     if (!Tests::spawnKitty(class_, args)) {
-        NLog::error("Error: failed to spawn kitty");
+        NLog::red("Error: failed to spawn kitty");
         return "";
     }
 
@@ -610,10 +610,8 @@ TEST_CASE(specialFloatRecenters) {
 }
 
 TEST_CASE(exactWindowSelectors) {
-    if (!spawnKitty("kitty_A"))
-        FAIL_TEST("Could not spawn kitty");
-    if (!spawnKitty("kitty_B"))
-        FAIL_TEST("Could not spawn kitty");
+    SPAWN_KITTY("kitty_A");
+    SPAWN_KITTY("kitty_B");
 
     getFromSocket("/dispatch hl.dsp.focus({ window = 'class:kitty_B' })");
     auto target    = getFromSocket("/activewindow");

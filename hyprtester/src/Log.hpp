@@ -27,26 +27,23 @@ namespace NLog {
         std::fflush(stdout);
     }
 
-    /// Logs message with yellow
     template <typename... Args>
     // NOLINTNEXTLINE
-    void alert(std::format_string<Args...> fmt, Args&&... args) {
+    void yellow(std::format_string<Args...> fmt, Args&&... args) {
         auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
         log("{}{}", Colors::YELLOW, msg);
     }
 
-    /// Logs message with green
     template <typename... Args>
     // NOLINTNEXTLINE
-    void info(std::format_string<Args...> fmt, Args&&... args) {
+    void green(std::format_string<Args...> fmt, Args&&... args) {
         auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
         log("{}{}", Colors::GREEN, msg);
     }
 
-    /// Logs message with red
     template <typename... Args>
     // NOLINTNEXTLINE
-    void error(std::format_string<Args...> fmt, Args&&... args) {
+    void red(std::format_string<Args...> fmt, Args&&... args) {
         auto msg = std::vformat(fmt.get(), std::make_format_args(args...));
         log("{}{}", Colors::RED, msg);
     }

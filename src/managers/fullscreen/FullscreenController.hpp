@@ -2,6 +2,7 @@
 
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
+#include "layout/target/WindowGroupTarget.hpp"
 #include <optional>
 
 namespace Fullscreen {
@@ -29,6 +30,11 @@ namespace Fullscreen {
         eFullscreenMode client   = FSMODE_NONE;
     };
 
+    struct SWindowFullscreenState {
+      PHLWINDOWREF window;
+      SFullscreenMode mode;
+    };
+
 
     /*
     FS Controller: To be used to set and get fullscreen state of windows in all parts of the codebase except Layout specific source files. The controller interfaces with the FSHandler of a window to facilitate
@@ -45,11 +51,11 @@ namespace Fullscreen {
     handle the FS(-like) behaviour of this Target, as well as the storage of FS(-like) target states, in their own FS Handler classes.
     
 
+
     Non-Covering Fullscreens
     ------------------------
 
     Layouts may have non-covering fullscreens. Currently this is a binary toggle (Either covering or not covering).
-    Controller still includes information about the coverage of an FS window because in some parts of the code, this is necessary. (i.e. fully abstracting this away inside the layout FS handler isn't possible at this moment)
 
 
     */
@@ -57,25 +63,34 @@ namespace Fullscreen {
 
       public:
         // TODO: make functions constant if they can be
+        // TODO: optional for covering. default is to be true since that's what's used almost everywhere. if nullopt, consider "if fullscreen", if false; fullscreen but not covering, if true only covering
 
         // Window
 
         /// @param covering If passed, can determine if a window must be covering, must be non-covering. If not passed, window can be either --> handler's isFullscreen() method will be used, which provides no guarantee of coverage
         bool                   isFullscreen(const PHLWINDOW window, const std::optional<bool> covering = std::nullopt);
-        bool                   isLayoutManagedFullscreen(const PHLWINDOW window);
+        bool                   isLayoutManagedFullscreen(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
         SFullscreenMode        getFullscreenMode(const PHLWINDOW window);
+
+
+        // Groups
+
+        bool                   isFullscreen(const SP<Layout::CWindowGroupTarget> group, const std::optional<bool> covering = std::nullopt);
+        bool                   isLayoutManagedFullscreen(const SP<Layout::CWindowGroupTarget> group); // TODO: use the handler to judge - delete this todo after implemented
+        SFullscreenMode        getFullscreenMode(const SP<Layout::CWindowGroupTarget> group);
+
 
         // Workspace
 
-        bool                   hasCoveringFullscreen(const PHLWORKSPACE workspace);
-        PHLWINDOW              getCoveringFullscreenWindow(const PHLWORKSPACE workspace);
-        SFullscreenMode        getCoveringFullscreenMode(const PHLWORKSPACE workspace);
+        bool                   hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        PHLWINDOW              getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        SFullscreenMode        getFullscreenMode(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
 
-        bool                   hasCoveringFullscreen(const PHLMONITOR monitor);
-        PHLWINDOW              getCoveringFullscreenWindow(const PHLMONITOR monitor);
-        SFullscreenMode        getCoveringFullscreenMode(const PHLMONITOR monitor);
+        bool                   hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        PHLWINDOW              getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        SFullscreenMode        getFullscreenMode(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
         // Handler
 
@@ -83,11 +98,16 @@ namespace Fullscreen {
 
         // FS Mode Setters
 
-        void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode);
-        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode);
+          // Windows
 
         void setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force);
         void setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, bool force);
+
+          // Groups
+
+        void setWindowFullscreenClient(const SP<Layout::CWindowGroupTarget> group, const eFullscreenMode mode, bool force);
+        void setWindowFullscreenInternal(const SP<Layout::CWindowGroupTarget> group, const eFullscreenMode mode, bool force);
+
 
         // Misc. Operations
 

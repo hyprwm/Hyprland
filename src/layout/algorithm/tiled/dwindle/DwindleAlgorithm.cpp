@@ -20,8 +20,6 @@ using namespace Layout::Tiled;
 
 using namespace Hyprutils::String;
 
-
-
 void SDwindleNodeData::recalcSizePosRecursive(bool force, bool horizontalOverride, bool verticalOverride) {
     if (children[0]) {
         static auto PSMARTSPLIT       = CConfigValue<Config::INTEGER>("dwindle:smart_split");

@@ -112,8 +112,7 @@ namespace Desktop::View {
         std::string  workspace;
     };
 
-
-    class CWindow : public virtual IView, public virtual CGeometricMovableAnimated, public virtual IAlphaModifiable {
+    class CWindow : public IView {
       public:
         static PHLWINDOW create(SP<CXDGSurfaceResource>);
         static PHLWINDOW create(SP<CXWaylandSurface>);
@@ -166,16 +165,16 @@ namespace Desktop::View {
         bool     m_firstMap   = false; // for layouts
         bool     m_isFloating = false;
         // This is NOT a guarantee that the window covers monitor/workspace!
-        std::string        m_title             = "";
-        std::string        m_class             = "";
-        std::string        m_initialTitle      = "";
-        std::string        m_initialClass      = "";
-        PHLWORKSPACE       m_workspace;
-        PHLMONITORREF      m_monitor, m_prevMonitor;
+        std::string   m_title        = "";
+        std::string   m_class        = "";
+        std::string   m_initialTitle = "";
+        std::string   m_initialClass = "";
+        PHLWORKSPACE  m_workspace;
+        PHLMONITORREF m_monitor, m_prevMonitor;
 
-        bool               m_isMapped = false;
+        bool          m_isMapped = false;
 
-        bool               m_requestsFloat = false;
+        bool          m_requestsFloat = false;
 
         // This is for fullscreen apps
         bool m_allowedOverFullscreen = true;

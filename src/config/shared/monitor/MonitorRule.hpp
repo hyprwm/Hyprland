@@ -32,7 +32,7 @@ namespace Config {
 
     class CMonitorRule {
       public:
-        CMonitorRule()  = default;
+        CMonitorRule() = default;
 
         eMonitorRuleComparisonResult compare(const CMonitorRule& other) const;
 

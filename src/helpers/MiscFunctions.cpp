@@ -599,7 +599,7 @@ std::vector<SCallstackFrameInfo> getBacktrace() {
     btSymbols = backtrace_symbols(bt, btSize);
 
     callstack.reserve(btSize);
-    
+
     for (auto i = 0; i < btSize; ++i) {
         callstack.emplace_back(SCallstackFrameInfo{bt[i], std::string{btSymbols[i]}});
     }

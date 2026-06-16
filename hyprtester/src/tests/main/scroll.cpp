@@ -1027,6 +1027,55 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     }
 }
 
+TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
+
+    /*
+    Test that hl.exec_scheduled_prop_refresh_immediately() should immediately execute prop refresh. This is tested via inhibiting scrollin during helper functs dispatch; if it works, the viewport
+    should not move when a new workspace rule is created. If it doesn't, dispatch will miss because the refresh will be executed as another event 
+    --------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
+
+    // ensure variables are correctly set for the test
+
+    OK(getFromSocket("/eval hl.config({scrolling = {follow_focus = false}})"));
+
+    if (!Tests::spawnKitty("a")) {
+        FAIL_TEST("Could not spawn kitty with win class `a`");
+        return;
+    }
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('colresize 0.8')"));
+
+    if (!Tests::spawnKitty("b")) {
+        FAIL_TEST("Could not spawn kitty with win class `b`");
+        return;
+    }
+
+    // since follow_focus = false, viewport does not move
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
+
+    // setting a workspace rule queues a doLater() call in the Event Loop Manager
+    OK(getFromSocket("/eval hl.dispatch(hl.dsp.layout('inhibit_scroll true')); hl.workspace_rule({workspace = hl.get_active_workspace().id,gaps_in = 0}); "
+                     "hl.exec_scheduled_prop_refresh_immediately(); hl.dispatch(hl.dsp.layout('inhibit_scroll false'));"));
+
+    // Check that the workspace rule is set
+    ASSERT_CONTAINS(getFromSocket("/workspacerules"), "gapsIn: 0 0 0 0");
+
+    // The viewport must not have moved: left corner cords of window should be < 0
+    const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
+    const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
+    // test pass
+    if (std::stoi(currentWindowPosX) < 0) {
+        NLog ::log("{}Passed: {}window of class 'a' has negative x coordinates for its position: {}", Colors ::GREEN, Colors::RESET, currentWindowPosX);
+    }
+    // test fail
+    else {
+        FAIL_TEST("{}Failed: {}window of class 'a' does not have negative x coordinates for its position: {}", Colors::RED, Colors::RESET, currentWindowPosX);
+    }
+}
+
 TEST_CASE(testScrollInhibitor) {
 
     /*

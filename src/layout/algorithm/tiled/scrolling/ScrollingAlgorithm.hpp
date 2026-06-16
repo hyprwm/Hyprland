@@ -157,6 +157,7 @@ namespace Layout::Tiled {
         } m_config;
 
         eScrollDirection getDynamicDirection();
+        eScrollDirection m_lastDynamicDirection = SCROLL_DIR_RIGHT;
 
         struct SFullscreenScrollState {
             WP<ITarget>          target;
@@ -186,7 +187,7 @@ namespace Layout::Tiled {
         void                      centerOrFitTargetData(SP<SScrollingTargetData> target);
         SP<SColumnData>           nextColumnForTargetData(SP<SScrollingTargetData> target);
         SP<SColumnData>           prevColumnForTargetData(SP<SScrollingTargetData> target);
-        bool                      tryUpdateSpan(SP<SScrollingTargetData> target, int deltaLeft, int deltaRight);
+        bool                      tryUpdateSpan(SP<SScrollingTargetData> target, int deltaPrev, int deltaNext);
         void                      clearSpan(SP<SScrollingTargetData> target);
         void                      clearAllSpans();
         void                      clearSpansCoveringColumn(SP<SColumnData> column);

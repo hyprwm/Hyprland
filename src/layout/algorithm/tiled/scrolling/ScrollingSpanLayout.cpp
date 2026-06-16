@@ -15,7 +15,7 @@ namespace {
 }
 
 bool SSpanState::active() const {
-    return left > 0 || right > 0;
+    return prev > 0 || next > 0;
 }
 
 bool SSpanRange::contains(size_t column) const {
@@ -26,8 +26,8 @@ std::optional<SSpanRange> Layout::Tiled::spanRangeFor(size_t anchorColumn, const
     if (columnCount == 0 || anchorColumn >= columnCount)
         return std::nullopt;
 
-    const size_t left     = sc<size_t>(std::max(span.left, 0));
-    const size_t right    = sc<size_t>(std::max(span.right, 0));
+    const size_t left     = sc<size_t>(std::max(span.prev, 0));
+    const size_t right    = sc<size_t>(std::max(span.next, 0));
     const size_t maxRight = columnCount - 1 - anchorColumn;
 
     return SSpanRange{
@@ -51,7 +51,7 @@ std::optional<SSpanState> Layout::Tiled::spanAfterColumnInsert(size_t anchorColu
     if (newFirst > newAnchor || newLast < newAnchor)
         return std::nullopt;
 
-    return SSpanState{.left = sc<int>(newAnchor - newFirst), .right = sc<int>(newLast - newAnchor)};
+    return SSpanState{.prev = sc<int>(newAnchor - newFirst), .next = sc<int>(newLast - newAnchor)};
 }
 
 size_t Layout::Tiled::columnInsertAfterFocusedSpan(size_t anchorColumn, const SSpanState& span, size_t columnCount) {
@@ -77,11 +77,7 @@ std::optional<SSpanState> Layout::Tiled::spanAfterColumnRemove(size_t anchorColu
     if (newFirst > newAnchor || newLast < newAnchor)
         return std::nullopt;
 
-    return SSpanState{.left = sc<int>(newAnchor - newFirst), .right = sc<int>(newLast - newAnchor)};
-}
-
-bool Layout::Tiled::columnSpansSupportedForPrimaryAxis(bool primaryHorizontal) {
-    return primaryHorizontal;
+    return SSpanState{.prev = sc<int>(newAnchor - newFirst), .next = sc<int>(newLast - newAnchor)};
 }
 
 size_t Layout::Tiled::virtualSlotFor(size_t sourceIndex, size_t sourceCount, size_t destinationRealCount) {

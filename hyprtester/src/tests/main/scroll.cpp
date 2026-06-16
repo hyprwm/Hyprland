@@ -282,7 +282,7 @@ TEST_CASE(scrollSpanExpandShrinkCollapse) {
     ASSERT_MAX_DELTA(BASE_B->w, 960, 4);
     ASSERT_MAX_DELTA(BASE_B->h, 540, 4);
 
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto EXPANDED_B = scrollClientBoxForClass("span_b");
     const auto C_ABOVE    = scrollClientBoxForClass("span_c");
@@ -297,7 +297,7 @@ TEST_CASE(scrollSpanExpandShrinkCollapse) {
     ASSERT((C_ABOVE->y + C_ABOVE->h) <= EXPANDED_B->y, true);
     ASSERT((D_ABOVE->y + D_ABOVE->h) <= EXPANDED_B->y, true);
 
-    OK(getFromSocket("/dispatch hl.dsp.layout('shrink right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('shrink next')"));
 
     const auto SHRUNK_B = scrollClientBoxForClass("span_b");
     if (!SHRUNK_B)
@@ -306,7 +306,7 @@ TEST_CASE(scrollSpanExpandShrinkCollapse) {
     ASSERT_MAX_DELTA(SHRUNK_B->x, 0, 4);
     ASSERT_MAX_DELTA(SHRUNK_B->w, 960, 4);
 
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('collapse')"));
 
     const auto COLLAPSED_B = scrollClientBoxForClass("span_b");
@@ -317,7 +317,7 @@ TEST_CASE(scrollSpanExpandShrinkCollapse) {
     ASSERT_MAX_DELTA(COLLAPSED_B->w, 960, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_d' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand left')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand prev')"));
 
     const auto EXPANDED_D = scrollClientBoxForClass("span_d");
     if (!EXPANDED_D)
@@ -328,7 +328,7 @@ TEST_CASE(scrollSpanExpandShrinkCollapse) {
     ASSERT_MAX_DELTA(EXPANDED_D->w, 1920, 4);
     ASSERT_MAX_DELTA(EXPANDED_D->h, 540, 4);
 
-    OK(getFromSocket("/dispatch hl.dsp.layout('shrink left')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('shrink prev')"));
 
     const auto SHRUNK_D = scrollClientBoxForClass("span_d");
     if (!SHRUNK_D)
@@ -347,7 +347,7 @@ TEST_CASE(scrollSpanFitActiveKeepsWindowInView) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_fit_active_a' })"));
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_fit_active_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit active')"));
 
     const auto AFTER_B = scrollClientBoxForClass("span_fit_active_b");
@@ -370,7 +370,7 @@ TEST_CASE(scrollSpanRejectsFullHeightCollision) {
     if (!BEFORE_A || !BEFORE_B)
         FAIL_TEST("Could not find full-height span-blocking geometry before expansion");
 
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_block_a");
     const auto AFTER_B = scrollClientBoxForClass("span_block_b");
@@ -400,7 +400,7 @@ TEST_CASE(scrollSpanExpandsBelowExistingSpan) {
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_a' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_expand_stack_a");
     const auto BEFORE_B = scrollClientBoxForClass("span_expand_stack_b");
@@ -411,7 +411,7 @@ TEST_CASE(scrollSpanExpandsBelowExistingSpan) {
     ASSERT_MAX_DELTA(BEFORE_B->w, 960, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_expand_stack_a");
     const auto AFTER_B = scrollClientBoxForClass("span_expand_stack_b");
@@ -440,7 +440,7 @@ TEST_CASE(scrollSpanExpandsMiddleRowBelowExistingSpan) {
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_a' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_expand_middle_a");
     const auto BEFORE_B = scrollClientBoxForClass("span_expand_middle_b");
@@ -451,7 +451,7 @@ TEST_CASE(scrollSpanExpandsMiddleRowBelowExistingSpan) {
     ASSERT_MAX_DELTA(BEFORE_B->w, 640, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_expand_middle_a");
     const auto AFTER_B = scrollClientBoxForClass("span_expand_middle_b");
@@ -483,7 +483,7 @@ TEST_CASE(scrollSpanExpandsFromCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_a' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_expand_covered_a");
     const auto BEFORE_E = scrollClientBoxForClass("span_expand_covered_e");
@@ -494,7 +494,7 @@ TEST_CASE(scrollSpanExpandsFromCoveredColumn) {
     ASSERT_MAX_DELTA(BEFORE_E->w, 640, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_e' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_expand_covered_a");
     const auto AFTER_D = scrollClientBoxForClass("span_expand_covered_d");
@@ -526,7 +526,7 @@ TEST_CASE(scrollSpanExpandsLeftFromCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_a' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_expand_left_covered_a");
     const auto BEFORE_E = scrollClientBoxForClass("span_expand_left_covered_e");
@@ -537,7 +537,7 @@ TEST_CASE(scrollSpanExpandsLeftFromCoveredColumn) {
     ASSERT_MAX_DELTA(BEFORE_E->w, 640, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_e' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand left')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand prev')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_expand_left_covered_a");
     const auto AFTER_C = scrollClientBoxForClass("span_expand_left_covered_c");
@@ -562,7 +562,7 @@ TEST_CASE(scrollSpanRejectsExpansionBelowExistingSpanWithoutClearing) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_reject_a' })"));
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_expand_reject_a");
     const auto BEFORE_B = scrollClientBoxForClass("span_expand_reject_b");
@@ -573,7 +573,7 @@ TEST_CASE(scrollSpanRejectsExpansionBelowExistingSpanWithoutClearing) {
     ASSERT_MAX_DELTA(BEFORE_B->w, 960, 4);
 
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_reject_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto AFTER_A = scrollClientBoxForClass("span_expand_reject_a");
     const auto AFTER_B = scrollClientBoxForClass("span_expand_reject_b");
@@ -593,7 +593,7 @@ TEST_CASE(scrollSpanKeepsVirtualGapsAligned) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_gap_a' })"));
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto B = scrollClientBoxForClass("span_gap_b");
     const auto C = scrollClientBoxForClass("span_gap_c");
@@ -613,7 +613,7 @@ TEST_CASE(scrollSpanKeepsInsertedColumnOutsideSpan) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_insert_a' })"));
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_A = scrollClientBoxForClass("span_insert_a");
     if (!BEFORE_A)
@@ -639,8 +639,8 @@ TEST_CASE(scrollSpanShrinksWhenMiddleColumnRemoved) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_remove_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_remove_b");
     if (!BEFORE_B)
@@ -669,7 +669,7 @@ TEST_CASE(scrollSpanSurvivesClosingWindowInCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_close_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_close_b");
     if (!BEFORE_B)
@@ -703,7 +703,7 @@ TEST_CASE(scrollSpanSurvivesUnrelatedConsume) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_consume_b");
     if (!BEFORE_B)
@@ -731,7 +731,7 @@ TEST_CASE(scrollSpanSurvivesConsumeIntoCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_into_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_consume_into_b");
     if (!BEFORE_B)
@@ -762,7 +762,7 @@ TEST_CASE(scrollSpanSurvivesUnrelatedWindowMove) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_move_b");
     if (!BEFORE_B)
@@ -788,7 +788,7 @@ TEST_CASE(scrollSpanSurvivesMoveIntoCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_into_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_move_into_b");
     if (!BEFORE_B)
@@ -819,7 +819,7 @@ TEST_CASE(scrollSpanSurvivesSwapInCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_swap_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_swap_b");
     const auto BEFORE_C = scrollClientBoxForClass("span_swap_c");
@@ -866,7 +866,7 @@ TEST_CASE(scrollSpanSurvivesMovingCoveredColumnToMonitor) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_monitor_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_monitor_b");
     if (!BEFORE_B)
@@ -908,7 +908,7 @@ TEST_CASE(scrollSpanSurvivesConsumeOrExpelFromCoveredColumn) {
     OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
     OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expel_b' })"));
-    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
 
     const auto BEFORE_B = scrollClientBoxForClass("span_expel_b");
     if (!BEFORE_B)
@@ -2066,4 +2066,126 @@ TEST_CASE(properFocusBehvaior) {
 
     OK(getFromSocket("/eval hl.config({ binds = { focus_preferred_method = 1 } })")); // set length mode
     test();
+}
+
+TEST_CASE(scrollSpanExpandShrinkVertical) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'down', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"vspan_a", "vspan_b", "vspan_c", "vspan_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:vspan_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:vspan_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:vspan_b' })"));
+
+    const auto BASE_B = scrollClientBoxForClass("vspan_b");
+    if (!BASE_B)
+        FAIL_TEST("Could not find vspan_b geometry");
+
+    // Two strips: strip 0 (top) has a, strip 1 (bottom) has b, c, d.
+    // Window b should be in strip 1, at half height.
+    ASSERT_MAX_DELTA(BASE_B->y, 540, 4);
+    ASSERT_MAX_DELTA(BASE_B->h, 540, 4);
+
+    // Expand into strip 0 (prev = up in DOWN mode).
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand prev')"));
+
+    const auto EXPANDED_B = scrollClientBoxForClass("vspan_b");
+    if (!EXPANDED_B)
+        FAIL_TEST("Could not find vspan_b geometry after expanding prev");
+
+    // Should now span both strips (full height).
+    ASSERT_MAX_DELTA(EXPANDED_B->y, 0, 4);
+    ASSERT_MAX_DELTA(EXPANDED_B->h, 1080, 4);
+
+    // Shrink back.
+    OK(getFromSocket("/dispatch hl.dsp.layout('shrink prev')"));
+
+    const auto SHRUNK_B = scrollClientBoxForClass("vspan_b");
+    if (!SHRUNK_B)
+        FAIL_TEST("Could not find vspan_b geometry after shrinking prev");
+
+    ASSERT_MAX_DELTA(SHRUNK_B->y, 540, 4);
+    ASSERT_MAX_DELTA(SHRUNK_B->h, 540, 4);
+
+    // Expand into next strip (down in DOWN mode = next strip; boundary test).
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
+    const auto AT_BOUNDARY = scrollClientBoxForClass("vspan_b");
+    if (!AT_BOUNDARY)
+        FAIL_TEST("Could not find vspan_b geometry after expand next");
+    ASSERT_MAX_DELTA(AT_BOUNDARY->y, 540, 4);
+
+    // Collapse.
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand prev')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('collapse')"));
+
+    const auto COLLAPSED_B = scrollClientBoxForClass("vspan_b");
+    if (!COLLAPSED_B)
+        FAIL_TEST("Could not find vspan_b geometry after collapse");
+    ASSERT_MAX_DELTA(COLLAPSED_B->y, 540, 4);
+    ASSERT_MAX_DELTA(COLLAPSED_B->h, 540, 4);
+}
+
+TEST_CASE(scrollSpanRejectsFullWidthCollisionVertical) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'down', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"fwc_a", "fwc_b", "fwc_c", "fwc_d"}), true);
+
+    // Create a single strip: consume all windows into one strip.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fwc_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fwc_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fwc_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+
+    // One strip has all 4 windows stacked horizontally. fwc_b occupies part of the secondary axis.
+    // Expanding forward should fail if it creates a collision with another strip.
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:fwc_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand prev')"));
+
+    // Verify geometry is unchanged (expand was rejected or window still in single strip).
+    const auto B_AFTER = scrollClientBoxForClass("fwc_b");
+    if (!B_AFTER)
+        FAIL_TEST("Could not find fwc_b geometry");
+    ASSERT((B_AFTER->h < 1080), true);
+}
+
+TEST_CASE(scrollSpanSurvivesDirectionChange) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"sdc_a", "sdc_b", "sdc_c", "sdc_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:sdc_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:sdc_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:sdc_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand next')"));
+
+    // Verify the span is active (window spans full width).
+    const auto EXPANDED = scrollClientBoxForClass("sdc_b");
+    if (!EXPANDED)
+        FAIL_TEST("Could not find sdc_b geometry after expand next");
+    ASSERT_MAX_DELTA(EXPANDED->w, 1920, 4);
+
+    // Change direction to vertical -- spans should be cleared.
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'down' } })"));
+
+    // Force recalculate.
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    const auto AFTER_DIR_CHANGE = scrollClientBoxForClass("sdc_b");
+    if (!AFTER_DIR_CHANGE)
+        FAIL_TEST("Could not find sdc_b geometry after direction change");
+    // Window should no longer span full height (span was cleared).
+    ASSERT((AFTER_DIR_CHANGE->h < 1080), true);
 }

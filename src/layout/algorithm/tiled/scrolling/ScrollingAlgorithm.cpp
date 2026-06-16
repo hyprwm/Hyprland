@@ -51,12 +51,12 @@ static std::optional<SSpanRange> renderableSpanRangeFor(const SP<SScrollingTarge
     if (!renderableSpanSource(target) || anchorIdx >= columnCount)
         return std::nullopt;
 
-    if (target->span.left < 0 || target->span.right < 0)
+    if (target->span.prev < 0 || target->span.next < 0)
         return std::nullopt;
 
-    const auto SPAN_LEFT  = sc<size_t>(target->span.left);
-    const auto SPAN_RIGHT = sc<size_t>(target->span.right);
-    if (SPAN_LEFT > anchorIdx || SPAN_RIGHT >= columnCount - anchorIdx)
+    const auto SPAN_PREV  = sc<size_t>(target->span.prev);
+    const auto SPAN_NEXT = sc<size_t>(target->span.next);
+    if (SPAN_PREV > anchorIdx || SPAN_NEXT >= columnCount - anchorIdx)
         return std::nullopt;
 
     return spanRangeFor(anchorIdx, target->span, columnCount);
@@ -482,7 +482,14 @@ void SScrollingData::recalculate(bool forceInstant) {
         }
     }
 
-    controller->setDirection(algorithm->getDynamicDirection());
+    const auto CURRENT_DIR = algorithm->getDynamicDirection();
+    controller->setDirection(CURRENT_DIR);
+
+    // Clear spans when scroll direction changes -- prev/next semantics rotate.
+    if (CURRENT_DIR != algorithm->m_lastDynamicDirection) {
+        algorithm->clearAllSpans();
+        algorithm->m_lastDynamicDirection = CURRENT_DIR;
+    }
     algorithm->sanitizeCurrentSpans();
 
     algorithm->updateFullscreenFade(anyFullscreenCovers);
@@ -1789,7 +1796,7 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
             size_t     fitFrom = 0;
             size_t     fitTo   = 0;
 
-            if (columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()) && WDATA->span.active()) {
+            if (WDATA->span.active()) {
                 const auto COL = WDATA->column.lock();
                 if (COL) {
                     const int64_t ANCHOR_IDX = m_scrollingData->idx(COL);
@@ -2263,34 +2270,18 @@ Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
 
         const bool EXPAND = ARGS[0] == "expand";
         const int  DELTA  = EXPAND ? 1 : -1;
-        const bool LEFT   = ARGS[1] == "left";
-        const bool RIGHT  = ARGS[1] == "right";
+        const bool PREV   = ARGS[1] == "prev";
+        const bool NEXT   = ARGS[1] == "next";
 
-        if (!LEFT && !RIGHT)
-            return invalidArg("invalid span direction, expected left or right");
+        if (!PREV && !NEXT)
+            return invalidArg("invalid span direction, expected prev or next");
 
-        if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()))
-            return invalidArg("span expansion requires horizontal scrolling direction");
-
-        const bool REVERSED = m_scrollingData->controller->isReversed();
-
-        auto       updateSpan = [this, TDATA](int deltaLeft, int deltaRight) {
-            // Edge and validation failures are intentional no-ops for span layout messages.
-            tryUpdateSpan(TDATA, deltaLeft, deltaRight);
-        };
-
-        if (LEFT) {
-            if (REVERSED)
-                updateSpan(0, DELTA);
-            else
-                updateSpan(DELTA, 0);
-            return {};
-        }
-
-        if (REVERSED)
-            updateSpan(DELTA, 0);
+        // prev always means decreasing strip index, next always means increasing strip index.
+        // No reversal logic needed — prev/next are axis-agnostic.
+        if (PREV)
+            tryUpdateSpan(TDATA, DELTA, 0);
         else
-            updateSpan(0, DELTA);
+            tryUpdateSpan(TDATA, 0, DELTA);
         return {};
     } else if (ARGS[0] == "collapse") {
         const auto TDATA = dataFor(Desktop::focusState()->window() ? Desktop::focusState()->window()->layoutTarget() : nullptr);
@@ -2482,9 +2473,6 @@ std::optional<SSpanRange> CScrollingAlgorithm::spanRangeForTargetData(SP<SScroll
     if (!target || !m_scrollingData || !m_scrollingData->controller)
         return std::nullopt;
 
-    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()))
-        return std::nullopt;
-
     const auto COL = target->column.lock();
     if (!COL)
         return std::nullopt;
@@ -2644,7 +2632,7 @@ void CScrollingAlgorithm::clearSpansCoveringColumn(SP<SColumnData> column) {
             if (!target->span.active())
                 continue;
 
-            if (target->span.left < 0 || target->span.right < 0) {
+            if (target->span.prev < 0 || target->span.next < 0) {
                 clearSpan(target);
                 continue;
             }
@@ -2682,7 +2670,7 @@ void CScrollingAlgorithm::adjustSpansAfterColumnRemove(size_t removedColumn, siz
             if (target == ignoredTarget || !target->span.active())
                 continue;
 
-            if (target->span.left < 0 || target->span.right < 0) {
+            if (target->span.prev < 0 || target->span.next < 0) {
                 clearSpan(target);
                 continue;
             }
@@ -2699,9 +2687,6 @@ void CScrollingAlgorithm::sanitizeCurrentSpans() {
     if (!m_scrollingData || !m_scrollingData->controller)
         return;
 
-    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()))
-        return;
-
     if (!validateCurrentSpans())
         clearAllSpans();
 }
@@ -2711,9 +2696,6 @@ bool CScrollingAlgorithm::validateCurrentSpans() const {
         return true;
 
     if (!m_parent || !m_parent->space())
-        return true;
-
-    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()))
         return true;
 
     const auto USABLE   = usableArea();
@@ -2746,9 +2728,6 @@ CScrollingAlgorithm::SSpanResolvedLayout CScrollingAlgorithm::resolveSpanLayout(
             });
         }
     }
-
-    if (!columnSpansSupportedForPrimaryAxis(controller->isPrimaryHorizontal()))
-        return {.valid = true, .boxes = std::move(boxes)};
 
     if (usable.h <= 0.F)
         return {.valid = false, .boxes = std::move(boxes)};
@@ -2835,8 +2814,7 @@ CScrollingAlgorithm::SSpanResolvedLayout CScrollingAlgorithm::resolveSpanLayout(
 
                     auto& BOX        = boxes[colIdx][REAL_TARGET.index];
                     BOX.box          = STRIP_BOX;
-                    BOX.box.y        = workspaceOffset.y + REAL_TARGET.start * usable.h;
-                    BOX.box.h        = REAL_TARGET.size * usable.h;
+                    controller->applySpanReservation(BOX.box, REAL_TARGET, STRIP_BOX, usable, workspaceOffset);
                     BOX.virtualIndex = REAL_TARGET.virtualIndex;
                     BOX.virtualCount = REAL_TARGET.virtualCount;
                 }
@@ -2860,8 +2838,9 @@ CScrollingAlgorithm::SSpanResolvedLayout CScrollingAlgorithm::resolveSpanLayout(
                 return {.valid = false, .boxes = std::move(boxes)};
 
             const auto& ANCHOR_BOX = boxes[colIdx][targetIdx].box;
-            const float START      = sc<float>((ANCHOR_BOX.y - workspaceOffset.y) / usable.h);
-            const float SIZE       = sc<float>(ANCHOR_BOX.h / usable.h);
+            const auto  PARAMS     = controller->extractSpanReservation(ANCHOR_BOX, usable, workspaceOffset);
+            const float START      = PARAMS.start;
+            const float SIZE       = PARAMS.size;
 
             for (size_t destIdx = RANGE->first; destIdx <= RANGE->last; ++destIdx) {
                 if (destIdx == colIdx)
@@ -2903,8 +2882,6 @@ std::optional<CBox> CScrollingAlgorithm::spannedLayoutBox(SP<SScrollingTargetDat
     static const auto PFSONONE = CConfigValue<Config::INTEGER>("scrolling:fullscreen_on_one_column");
 
     const auto&       CONTROLLER = m_scrollingData->controller;
-    if (!columnSpansSupportedForPrimaryAxis(CONTROLLER->isPrimaryHorizontal()))
-        return std::nullopt;
 
     const auto RANGE = renderableSpanRangeFor(target, anchorIdx, m_scrollingData->columns.size());
     if (!RANGE)
@@ -2918,16 +2895,13 @@ std::optional<CBox> CScrollingAlgorithm::spannedLayoutBox(SP<SScrollingTargetDat
     const auto FIRST = CONTROLLER->calculateStripBox(RANGE->first, usable, workspaceOffset, *PFSONONE);
     const auto LAST  = CONTROLLER->calculateStripBox(RANGE->last, usable, workspaceOffset, *PFSONONE);
 
-    CBox       result = target->layoutBox;
-    const auto LEFT   = std::min(FIRST.x, LAST.x);
-    const auto RIGHT  = std::max(FIRST.x + FIRST.w, LAST.x + LAST.w);
-    result.x          = LEFT;
-    result.w          = RIGHT - LEFT;
+    CBox result = target->layoutBox;
+    CONTROLLER->mergeSpanStripBoxes(result, FIRST, LAST);
 
     return result;
 }
 
-bool CScrollingAlgorithm::tryUpdateSpan(SP<SScrollingTargetData> target, int deltaLeft, int deltaRight) {
+bool CScrollingAlgorithm::tryUpdateSpan(SP<SScrollingTargetData> target, int deltaPrev, int deltaNext) {
     if (!target) {
         Log::logger->log(Log::TRACE, "tryUpdateSpan: no target");
         return false;
@@ -2945,42 +2919,37 @@ bool CScrollingAlgorithm::tryUpdateSpan(SP<SScrollingTargetData> target, int del
         return false;
     }
 
-    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal())) {
-        Log::logger->log(Log::TRACE, "tryUpdateSpan: not horizontal primary axis");
-        return false;
-    }
-
     const int64_t ANCHOR_IDX = m_scrollingData->idx(COLUMN);
     if (ANCHOR_IDX < 0) {
         Log::logger->log(Log::TRACE, "tryUpdateSpan: anchor idx < 0");
         return false;
     }
 
-    if (deltaLeft > 0 && ANCHOR_IDX - target->span.left <= 0) {
-        Log::logger->log(Log::TRACE, "tryUpdateSpan: at left boundary (anchor={}, span.left={}, deltaLeft={})", ANCHOR_IDX, target->span.left, deltaLeft);
+    if (deltaPrev > 0 && ANCHOR_IDX - target->span.prev <= 0) {
+        Log::logger->log(Log::TRACE, "tryUpdateSpan: at prev boundary (anchor={}, span.prev={}, deltaPrev={})", ANCHOR_IDX, target->span.prev, deltaPrev);
         return false;
     }
 
-    if (deltaRight > 0 && ANCHOR_IDX + target->span.right >= sc<int64_t>(m_scrollingData->columns.size()) - 1) {
-        Log::logger->log(Log::TRACE, "tryUpdateSpan: at right boundary (anchor={}, span.right={}, columns={})", ANCHOR_IDX, target->span.right, m_scrollingData->columns.size());
+    if (deltaNext > 0 && ANCHOR_IDX + target->span.next >= sc<int64_t>(m_scrollingData->columns.size()) - 1) {
+        Log::logger->log(Log::TRACE, "tryUpdateSpan: at next boundary (anchor={}, span.next={}, columns={})", ANCHOR_IDX, target->span.next, m_scrollingData->columns.size());
         return false;
     }
 
-    if (deltaLeft < 0 && target->span.left == 0) {
-        Log::logger->log(Log::TRACE, "tryUpdateSpan: cannot shrink left, already 0");
+    if (deltaPrev < 0 && target->span.prev == 0) {
+        Log::logger->log(Log::TRACE, "tryUpdateSpan: cannot shrink prev, already 0");
         return false;
     }
 
-    if (deltaRight < 0 && target->span.right == 0) {
-        Log::logger->log(Log::TRACE, "tryUpdateSpan: cannot shrink right, already 0");
+    if (deltaNext < 0 && target->span.next == 0) {
+        Log::logger->log(Log::TRACE, "tryUpdateSpan: cannot shrink next, already 0");
         return false;
     }
 
     const auto OLDSPAN = target->span;
-    target->span.left  = std::max(0, target->span.left + deltaLeft);
-    target->span.right = std::max(0, target->span.right + deltaRight);
+    target->span.prev  = std::max(0, target->span.prev + deltaPrev);
+    target->span.next = std::max(0, target->span.next + deltaNext);
 
-    Log::logger->log(Log::TRACE, "tryUpdateSpan: tentative span left={} right={}, validating...", target->span.left, target->span.right);
+    Log::logger->log(Log::TRACE, "tryUpdateSpan: tentative span prev={} next={}, validating...", target->span.prev, target->span.next);
 
     if (!validateCurrentSpans()) {
         Log::logger->log(Log::INFO, "tryUpdateSpan: validateCurrentSpans rejected");

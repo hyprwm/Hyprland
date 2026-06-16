@@ -8,8 +8,8 @@
 
 namespace Layout::Tiled {
     struct SSpanState {
-        int  left  = 0;
-        int  right = 0;
+        int  prev = 0;
+        int  next = 0;
 
         bool active() const;
     };
@@ -25,6 +25,11 @@ namespace Layout::Tiled {
         size_t slot  = 0;
         float  start = 0.F;
         float  size  = 0.F;
+    };
+
+    struct SSpanReservationParams {
+        float start = 0.F; // normalized [0, 1]
+        float size  = 0.F; // normalized [0, 1]
     };
 
     struct SColumnSpanValidation {
@@ -56,7 +61,6 @@ namespace Layout::Tiled {
     std::optional<SSpanState> spanAfterColumnInsert(size_t anchorColumn, const SSpanState& span, size_t insertedColumn, size_t columnCountBefore);
     size_t                    columnInsertAfterFocusedSpan(size_t anchorColumn, const SSpanState& span, size_t columnCount);
     std::optional<SSpanState> spanAfterColumnRemove(size_t anchorColumn, const SSpanState& span, size_t removedColumn, size_t columnCountBefore);
-    bool                      columnSpansSupportedForPrimaryAxis(bool primaryHorizontal);
     /**
      * Map a source target's vertical position (sourceIndex of sourceCount)
      * into a virtual slot index in a destination column with destinationRealCount

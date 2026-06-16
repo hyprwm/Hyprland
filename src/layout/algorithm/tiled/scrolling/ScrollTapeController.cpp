@@ -335,3 +335,42 @@ bool CScrollTapeController::isBeingDragged() const {
 
     return false;
 }
+
+SSpanReservationParams CScrollTapeController::extractSpanReservation(const CBox& anchorBox, const CBox& usable, const Vector2D& workspaceOffset) const {
+    if (isPrimaryHorizontal()) {
+        return SSpanReservationParams{
+            .start = sc<float>((anchorBox.y - workspaceOffset.y) / usable.h),
+            .size  = sc<float>(anchorBox.h / usable.h),
+        };
+    } else {
+        return SSpanReservationParams{
+            .start = sc<float>((anchorBox.x - workspaceOffset.x) / usable.w),
+            .size  = sc<float>(anchorBox.w / usable.w),
+        };
+    }
+}
+
+void CScrollTapeController::applySpanReservation(CBox& box, const SRealTargetLayout& layout, const CBox& stripBox, const CBox& usable,
+                                                  const Vector2D& workspaceOffset) const {
+    if (isPrimaryHorizontal()) {
+        box.y = workspaceOffset.y + layout.start * usable.h;
+        box.h = layout.size * usable.h;
+    } else {
+        box.x = workspaceOffset.x + layout.start * usable.w;
+        box.w = layout.size * usable.w;
+    }
+}
+
+void CScrollTapeController::mergeSpanStripBoxes(CBox& result, const CBox& first, const CBox& last) const {
+    if (isPrimaryHorizontal()) {
+        const auto LEFT  = std::min(first.x, last.x);
+        const auto RIGHT = std::max(first.x + first.w, last.x + last.w);
+        result.x         = LEFT;
+        result.w         = RIGHT - LEFT;
+    } else {
+        const auto TOP    = std::min(first.y, last.y);
+        const auto BOTTOM = std::max(first.y + first.h, last.y + last.h);
+        result.y          = TOP;
+        result.h          = BOTTOM - TOP;
+    }
+}

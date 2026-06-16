@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ScrollingSpanLayout.hpp"
+
 #include "../../../../helpers/math/Math.hpp"
 #include "../../../../helpers/memory/Memory.hpp"
 #include <vector>
@@ -63,6 +65,12 @@ namespace Layout::Tiled {
 
         CBox                     calculateStripBox(size_t stripIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
         CBox                     calculateTargetBox(size_t stripIndex, size_t targetIndex, const CBox& usableArea, const Vector2D& workspaceOffset, bool fullscreenOnOne = false);
+
+        // Span helpers — axis-aware reservation extraction, application, and strip merging.
+        SSpanReservationParams extractSpanReservation(const CBox& anchorBox, const CBox& usable, const Vector2D& workspaceOffset) const;
+        void                   applySpanReservation(CBox& box, const SRealTargetLayout& layout, const CBox& stripBox, const CBox& usable,
+                                                    const Vector2D& workspaceOffset) const;
+        void                   mergeSpanStripBoxes(CBox& result, const CBox& first, const CBox& last) const;
 
         double                   calculateCameraOffset(const CBox& usableArea, bool fullscreenOnOne = false);
         Vector2D                 getCameraTranslation(const CBox& usableArea, bool fullscreenOnOne = false);

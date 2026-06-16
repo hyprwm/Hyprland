@@ -266,7 +266,7 @@ SP<CWLSurfaceResource> CWLSurfaceResource::fromResource(wl_resource* res) {
 }
 
 bool CWLSurfaceResource::good() {
-    return m_resource->resource();
+    return m_resource && m_resource->resource();
 }
 
 wl_client* CWLSurfaceResource::client() {
@@ -274,6 +274,9 @@ wl_client* CWLSurfaceResource::client() {
 }
 
 void CWLSurfaceResource::enter(PHLMONITOR monitor) {
+    if (!good())
+        return;
+
     if (std::ranges::find(m_enteredOutputs, monitor) != m_enteredOutputs.end())
         return;
 
@@ -306,6 +309,9 @@ void CWLSurfaceResource::enter(PHLMONITOR monitor) {
 }
 
 void CWLSurfaceResource::leave(PHLMONITOR monitor) {
+    if (!good())
+        return;
+
     if UNLIKELY (std::ranges::find(m_enteredOutputs, monitor) == m_enteredOutputs.end())
         return;
 
@@ -327,12 +333,16 @@ void CWLSurfaceResource::leave(PHLMONITOR monitor) {
 }
 
 void CWLSurfaceResource::sendPreferredTransform(wl_output_transform t) {
+    if (!good())
+        return;
     if (m_resource->version() < 6)
         return;
     m_resource->sendPreferredBufferTransform(t);
 }
 
 void CWLSurfaceResource::sendPreferredScale(int32_t scale) {
+    if (!good())
+        return;
     if (m_resource->version() < 6)
         return;
     m_resource->sendPreferredBufferScale(scale);
@@ -477,6 +487,8 @@ std::pair<SP<CWLSurfaceResource>, Vector2D> CWLSurfaceResource::at(const Vector2
 }
 
 uint32_t CWLSurfaceResource::id() {
+    if (!good())
+        return 0;
     return wl_resource_get_id(m_resource->resource());
 }
 
@@ -511,6 +523,8 @@ void CWLSurfaceResource::releaseBuffers(bool onlyCurrent) {
 }
 
 void CWLSurfaceResource::error(int code, const std::string& str) {
+    if (!good())
+        return;
     m_resource->error(code, str);
 }
 

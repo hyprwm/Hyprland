@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <functional>
 
 using namespace Layout::Tiled;
 
@@ -119,21 +118,21 @@ bool Layout::Tiled::hasSpanDependencyCycle(const std::vector<std::vector<SSpanSt
     }
 
     // DFS with three-color marking to detect cycles.
-    enum Color : uint8_t {
+    enum eColor : uint8_t {
         WHITE,
         GRAY,
         BLACK
     };
-    std::vector<Color>          color(columnCount, WHITE);
+    std::vector<eColor> color(columnCount, WHITE);
 
-    std::function<bool(size_t)> dfs = [&](size_t node) -> bool {
+    auto                dfs = [&](this auto&& self, size_t node) -> bool {
         color[node] = GRAY;
         for (size_t neighbor : adjacency[node]) {
             if (neighbor >= columnCount)
                 continue;
             if (color[neighbor] == GRAY)
                 return true; // back edge
-            if (color[neighbor] == WHITE && dfs(neighbor))
+            if (color[neighbor] == WHITE && self(neighbor))
                 return true;
         }
         color[node] = BLACK;
@@ -198,7 +197,7 @@ SColumnSpanValidationResult Layout::Tiled::validateColumnReservations(const SCol
     const size_t realTargetsInLastGap = column.realTargetCount - previousSlot + overflowTargets;
     const float  lastGapSize          = 1.F - previousEnd;
 
-    if (lastGapSize < sc<float>(realTargetsInLastGap) * minRowHeight)
+    if (lastGapSize + 0.0001F < sc<float>(realTargetsInLastGap) * minRowHeight)
         return {.valid = false, .error = "not enough space for real targets around reservations"};
 
     return {};

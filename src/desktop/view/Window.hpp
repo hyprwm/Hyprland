@@ -457,21 +457,21 @@ namespace Desktop::View {
         uint32_t    m_inputBlockReasons = INPUT_BLOCK_NONE;
     };
 
-    inline bool valid(PHLWINDOW w) {
+    inline bool valid(const PHLWINDOW& w) {
         return w.get();
     }
 
-    inline bool valid(PHLWINDOWREF w) {
+    inline bool valid(const PHLWINDOWREF& w) {
         return !w.expired();
     }
 
-    inline bool validMapped(PHLWINDOW w) {
+    inline bool validMapped(const PHLWINDOW& w) {
         if (!valid(w))
             return false;
         return w->m_isMapped;
     }
 
-    inline bool validMapped(PHLWINDOWREF w) {
+    inline bool validMapped(const PHLWINDOWREF& w) {
         if (!valid(w))
             return false;
         return w->m_isMapped;

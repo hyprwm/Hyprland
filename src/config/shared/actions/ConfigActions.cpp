@@ -320,7 +320,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
             if (const auto PATCOORDS =
                     g_pCompositor->vectorToWindowUnified(OLDMIDDLE, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::ALLOW_FLOATING, window);
                 PATCOORDS)
-                Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_KEYBIND);
+                Desktop::focusState()->fullWindowFocus(PATCOORDS, Desktop::FOCUS_REASON_MOVE_TO_WORKSPACE);
             else
                 g_pInputManager->refocus();
         }

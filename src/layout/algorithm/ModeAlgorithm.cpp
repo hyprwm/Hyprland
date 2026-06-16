@@ -13,7 +13,6 @@
 
 using namespace Layout;
 
-
 IModeAlgorithm::IModeAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {}
 
 Config::ErrorResult IModeAlgorithm::layoutMsg(const std::string_view& sv) {
@@ -24,17 +23,13 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
 }
 
-eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {
+// eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {}
 
-}
+// SP<ITarget>              IModeAlgorithm::layoutFullscreenTarget() const {
+//     return nullptr;
+// }
 
-SP<ITarget> IModeAlgorithm::layoutFullscreenTarget() const {
-    return nullptr;
-}
-
-void IModeAlgorithm::setNoMembersAboveFullscreen() {
-
-}
+// void                    IModeAlgorithm::setNoMembersAboveFullscreen() {}
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
     Vector2D   focalPoint;

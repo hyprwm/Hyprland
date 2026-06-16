@@ -7,7 +7,11 @@
 using namespace Layout;
 using namespace Hyprutils::Utils;
 
-void ITarget::setPositionGlobal(const STargetBox& box, uint8_t) {
+STargetBox ITarget::getPositionGlobal() {
+    return m_box;
+}
+
+void ITarget::setPositionGlobal(const STargetBox& box) {
     m_box = box;
     m_box.logicalBox.round();
     m_box.visualBox.round();
@@ -54,6 +58,7 @@ bool ITarget::layoutManagedFullscreen() const {
     return m_layoutManagedFullscreen;
 }
 
+// TODO remove this
 void ITarget::setLayoutManagedFullscreen(bool enabled) {
     m_layoutManagedFullscreen = enabled;
 }

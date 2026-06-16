@@ -1289,32 +1289,34 @@ bool CWindow::clampWindowSize(const std::optional<Vector2D> minSize, const std::
     return changed;
 }
 
-bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
+// ERSTARR NOTE - THIS IS MOVED! THIS CODE IS PROB GOING TO BE USEFUL AS REF FOR THE CONTROLLER
+// bool CWindow::isFullscreen(std::optional<eFullscreenMode> mode) const {
 
-    if (!m_workspace)
-        return false;
+//     if (!m_workspace)
+//         return false;
 
-    // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
-    if (m_target->layoutManagedFullscreen()) {
-        if (mode.has_value())
-            return mode.value() == m_fullscreenState.internal ? m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target : false;
-        else
-            return m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target;
-    } else {
-        // TODO: see if the size and pos are properly set by this point. If they are, include that check as well
-        if (m_fullscreenState.internal != FSMODE_NONE) {
-            if (mode.has_value())
-                return mode.value() == m_fullscreenState.internal;
-            else
-                return true;
-        }
-    }
-    return false;
-}
+//     // If layoutmanaged, only return true if the FS window (self) covers the entire monitor/workspace
+//     if (m_target->layoutManagedFullscreen()) {
+//         if (mode.has_value())
+//             return mode.value() == m_fullscreenState.internal ? m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target : false;
+//         else
+//             return m_workspace->m_space->algorithm()->layoutFullscreenTarget() == m_target;
+//     } else {
+//         // TODO: see if the size and pos are properly set by this point. If they are, include that check as well
+//         if (m_fullscreenState.internal != FSMODE_NONE) {
+//             if (mode.has_value())
+//                 return mode.value() == m_fullscreenState.internal;
+//             else
+//                 return true;
+//         }
+//     }
+//     return false;
+// }
 
-bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
-    return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(m_fullscreenState.internal))) == MODE;
-}
+// ERSTARR TODO - REDUNDANT -- REMOVE
+// bool CWindow::isEffectiveInternalFSMode(const eFullscreenMode MODE) const {
+//     return sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(m_fullscreenState.internal))) == MODE;
+// }
 
 WORKSPACEID CWindow::workspaceID() {
     return m_workspace ? m_workspace->m_id : m_lastWorkspace;

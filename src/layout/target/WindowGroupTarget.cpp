@@ -68,9 +68,10 @@ eFullscreenMode CWindowGroupTarget::fullscreenMode() {
     return m_group->current()->m_fullscreenState.internal;
 }
 
-void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
-    m_group->current()->m_fullscreenState.internal = mode;
-}
+// ERSTARR TODO - remove
+// void CWindowGroupTarget::setFullscreenMode(eFullscreenMode mode) {
+// m_group->current()->m_fullscreenState.internal = mode;
+// }
 
 bool CWindowGroupTarget::layoutManagedFullscreen() const {
     return m_group->current()->m_target->layoutManagedFullscreen();

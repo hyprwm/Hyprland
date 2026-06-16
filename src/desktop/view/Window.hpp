@@ -377,8 +377,8 @@ namespace Desktop::View {
         void                              activate(bool force = false);
         int                               surfacesCount();
         bool                              clampWindowSize(const std::optional<Vector2D> minSize, const std::optional<Vector2D> maxSize);
-        bool                              isFullscreen(std::optional<eFullscreenMode> mode = std::nullopt) const;
-        bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
+        // bool                              isFullscreen(std::optional<eFullscreenMode> mode = std::nullopt) const;
+        // bool                              isEffectiveInternalFSMode(const eFullscreenMode) const;
         int                               getRealBorderSize() const;
         float                             getScrollMouse();
         float                             getScrollTouchpad();

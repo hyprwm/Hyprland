@@ -1,6 +1,7 @@
 
 #include "FullscreenHandler.hpp"
 #include "Compositor.hpp"
+#include "debug/log/Logger.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "desktop/view/LayerSurface.hpp"
 #include "layout/algorithm/Algorithm.hpp"
@@ -8,32 +9,31 @@
 #include "managers/fullscreen/FullscreenController.hpp"
 #include "output/Monitor.hpp"
 
-
 using namespace Fullscreen;
-
 
 IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm) {
     if (!m_algorithm) {
-        Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");      
+        Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
     }
 };
 
+bool IFullscreenHandler::isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode, const std::optional<bool> covering) {
 
+    if (mode.value() != FSMODE_NONE) {
+        Log::logger->log(Log::ERR, "Passed mode = FSMODE_NONE into isFullscreen. This must never happpen.");
+        return false;
+    }
 
-bool IFullscreenHandler::isFullscreen(const PHLWINDOW window, const std::optional<bool> covering) {
-
-    const auto& WINPOSINLIST = m_fsWindows.find(window);
+    const auto& WINITR = m_fsWindows.find(window);
 
     // not FS at all
-    if (WINPOSINLIST == m_fsWindows.end())
+    if (WINITR == m_fsWindows.end())
         return false;
 
-    return WINPOSINLIST->second.internal != FSMODE_NONE;    
+    return mode.has_value() ? WINITR->second.internal == mode.value() : WINITR->second.internal != FSMODE_NONE;
 }
 
-
 bool IFullscreenHandler::hasFullscreen(const std::optional<bool> covering) {
-
 
     for (const auto& w : m_fsWindows) {
         if (w.first && w.second.internal != FSMODE_NONE)
@@ -45,41 +45,36 @@ bool IFullscreenHandler::hasFullscreen(const std::optional<bool> covering) {
 
 PHLWINDOW IFullscreenHandler::getFullscreen(const std::optional<bool> covering) {
 
-
     for (const auto& w : m_fsWindows) {
         if (w.first && w.second.internal != FSMODE_NONE)
             return w.first.lock();
     }
 
     return nullptr;
-
 }
 
 SFullscreenMode IFullscreenHandler::getFullscreenMode(const PHLWINDOW window) {
 
-    const auto& WINPOSINLIST = m_fsWindows.find(window);
+    const auto& WINITR = m_fsWindows.find(window);
 
     // not FS at all
-    if (WINPOSINLIST == m_fsWindows.end())
+    if (WINITR == m_fsWindows.end())
         return SFullscreenMode{};
 
-    return WINPOSINLIST->second;
+    return WINITR->second;
 }
-
 
 eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreenRequest& request) {
     if (!request.target || !request.target->window() || !request.target->workspace() || !request.target->workspace()->m_monitor)
         return FULLSCREEN_REQUEST_FAILED;
 
-
-
-    const auto TARGET = request.target;
-    const auto WINDOW = TARGET->window();
+    const auto TARGET    = request.target;
+    const auto WINDOW    = TARGET->window();
     const auto WORKSPACE = TARGET->workspace();
-    const auto MONITOR = WORKSPACE->m_monitor;
+    const auto MONITOR   = WORKSPACE->m_monitor;
 
     setWindowFullscreenModeInternal(WINDOW, request.mode);
-    
+
     // save covering FS window if mode isn't FSMODE_NONE
     // set window size and pos
     if (request.mode == FSMODE_FULLSCREEN) {
@@ -98,22 +93,21 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     return FULLSCREEN_REQUEST_DEFAULT;
 }
 
-
-
 void IFullscreenHandler::setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode) {
 
-    const auto& WINPOSINLIST = m_fsWindows.find(window);
+    const auto& WINITR = m_fsWindows.find(window);
+
+    if (window->m_isFloating && !isFullscreen(window))
+        window->m_target->rememberFloatingSize(window->m_target->getPositionGlobal().logicalBox.size());
 
     if (mode == FSMODE_NONE) {
-        if (WINPOSINLIST != m_fsWindows.end()) {
-            WINPOSINLIST->second.internal = FSMODE_NONE;
+        if (WINITR != m_fsWindows.end()) {
+            WINITR->second.internal = FSMODE_NONE;
         }
-    }
-    else if (WINPOSINLIST == m_fsWindows.end()) {
+    } else if (WINITR == m_fsWindows.end()) {
         m_fsWindows.emplace(window, SFullscreenMode{.internal = mode});
-    }
-    else {
-        WINPOSINLIST->second.internal = mode;
+    } else {
+        WINITR->second.internal = mode;
     }
 
     syncFullscreenWindows();
@@ -121,40 +115,30 @@ void IFullscreenHandler::setWindowFullscreenModeInternal(const PHLWINDOW window,
 
 void IFullscreenHandler::setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode) {
 
-    const auto& WINPOSINLIST = m_fsWindows.find(window);
+    const auto& WINITR = m_fsWindows.find(window);
 
     if (mode == FSMODE_NONE) {
-        if (WINPOSINLIST != m_fsWindows.end()) {
-            WINPOSINLIST->second.client = FSMODE_NONE;
+        if (WINITR != m_fsWindows.end()) {
+            WINITR->second.client = FSMODE_NONE;
         }
-    }
-    else if (WINPOSINLIST == m_fsWindows.end()) {
+    } else if (WINITR == m_fsWindows.end()) {
         m_fsWindows.emplace(window, SFullscreenMode{.client = mode});
-    }
-    else {
-        WINPOSINLIST->second.client = mode;
+    } else {
+        WINITR->second.client = mode;
     }
 
     syncFullscreenWindows();
 }
 
-
-
-
 void IFullscreenHandler::moveFullscreenWindowToHandler(const PHLWINDOW window, const std::optional<bool> covering) {
 
     // on hold for now.  maybe unFSing a window in one and FSing it again on the other workspace is the better choice
-
 }
-
 
 void IFullscreenHandler::moveFullscreenWindowOutOfHandler(const PHLWINDOW window) {
 
     // on hold for now. maybe unFSing a window in one and FSing it again on the other workspace is the better choice
-
-
 }
-
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {
 
@@ -172,7 +156,6 @@ void IFullscreenHandler::setNoMembersAboveFullscreen() {
 
     if (!MONITOR)
         return;
-
 
     const bool SET = !m_fsWindows.empty();
 
@@ -204,16 +187,14 @@ void IFullscreenHandler::syncFullscreenWindows() {
             m_fsWindows.erase(w.first);
         }
     }
-
 }
-
-
 
 eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
     return FULLSCREEN_HANDLER_TYPE;
 }
 
-
-SP<Layout::CSpace> IFullscreenHandler::getSpace()const {
+SP<Layout::CSpace> IFullscreenHandler::getSpace() const {
+    if (!m_algorithm || !m_algorithm->m_parent || m_algorithm->m_parent->space())
+        return nullptr;
     return m_algorithm->m_parent.lock()->space();
 }

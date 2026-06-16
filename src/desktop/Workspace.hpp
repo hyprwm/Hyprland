@@ -64,7 +64,7 @@ class CWorkspace {
     bool        hasUrgentWindow();
     PHLWINDOW   getFirstWindow();
     PHLWINDOW   getTopLeftWindow();
-    PHLWINDOW   getFullscreenWindow();
+    // PHLWINDOW   getFullscreenWindow(); // ERSTARR TODO - remove this
     bool        isVisible();
     bool        isVisibleNotCovered();
     void        rename(const std::string& name = "");

@@ -341,9 +341,9 @@ namespace Monitor {
         bool          gammaRampsInUse();
 
         /// Has an active workspace with a real fullscreen (FSMODE_FULLSCREEN) window (includes special workspace)
-        bool inFullscreenMode();
+        // bool inFullscreenMode();
         /// Get fullscreen (FSMODE_FULLSCREEN) window from active or special workspace
-        PHLWINDOW                                                   getFullscreenWindow();
+        // PHLWINDOW                                                   getFullscreenWindow();
         std::optional<NColorManagement::PImageDescription>          getFSImageDescription();
 
         NColorManagement::SPCPRimaries                              getMasteringPrimaries();

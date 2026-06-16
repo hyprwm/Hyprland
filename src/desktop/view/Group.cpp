@@ -66,6 +66,8 @@ void CGroup::init() {
 }
 
 void CGroup::destroy() {
+    const auto POWNER = head();
+
     while (!m_windows.empty()) {
         if (m_windows.size() == 1) {
             remove(m_windows.at(0).lock());
@@ -75,7 +77,8 @@ void CGroup::destroy() {
         remove(m_windows.at(0).lock());
     }
 
-    g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(m_windows.at(0).get()))}));
+    if (POWNER)
+        g_pEventManager->postEvent(SHyprIPCEvent({.event = "togglegroup", .data = std::format("0,{:x}", rc<uintptr_t>(POWNER.get()))}));
 }
 
 CGroup::~CGroup() {

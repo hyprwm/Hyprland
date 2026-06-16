@@ -3,6 +3,7 @@
 #include "../../TiledAlgorithm.hpp"
 #include "../../../../helpers/math/Direction.hpp"
 #include "ScrollTapeController.hpp"
+#include "ScrollingSpanLayout.hpp"
 #include "../../../../helpers/signal/Signal.hpp"
 
 #include <optional>
@@ -22,7 +23,14 @@ namespace Layout::Tiled {
         WP<SColumnData> column;
         bool            ignoreFullscreenChecks = false;
 
+        SSpanState      span;
         CBox            layoutBox;
+    };
+
+    struct SSpanAdjustedTargetBox {
+        CBox   box;
+        size_t virtualIndex = 0;
+        size_t virtualCount = 0;
     };
 
     struct SColumnData {
@@ -155,24 +163,49 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        void                                syncFullscreenTargets();
-        SFullscreenScrollState*             fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
-        SFullscreenScrollState*             fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
-        SP<SScrollingTargetData>            fullscreenTargetDataForColumn(SP<SColumnData> col) const;
-        bool                                isFullscreenTarget(SP<SScrollingTargetData> target) const;
-        float                               fullscreenColumnWidth() const;
-        bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
-        void                                updateFullscreenFade(bool coversMonitor);
-        void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
+        void                      syncFullscreenTargets();
+        SFullscreenScrollState*   fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        SFullscreenScrollState*   fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
+        SP<SScrollingTargetData>  fullscreenTargetDataForColumn(SP<SColumnData> col) const;
+        bool                      isFullscreenTarget(SP<SScrollingTargetData> target) const;
+        float                     fullscreenColumnWidth() const;
+        bool                      fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
+        void                      updateFullscreenFade(bool coversMonitor);
+        void                      clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
-        SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
-        SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);
+        SP<SScrollingTargetData>  findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
+        SP<SScrollingTargetData>  closestNode(const Vector2D& posGlobglobgabgalab);
 
-        void                                focusTargetUpdate(SP<ITarget> target);
+        void                      focusTargetUpdate(SP<ITarget> target);
+        std::optional<SSpanRange> spanRangeForTargetData(SP<SScrollingTargetData> target) const;
+        bool                      targetDataVisible(SP<SScrollingTargetData> target, bool full = false) const;
+        void                      centerSpanRange(const SSpanRange& range);
+        void                      fitSpanRange(const SSpanRange& range);
+        void                      centerTargetData(SP<SScrollingTargetData> target);
+        void                      fitTargetData(SP<SScrollingTargetData> target);
+        void                      centerOrFitTargetData(SP<SScrollingTargetData> target);
+        SP<SColumnData>           nextColumnForTargetData(SP<SScrollingTargetData> target);
+        SP<SColumnData>           prevColumnForTargetData(SP<SScrollingTargetData> target);
+        bool                      tryUpdateSpan(SP<SScrollingTargetData> target, int deltaLeft, int deltaRight);
+        void                      clearSpan(SP<SScrollingTargetData> target);
+        void                      clearAllSpans();
+        void                      clearSpansCoveringColumn(SP<SColumnData> column);
+        void                      adjustSpansAfterColumnInsert(size_t insertedColumn, size_t columnCountBefore, SP<SScrollingTargetData> ignoredTarget = nullptr);
+        void                      adjustSpansAfterColumnRemove(size_t removedColumn, size_t columnCountBefore, SP<SScrollingTargetData> ignoredTarget = nullptr);
+        void                      sanitizeCurrentSpans();
+        bool                      validateCurrentSpans() const;
+
+        struct SSpanResolvedLayout {
+            bool                                             valid = true;
+            std::vector<std::vector<SSpanAdjustedTargetBox>> boxes;
+        };
+        SSpanResolvedLayout                              resolveSpanLayout(const CBox& usable, const Vector2D& workspaceOffset) const;
+        std::vector<std::vector<SSpanAdjustedTargetBox>> spanAdjustedColumnBoxes(const CBox& usable, const Vector2D& workspaceOffset) const;
+        std::optional<CBox>                 spannedLayoutBox(SP<SScrollingTargetData> target, size_t anchorIdx, const CBox& usable, const Vector2D& workspaceOffset) const;
         void                                moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool silent);
         void                                focusOnInput(SP<ITarget> target, eInputMode input);
 
-        void                                expelTarget(SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx);
+        SP<SColumnData>                     expelTarget(SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx);
 
         float                               defaultColumnWidth();
 

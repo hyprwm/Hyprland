@@ -7,6 +7,62 @@
 
 using namespace Hyprutils::Utils;
 
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+struct SScrollClientBox {
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+};
+
+static std::optional<std::string> scrollClientSectionForClass(const std::string& class_) {
+    const auto CLIENTS    = getFromSocket("/clients");
+    const auto CLASS_POS  = CLIENTS.find("class: " + class_);
+    const auto ENTRY_POS  = CLASS_POS == std::string::npos ? std::string::npos : CLIENTS.rfind("Window ", CLASS_POS);
+    const auto ENTRY_NEXT = CLASS_POS == std::string::npos ? std::string::npos : CLIENTS.find("\nWindow ", CLASS_POS);
+
+    if (CLASS_POS == std::string::npos || ENTRY_POS == std::string::npos)
+        return std::nullopt;
+
+    return CLIENTS.substr(ENTRY_POS, ENTRY_NEXT == std::string::npos ? std::string::npos : ENTRY_NEXT - ENTRY_POS);
+}
+
+static std::optional<std::pair<int, int>> scrollParsePair(const std::string& value) {
+    const auto COMMA = value.find(',');
+    if (COMMA == std::string::npos)
+        return std::nullopt;
+
+    try {
+        return std::pair{std::stoi(value.substr(0, COMMA)), std::stoi(value.substr(COMMA + 1))};
+    } catch (...) { return std::nullopt; }
+}
+
+static std::optional<SScrollClientBox> scrollClientBoxForClass(const std::string& class_) {
+    const auto SECTION = scrollClientSectionForClass(class_);
+    if (!SECTION)
+        return std::nullopt;
+
+    const auto AT   = scrollParsePair(Tests::getAttribute(*SECTION, "at"));
+    const auto SIZE = scrollParsePair(Tests::getAttribute(*SECTION, "size"));
+    if (!AT || !SIZE)
+        return std::nullopt;
+
+    return SScrollClientBox{.x = AT->first, .y = AT->second, .w = SIZE->first, .h = SIZE->second};
+}
+
+static bool scrollSpawnWindows(const std::vector<std::string>& classes) {
+    for (const auto& class_ : classes) {
+        if (!Tests::spawnKitty(class_))
+            return false;
+    }
+
+    return true;
+}
+
 TEST_CASE(scrollFocusCycling) {
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
 
@@ -201,6 +257,678 @@ TEST_CASE(scrollWindowRule) {
     // not the greatest test, but as long as res and gaps don't change, we good.
     // if this test breaks, it's likely you broke equal sizing
     ASSERT_CONTAINS(getFromSocket("/activewindow"), "size: 179,1036");
+}
+
+TEST_CASE(scrollSpanExpandShrinkCollapse) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_a", "span_b", "span_c", "span_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_b' })"));
+
+    const auto BASE_B = scrollClientBoxForClass("span_b");
+    if (!BASE_B)
+        FAIL_TEST("Could not find span_b geometry");
+
+    ASSERT_MAX_DELTA(BASE_B->x, 0, 4);
+    ASSERT_MAX_DELTA(BASE_B->y, 540, 4);
+    ASSERT_MAX_DELTA(BASE_B->w, 960, 4);
+    ASSERT_MAX_DELTA(BASE_B->h, 540, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto EXPANDED_B = scrollClientBoxForClass("span_b");
+    const auto C_ABOVE    = scrollClientBoxForClass("span_c");
+    const auto D_ABOVE    = scrollClientBoxForClass("span_d");
+    if (!EXPANDED_B || !C_ABOVE || !D_ABOVE)
+        FAIL_TEST("Could not find geometry after expanding span_b right");
+
+    ASSERT_MAX_DELTA(EXPANDED_B->x, 0, 4);
+    ASSERT_MAX_DELTA(EXPANDED_B->y, 540, 4);
+    ASSERT_MAX_DELTA(EXPANDED_B->w, 1920, 4);
+    ASSERT_MAX_DELTA(EXPANDED_B->h, 540, 4);
+    ASSERT((C_ABOVE->y + C_ABOVE->h) <= EXPANDED_B->y, true);
+    ASSERT((D_ABOVE->y + D_ABOVE->h) <= EXPANDED_B->y, true);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('shrink right')"));
+
+    const auto SHRUNK_B = scrollClientBoxForClass("span_b");
+    if (!SHRUNK_B)
+        FAIL_TEST("Could not find span_b geometry after shrinking right");
+
+    ASSERT_MAX_DELTA(SHRUNK_B->x, 0, 4);
+    ASSERT_MAX_DELTA(SHRUNK_B->w, 960, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('collapse')"));
+
+    const auto COLLAPSED_B = scrollClientBoxForClass("span_b");
+    if (!COLLAPSED_B)
+        FAIL_TEST("Could not find span_b geometry after collapse");
+
+    ASSERT_MAX_DELTA(COLLAPSED_B->x, 0, 4);
+    ASSERT_MAX_DELTA(COLLAPSED_B->w, 960, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand left')"));
+
+    const auto EXPANDED_D = scrollClientBoxForClass("span_d");
+    if (!EXPANDED_D)
+        FAIL_TEST("Could not find span_d geometry after expanding left");
+
+    ASSERT_MAX_DELTA(EXPANDED_D->x, 0, 4);
+    ASSERT_MAX_DELTA(EXPANDED_D->y, 540, 4);
+    ASSERT_MAX_DELTA(EXPANDED_D->w, 1920, 4);
+    ASSERT_MAX_DELTA(EXPANDED_D->h, 540, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('shrink left')"));
+
+    const auto SHRUNK_D = scrollClientBoxForClass("span_d");
+    if (!SHRUNK_D)
+        FAIL_TEST("Could not find span_d geometry after shrinking left");
+
+    ASSERT_MAX_DELTA(SHRUNK_D->x, 960, 4);
+    ASSERT_MAX_DELTA(SHRUNK_D->w, 960, 4);
+}
+
+TEST_CASE(scrollSpanFitActiveKeepsWindowInView) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_fit_active_a", "span_fit_active_b", "span_fit_active_c", "span_fit_active_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_fit_active_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_fit_active_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit active')"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_fit_active_b");
+    if (!AFTER_B)
+        FAIL_TEST("Could not find span_fit_active_b geometry after fit active");
+
+    ASSERT((AFTER_B->w <= 1920), true);
+}
+
+TEST_CASE(scrollSpanRejectsFullHeightCollision) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_block_a", "span_block_b"}), true);
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_block_a' })"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_block_a");
+    const auto BEFORE_B = scrollClientBoxForClass("span_block_b");
+    if (!BEFORE_A || !BEFORE_B)
+        FAIL_TEST("Could not find full-height span-blocking geometry before expansion");
+
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_block_a");
+    const auto AFTER_B = scrollClientBoxForClass("span_block_b");
+    if (!AFTER_A || !AFTER_B)
+        FAIL_TEST("Could not find full-height span-blocking geometry after expansion");
+
+    ASSERT_MAX_DELTA(AFTER_A->x, BEFORE_A->x, 4);
+    ASSERT_MAX_DELTA(AFTER_A->y, BEFORE_A->y, 4);
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_A->h, BEFORE_A->h, 4);
+    ASSERT_MAX_DELTA(AFTER_B->x, BEFORE_B->x, 4);
+    ASSERT_MAX_DELTA(AFTER_B->y, BEFORE_B->y, 4);
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT_MAX_DELTA(AFTER_B->h, BEFORE_B->h, 4);
+}
+
+TEST_CASE(scrollSpanExpandsBelowExistingSpan) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_expand_stack_a", "span_expand_stack_b", "span_expand_stack_c", "span_expand_stack_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_expand_stack_a");
+    const auto BEFORE_B = scrollClientBoxForClass("span_expand_stack_b");
+    if (!BEFORE_A || !BEFORE_B)
+        FAIL_TEST("Could not find geometry before expanding below existing span");
+
+    ASSERT_MAX_DELTA(BEFORE_A->w, 1920, 4);
+    ASSERT_MAX_DELTA(BEFORE_B->w, 960, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_stack_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_expand_stack_a");
+    const auto AFTER_B = scrollClientBoxForClass("span_expand_stack_b");
+    const auto AFTER_D = scrollClientBoxForClass("span_expand_stack_d");
+    if (!AFTER_A || !AFTER_B || !AFTER_D)
+        FAIL_TEST("Could not find geometry after expanding below existing span");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_B->w, 1920, 4);
+    ASSERT(AFTER_D->y >= AFTER_B->y + AFTER_B->h, true);
+}
+
+TEST_CASE(scrollSpanExpandsMiddleRowBelowExistingSpan) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.333333, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_expand_middle_a", "span_expand_middle_b", "span_expand_middle_c", "span_expand_middle_d", "span_expand_middle_e", "span_expand_middle_f"}),
+           true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_expand_middle_a");
+    const auto BEFORE_B = scrollClientBoxForClass("span_expand_middle_b");
+    if (!BEFORE_A || !BEFORE_B)
+        FAIL_TEST("Could not find geometry before expanding middle row below existing span");
+
+    ASSERT_MAX_DELTA(BEFORE_A->w, 1280, 4);
+    ASSERT_MAX_DELTA(BEFORE_B->w, 640, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_middle_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_expand_middle_a");
+    const auto AFTER_B = scrollClientBoxForClass("span_expand_middle_b");
+    const auto AFTER_D = scrollClientBoxForClass("span_expand_middle_d");
+    const auto AFTER_E = scrollClientBoxForClass("span_expand_middle_e");
+    if (!AFTER_A || !AFTER_B || !AFTER_D || !AFTER_E)
+        FAIL_TEST("Could not find geometry after expanding middle row below existing span");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_B->w, 1280, 4);
+    ASSERT(AFTER_D->y >= AFTER_B->y + AFTER_B->h, true);
+    ASSERT(AFTER_E->y >= AFTER_D->y + AFTER_D->h, true);
+}
+
+TEST_CASE(scrollSpanExpandsFromCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.333333, follow_focus = false } })"));
+
+    ASSERT(
+        scrollSpawnWindows({"span_expand_covered_a", "span_expand_covered_b", "span_expand_covered_c", "span_expand_covered_d", "span_expand_covered_e", "span_expand_covered_f"}),
+        true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_expand_covered_a");
+    const auto BEFORE_E = scrollClientBoxForClass("span_expand_covered_e");
+    if (!BEFORE_A || !BEFORE_E)
+        FAIL_TEST("Could not find geometry before expanding from covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_A->w, 1280, 4);
+    ASSERT_MAX_DELTA(BEFORE_E->w, 640, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_covered_e' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_expand_covered_a");
+    const auto AFTER_D = scrollClientBoxForClass("span_expand_covered_d");
+    const auto AFTER_E = scrollClientBoxForClass("span_expand_covered_e");
+    const auto AFTER_F = scrollClientBoxForClass("span_expand_covered_f");
+    if (!AFTER_A || !AFTER_D || !AFTER_E || !AFTER_F)
+        FAIL_TEST("Could not find geometry after expanding from covered column");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_E->w, 1280, 4);
+    ASSERT(AFTER_E->y >= AFTER_D->y + AFTER_D->h, true);
+    ASSERT_MAX_DELTA(AFTER_F->y + AFTER_F->h, AFTER_E->y, 4);
+}
+
+TEST_CASE(scrollSpanExpandsLeftFromCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.333333, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_expand_left_covered_a", "span_expand_left_covered_b", "span_expand_left_covered_c", "span_expand_left_covered_d", "span_expand_left_covered_e",
+                               "span_expand_left_covered_f"}),
+           true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_expand_left_covered_a");
+    const auto BEFORE_E = scrollClientBoxForClass("span_expand_left_covered_e");
+    if (!BEFORE_A || !BEFORE_E)
+        FAIL_TEST("Could not find geometry before expanding left from covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_A->w, 1280, 4);
+    ASSERT_MAX_DELTA(BEFORE_E->w, 640, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_left_covered_e' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand left')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_expand_left_covered_a");
+    const auto AFTER_C = scrollClientBoxForClass("span_expand_left_covered_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_expand_left_covered_d");
+    const auto AFTER_E = scrollClientBoxForClass("span_expand_left_covered_e");
+    if (!AFTER_A || !AFTER_C || !AFTER_D || !AFTER_E)
+        FAIL_TEST("Could not find geometry after expanding left from covered column");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_E->x, 0, 4);
+    ASSERT_MAX_DELTA(AFTER_E->w, 1280, 4);
+    ASSERT(AFTER_E->y >= AFTER_C->y + AFTER_C->h, true);
+    ASSERT(AFTER_E->y >= AFTER_D->y + AFTER_D->h, true);
+}
+
+TEST_CASE(scrollSpanRejectsExpansionBelowExistingSpanWithoutClearing) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_expand_reject_a", "span_expand_reject_b", "span_expand_reject_c"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_reject_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_expand_reject_a");
+    const auto BEFORE_B = scrollClientBoxForClass("span_expand_reject_b");
+    if (!BEFORE_A || !BEFORE_B)
+        FAIL_TEST("Could not find geometry before rejected expansion below existing span");
+
+    ASSERT_MAX_DELTA(BEFORE_A->w, 1920, 4);
+    ASSERT_MAX_DELTA(BEFORE_B->w, 960, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expand_reject_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto AFTER_A = scrollClientBoxForClass("span_expand_reject_a");
+    const auto AFTER_B = scrollClientBoxForClass("span_expand_reject_b");
+    if (!AFTER_A || !AFTER_B)
+        FAIL_TEST("Could not find geometry after rejected expansion below existing span");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+}
+
+TEST_CASE(scrollSpanKeepsVirtualGapsAligned) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 10, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_gap_a", "span_gap_b", "span_gap_c"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_gap_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto B = scrollClientBoxForClass("span_gap_b");
+    const auto C = scrollClientBoxForClass("span_gap_c");
+    if (!B || !C)
+        FAIL_TEST("Could not find geometry after expanding span_gap_a right");
+
+    ASSERT_MAX_DELTA(B->y, C->y, 4);
+    ASSERT_MAX_DELTA(B->h, C->h, 4);
+}
+
+TEST_CASE(scrollSpanKeepsInsertedColumnOutsideSpan) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_insert_a", "span_insert_b", "span_insert_c"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_insert_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_A = scrollClientBoxForClass("span_insert_a");
+    if (!BEFORE_A)
+        FAIL_TEST("Could not find span_insert_a geometry before inserting column");
+
+    if (!Tests::spawnKitty("span_insert_d"))
+        FAIL_TEST("Could not spawn span_insert_d");
+
+    const auto AFTER_A = scrollClientBoxForClass("span_insert_a");
+    if (!AFTER_A)
+        FAIL_TEST("Could not find span_insert_a geometry after inserting column");
+
+    ASSERT_MAX_DELTA(AFTER_A->w, BEFORE_A->w, 4);
+}
+
+TEST_CASE(scrollSpanShrinksWhenMiddleColumnRemoved) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.333333, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_remove_a", "span_remove_b", "span_remove_c", "span_remove_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_remove_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_remove_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_remove_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_remove_b geometry before removing middle column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1920, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:span_remove_c' })"));
+    Tests::waitUntilWindowsN(3);
+
+    const auto AFTER_B = scrollClientBoxForClass("span_remove_b");
+    if (!AFTER_B)
+        FAIL_TEST("Could not find span_remove_b geometry after removing middle column");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, 1280, 4);
+    ASSERT(AFTER_B->w < BEFORE_B->w, true);
+}
+
+TEST_CASE(scrollSpanSurvivesClosingWindowInCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_close_a", "span_close_b", "span_close_c", "span_close_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_close_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_close_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_close_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_close_b geometry before closing window in covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1280, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_close_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.window.kill({ window = 'class:span_close_c' })"));
+    Tests::waitUntilWindowsN(3);
+
+    const auto AFTER_B = scrollClientBoxForClass("span_close_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_close_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_close_d");
+    if (!AFTER_B || !AFTER_D)
+        FAIL_TEST("Could not find geometry after closing window in covered column");
+
+    ASSERT(!AFTER_C, true);
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT(AFTER_D->x >= BEFORE_B->x && AFTER_D->x < BEFORE_B->x + BEFORE_B->w, true);
+}
+
+TEST_CASE(scrollSpanSurvivesUnrelatedConsume) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_consume_a", "span_consume_b", "span_consume_c", "span_consume_d", "span_consume_e"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_consume_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_consume_b geometry before unrelated consume");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 960, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_consume_b");
+    if (!AFTER_B)
+        FAIL_TEST("Could not find span_consume_b geometry after unrelated consume");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+}
+
+TEST_CASE(scrollSpanSurvivesConsumeIntoCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_consume_into_a", "span_consume_into_b", "span_consume_into_c", "span_consume_into_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_into_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_into_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_consume_into_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_consume_into_b geometry before consuming into covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1280, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_consume_into_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_consume_into_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_consume_into_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_consume_into_d");
+    if (!AFTER_B || !AFTER_C || !AFTER_D)
+        FAIL_TEST("Could not find geometry after consuming into covered column");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT((AFTER_C->y + AFTER_C->h) <= AFTER_D->y || (AFTER_D->y + AFTER_D->h) <= AFTER_C->y, true);
+}
+
+TEST_CASE(scrollSpanSurvivesUnrelatedWindowMove) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_move_a", "span_move_b", "span_move_c", "span_move_d", "span_move_e"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_move_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_move_b geometry before unrelated move");
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_e' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'left' })"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_move_b");
+    if (!AFTER_B)
+        FAIL_TEST("Could not find span_move_b geometry after unrelated move");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+}
+
+TEST_CASE(scrollSpanSurvivesMoveIntoCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_move_into_a", "span_move_into_b", "span_move_into_c", "span_move_into_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_into_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_into_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_move_into_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_move_into_b geometry before moving into covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1280, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_move_into_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'left' })"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_move_into_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_move_into_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_move_into_d");
+    if (!AFTER_B || !AFTER_C || !AFTER_D)
+        FAIL_TEST("Could not find geometry after moving into covered column");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT((AFTER_C->y + AFTER_C->h) <= AFTER_D->y || (AFTER_D->y + AFTER_D->h) <= AFTER_C->y, true);
+}
+
+TEST_CASE(scrollSpanSurvivesSwapInCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_swap_a", "span_swap_b", "span_swap_c", "span_swap_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_swap_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_swap_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_swap_b");
+    const auto BEFORE_C = scrollClientBoxForClass("span_swap_c");
+    const auto BEFORE_D = scrollClientBoxForClass("span_swap_d");
+    if (!BEFORE_B || !BEFORE_C || !BEFORE_D)
+        FAIL_TEST("Could not find geometry before swapping in covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1280, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_swap_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.swap({ target = 'class:span_swap_d' })"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_swap_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_swap_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_swap_d");
+    if (!AFTER_B || !AFTER_C || !AFTER_D)
+        FAIL_TEST("Could not find geometry after swapping in covered column");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT_MAX_DELTA(AFTER_C->x, BEFORE_D->x, 4);
+    ASSERT_MAX_DELTA(AFTER_D->x, BEFORE_C->x, 4);
+}
+
+TEST_CASE(scrollSpanSurvivesMovingCoveredColumnToMonitor) {
+    OK(getFromSocket("/eval hl.monitor({ output = 'HEADLESS-2', mode = '1920x1080@60', position = '0x1080', scale = '1' })"));
+    OK(getFromSocket("/eval hl.monitor({ output = 'HYPRTEST-SPAN-MON', mode = '1920x1080@60', position = '0x0', scale = '1' })"));
+    OK(getFromSocket("/output create headless HYPRTEST-SPAN-MON"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:span_monitor_src', monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/eval hl.workspace_rule({ workspace = 'name:span_monitor_dst', monitor = 'HYPRTEST-SPAN-MON' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HYPRTEST-SPAN-MON' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:span_monitor_dst' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ monitor = 'HEADLESS-2' })"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ workspace = 'name:span_monitor_src' })"));
+
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ binds = { window_direction_monitor_fallback = true } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.333333, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_monitor_a", "span_monitor_b", "span_monitor_c", "span_monitor_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_monitor_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_monitor_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_monitor_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_monitor_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_monitor_b geometry before moving covered column to monitor");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1920, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_monitor_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.window.move({ direction = 'up' })"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_monitor_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_monitor_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_monitor_d");
+    if (!AFTER_B || !AFTER_C || !AFTER_D)
+        FAIL_TEST("Could not find geometry after moving covered column to monitor");
+
+    const auto AFTER_B_SECTION = scrollClientSectionForClass("span_monitor_b");
+    const auto AFTER_C_SECTION = scrollClientSectionForClass("span_monitor_c");
+    const auto AFTER_D_SECTION = scrollClientSectionForClass("span_monitor_d");
+    if (!AFTER_B_SECTION || !AFTER_C_SECTION || !AFTER_D_SECTION)
+        FAIL_TEST("Could not find client sections after moving covered column to monitor");
+
+    ASSERT_NOT(Tests::getAttribute(*AFTER_C_SECTION, "monitor"), Tests::getAttribute(*AFTER_B_SECTION, "monitor"));
+    ASSERT(Tests::getAttribute(*AFTER_D_SECTION, "monitor"), Tests::getAttribute(*AFTER_B_SECTION, "monitor"));
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT(AFTER_D->x >= AFTER_B->x && AFTER_D->x < AFTER_B->x + AFTER_B->w, true);
+    ASSERT((AFTER_D->y + AFTER_D->h) <= AFTER_B->y || (AFTER_B->y + AFTER_B->h) <= AFTER_D->y, true);
+
+    OK(getFromSocket("/output remove HYPRTEST-SPAN-MON"));
+}
+
+TEST_CASE(scrollSpanSurvivesConsumeOrExpelFromCoveredColumn) {
+    OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling', gaps_in = 0, gaps_out = 0, border_size = 0 } })"));
+    OK(getFromSocket("r/eval hl.config({ scrolling = { direction = 'right', column_width = 0.5, follow_focus = false } })"));
+
+    ASSERT(scrollSpawnWindows({"span_expel_a", "span_expel_b", "span_expel_c", "span_expel_d"}), true);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expel_a' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('fit all')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expel_b' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('expand right')"));
+
+    const auto BEFORE_B = scrollClientBoxForClass("span_expel_b");
+    if (!BEFORE_B)
+        FAIL_TEST("Could not find span_expel_b geometry before expelling from covered column");
+
+    ASSERT_MAX_DELTA(BEFORE_B->w, 1280, 4);
+
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expel_c' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume')"));
+    OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:span_expel_d' })"));
+    OK(getFromSocket("/dispatch hl.dsp.layout('consume_or_expel next')"));
+
+    const auto AFTER_B = scrollClientBoxForClass("span_expel_b");
+    const auto AFTER_C = scrollClientBoxForClass("span_expel_c");
+    const auto AFTER_D = scrollClientBoxForClass("span_expel_d");
+    if (!AFTER_B || !AFTER_C || !AFTER_D)
+        FAIL_TEST("Could not find geometry after expelling from covered column");
+
+    ASSERT_MAX_DELTA(AFTER_B->w, BEFORE_B->w, 4);
+    ASSERT(AFTER_D->x >= AFTER_C->x + AFTER_C->w, true);
 }
 
 TEST_CASE(scrollFullscreen) {
@@ -1223,7 +1951,6 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
         FAIL_TEST("{}Failed: {}Expected the x coordinate of window of class \"A\" to be < 0, got {}.", Colors::RED, Colors::RESET, posAx);
     }
 }
-
 TEST_CASE(properFocusBehvaior) {
     // test that focus history does not fuck with proper workspace preference
 

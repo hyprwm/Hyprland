@@ -373,12 +373,13 @@ eFullscreenMode CWindowTarget::fullscreenMode() {
     return m_window->m_fullscreenState.internal;
 }
 
-void CWindowTarget::setFullscreenMode(eFullscreenMode mode) {
-    if (floating() && m_window->m_fullscreenState.internal == FSMODE_NONE)
-        rememberFloatingSize(m_box.logicalBox.size());
+// ERSTARR TODO - remove
+// void CWindowTarget::setFullscreenMode(eFullscreenMode mode) {
+//     if (floating() && m_window->m_fullscreenState.internal == FSMODE_NONE)
+//         rememberFloatingSize(m_box.logicalBox.size());
 
-    m_window->m_fullscreenState.internal = mode;
-}
+//     m_window->m_fullscreenState.internal = mode;
+// }
 
 std::optional<Vector2D> CWindowTarget::minSize() {
     return m_window->minSize();

@@ -113,13 +113,13 @@ namespace Layout::Tiled {
         virtual void                     swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
-        virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
+        // virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
         /**
         * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
         */
         virtual SP<ITarget>      layoutFullscreenTarget() const;
-        virtual void             setNoMembersAboveFullscreen();
+        // virtual void             setNoMembersAboveFullscreen();
 
         void                     moveTape(float delta);
         void                     moveTapeNormalized(double delta);
@@ -153,15 +153,15 @@ namespace Layout::Tiled {
 
         // To save the floating windows ontop of a FSed tiled layout managed FS window so they can be stay ontop after a floating window is FSed and UnFSed over the tiled FS window
 
-        struct SScrollingFullscreenWindowHidingState {
+        // struct SScrollingFullscreenWindowHidingState {
 
-            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
-            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
-            std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+        //     PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
+        //     eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
+        //     std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
-            void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+        //     void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
-        } m_fullscreenWindowHidingState;
+        // } m_fullscreenWindowHidingState;
 
         struct {
             std::vector<float> configuredWidths;
@@ -174,22 +174,22 @@ namespace Layout::Tiled {
             std::optional<float> restoreColumnWidth;
         };
 
-        SFullscreenScrollState*  fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
-        SFullscreenScrollState*  fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
-        SP<SScrollingTargetData> fullscreenTargetDataForColumn(SP<SColumnData> col) const;
+        // SFullscreenScrollState*  fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode);
+        // SFullscreenScrollState*  fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode);
+        // SP<SScrollingTargetData> fullscreenTargetDataForColumn(SP<SColumnData> col) const;
 
         /**
         * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`
         * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
         */
         bool                                isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const;
-        float                               fullscreenColumnWidth() const;
-        bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
-        bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;
-        void                                updateFullscreenFade(bool coversMonitor);
-        float                               getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target);
-        void                                syncFullscreenTargets();
-        void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
+        // float                               fullscreenColumnWidth() const;
+        // bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
+        // bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;
+        // void                                updateFullscreenFade(bool coversMonitor);
+        // float                               getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target);
+        // void                                syncFullscreenTargets();
+        // void                                clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target = nullptr);
 
         SP<SScrollingTargetData>            findBestNeighbor(SP<SScrollingTargetData> pCurrent, SP<SColumnData> pTargetCol);
         SP<SScrollingTargetData>            closestNode(const Vector2D& posGlobglobgabgalab);
@@ -202,9 +202,9 @@ namespace Layout::Tiled {
 
         float                               defaultColumnWidth();
 
-        std::vector<SFullscreenScrollState> m_fullscreenTargets;
-        std::vector<SFullscreenScrollState> m_maximizeTargets;
-        bool                                m_lastFullscreenCover = false;
+        // std::vector<SFullscreenScrollState> m_fullscreenTargets;
+        // std::vector<SFullscreenScrollState> m_maximizeTargets;
+        // bool                                m_lastFullscreenCover = false;
 
         friend struct SScrollingData;
         friend class Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler;

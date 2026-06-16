@@ -38,13 +38,13 @@ TEST(ScrollingSpanLayout, extractSpanReservationHandlesWorkspaceOffset) {
     const Vector2D        workspaceOffset = {0, 100};
 
     const auto            params = controller.extractSpanReservation(anchorBox, usable, workspaceOffset);
-    EXPECT_NEAR(params.start, 200.0F / 980.0F, 0.0001F);  // (300 - 100) / 980
+    EXPECT_NEAR(params.start, 200.0F / 980.0F, 0.0001F); // (300 - 100) / 980
     EXPECT_NEAR(params.size, 400.0F / 980.0F, 0.0001F);
 }
 
 TEST(ScrollingSpanLayout, mergeSpanStripBoxesMergesHorizontalInPrimaryHorizontalMode) {
     CScrollTapeController controller(SCROLL_DIR_RIGHT);
-    CBox                  result = {10, 100, 200, 300};  // secondary axis: y=100, h=300
+    CBox                  result = {10, 100, 200, 300}; // secondary axis: y=100, h=300
     const CBox            first  = {0, 0, 640, 1080};
     const CBox            last   = {1280, 0, 640, 1080};
 
@@ -58,7 +58,7 @@ TEST(ScrollingSpanLayout, mergeSpanStripBoxesMergesHorizontalInPrimaryHorizontal
 
 TEST(ScrollingSpanLayout, mergeSpanStripBoxesMergesVerticalInPrimaryVerticalMode) {
     CScrollTapeController controller(SCROLL_DIR_DOWN);
-    CBox                  result = {100, 10, 300, 200};  // secondary axis: x=100, w=300
+    CBox                  result = {100, 10, 300, 200}; // secondary axis: x=100, w=300
     const CBox            first  = {0, 0, 1920, 540};
     const CBox            last   = {0, 540, 1920, 540};
 
@@ -142,7 +142,7 @@ TEST(ScrollingSpanLayout, spanDependencyCycleDetectsMutualSpanning) {
     // Column 1 spans left into column 0. This is a cycle.
     const std::vector<std::vector<SSpanState>> spans = {
         {SSpanState{.next = 1}}, // col 0 → col 1
-        {SSpanState{.prev = 1}},  // col 1 → col 0
+        {SSpanState{.prev = 1}}, // col 1 → col 0
         {},
     };
 
@@ -179,7 +179,7 @@ TEST(ScrollingSpanLayout, columnValidationAcceptsGapsWithEnoughRoom) {
             .realTargetCount = 2,
             .reservations =
                 {
-                    SSpanReservation{.slot = 1, .start = 0.40F, .size = 0.20F},
+                    SSpanReservation{.slot = 1, .start = 0.F, .size = 0.20F},
                 },
         },
         0.10F);
@@ -224,7 +224,7 @@ TEST(ScrollingSpanLayout, columnValidationAcceptsRepeatedSlotsWhenBandsDoNotOver
             .realTargetCount = 2,
             .reservations =
                 {
-                    SSpanReservation{.slot = 1, .start = 0.20F, .size = 0.20F},
+                    SSpanReservation{.slot = 1, .start = 0.F, .size = 0.20F},
                     SSpanReservation{.slot = 1, .start = 0.60F, .size = 0.20F},
                 },
         },
@@ -279,8 +279,10 @@ TEST(ScrollingSpanLayout, columnValidationRejectsSlotOrderConflictingWithBandOrd
     EXPECT_EQ(result.error, "reservation slot order conflicts with band order");
 }
 
-TEST(ScrollingSpanLayout, columnLayoutFitsRealTargetsAroundReservation) {
-    const auto result = layoutColumnWithReservations(
+TEST(ScrollingSpanLayout, columnValidationRejectsFirstReservationNotAtColumnOrigin) {
+    // A shrink that vacates the top of a destination column leaves the
+    // first reservation floating above position 0. This must be rejected.
+    const auto result = validateColumnReservations(
         SColumnSpanValidation{
             .realTargetCount = 2,
             .reservations =
@@ -288,12 +290,27 @@ TEST(ScrollingSpanLayout, columnLayoutFitsRealTargetsAroundReservation) {
                     SSpanReservation{.slot = 1, .start = 0.40F, .size = 0.20F},
                 },
         },
+        0.10F);
+
+    EXPECT_FALSE(result.valid);
+    EXPECT_EQ(result.error, "first reservation does not cover column origin");
+}
+
+TEST(ScrollingSpanLayout, columnLayoutFitsRealTargetsAroundReservation) {
+    const auto result = layoutColumnWithReservations(
+        SColumnSpanValidation{
+            .realTargetCount = 2,
+            .reservations =
+                {
+                    SSpanReservation{.slot = 1, .start = 0.F, .size = 0.20F},
+                },
+        },
         {1.F, 1.F}, 0.10F);
 
     ASSERT_TRUE(result.valid()) << result.validation.error;
     ASSERT_EQ(result.realTargets.size(), 2);
     EXPECT_EQ(result.realTargets[0].index, 0);
-    EXPECT_FLOAT_EQ(result.realTargets[0].start, 0.F);
+    EXPECT_FLOAT_EQ(result.realTargets[0].start, 0.20F);
     EXPECT_FLOAT_EQ(result.realTargets[0].size, 0.40F);
     EXPECT_EQ(result.realTargets[1].index, 1);
     EXPECT_FLOAT_EQ(result.realTargets[1].start, 0.60F);
@@ -419,15 +436,18 @@ TEST(ScrollingSpanLayout, spanAfterColumnRemoveRejectsRemovedAnchor) {
 }
 
 TEST(ScrollingSpanLayout, columnLayoutRejectsWhenTotalSpaceCannotFitOverflowTargets) {
-    // 2 real targets, reservation occupying 0.30→0.80.
-    // Gap 1 (0→0.30): 1 target expected, fitCount=0 → 1 overflows.
-    // Final gap (0.80→1.0): 1 target + 1 overflow = 2 needed, fitCount=0 → rejected.
+    // 2 real targets, 2 reservations.
+    // Reservation 0 (slot 0, 0→0.01): covers origin, negligible size.
+    // Reservation 1 (slot 1, 0.31→0.81): occupies middle of the column.
+    // Gap between reservations (0.01→0.31): 1 target, fitCount=0 → 1 overflows.
+    // Final gap (0.81→1.0): 1 target + 1 overflow = 2 needed, fitCount=0 → rejected.
     const auto result = layoutColumnWithReservations(
         SColumnSpanValidation{
             .realTargetCount = 2,
             .reservations =
                 {
-                    SSpanReservation{.slot = 1, .start = 0.30F, .size = 0.50F},
+                    SSpanReservation{.slot = 0, .start = 0.F, .size = 0.01F},
+                    SSpanReservation{.slot = 1, .start = 0.31F, .size = 0.50F},
                 },
         },
         {100.F, 1.F}, 0.40F);

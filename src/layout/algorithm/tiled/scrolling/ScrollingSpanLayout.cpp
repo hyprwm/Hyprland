@@ -167,6 +167,13 @@ SColumnSpanValidationResult Layout::Tiled::validateColumnReservations(const SCol
             return {.valid = false, .error = "reservation bands overlap"};
     }
 
+    // The first reservation must cover the column origin. Without this
+    // check, a span shrink that vacates the top of a destination column
+    // leaves an uncovered gap that no real target fills (the column is
+    // no longer in affectedColumns so it was never validated at all).
+    if (!reservations.empty() && reservations[0].start > 0.0001F)
+        return {.valid = false, .error = "first reservation does not cover column origin"};
+
     // Walk reservations in vertical order. When a gap between two
     // reservations is too small for the real targets that should fit
     // there, overflow the excess targets to later gaps. Only fail

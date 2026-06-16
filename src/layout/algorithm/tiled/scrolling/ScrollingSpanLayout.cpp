@@ -172,21 +172,30 @@ SColumnSpanValidationResult Layout::Tiled::validateColumnReservations(const SCol
             return {.valid = false, .error = "reservation bands overlap"};
     }
 
-    size_t previousSlot = 0;
-    float  previousEnd  = 0.F;
+    // Walk reservations in vertical order. When a gap between two
+    // reservations is too small for the real targets that should fit
+    // there, overflow the excess targets to later gaps. Only fail
+    // when the final gap cannot accommodate everything.
+    size_t previousSlot    = 0;
+    float  previousEnd     = 0.F;
+    size_t overflowTargets = 0;
 
     for (const auto& reservation : reservations) {
-        const size_t realTargetsInGap = reservation.slot - previousSlot;
-        const float  gapSize          = reservation.start - previousEnd;
+        const size_t targetsToPlace = reservation.slot - previousSlot + overflowTargets;
+        const float  gapSize        = reservation.start - previousEnd;
+        const size_t fitCount       = sc<size_t>(std::floor((std::max(gapSize, 0.F) + 0.0001F) / minRowHeight));
 
-        if (gapSize < sc<float>(realTargetsInGap) * minRowHeight)
-            return {.valid = false, .error = "not enough space for real targets around reservations"};
+        if (fitCount >= targetsToPlace) {
+            overflowTargets = 0;
+        } else {
+            overflowTargets = targetsToPlace - fitCount;
+        }
 
         previousSlot = reservation.slot;
         previousEnd  = reservation.start + reservation.size;
     }
 
-    const size_t realTargetsInLastGap = column.realTargetCount - previousSlot;
+    const size_t realTargetsInLastGap = column.realTargetCount - previousSlot + overflowTargets;
     const float  lastGapSize          = 1.F - previousEnd;
 
     if (lastGapSize < sc<float>(realTargetsInLastGap) * minRowHeight)
@@ -213,7 +222,7 @@ SColumnSpanLayoutResult Layout::Tiled::layoutColumnWithReservations(const SColum
 
     SColumnSpanLayoutResult result{.validation = {}};
 
-    size_t                  previousSlot = 0;
+    size_t                  adjustedSlot = 0;
     float                   previousEnd  = 0.F;
     size_t                  virtualIndex = 0;
     const size_t            virtualCount = column.realTargetCount + reservations.size();
@@ -247,14 +256,26 @@ SColumnSpanLayoutResult Layout::Tiled::layoutColumnWithReservations(const SColum
         }
     };
 
-    for (const auto& reservation : reservations) {
-        placeGap(previousSlot, reservation.slot, previousEnd, reservation.start);
-        previousSlot = reservation.slot;
-        previousEnd  = reservation.start + reservation.size;
-        ++virtualIndex;
+    for (size_t i = 0; i < reservations.size(); ++i) {
+        const auto& reservation = reservations[i];
+
+        // Adjust the slot so that the gap places only as many real
+        // targets as can physically fit. Targets that cannot fit
+        // overflow to later gaps.
+        const size_t expectedInGap = reservation.slot - adjustedSlot;
+        const float  gapSize       = std::max(reservation.start - previousEnd, 0.F);
+        const size_t fitCount      = sc<size_t>(std::floor((gapSize + 0.0001F) / minRowHeight));
+        const size_t placed        = std::min(expectedInGap, fitCount);
+
+        placeGap(adjustedSlot, adjustedSlot + placed, previousEnd, reservation.start);
+        adjustedSlot += placed;
+        virtualIndex += (expectedInGap - placed); // overflow targets defer their virtual index
+        previousEnd = reservation.start + reservation.size;
+        ++virtualIndex; // reservation itself
     }
 
-    placeGap(previousSlot, column.realTargetCount, previousEnd, 1.F);
+    // Final gap: place all remaining real targets.
+    placeGap(adjustedSlot, column.realTargetCount, previousEnd, 1.F);
 
     return result;
 }

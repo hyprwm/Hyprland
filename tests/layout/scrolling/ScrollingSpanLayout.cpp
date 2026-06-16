@@ -347,19 +347,48 @@ TEST(ScrollingSpanLayout, spanAfterColumnRemoveRejectsRemovedAnchor) {
     EXPECT_FALSE(spanAfterColumnRemove(1, SSpanState{.right = 1}, 1, 3).has_value());
 }
 
-TEST(ScrollingSpanLayout, columnLayoutRejectsGapSlightlyBelowMinimumBudget) {
+TEST(ScrollingSpanLayout, columnLayoutRejectsWhenTotalSpaceCannotFitOverflowTargets) {
+    // 2 real targets, reservation occupying 0.30→0.80.
+    // Gap 1 (0→0.30): 1 target expected, fitCount=0 → 1 overflows.
+    // Final gap (0.80→1.0): 1 target + 1 overflow = 2 needed, fitCount=0 → rejected.
     const auto result = layoutColumnWithReservations(
         SColumnSpanValidation{
             .realTargetCount = 2,
             .reservations =
                 {
-                    SSpanReservation{.slot = 2, .start = 0.79995F, .size = 0.20005F},
+                    SSpanReservation{.slot = 1, .start = 0.30F, .size = 0.50F},
                 },
         },
         {100.F, 1.F}, 0.40F);
 
     EXPECT_FALSE(result.valid());
     EXPECT_EQ(result.validation.error, "not enough space for real targets around reservations");
+}
+
+TEST(ScrollingSpanLayout, columnLayoutOverflowsTargetsWhenAdjacentReservationsTouch) {
+    // Two reservations touching end-to-end (0→0.33 and 0.33→0.66) at
+    // slots 0 and 1. The gap between them has 0 space for the 1 real
+    // target expected between slot 0 and slot 1, so it overflows to
+    // the final gap. 2 real targets total, both placed below the
+    // reservations.
+    const auto result = layoutColumnWithReservations(
+        SColumnSpanValidation{
+            .realTargetCount = 2,
+            .reservations =
+                {
+                    SSpanReservation{.slot = 0, .start = 0.F, .size = 0.33F},
+                    SSpanReservation{.slot = 1, .start = 0.33F, .size = 0.33F},
+                },
+        },
+        {1.F, 1.F}, 0.10F);
+
+    ASSERT_TRUE(result.valid()) << result.validation.error;
+    ASSERT_EQ(result.realTargets.size(), 2);
+    // Both real targets placed in the final gap below both reservations.
+    EXPECT_GE(result.realTargets[0].start, 0.66F);
+    EXPECT_GE(result.realTargets[1].start, 0.66F);
+    EXPECT_GE(result.realTargets[0].size, 0.10F);
+    EXPECT_GE(result.realTargets[1].size, 0.10F);
 }
 
 TEST(ScrollingSpanLayout, columnLayoutKeepsFinalTargetAtLeastMinimumHeight) {

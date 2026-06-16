@@ -2927,46 +2927,68 @@ std::optional<CBox> CScrollingAlgorithm::spannedLayoutBox(SP<SScrollingTargetDat
 }
 
 bool CScrollingAlgorithm::tryUpdateSpan(SP<SScrollingTargetData> target, int deltaLeft, int deltaRight) {
-    if (!target)
+    if (!target) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: no target");
         return false;
+    }
 
     const auto TARGET = target->target.lock();
-    if (!TARGET || TARGET->layoutManagedFullscreen() || TARGET->fullscreenMode() != FSMODE_NONE)
+    if (!TARGET || TARGET->layoutManagedFullscreen() || TARGET->fullscreenMode() != FSMODE_NONE) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: target invalid, fullscreen, or maximized");
         return false;
+    }
 
     const auto COLUMN = target->column.lock();
-    if (!COLUMN)
+    if (!COLUMN) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: no column");
         return false;
+    }
 
-    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal()))
+    if (!columnSpansSupportedForPrimaryAxis(m_scrollingData->controller->isPrimaryHorizontal())) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: not horizontal primary axis");
         return false;
+    }
 
     const int64_t ANCHOR_IDX = m_scrollingData->idx(COLUMN);
-    if (ANCHOR_IDX < 0)
+    if (ANCHOR_IDX < 0) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: anchor idx < 0");
         return false;
+    }
 
-    if (deltaLeft > 0 && ANCHOR_IDX - target->span.left <= 0)
+    if (deltaLeft > 0 && ANCHOR_IDX - target->span.left <= 0) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: at left boundary (anchor={}, span.left={}, deltaLeft={})", ANCHOR_IDX, target->span.left, deltaLeft);
         return false;
+    }
 
-    if (deltaRight > 0 && ANCHOR_IDX + target->span.right >= sc<int64_t>(m_scrollingData->columns.size()) - 1)
+    if (deltaRight > 0 && ANCHOR_IDX + target->span.right >= sc<int64_t>(m_scrollingData->columns.size()) - 1) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: at right boundary (anchor={}, span.right={}, columns={})", ANCHOR_IDX, target->span.right, m_scrollingData->columns.size());
         return false;
+    }
 
-    if (deltaLeft < 0 && target->span.left == 0)
+    if (deltaLeft < 0 && target->span.left == 0) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: cannot shrink left, already 0");
         return false;
+    }
 
-    if (deltaRight < 0 && target->span.right == 0)
+    if (deltaRight < 0 && target->span.right == 0) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: cannot shrink right, already 0");
         return false;
+    }
 
     const auto OLDSPAN = target->span;
     target->span.left  = std::max(0, target->span.left + deltaLeft);
     target->span.right = std::max(0, target->span.right + deltaRight);
 
+    Log::logger->log(Log::INFO, "tryUpdateSpan: tentative span left={} right={}, validating...", target->span.left, target->span.right);
+
     if (!validateCurrentSpans()) {
+        Log::logger->log(Log::INFO, "tryUpdateSpan: validateCurrentSpans rejected");
         target->span = OLDSPAN;
         return false;
     }
 
     m_scrollingData->recalculate();
+    Log::logger->log(Log::INFO, "tryUpdateSpan: accepted");
     return true;
 }
 

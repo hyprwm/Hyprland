@@ -9,7 +9,7 @@ namespace Layout {
 namespace Layout::Floating {
     class CDefaultFloatingAlgorithm : public IFloatingAlgorithm {
       public:
-        CDefaultFloatingAlgorithm() = default;
+        CDefaultFloatingAlgorithm()          = default;
         virtual ~CDefaultFloatingAlgorithm() = default;
 
         virtual void newTarget(SP<ITarget> target);
@@ -36,6 +36,5 @@ namespace Layout::Floating {
         };
 
         std::map<WP<ITarget>, SWindowData> m_datas;
-
     };
 };

@@ -10,7 +10,6 @@
 #include <optional>
 #include <expected>
 
-
 namespace Layout {
     class ITarget;
     class CSpace;
@@ -38,7 +37,6 @@ namespace Layout {
         SNAP_LEFT    = (1 << 2),
         SNAP_RIGHT   = (1 << 3),
     };
-
 
     class CLayoutManager {
       public:

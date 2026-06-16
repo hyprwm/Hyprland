@@ -120,7 +120,7 @@ static void preDamageWorkspace(PHLWORKSPACE pWorkspace, PHLMONITOR pMonitor) {
 
     // damage any workspace window that is on any monitor
     for (auto const& w : pWorkspace->getWindows()) {
-        if (!validMapped(w)|| w->m_pinned)
+        if (!validMapped(w) || w->m_pinned)
             continue;
 
         g_pHyprRenderer->damageWindow(w);

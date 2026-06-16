@@ -449,10 +449,8 @@ bool CWorkspace::isVisibleNotCovered() {
     return PMONITOR->m_activeWorkspace->m_id == m_id;
 }
 
-
 std::unordered_set<PHLWINDOW> CWorkspace::getWindows(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
-    
-    
+
     std::unordered_set<PHLWINDOW> listOfWindowsInWorkspace;
 
     if (!m_space) {
@@ -479,7 +477,6 @@ std::unordered_set<PHLWINDOW> CWorkspace::getWindows(std::optional<bool> onlyTil
 
     return listOfWindowsInWorkspace;
 }
-
 
 int CWorkspace::getWindowCount(std::optional<bool> onlyTiled, std::optional<bool> onlyPinned, std::optional<bool> onlyVisible) {
     int no = 0;
@@ -566,7 +563,6 @@ void CWorkspace::updateWindowData() {
 
     for (auto const& w : getWindows())
         w->updateWindowData(WORKSPACERULE.value_or(Config::CWorkspaceRule{}));
-
 }
 
 void CWorkspace::forceReportSizesToWindows() {

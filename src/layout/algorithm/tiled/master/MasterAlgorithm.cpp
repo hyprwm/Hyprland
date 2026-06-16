@@ -30,7 +30,6 @@ static std::pair<int, int> centerSlaveColumns(int slaveCount, bool extraToRight)
     return extraToRight ? std::pair{SMALLER, LARGER} : std::pair{LARGER, SMALLER};
 }
 
-
 void CMasterAlgorithm::newTarget(SP<ITarget> target) {
     addTarget(target, true);
 }

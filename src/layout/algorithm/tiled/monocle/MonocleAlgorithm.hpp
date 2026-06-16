@@ -48,6 +48,5 @@ namespace Layout::Tiled {
         void                                focusTargetUpdate(SP<ITarget> target);
         void                                updateVisible();
         SP<ITarget>                         getVisibleTarget();
-
     };
 };

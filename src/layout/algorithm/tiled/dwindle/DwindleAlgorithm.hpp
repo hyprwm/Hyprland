@@ -27,7 +27,7 @@ namespace Layout::Tiled {
 
     class CDwindleAlgorithm : public ITiledAlgorithm {
       public:
-        CDwindleAlgorithm() = default;
+        CDwindleAlgorithm()          = default;
         virtual ~CDwindleAlgorithm() = default;
 
         virtual void                    newTarget(SP<ITarget> target);
@@ -73,6 +73,5 @@ namespace Layout::Tiled {
         bool                    moveToRoot(SP<SDwindleNodeData>, bool stable = true);
 
         Math::eDirection        m_overrideDirection = Math::DIRECTION_DEFAULT;
-
     };
 };

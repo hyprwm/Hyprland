@@ -476,8 +476,8 @@ TEST_CASE(groups) {
 TEST_CASE(groupsNoCrash) {
     auto kittyA = Tests::spawnKitty("kittyA");
 
-    OK(getFromSocket("/dispatch hl.dsp.window.toggle_group()"));
-    OK(getFromSocket("/dispatch hl.dsp.window.toggle_group()"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
+    OK(getFromSocket("/dispatch hl.dsp.group.toggle()"));
 
     {
         auto curr = getFromSocket("/activewindow");

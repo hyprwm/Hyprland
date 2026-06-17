@@ -300,7 +300,7 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx > 0)
+    if (posAx >= 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
 }
 
@@ -373,7 +373,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) > 0)
+    if (std::stoi(currentWindowPosX) >= 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
 }
 
@@ -420,7 +420,7 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) > 0)
+    if (std::stoi(currentWindowPosX) >= 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
 }
 
@@ -916,7 +916,7 @@ TEST_CASE(testScrollInhibitor) {
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx > 0)
+    if (posAx >= 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
 }
 
@@ -1007,7 +1007,7 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     const auto posA  = Tests::getAttribute(active, "at");
     const auto posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx > 0)
+    if (posAx >= 0)
         FAIL_TEST("Expected the x coordinate of window of class \"A\" to be < 0, got {}.", posAx);
 }
 

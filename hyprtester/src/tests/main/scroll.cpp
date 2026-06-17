@@ -299,11 +299,9 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocusFalse) {
     // if the view does not move, we expect the x coordinate of the window of class "a" to be negative, as it would be to the left of the viewport
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    if (posAx < 0) {
-        PASS_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
-    } else {
+
+    if (posAx > 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
@@ -329,11 +327,9 @@ TEST_CASE(testScrollingViewBehaviourDispatchFocusWindowFollowFocustrue) {
     // If it is not, the view moved, which is what we expect to happen.
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
-    if (posAx < 0) {
+
+    if (posAx < 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", posAx);
-    } else {
-        PASS_TEST("Expected the x coordinate of window of class \"a\" to be >= 0, got {}.", posAx);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallback) {
@@ -376,11 +372,9 @@ TEST_CASE(testScrollingViewBehaviourFocusFallback) {
 
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
-    } else {
+
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
@@ -426,11 +420,8 @@ TEST_CASE(testScrollingViewBehaviourFocusFallbackWithGroups) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
@@ -467,11 +458,8 @@ TEST_CASE(testScrollingViewBehaviourWorkspaceChange) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
@@ -511,11 +499,8 @@ TEST_CASE(testScrollingViewBehaviourSpecialWorkspaceChange) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
@@ -556,11 +541,8 @@ TEST_CASE(testScrollingViewBehaviourSpecialToSpecialWorkspaceChange) {
     const std::string currentWindowPosSPECIAL  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosSPECIALX = currentWindowPosSPECIAL.substr(0, currentWindowPosSPECIAL.find(','));
 
-    if (std::stoi(currentWindowPosSPECIALX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosSPECIALX);
-    } else {
+    if (std::stoi(currentWindowPosSPECIALX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosSPECIALX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
@@ -604,11 +586,8 @@ TEST_CASE(testScrollingViewBehaviourCloseWindowInGroup) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
@@ -645,11 +624,8 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowIntoGroupFollowFocusFalse) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'b' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'b' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
@@ -685,11 +661,8 @@ TEST_CASE(testScrollingViewBehaviourMoveWindowInGroupFollowFocusTrue) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
+    if (std::stoi(currentWindowPosX) < 0)
         FAIL_TEST("window of class 'b' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
-    } else {
-        PASS_TEST("window of class 'b' has x coordinates >= 0 for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourNewLayer) {
@@ -723,11 +696,8 @@ TEST_CASE(testScrollingViewBehaviourNewLayer) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
@@ -757,11 +727,8 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusFalse) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
@@ -789,11 +756,8 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusFollowFocusTrue) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
+    if (std::stoi(currentWindowPosX) < 0)
         FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
-    } else {
-        PASS_TEST("window of class 'a' has x coordinates >= 0 for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
@@ -836,11 +800,8 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusFalse) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
@@ -882,11 +843,8 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
+    if (std::stoi(currentWindowPosX) < 0)
         FAIL_TEST("window of class 'a' does not have x coordinates >= 0 for its position: {}", currentWindowPosX);
-    } else {
-        PASS_TEST("window of class 'a' has x coordinates >= 0 for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
@@ -923,11 +881,8 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
     const std::string currentWindowPos  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const std::string currentWindowPosX = currentWindowPos.substr(0, currentWindowPos.find(','));
 
-    if (std::stoi(currentWindowPosX) < 0) {
-        PASS_TEST("window of class 'a' has negative x coordinates for its position: {}", currentWindowPosX);
-    } else {
+    if (std::stoi(currentWindowPosX) > 0)
         FAIL_TEST("window of class 'a' does not have negative x coordinates for its position: {}", currentWindowPosX);
-    }
 }
 
 TEST_CASE(testScrollInhibitor) {
@@ -961,11 +916,8 @@ TEST_CASE(testScrollInhibitor) {
     const std::string posA  = Tests::getAttribute(getFromSocket("/activewindow"), "at");
     const int         posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx < 0) {
-        PASS_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
-    } else {
+    if (posAx > 0)
         FAIL_TEST("Expected the x coordinate of window of class \"a\" to be < 0, got {}.", posAx);
-    }
 }
 
 TEST_CASE(layoutmsg_fit_into_view) {
@@ -1027,11 +979,8 @@ TEST_CASE(layoutRuleExpand) {
     const std::string sizeAfter  = Tests::getAttribute(getFromSocket("/activewindow"), "size");
     const int         sizeAfterX = std::stoi(sizeAfter.substr(0, sizeAfter.find(',')));
 
-    if (sizeAfterX >= sizeSingleX - 200) {
-        PASS_TEST("Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", sizeSingleX - 200, sizeAfterX);
-    } else {
+    if (sizeAfterX < sizeSingleX - 200)
         FAIL_TEST("Expected the width of window of class \"b\" to take up all remaining space {}, got {}.", sizeSingleX - 200, sizeAfterX);
-    }
 }
 TEST_CASE(scrollTapeOnClickOutOfWindow) {
     /*
@@ -1058,11 +1007,8 @@ TEST_CASE(scrollTapeOnClickOutOfWindow) {
     const auto posA  = Tests::getAttribute(active, "at");
     const auto posAx = std::stoi(posA.substr(0, posA.find(',')));
 
-    if (posAx < 0) {
-        PASS_TEST("Expected the x coordinate of window of class \"A\" to be < 0.");
-    } else {
+    if (posAx > 0)
         FAIL_TEST("Expected the x coordinate of window of class \"A\" to be < 0, got {}.", posAx);
-    }
 }
 
 TEST_CASE(properFocusBehvaior) {

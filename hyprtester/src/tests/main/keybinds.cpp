@@ -18,6 +18,10 @@ static std::string pluginScrollCmd(int delta) {
     return "/eval hl.plugin.test.scroll(" + std::to_string(delta) + ")";
 }
 
+static std::string pluginClickCmd(bool pressed, uint32_t button) {
+    return "/eval hl.plugin.test.click(" + std::to_string(button) + ", " + std::to_string(pressed ? 1 : 0) + ")";
+}
+
 // Because i don't feel like changing someone elses code.
 enum eKeyboardModifierIndex : uint8_t {
     MOD_SHIFT = 1,
@@ -480,6 +484,33 @@ SUBTEST(submap) {
     Tests::killAllWindows();
 }
 
+SUBTEST(submapMouseBinds) {
+    // regression #14856: scroll / mouse-button binds in a non-default submap stopped firing
+    NLog::log("{}Testing mouse binds inside a submap", Colors::GREEN);
+
+    EXPECT(checkFlag(), false);
+    EXPECT(getFromSocket("r/eval hl.config({ binds = { scroll_event_delay = 0 } })"), "ok");
+
+    // enter submap1 (SUPER+U); release with mods cleared so the modless mouse binds match
+    getFromSocket(pluginKeybindCmd(true, 7, 30));
+    getFromSocket(pluginKeybindCmd(false, 0, 30));
+    EXPECT_CONTAINS(getFromSocket("/submap"), "submap1");
+
+    // scroll
+    OK(getFromSocket(pluginScrollCmd(120)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+
+    // mouse-button
+    OK(getFromSocket(pluginClickCmd(true, BTN_LEFT)));
+    OK(getFromSocket(pluginClickCmd(false, BTN_LEFT)));
+    EXPECT(attemptCheckFlag(20, 50), true);
+
+    // reset to default submap
+    getFromSocket(pluginKeybindCmd(true, 0, 33));
+    getFromSocket(pluginKeybindCmd(false, 0, 33));
+    EXPECT_CONTAINS(getFromSocket("/submap"), "default");
+}
+
 SUBTEST(bindsAfterScroll) {
     NLog::log("{}Testing binds after scroll", Colors::GREEN);
 
@@ -608,6 +639,7 @@ TEST_CASE(keybinds) {
     CALL_SUBTEST(shortcutRepeat);
     CALL_SUBTEST(shortcutRepeatKeyRelease);
     CALL_SUBTEST(submap);
+    CALL_SUBTEST(submapMouseBinds);
     CALL_SUBTEST(submapUniversal);
     CALL_SUBTEST(bindsAfterScroll);
     CALL_SUBTEST(perDeviceKeybind);

@@ -462,6 +462,11 @@ static int hlTimer(lua_State* L) {
     return 1;
 }
 
+static int hlExecuteScheduledRefreshImmediately(lua_State* L) {
+
+    return Supplementary::refresher()->executeScheduledRefreshImmediately();
+}
+
 void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setMgrFn(L, mgr, "on", hlOn);
     Internal::setMgrFn(L, mgr, "bind", hlBind);
@@ -472,6 +477,8 @@ void Internal::registerToplevelBindings(lua_State* L, CConfigManager* mgr) {
     Internal::setFn(L, "version", hlVersion);
     Internal::setFn(L, "get_loaded_plugins", hlGetPlugins);
     Internal::setFn(L, "exec_cmd", hlExecCmd);
+
+    Internal::setFn(L, "exec_scheduled_prop_refresh_immediately", hlExecuteScheduledRefreshImmediately);
 
     Internal::setFn(L, "unbind", hlUnbind);
 }

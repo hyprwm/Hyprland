@@ -850,10 +850,9 @@ TEST_CASE(testScrollingViewBehaviourMoveFocusInGroupFollowFocusTrue) {
 TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
 
     /*
-     Scheduled prop refresh must not move scrolling viewport.
-     The reason a prop refresh was queued is not saved, therefore it is not possible to clearly tell when and when not to move scrolling viewport
-     In this test, we test this by setting a workspace rule, which schedules a prop refresh
-     --------------------------------------------------------------------------------------------------------------------------------------
+    Test that hl.exec_scheduled_prop_refresh_immediately() should immediately execute prop refresh. This is tested via inhibiting scrollin during helper functs dispatch; if it works, the viewport
+    should not move when a new workspace rule is created. If it doesn't, dispatch will miss because the refresh will be executed as another event 
+    --------------------------------------------------------------------------------------------------------------------------------------
     */
 
     OK(getFromSocket("r/eval hl.config({ general = { layout = 'scrolling' } })"));
@@ -872,7 +871,8 @@ TEST_CASE(testScrollingViewBehaviourScheduledPropRefresh) {
     OK(getFromSocket("/dispatch hl.dsp.focus({ window = 'class:a' })"));
 
     // setting a workspace rule queues a doLater() call in the Event Loop Manager
-    OK(getFromSocket("/eval hl.workspace_rule({workspace = hl.get_active_workspace().id,gaps_in = 0})"));
+    OK(getFromSocket("/eval hl.dispatch(hl.dsp.layout('inhibit_scroll true')); hl.workspace_rule({workspace = hl.get_active_workspace().id,gaps_in = 0}); "
+                     "hl.exec_scheduled_prop_refresh_immediately(); hl.dispatch(hl.dsp.layout('inhibit_scroll false'));"));
 
     // Check that the workspace rule is set
     ASSERT_CONTAINS(getFromSocket("/workspacerules"), "gapsIn: 0 0 0 0");

@@ -35,8 +35,8 @@ bool IFullscreenHandler::isFullscreen(const PHLWINDOW window, const std::optiona
 
 bool IFullscreenHandler::hasFullscreen(const std::optional<bool> covering) {
 
-    for (const auto& w : m_fsWindows) {
-        if (w.first && w.second.internal != FSMODE_NONE)
+    for (const auto& e : m_fsWindows) {
+        if (e.first && e.second.internal != FSMODE_NONE)
             return true;
     }
 
@@ -45,9 +45,9 @@ bool IFullscreenHandler::hasFullscreen(const std::optional<bool> covering) {
 
 PHLWINDOW IFullscreenHandler::getFullscreen(const std::optional<bool> covering) {
 
-    for (const auto& w : m_fsWindows) {
-        if (w.first && w.second.internal != FSMODE_NONE)
-            return w.first.lock();
+    for (const auto& e : m_fsWindows) {
+        if (e.first && e.second.internal != FSMODE_NONE)
+            return e.first.lock();
     }
 
     return nullptr;
@@ -141,29 +141,20 @@ void IFullscreenHandler::moveFullscreenWindowOutOfHandler(const PHLWINDOW window
 }
 
 void IFullscreenHandler::setNoMembersAboveFullscreen() {
+    if (!getSpace() || !getSpace()->workspace() || !getSpace()->workspace()->m_monitor)
+        return;
 
     const auto SPACE = getSpace();
-
-    if (!SPACE)
-        return;
-
     const auto WORKSPACE = SPACE->workspace();
-
-    if (!WORKSPACE)
-        return;
-
     const auto MONITOR = WORKSPACE->m_monitor;
-
-    if (!MONITOR)
-        return;
 
     const bool SET = !m_fsWindows.empty();
 
     // make all windows and layers on the same workspace under the fullscreen window
-    for (const auto& w : WORKSPACE->getWindows()) {
-        if (w && !isFullscreen(w) && !w->m_fadingOut && !w->m_pinned) {
-            w->m_allowedOverFullscreen = !SET;
-            w->updateFullscreenInputState();
+    for (const auto& e : WORKSPACE->getWindows()) {
+        if (e && !isFullscreen(e) && !e->m_fadingOut && !e->m_pinned) {
+            e->m_allowedOverFullscreen = !SET;
+            e->updateFullscreenInputState();
         }
     }
     for (auto const& ls : g_pCompositor->m_layers) {
@@ -180,11 +171,11 @@ void IFullscreenHandler::syncFullscreenWindows() {
 
     PHLWINDOW coveringFullscreenWindow;
 
-    for (const auto& w : m_fsWindows) {
+    for (const auto& e : m_fsWindows) {
         // window expired
         // both modes are false
-        if (!w.first || (w.second.internal == FSMODE_NONE && w.second.client == FSMODE_NONE)) {
-            m_fsWindows.erase(w.first);
+        if (!e.first || (e.second.internal == FSMODE_NONE && e.second.client == FSMODE_NONE)) {
+            m_fsWindows.erase(e.first);
         }
     }
 }

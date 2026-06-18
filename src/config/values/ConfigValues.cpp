@@ -176,7 +176,7 @@ std::vector<SP<IValue>> Values::getConfigValues() {
                      {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
         MS<Gradient>("general:col.nogroup_border_active", "active border color for window that cannot be added to a group", CHyprColor{0xffff00ff},
                      {.refresh = Supplementary::REFRESH_WINDOW_STATES}),
-        MS<String>("general:layout", "which layout to use. [dwindle/master]", "dwindle", {.refresh = Supplementary::REFRESH_LAYOUTS}),
+        MS<String>("general:layout", "which layout to use. [dwindle/master/scrolling/monocle/lua:<name>]", "dwindle", {.refresh = Supplementary::REFRESH_LAYOUTS}),
         MS<Bool>("general:no_focus_fallback", "if true, will not fall back to the next available window when moving focus in a direction where no window was found", false),
         MS<Bool>("general:resize_on_border", "enables resizing windows by clicking and dragging on borders and gaps", false),
         MS<Int>("general:extend_border_grab_area", "extends the area around the border where you can click and drag on, only used when general:resize_on_border is on.", 15,

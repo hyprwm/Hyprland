@@ -15,16 +15,6 @@ namespace Layout::Tiled {
 
 namespace Fullscreen::ScrollingFullscreenHandler {
 
-    struct SScrollingFullscreenWindowHidingState {
-
-        PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
-        eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
-        std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
-
-        void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
-
-    } m_fullscreenWindowHidingState;
-
     struct SFullscreenScrollState {
         SFullscreenMode      mode;
         std::optional<float> restoreColumnWidth = std::nullopt;
@@ -46,6 +36,13 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
       -> Scrolling layout permits multiple FS windows in a workspace, but there can only be one covering FS window.
 
+
+        Scrolling FS window must have/be: ERSTARR TODO - COMPLETE THIS AND MAKE THIS CLEANER
+           - In the list
+             -> FSMODE != NONE (this should still always be checked)
+             -> PHLWINDOWREF != null
+           - be the only taget in its column
+
       
       */
 
@@ -64,6 +61,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         virtual bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
         virtual bool            hasFullscreen(const std::optional<bool> covering = true);
         virtual PHLWINDOW       getFullscreen(const std::optional<bool> covering = true);
+        /// @warning Does NOT check if a window is fullscreen, merely returns its fullscreenMode
         virtual SFullscreenMode getFullscreenMode(const PHLWINDOW window);
 
         // FS Request
@@ -93,11 +91,22 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
         virtual void syncFullscreenWindows();
 
-        virtual void removeFSWindowFromHandler(PHLWINDOW window);
+        /// ERSTARR NOTE - remove a window from the handler. This is not the place to check if a window has all its values correctly set; this just removes it from the list after doing layout specific stuff
+        virtual void removeWindowFromHandler(PHLWINDOW window);
 
         // Misc.
 
         virtual eFullscreenHandler getFullscreenHandlerName() const;
+
+        struct SScrollingFullscreenWindowHidingState {
+
+            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
+            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
+            std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+
+            void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
+
+        } m_fullscreenWindowHidingState;
 
         // ERSTARR TODO: extract FS related logic from recalculate() and put them in a helper function here. Note that it's a helper for scrolling but it must be public since the algo must directly use it.
         // ---> it'd be truly ideal if this can be integrated into the syncFullscreens, but that might not be the best idea since syncFullscreen already handles its own function
@@ -108,7 +117,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         /// Tracks FSed windows (internal OR client)
         std::unordered_map<PHLWINDOWREF, SFullscreenScrollState> m_fsWindows;
 
-        const eFullscreenHandler                                 FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
+        const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
 
         // Helpers for Scrolling FS behaviour
 
@@ -128,6 +137,10 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
         */
         // bool                                isFullscreenTarget(SP<Layout::Tiled::SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const; -- Redundant -  use isFullscreen()
+
+
+        // void clearFullscreenWindow(std::unordered_map<PHLWINDOWREF, SFullscreenScrollState>& m_fsWindows, PHLWINDOW window = nullptr);
+
 
         float fullscreenColumnWidth() const;
         bool  fullscreenColumnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;

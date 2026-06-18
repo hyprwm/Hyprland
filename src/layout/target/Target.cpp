@@ -54,14 +54,14 @@ void ITarget::setSpaceGhost(const SP<CSpace>& space) {
     m_ghostSpace = true;
 }
 
-bool ITarget::layoutManagedFullscreen() const {
-    return m_layoutManagedFullscreen;
-}
+// bool ITarget::layoutManagedFullscreen() const {
+//     return m_layoutManagedFullscreen;
+// }
 
-// TODO remove this
-void ITarget::setLayoutManagedFullscreen(bool enabled) {
-    m_layoutManagedFullscreen = enabled;
-}
+// // TODO remove this
+// void ITarget::setLayoutManagedFullscreen(bool enabled) {
+//     m_layoutManagedFullscreen = enabled;
+// }
 
 SP<CSpace> ITarget::space() const {
     return m_space;

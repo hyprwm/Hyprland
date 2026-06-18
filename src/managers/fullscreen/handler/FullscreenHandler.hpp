@@ -78,7 +78,7 @@ namespace Fullscreen {
 
         // Helpers
 
-        virtual void removeFSWindowFromHandler(PHLWINDOW window) = 0;
+        virtual void removeWindowFromHandler(PHLWINDOW window) = 0;
 
         // Misc.
 

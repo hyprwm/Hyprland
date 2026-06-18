@@ -182,7 +182,7 @@ namespace Layout::Tiled {
         * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`
         * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
         */
-        bool                                isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const;
+        // bool                                isFullscreenTarget(SP<SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const;
         // float                               fullscreenColumnWidth() const;
         // bool                                fullscreenColumnCoversMonitor(SP<SColumnData> col) const;
         // bool                                fullscreenColumnCoversWorkArea(SP<SColumnData> col) const;

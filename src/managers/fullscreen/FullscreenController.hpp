@@ -89,7 +89,7 @@ namespace Fullscreen {
         bool            isLayoutManagedFullscreen(const SP<Layout::CWindowGroupTarget> group); // TODO: use the handler to judge - delete this todo after implemented
         SFullscreenMode getFullscreenMode(const SP<Layout::CWindowGroupTarget> group);
 
-        // ERSTARR TODO - if covering is true; need to check if floating algo has FS first. If so, return that; and only if not so do you check tiling
+        // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
         // Workspace
 
@@ -105,7 +105,7 @@ namespace Fullscreen {
 
         // Handler
 
-        eFullscreenHandler getFullscreenHandler(const PHLWINDOW window);
+        eFullscreenHandler getFullscreenHandler(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
         // FS Mode Setters
 

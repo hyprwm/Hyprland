@@ -2538,16 +2538,40 @@ bool CMonitor::doesNoShaderCM() {
 }
 
 static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, size_t gammaSize) {
-    std::vector<uint16_t> out;
-    out.resize(gammaSize * 3);
+    const size_t entries = sc<size_t>(t.entries);
 
-    //
+    if (gammaSize == 0 || entries == 0)
+        return {};
+
+    if (t.ch[0].size() < entries || t.ch[1].size() < entries || t.ch[2].size() < entries)
+        return {};
+
+    std::vector<uint16_t> out(gammaSize * 3);
+
+    // No resampling is needed when the VCGT already matches the KMS LUT size.
+    if (gammaSize == entries) {
+        const uint16_t* __restrict red   = t.ch[0].data();
+        const uint16_t* __restrict green = t.ch[1].data();
+        const uint16_t* __restrict blue  = t.ch[2].data();
+        uint16_t* __restrict dst         = out.data();
+
+        for (size_t i = 0; i < gammaSize; ++i) {
+            const size_t dstIndex = i * 3;
+
+            dst[dstIndex + 0] = red[i];
+            dst[dstIndex + 1] = green[i];
+            dst[dstIndex + 2] = blue[i];
+        }
+
+        return out;
+    }
+
     auto sample = [&](int c, float x) -> uint16_t {
         const float maxX = t.entries - 1;
         x                = std::clamp(x, 0.F, maxX);
 
-        const size_t i0 = (size_t)std::floor(x);
-        const size_t i1 = std::min(i0 + 1, (size_t)t.entries - 1);
+        const size_t i0 = sc<size_t>(std::floor(x));
+        const size_t i1 = std::min(i0 + 1, sc<size_t>(t.entries - 1));
         const float  f  = x - sc<float>(i0);
 
         const float  v0 = sc<float>(t.ch[c][i0]);
@@ -2556,19 +2580,16 @@ static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, siz
 
         int64_t      vi = std::round(v);
         vi              = std::clamp(vi, sc<int64_t>(0), sc<int64_t>(65535));
+
         return sc<uint16_t>(vi);
     };
 
     for (size_t i = 0; i < gammaSize; ++i) {
-        float          x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
+        const float x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
 
-        const uint16_t r = sample(0, x);
-        const uint16_t g = sample(1, x);
-        const uint16_t b = sample(2, x);
-
-        out[i * 3 + 0] = r;
-        out[i * 3 + 1] = g;
-        out[i * 3 + 2] = b;
+        out[i * 3 + 0] = sample(0, x);
+        out[i * 3 + 1] = sample(1, x);
+        out[i * 3 + 2] = sample(2, x);
     }
 
     return out;

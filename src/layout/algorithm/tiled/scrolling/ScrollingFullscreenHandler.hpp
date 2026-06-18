@@ -98,20 +98,24 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         virtual eFullscreenHandler getFullscreenHandlerName() const;
 
+        // ERSTARR TODO: extract FS related logic from recalculate() and put them in a helper function here. Note that it's a helper for scrolling but it must be public since the algo must directly use it.
+        // ---> it'd be truly ideal if this can be integrated into the syncFullscreens, but that might not be the best idea since syncFullscreen already handles its own function
+
+      private:
+
+
         struct SScrollingFullscreenWindowHidingState {
 
             PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
             eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
             std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
-            void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
         } m_fullscreenWindowHidingState;
 
-        // ERSTARR TODO: extract FS related logic from recalculate() and put them in a helper function here. Note that it's a helper for scrolling but it must be public since the algo must directly use it.
-        // ---> it'd be truly ideal if this can be integrated into the syncFullscreens, but that might not be the best idea since syncFullscreen already handles its own function
+        void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
 
-      private:
+
         Layout::Tiled::CScrollingAlgorithm* m_scrollingAlgorithm = nullptr;
 
         /// Tracks FSed windows (internal OR client)
@@ -125,7 +129,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         // SFullscreenScrollState*  fullscreenStateForData(SP<Layout::Tiled::SScrollingTargetData> target, eFullscreenMode targetFullscreenMode); -- Should be redundant
 
         // gets the FS target in a column. Includes check that a col with a FS target must have only one target, which is the FS window
-        SP<Layout::Tiled::SScrollingTargetData> fullscreenTargetDataForColumn(SP<Layout::Tiled::SColumnData> col) const;
+        // SP<Layout::Tiled::SScrollingTargetData> fullscreenTargetDataForColumn(SP<Layout::Tiled::SColumnData> col); --> redundant
 
         /**
         * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
@@ -143,10 +147,10 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
 
         float fullscreenColumnWidth() const;
-        bool  fullscreenColumnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
-        bool  fullscreenColumnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
+        bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
+        bool  columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
         void  updateFullscreenFade(bool coversMonitor);
 
-        float getTargetColumnWidthBeforeFullscreenOrMaximise(SP<Layout::ITarget> target);
+        float getWindowColumnWidthBeforeFullscreenOrMaximise(const PHLWINDOW window);
     };
 }

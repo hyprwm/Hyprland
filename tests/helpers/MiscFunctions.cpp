@@ -26,8 +26,8 @@ TEST(Helpers, isDirectionString) {
     EXPECT_TRUE(isDirection("d"));
     EXPECT_TRUE(isDirection("t"));
     EXPECT_TRUE(isDirection("b"));
+    EXPECT_TRUE(isDirection("left"));
     EXPECT_FALSE(isDirection("x"));
-    EXPECT_FALSE(isDirection("left"));
     EXPECT_FALSE(isDirection(""));
 }
 

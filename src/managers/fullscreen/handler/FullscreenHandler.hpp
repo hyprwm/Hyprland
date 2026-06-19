@@ -17,11 +17,6 @@ namespace Fullscreen {
         eFullscreenMode     mode        = FSMODE_NONE;
     };
 
-    struct SFsWindowState {
-        PHLWINDOWREF    window;
-        SFullscreenMode mode;
-    };
-
     class IFullscreenHandler {
 
         // TODO : edit below comments into a coherent manual
@@ -44,10 +39,10 @@ namespace Fullscreen {
 
         // FS State Queries
 
-        virtual bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
-        virtual bool            hasFullscreen(const std::optional<bool> covering = true);
-        virtual PHLWINDOW       getFullscreen(const std::optional<bool> covering = true);
-        virtual SFullscreenMode getFullscreenMode(const PHLWINDOW window);
+        virtual bool                isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool                hasFullscreen(const std::optional<bool> covering = true);
+        virtual SP<Layout::ITarget> getFullscreen(const std::optional<bool> covering = true);
+        virtual SFullscreenMode     getFullscreenMode(const SP<Layout::ITarget> target);
 
         // FS Request
 
@@ -55,30 +50,30 @@ namespace Fullscreen {
 
         // FS State Handlers
 
-        virtual void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode);
-        virtual void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode);
+        virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
+        virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-        // Window Movement Between FS Handlers
+        // Target Movement Between FS Handlers
 
-        // the window passed is guaranteed to be a FS window
+        // the Target passed is guaranteed to be a FS Target
         // Must rerender by the end
-        virtual void moveFullscreenWindowToHandler(const PHLWINDOW window, const std::optional<bool> covering = true);
+        virtual void moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering = true);
 
-        // Must properly remove FS properties and state of the window in preparation for move to a new workspace with potentially a new handler.
-        // Simply removing the window from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
-        virtual void moveFullscreenWindowOutOfHandler(const PHLWINDOW window);
+        // Must properly remove FS properties and state of the target in preparation for move to a new workspace with potentially a new handler.
+        // Simply removing the target from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
+        virtual void moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target);
 
         // Optional
 
-        // FS window hiding behaviour
+        // FS target hiding behaviour
         virtual void setNoMembersAboveFullscreen();
 
-        // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
-        virtual void syncFullscreenWindows();
+        // FS target State Syncing (cleaning up FS target list if exists, other self corrections and error mitigation)
+        virtual void syncFullscreenTargets();
 
         // Helpers
 
-        virtual void removeWindowFromHandler(PHLWINDOW window) = 0;
+        virtual void removeTargetFromHandler(SP<Layout::ITarget>) = 0;
 
         // Misc.
 
@@ -91,8 +86,8 @@ namespace Fullscreen {
         SP<Layout::CSpace>            getSpace() const;
 
       private:
-        /// Windows with ONLY client FS mode set.
-        std::unordered_map<PHLWINDOWREF, SFullscreenMode> m_fsWindows;
+        /// Targetss with ONLY client FS mode set.
+        std::unordered_map<WP<Layout::ITarget>, SFullscreenMode> m_fsTargets;
 
         // Must be defined by each layout's handler
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_DEFAULT;

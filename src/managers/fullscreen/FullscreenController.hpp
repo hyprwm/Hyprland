@@ -41,9 +41,9 @@ namespace Fullscreen {
     A layout may decide to define their own FS behaviour. To do this, they should create a FS Handler class and tie it (UP<>) to their Layout Algorithm class.
       - One LayoutAlgorithm object per workspace; therefore one FS Handler object per workspace.
 
-    Fullscreen/Maximise is a behaviour that is specific to Windows. If a layout wants to define a custom ITarget that also has a FS or FS-like behaviour; and it is outside of Hyprland's CWindow framework, they are to
-    handle the FS(-like) behaviour of this Target, as well as the storage of FS(-like) target states, in their own FS Handler classes.
-  
+    Fullscreen/Maximise is a behaviour that is specific to Windows. If a layout wants to define a custom ITarget that also has a FS or FS-like behaviour, that's for the handler to handle.
+      it can get the underlying type and dispatch to internal helper, or it can handle in the virtual function, or whatever. If target has FS behaviour that can't be handled with the controller, handler needs to
+      handle those parts entirely (and besides in that case that behaviour would have to be isolated to CWeirdAlgorithm files anyway to not break encapsulation)
 
     Fullscreen Handlers
     -------------------

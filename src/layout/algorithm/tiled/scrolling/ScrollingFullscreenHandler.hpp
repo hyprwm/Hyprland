@@ -28,19 +28,17 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // std::optional<bool> covering has true as default argument because for the default fullscreen behaviour, there is no such thing we non-covering fullscreen. In any case this value is ignored in this handler
 
-        // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
-
         /*
       Scrolling FS Behaviour
       ----------------------
 
-      -> Scrolling layout permits multiple FS windows in a workspace, but there can only be one covering FS window.
+      -> Scrolling layout permits multiple FS targets in a workspace, but there can only be one covering FS target.
 
 
-        Scrolling FS window must have/be: ERSTARR TODO - COMPLETE THIS AND MAKE THIS CLEANER
+        Scrolling FS target must have/be: ERSTARR TODO - COMPLETE THIS AND MAKE THIS CLEANER
            - In the list
              -> FSMODE != NONE (this should still always be checked)
-             -> PHLWINDOWREF != null
+             -> WP<ITarget> != null
            - be the only taget in its column
 
       
@@ -58,11 +56,11 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // FS State Queries
 
-        virtual bool            isFullscreen(const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
+        virtual bool            isFullscreen(const SP<Layout::ITarget> target, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = true);
         virtual bool            hasFullscreen(const std::optional<bool> covering = true);
-        virtual PHLWINDOW       getFullscreen(const std::optional<bool> covering = true);
-        /// @warning Does NOT check if a window is fullscreen, merely returns its fullscreenMode
-        virtual SFullscreenMode getFullscreenMode(const PHLWINDOW window);
+        virtual SP<Layout::ITarget>       getFullscreen(const std::optional<bool> covering = true);
+        /// @warning Does NOT check if a target is fullscreen, merely returns its fullscreenMode
+        virtual SFullscreenMode getFullscreenMode(const SP<Layout::ITarget> target);
 
         // FS Request
 
@@ -70,29 +68,30 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         // FS State Handlers
 
-        virtual void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode);
-        virtual void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode);
+        virtual void setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode);
+        virtual void setTargetFullscreenModeClient(const SP<Layout::ITarget> target, const eFullscreenMode mode);
 
-        // Window Movement Between FS Handlers
+        // Target Movement Between FS Handlers
 
-        // the window passed is guaranteed to be a FS window
+        // the Target passed is guaranteed to be a FS Target
         // Must rerender by the end
-        virtual void moveFullscreenWindowToHandler(const PHLWINDOW window, const std::optional<bool> covering = true);
+        virtual void moveFullscreenTargetToHandler(const SP<Layout::ITarget> target, const std::optional<bool> covering = true);
 
-        // Must properly remove FS properties and state of the window in preparation for move to a new workspace with potentially a new handler.
-        // Simply removing the window from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
-        virtual void moveFullscreenWindowOutOfHandler(const PHLWINDOW window);
+        // Must properly remove FS properties and state of the Target in preparation for move to a new workspace with potentially a new handler.
+        // Simply removing the Target from various lists should suffice. Re-render and re-decoration will be handled by the receiving handler.
+        virtual void moveFullscreenTargetOutOfHandler(const SP<Layout::ITarget> target);
 
         // Optional
 
-        // FS window hiding behaviour
+        // ERSTARR TODO - THIS IS FOR WINDOWS ONLY - HANDLE
+        // FS Window hiding behaviour
         virtual void setNoMembersAboveFullscreen();
 
-        // FS Window State Syncing (cleaning up FS window list if exists, other self corrections and error mitigation)
-        virtual void syncFullscreenWindows();
+        // FS Target State Syncing (cleaning up FS Target list if exists, other self corrections and error mitigation)
+        virtual void syncFullscreenTargets();
 
-        /// ERSTARR NOTE - remove a window from the handler. This is not the place to check if a window has all its values correctly set; this just removes it from the list after doing layout specific stuff
-        virtual void removeWindowFromHandler(PHLWINDOW window);
+        /// ERSTARR NOTE - remove a Target from the handler. This is not the place to check if a Target has all its values correctly set; this just removes it from the list after doing layout specific stuff
+        virtual void removeTargetFromHandler(SP<Layout::ITarget> target);
 
         // Misc.
 
@@ -104,6 +103,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
       private:
 
 
+      // ERSTARR TODO - THIS is specific to windows. need to put a guard in place for ITargets that are not windows
         struct SScrollingFullscreenWindowHidingState {
 
             PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
@@ -113,44 +113,29 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
         } m_fullscreenWindowHidingState;
 
-        void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
-
-
         Layout::Tiled::CScrollingAlgorithm* m_scrollingAlgorithm = nullptr;
 
-        /// Tracks FSed windows (internal OR client)
-        std::unordered_map<PHLWINDOWREF, SFullscreenScrollState> m_fsWindows;
+        /// Tracks FSed Targets (internal OR client)
+        std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
 
         const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
 
         // Helpers for Scrolling FS behaviour
 
-        // SFullscreenScrollState*  fullscreenStateForTarget(SP<Layout::ITarget> target, eFullscreenMode targetFullscreenMode); -- Should be Redundant
-        // SFullscreenScrollState*  fullscreenStateForData(SP<Layout::Tiled::SScrollingTargetData> target, eFullscreenMode targetFullscreenMode); -- Should be redundant
-
-        // gets the FS target in a column. Includes check that a col with a FS target must have only one target, which is the FS window
-        // SP<Layout::Tiled::SScrollingTargetData> fullscreenTargetDataForColumn(SP<Layout::Tiled::SColumnData> col); --> redundant
-
-        /**
-        * @note This gets the current tiling FS window even if there is a floating fullscreen window is above it/
-        */
-        // SP<Layout::ITarget> layoutFullscreenTarget() const; // ----> This is to be replaced by isFullscreen(covering = true)
-
-        /**
-        * @note the window of @p target does not necessarily need to cover the monitor/work area for this to return `true`
-        * @warning @p mode must not be `FSMODE_NONE`; to check for non-fullscreen, negate the result instead.
-        */
-        // bool                                isFullscreenTarget(SP<Layout::Tiled::SScrollingTargetData> target, std::optional<eFullscreenMode> mode = std::nullopt) const; -- Redundant -  use isFullscreen()
+        void saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW window);
 
 
-        // void clearFullscreenWindow(std::unordered_map<PHLWINDOWREF, SFullscreenScrollState>& m_fsWindows, PHLWINDOW window = nullptr);
 
+
+
+
+        
 
         float fullscreenColumnWidth() const;
         bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
         bool  columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
         void  updateFullscreenFade(bool coversMonitor);
 
-        float getWindowColumnWidthBeforeFullscreenOrMaximise(const PHLWINDOW window);
+        float getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
     };
 }

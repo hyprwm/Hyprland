@@ -104,6 +104,12 @@ CClient::~CClient() {
 
     kill(this->proc->pid(), SIGKILL);
     this->proc.reset();
+
+    // Reset modifiers at the end of the test (on either failure or success)
+    std::string resp = getFromSocket("/eval hl.plugin.test.set_mods(0, 0, 0, 0, 0)");
+    if (resp != "ok") {
+        NLog::log("{}Failed to reset keyboard modifiers: {}", Colors::RED, resp);
+    }
 }
 
 uint32_t CClient::getLockedMods() {

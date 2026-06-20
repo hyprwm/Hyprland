@@ -28,9 +28,9 @@ CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
     // ERSTARR TODO - ADJUST THIS! FOR HANDLER
     for (auto it = m_fsTargets.begin(); it != m_fsTargets.end(); ) {
-        auto next = std::next(it); // save next before removeTargetFromHandler invalidates it
-        removeTargetFromHandler(it->first.lock());
-        it = next;
+        const auto NEXT = std::next(it); // save next before removeFsTarget invalidates it
+        removeFsTarget(it->first.lock());
+        it = NEXT;
     }
     updateFullscreenFade(false);
 }
@@ -478,8 +478,6 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
     // target->column->targetDatas.size() > 1 --> if you're gettin the col data from a target, that takes care of is it == 0 case - if there's a case which it may not be implicitly checked need to handler that
         // actually probably se != 1 here
 
-
-
     // to prevent a rehash - just in case
     std::vector<std::pair<WP<Layout::ITarget>, SFullscreenMode>> toInsert;
 
@@ -492,18 +490,18 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         // TARGET's space is not the same as current space
         if (!TARGET || !TARGET->window() || TARGET->space() != getSpace() || !m_scrollingAlgorithm->dataFor(TARGET)) {
             // simply erase from list. no need to re-set its prev col width as the TARGET is 'invalid'
-            it = m_fsTargets.erase(it);
+            const auto NEXT = std::next(it);
+            removeFsTarget(it->first.lock(), true);
+            it = NEXT;
             continue;
         }
 
         // TARGET exists propely but no longer FS
         if ((!isFullscreen(TARGET) && getFullscreenMode(TARGET).client == FSMODE_NONE)) {
-            auto next = std::next(it);
+            const auto NEXT = std::next(it);
             // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
-            // ERSTARR TODO - I wanna call syncFullscreen after removing smt from handler -- all addition and removals should call that.
-            // make the remove from handler here with lambda, and call syncfullscreen in the end of remove from handler
-            removeTargetFromHandler(TARGET);
-            it = next;
+            removeFsTarget(TARGET, true);
+            it = NEXT;
             continue;
         }
 
@@ -520,7 +518,9 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.mode.internal, .client = it->second.mode.client};
             const auto WINDOWTARGET = it->first->window()->layoutTarget();
-            it = m_fsTargets.erase(it);
+            const auto NEXT = std::next(it);
+            removeFsTarget(it->first.lock(), true);
+            it = NEXT;
             toInsert.emplace_back(WINDOWTARGET,MODE);
             continue;
         }
@@ -536,7 +536,7 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
 
 }
 
-void CScrollingFullscreenHandler::removeTargetFromHandler(SP<Layout::ITarget> target) {
+void CScrollingFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
 
     // remove from the list, set the value it had to the window if that target still exists
 
@@ -561,6 +561,9 @@ void CScrollingFullscreenHandler::removeTargetFromHandler(SP<Layout::ITarget> ta
     if (target->window())
         target->window()->m_layoutFlags.cantLockCursor = false;
     m_fsTargets.erase(ITR);
+
+    if (!recursionGuard)
+        syncFullscreenTargets();
 }
 
 eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const {

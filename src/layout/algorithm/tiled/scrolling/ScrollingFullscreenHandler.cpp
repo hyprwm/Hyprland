@@ -18,11 +18,11 @@ using namespace Fullscreen::ScrollingFullscreenHandler;
 // ERSTARR TODO - this should work. need to rebuild to see if LSP gets the correct inheritence chain.
 CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::IModeAlgorithm* algorithm) :
     IFullscreenHandler(algorithm), m_scrollingAlgorithm(dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(algorithm)) {
-        if (!m_scrollingAlgorithm) {
-            Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
+    if (!m_scrollingAlgorithm) {
+        Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
+        throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");
     }
-
-    }
+}
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
@@ -364,8 +364,8 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // This should never happen
     if (!COVERING_FULLSCREEN_WINDOW && LAYOUT_TILED_COVERING_FS_WINDOW) {
         // This means that controller doesn't recognise tiled layout handled FS window as fullscreen.
-        Log::logger->log(Log::CRIT,
-                         "Workspace doesn't recognise a tiled layout handled fullscreen/maximised window as such! This is a critical error! We will attempt to recover by ignoring "
+        Log::logger->log(Log::ERR,
+                         "Workspace doesn't recognise a tiled layout handled fullscreen/maximised window as such! This is a an error! We will attempt to recover by ignoring "
                          "the request to setNoMembersAboveFullscreen");
         return;
     }
@@ -466,7 +466,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
     // If the function doesn't return till here, it's an error
 
-    Log::logger->log(Log::CRIT,
+    Log::logger->log(Log::ERR,
                      "setNoMembersAboveFullscreen() failed to correctly execute. Current FS window: {} Current Tiled layout handled FS window: {} Current last focused tiled "
                      "layout handled FS window: {}",
                      COVERING_FULLSCREEN_WINDOW, LAYOUT_TILED_COVERING_FS_WINDOW, LAST_SCROLL_HANDLED_TILED_FS_WINDOW);

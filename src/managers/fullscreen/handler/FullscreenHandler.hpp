@@ -73,7 +73,7 @@ namespace Fullscreen {
 
         // Helpers
 
-        virtual void removeTargetFromHandler(SP<Layout::ITarget> target);
+        virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
 
         // Misc.
 

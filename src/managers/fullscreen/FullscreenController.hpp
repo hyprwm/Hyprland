@@ -16,6 +16,7 @@ namespace Fullscreen {
     enum eFullscreenHandler : int8_t {
         FULLSCREEN_HANDLER_NONE = 0,
         FULLSCREEN_HANDLER_DEFAULT,
+        // All layout FS handlers go below this line
         FULLSCREEN_HANDLER_SCROLLING,
     };
 
@@ -74,32 +75,25 @@ namespace Fullscreen {
 
         // Window
 
-        /// @param covering If passed, can determine if a window must be covering, must be non-covering. If not passed, window can be either --> handler's isFullscreen() method will be used, which provides no guarantee of coverage
-        bool isFullscreen(
-            const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt,
-            const std::optional<bool> covering = std::nullopt); // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
+        /// @param covering If passed can determine if a window must be covering or must be non-covering. If not passed, window can be either
+        // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
+        bool            isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         bool            isLayoutManagedFullscreen(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
         SFullscreenMode getFullscreenMode(const PHLWINDOW window);
-
-        // Groups
-
-        bool isFullscreen(
-            const SP<Layout::CWindowGroupTarget> group, const std::optional<eFullscreenMode> mode = std::nullopt,
-            const std::optional<bool> covering = std::nullopt); // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
-        bool            isLayoutManagedFullscreen(const SP<Layout::CWindowGroupTarget> group); // TODO: use the handler to judge - delete this todo after implemented
-        SFullscreenMode getFullscreenMode(const SP<Layout::CWindowGroupTarget> group);
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
         // Workspace
 
         bool            hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
+        /// @warning Returns the topmost covering FS window is there are several.
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         SFullscreenMode getFullscreenMode(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
 
         bool            hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
+        /// @warning Returns the topmost covering FS window is there are several.
         PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
         SFullscreenMode getFullscreenMode(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
@@ -109,17 +103,10 @@ namespace Fullscreen {
 
         // FS Mode Setters
 
-        // Windows
-
         // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
 
         void setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, bool force);
         void setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force);
-
-        // Groups
-
-        void setWindowFullscreenInternal(const SP<Layout::CWindowGroupTarget> group, const eFullscreenMode mode, bool force);
-        void setWindowFullscreenClient(const SP<Layout::CWindowGroupTarget> group, const eFullscreenMode mode, bool force);
 
         // Misc. Operations
 

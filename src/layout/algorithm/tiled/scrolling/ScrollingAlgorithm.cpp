@@ -1215,6 +1215,13 @@ void CScrollingAlgorithm::moveTargetTo(SP<ITarget> t, Math::eDirection dir, bool
     focusTargetUpdate(t);
 }
 
+
+WP<Fullscreen::IFullscreenHandler> CScrollingAlgorithm::getFSHandler() {
+    return m_scrollingFullscreenHandler;
+}
+
+
+
 Config::ErrorResult CScrollingAlgorithm::layoutMsg(const std::string_view& sv) {
     const auto invalidArg = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::ERROR, Config::eConfigErrorCode::INVALID_ARGUMENT); };
     const auto noTarget   = [](std::string msg) { return Config::configError(std::move(msg), Config::eConfigErrorLevel::WARNING, Config::eConfigErrorCode::NO_TARGET); };

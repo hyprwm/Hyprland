@@ -81,7 +81,7 @@ namespace Fullscreen {
 
       protected:
         // Handler will never outlive its algo because algo owns its handler with UP<>
-        const Layout::IModeAlgorithm* m_algorithm;
+        const WP<Layout::IModeAlgorithm> m_algorithm;
 
         SP<Layout::CSpace>            getSpace() const;
 

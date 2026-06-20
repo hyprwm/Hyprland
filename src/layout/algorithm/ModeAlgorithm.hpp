@@ -18,7 +18,6 @@ namespace Layout {
 
     class IModeAlgorithm {
       public:
-        IModeAlgorithm();
         virtual ~IModeAlgorithm() = default;
 
         // a completely new target
@@ -49,19 +48,12 @@ namespace Layout {
         virtual std::optional<Vector2D> predictSizeForNewTarget();
 
         // optional: allow algorithms to own fullscreen semantics for a target.
-        // virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
-        // optional: expose an algorithm-owned fullscreen target
+        // optional: expose an algorithm-owned FS handler. Each algorithm that implements its own FS handler must override this method to return its FS handler.
 
-        /**
-        * Get the current layout managed FS target
-        * @return Covers the monitor(`FSMODE_FULLSCREEN`) / work area(`FSMODE_MAXIMIZE`)
-        */
-        // virtual SP<ITarget> layoutFullscreenTarget() const;
+        // FS handler is UP<> to the owning layout so no concerns of ownership
+        virtual WP<Fullscreen::IFullscreenHandler> getFSHandler();
 
-        // optional: allow layouts to own layer/window hiding logic for fullscreen targets
-
-        // virtual void setNoMembersAboveFullscreen();
 
         // Impl'd here: focal point for dir
         virtual std::optional<Vector2D> focalPointForDir(SP<ITarget> t, Math::eDirection dir);

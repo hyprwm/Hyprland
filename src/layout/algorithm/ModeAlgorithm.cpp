@@ -24,13 +24,11 @@ std::optional<Vector2D> IModeAlgorithm::predictSizeForNewTarget() {
     return std::nullopt;
 }
 
-// eFullscreenRequestResult IModeAlgorithm::requestFullscreen(const SFullscreenRequest& request) {}
+WP<Fullscreen::IFullscreenHandler> IModeAlgorithm::getFSHandler() {
 
-// SP<ITarget>              IModeAlgorithm::layoutFullscreenTarget() const {
-//     return nullptr;
-// }
+    return m_defaultFullscreenHandler;
 
-// void                    IModeAlgorithm::setNoMembersAboveFullscreen() {}
+}
 
 std::optional<Vector2D> IModeAlgorithm::focalPointForDir(SP<ITarget> t, Math::eDirection dir) {
     Vector2D   focalPoint;

@@ -113,6 +113,9 @@ namespace Layout::Tiled {
         virtual void                     swapTargets(SP<ITarget> a, SP<ITarget> b);
         virtual void                     moveTargetInDirection(SP<ITarget> t, Math::eDirection dir, bool silent);
 
+        virtual WP<Fullscreen::IFullscreenHandler> getFSHandler();
+
+
         // virtual eFullscreenRequestResult requestFullscreen(const SFullscreenRequest& request);
 
         /**

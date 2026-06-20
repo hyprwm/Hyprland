@@ -190,6 +190,13 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
 }
 
+void IFullscreenHandler::removeTargetFromHandler(SP<Layout::ITarget> target) {
+    const auto ITER = m_fsTargets.find(target);
+    if (ITER != m_fsTargets.end())
+        m_fsTargets.erase(ITER);
+}
+
+
 eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
     return FULLSCREEN_HANDLER_TYPE;
 }

@@ -151,17 +151,7 @@ namespace Layout::Tiled {
         CHyprSignalListener m_focusCallback;
         CHyprSignalListener m_mouseButtonCallback;
 
-        // To save the floating windows ontop of a FSed tiled layout managed FS window so they can be stay ontop after a floating window is FSed and UnFSed over the tiled FS window
-
-        // struct SScrollingFullscreenWindowHidingState {
-
-        //     PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
-        //     eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
-        //     std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
-
-        //     void                             saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow);
-
-        // } m_fullscreenWindowHidingState;
+        const UP<Fullscreen::ScrollingFullscreenHandler::CScrollingFullscreenHandler> m_scrollingFullscreenHandler;
 
         struct {
             std::vector<float> configuredWidths;

@@ -10,10 +10,11 @@
 #include "desktop/view/LayerSurface.hpp"
 #include "layout/LayoutManager.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
+#include "managers/fullscreen/handler/FullscreenHandler.hpp" // or wherever it ends up
 
 using namespace Layout;
 
-IModeAlgorithm::IModeAlgorithm() : m_fullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {}
+IModeAlgorithm::IModeAlgorithm() : m_defaultFullscreenHandler(makeUnique<Fullscreen::IFullscreenHandler>(this)) {}
 
 Config::ErrorResult IModeAlgorithm::layoutMsg(const std::string_view& sv) {
     return {};

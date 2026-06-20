@@ -18,6 +18,7 @@ namespace Layout {
 
     class IModeAlgorithm {
       public:
+        IModeAlgorithm();
         virtual ~IModeAlgorithm() = default;
 
         // a completely new target
@@ -70,7 +71,7 @@ namespace Layout {
 
         WP<CAlgorithm> m_parent;
         // Layouts that wish to implement custom FS handlers must overwrite this in their constructors
-        UP<Fullscreen::IFullscreenHandler> m_fullscreenHandler;
+        const UP<Fullscreen::IFullscreenHandler> m_defaultFullscreenHandler;
 
         friend class Layout::CAlgorithm;
         friend class Fullscreen::IFullscreenHandler;

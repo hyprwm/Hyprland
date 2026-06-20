@@ -100,42 +100,37 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         // ERSTARR TODO: extract FS related logic from recalculate() and put them in a helper function here. Note that it's a helper for scrolling but it must be public since the algo must directly use it.
         // ---> it'd be truly ideal if this can be integrated into the syncFullscreens, but that might not be the best idea since syncFullscreen already handles its own function
 
-      private:
+
+        void sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_FS_TDATA, const PHLMONITOR MONITOR, const bool TARGET_WORKSPACE_HAS_FS);
 
 
-      // ERSTARR TODO - THIS is specific to windows. need to put a guard in place for ITargets that are not windows
-        struct SScrollingFullscreenWindowHidingState {
+          private:
 
-            PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
-            eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
-            std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
+            // ERSTARR TODO - This is specific to windows. need to put a guard in place for ITargets that are not windows
+            struct SScrollingFullscreenWindowHidingState {
 
+                PHLWINDOWREF                     lastTiledLayoutManagedFsWindow;
+                eFullscreenMode                  lastTiledLayoutManagedFsWindowMode;
+                std::unordered_set<PHLWINDOWREF> hiddenFloatingWindowsUnderFSWindow;
 
-        } m_fullscreenWindowHidingState;
+            } m_fullscreenWindowHidingState;
 
-        Layout::Tiled::CScrollingAlgorithm* m_scrollingAlgorithm = nullptr;
+            Layout::Tiled::CScrollingAlgorithm* m_scrollingAlgorithm = nullptr;
 
-        /// Tracks FSed Targets (internal OR client)
-        std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
+            /// Tracks FSed Targets (internal OR client)
+            std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;
 
-        const eFullscreenHandler FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
+            const eFullscreenHandler                                        FULLSCREEN_HANDLER_TYPE = FULLSCREEN_HANDLER_SCROLLING;
 
-        // Helpers for Scrolling FS behaviour
+            // Helpers for Scrolling FS behaviour
 
-        void saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW window);
+            void  saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW window);
 
+            float fullscreenColumnWidth() const;
+            bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
+            bool  columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
+            void  updateFullscreenFade(bool coversMonitor);
 
-
-
-
-
-        
-
-        float fullscreenColumnWidth() const;
-        bool  columnCoversMonitor(SP<Layout::Tiled::SColumnData> col) const;
-        bool  columnCoversWorkArea(SP<Layout::Tiled::SColumnData> col) const;
-        void  updateFullscreenFade(bool coversMonitor);
-
-        float getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
-    };
+            float getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
+        };
 }

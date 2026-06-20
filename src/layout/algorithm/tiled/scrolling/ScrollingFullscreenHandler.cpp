@@ -1,6 +1,7 @@
 #include "Compositor.hpp"
 #include "config/shared/monitor/MonitorRuleManager.hpp"
 #include "debug/log/Logger.hpp"
+#include "desktop/DesktopTypes.hpp"
 #include "managers/animation/DesktopAnimationManager.hpp"
 #include "managers/fullscreen/FullscreenController.hpp"
 #include "managers/fullscreen/handler/FullscreenHandler.hpp"
@@ -16,7 +17,12 @@ using namespace Fullscreen::ScrollingFullscreenHandler;
 
 // ERSTARR TODO - this should work. need to rebuild to see if LSP gets the correct inheritence chain.
 CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::IModeAlgorithm* algorithm) :
-    IFullscreenHandler(algorithm), m_scrollingAlgorithm(static_cast<Layout::Tiled::CScrollingAlgorithm*>(algorithm)) {}
+    IFullscreenHandler(algorithm), m_scrollingAlgorithm(static_cast<Layout::Tiled::CScrollingAlgorithm*>(algorithm)) {
+        if (!m_scrollingAlgorithm) {
+            Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
+    }
+
+    }
 
 CScrollingFullscreenHandler::~CScrollingFullscreenHandler() {
 
@@ -131,9 +137,11 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         }
     };
 
+    /* Setting DSO and VRR */
+
     // If a window is being un-FSed, set its DSO and VRR in requestFullscreen()
-    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in SScrollingData::recalculate()
-    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in SScrollingData::recalculate()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in sScrollingDataRecalculateHelper()
 
     if (request.mode == FSMODE_NONE) {
 
@@ -239,7 +247,6 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
     }
 
     // UnFS target
-    // ERSTARR TODO - DO THIS
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     setNoMembersAboveFullscreen();
     // final check to see if the target was correctly FSed.
@@ -311,7 +318,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
 
         // make all windows and layers on the same workspace under the fullscreen window
         for (const auto& e : WORKSPACE->getWindows()) {
-            if (e && !isFullscreen(e) && !e->m_fadingOut && !e->m_pinned) {
+            if (e && !isFullscreen(e->m_target) && !e->m_fadingOut && !e->m_pinned) {
                 e->m_allowedOverFullscreen = !SET;
                 e->updateFullscreenInputState();
             }
@@ -493,6 +500,8 @@ void CScrollingFullscreenHandler::syncFullscreenTargets() {
         if ((!isFullscreen(TARGET) && getFullscreenMode(TARGET).client == FSMODE_NONE)) {
             auto next = std::next(it);
             // sets col width to prev value if present, then removes it from the handler (i.e. remove from list)
+            // ERSTARR TODO - I wanna call syncFullscreen after removing smt from handler -- all addition and removals should call that.
+            // make the remove from handler here with lambda, and call syncfullscreen in the end of remove from handler
             removeTargetFromHandler(TARGET);
             it = next;
             continue;
@@ -559,10 +568,62 @@ eFullscreenHandler CScrollingFullscreenHandler::getFullscreenHandlerName() const
 }
 
 
+void CScrollingFullscreenHandler::sScrollingDataRecalculateHelper(const SP<Layout::Tiled::SScrollingTargetData> CURRENT_FS_TDATA, const PHLMONITOR MONITOR, const bool TARGET_WORKSPACE_HAS_FS) {
+
+    /* Setting DSO and VRR */
+
+    // If a window is being un-FSed, set its DSO and VRR in requestFullscreen()
+    // If we are scrolling away from an FS window that is not unFSed yet, we set its DSO and VRR in sScrollingDataRecalculateHelper()
+    // If a window is being FS-ed, or we are scrolling onto a FSed window, we set its DSO and VRR in sScrollingDataRecalculateHelper()
+
+    static auto PDIRECTSCANOUT = CConfigValue<Config::INTEGER>("render:direct_scanout");
+
+    // If we are scrolling away from a layout managed tiled FS window, send it a regular tranche
+    // we need only check its internal state as if the window was saved in lastTiledLayoutManagedFsWindow, it is guaranteed to be as its name suggests
+    if (const auto LAST_FS_LAYOUTMANAGED_TILED_WINDOW = m_fullscreenWindowHidingState.lastTiledLayoutManagedFsWindow.lock();
+        // check if LAST_FS_LAYOUTMANAGED_TILED_WINDOW exists, and that we either don't have a covering FS window, or if we do; it's not the same as LAST_FS_LAYOUTMANAGED_TILED_WINDOW
+        LAST_FS_LAYOUTMANAGED_TILED_WINDOW &&
+        (!CURRENT_FS_TDATA || (CURRENT_FS_TDATA && LAST_FS_LAYOUTMANAGED_TILED_WINDOW != CURRENT_FS_TDATA->target->window()))
+        // check that LAST_FS_LAYOUTMANAGED_TILED_WINDOW was not unfullscreened (CScrollingAlgorithm::requestFullscreen() would have handled that)
+        && getFullscreenMode(LAST_FS_LAYOUTMANAGED_TILED_WINDOW->m_target).internal != FSMODE_NONE) {
+
+        // send a regular tranche
+        // ignore if DS is disabled.
+        if ((*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && LAST_FS_LAYOUTMANAGED_TILED_WINDOW->getContentType() == NContentType::CONTENT_TYPE_GAME))) {
+            auto surf = LAST_FS_LAYOUTMANAGED_TILED_WINDOW->getSolitaryResource();
+            if (surf)
+                g_pHyprRenderer->setSurfaceScanoutMode(surf, nullptr);
+        }
+    }
+
+    // If we are scrolling onto, or have newly FSed a window
+    if (CURRENT_FS_TDATA && CURRENT_FS_TDATA->target->window()) {
+        const auto CURRENTLY_FS_WINDOW = CURRENT_FS_TDATA->target->window();
+        // send a scanout tranche
+        // ignore if DS is disabled.
+        auto surf = CURRENTLY_FS_WINDOW->getSolitaryResource();
+        if (surf)
+            g_pHyprRenderer->setSurfaceScanoutMode(surf, MONITOR->m_self.lock());
+    }
+
+    Config::monitorRuleMgr()->ensureVRR(MONITOR);
+
+    // DSO and VRR must be above setNoMembersAboveFullscreen() because we need the last tiled layout managed fullscreen window before it is reset when no fullscreen
+
+    // if covering FS, set. If not, unset.
+    setNoMembersAboveFullscreen();
+
+    // Must be below setNoMembersAboveFullscreen() so it can properly set the windows' allowedOverFullscreen attributes
+    updateFullscreenFade(TARGET_WORKSPACE_HAS_FS);
+
+}
+
+
+
 void CScrollingFullscreenHandler::saveCurrentFsAndAllHiddenFloatingWindows(PHLWINDOW fullscreenWindow) {
 
     // we save all the floating windows that will be hidden under the fullscreen. We are using the same logic that is used to judge which window is to be hidden + a float check.
-    // This function must be updated whenever this logic is changed (IModeAlgorithm::setNoMembersAboveFullscreen(), CScrollingAlgorithm::setNoMembersAboveFullscreen())
+    // This function must be updated whenever this logic is changed (setNoMembersAboveFullscreen())
 
     // fullscreenWindow is assumed to be tiled, layout handled, covers the whole monitor or work area.
 

@@ -91,7 +91,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
         virtual void syncFullscreenTargets();
 
         /// ERSTARR NOTE - remove a Target from the handler. This is not the place to check if a Target has all its values correctly set; this just removes it from the list after doing layout specific stuff
-        virtual void removeTargetFromHandler(SP<Layout::ITarget> target);
+        virtual void removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard = false);
 
         // Misc.
 

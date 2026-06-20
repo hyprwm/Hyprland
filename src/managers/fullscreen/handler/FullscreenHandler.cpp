@@ -167,7 +167,9 @@ void IFullscreenHandler::syncFullscreenTargets() {
         // window doesn't exist
         // both modes are false
         if (!it->first || !it->first->window() || (it->second.internal == FSMODE_NONE && it->second.client == FSMODE_NONE)) {
-            it = m_fsTargets.erase(it);
+            const auto NEXT = std::next(it);
+            removeFsTarget(it->first.lock());
+            it = NEXT;
             continue;
         }
 
@@ -176,7 +178,9 @@ void IFullscreenHandler::syncFullscreenTargets() {
         if (it->first->type() == Layout::TARGET_TYPE_GROUP) {
             const SFullscreenMode MODE = SFullscreenMode{.internal = it->second.internal, .client = it->second.client};
             const auto WINDOWTARGET = it->first->window()->layoutTarget();
-            it = m_fsTargets.erase(it);
+            const auto NEXT = std::next(it);
+            removeFsTarget(it->first.lock());
+            it = NEXT;
             toInsert.emplace_back(WINDOWTARGET,MODE);
             continue;
         }
@@ -190,10 +194,13 @@ void IFullscreenHandler::syncFullscreenTargets() {
 
 }
 
-void IFullscreenHandler::removeTargetFromHandler(SP<Layout::ITarget> target) {
+void IFullscreenHandler::removeFsTarget(SP<Layout::ITarget> target, const bool recursionGuard) {
     const auto ITER = m_fsTargets.find(target);
     if (ITER != m_fsTargets.end())
         m_fsTargets.erase(ITER);
+
+    if (!recursionGuard)
+        syncFullscreenTargets();
 }
 
 

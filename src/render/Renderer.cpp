@@ -2145,13 +2145,18 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
 
     bool    usingOverlay = shouldUseOverlay(pMonitor, pMonitor->m_activeWorkspace);
     if (usingOverlay) {
-        if (!beginRender(pMonitor, overlayDamage, RENDER_MODE_TO_OVERLAY)) {
+        if (!beginRender(pMonitor, damage, RENDER_MODE_TO_OVERLAY)) {
             Log::logger->log(Log::ERR, "renderer: couldn't beginRender() to overlay!");
             usingOverlay = false;
         }
         CBox renderBox = {0, 0, sc<int>(pMonitor->m_pixelSize.x), sc<int>(pMonitor->m_pixelSize.y)};
         renderWorkspace(pMonitor, pMonitor->m_activeWorkspace, NOW, renderBox, RL_OVERLAY);
         endRender();
+    }
+    else {
+        const auto& plane = pMonitor->m_output->getOverlayPlane();
+        if (plane.has_value())
+            pMonitor->m_output->state->setPlaneEnabled(plane->index, false);
     }
 
     if (!beginRender(pMonitor, damage, RENDER_MODE_NORMAL)) {

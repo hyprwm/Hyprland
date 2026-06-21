@@ -28,7 +28,7 @@ namespace Fullscreen {
         // If layouts decide to have custom targets that may be able to be FSed, they must make another list, as well as helper functions for them. Controller will not be handling set/get for those; all handling must be done by layout's FS Handler
 
       public:
-        IFullscreenHandler(Layout::IModeAlgorithm* algorithm);
+        IFullscreenHandler(WP<Layout::IModeAlgorithm> algorithm);
         virtual ~IFullscreenHandler() = default;
 
         IFullscreenHandler()                                     = delete;

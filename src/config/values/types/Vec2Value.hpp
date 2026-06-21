@@ -4,14 +4,13 @@
 
 #include "../../ConfigValue.hpp"
 
-#include <optional>
 #include <functional>
 #include <expected>
 
 namespace Config::Values {
     struct SVec2ValueOptions {
-        std::optional<std::function<std::expected<void, std::string>(const Config::VEC2&)>> validator = std::nullopt;
-        Supplementary::PropRefreshBits                                                      refresh   = 0;
+        std::function<std::expected<void, std::string>(const Config::VEC2&)> validator = {};
+        Supplementary::PropRefreshBits                                       refresh   = 0;
     };
 
     class CVec2Value : public IValue {
@@ -27,8 +26,8 @@ namespace Config::Values {
         Config::VEC2                  defaultVal() const;
 
       private:
-        CConfigValue<Config::VEC2>                                                          m_val;
-        std::optional<std::function<std::expected<void, std::string>(const Config::VEC2&)>> m_validator;
-        Config::VEC2                                                                        m_default = {};
+        CConfigValue<Config::VEC2>                                           m_val;
+        std::function<std::expected<void, std::string>(const Config::VEC2&)> m_validator;
+        Config::VEC2                                                         m_default = {};
     };
 }

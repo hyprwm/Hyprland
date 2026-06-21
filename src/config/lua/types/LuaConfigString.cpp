@@ -5,7 +5,7 @@
 using namespace Config;
 using namespace Config::Lua;
 
-CLuaConfigString::CLuaConfigString(Config::STRING def, std::optional<std::function<std::expected<void, std::string>(const std::string&)>>&& validator) :
+CLuaConfigString::CLuaConfigString(Config::STRING def, std::function<std::expected<void, std::string>(const std::string&)>&& validator) :
     m_default(def), m_data(def), m_validator(std::move(validator)) {
     ;
 }
@@ -16,8 +16,8 @@ SParseError CLuaConfigString::parse(lua_State* s) {
 
     std::string str = lua_tostring(s, -1);
 
-    if (m_validator.has_value()) {
-        auto res = m_validator.value()(str);
+    if (m_validator) {
+        auto res = m_validator(str);
         if (!res)
             return {.errorCode = PARSE_ERROR_BAD_VALUE, .message = res.error()};
     }

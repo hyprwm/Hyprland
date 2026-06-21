@@ -8,6 +8,7 @@
 #include "../output/Monitor.hpp"
 #include "../helpers/MiscFunctions.hpp"
 #include "../state/MonitorState.hpp"
+#include <cmath>
 
 CHyprlandCTMControlResource::CHyprlandCTMControlResource(UP<CHyprlandCtmControlManagerV1>&& resource_) : m_resource(std::move(resource_)) {
     if UNLIKELY (!good())
@@ -153,11 +154,9 @@ void CHyprlandCTMControlProtocol::setCTM(PHLMONITOR monitor, const Mat3x3& ctm) 
         const auto           to       = data->ctmTo.getMatrix();
         const auto           PROGRESS = data->progress->getPercent();
 
-        static const auto    lerp = [](const float one, const float two, const float progress) -> float { return one + (two - one) * progress; };
-
         std::array<float, 9> mtx;
         for (size_t i = 0; i < 9; ++i) {
-            mtx[i] = lerp(from[i], to[i], PROGRESS);
+            mtx[i] = std::lerp(from[i], to[i], PROGRESS);
         }
 
         monitor->setCTM(mtx);

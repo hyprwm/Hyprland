@@ -141,7 +141,10 @@ void CInputManager::onMouseMoved(IPointer::SMotionEvent e) {
     if (e.mouse)
         recheckMouseWarpOnMouseInput();
 
-    PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
+    // an interactive move or resize is an exclusive grab, so don't feed relative motion to the window being
+    // dragged. a pointer-locked game would otherwise pan its camera from the drag itself.
+    if (!g_layoutManager->dragController()->target())
+        PROTO::relativePointer->sendRelativeMotion(sc<uint64_t>(e.timeMs) * 1000, delta, unaccel);
     g_pPointerManager->move(DELTA);
 
     mouseMoveUnified(e.timeMs, false, e.mouse);

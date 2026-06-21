@@ -358,10 +358,7 @@ void CFullscreenController::setWindowFullscreenState(const PHLWINDOW window, con
                                                                                           window->m_workspace->m_space->algorithm()->tiledAlgo()->IModeAlgorithm::getFSHandler());
     const SFullscreenMode& WINDOW_FS_MODE        = getFullscreenMode(window);
     const bool              WINDOW_IS_FS          = isFullscreen(window);
-    const bool              INTERNAL_MODE_CHANGES = !window->m_pinned && WINDOW_FS_MODE != state.internal;
-
-    const bool INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != state.internal;
-
+    const bool              INTERNAL_FS_MODE_CHANGED = !window->m_pinned && WINDOW_FS_MODE.internal != state.internal;
 
     if (!WINDOW_FS_HANDLER)
         return; // ERSTARR TODO - LOG ERROR
@@ -393,7 +390,7 @@ void CFullscreenController::setWindowFullscreenState(const PHLWINDOW window, con
 
     
 
-    if (*PALLOWPINFULLSCREEN && window->m_pinFullscreened && WINDOW_IS_FS && !window->m_pinned && state == FSMODE_NONE) {
+    if (*PALLOWPINFULLSCREEN && window->m_pinFullscreened && WINDOW_IS_FS && !window->m_pinned && state.internal == FSMODE_NONE) {
         window->m_pinned          = true;
         window->m_pinFullscreened = false;
     }

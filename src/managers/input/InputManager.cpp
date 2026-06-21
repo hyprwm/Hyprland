@@ -1768,6 +1768,11 @@ bool CInputManager::isConstrained() {
         if (!WINDOW)
             return false;
 
+        // a window being interactively moved or resized ignores its pointer lock. the lock would otherwise warp
+        // the cursor back to the constraint hint every frame, so the window could never be dragged (e.g. gamescope).
+        if (const auto DRAG = g_layoutManager->dragController()->target(); DRAG && DRAG->window() == WINDOW)
+            return false;
+
         return !WINDOW->m_layoutFlags.cantLockCursor;
     });
 }

@@ -67,6 +67,16 @@ using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
+constexpr const char* drmFormatToString(uint32_t drmFormat) {
+    switch (drmFormat) {
+        case DRM_FORMAT_XRGB2101010: return "DRM_FORMAT_XRGB2101010";
+        case DRM_FORMAT_XBGR2101010: return "DRM_FORMAT_XBGR2101010";
+        case DRM_FORMAT_XRGB8888: return "DRM_FORMAT_XRGB8888";
+        case DRM_FORMAT_XBGR8888: return "DRM_FORMAT_XBGR8888";
+        default: return "Invalid";
+    }
+}
+
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -957,33 +967,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     m_pixelSize = m_size;
 
-    // clang-format off
-    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
-        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
-        },
-        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
-            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
-        }
-    };
-    // clang-format on
+    static constexpr auto formats10bit = std::to_array<uint32_t>({DRM_FORMAT_XRGB2101010, DRM_FORMAT_XBGR2101010});
+    static constexpr auto formats8bit  = std::to_array<uint32_t>({DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888});
 
-    bool set10bit = false;
-
-    for (auto const& fmt : formats[sc<int>(!RULE->m_enable10bit)]) {
-        m_output->state->setFormat(fmt.second);
-        m_prevDrmFormat = m_drmFormat;
-        m_drmFormat     = fmt.second;
-
-        if (!m_state.test()) {
-            Log::logger->log(Log::ERR, "output {} failed basic test on format {}", m_name, fmt.first);
-        } else {
-            Log::logger->log(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmt.first);
-            if (RULE->m_enable10bit && fmt.first.contains("101010"))
-                set10bit = true;
-            break;
-        }
-    }
+    const bool            set10bit = RULE->m_enable10bit && trySetFormat(formats10bit);
+    if (!set10bit)
+        trySetFormat(formats8bit);
 
     m_enabled10bit = set10bit;
 
@@ -2788,4 +2777,21 @@ WP<CMonitorResources> CMonitor::resources() {
         m_resources->setImageDescription(DESC);
 
     return m_resources;
+}
+
+bool CMonitor::trySetFormat(std::span<const uint32_t> formats) {
+    for (auto fmt : formats) {
+        m_output->state->setFormat(fmt);
+        m_prevDrmFormat = m_drmFormat;
+        m_drmFormat     = fmt;
+
+        const auto fmtName = drmFormatToString(fmt);
+        if (!m_state.test()) {
+            Log::logger->log(Log::ERR, "output {} failed basic test on format {}", m_name, fmtName);
+        } else {
+            Log::logger->log(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmtName);
+            return true;
+        }
+    }
+    return false;
 }

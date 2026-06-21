@@ -485,7 +485,7 @@ static RGBAColor saturate(RGBAColor color, std::array<std::array<double, 3>, 3> 
 }
 
 static RGBAColor tonemap(RGBAColor color, std::array<std::array<double, 3>, 3> dstXYZ, float maxLuminance, float dstMaxLuminance, float dstRefLuminance, float srcRefLuminance) {
-    // TODO source color is expected to be in sRGB colorspace and tonamepping shouldn't be needed
+    // TODO source color is expected to be in sRGB colorspace and tonemapping shouldn't be needed
     return color;
 }
 

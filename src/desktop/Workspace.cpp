@@ -410,31 +410,6 @@ MONITORID CWorkspace::monitorID() {
     return m_monitor ? m_monitor->m_id : MONITOR_INVALID;
 }
 
-// ERSTARR TODO - THIS IS PROB GONNA BE USEFUL AS REF FOR CONTROLLER
-// PHLWINDOW CWorkspace::getFullscreenWindow() {
-
-//     // Either Default or Layout Handled FS window that covers the monitor/work area
-
-//     // If there are more than one monitor/work area covering fullscreen window in the workspace, the floating one is assumed to be 'ontop' of the tiled one, and is chosen as the FS window in the workspace
-//     // TODO - instead of assuming that a floating FS window will be layered ontop of any tiled FS window in all cases, query which on is "ontop" and choose that.
-
-//     if (!m_hasFullscreenWindow)
-//         return nullptr;
-
-//     PHLWINDOW fullscreenWindow = nullptr;
-
-//     for (auto const& w : getWindows()) {
-//         if (w->isFullscreen()) {
-//             if (!fullscreenWindow)
-//                 fullscreenWindow = w;
-//             else if (w->m_isFloating)
-//                 fullscreenWindow = w;
-//         }
-//     }
-
-//     return fullscreenWindow;
-// }
-
 bool CWorkspace::isVisible() {
     return m_visible;
 }

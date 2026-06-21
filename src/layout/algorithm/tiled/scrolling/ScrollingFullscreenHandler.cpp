@@ -16,8 +16,8 @@ using namespace Fullscreen;
 using namespace Fullscreen::ScrollingFullscreenHandler;
 
 // ERSTARR TODO - this should work. need to rebuild to see if LSP gets the correct inheritence chain.
-CScrollingFullscreenHandler::CScrollingFullscreenHandler(Layout::IModeAlgorithm* algorithm) :
-    IFullscreenHandler(algorithm), m_scrollingAlgorithm(dynamic_cast<Layout::Tiled::CScrollingAlgorithm*>(algorithm)) {
+CScrollingFullscreenHandler::CScrollingFullscreenHandler(WP<Layout::Tiled::CScrollingAlgorithm> algorithm) :
+    IFullscreenHandler(algorithm), m_scrollingAlgorithm(algorithm) {
     if (!m_scrollingAlgorithm) {
         Log::logger->log(Log::CRIT, "CScrollingFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
         throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");

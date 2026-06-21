@@ -63,16 +63,11 @@ namespace Layout {
         virtual void         setPseudoSize(const Vector2D& size);
         virtual Vector2D     pseudoSize();
         virtual void         swap(SP<ITarget> b);
-        // virtual bool         layoutManagedFullscreen() const;
-        // virtual void         setLayoutManagedFullscreen(bool enabled);
 
-        //
+
         virtual bool                                                floating()                              = 0;
         virtual void                                                setFloating(bool x)                     = 0;
         virtual std::expected<SGeometryRequested, eGeometryFailure> desiredGeometry()                       = 0;
-        // virtual bool                                                isFullscreen()                          = 0;
-        // virtual eFullscreenMode                                     fullscreenMode()                        = 0;
-        // virtual void                                                setFullscreenMode(eFullscreenMode mode) = 0;
         virtual std::optional<Vector2D>                             minSize()                               = 0;
         virtual std::optional<Vector2D>                             maxSize()                               = 0;
         virtual void                                                damageEntire()                          = 0;

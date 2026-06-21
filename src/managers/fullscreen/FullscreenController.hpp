@@ -3,6 +3,7 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "layout/target/WindowGroupTarget.hpp"
+#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 #include <optional>
 
 namespace Fullscreen {
@@ -103,21 +104,22 @@ namespace Fullscreen {
 
         // Handler
 
-        eFullscreenHandler getFullscreenHandler(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
+        eFullscreenHandler getFullscreenHandlerDesignation(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
         // FS Mode Setters
 
         // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
 
-        void setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware, const bool force);
-        void setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware);
-
+        // ERSTARR TODO - FORCE SHOULD HOPEFULLY BE IRRELEVANT IF DONE WELL
+        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force);
+        void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
+        void setWindowFullscreenState(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware, const bool force);
         // Misc. Operations
 
         void moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace);
 
       private:
-        void setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force);
+        // void setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force); // Probably redundant
     };
 
     inline UP<CFullscreenController> g_pfullscreenController = makeUnique<CFullscreenController>();

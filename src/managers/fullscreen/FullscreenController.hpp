@@ -70,6 +70,10 @@ namespace Fullscreen {
     class CFullscreenController {
 
       public:
+
+        CFullscreenController() = default;
+        ~CFullscreenController() = default;
+
         // TODO: make functions constant if they can be
         // TODO: optional for covering. default is to be true since that's what's used almost everywhere. if nullopt, consider "if fullscreen", if false; fullscreen but not covering, if true only covering
 

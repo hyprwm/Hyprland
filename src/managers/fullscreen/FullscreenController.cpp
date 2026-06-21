@@ -439,31 +439,8 @@ void CFullscreenController::setWindowFullscreenState(const PHLWINDOW window, con
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 // Misc. Operations
 
 void CFullscreenController::moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace) {
 
 }
-
-
-
-
-
-// void CFullscreenController::setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force) {
-
-// }
-
-
-
-    bool isFsWindowLayoutHandled(const PHLWINDOW window);

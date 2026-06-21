@@ -132,5 +132,5 @@ namespace Fullscreen::ScrollingFullscreenHandler {
             void  updateFullscreenFade(bool coversMonitor);
 
             float getTargetColumnWidthBeforeFullscreenOrMaximise(const SP<Layout::ITarget> target);
-        };
+    };
 }

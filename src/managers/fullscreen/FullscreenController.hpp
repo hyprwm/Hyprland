@@ -3,7 +3,6 @@
 #include "../../helpers/memory/Memory.hpp"
 #include "desktop/DesktopTypes.hpp"
 #include "layout/target/WindowGroupTarget.hpp"
-#include "managers/fullscreen/handler/FullscreenHandler.hpp"
 #include <optional>
 
 namespace Fullscreen {

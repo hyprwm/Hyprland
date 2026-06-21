@@ -157,11 +157,12 @@ namespace Event {
             } monitor;
 
             struct {
-                Event<PHLWORKSPACE, PHLMONITOR> moveToMonitor;
-                Event<PHLWORKSPACE>             active;
-                Event<PHLWORKSPACE, PHLMONITOR> specialActive;
-                Event<PHLWORKSPACEREF>          created;
-                Event<PHLWORKSPACEREF>          removed;
+                Event<PHLWORKSPACE, PHLMONITOR>         moveToMonitor;
+                Event<PHLWORKSPACE>                     active;
+                Event<PHLWORKSPACE, PHLMONITOR>         specialActive;
+                Event<PHLWORKSPACEREF>                  created;
+                Event<PHLWORKSPACEREF>                  removed;
+                Event<PHLWORKSPACE, const std::string&> layoutChanged;
             } workspace;
 
             struct {

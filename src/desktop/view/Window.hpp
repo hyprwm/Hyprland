@@ -164,7 +164,7 @@ namespace Desktop::View {
 
         bool     m_firstMap   = false; // for layouts
         bool     m_isFloating = false;
-        // This is NOT a guarantee that the window covers monitor/workspace!
+        bool             m_fullscreen_LayoutHandled = false; // if fullscreen was handled by the layout // ERSTARR TODO - THIS IS JUST HERE AS A REMINDER TO SELF
         std::string   m_title        = "";
         std::string   m_class        = "";
         std::string   m_initialTitle = "";

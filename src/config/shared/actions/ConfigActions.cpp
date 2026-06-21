@@ -268,20 +268,20 @@ ActionResult Actions::pinWindow(eTogglableAction action, std::optional<PHLWINDOW
     return {};
 }
 
-ActionResult Actions::fullscreenWindow(eFullscreenMode mode, std::optional<PHLWINDOW> w) {
+ActionResult Actions::fullscreenWindow(eFullscreenMode mode, bool layoutAware, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
         return {};
 
     if (window->isEffectiveInternalFSMode(mode))
-        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE, layoutAware);
     else
-        g_pCompositor->setWindowFullscreenInternal(window, mode);
+        g_pCompositor->setWindowFullscreenInternal(window, mode, layoutAware);
 
     return {};
 }
 
-ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, std::optional<PHLWINDOW> w) {
+ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreenMode clientMode, bool layoutAware, std::optional<PHLWINDOW> w) {
     auto window = xtract(w);
     if (!window)
         return {};
@@ -291,9 +291,9 @@ ActionResult Actions::fullscreenWindow(eFullscreenMode internalMode, eFullscreen
     const Desktop::View::SFullscreenState STATE = {.internal = internalMode, .client = clientMode};
 
     if (window->m_fullscreenState.internal == STATE.internal && window->m_fullscreenState.client == STATE.client)
-        g_pCompositor->setWindowFullscreenState(window, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE});
+        g_pCompositor->setWindowFullscreenState(window, Desktop::View::SFullscreenState{.internal = FSMODE_NONE, .client = FSMODE_NONE}, layoutAware);
     else
-        g_pCompositor->setWindowFullscreenState(window, STATE);
+        g_pCompositor->setWindowFullscreenState(window, STATE, layoutAware);
 
     window->m_ruleApplicator->syncFullscreenOverride(
         Desktop::Types::COverridableVar(window->m_fullscreenState.internal == window->m_fullscreenState.client, Desktop::Types::PRIORITY_SET_PROP));
@@ -336,7 +336,7 @@ ActionResult Actions::moveToWorkspace(PHLWORKSPACE ws, bool silent, std::optiona
         Desktop::globalWindowController()->moveWindowToWorkspace(window, ws);
         pMonitor = ws->m_monitor.lock();
         Desktop::focusState()->rawMonitorFocus(pMonitor);
-        g_pCompositor->setWindowFullscreenInternal(window, FULLSCREENMODE);
+        g_pCompositor->setWindowFullscreenInternal(window, FULLSCREENMODE, window->m_fullscreen_LayoutHandled);
 
         POLDWS->m_lastFocusedWindow = POLDWS->getFirstWindow();
 
@@ -870,7 +870,7 @@ ActionResult Actions::toggleGroup(std::optional<PHLWINDOW> w) {
         return {};
 
     if (window->isFullscreen()) // TODO maybe make it possible in scrolling FS
-        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(window, FSMODE_NONE, window->m_fullscreen_LayoutHandled);
 
     if (!window->m_group)
         window->m_group = Desktop::View::CGroup::create({window});

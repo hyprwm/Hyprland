@@ -244,7 +244,7 @@ void CGroup::setCurrent(size_t idx) {
     auto       oldWindow = m_windows.at(m_current).lock();
 
     if (FS_STATE != FSMODE_NONE)
-        g_pCompositor->setWindowFullscreenInternal(oldWindow, FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(oldWindow, FSMODE_NONE, oldWindow->m_fullscreen_LayoutHandled);
 
     m_current = std::clamp(idx, sc<size_t>(0), m_windows.size() - 1);
     updateWindowVisibility();
@@ -252,7 +252,7 @@ void CGroup::setCurrent(size_t idx) {
     auto newWindow = m_windows.at(m_current).lock();
 
     if (FS_STATE != FSMODE_NONE) {
-        g_pCompositor->setWindowFullscreenInternal(newWindow, FS_STATE);
+        g_pCompositor->setWindowFullscreenInternal(newWindow, FS_STATE, oldWindow->m_fullscreen_LayoutHandled);
         newWindow->m_target->warpPositionSize();
         oldWindow->m_target->setPositionGlobal(newWindow->m_target->position()); // TODO: this is a hack and sucks
     }

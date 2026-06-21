@@ -46,6 +46,14 @@ namespace Fullscreen {
       it can get the underlying type and dispatch to internal helper, or it can handle in the virtual function, or whatever. If target has FS behaviour that can't be handled with the controller, handler needs to
       handle those parts entirely (and besides in that case that behaviour would have to be isolated to CWeirdAlgorithm files anyway to not break encapsulation)
 
+
+    A window may either be layout handled or default handled.
+    Layout handled matters if window's algo has custom FS behaviour.
+    A window may still be explicitly default handled in such a workspace
+    
+    A window may not be a part of more than one FS handler
+
+
     Fullscreen Handlers
     -------------------
 
@@ -58,13 +66,11 @@ namespace Fullscreen {
     Layouts may have non-covering fullscreens. Currently this is a binary toggle (Either covering or not covering).
 
 
-
     Fullscreen Modes
     ----------------
 
     Internal: what Hyprland considers to be fullscreen. Functions that check if a window is FS will use this value to judge.
-
-    Client: what application considers to be fullscreen. Hyprland doesn't consider a window to be "fullscreen" but hints to the application that it is running in fullscreen mode.
+    Client:   what application considers to be fullscreen. Hyprland doesn't consider a window to be "fullscreen" but hints to the application that it is running in fullscreen mode.
 
     */
     class CFullscreenController {
@@ -80,29 +86,33 @@ namespace Fullscreen {
         // Window
 
         /// @param covering If passed can determine if a window must be covering or must be non-covering. If not passed, window can be either
+        /// @warning only cosiders internal mode of FS windows
         // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
         bool            isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
+        /// @warning considers both internal and client FS modes of window
         bool            isLayoutManagedFullscreen(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
         SFullscreenMode getFullscreenMode(const PHLWINDOW window);
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
         // Workspace
-
+        /// @warning only cosiders internal mode of FS windows
         bool            hasFullscreen(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         /// @warning Returns the topmost covering FS window is there are several.
+        /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
         SFullscreenMode getFullscreenMode(const PHLWORKSPACE workspace, const std::optional<bool> covering = true);
 
         // Monitor
-
+        /// @warning only cosiders internal mode of FS windows
         bool            hasFullscreen(const PHLMONITOR monitor, const std::optional<bool> covering = true);
-        /// @warning Returns the topmost covering FS window is there are several.
+        /// @note Returns the topmost covering FS window is there are several.
+        /// @warning only cosiders internal mode of FS windows
         PHLWINDOW       getFullscreenWindow(const PHLMONITOR monitor, const std::optional<bool> covering = true);
         SFullscreenMode getFullscreenMode(const PHLMONITOR monitor, const std::optional<bool> covering = true);
 
         // Handler
-
+        /// @warning considers both internal and client FS modes of window
         eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
         // FS Mode Setters

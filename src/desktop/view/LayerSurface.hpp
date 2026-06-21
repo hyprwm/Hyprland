@@ -88,11 +88,11 @@ namespace Desktop::View {
     };
 
     inline bool valid(PHLLS l) {
-        return l;
+        return !!l;
     }
 
     inline bool valid(PHLLSREF l) {
-        return l;
+        return !!l;
     }
 
     inline bool validMapped(PHLLS l) {

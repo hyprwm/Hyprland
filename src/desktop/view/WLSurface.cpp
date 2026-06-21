@@ -30,7 +30,7 @@ CWLSurface::~CWLSurface() {
 }
 
 bool CWLSurface::exists() const {
-    return m_resource;
+    return !!m_resource;
 }
 
 SP<CWLSurfaceResource> CWLSurface::resource() const {

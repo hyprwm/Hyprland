@@ -1229,7 +1229,7 @@ bool CMonitor::enabled() const {
 }
 
 bool CMonitor::hasOutput() const {
-    return m_output;
+    return !!m_output;
 }
 
 SP<Aquamarine::IOutput> CMonitor::output() const {

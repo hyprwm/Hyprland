@@ -141,7 +141,7 @@ CFifoManagerResource::CFifoManagerResource(UP<CWpFifoManagerV1>&& resource_) : m
         }
 
         surf->m_fifo = RESOURCE;
-        LOGM(Log::DEBUG, "New fifo at {:x} for surface {:x}", (uintptr_t)RESOURCE, (uintptr_t)surf.get());
+        LOGM(Log::DEBUG, "New fifo at {:x} for surface {:x}", (uintptr_t)RESOURCE.get(), (uintptr_t)surf.get());
     });
 }
 

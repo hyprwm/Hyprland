@@ -80,7 +80,7 @@ eFullscreenRequestResult IFullscreenHandler::requestFullscreen(const SFullscreen
     g_pDesktopAnimationManager->setFullscreenFadeAnimation(
         WORKSPACE, request.mode == FSMODE_NONE ? CDesktopAnimationManager::ANIMATION_TYPE_OUT : CDesktopAnimationManager::ANIMATION_TYPE_IN);
 
-    return FULLSCREEN_REQUEST_DEFAULT;
+    return FULLSCREEN_REQUEST_DEFAULT_HANDLED;
 }
 
 void IFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode) {

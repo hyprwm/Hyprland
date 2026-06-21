@@ -84,7 +84,6 @@ namespace Layout {
 
         Config::ErrorResult      layoutMsg(const std::string_view& sv);
 
-        eFullscreenRequestResult fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode);
 
         void                     switchTargets(SP<ITarget> a, SP<ITarget> b, bool preserveFocus = true);
 

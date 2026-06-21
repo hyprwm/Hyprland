@@ -102,9 +102,9 @@ void CLayoutManager::endDragTarget() {
     m_dragStateController->dragEnd();
 }
 
-eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode) {
+eFullscreenRequestResult CLayoutManager::fullscreenRequestForTarget(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode effectiveMode, bool layoutAware) {
     if (target && target->space())
-        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode);
+        return target->space()->setFullscreen(target, currentEffectiveMode, effectiveMode, layoutAware);
 
     return FULLSCREEN_REQUEST_DEFAULT;
 }

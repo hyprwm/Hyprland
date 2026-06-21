@@ -2434,8 +2434,10 @@ void CWindow::mapWindow() {
             m_noInitialFocus = true;
         else if (*PNEWTAKESOVERFS == 1)
             requestedInternalFSMode = m_workspace->m_fullscreenMode;
-        else if (*PNEWTAKESOVERFS == 2)
-            g_pCompositor->setWindowFullscreenInternal(m_workspace->getFullscreenWindow(), FSMODE_NONE);
+        else if (*PNEWTAKESOVERFS == 2) {
+            auto fsWindow = m_workspace->getFullscreenWindow();
+            g_pCompositor->setWindowFullscreenInternal(fsWindow, FSMODE_NONE, fsWindow->m_fullscreen_LayoutHandled);
+        }
     }
 
     if (!m_ruleApplicator->noFocus().valueOrDefault() && !m_noInitialFocus && (!isX11OverrideRedirect() || (m_isX11 && m_xwaylandSurface->wantsFocus())) && !workspaceSilent &&
@@ -2449,7 +2451,8 @@ void CWindow::mapWindow() {
 
             if (IS_LAST_IN_FS && SAME_GROUP) {
                 Desktop::focusState()->rawWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
-                g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE);
+                // FS a new window to replace the old FSed window, use the old's layoutAware FS behaviour
+                g_pCompositor->setWindowFullscreenInternal(m_self.lock(), LAST_FS_MODE, LAST_FOCUS_WINDOW->m_fullscreen_LayoutHandled);
             } else
                 Desktop::focusState()->fullWindowFocus(m_self.lock(), FOCUS_REASON_NEW_WINDOW);
         }
@@ -2468,22 +2471,27 @@ void CWindow::mapWindow() {
 
     if (!m_noInitialFocus && (requestedInternalFSMode.has_value() || requestedClientFSMode.has_value() || requestedFSState.has_value())) {
         // fix fullscreen on requested (basically do a switcheroo)
-        if (m_workspace->m_hasFullscreenWindow)
-            g_pCompositor->setWindowFullscreenInternal(m_workspace->getFullscreenWindow(), FSMODE_NONE);
-
+        if (m_workspace->m_hasFullscreenWindow) {
+            auto fsWindow = m_workspace->getFullscreenWindow();
+            g_pCompositor->setWindowFullscreenInternal(fsWindow, FSMODE_NONE, fsWindow->m_fullscreen_LayoutHandled);
+        }
         m_realPosition->warp();
         m_realSize->warp();
         resetMotionBlur();
         if (requestedFSState.has_value()) {
             m_ruleApplicator->syncFullscreenOverride(Desktop::Types::COverridableVar(false, Desktop::Types::PRIORITY_WINDOW_RULE));
-            g_pCompositor->setWindowFullscreenState(m_self.lock(), requestedFSState.value());
+            // windowrule always uses layout specific fullscreen bahaviour if it exists
+            g_pCompositor->setWindowFullscreenState(m_self.lock(), requestedFSState.value(), true);
         } else if (requestedInternalFSMode.has_value() && requestedClientFSMode.has_value() && !m_ruleApplicator->syncFullscreen().valueOrDefault())
+            // windowrule always uses layout specific fullscreen bahaviour if it exists
             g_pCompositor->setWindowFullscreenState(m_self.lock(),
-                                                    Desktop::View::SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()});
+                                                    Desktop::View::SFullscreenState{.internal = requestedInternalFSMode.value(), .client = requestedClientFSMode.value()}, true);
         else if (requestedInternalFSMode.has_value())
-            g_pCompositor->setWindowFullscreenInternal(m_self.lock(), requestedInternalFSMode.value());
+            // windowrule always uses layout specific fullscreen bahaviour if it exists
+            g_pCompositor->setWindowFullscreenInternal(m_self.lock(), requestedInternalFSMode.value(), true);
         else if (requestedClientFSMode.has_value())
-            g_pCompositor->setWindowFullscreenClient(m_self.lock(), requestedClientFSMode.value());
+            // windowrule always uses layout specific fullscreen bahaviour if it exists
+            g_pCompositor->setWindowFullscreenClient(m_self.lock(), requestedClientFSMode.value(), true);
     }
 
     // recheck idle inhibitors
@@ -2577,7 +2585,7 @@ void CWindow::unmapWindow() {
     }
 
     if (isFullscreen())
-        g_pCompositor->setWindowFullscreenInternal(m_self.lock(), FSMODE_NONE);
+        g_pCompositor->setWindowFullscreenInternal(m_self.lock(), FSMODE_NONE, m_self->m_fullscreen_LayoutHandled);
 
     // Allow the renderer to catch the last frame.
     if (g_pHyprRenderer->shouldRenderWindow(m_self.lock()))
@@ -2671,7 +2679,8 @@ void CWindow::unmapWindow() {
                 Desktop::focusState()->fullWindowFocus(candidate, m_self->m_isFloating ? FOCUS_REASON_UNMAP_WINDOW_FLOATING : FOCUS_REASON_UNMAP_WINDOW_TILING);
 
             if ((*PEXITRETAINSFS || candidate == nextInGroup) && CURRENTWINDOWFSSTATE)
-                g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE);
+                // set the candidate to the current window's FS state - use the current window's layoutAware FS behaviour
+                g_pCompositor->setWindowFullscreenInternal(candidate, CURRENTFSMODE, m_self->m_fullscreen_LayoutHandled);
         }
 
         if (!candidate && m_workspace && m_workspace->getWindowCount() == 0)

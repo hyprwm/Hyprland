@@ -296,6 +296,7 @@ void CFullscreenController::setWindowFullscreenInternal(const PHLWINDOW window, 
 
 
     // THE FS PIPELINE CODE
+    // unFS a window unFS it in the mode it was FSed. Attempts to default unFS a window that was layout FSed must detect that window was layout FSed and dispatch to that
 
 
 }

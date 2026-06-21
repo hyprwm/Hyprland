@@ -1891,7 +1891,8 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
 void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, const bool ON) {
     setWindowFullscreenClient(
         PWINDOW,
-        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))));
+        sc<eFullscreenMode>(ON ? sc<uint8_t>(PWINDOW->m_fullscreenState.client) | sc<uint8_t>(MODE) : (sc<uint8_t>(PWINDOW->m_fullscreenState.client) & sc<uint8_t>(~MODE))),
+        PWINDOW->m_fullscreen_LayoutHandled);
 }
 
 // TODO: move fs functions to Desktop::
@@ -2175,7 +2176,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     const bool WASVISIBLE     = pWindow->m_workspace && pWindow->m_workspace->isVisible();
 
     if (FULLSCREEN)
-        setWindowFullscreenInternal(pWindow, FSMODE_NONE);
+        setWindowFullscreenInternal(pWindow, FSMODE_NONE, pWindow->m_fullscreen_LayoutHandled);
 
     const PHLWINDOW pFirstWindowOnWorkspace   = pWorkspace->getFirstWindow();
     const int       visibleWindowsOnWorkspace = pWorkspace->getWindowCount(true, std::nullopt, true);
@@ -2204,7 +2205,7 @@ void CCompositor::moveWindowToWorkspaceSafe(PHLWINDOW pWindow, PHLWORKSPACE pWor
     g_layoutManager->newTarget(pWindow->layoutTarget(), pWorkspace->m_space);
 
     if (FULLSCREEN)
-        setWindowFullscreenInternal(pWindow, FULLSCREENMODE);
+        setWindowFullscreenInternal(pWindow, FULLSCREENMODE, pWindow->m_fullscreen_LayoutHandled);
 
     pWorkspace->updateWindows();
     if (pWindow->m_workspace)

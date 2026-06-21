@@ -109,8 +109,8 @@ namespace Fullscreen {
 
         // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
 
-        void setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, bool force);
-        void setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force);
+        void setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware, const bool force);
+        void setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware);
 
         // Misc. Operations
 

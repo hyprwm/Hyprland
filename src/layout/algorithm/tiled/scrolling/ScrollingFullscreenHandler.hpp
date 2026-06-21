@@ -45,7 +45,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
       */
 
       public:
-        CScrollingFullscreenHandler(Layout::IModeAlgorithm* algorithm);
+        CScrollingFullscreenHandler(WP<Layout::Tiled::CScrollingAlgorithm> algorithm);
         virtual ~CScrollingFullscreenHandler();
 
         CScrollingFullscreenHandler()                                              = delete;
@@ -115,7 +115,7 @@ namespace Fullscreen::ScrollingFullscreenHandler {
 
             } m_fullscreenWindowHidingState;
 
-            Layout::Tiled::CScrollingAlgorithm* m_scrollingAlgorithm = nullptr;
+            const WP<Layout::Tiled::CScrollingAlgorithm> m_scrollingAlgorithm;
 
             /// Tracks FSed Targets (internal OR client)
             std::unordered_map<WP<Layout::ITarget>, SFullscreenScrollState> m_fsTargets;

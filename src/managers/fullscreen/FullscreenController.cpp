@@ -9,27 +9,6 @@
 
 using namespace Fullscreen;
 
-// ERSTARR TODO - Check modes. if synced, good.
-// if not, set the one that's not synced.
-// internal call will dispatch to the full FS pipeline
-
-
-
-// This is done in the controller, not the handler. hanlers do as they are told (set internal/client)
-// TODO ERSTARR -> this is the syncFullscreen rule. this is to be handled HERE. set client first, then internal.
-if (WINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault()) {
-    setWindowFullscreenModeInternal(WINDOW, request.mode);
-    setWindowFullscreenModeClient(WINDOW, request.mode);
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -185,7 +164,7 @@ bool CFullscreenController::hasFullscreen(const PHLMONITOR monitor, const std::o
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
     }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_WORKSPACE) {
+    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
@@ -209,7 +188,7 @@ PHLWINDOW CFullscreenController::getFullscreenWindow(const PHLMONITOR monitor, c
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
     }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_WORKSPACE) {
+    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
@@ -234,7 +213,7 @@ SFullscreenMode CFullscreenController::getFullscreenMode(const PHLMONITOR monito
         activeWorkspace = ACTIVE_SPECIAL_WORKSPACE;
 
     }
-    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeSpecialWorkspace; ACTIVE_WORKSPACE) {
+    else if (const auto ACTIVE_WORKSPACE = monitor->m_activeWorkspace; ACTIVE_WORKSPACE) {
         activeWorkspace = ACTIVE_WORKSPACE;
     }
 
@@ -272,22 +251,68 @@ eFullscreenHandler CFullscreenController::getFullscreenHandler(const PHLWINDOW w
 
 
 
-
-
-
-
-
-
 // FS Mode Setters
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ERSTARR TODO - Check modes. if synced, good.
+// if not, set the one that's not synced.
+// internal call will dispatch to the full FS pipeline
+
+
+
+// This is done in the controller, not the handler. hanlers do as they are told (set internal/client)
+// TODO ERSTARR -> this is the syncFullscreen rule. this is to be handled HERE. set client first, then internal.
+if (WINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault()) {
+    setWindowFullscreenModeInternal(WINDOW, request.mode);
+    setWindowFullscreenModeClient(WINDOW, request.mode);
+}
+
+
+
+
 
 // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
 
-void CFullscreenController::setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, bool force) {
+void CFullscreenController::setWindowFullscreenInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, bool force) {
+    if (!window)
+        return;
+
+    if (window->m_ruleApplicator->syncFullscreen().valueOrDefault()) {
+            setWindowFullscreenClient(window, mode, true); // ERSTARR TODO - FORCE SHOULD BE REDUNDANT HERE
+    }
+
+
+    // THE FS PIPELINE CODE
+
 
 }
-void CFullscreenController::setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force) {
+void CFullscreenController::setWindowFullscreenClient(const PHLWINDOW window, const eFullscreenMode mode, bool force) { // ERSTARR TODO - FORCE SHOULD BE REDUNADNT HERE
+
+
 
 }
+
+
+
+
+
+
+
+
+
 
 
 

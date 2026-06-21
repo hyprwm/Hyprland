@@ -14,7 +14,7 @@
 
 using namespace Fullscreen;
 
-IFullscreenHandler::IFullscreenHandler(Layout::IModeAlgorithm* algorithm) : m_algorithm(algorithm) {
+IFullscreenHandler::IFullscreenHandler(WP<Layout::IModeAlgorithm> algorithm) : m_algorithm(algorithm) {
     if (!m_algorithm) {
         Log::logger->log(Log::CRIT, "IFullscreenHandler failed during construction: Owning layout algorithm does not exist!");
         throw std::runtime_error("CScrollingFullscreenHandler: bad algorithm type");
@@ -210,7 +210,7 @@ eFullscreenHandler IFullscreenHandler::getFullscreenHandlerName() const {
 }
 
 SP<Layout::CSpace> IFullscreenHandler::getSpace() const {
-    if (!m_algorithm || !m_algorithm->m_parent || m_algorithm->m_parent->space())
+    if (!m_algorithm || !m_algorithm->m_parent || !m_algorithm->m_parent->space())
         return nullptr;
     return m_algorithm->m_parent.lock()->space();
 }

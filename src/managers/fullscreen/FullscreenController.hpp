@@ -22,8 +22,8 @@ namespace Fullscreen {
 
     enum eFullscreenRequestResult : uint8_t {
         FULLSCREEN_REQUEST_FAILED = 0,
-        FULLSCREEN_REQUEST_DEFAULT,
-        FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT,
+        FULLSCREEN_REQUEST_DEFAULT_HANDLED,
+        FULLSCREEN_REQUEST_LAYOUT_HANDLED,
     };
 
     struct SFullscreenMode {
@@ -103,7 +103,7 @@ namespace Fullscreen {
 
         // Handler
 
-        eFullscreenHandler getFullscreenHandlerDesignation(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
+        eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
         // FS Mode Setters
 
@@ -112,7 +112,7 @@ namespace Fullscreen {
         // ERSTARR TODO - FORCE SHOULD HOPEFULLY BE IRRELEVANT IF DONE WELL
         void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force);
         void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
-        void setWindowFullscreenState(const PHLWINDOW window, const eFullscreenMode mode, const bool layoutAware, const bool force);
+        void setWindowFullscreenState(const PHLWINDOW window, const SFullscreenMode mode, const bool layoutAware, const bool force);
         // Misc. Operations
 
         void moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace);

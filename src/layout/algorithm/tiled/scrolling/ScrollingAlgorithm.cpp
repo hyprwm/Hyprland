@@ -996,27 +996,6 @@ void CScrollingAlgorithm::recalculate(eRecalculateReason reason) {
 }
 
 
-// ERSTARR NOTE - THEASE ARE MOST LIKELY GOING TO BE REDUNDANT SO THEIR IMPLEMENTATIONS ARE LEFT HERE (obv to be deleted before merge)
-// CScrollingAlgorithm::SFullscreenScrollState* CScrollingAlgorithm::fullscreenStateForTarget(SP<ITarget> target, eFullscreenMode targetFullscreenMode) {
-//     if (!target)
-//         return nullptr;
-
-//     auto& fullscreenTargets = (targetFullscreenMode == FSMODE_FULLSCREEN ? m_fullscreenTargets : m_maximizeTargets);
-
-//     for (auto& state : fullscreenTargets) {
-//         if (state.target.lock() == target)
-//             return &state;
-//     }
-
-//     return nullptr;
-// }
-
-// CScrollingAlgorithm::SFullscreenScrollState* CScrollingAlgorithm::fullscreenStateForData(SP<SScrollingTargetData> target, eFullscreenMode targetFullscreenMode) {
-//     if (!target)
-//         return nullptr;
-
-//     return fullscreenStateForTarget(target->target.lock(), targetFullscreenMode);
-// }
 
 void CScrollingAlgorithm::expelTarget(SP<SScrollingTargetData> tdata, SP<SColumnData> srcCol, std::optional<int64_t> insertIdx) {
     auto col = !insertIdx ? m_scrollingData->add() : m_scrollingData->add(*insertIdx);
@@ -1024,26 +1003,6 @@ void CScrollingAlgorithm::expelTarget(SP<SScrollingTargetData> tdata, SP<SColumn
     col->add(tdata);
     m_scrollingData->centerOrFitCol(col);
 }
-
-// eFullscreenRequestResult CScrollingAlgorithm::requestFullscreen(const SFullscreenRequest& request) {}
-
-// SP<ITarget>              CScrollingAlgorithm::layoutFullscreenTarget() const {}
-
-// void                     CScrollingAlgorithm::setNoMembersAboveFullscreen() {}
-
-// SP<SScrollingTargetData> CScrollingAlgorithm::fullscreenTargetDataForColumn(SP<SColumnData> col) const }
-
-// bool CScrollingAlgorithm::fullscreenColumnCoversMonitor(SP<SColumnData> col) const }
-
-// bool CScrollingAlgorithm::fullscreenColumnCoversWorkArea(SP<SColumnData> col) const }
-
-// void CScrollingAlgorithm::updateFullscreenFade(bool coversMonitor) {}
-
-// float CScrollingAlgorithm::getTargetColumnWidthBeforeFullscreenOrMaximise(SP<ITarget> target) }
-
-// void CScrollingAlgorithm::syncFullscreenTargets() {}
-
-// void                     CScrollingAlgorithm::clearFullscreenTarget(std::vector<SFullscreenScrollState>& fullscreenTargetList, SP<ITarget> target) {}
 
 SP<SScrollingTargetData> CScrollingAlgorithm::closestNode(const Vector2D& posGlobglobgabgalab) {
     SP<SScrollingTargetData> res         = nullptr;

@@ -1350,7 +1350,12 @@ void CWindow::onUpdateState() {
     std::optional<MONITORID> requestsID = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsFullscreenMonitor : MONITOR_INVALID;
     std::optional<bool>      requestsMX = m_xdgSurface ? m_xdgSurface->m_toplevel->m_state.requestsMaximize : m_xwaylandSurface->m_state.requestsMaximize;
 
-    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN)) {
+    // a client re-asserting fullscreen every frame (notably gamescope) would snap the window back the instant
+    // the drag handler pulls it out of fullscreen, so ignore the request while this window is being dragged.
+    const auto DRAGTARGET         = g_layoutManager->dragController()->target();
+    const bool DRAGGINGTHISWINDOW = DRAGTARGET && DRAGTARGET->window() == m_self.lock();
+
+    if (requestsFS.has_value() && !(m_suppressedEvents & SUPPRESS_FULLSCREEN) && !DRAGGINGTHISWINDOW) {
         if (requestsID.has_value() && (requestsID.value() != MONITOR_INVALID) && !(m_suppressedEvents & SUPPRESS_FULLSCREEN_OUTPUT)) {
             if (m_isMapped) {
                 const auto monitor = State::monitorState()->query().id(requestsID.value()).run();

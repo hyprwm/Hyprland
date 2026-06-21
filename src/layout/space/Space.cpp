@@ -153,19 +153,6 @@ void CSpace::recalculate(eRecalculateReason reason) {
         m_algorithm->recalculate(reason);
 }
 
-eFullscreenRequestResult CSpace::setFullscreen(SP<ITarget> target, eFullscreenMode currentEffectiveMode, eFullscreenMode mode) {
-    if (!target)
-        return FULLSCREEN_REQUEST_FAILED;
-
-    const auto REQUEST_RESULT = m_algorithm ? m_algorithm->requestFullscreen(target, currentEffectiveMode, mode) : FULLSCREEN_REQUEST_DEFAULT;
-
-    if (mode == FSMODE_NONE && m_algorithm && target->floating())
-        m_algorithm->recenter(target);
-
-    recalculate(REQUEST_RESULT == FULLSCREEN_REQUEST_DEFAULT ? RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN : RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-
-    return REQUEST_RESULT;
-}
 
 Config::ErrorResult CSpace::layoutMsg(const std::string_view& sv) {
     if (m_algorithm)

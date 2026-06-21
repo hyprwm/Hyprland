@@ -1895,14 +1895,19 @@ void CCompositor::changeWindowFullscreenModeClient(const PHLWINDOW PWINDOW, cons
         PWINDOW->m_fullscreen_LayoutHandled);
 }
 
-// TODO: move fs functions to Desktop::
-void CCompositor::setWindowFullscreenInternal(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force) {
-    if (!PWINDOW)
-        return;
-    if (PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = MODE}, force);
-    else
-        setWindowFullscreenState(PWINDOW, Desktop::View::SFullscreenState{.internal = MODE, .client = PWINDOW->m_fullscreenState.client}, force);
+PHLWINDOW CCompositor::getX11Parent(PHLWINDOW pWindow) {
+    if (!pWindow->m_isX11)
+        return nullptr;
+
+    for (auto const& w : m_windows) {
+        if (!w->m_isX11)
+            continue;
+
+        if (w->m_xwaylandSurface == pWindow->m_xwaylandSurface->m_parent)
+            return w;
+    }
+
+    return nullptr;
 }
 
 void CCompositor::setWindowFullscreenClient(const PHLWINDOW PWINDOW, const eFullscreenMode MODE, bool force) {
@@ -1948,74 +1953,72 @@ void CCompositor::setWindowFullscreenState(const PHLWINDOW PWINDOW, Desktop::Vie
         PWINDOW->m_pinFullscreened = false;
     }
 
-    // TODO: update the state on syncFullscreen changes
-    if (!(force || CHANGEINTERNAL) && PWINDOW->m_ruleApplicator->syncFullscreen().valueOrDefault())
-        return;
+    for (auto const& w : g_pCompositor->m_windows) {
+        if (!w->m_isMapped)
+            continue;
 
-    PWINDOW->m_fullscreenState.client = state.client;
-    g_pXWaylandManager->setWindowFullscreen(PWINDOW, state.client & FSMODE_FULLSCREEN);
+        switch (mode) {
+            case MODE_CLASS_REGEX: {
+                const auto windowClass = w->m_class;
+                if (!RE2::FullMatch(windowClass, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_CLASS_REGEX: {
+                const auto initialWindowClass = w->m_initialClass;
+                if (!RE2::FullMatch(initialWindowClass, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_TITLE_REGEX: {
+                const auto windowTitle = w->m_title;
+                if (!RE2::FullMatch(windowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_INITIAL_TITLE_REGEX: {
+                const auto initialWindowTitle = w->m_initialTitle;
+                if (!RE2::FullMatch(initialWindowTitle, regexCheck))
+                    continue;
+                break;
+            }
+            case MODE_TAG_REGEX: {
+                bool tagMatched = false;
+                for (auto const& t : w->m_ruleApplicator->m_tagKeeper.getTags()) {
+                    if (RE2::FullMatch(t, regexCheck)) {
+                        tagMatched = true;
+                        break;
+                    }
+                }
+                if (!tagMatched)
+                    continue;
+                break;
+            }
+            case MODE_STABLE_ID: {
+                std::string stable_id = std::format("{:x}", w->m_stableID);
+                if (matchCheck != stable_id)
+                    continue;
+                break;
+            }
+            case MODE_ADDRESS: {
+                std::string addr = std::format("0x{:x}", rc<uintptr_t>(w.get()));
+                if (matchCheck != addr)
+                    continue;
+                break;
+            }
+            case MODE_PID: {
+                std::string pid = std::format("{}", w->getPID());
+                if (matchCheck != pid)
+                    continue;
+                break;
+            }
+            default: break;
+        }
 
-    if (!(force || CHANGEINTERNAL)) {
-        PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                     Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-        PWINDOW->updateDecorationValues();
-        g_layoutManager->recalculateMonitor(PMONITOR);
-        return;
+        return w;
     }
 
-    // "Effective mode" is the fullscreen mode according to which a window is rendered.
-    // For fullscreen modes `FSMODE_NONE` (0), `FSMODE_MAXIMIZED` (1), and `FSMODE_FULLSCREEN` (2),
-    // the effective mode is the same as the fullscreen mode;
-    // for fullscreen mode `FSMODE_MAXIMIZED|FSMODE_FULLSCREEN` (a window is maximized then fullscreened),
-    // the effective mode is `FSMODE_FULLSCREEN` (2), since the window is rendered as a fullscreen window.
-    // But when the latter window exists fullscreen, it will return to `FSMODE_MAXIMIZED`, rather than `FSMODE_NONE`.
-    const eFullscreenMode OLD_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(PWINDOW->m_fullscreenState.internal)));
-    const eFullscreenMode NEW_EFFECTIVE_MODE = sc<eFullscreenMode>(std::bit_floor(sc<uint8_t>(state.internal)));
-
-    const auto            FULLSCREEN_REQUEST_RESULT = g_layoutManager->fullscreenRequestForTarget(PWINDOW->layoutTarget(), OLD_EFFECTIVE_MODE, NEW_EFFECTIVE_MODE);
-    const bool            LAYOUT_HANDLED_FULLSCREEN = FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
-
-    if (FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_FAILED) {
-        Log::logger->log(Log::ERR, "Fullscreen request failed for window: {}", PWINDOW);
-        return;
-    }
-
-    g_pEventManager->postEvent(SHyprIPCEvent{.event = "fullscreen", .data = std::to_string(sc<int>(NEW_EFFECTIVE_MODE) != FSMODE_NONE)});
-    Event::bus()->m_events.window.fullscreen.emit(PWINDOW);
-
-    PWINDOW->m_ruleApplicator->propertiesChanged(Desktop::Rule::RULE_PROP_FULLSCREEN | Desktop::Rule::RULE_PROP_FULLSCREENSTATE_CLIENT |
-                                                 Desktop::Rule::RULE_PROP_FULLSCREENSTATE_INTERNAL | Desktop::Rule::RULE_PROP_ON_WORKSPACE);
-
-    PWINDOW->updateDecorationValues();
-    g_layoutManager->recalculateMonitor(PMONITOR, Layout::CLayoutManager::RECALCULATE_MONITOR_REASON_TOGGLE_FULLSCREEN);
-
-    PWINDOW->sendWindowSize(true);
-
-    // recheck the work area again because visibility checks report 1 window on fs / maximize as tiled + visible
-    // because the windows below fs are not visible obviously but because we update fullscreen fade which sets that
-    // state later, it does it wrong
-    PWORKSPACE->updateWindows();
-    PWORKSPACE->m_space->recalculate(FULLSCREEN_REQUEST_RESULT == Layout::FULLSCREEN_REQUEST_DEFAULT ? Layout::RECALCULATE_REASON_TOGGLE_DEFAULT_HANDLED_FULLSCREEN :
-                                                                                                       Layout::RECALCULATE_REASON_TOGGLE_LAYOUT_HANDLED_FULLSCREEN);
-    PWORKSPACE->forceReportSizesToWindows();
-
-    g_pInputManager->recheckIdleInhibitorStatus();
-
-    // further updates require a monitor
-    if (!PMONITOR)
-        return;
-
-    // Layouts must handle this themselves
-    // TODO: Maybe move this into default FS handler's requestFullscreen()
-    // send a scanout tranche if we are entering fullscreen, and send a regular one if we aren't.
-    // ignore if DS is disabled.
-    if (!LAYOUT_HANDLED_FULLSCREEN && (*PDIRECTSCANOUT == 1 || (*PDIRECTSCANOUT == 2 && PWINDOW->getContentType() == CONTENT_TYPE_GAME))) {
-        auto surf = PWINDOW->getSolitaryResource();
-        if (surf)
-            g_pHyprRenderer->setSurfaceScanoutMode(surf, NEW_EFFECTIVE_MODE != FSMODE_NONE ? PMONITOR->m_self.lock() : nullptr);
-    }
-
-    Config::monitorRuleMgr()->ensureVRR(PMONITOR);
+    return nullptr;
 }
 
 void CCompositor::warpCursorTo(const Vector2D& pos, bool force) {

@@ -203,7 +203,7 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         // Hide all members below the FS target
         setNoMembersAboveFullscreen();
 
-        return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
+        return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
 
     } else if (request.mode == FSMODE_MAXIMIZED) {
 
@@ -243,14 +243,14 @@ eFullscreenRequestResult CScrollingFullscreenHandler::requestFullscreen(const SF
         // Hide all members below the FS target
         setNoMembersAboveFullscreen();
 
-        return FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT;
+        return FULLSCREEN_REQUEST_LAYOUT_HANDLED;
     }
 
     // UnFS target
     setTargetFullscreenModeInternal(TARGET, FSMODE_NONE);
     setNoMembersAboveFullscreen();
     // final check to see if the target was correctly FSed.
-    return (request.mode == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_HANDLED_BY_LAYOUT : FULLSCREEN_REQUEST_FAILED;
+    return (request.mode == FSMODE_NONE && !isFullscreen(TARGET)) ? FULLSCREEN_REQUEST_LAYOUT_HANDLED : FULLSCREEN_REQUEST_FAILED;
 }
 
 void CScrollingFullscreenHandler::setTargetFullscreenModeInternal(const SP<Layout::ITarget> target, const eFullscreenMode mode) {
@@ -383,7 +383,7 @@ void CScrollingFullscreenHandler::setNoMembersAboveFullscreen() {
     // Below cases should not happen; Default handled FS windows should dispatch to their own handler's setNoMembersAboveFullscreen(). The cases below are for redundancy and error recovery.
 
     // If the COVERING_FULLSCREEN_WINDOW is default handled (this should not dispatch to this method at all with the new FS framework but this check is redundancy)
-    if (g_pfullscreenController->getFullscreenHandler(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
+    if (g_pfullscreenController->getFullscreenHandlerName(COVERING_FULLSCREEN_WINDOW) != FULLSCREEN_HANDLER_SCROLLING) {
         Log::logger->log(Log::ERR,
                          "Default handled FS window called CScrollingFullscreenHandler::setNoMembersAboveFullscreen(). This should never happen: setNoMembersAboveFullscreen() "
                          "call should have been dispatched to default FS handler. This is a bug, but is not fatal. Recovering...");

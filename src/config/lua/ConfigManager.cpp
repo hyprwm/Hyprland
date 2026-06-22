@@ -499,6 +499,7 @@ void CConfigManager::reload() {
 
     for (const auto& v : m_configValues) {
         v.second->reset();
+        v.second->resetSetByUser();
     }
 
     lua_pushcfunction(m_lua, [](lua_State* L) -> int {

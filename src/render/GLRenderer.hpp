@@ -28,6 +28,10 @@ namespace Render::GL {
         void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
         void drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
                         float a) override;
+
+        void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) override;
+        void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2, float lerp,
+                      float a) override;
         SP<ITexture>         blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) override;
         void                 setViewport(int x, int y, int width, int height) override;
         bool                 reloadShaders(const std::string& path = "") override;

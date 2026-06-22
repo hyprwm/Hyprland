@@ -186,6 +186,9 @@ namespace Render {
         virtual void                    drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) = 0;
         virtual void drawShadow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
                                 float lerp, float a)                                                                                                             = 0;
+        virtual void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a)                      = 0;
+        virtual void drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                              float lerp, float a)                                                                                                               = 0;
         virtual void setViewport(int x, int y, int width, int height)                                                                                            = 0;
 
         bool         preBlurQueued(PHLMONITORREF pMonitor);

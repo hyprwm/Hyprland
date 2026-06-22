@@ -284,6 +284,15 @@ void CHyprGLRenderer::drawShadow(const CBox& box, int round, float roundingPower
     g_pHyprOpenGL->renderRoundedShadow(box, round, roundingPower, range, grad1, grad2, lerp, a);
 }
 
+void CHyprGLRenderer::drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& color, float a) {
+    g_pHyprOpenGL->renderInnerGlow(box, round, roundingPower, range, color, 0, a);
+}
+
+void CHyprGLRenderer::drawGlow(const CBox& box, int round, float roundingPower, int range, const Config::CGradientValueData& grad1, const Config::CGradientValueData& grad2,
+                               float lerp, float a) {
+    g_pHyprOpenGL->renderInnerGlow(box, round, roundingPower, range, grad1, grad2, lerp, 0, a);
+}
+
 SP<ITexture> CHyprGLRenderer::blurFramebuffer(SP<IFramebuffer> source, float a, CRegion* originalDamage) {
     auto src = GLFB(source);
     return g_pHyprOpenGL->blurFramebufferWithDamage(a, originalDamage, *src)->getTexture();

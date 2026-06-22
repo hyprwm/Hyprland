@@ -488,7 +488,7 @@ void SScrollingData::recalculate(bool forceInstant) {
 
     // ERSTARR - THIS MIGHT BE NECESSARY OR REDUNDANT DEPENDING ON IF SSCROLLINGDATA:RECALC IS CALLED WHEN DEFAULT HANDLED FSING A WINDOW!
     // If the fullscreen window is default handled, return early.
-    if (const auto FULLSCREEN_WINDOW = Fullscreen::g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !Fullscreen::g_pfullscreenController->isLayoutManagedFullscreen(FULLSCREEN_WINDOW)) {
+    if (const auto FULLSCREEN_WINDOW = Fullscreen::g_pfullscreenController->getFullscreenWindow(WORKSPACE); FULLSCREEN_WINDOW && !Fullscreen::g_pfullscreenController->isFsManagedByLayoutHandler(FULLSCREEN_WINDOW)) {
         algorithm->m_scrollingFullscreenHandler->setNoMembersAboveFullscreen();
         return;
     }

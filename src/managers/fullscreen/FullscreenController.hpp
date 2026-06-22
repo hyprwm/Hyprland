@@ -5,7 +5,16 @@
 #include "layout/target/WindowGroupTarget.hpp"
 #include <optional>
 
+
+
+
+
+
 namespace Fullscreen {
+
+    class IFullscreenHandler;
+
+
 
     enum eFullscreenMode : int8_t {
         FSMODE_NONE = 0,
@@ -90,8 +99,8 @@ namespace Fullscreen {
         // ERSTARR TODO - note that passing mode = FSMODE_NONE will not fly. return false then in any case and log an error
         bool            isFullscreen( const PHLWINDOW window, const std::optional<eFullscreenMode> mode = std::nullopt, const std::optional<bool> covering = std::nullopt);
         /// @warning considers both internal and client FS modes of window
-        bool            isLayoutManagedFullscreen(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
         SFullscreenMode getFullscreenMode(const PHLWINDOW window);
+        bool            isFsManagedByLayoutHandler(const PHLWINDOW window); // TODO: use the handler to judge - delete this todo after implemented
 
         // ERSTARR TODO - if covering is true; need to check if floating algo has FS first, THEN the default handler of a layout handler. ONLY after that check the layout handler.
 
@@ -115,19 +124,39 @@ namespace Fullscreen {
         /// @warning considers both internal and client FS modes of window
         eFullscreenHandler getFullscreenHandlerName(const PHLWINDOW window); // CHECK the floating first. After that, check the default handler base class in layout handler. After that check the layout handler.
 
-        // FS Mode Setters
+        // FS Mode Setter
 
-        // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
 
-        // ERSTARR TODO - FORCE SHOULD HOPEFULLY BE IRRELEVANT IF DONE WELL
-        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force);
-        void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
-        void setWindowFullscreenState(const PHLWINDOW window, const SFullscreenMode mode, const bool layoutAware, const bool force);
+        // ERSTARR TODO - MAKE THIS AN ACTUAL DOYXGEN DOC
+        // set window's internal, client (either or both) FS modes. Also allows overriding if you want to FS a window using default FS handler or the layout FS handler it might have access to 
+        void setFullscreenMode(const PHLWINDOW window, const std::optional<eFullscreenMode> client = std::nullopt,
+                                     const std::optional<eFullscreenMode> internal = std::nullopt, std::optional<bool> layoutAware = std::nullopt);
+
         // Misc. Operations
 
-        void moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace);
+        // Probably redundant
+        // void moveFullscreenWindowToWorkspace(const PHLWINDOW window, const PHLWORKSPACE workspace);
 
       private:
+
+              // ERSTARR TODO - sync the internal and client -> in client dispatches to internal and internal follows the standard FS path
+
+        // ERSTARR TODO - FORCE SHOULD HOPEFULLY BE IRRELEVANT IF DONE WELL
+
+        // FS Mode Setter Helpers
+        void setWindowFullscreenModeInternal(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware, const bool force);
+        void setWindowFullscreenModeClient(const PHLWINDOW window, const eFullscreenMode mode, bool layoutAware);
+        // void setWindowFullscreenState(const PHLWINDOW window, const SFullscreenMode mode, const bool layoutAware, const bool force); // ERSTARR TODO - THIS SHOULD BE MADE REDUNDANT HOPEFULLY --
+                                                                                                                                     // OR KEEP IT, AND MAKE INTERNAL SETTER JUST THAT
+
+
+        // FS Handler getters
+
+        // if layoutHandled not passed; if window is FS, return the FS handler that it is using. If it is not, return layout handler
+        SP<IFullscreenHandler> getFSHandler(const PHLWINDOW window, std::optional<bool> layoutHandled = std::nullopt);
+
+
+
         // void setWindowFullscreenState(const PHLWINDOW window, SFullscreenMode state, bool force); // Probably redundant
     };
 

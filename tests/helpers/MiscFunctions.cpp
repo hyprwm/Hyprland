@@ -26,8 +26,15 @@ TEST(Helpers, isDirectionString) {
     EXPECT_TRUE(isDirection("d"));
     EXPECT_TRUE(isDirection("t"));
     EXPECT_TRUE(isDirection("b"));
+    EXPECT_TRUE(isDirection("left"));
+    EXPECT_TRUE(isDirection("right"));
+    EXPECT_TRUE(isDirection("up"));
+    EXPECT_TRUE(isDirection("down"));
+    EXPECT_TRUE(isDirection("top"));
+    EXPECT_TRUE(isDirection("bottom"));
     EXPECT_FALSE(isDirection("x"));
-    EXPECT_FALSE(isDirection("left"));
+    EXPECT_FALSE(isDirection("leftover"));
+    EXPECT_FALSE(isDirection("desc:Monitor"));
     EXPECT_FALSE(isDirection(""));
 }
 

@@ -67,6 +67,16 @@ using namespace Desktop::View;
 using namespace Render::GL;
 using namespace Monitor;
 
+constexpr const char* drmFormatToString(uint32_t drmFormat) {
+    switch (drmFormat) {
+        case DRM_FORMAT_XRGB2101010: return "DRM_FORMAT_XRGB2101010";
+        case DRM_FORMAT_XBGR2101010: return "DRM_FORMAT_XBGR2101010";
+        case DRM_FORMAT_XRGB8888: return "DRM_FORMAT_XRGB8888";
+        case DRM_FORMAT_XBGR8888: return "DRM_FORMAT_XBGR8888";
+        default: return "Invalid";
+    }
+}
+
 CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_name(output_->name), m_state(this), m_output(output_), m_imageDescription(getDefaultImageDescription()) {
     g_pAnimationManager->createAnimation(0.f, m_specialFade, Config::animationTree()->getAnimationPropertyConfig("specialWorkspaceIn"), AVARDAMAGE_NONE);
     m_specialFade->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
@@ -957,33 +967,12 @@ bool CMonitor::applyMonitorRule(Config::CMonitorRule&& pMonitorRule) {
 
     m_pixelSize = m_size;
 
-    // clang-format off
-    static const std::array<std::vector<std::pair<std::string, uint32_t>>, 2> formats{
-        std::vector<std::pair<std::string, uint32_t>>{ /* 10-bit */
-            {"DRM_FORMAT_XRGB2101010", DRM_FORMAT_XRGB2101010}, {"DRM_FORMAT_XBGR2101010", DRM_FORMAT_XBGR2101010}, {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
-        },
-        std::vector<std::pair<std::string, uint32_t>>{ /* 8-bit */
-            {"DRM_FORMAT_XRGB8888", DRM_FORMAT_XRGB8888}, {"DRM_FORMAT_XBGR8888", DRM_FORMAT_XBGR8888}
-        }
-    };
-    // clang-format on
+    static constexpr auto formats10bit = std::to_array<uint32_t>({DRM_FORMAT_XRGB2101010, DRM_FORMAT_XBGR2101010});
+    static constexpr auto formats8bit  = std::to_array<uint32_t>({DRM_FORMAT_XRGB8888, DRM_FORMAT_XBGR8888});
 
-    bool set10bit = false;
-
-    for (auto const& fmt : formats[sc<int>(!RULE->m_enable10bit)]) {
-        m_output->state->setFormat(fmt.second);
-        m_prevDrmFormat = m_drmFormat;
-        m_drmFormat     = fmt.second;
-
-        if (!m_state.test()) {
-            Log::logger->log(Log::ERR, "output {} failed basic test on format {}", m_name, fmt.first);
-        } else {
-            Log::logger->log(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmt.first);
-            if (RULE->m_enable10bit && fmt.first.contains("101010"))
-                set10bit = true;
-            break;
-        }
-    }
+    const bool            set10bit = RULE->m_enable10bit && trySetFormat(formats10bit);
+    if (!set10bit)
+        trySetFormat(formats8bit);
 
     m_enabled10bit = set10bit;
 
@@ -1240,7 +1229,7 @@ bool CMonitor::enabled() const {
 }
 
 bool CMonitor::hasOutput() const {
-    return m_output;
+    return !!m_output;
 }
 
 SP<Aquamarine::IOutput> CMonitor::output() const {
@@ -2538,16 +2527,40 @@ bool CMonitor::doesNoShaderCM() {
 }
 
 static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, size_t gammaSize) {
-    std::vector<uint16_t> out;
-    out.resize(gammaSize * 3);
+    const size_t entries = sc<size_t>(t.entries);
 
-    //
+    if (gammaSize == 0 || entries == 0)
+        return {};
+
+    if (t.ch[0].size() < entries || t.ch[1].size() < entries || t.ch[2].size() < entries)
+        return {};
+
+    std::vector<uint16_t> out(gammaSize * 3);
+
+    // No resampling is needed when the VCGT already matches the KMS LUT size.
+    if (gammaSize == entries) {
+        const uint16_t* __restrict red   = t.ch[0].data();
+        const uint16_t* __restrict green = t.ch[1].data();
+        const uint16_t* __restrict blue  = t.ch[2].data();
+        uint16_t* __restrict dst         = out.data();
+
+        for (size_t i = 0; i < gammaSize; ++i) {
+            const size_t dstIndex = i * 3;
+
+            dst[dstIndex + 0] = red[i];
+            dst[dstIndex + 1] = green[i];
+            dst[dstIndex + 2] = blue[i];
+        }
+
+        return out;
+    }
+
     auto sample = [&](int c, float x) -> uint16_t {
         const float maxX = t.entries - 1;
         x                = std::clamp(x, 0.F, maxX);
 
-        const size_t i0 = (size_t)std::floor(x);
-        const size_t i1 = std::min(i0 + 1, (size_t)t.entries - 1);
+        const size_t i0 = sc<size_t>(std::floor(x));
+        const size_t i1 = std::min(i0 + 1, sc<size_t>(t.entries - 1));
         const float  f  = x - sc<float>(i0);
 
         const float  v0 = sc<float>(t.ch[c][i0]);
@@ -2556,19 +2569,16 @@ static std::vector<uint16_t> resampleInterleavedToKms(const SVCGTTable16& t, siz
 
         int64_t      vi = std::round(v);
         vi              = std::clamp(vi, sc<int64_t>(0), sc<int64_t>(65535));
+
         return sc<uint16_t>(vi);
     };
 
     for (size_t i = 0; i < gammaSize; ++i) {
-        float          x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
+        const float x = sc<float>(i) * sc<float>(t.entries - 1) / sc<float>(gammaSize - 1);
 
-        const uint16_t r = sample(0, x);
-        const uint16_t g = sample(1, x);
-        const uint16_t b = sample(2, x);
-
-        out[i * 3 + 0] = r;
-        out[i * 3 + 1] = g;
-        out[i * 3 + 2] = b;
+        out[i * 3 + 0] = sample(0, x);
+        out[i * 3 + 1] = sample(1, x);
+        out[i * 3 + 2] = sample(2, x);
     }
 
     return out;
@@ -2767,4 +2777,21 @@ WP<CMonitorResources> CMonitor::resources() {
         m_resources->setImageDescription(DESC);
 
     return m_resources;
+}
+
+bool CMonitor::trySetFormat(std::span<const uint32_t> formats) {
+    for (auto fmt : formats) {
+        m_output->state->setFormat(fmt);
+        m_prevDrmFormat = m_drmFormat;
+        m_drmFormat     = fmt;
+
+        const auto fmtName = drmFormatToString(fmt);
+        if (!m_state.test()) {
+            Log::logger->log(Log::ERR, "output {} failed basic test on format {}", m_name, fmtName);
+        } else {
+            Log::logger->log(Log::DEBUG, "output {} succeeded basic test on format {}", m_name, fmtName);
+            return true;
+        }
+    }
+    return false;
 }

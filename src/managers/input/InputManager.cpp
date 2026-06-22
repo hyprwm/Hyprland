@@ -621,7 +621,7 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
         m_foundSurfaceToFocus = foundSurface;
     }
 
-    if (g_layoutManager->dragController()->target() && pFoundWindow != g_layoutManager->dragController()->target()) {
+    if (g_layoutManager->dragController()->target() && (!pFoundWindow || pFoundWindow->layoutTarget() != g_layoutManager->dragController()->target())) {
         g_pSeatManager->setPointerFocus(foundSurface, surfaceLocal);
         return;
     }

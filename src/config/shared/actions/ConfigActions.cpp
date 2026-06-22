@@ -1371,7 +1371,7 @@ ActionResult Actions::moveWindowOrGroup(Math::eDirection direction, std::optiona
 
     const auto PWINDOWINDIR = g_pCompositor->getWindowInDirection(window, direction);
 
-    const bool ISWINDOWGROUP       = window->m_group;
+    const bool ISWINDOWGROUP       = !!window->m_group;
     const bool ISWINDOWGROUPLOCKED = ISWINDOWGROUP && window->m_group->locked();
     const bool ISWINDOWGROUPSINGLE = ISWINDOWGROUP && window->m_group->size() == 1;
     const bool ISWINDOWGROUPDENIED = ISWINDOWGROUP && window->m_group->denied();

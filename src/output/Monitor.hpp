@@ -7,6 +7,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../helpers/WLClasses.hpp"
 #include <array>
+#include <span>
 #include "../helpers/AnimatedVariable.hpp"
 #include "../helpers/CMType.hpp"
 #include "IMonitorArrangeable.hpp"
@@ -394,6 +395,7 @@ namespace Monitor {
         void                    scheduleModeRetry();
         void                    clearModeRetry();
         void                    updateVCGTRamps();
+        bool                    trySetFormat(std::span<const uint32_t> formats);
 
         bool                    m_doneScheduled  = false;
         bool                    m_vcgtRampsSet   = false;

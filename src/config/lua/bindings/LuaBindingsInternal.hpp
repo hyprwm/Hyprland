@@ -39,14 +39,14 @@ namespace Desktop::Rule {
 namespace Config::Lua::Bindings::Internal {
 
     struct SWindowRuleEffectDesc {
-        const char*                       name;
-        std::function<ILuaConfigValue*()> factory;
-        uint16_t                          effect;
+        const char* name;
+        ILuaConfigValue* (*factory)();
+        uint16_t effect;
     };
 
     using WE = Desktop::Rule::eWindowRuleEffect;
 
-    inline const SWindowRuleEffectDesc WINDOW_RULE_EFFECT_DESCS[] = {
+    inline constexpr SWindowRuleEffectDesc WINDOW_RULE_EFFECT_DESCS[] = {
         {"float", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FLOAT},
         {"tile", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_TILE},
         {"fullscreen", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, WE::WINDOW_RULE_EFFECT_FULLSCREEN},

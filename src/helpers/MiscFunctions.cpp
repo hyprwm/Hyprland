@@ -114,10 +114,8 @@ std::optional<float> getPlusMinusKeywordResult(std::string source, float relativ
 }
 
 bool isDirection(std::string_view sv) {
-    if (sv[0] == 'l' || sv[0] == 'r' || sv[0] == 'u' || sv[0] == 'd' || sv[0] == 't' || sv[0] == 'b')
-        return sv.length() == 1 || sv == "left" || sv == "right" || sv == "up" || sv == "down" || sv == "top" || sv == "bottom";
-
-    return false;
+    return sv == "l" || sv == "r" || sv == "u" || sv == "d" || sv == "t" || sv == "b" || sv == "left" || sv == "right" || sv == "up" || sv == "down" || sv == "top" ||
+        sv == "bottom";
 }
 
 static bool isAutoIDdWorkspace(WORKSPACEID id) {

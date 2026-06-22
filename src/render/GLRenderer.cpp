@@ -55,7 +55,7 @@ bool CHyprGLRenderer::initRenderBuffer(SP<Aquamarine::IBuffer> buffer, uint32_t 
         return false;
     }
 
-    return m_currentRenderbuffer;
+    return !!m_currentRenderbuffer;
 }
 
 bool CHyprGLRenderer::beginFullFakeRenderInternal(PHLMONITOR pMonitor, CRegion& damage, SP<IFramebuffer> fb, bool simple) {

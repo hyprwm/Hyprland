@@ -51,31 +51,31 @@ using namespace Hyprutils::Utils;
 
 namespace {
     struct SFieldDesc {
-        const char*                       name;
-        std::function<ILuaConfigValue*()> factory;
+        const char* name;
+        ILuaConfigValue* (*factory)();
     };
 
     struct SMonitorFieldDesc {
-        const char*                                                name;
-        std::function<ILuaConfigValue*()>                          factory;
-        std::function<bool(ILuaConfigValue*, CMonitorRuleParser&)> apply;
+        const char* name;
+        ILuaConfigValue* (*factory)();
+        bool (*apply)(ILuaConfigValue*, CMonitorRuleParser&);
     };
 
     struct SLayerRuleEffectDesc {
-        const char*                       name;
-        std::function<ILuaConfigValue*()> factory;
-        uint16_t                          effect;
+        const char* name;
+        ILuaConfigValue* (*factory)();
+        uint16_t effect;
     };
 
     struct SWorkspaceRuleFieldDesc {
-        const char*                                                    name;
-        std::function<ILuaConfigValue*()>                              factory;
-        std::function<void(ILuaConfigValue*, Config::CWorkspaceRule&)> apply;
+        const char* name;
+        ILuaConfigValue* (*factory)();
+        void (*apply)(ILuaConfigValue*, Config::CWorkspaceRule&);
     };
 
     using LE = Desktop::Rule::eLayerRuleEffect;
 
-    inline const SMonitorFieldDesc MONITOR_FIELDS[] = {
+    inline constexpr SMonitorFieldDesc MONITOR_FIELDS[] = {
         {"mode", []() -> ILuaConfigValue* { return new CLuaConfigString("preferred"); },
          [](ILuaConfigValue* v, CMonitorRuleParser& p) { return p.parseMode(*sc<const Config::STRING*>(v->data())); }},
         {"position", []() -> ILuaConfigValue* { return new CLuaConfigString("auto"); },
@@ -176,7 +176,7 @@ namespace {
 
     static_assert(sizeof(Internal::WINDOW_RULE_EFFECT_DESCS) / sizeof(Internal::SWindowRuleEffectDesc) == Internal::WE::WINDOW_RULE_EFFECT_LAST_STATIC - 1);
 
-    inline const SLayerRuleEffectDesc LAYER_RULE_EFFECT_DESCS[] = {
+    inline constexpr SLayerRuleEffectDesc LAYER_RULE_EFFECT_DESCS[] = {
         {"no_anim", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_NO_ANIM},
         {"blur", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_BLUR},
         {"blur_popups", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); }, LE::LAYER_RULE_EFFECT_BLUR_POPUPS},
@@ -191,7 +191,7 @@ namespace {
 
     static_assert(sizeof(LAYER_RULE_EFFECT_DESCS) / sizeof(SLayerRuleEffectDesc) == LE::LAYER_RULE_EFFECT_LAST_STATIC - 1);
 
-    inline const SWorkspaceRuleFieldDesc WORKSPACE_RULE_FIELDS[] = {
+    inline constexpr SWorkspaceRuleFieldDesc WORKSPACE_RULE_FIELDS[] = {
         {"monitor", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); },
          [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_monitor = *sc<const Config::STRING*>(v->data()); }},
         {"default", []() -> ILuaConfigValue* { return new CLuaConfigBool(false); },
@@ -224,7 +224,7 @@ namespace {
          [](ILuaConfigValue* v, Config::CWorkspaceRule& r) { r.m_animationStyle = *sc<const Config::STRING*>(v->data()); }},
     };
 
-    inline const SFieldDesc DEVICE_FIELDS[] = {
+    inline constexpr SFieldDesc DEVICE_FIELDS[] = {
         {"sensitivity", []() -> ILuaConfigValue* { return new CLuaConfigFloat(0.F, -1.F, 1.F); }},
         {"accel_profile", []() -> ILuaConfigValue* { return new CLuaConfigString(STRVAL_EMPTY); }},
         {"rotation", []() -> ILuaConfigValue* { return new CLuaConfigInt(0, 0, 359); }},

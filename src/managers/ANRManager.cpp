@@ -51,7 +51,7 @@ CANRManager::CANRManager() {
             d->dialogSaidWait  = false;
         }
 
-        std::erase_if(m_data, [&window](auto& w) { return w == window; });
+        std::erase_if(m_data, [&window](auto& anrData) { return !anrData || anrData->fitsWindow(window); });
     });
 
     m_timer->updateTimeout(TIMER_TIMEOUT);

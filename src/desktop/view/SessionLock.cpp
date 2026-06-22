@@ -28,7 +28,8 @@ View::CSessionLock::~CSessionLock() {
 }
 
 void View::CSessionLock::init() {
-    m_listeners.destroy = m_surface->m_events.destroy.listen([this] { std::erase_if(g_pCompositor->m_otherViews, [this](const auto& e) { return e == m_self; }); });
+    m_listeners.destroy =
+        m_surface->m_events.destroy.listen([this] { std::erase_if(g_pCompositor->m_otherViews, [this](const auto& e) { return e == dynamicPointerCast<IView>(m_self); }); });
 
     m_wlSurface->assign(m_surface->surface(), m_self.lock());
 }

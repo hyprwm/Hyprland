@@ -48,7 +48,6 @@ class CScreencopyFrame {
 
     CHLBufferReference                   m_buffer;
     Time::steady_tp                      m_timestamp;
-    bool                                 m_overlayCursor = true;
 
     //
     void shareFrame(CZwlrScreencopyFrameV1* pFrame, wl_resource* buffer, bool withDamage);

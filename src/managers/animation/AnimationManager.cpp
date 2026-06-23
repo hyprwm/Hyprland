@@ -12,7 +12,7 @@
 #include "../../render/Renderer.hpp"
 #include "../../event/EventBus.hpp"
 #include "../../state/MonitorState.hpp"
-
+#include <hyprutils/string/Numeric.hpp>
 #include <hyprgraphics/color/Color.hpp>
 #include <hyprutils/animation/AnimatedVariable.hpp>
 #include <hyprutils/animation/AnimationManager.hpp>
@@ -81,12 +81,12 @@ static void damageWindowForPolicies(PHLWINDOW pWindow, bool entire, bool border,
         g_pHyprRenderer->damageWindow(pWindow); // damageWindow already damages all decorations
     else {
         if (border) {
-            const auto PDECO = pWindow->getDecorationByType(DECORATION_BORDER);
-            PDECO->damageEntire();
+            if (const auto PDECO = pWindow->getDecorationByType(DECORATION_BORDER))
+                PDECO->damageEntire();
         }
         if (shadow) {
-            const auto PDECO = pWindow->getDecorationByType(DECORATION_SHADOW);
-            PDECO->damageEntire();
+            if (const auto PDECO = pWindow->getDecorationByType(DECORATION_SHADOW))
+                PDECO->damageEntire();
         }
     }
 }
@@ -186,7 +186,11 @@ void CHyprAnimationManager::tick() {
         if (!PAV)
             continue;
 
-        const auto&   ctx = getContext(PAV.get());
+        const auto AV = PAV.lock();
+        if (!AV)
+            continue;
+
+        const auto&   ctx = getContext(AV.get());
 
         SDamageOwner* owner = nullptr;
 
@@ -269,22 +273,25 @@ void CHyprAnimationManager::tick() {
         if (!PAV)
             continue;
 
-        const auto LOCK = PAV.lock();
-        bool       warp = !*PANIMENABLED || !PAV->enabled();
+        const auto AV = PAV.lock();
+        if (!AV)
+            continue;
 
-        switch (PAV->m_Type) {
+        const bool warp = !*PANIMENABLED || !AV->enabled();
+
+        switch (AV->m_Type) {
             case AVARTYPE_FLOAT: {
-                auto pTypedAV = dc<CAnimatedVariable<float>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<float>*>(AV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated float");
                 handleUpdate(*pTypedAV, warp);
             } break;
             case AVARTYPE_VECTOR: {
-                auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<Vector2D>*>(AV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated Vector2D");
                 handleUpdate(*pTypedAV, warp);
             } break;
             case AVARTYPE_COLOR: {
-                auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(PAV.get());
+                auto pTypedAV = dc<CAnimatedVariable<CHyprColor>*>(AV.get());
                 RASSERT(pTypedAV, "Failed to upcast animated CHyprColor");
                 handleUpdate(*pTypedAV, warp);
             } break;
@@ -380,17 +387,20 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
             return "";
         else if (style.starts_with("popin")) {
             // try parsing
-            float minPerc = 0.f;
             if (style.find('%') != std::string::npos) {
-                try {
-                    auto percstr = style.substr(style.find_last_of(' '));
-                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
-                } catch (std::exception& e) { return "invalid minperc"; }
+                const auto pos = style.find_last_of(' ');
+                if (pos == std::string::npos)
+                    return "invalid minperc";
+                const std::string percstr = style.substr(pos + 1);
+                if (percstr.empty() || percstr.back() != '%')
+                    return "invalid minperc";
+                const std::string numstr = percstr.substr(0, percstr.length() - 1);
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
 
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
+                    return "invalid minperc";
                 return "";
             }
-
-            minPerc; // fix warning
 
             return "";
         }
@@ -401,17 +411,21 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
             return "";
         else if (style.starts_with("slide")) {
             // try parsing
-            float movePerc = 0.f;
             if (style.find('%') != std::string::npos) {
-                try {
-                    auto percstr = style.substr(style.find_last_of(' ') + 1);
-                    movePerc     = std::stoi(percstr.substr(0, percstr.length() - 1));
-                } catch (std::exception& e) { return "invalid movePerc"; }
+                const auto pos = style.find_last_of(' ');
+                if (pos == std::string::npos)
+                    return "invalid movePerc";
+                const std::string percstr = style.substr(pos + 1);
+                if (percstr.empty() || percstr.back() != '%')
+                    return "invalid movePerc";
+                const std::string numstr = percstr.substr(0, percstr.length() - 1);
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
+
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
+                    return "invalid movePerc";
 
                 return "";
             }
-
-            movePerc; // fix warning
 
             return "";
         }
@@ -429,26 +443,26 @@ std::string CHyprAnimationManager::styleValidInConfigVar(const std::string& conf
         if (style.empty() || style == "fade" || style == "slide")
             return "";
         else if (style.starts_with("popin")) {
-            // try parsing
-            float minPerc = 0.f;
             if (style.find('%') != std::string::npos) {
-                try {
-                    auto percstr = style.substr(style.find_last_of(' '));
-                    minPerc      = std::stoi(percstr.substr(0, percstr.length() - 1));
-                } catch (std::exception& e) { return "invalid minperc"; }
+                const auto pos = style.find_last_of(' ');
+                if (pos == std::string::npos)
+                    return "invalid minperc";
+                const std::string percstr = style.substr(pos + 1);
+                if (percstr.empty() || percstr.back() != '%')
+                    return "invalid minperc";
+                const std::string numstr = percstr.substr(0, percstr.length() - 1);
+                const auto        VALUE  = Hyprutils::String::strToNumber<int>(numstr);
 
+                if (!VALUE || *VALUE < 0 || *VALUE > 100)
+                    return "invalid minperc";
                 return "";
             }
 
-            minPerc; // fix warning
-
             return "";
         }
-        return "";
+
         return "unknown style";
     } else {
         return "animation has no styles";
     }
-
-    return "";
 }

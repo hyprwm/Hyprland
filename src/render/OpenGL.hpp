@@ -321,7 +321,7 @@ namespace Render::GL {
         bool                             m_cmSupported          = true;
 
         SP<CShader>                      m_finalScreenShader;
-        GLuint                           m_currentProgram;
+        GLuint                           m_currentProgram = 0;
 
         void                             initDRMFormats();
         void                             initEGL(bool gbm);

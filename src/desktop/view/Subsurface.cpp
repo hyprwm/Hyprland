@@ -252,7 +252,7 @@ void CSubsurface::damageLastArea() {
         } :
         m_lastSize;
 
-    CBox           box{COORDS, m_lastSize};
+    CBox           box{COORDS, MAX_DAMAGE_SIZE};
     box.expand(4);
     g_pHyprRenderer->damageBox(box);
 }

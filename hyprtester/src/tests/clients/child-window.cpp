@@ -8,7 +8,6 @@
 #include <hyprutils/os/Process.hpp>
 
 #include <optional>
-#include <sys/poll.h>
 #include <unistd.h>
 #include <csignal>
 #include <thread>
@@ -34,10 +33,8 @@ static bool waitForWindow(SP<CProcess> proc, int windowsBefore) {
 
 namespace {
     class CClient {
-        SP<CProcess>           proc;
-        std::array<char, 1024> readBuf;
-        CFileDescriptor        readFd, writeFd;
-        struct pollfd          fds;
+        SP<CProcess>    proc;
+        CFileDescriptor readFd, writeFd;
 
       public:
         CClient();

@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <utility>
+#include <vector>
 
 #include <wayland-client.h>
 #include <wayland.hpp>
@@ -42,6 +43,8 @@ struct SWlState {
 
     CSharedPointer<CCWlKeyboard>   keyboard;
     uint32_t                       lastLocked = 0;
+
+    std::vector<std::pair<uint32_t, uint32_t>> keyEvents;
 };
 
 static std::ofstream logfile;
@@ -211,7 +214,10 @@ static bool setupSeat(SWlState& state) {
         state.lastLocked = locked;
     });
 
-    state.keyboard->setKey([&](CCWlKeyboard* p, uint32_t serial, uint32_t time, uint32_t key, uint32_t state) { debugLog("Got key event: key={} state={}", key, state); });
+    state.keyboard->setKey([&](CCWlKeyboard* p, uint32_t serial, uint32_t time, uint32_t key, uint32_t keyState) {
+        state.keyEvents.emplace_back(key, keyState);
+        debugLog("Got key event: key={} state={}", key, keyState);
+    });
 
     return true;
 }
@@ -219,7 +225,16 @@ static bool setupSeat(SWlState& state) {
 static void parseRequest(SWlState& state, std::string req) {
     if (req.starts_with("get"))
         clientLog("{}", state.lastLocked);
-    else if (req.starts_with("exit"))
+    else if (req.starts_with("keys")) {
+        uint32_t pressed = 0, released = 0;
+        for (const auto& [code, keyState] : state.keyEvents) {
+            if (keyState == 1)
+                ++pressed;
+            else if (keyState == 0)
+                ++released;
+        }
+        clientLog("{} {}", pressed, released);
+    } else if (req.starts_with("exit"))
         shouldExit = true;
 }
 

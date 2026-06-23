@@ -229,6 +229,8 @@ static std::expected<WindowRuleEffectValue, std::string> parseWindowRuleEffect(C
         case WINDOW_RULE_EFFECT_PSEUDO:
         case WINDOW_RULE_EFFECT_NOINITIALFOCUS:
         case WINDOW_RULE_EFFECT_PIN:
+        case WINDOW_RULE_EFFECT_NOMOUSEMOVE:
+        case WINDOW_RULE_EFFECT_NOMOUSERESIZE:
         case WINDOW_RULE_EFFECT_PERSISTENT_SIZE:
         case WINDOW_RULE_EFFECT_ALLOWS_INPUT:
         case WINDOW_RULE_EFFECT_DIM_AROUND:

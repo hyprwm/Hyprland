@@ -329,6 +329,9 @@ void CFullscreenController::setFullscreenMode(const PHLWINDOW window, const std:
     }
 
 
+    targetInternalMode = std::clamp(targetInternalMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+    targetClientMode = std::clamp(targetClientMode, sc<eFullscreenMode>(0), FSMODE_MAX);
+
 
     // set new FS state in the correct handler
     setWindowFullscreenModeInternal(window, targetInternalMode, layoutAware.value_or(IS_LAYOUT_HANDLED), false);

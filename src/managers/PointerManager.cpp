@@ -31,23 +31,6 @@
 
 using namespace Hyprutils::Utils;
 
-static bool cursorTransformSwapsAxes(wl_output_transform transform) {
-    switch (transform) {
-        case WL_OUTPUT_TRANSFORM_90:
-        case WL_OUTPUT_TRANSFORM_270:
-        case WL_OUTPUT_TRANSFORM_FLIPPED_90:
-        case WL_OUTPUT_TRANSFORM_FLIPPED_270: return true;
-        default: return false;
-    }
-}
-
-static Vector2D transformedCursorContentSize(const Vector2D& size, wl_output_transform transform) {
-    if (cursorTransformSwapsAxes(transform))
-        return {size.y, size.x};
-
-    return size;
-}
-
 CPointerManager::CPointerManager() {
     m_hooks.monitorAdded = Event::bus()->m_events.monitor.added.listen([this](PHLMONITOR monitor) {
         onMonitorLayoutChange();
@@ -693,10 +676,11 @@ Vector2D CPointerManager::transformedHotspot(PHLMONITOR pMonitor) {
         return {}; // doesn't matter, we have no hw cursor, and this is only for hw cursors
 
     const auto SCALEDCURSORSIZE = m_currentCursorImage.size / m_currentCursorImage.scale * pMonitor->m_scale;
-    const auto CONTENTSIZE      = transformedCursorContentSize(SCALEDCURSORSIZE, pMonitor->m_transform);
 
-    return CBox{m_currentCursorImage.hotspot * pMonitor->m_scale, {0, 0}}
-        .transform(Math::wlTransformToHyprutils(Math::invertTransform(pMonitor->m_transform)), CONTENTSIZE.x, CONTENTSIZE.y)
+    // A hotspot identifies a pixel, not a zero-sized point. Transforming a
+    // zero-sized box produces a one-past-the-edge coordinate for rotations.
+    return CBox{m_currentCursorImage.hotspot * pMonitor->m_scale, {1, 1}}
+        .transform(Math::wlTransformToHyprutils(Math::invertTransform(pMonitor->m_transform)), SCALEDCURSORSIZE.x, SCALEDCURSORSIZE.y)
         .pos();
 }
 

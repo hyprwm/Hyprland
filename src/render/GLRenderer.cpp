@@ -148,11 +148,14 @@ void CHyprGLRenderer::endRender(const std::function<void()>& renderingDoneCallba
             PMONITOR->m_output->state->setExplicitInFence(PMONITOR->m_inFence.get());
         }
     } else {
-        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, waiting before releasing resources");
+        Log::logger->log(Log::ERR, "renderer: Explicit sync failed, falling back to implicit sync");
 
-        // Fence export failed after rendering. Without a fence, wait before
-        // dropping buffer refs that may still be used by the GPU.
-        glFinish();
+        // Match the implicit-sync fallback above: only drivers without usable
+        // implicit synchronization need the blocking wait.
+        if ((isNvidia() && *PNVIDIAANTIFLICKER) || isSoftware())
+            glFinish();
+        else
+            glFlush();
 
         if (m_renderMode == RENDER_MODE_NORMAL && PMONITOR) {
             PMONITOR->m_inFence.reset();

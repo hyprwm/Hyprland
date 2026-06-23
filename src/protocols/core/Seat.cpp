@@ -168,6 +168,8 @@ void CWLPointerResource::sendEnter(SP<CWLSurfaceResource> surface, const Vector2
         return;
 
     if (m_preservedButtonSurface == surface) {
+        m_pressedButtons.insert(m_pressedButtons.end(), m_preservedButtons.begin(), m_preservedButtons.end());
+        m_preservedButtons.clear();
         m_preservedButtonSurface.reset();
         m_listeners.destroyPreservedButtonSurface.reset();
     }
@@ -196,22 +198,23 @@ void CWLPointerResource::sendLeave(bool preserveButtons) {
 
     // release all buttons unless we have a dnd going on in which case
     // the events shall be lost.
-    if (!preserveButtons && !m_preservedButtonSurface && !PROTO::data->dndActive()) {
+    if (!preserveButtons && !PROTO::data->dndActive()) {
         const auto PRESSEDBUTTONS = m_pressedButtons;
         for (auto const& b : PRESSEDBUTTONS) {
             sendButton(Time::millis(Time::steadyNow()), b, WL_POINTER_BUTTON_STATE_RELEASED);
         }
     }
 
-    if (!preserveButtons && !m_preservedButtonSurface)
+    if (!preserveButtons)
         m_pressedButtons.clear();
 
     m_resource->sendLeave(g_pSeatManager->nextSerial(m_owner.lock()), m_currentSurface->getResource().get());
 
     if (preserveButtons && !m_preservedButtonSurface && !m_pressedButtons.empty()) {
         m_preservedButtonSurface                  = m_currentSurface;
+        m_preservedButtons                        = std::move(m_pressedButtons);
         m_listeners.destroyPreservedButtonSurface = m_currentSurface->m_events.destroy.listen([this] {
-            m_pressedButtons.clear();
+            m_preservedButtons.clear();
             m_preservedButtonSurface.reset();
             m_listeners.destroyPreservedButtonSurface.reset();
         });
@@ -254,11 +257,13 @@ void CWLPointerResource::sendButton(uint32_t timeMs, uint32_t button, wl_pointer
         m_pressedButtons.emplace_back(button);
 
     m_resource->sendButton(g_pSeatManager->nextSerial(m_owner.lock()), timeMs, button, state);
+}
 
-    if (state == WL_POINTER_BUTTON_STATE_RELEASED && m_pressedButtons.empty() && m_preservedButtonSurface) {
-        m_preservedButtonSurface.reset();
-        m_listeners.destroyPreservedButtonSurface.reset();
-    }
+SP<CWLSurfaceResource> CWLPointerResource::preservedButtonSurface(uint32_t button) const {
+    if (std::ranges::find(m_preservedButtons, button) == m_preservedButtons.end())
+        return nullptr;
+
+    return m_preservedButtonSurface.lock();
 }
 
 void CWLPointerResource::sendAxis(uint32_t timeMs, wl_pointer_axis axis, double value) {

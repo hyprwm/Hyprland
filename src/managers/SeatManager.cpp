@@ -319,6 +319,19 @@ void CSeatManager::sendPointerButton(uint32_t timeMs, uint32_t key, wl_pointer_b
     }
 }
 
+SP<CWLSurfaceResource> CSeatManager::preservedPointerButtonSurface(uint32_t button) const {
+    for (const auto& pointer : PROTO::seat->m_pointers) {
+        if (!pointer)
+            continue;
+
+        const auto SURFACE = pointer->preservedButtonSurface(button);
+        if (SURFACE)
+            return SURFACE;
+    }
+
+    return nullptr;
+}
+
 void CSeatManager::sendPointerFrame() {
     if (!m_state.pointerFocusResource)
         return;
